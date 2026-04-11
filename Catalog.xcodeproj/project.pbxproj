@@ -7,28 +7,42 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A00000000000000000000011 /* CatalogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* CatalogApp.swift */; };
-		A00000000000000000000012 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* ContentView.swift */; };
-		A00000000000000000000013 /* Bell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* Bell.swift */; };
-		A00000000000000000000014 /* CatalogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000004 /* CatalogStore.swift */; };
-		A00000000000000000000015 /* BellCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000005 /* BellCatalogView.swift */; };
-		A00000000000000000000016 /* BellDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000006 /* BellDetailView.swift */; };
-		A00000000000000000000017 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000007 /* Assets.xcassets */; };
+		B00000000000000000000011 /* CatalogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* CatalogApp.swift */; };
+		B00000000000000000000012 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* AppContainer.swift */; };
+		B00000000000000000000013 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* AppRouter.swift */; };
+		B00000000000000000000014 /* CollectionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000004 /* CollectionCard.swift */; };
+		B00000000000000000000015 /* CollectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000005 /* CollectionModels.swift */; };
+		B00000000000000000000016 /* BellItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* BellItem.swift */; };
+		B00000000000000000000017 /* SharingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* SharingModels.swift */; };
+		B00000000000000000000018 /* CatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* CatalogRepository.swift */; };
+		B00000000000000000000019 /* InMemoryCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000009 /* InMemoryCatalogRepository.swift */; };
+		B0000000000000000000001A /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000A /* HomeView.swift */; };
+		B0000000000000000000001B /* BellCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* BellCatalogView.swift */; };
+		B0000000000000000000001C /* BellDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000C /* BellDetailView.swift */; };
+		B0000000000000000000001D /* BookLibraryPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000D /* BookLibraryPlaceholderView.swift */; };
+		B0000000000000000000001E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000E /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A00000000000000000000001 /* CatalogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogApp.swift; sourceTree = "<group>"; };
-		A00000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		A00000000000000000000003 /* Bell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bell.swift; sourceTree = "<group>"; };
-		A00000000000000000000004 /* CatalogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogStore.swift; sourceTree = "<group>"; };
-		A00000000000000000000005 /* BellCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogView.swift; sourceTree = "<group>"; };
-		A00000000000000000000006 /* BellDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellDetailView.swift; sourceTree = "<group>"; };
-		A00000000000000000000007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A00000000000000000000008 /* Catalog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Catalog.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000001 /* CatalogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogApp.swift; sourceTree = "<group>"; };
+		B00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
+		B00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
+		B00000000000000000000004 /* CollectionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionCard.swift; sourceTree = "<group>"; };
+		B00000000000000000000005 /* CollectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionModels.swift; sourceTree = "<group>"; };
+		B00000000000000000000006 /* BellItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellItem.swift; sourceTree = "<group>"; };
+		B00000000000000000000007 /* SharingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingModels.swift; sourceTree = "<group>"; };
+		B00000000000000000000008 /* CatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogRepository.swift; sourceTree = "<group>"; };
+		B00000000000000000000009 /* InMemoryCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryCatalogRepository.swift; sourceTree = "<group>"; };
+		B0000000000000000000000A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		B0000000000000000000000B /* BellCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogView.swift; sourceTree = "<group>"; };
+		B0000000000000000000000C /* BellDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellDetailView.swift; sourceTree = "<group>"; };
+		B0000000000000000000000D /* BookLibraryPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookLibraryPlaceholderView.swift; sourceTree = "<group>"; };
+		B0000000000000000000000E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B0000000000000000000000F /* Catalog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Catalog.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		A00000000000000000000021 /* Frameworks */ = {
+		B00000000000000000000021 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -38,86 +52,213 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		A00000000000000000000031 = {
+		B00000000000000000000031 = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000032 /* Catalog */,
-				A00000000000000000000033 /* Products */,
+				B00000000000000000000032 /* Catalog */,
+				B00000000000000000000033 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		A00000000000000000000032 /* Catalog */ = {
+		B00000000000000000000032 /* Catalog */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000034 /* App */,
-				A00000000000000000000035 /* Domain */,
-				A00000000000000000000036 /* Features */,
-				A00000000000000000000037 /* Resources */,
+				B00000000000000000000034 /* App */,
+				B00000000000000000000035 /* Core */,
+				B00000000000000000000036 /* Domain */,
+				B00000000000000000000037 /* Data */,
+				B00000000000000000000038 /* Features */,
+				B00000000000000000000039 /* Resources */,
 			);
 			path = Catalog;
 			sourceTree = "<group>";
 		};
-		A00000000000000000000033 /* Products */ = {
+		B00000000000000000000033 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000008 /* Catalog.app */,
+				B0000000000000000000000F /* Catalog.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A00000000000000000000034 /* App */ = {
+		B00000000000000000000034 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000001 /* CatalogApp.swift */,
-				A00000000000000000000002 /* ContentView.swift */,
+				B00000000000000000000001 /* CatalogApp.swift */,
+				B00000000000000000000002 /* AppContainer.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
 		};
-		A00000000000000000000035 /* Domain */ = {
+		B00000000000000000000035 /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000003 /* Bell.swift */,
-				A00000000000000000000004 /* CatalogStore.swift */,
+				B0000000000000000000003A /* Navigation */,
+				B0000000000000000000003B /* SharedUI */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000036 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000003C /* Collections */,
+				B0000000000000000000003D /* Items */,
+				B0000000000000000000003E /* Sharing */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
 		};
-		A00000000000000000000036 /* Features */ = {
+		B00000000000000000000037 /* Data */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000038 /* Bells */,
+				B0000000000000000000003F /* Repositories */,
+				B00000000000000000000040 /* PreviewData */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000038 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000041 /* Collections */,
+				B00000000000000000000042 /* Bells */,
+				B00000000000000000000043 /* Books */,
 			);
 			path = Features;
 			sourceTree = "<group>";
 		};
-		A00000000000000000000037 /* Resources */ = {
+		B00000000000000000000039 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000007 /* Assets.xcassets */,
+				B0000000000000000000000E /* Assets.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		A00000000000000000000038 /* Bells */ = {
+		B0000000000000000000003A /* Navigation */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000005 /* BellCatalogView.swift */,
-				A00000000000000000000006 /* BellDetailView.swift */,
+				B00000000000000000000003 /* AppRouter.swift */,
+			);
+			path = Navigation;
+			sourceTree = "<group>";
+		};
+		B0000000000000000000003B /* SharedUI */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000004 /* CollectionCard.swift */,
+			);
+			path = SharedUI;
+			sourceTree = "<group>";
+		};
+		B0000000000000000000003C /* Collections */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000005 /* CollectionModels.swift */,
+			);
+			path = Collections;
+			sourceTree = "<group>";
+		};
+		B0000000000000000000003D /* Items */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000006 /* BellItem.swift */,
+			);
+			path = Items;
+			sourceTree = "<group>";
+		};
+		B0000000000000000000003E /* Sharing */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000007 /* SharingModels.swift */,
+			);
+			path = Sharing;
+			sourceTree = "<group>";
+		};
+		B0000000000000000000003F /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000008 /* CatalogRepository.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000040 /* PreviewData */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000009 /* InMemoryCatalogRepository.swift */,
+			);
+			path = PreviewData;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000041 /* Collections */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000044 /* Home */,
+			);
+			path = Collections;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000042 /* Bells */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000045 /* List */,
+				B00000000000000000000046 /* Detail */,
 			);
 			path = Bells;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000043 /* Books */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000047 /* Library */,
+			);
+			path = Books;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000044 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000A /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000045 /* List */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000B /* BellCatalogView.swift */,
+			);
+			path = List;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000046 /* Detail */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000C /* BellDetailView.swift */,
+			);
+			path = Detail;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000047 /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000D /* BookLibraryPlaceholderView.swift */,
+			);
+			path = Library;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A00000000000000000000041 /* Catalog */ = {
+		B00000000000000000000051 /* Catalog */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A00000000000000000000051 /* Build configuration list for PBXNativeTarget "Catalog" */;
+			buildConfigurationList = B00000000000000000000061 /* Build configuration list for PBXNativeTarget "Catalog" */;
 			buildPhases = (
-				A00000000000000000000022 /* Sources */,
-				A00000000000000000000021 /* Frameworks */,
-				A00000000000000000000023 /* Resources */,
+				B00000000000000000000022 /* Sources */,
+				B00000000000000000000021 /* Frameworks */,
+				B00000000000000000000023 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -129,72 +270,79 @@
 			packageProductDependencies = (
 			);
 			productName = Catalog;
-			productReference = A00000000000000000000008 /* Catalog.app */;
+			productReference = B0000000000000000000000F /* Catalog.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		A00000000000000000000042 /* Project object */ = {
+		B00000000000000000000052 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
-					A00000000000000000000041 = {
+					B00000000000000000000051 = {
 						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
-			buildConfigurationList = A00000000000000000000052 /* Build configuration list for PBXProject "Catalog" */;
+			buildConfigurationList = B00000000000000000000062 /* Build configuration list for PBXProject "Catalog" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = A00000000000000000000031;
+			mainGroup = B00000000000000000000031;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = A00000000000000000000033 /* Products */;
+			productRefGroup = B00000000000000000000033 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A00000000000000000000041 /* Catalog */,
+				B00000000000000000000051 /* Catalog */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A00000000000000000000023 /* Resources */ = {
+		B00000000000000000000023 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A00000000000000000000017 /* Assets.xcassets in Resources */,
+				B0000000000000000000001E /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A00000000000000000000022 /* Sources */ = {
+		B00000000000000000000022 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A00000000000000000000011 /* CatalogApp.swift in Sources */,
-				A00000000000000000000012 /* ContentView.swift in Sources */,
-				A00000000000000000000013 /* Bell.swift in Sources */,
-				A00000000000000000000014 /* CatalogStore.swift in Sources */,
-				A00000000000000000000015 /* BellCatalogView.swift in Sources */,
-				A00000000000000000000016 /* BellDetailView.swift in Sources */,
+				B00000000000000000000011 /* CatalogApp.swift in Sources */,
+				B00000000000000000000012 /* AppContainer.swift in Sources */,
+				B00000000000000000000013 /* AppRouter.swift in Sources */,
+				B00000000000000000000014 /* CollectionCard.swift in Sources */,
+				B00000000000000000000015 /* CollectionModels.swift in Sources */,
+				B00000000000000000000016 /* BellItem.swift in Sources */,
+				B00000000000000000000017 /* SharingModels.swift in Sources */,
+				B00000000000000000000018 /* CatalogRepository.swift in Sources */,
+				B00000000000000000000019 /* InMemoryCatalogRepository.swift in Sources */,
+				B0000000000000000000001A /* HomeView.swift in Sources */,
+				B0000000000000000000001B /* BellCatalogView.swift in Sources */,
+				B0000000000000000000001C /* BellDetailView.swift in Sources */,
+				B0000000000000000000001D /* BookLibraryPlaceholderView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		A00000000000000000000061 /* Debug */ = {
+		B00000000000000000000071 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -215,7 +363,7 @@
 			};
 			name = Debug;
 		};
-		A00000000000000000000062 /* Release */ = {
+		B00000000000000000000072 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -232,7 +380,7 @@
 			};
 			name = Release;
 		};
-		A00000000000000000000063 /* Debug */ = {
+		B00000000000000000000073 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -264,7 +412,7 @@
 			};
 			name = Debug;
 		};
-		A00000000000000000000064 /* Release */ = {
+		B00000000000000000000074 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -299,25 +447,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A00000000000000000000051 /* Build configuration list for PBXNativeTarget "Catalog" */ = {
+		B00000000000000000000061 /* Build configuration list for PBXNativeTarget "Catalog" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				A00000000000000000000063 /* Debug */,
-				A00000000000000000000064 /* Release */,
+				B00000000000000000000073 /* Debug */,
+				B00000000000000000000074 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A00000000000000000000052 /* Build configuration list for PBXProject "Catalog" */ = {
+		B00000000000000000000062 /* Build configuration list for PBXProject "Catalog" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				A00000000000000000000061 /* Debug */,
-				A00000000000000000000062 /* Release */,
+				B00000000000000000000071 /* Debug */,
+				B00000000000000000000072 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = A00000000000000000000042 /* Project object */;
+	rootObject = B00000000000000000000052 /* Project object */;
 }

@@ -2,11 +2,11 @@ import SwiftUI
 
 @main
 struct CatalogApp: App {
-    private let store = CatalogStore()
+    private let container = AppContainer.preview
 
     var body: some Scene {
         WindowGroup {
-            ContentView(store: store)
+            HomeView(repository: container.repository)
         }
     }
 }

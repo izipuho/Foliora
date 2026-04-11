@@ -1,15 +1,15 @@
 import SwiftUI
 
 struct BellDetailView: View {
-    let bell: Bell
+    let bell: BellItem
 
     var body: some View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(bell.name)
+                    Text(bell.title)
                         .font(.title2.bold())
-                    Text("\(bell.city), \(bell.country)")
+                    Text("\(bell.originCity), \(bell.originCountry)")
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
@@ -19,6 +19,7 @@ struct BellDetailView: View {
                 detailRow("Материал", value: bell.material)
                 detailRow("Состояние", value: bell.condition.rawValue)
                 detailRow("Способ появления", value: bell.acquisition.rawValue)
+                detailRow("Добавил", value: bell.createdBy)
                 if let year = bell.year {
                     detailRow("Год", value: String(year))
                 }
@@ -52,7 +53,9 @@ struct BellDetailView: View {
 struct BellDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
-            BellDetailView(bell: CatalogStore().bells[0])
+            let repository = InMemoryCatalogRepository()
+            let collection = repository.fetchCollections().first { $0.kind == .bells }!
+            BellDetailView(bell: repository.fetchBellItems(for: collection.id)[0])
         }
     }
 }
