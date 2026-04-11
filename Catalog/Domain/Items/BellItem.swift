@@ -1,5 +1,29 @@
 import Foundation
 
+struct BellDetails: Identifiable, Hashable {
+    let itemID: UUID
+    let originPlaceID: UUID?
+    var material: BellMaterial
+    var customMaterialName: String?
+
+    var id: UUID { itemID }
+}
+
+enum BellMaterial: String, CaseIterable, Hashable, Identifiable {
+    case brass
+    case bronze
+    case ceramic
+    case porcelain
+    case glass
+    case wood
+    case silver
+    case other
+
+    var id: String { rawValue }
+}
+
+typealias BellCondition = ItemCondition
+
 struct BellItem: Identifiable, Hashable {
     let id: UUID
     let collectionID: UUID
@@ -13,21 +37,4 @@ struct BellItem: Identifiable, Hashable {
     var notes: String
     var tags: [String]
     var createdBy: String
-}
-
-enum BellCondition: String, CaseIterable, Identifiable {
-    case pristine = "Отличное"
-    case good = "Хорошее"
-    case restoration = "Нужно восстановление"
-
-    var id: String { rawValue }
-}
-
-enum AcquisitionMethod: String, CaseIterable, Identifiable {
-    case travel = "Привезен из поездки"
-    case gift = "Подарок"
-    case market = "Покупка"
-    case family = "Семейная вещь"
-
-    var id: String { rawValue }
 }

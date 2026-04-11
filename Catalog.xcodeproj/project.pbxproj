@@ -14,6 +14,9 @@
 		B00000000000000000000015 /* CollectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000005 /* CollectionModels.swift */; };
 		B00000000000000000000016 /* BellItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* BellItem.swift */; };
 		B00000000000000000000017 /* SharingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* SharingModels.swift */; };
+		B00000000000000000000020 /* ItemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* ItemModels.swift */; };
+		B00000000000000000000024 /* MediaAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* MediaAsset.swift */; };
+		B00000000000000000000025 /* Place.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* Place.swift */; };
 		B00000000000000000000018 /* CatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* CatalogRepository.swift */; };
 		B00000000000000000000019 /* InMemoryCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000009 /* InMemoryCatalogRepository.swift */; };
 		B0000000000000000000001A /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000A /* HomeView.swift */; };
@@ -31,6 +34,9 @@
 		B00000000000000000000005 /* CollectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionModels.swift; sourceTree = "<group>"; };
 		B00000000000000000000006 /* BellItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellItem.swift; sourceTree = "<group>"; };
 		B00000000000000000000007 /* SharingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingModels.swift; sourceTree = "<group>"; };
+		B00000000000000000000010 /* ItemModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemModels.swift; sourceTree = "<group>"; };
+		B00000000000000000000011 /* MediaAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAsset.swift; sourceTree = "<group>"; };
+		B00000000000000000000012 /* Place.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Place.swift; sourceTree = "<group>"; };
 		B00000000000000000000008 /* CatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogRepository.swift; sourceTree = "<group>"; };
 		B00000000000000000000009 /* InMemoryCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryCatalogRepository.swift; sourceTree = "<group>"; };
 		B0000000000000000000000A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -163,7 +169,10 @@
 		B0000000000000000000003D /* Items */ = {
 			isa = PBXGroup;
 			children = (
+				B00000000000000000000010 /* ItemModels.swift */,
 				B00000000000000000000006 /* BellItem.swift */,
+				B00000000000000000000011 /* MediaAsset.swift */,
+				B00000000000000000000012 /* Place.swift */,
 			);
 			path = Items;
 			sourceTree = "<group>";
@@ -326,7 +335,10 @@
 				B00000000000000000000013 /* AppRouter.swift in Sources */,
 				B00000000000000000000014 /* CollectionCard.swift in Sources */,
 				B00000000000000000000015 /* CollectionModels.swift in Sources */,
+				B00000000000000000000020 /* ItemModels.swift in Sources */,
 				B00000000000000000000016 /* BellItem.swift in Sources */,
+				B00000000000000000000024 /* MediaAsset.swift in Sources */,
+				B00000000000000000000025 /* Place.swift in Sources */,
 				B00000000000000000000017 /* SharingModels.swift in Sources */,
 				B00000000000000000000018 /* CatalogRepository.swift in Sources */,
 				B00000000000000000000019 /* InMemoryCatalogRepository.swift in Sources */,

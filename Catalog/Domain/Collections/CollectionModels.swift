@@ -1,6 +1,39 @@
 import Foundation
 import SwiftUI
 
+struct Home: Identifiable, Hashable {
+    let id: UUID
+    var name: String
+    var notes: String
+}
+
+struct Location: Identifiable, Hashable {
+    let id: UUID
+    let homeID: UUID
+    let parentLocationID: UUID?
+    var kind: LocationKind
+    var name: String
+    var notes: String
+}
+
+struct Collection: Identifiable, Hashable {
+    let id: UUID
+    let homeID: UUID
+    var kind: CollectionKind
+    var title: String
+    var notes: String
+}
+
+enum LocationKind: String, CaseIterable, Hashable, Identifiable {
+    case floor
+    case room
+    case cabinet
+    case shelf
+    case box
+
+    var id: String { rawValue }
+}
+
 enum CollectionKind: String, CaseIterable, Hashable, Identifiable {
     case bells
     case books

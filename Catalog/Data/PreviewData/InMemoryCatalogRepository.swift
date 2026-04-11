@@ -45,8 +45,8 @@ struct InMemoryCatalogRepository: CatalogRepository {
                 originCity: "Ярославль",
                 material: "Латунь",
                 year: 2018,
-                condition: .pristine,
-                acquisition: .travel,
+                condition: .mint,
+                acquisition: .bought,
                 notes: "Куплен в музейной лавке. Звон высокий и очень чистый.",
                 tags: ["путешествие", "музей", "золотое кольцо"],
                 createdBy: "Вы"
@@ -60,7 +60,7 @@ struct InMemoryCatalogRepository: CatalogRepository {
                 material: "Керамика",
                 year: 2022,
                 condition: .good,
-                acquisition: .gift,
+                acquisition: .gifted,
                 notes: "Подарок от друзей. На ручке нарисована веточка лаванды.",
                 tags: ["подарок", "цветочный", "ручная работа"],
                 createdBy: "Марина"
@@ -73,8 +73,8 @@ struct InMemoryCatalogRepository: CatalogRepository {
                 originCity: "Флоренция",
                 material: "Бронза",
                 year: 1960,
-                condition: .restoration,
-                acquisition: .market,
+                condition: .needsRestoration,
+                acquisition: .bought,
                 notes: "Есть небольшая трещина у язычка, но форма хорошо сохранилась.",
                 tags: ["винтаж", "блошиный рынок", "редкость"],
                 createdBy: "Алексей"
