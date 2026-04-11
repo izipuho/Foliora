@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct CatalogApp: App {
-    private let container = AppContainer.preview
+    private let container = AppContainer(repository: InMemoryCatalogRepository())
 
     var body: some Scene {
         WindowGroup {
