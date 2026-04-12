@@ -77,6 +77,15 @@ struct BellCatalogView: View {
             .ignoresSafeArea()
         )
         .navigationTitle(collection.kind.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
     }
 
     private var header: some View {
@@ -110,14 +119,7 @@ struct BellCatalogView: View {
             }
         }
         .padding(20)
-        .background(
-            LinearGradient(
-                colors: [Color.white.opacity(0.92), Color.white.opacity(0.74)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 28, style: .continuous)
-        )
+        .background(Color.white.opacity(0.70), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
 
     private var searchSection: some View {
@@ -170,7 +172,7 @@ struct BellCatalogView: View {
             }
         }
         .padding(16)
-        .background(Color.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(Color.white.opacity(0.48), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }
 

@@ -39,6 +39,15 @@ struct BookLibraryPlaceholderView: View {
             .ignoresSafeArea()
         )
         .navigationTitle(collection.kind.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                } label: {
+                    Image(systemName: "books.vertical.circle")
+                }
+            }
+        }
     }
 }
 

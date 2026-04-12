@@ -1,8 +1,8 @@
 import SwiftUI
 
 enum RootTab: String, CaseIterable, Identifiable {
-    case homes
     case collections
+    case homes
     case search
     case settings
 
@@ -10,10 +10,10 @@ enum RootTab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .homes:
-            return "Дома"
         case .collections:
             return "Коллекции"
+        case .homes:
+            return "Дома"
         case .search:
             return "Поиск"
         case .settings:
@@ -23,41 +23,54 @@ enum RootTab: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
-        case .homes:
-            return "house"
         case .collections:
             return "square.grid.2x2"
+        case .homes:
+            return "house"
         case .search:
             return "magnifyingglass"
         case .settings:
-            return "slider.horizontal.3"
+            return "gearshape"
         }
     }
 }
 
 struct AppShellView: View {
     let repository: any CatalogRepository
-    @State private var selectedTab: RootTab = .homes
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Group {
-                switch selectedTab {
-                case .homes:
-                    HomeView(repository: repository)
-                case .collections:
-                    CollectionsView(repository: repository)
-                case .search:
-                    SearchView(repository: repository)
-                case .settings:
-                    SettingsView()
-                }
+        ModernAppShellView(repository: repository)
+    }
+}
+
+private struct ModernAppShellView: View {
+    let repository: any CatalogRepository
+
+    var body: some View {
+        TabView {
+            Tab("Коллекции", systemImage: RootTab.collections.systemImage) {
+                CollectionsView(repository: repository)
             }
 
-            GlassTabBar(selectedTab: $selectedTab)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 10)
+            Tab("Дома", systemImage: RootTab.homes.systemImage) {
+                HomeView(repository: repository)
+            }
+
+            Tab(role: .search) {
+                SearchTabView()
+            }
+
+            Tab("Настройки", systemImage: RootTab.settings.systemImage) {
+                SettingsView()
+            }
         }
+        .modifier(ModernTabBarBehavior())
+        .tabViewSearchActivation(.searchTabSelection)
+    }
+}
+private struct ModernTabBarBehavior: ViewModifier {
+    func body(content: Content) -> some View {
+        content.tabBarMinimizeBehavior(.onScrollDown)
     }
 }
 
@@ -97,6 +110,14 @@ struct HomeView: View {
                 .ignoresSafeArea()
             )
             .navigationTitle("Дом")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
         }
     }
 
@@ -158,6 +179,14 @@ struct CollectionsView: View {
                 .ignoresSafeArea()
             )
             .navigationTitle("Коллекции")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                    }
+                }
+            }
             .navigationDestination(for: AppDestination.self) { destination in
                 switch destination {
                 case .collection(let collection):
@@ -173,61 +202,6 @@ struct CollectionsView: View {
                     }
                 }
             }
-        }
-    }
-}
-
-private struct SearchView: View {
-    let repository: any CatalogRepository
-    @State private var query = ""
-
-    private var collections: [CollectionSummary] {
-        repository.fetchCollections().filter {
-            query.isEmpty || $0.name.localizedCaseInsensitiveContains(query)
-        }
-    }
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    TextField("Search collections", text: $query)
-                        .textInputAutocapitalization(.never)
-                        .padding(14)
-                        .background(Color.white.opacity(0.84), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                    if collections.isEmpty {
-                        ContentUnavailableView(
-                            "Ничего не найдено",
-                            systemImage: "magnifyingglass",
-                            description: Text("Попробуй другой запрос.")
-                        )
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 40)
-                    } else {
-                        ForEach(collections) { collection in
-                            CollectionCard(collection: collection)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 120)
-            }
-            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.96, green: 0.97, blue: 0.94),
-                        Color(red: 0.92, green: 0.93, blue: 0.90)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            )
-            .navigationTitle("Поиск")
         }
     }
 }
@@ -273,6 +247,14 @@ private struct SettingsView: View {
                 .ignoresSafeArea()
             )
             .navigationTitle("Настройки")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                    } label: {
+                        Image(systemName: "gearshape.2")
+                    }
+                }
+            }
         }
     }
 
@@ -298,45 +280,29 @@ private struct SettingsView: View {
     }
 }
 
-private struct GlassTabBar: View {
-    @Binding var selectedTab: RootTab
+private struct SearchTabView: View {
+    @State private var query = ""
+    @State private var isSearchPresented = true
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
-        HStack(spacing: 10) {
-            ForEach(RootTab.allCases) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    VStack(spacing: 6) {
-                        Image(systemName: tab.systemImage)
-                            .font(.system(size: 17, weight: .semibold))
-                        Text(tab.title)
-                            .font(.caption2.weight(.semibold))
-                    }
-                    .foregroundStyle(selectedTab == tab ? Color.black.opacity(0.82) : Color.black.opacity(0.5))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        Group {
-                            if selectedTab == tab {
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(Color.white.opacity(0.42))
-                            }
-                        }
-                    )
-                }
-                .buttonStyle(.plain)
+        Color.clear
+            .ignoresSafeArea()
+            .toolbar(.hidden, for: .navigationBar)
+            .searchable(
+                text: $query,
+                isPresented: $isSearchPresented,
+                prompt: "Search collections"
+            )
+            .searchFocused($isSearchFocused)
+            .defaultFocus($isSearchFocused, true)
+            .onAppear {
+                isSearchPresented = true
+                isSearchFocused = true
             }
-        }
-        .padding(8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.white.opacity(0.35), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 18, y: 10)
     }
 }
+
 
 private struct HomeCard: View {
     let home: Home
@@ -409,17 +375,10 @@ private struct HomeCard: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: [Color.white.opacity(0.94), Color.white.opacity(0.80)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 28, style: .continuous)
-        )
+        .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+                .stroke(Color.white.opacity(0.45), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
     }
