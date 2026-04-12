@@ -286,20 +286,22 @@ private struct SearchTabView: View {
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
-        Color.clear
-            .ignoresSafeArea()
-            .toolbar(.hidden, for: .navigationBar)
-            .searchable(
-                text: $query,
-                isPresented: $isSearchPresented,
-                prompt: "Search collections"
-            )
-            .searchFocused($isSearchFocused)
-            .defaultFocus($isSearchFocused, true)
-            .onAppear {
-                isSearchPresented = true
-                isSearchFocused = true
-            }
+        NavigationStack {
+            Color.clear
+                .ignoresSafeArea()
+                .toolbar(.hidden, for: .navigationBar)
+        }
+        .searchable(
+            text: $query,
+            isPresented: $isSearchPresented,
+            prompt: "Search collections"
+        )
+        .searchFocused($isSearchFocused)
+        .defaultFocus($isSearchFocused, true)
+        .onAppear {
+            isSearchPresented = true
+            isSearchFocused = true
+        }
     }
 }
 
