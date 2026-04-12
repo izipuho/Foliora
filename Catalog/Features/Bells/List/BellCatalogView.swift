@@ -6,19 +6,19 @@ struct BellCatalogView: View {
     let collaborators: [Collaborator]
 
     @State private var searchText = ""
-    @State private var selectedCondition: BellCondition?
+    @State private var selectedCondition: ItemCondition?
 
-    private var bells: [BellItem] {
-        repository.fetchBellItems(for: collection.id)
+    private var bells: [BellRecord] {
+        repository.fetchBellRecords(for: collection.id)
     }
 
-    private var filteredBells: [BellItem] {
+    private var filteredBells: [BellRecord] {
         bells.filter { bell in
             let matchesSearch =
                 searchText.isEmpty ||
                 bell.title.localizedCaseInsensitiveContains(searchText) ||
-                bell.originCountry.localizedCaseInsensitiveContains(searchText) ||
-                bell.originCity.localizedCaseInsensitiveContains(searchText) ||
+                bell.countryName.localizedCaseInsensitiveContains(searchText) ||
+                bell.cityName.localizedCaseInsensitiveContains(searchText) ||
                 bell.tags.joined(separator: " ").localizedCaseInsensitiveContains(searchText)
 
             let matchesCondition = selectedCondition == nil || bell.condition == selectedCondition
@@ -27,11 +27,11 @@ struct BellCatalogView: View {
     }
 
     private var countryCount: Int {
-        Set(bells.map(\.originCountry)).count
+        Set(bells.map(\.countryName).filter { !$0.isEmpty }).count
     }
 
     private var materialCount: Int {
-        Set(bells.map(\.material)).count
+        Set(bells.map(\.materialDisplayName)).count
     }
 
     var body: some View {
@@ -107,7 +107,7 @@ struct BellCatalogView: View {
                         selectedCondition = nil
                     }
 
-                    ForEach(BellCondition.allCases) { condition in
+                    ForEach(ItemCondition.allCases) { condition in
                         FilterChip(title: condition.rawValue, isSelected: selectedCondition == condition) {
                             selectedCondition = condition
                         }
@@ -147,7 +147,7 @@ struct BellCatalogView: View {
 }
 
 private struct BellCardView: View {
-    let bell: BellItem
+    let bell: BellRecord
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -157,7 +157,7 @@ private struct BellCardView: View {
                         .font(.headline)
                         .foregroundStyle(.primary)
 
-                    Text("\(bell.originCity), \(bell.originCountry)")
+                    Text(bell.placeDisplayName)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -170,7 +170,7 @@ private struct BellCardView: View {
             }
 
             HStack {
-                Label(bell.material, systemImage: "shippingbox.fill")
+                Label(bell.materialDisplayName, systemImage: "shippingbox.fill")
                 Spacer()
                 Label(bell.condition.rawValue, systemImage: "checkmark.seal")
             }

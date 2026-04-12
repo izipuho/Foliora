@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct BellDetailView: View {
-    let bell: BellItem
+    let bell: BellRecord
 
     var body: some View {
         List {
@@ -9,16 +9,16 @@ struct BellDetailView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(bell.title)
                         .font(.title2.bold())
-                    Text("\(bell.originCity), \(bell.originCountry)")
+                    Text(bell.placeDisplayName)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
             }
 
             Section("Характеристики") {
-                detailRow("Материал", value: bell.material)
+                detailRow("Материал", value: bell.materialDisplayName)
                 detailRow("Состояние", value: bell.condition.rawValue)
-                detailRow("Способ появления", value: bell.acquisition.rawValue)
+                detailRow("Способ появления", value: bell.acquisitionMethod.rawValue)
                 detailRow("Добавил", value: bell.createdBy)
                 if let year = bell.year {
                     detailRow("Год", value: String(year))
@@ -55,7 +55,7 @@ struct BellDetailView_Previews: PreviewProvider {
         NavigationStack {
             let repository = InMemoryCatalogRepository()
             let collection = repository.fetchCollections().first { $0.kind == .bells }!
-            BellDetailView(bell: repository.fetchBellItems(for: collection.id)[0])
+            BellDetailView(bell: repository.fetchBellRecords(for: collection.id)[0])
         }
     }
 }
