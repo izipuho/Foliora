@@ -32,6 +32,21 @@ enum LocationKind: String, CaseIterable, Hashable, Identifiable {
     case box
 
     var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .floor:
+            return "Floor"
+        case .room:
+            return "Room"
+        case .cabinet:
+            return "Cabinet"
+        case .shelf:
+            return "Shelf"
+        case .box:
+            return "Box"
+        }
+    }
 }
 
 enum CollectionKind: String, CaseIterable, Hashable, Identifiable {
