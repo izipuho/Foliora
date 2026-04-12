@@ -61,22 +61,48 @@ struct HomeView: View {
     }
 
     private var hero: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Универсальный каталог домашних коллекций")
-                .font(.largeTitle.bold())
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Универсальный каталог домашних коллекций")
+                        .font(.largeTitle.bold())
 
-            Text("Фиксированные типы коллекций, отдельный UI для каждого раздела и совместный доступ только по приглашению через Apple ID.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+                    Text("Фиксированные типы коллекций, отдельный UI для каждого раздела и совместный доступ только по приглашению через Apple ID.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 16)
+
+                Image(systemName: "house.lodge.fill")
+                    .font(.system(size: 30, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.55, green: 0.32, blue: 0.15))
+                    .padding(14)
+                    .background(Color.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
 
             HStack(spacing: 12) {
-                heroStat(title: "Коллекций", value: "\(collections.count)")
-                heroStat(title: "Активных", value: "\(collections.filter { $0.status == .active }.count)")
-                heroStat(title: "Шаринг", value: "invite-only")
+                heroStat(title: "Collections", value: "\(collections.count)")
+                heroStat(title: "Active", value: "\(collections.filter { $0.status == .active }.count)")
+                heroStat(title: "Sharing", value: "invite-only")
             }
         }
-        .padding(20)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .padding(22)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 1.0, green: 0.98, blue: 0.94),
+                    Color(red: 0.95, green: 0.92, blue: 0.84)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 30, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(Color.white.opacity(0.55), lineWidth: 1)
+        )
     }
 
     private func heroStat(title: String, value: String) -> some View {
