@@ -177,6 +177,17 @@ private struct BellCardView: View {
             .font(.footnote.weight(.medium))
             .foregroundStyle(.secondary)
 
+            HStack {
+                Label(bell.storageLocationName, systemImage: "shippingbox.circle")
+                Spacer()
+                Label("\(bell.photoCount)", systemImage: "photo")
+                if bell.model3DCount > 0 {
+                    Label("\(bell.model3DCount)", systemImage: "cube.transparent")
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
             Text("Добавил: \(bell.createdBy)")
                 .font(.caption)
                 .foregroundStyle(.secondary)

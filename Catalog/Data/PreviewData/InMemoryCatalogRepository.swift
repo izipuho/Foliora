@@ -1,38 +1,126 @@
 import Foundation
 
 struct InMemoryCatalogRepository: CatalogRepository {
+    private let homeID = UUID(uuidString: "A1000000-0000-0000-0000-000000000001")!
     private let bellCollectionID = UUID(uuidString: "3BC496BE-693A-4AAB-9D1B-7F6FB49B7A5A")!
     private let bookCollectionID = UUID(uuidString: "566FBB01-5EE6-4DCC-A5A1-7D7774866D5B")!
+    private let floorID = UUID(uuidString: "A2000000-0000-0000-0000-000000000001")!
+    private let officeRoomID = UUID(uuidString: "A2000000-0000-0000-0000-000000000002")!
+    private let glassCabinetID = UUID(uuidString: "A2000000-0000-0000-0000-000000000003")!
     private let officeShelfID = UUID(uuidString: "0B9A28CC-D8B6-4554-A60F-D95B39E4C1A1")!
     private let russiaPlaceID = UUID(uuidString: "B5000000-0000-0000-0000-000000000001")!
     private let francePlaceID = UUID(uuidString: "B5000000-0000-0000-0000-000000000002")!
     private let italyPlaceID = UUID(uuidString: "B5000000-0000-0000-0000-000000000003")!
 
-    func fetchCollections() -> [CollectionSummary] {
+    func fetchHomes() -> [Home] {
         [
-            CollectionSummary(
-                id: bellCollectionID,
-                kind: .bells,
-                name: "Колокольчики семьи",
-                subtitle: "Первая живая коллекция с полным доступом по приглашениям.",
-                itemCount: fetchBellRecords(for: bellCollectionID).count,
-                collaboratorCount: fetchCollaborators(for: bellCollectionID).count,
-                role: .owner,
-                status: .active,
-                sharingSummary: "Только по приглашению. Участники входят через Apple ID и получают роль внутри коллекции."
-            ),
-            CollectionSummary(
-                id: bookCollectionID,
-                kind: .books,
-                name: "Домашняя библиотека",
-                subtitle: "Следующий модуль. Будет отдельный UI для книг и собственные сценарии поиска.",
-                itemCount: 0,
-                collaboratorCount: 2,
-                role: .owner,
-                status: .planned,
-                sharingSummary: "Архитектурно уже учтена как отдельная фиксированная коллекция с собственным интерфейсом."
+            Home(
+                id: homeID,
+                name: "Main Home",
+                notes: "Primary living space for household collections."
             )
         ]
+    }
+
+    func fetchLocations(in homeID: UUID) -> [Location] {
+        guard homeID == self.homeID else {
+            return []
+        }
+
+        return [
+            Location(
+                id: floorID,
+                homeID: homeID,
+                parentLocationID: nil,
+                kind: .floor,
+                name: "Second Floor",
+                notes: "Upper level with office and reading space."
+            ),
+            Location(
+                id: officeRoomID,
+                homeID: homeID,
+                parentLocationID: floorID,
+                kind: .room,
+                name: "Office",
+                notes: "Main room for display cabinets and work desk."
+            ),
+            Location(
+                id: glassCabinetID,
+                homeID: homeID,
+                parentLocationID: officeRoomID,
+                kind: .cabinet,
+                name: "Glass Cabinet",
+                notes: "Tall display cabinet for fragile pieces."
+            ),
+            Location(
+                id: officeShelfID,
+                homeID: homeID,
+                parentLocationID: glassCabinetID,
+                kind: .shelf,
+                name: "Top Shelf",
+                notes: "Top shelf used for the bell collection."
+            )
+        ]
+    }
+
+    func fetchDomainCollections(in homeID: UUID) -> [Collection] {
+        guard homeID == self.homeID else {
+            return []
+        }
+
+        return [
+            Collection(
+                id: bellCollectionID,
+                homeID: homeID,
+                kind: .bells,
+                title: "Колокольчики семьи",
+                notes: "Первая живая коллекция с полным доступом по приглашениям."
+            ),
+            Collection(
+                id: bookCollectionID,
+                homeID: homeID,
+                kind: .books,
+                title: "Домашняя библиотека",
+                notes: "Следующий модуль. Будет отдельный UI для книг и собственные сценарии поиска."
+            )
+        ]
+    }
+
+    func fetchMemberships(for collectionID: UUID) -> [Membership] {
+        switch collectionID {
+        case bellCollectionID:
+            return [
+                Membership(id: UUID(uuidString: "C1000000-0000-0000-0000-000000000001")!, collectionID: bellCollectionID, userID: "me", role: .owner, status: .active),
+                Membership(id: UUID(uuidString: "C1000000-0000-0000-0000-000000000002")!, collectionID: bellCollectionID, userID: "marina", role: .editor, status: .active),
+                Membership(id: UUID(uuidString: "C1000000-0000-0000-0000-000000000003")!, collectionID: bellCollectionID, userID: "alexey", role: .contributor, status: .active)
+            ]
+        case bookCollectionID:
+            return [
+                Membership(id: UUID(uuidString: "C2000000-0000-0000-0000-000000000001")!, collectionID: bookCollectionID, userID: "me", role: .owner, status: .active),
+                Membership(id: UUID(uuidString: "C2000000-0000-0000-0000-000000000002")!, collectionID: bookCollectionID, userID: "nina", role: .editor, status: .active)
+            ]
+        default:
+            return []
+        }
+    }
+
+    func fetchCollections() -> [CollectionSummary] {
+        fetchDomainCollections(in: homeID).map { collection in
+            let memberships = fetchMemberships(for: collection.id)
+            let activeMemberships = memberships.filter { $0.status == .active }
+
+            return CollectionSummary(
+                id: collection.id,
+                kind: collection.kind,
+                name: collection.title,
+                subtitle: collection.notes,
+                itemCount: collection.kind == .bells ? fetchBellRecords(for: collection.id).count : 0,
+                collaboratorCount: activeMemberships.count,
+                role: activeMemberships.first(where: { $0.userID == "me" })?.role ?? .viewer,
+                status: collection.kind == .bells ? .active : .planned,
+                sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+            )
+        }
     }
 
     func fetchBellRecords(for collectionID: UUID) -> [BellRecord] {
@@ -42,6 +130,9 @@ struct InMemoryCatalogRepository: CatalogRepository {
 
         let places = bellPlaces()
         let placesByID = Dictionary(uniqueKeysWithValues: places.map { ($0.id, $0) })
+        let locations = fetchLocations(in: homeID)
+        let locationsByID = Dictionary(uniqueKeysWithValues: locations.map { ($0.id, $0) })
+        let mediaAssetsByItemID = Dictionary(grouping: bellMediaAssets(), by: \.itemID)
 
         return [
             BellRecord(
@@ -62,6 +153,8 @@ struct InMemoryCatalogRepository: CatalogRepository {
                     customMaterialName: nil
                 ),
                 originPlace: placesByID[russiaPlaceID],
+                storageLocation: locationsByID[officeShelfID],
+                mediaAssets: mediaAssetsByItemID[UUID(uuidString: "11111111-1111-1111-1111-111111111111")!] ?? [],
                 createdBy: "Вы",
                 tags: ["путешествие", "музей", "золотое кольцо"]
             ),
@@ -83,6 +176,8 @@ struct InMemoryCatalogRepository: CatalogRepository {
                     customMaterialName: nil
                 ),
                 originPlace: placesByID[francePlaceID],
+                storageLocation: locationsByID[officeShelfID],
+                mediaAssets: mediaAssetsByItemID[UUID(uuidString: "22222222-2222-2222-2222-222222222222")!] ?? [],
                 createdBy: "Марина",
                 tags: ["подарок", "цветочный", "ручная работа"]
             ),
@@ -104,6 +199,8 @@ struct InMemoryCatalogRepository: CatalogRepository {
                     customMaterialName: nil
                 ),
                 originPlace: placesByID[italyPlaceID],
+                storageLocation: locationsByID[officeShelfID],
+                mediaAssets: mediaAssetsByItemID[UUID(uuidString: "33333333-3333-3333-3333-333333333333")!] ?? [],
                 createdBy: "Алексей",
                 tags: ["винтаж", "блошиный рынок", "редкость"]
             )
@@ -145,21 +242,60 @@ struct InMemoryCatalogRepository: CatalogRepository {
         ]
     }
 
+    private func bellMediaAssets() -> [MediaAsset] {
+        [
+            MediaAsset(
+                id: UUID(uuidString: "D1000000-0000-0000-0000-000000000001")!,
+                itemID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+                kind: .photo,
+                localIdentifier: "bell-photo-1",
+                sortOrder: 0
+            ),
+            MediaAsset(
+                id: UUID(uuidString: "D1000000-0000-0000-0000-000000000002")!,
+                itemID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
+                kind: .model3D,
+                localIdentifier: "bell-model-1",
+                sortOrder: 1
+            ),
+            MediaAsset(
+                id: UUID(uuidString: "D2000000-0000-0000-0000-000000000001")!,
+                itemID: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
+                kind: .photo,
+                localIdentifier: "bell-photo-2",
+                sortOrder: 0
+            ),
+            MediaAsset(
+                id: UUID(uuidString: "D3000000-0000-0000-0000-000000000001")!,
+                itemID: UUID(uuidString: "33333333-3333-3333-3333-333333333333")!,
+                kind: .document,
+                localIdentifier: "bell-note-1",
+                sortOrder: 0
+            )
+        ]
+    }
+
     func fetchCollaborators(for collectionID: UUID) -> [Collaborator] {
-        switch collectionID {
-        case bellCollectionID:
-            return [
-                Collaborator(id: UUID(uuidString: "AAAAAAA1-AAAA-AAAA-AAAA-AAAAAAAAAAA1")!, displayName: "Вы", role: .owner, isCurrentUser: true),
-                Collaborator(id: UUID(uuidString: "AAAAAAA2-AAAA-AAAA-AAAA-AAAAAAAAAAA2")!, displayName: "Марина", role: .editor, isCurrentUser: false),
-                Collaborator(id: UUID(uuidString: "AAAAAAA3-AAAA-AAAA-AAAA-AAAAAAAAAAA3")!, displayName: "Алексей", role: .contributor, isCurrentUser: false)
-            ]
-        case bookCollectionID:
-            return [
-                Collaborator(id: UUID(uuidString: "BBBBBBB1-BBBB-BBBB-BBBB-BBBBBBBBBB11")!, displayName: "Вы", role: .owner, isCurrentUser: true),
-                Collaborator(id: UUID(uuidString: "BBBBBBB2-BBBB-BBBB-BBBB-BBBBBBBBBB22")!, displayName: "Нина", role: .editor, isCurrentUser: false)
-            ]
-        default:
-            return []
-        }
+        let users = userDirectory()
+
+        return fetchMemberships(for: collectionID)
+            .filter { $0.status == .active }
+            .map { membership in
+                Collaborator(
+                    id: membership.id,
+                    displayName: users[membership.userID] ?? membership.userID,
+                    role: membership.role,
+                    isCurrentUser: membership.userID == "me"
+                )
+            }
+    }
+
+    private func userDirectory() -> [String: String] {
+        [
+            "me": "Вы",
+            "marina": "Марина",
+            "alexey": "Алексей",
+            "nina": "Нина"
+        ]
     }
 }

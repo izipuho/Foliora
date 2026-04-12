@@ -47,6 +47,8 @@ struct BellRecord: Identifiable, Hashable {
     let item: Item
     let details: BellDetails
     let originPlace: Place?
+    let storageLocation: Location?
+    let mediaAssets: [MediaAsset]
     let createdBy: String
     let tags: [String]
 
@@ -59,6 +61,10 @@ struct BellRecord: Identifiable, Hashable {
     var placeDisplayName: String { originPlace?.displayName ?? "Unknown origin" }
     var countryName: String { originPlace?.countryName ?? "" }
     var cityName: String { originPlace?.cityName ?? "" }
+    var storageLocationName: String { storageLocation?.name ?? "Unassigned" }
+    var photoCount: Int { mediaAssets.filter { $0.kind == .photo }.count }
+    var model3DCount: Int { mediaAssets.filter { $0.kind == .model3D }.count }
+    var documentCount: Int { mediaAssets.filter { $0.kind == .document }.count }
 
     var materialDisplayName: String {
         if details.material == .other, let customMaterialName = details.customMaterialName, !customMaterialName.isEmpty {
