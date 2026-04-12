@@ -10,7 +10,7 @@ struct Home: Identifiable, Hashable {
 struct Location: Identifiable, Hashable {
     let id: UUID
     let homeID: UUID
-    let parentLocationID: UUID?
+    var parentLocationID: UUID?
     var kind: LocationKind
     var name: String
     var notes: String
