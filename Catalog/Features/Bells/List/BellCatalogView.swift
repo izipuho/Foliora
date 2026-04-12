@@ -64,6 +64,7 @@ struct BellCatalogView: View {
             }
             .padding(20)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .background(
             LinearGradient(
                 colors: [

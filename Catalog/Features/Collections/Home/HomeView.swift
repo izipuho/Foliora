@@ -1,8 +1,68 @@
 import SwiftUI
 
+enum RootTab: String, CaseIterable, Identifiable {
+    case homes
+    case collections
+    case search
+    case settings
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .homes:
+            return "Дома"
+        case .collections:
+            return "Коллекции"
+        case .search:
+            return "Поиск"
+        case .settings:
+            return "Настройки"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .homes:
+            return "house"
+        case .collections:
+            return "square.grid.2x2"
+        case .search:
+            return "magnifyingglass"
+        case .settings:
+            return "slider.horizontal.3"
+        }
+    }
+}
+
+struct AppShellView: View {
+    let repository: any CatalogRepository
+    @State private var selectedTab: RootTab = .homes
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Group {
+                switch selectedTab {
+                case .homes:
+                    HomeView(repository: repository)
+                case .collections:
+                    CollectionsView(repository: repository)
+                case .search:
+                    SearchView(repository: repository)
+                case .settings:
+                    SettingsView()
+                }
+            }
+
+            GlassTabBar(selectedTab: $selectedTab)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 10)
+        }
+    }
+}
+
 struct HomeView: View {
     let repository: any CatalogRepository
-    @State private var path: [AppDestination] = []
 
     private var home: Home? {
         repository.fetchHomes().first
@@ -13,33 +73,18 @@ struct HomeView: View {
         return repository.fetchLocations(in: home.id)
     }
 
-    private var collections: [CollectionSummary] {
-        repository.fetchCollections()
-    }
-
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    hero
+                VStack(alignment: .leading, spacing: 18) {
                     homeSection
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Коллекции")
-                            .font(.title2.bold())
-
-                        ForEach(collections) { collection in
-                            Button {
-                                path.append(.collection(collection))
-                            } label: {
-                                CollectionCard(collection: collection)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
                 }
-                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 120)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .background(
                 LinearGradient(
                     colors: [
@@ -51,7 +96,68 @@ struct HomeView: View {
                 )
                 .ignoresSafeArea()
             )
-            .navigationTitle("Мои коллекции")
+            .navigationTitle("Дом")
+        }
+    }
+
+    private var homeSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if let home {
+                HomeCard(
+                    home: home,
+                    locations: locations,
+                    collectionCount: repository.fetchCollections().count
+                )
+            }
+        }
+    }
+}
+
+struct HomeView_Previews: PreviewProvider {
+    static var previews: some View {
+        HomeView(repository: InMemoryCatalogRepository())
+    }
+}
+
+struct CollectionsView: View {
+    let repository: any CatalogRepository
+    @State private var path: [AppDestination] = []
+
+    private var collections: [CollectionSummary] {
+        repository.fetchCollections()
+    }
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(collections) { collection in
+                        Button {
+                            path.append(.collection(collection))
+                        } label: {
+                            CollectionCard(collection: collection)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 120)
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.99, green: 0.97, blue: 0.93),
+                        Color(red: 0.94, green: 0.92, blue: 0.86)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+            )
+            .navigationTitle("Коллекции")
             .navigationDestination(for: AppDestination.self) { destination in
                 switch destination {
                 case .collection(let collection):
@@ -69,84 +175,166 @@ struct HomeView: View {
             }
         }
     }
+}
 
-    private var hero: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Универсальный каталог домашних коллекций")
-                        .font(.largeTitle.bold())
+private struct SearchView: View {
+    let repository: any CatalogRepository
+    @State private var query = ""
 
-                    Text("Фиксированные типы коллекций, отдельный UI для каждого раздела и совместный доступ только по приглашению через Apple ID.")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
+    private var collections: [CollectionSummary] {
+        repository.fetchCollections().filter {
+            query.isEmpty || $0.name.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    TextField("Search collections", text: $query)
+                        .textInputAutocapitalization(.never)
+                        .padding(14)
+                        .background(Color.white.opacity(0.84), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                    if collections.isEmpty {
+                        ContentUnavailableView(
+                            "Ничего не найдено",
+                            systemImage: "magnifyingglass",
+                            description: Text("Попробуй другой запрос.")
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 40)
+                    } else {
+                        ForEach(collections) { collection in
+                            CollectionCard(collection: collection)
+                        }
+                    }
                 }
-
-                Spacer(minLength: 16)
-
-                Image(systemName: "house.lodge.fill")
-                    .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(Color(red: 0.55, green: 0.32, blue: 0.15))
-                    .padding(14)
-                    .background(Color.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 120)
             }
-
-            HStack(spacing: 12) {
-                heroStat(title: "Collections", value: "\(collections.count)")
-                heroStat(title: "Active", value: "\(collections.filter { $0.status == .active }.count)")
-                heroStat(title: "Sharing", value: "invite-only")
-            }
-        }
-        .padding(22)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 1.0, green: 0.98, blue: 0.94),
-                    Color(red: 0.95, green: 0.92, blue: 0.84)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 30, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .stroke(Color.white.opacity(0.55), lineWidth: 1)
-        )
-    }
-
-    private func heroStat(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(value)
-                .font(.title2.bold())
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Color.white.opacity(0.68), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-
-    private var homeSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Дом")
-                .font(.title2.bold())
-
-            if let home {
-                HomeCard(
-                    home: home,
-                    locations: locations,
-                    collectionCount: collections.count
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.96, green: 0.97, blue: 0.94),
+                        Color(red: 0.92, green: 0.93, blue: 0.90)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
-            }
+                .ignoresSafeArea()
+            )
+            .navigationTitle("Поиск")
         }
     }
 }
 
-struct HomeView_Previews: PreviewProvider {
-    static var previews: some View {
-        HomeView(repository: InMemoryCatalogRepository())
+private struct SettingsView: View {
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    settingsCard(
+                        title: "Appearance",
+                        subtitle: "Liquid Glass tab bar and collection-first layout are enabled in the current build.",
+                        systemImage: "sparkles.rectangle.stack"
+                    )
+
+                    settingsCard(
+                        title: "Sharing",
+                        subtitle: "Collections stay invitation-only and use role-based access.",
+                        systemImage: "person.2.badge.gearshape"
+                    )
+
+                    settingsCard(
+                        title: "Storage",
+                        subtitle: "Homes, locations, items, and media are already represented in the domain model.",
+                        systemImage: "externaldrive.connected.to.line.below"
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 120)
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.95, green: 0.96, blue: 0.99),
+                        Color(red: 0.90, green: 0.92, blue: 0.97)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+            )
+            .navigationTitle("Настройки")
+        }
+    }
+
+    private func settingsCard(title: String, subtitle: String, systemImage: String) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Color(red: 0.18, green: 0.34, blue: 0.64))
+                .frame(width: 44, height: 44)
+                .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.headline)
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+}
+
+private struct GlassTabBar: View {
+    @Binding var selectedTab: RootTab
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(RootTab.allCases) { tab in
+                Button {
+                    selectedTab = tab
+                } label: {
+                    VStack(spacing: 6) {
+                        Image(systemName: tab.systemImage)
+                            .font(.system(size: 17, weight: .semibold))
+                        Text(tab.title)
+                            .font(.caption2.weight(.semibold))
+                    }
+                    .foregroundStyle(selectedTab == tab ? Color.black.opacity(0.82) : Color.black.opacity(0.5))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        Group {
+                            if selectedTab == tab {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(Color.white.opacity(0.42))
+                            }
+                        }
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(Color.white.opacity(0.35), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.08), radius: 18, y: 10)
     }
 }
 

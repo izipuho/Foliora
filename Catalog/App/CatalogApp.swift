@@ -6,7 +6,7 @@ struct CatalogApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView(repository: container.repository)
+            AppShellView(repository: container.repository)
         }
     }
 }
