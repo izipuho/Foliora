@@ -37,7 +37,7 @@ struct BellDetailView: View {
                     detailRow("Материал", value: bell.materialDisplayName)
                     detailRow("Состояние", value: bell.condition.rawValue)
                     detailRow("Способ появления", value: bell.acquisitionMethod.rawValue)
-                    detailRow("Хранится", value: bell.storageLocationName)
+                    detailRow("Хранится", value: bell.storageDisplayPath)
                     detailRow("Добавил", value: bell.createdBy)
                     if let year = bell.year {
                         detailRow("Год", value: String(year))

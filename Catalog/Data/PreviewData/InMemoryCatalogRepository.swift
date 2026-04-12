@@ -154,6 +154,7 @@ struct InMemoryCatalogRepository: CatalogRepository {
                 ),
                 originPlace: placesByID[russiaPlaceID],
                 storageLocation: locationsByID[officeShelfID],
+                storagePath: locationPath(for: officeShelfID, locationsByID: locationsByID),
                 mediaAssets: mediaAssetsByItemID[UUID(uuidString: "11111111-1111-1111-1111-111111111111")!] ?? [],
                 createdBy: "Вы",
                 tags: ["путешествие", "музей", "золотое кольцо"]
@@ -177,6 +178,7 @@ struct InMemoryCatalogRepository: CatalogRepository {
                 ),
                 originPlace: placesByID[francePlaceID],
                 storageLocation: locationsByID[officeShelfID],
+                storagePath: locationPath(for: officeShelfID, locationsByID: locationsByID),
                 mediaAssets: mediaAssetsByItemID[UUID(uuidString: "22222222-2222-2222-2222-222222222222")!] ?? [],
                 createdBy: "Марина",
                 tags: ["подарок", "цветочный", "ручная работа"]
@@ -200,6 +202,7 @@ struct InMemoryCatalogRepository: CatalogRepository {
                 ),
                 originPlace: placesByID[italyPlaceID],
                 storageLocation: locationsByID[officeShelfID],
+                storagePath: locationPath(for: officeShelfID, locationsByID: locationsByID),
                 mediaAssets: mediaAssetsByItemID[UUID(uuidString: "33333333-3333-3333-3333-333333333333")!] ?? [],
                 createdBy: "Алексей",
                 tags: ["винтаж", "блошиный рынок", "редкость"]
@@ -273,6 +276,22 @@ struct InMemoryCatalogRepository: CatalogRepository {
                 sortOrder: 0
             )
         ]
+    }
+
+    private func locationPath(for locationID: UUID?, locationsByID: [UUID: Location]) -> String {
+        guard let locationID, let location = locationsByID[locationID] else {
+            return "Unassigned"
+        }
+
+        var parts = [location.name]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            parts.insert(parent.name, at: 0)
+            currentParentID = parent.parentLocationID
+        }
+
+        return parts.joined(separator: " / ")
     }
 
     func fetchCollaborators(for collectionID: UUID) -> [Collaborator] {

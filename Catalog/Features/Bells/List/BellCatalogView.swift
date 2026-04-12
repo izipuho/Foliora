@@ -218,8 +218,10 @@ struct BellEditorView: View {
     @State private var material: BellMaterial = .brass
     @State private var customMaterialName = ""
     @State private var selectedLocationID: UUID?
-    @State private var tagsText = ""
+    @State private var tagInput = ""
+    @State private var tags: [String] = []
     @State private var selectedYearOption = "None"
+    @State private var isPresentingLocationPicker = false
     private let existingBellID: UUID?
 
     private let yearOptions = ["None"] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -227,6 +229,14 @@ struct BellEditorView: View {
     private var availableLocations: [Location] {
         guard let home = repository.fetchHomes().first else { return [] }
         return repository.fetchLocations(in: home.id)
+    }
+
+    private var locationPathByID: [UUID: String] {
+        Dictionary(
+            uniqueKeysWithValues: availableLocations.map { location in
+                (location.id, locationPath(for: location))
+            }
+        )
     }
 
     private var canSave: Bool {
@@ -251,7 +261,7 @@ struct BellEditorView: View {
         _material = State(initialValue: bell?.details.material ?? .brass)
         _customMaterialName = State(initialValue: bell?.details.customMaterialName ?? "")
         _selectedLocationID = State(initialValue: bell?.item.locationID)
-        _tagsText = State(initialValue: bell?.tags.joined(separator: ", ") ?? "")
+        _tags = State(initialValue: bell?.tags ?? [])
         _selectedYearOption = State(initialValue: bell?.year.map(String.init) ?? "None")
     }
 
@@ -295,18 +305,57 @@ struct BellEditorView: View {
                 }
 
                 Section("Storage") {
-                    Picker("Location", selection: $selectedLocationID) {
-                        Text("Unassigned").tag(Optional<UUID>.none)
-                        ForEach(availableLocations) { location in
-                            Text(location.name).tag(Optional(location.id))
+                    Button {
+                        isPresentingLocationPicker = true
+                    } label: {
+                        HStack {
+                            Text("Location")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Text(selectedLocationLabel)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.trailing)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
                         }
                     }
+                    .buttonStyle(.plain)
                 }
 
                 Section("Tags") {
-                    TextField("museum, travel, gift", text: $tagsText)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    HStack(spacing: 10) {
+                        TextField("Add tag", text: $tagInput)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .onSubmit {
+                                addTag()
+                            }
+
+                        Button("Add") {
+                            addTag()
+                        }
+                        .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+
+                    if tags.isEmpty {
+                        Text("No tags yet.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(tags, id: \.self) { tag in
+                            HStack {
+                                Text("#\(tag)")
+                                    .font(.subheadline.weight(.medium))
+                                Spacer()
+                            }
+                            .swipeActions {
+                                Button("Delete", role: .destructive) {
+                                    removeTag(tag)
+                                }
+                            }
+                        }
+                    }
                 }
             }
             .navigationTitle("Add Bell")
@@ -325,6 +374,12 @@ struct BellEditorView: View {
                     .disabled(!canSave)
                 }
             }
+            .sheet(isPresented: $isPresentingLocationPicker) {
+                LocationHierarchyPickerView(
+                    locations: availableLocations,
+                    selectedLocationID: $selectedLocationID
+                )
+            }
         }
     }
 
@@ -332,10 +387,6 @@ struct BellEditorView: View {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedCustomMaterial = customMaterialName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let tags = tagsText
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
 
         let itemID = existingBellID ?? UUID()
         let location = availableLocations.first(where: { $0.id == selectedLocationID })
@@ -359,6 +410,7 @@ struct BellEditorView: View {
             ),
             originPlace: nil,
             storageLocation: location,
+            storagePath: location.map(locationPath(for:)) ?? "Unassigned",
             mediaAssets: [],
             createdBy: "You",
             tags: tags
@@ -366,6 +418,142 @@ struct BellEditorView: View {
 
         onSave(newBell)
         dismiss()
+    }
+
+    private func addTag() {
+        let trimmed = tagInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard !tags.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) else {
+            tagInput = ""
+            return
+        }
+
+        tags.append(trimmed)
+        tagInput = ""
+    }
+
+    private func removeTag(_ tag: String) {
+        tags.removeAll { $0 == tag }
+    }
+
+    private var selectedLocationLabel: String {
+        guard let selectedLocationID, let path = locationPathByID[selectedLocationID] else {
+            return "Unassigned"
+        }
+
+        return path
+    }
+
+    private func locationPath(for location: Location) -> String {
+        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
+        var parts = [location.name]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            parts.insert(parent.name, at: 0)
+            currentParentID = parent.parentLocationID
+        }
+
+        return parts.joined(separator: " / ")
+    }
+}
+
+private struct LocationHierarchyPickerView: View {
+    let locations: [Location]
+    @Binding var selectedLocationID: UUID?
+    @Environment(\.dismiss) private var dismiss
+    @State private var currentParentID: UUID?
+    @State private var ancestors: [Location] = []
+
+    private var currentLocations: [Location] {
+        locations
+            .filter { $0.parentLocationID == currentParentID }
+            .sorted { $0.name < $1.name }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Button {
+                        selectedLocationID = nil
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text("Unassigned")
+                            Spacer()
+                            if selectedLocationID == nil {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+
+                if !ancestors.isEmpty {
+                    Section("Current Path") {
+                        Text(ancestors.map(\.name).joined(separator: " / "))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section(ancestors.isEmpty ? "Select Location" : "Next Level") {
+                    ForEach(currentLocations) { location in
+                        HStack(spacing: 12) {
+                            Button {
+                                selectedLocationID = location.id
+                                dismiss()
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(location.name)
+                                    Text(location.kind.displayName)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            Spacer()
+
+                            if hasChildren(location) {
+                                Button {
+                                    ancestors.append(location)
+                                    currentParentID = location.id
+                                    selectedLocationID = location.id
+                                } label: {
+                                    Image(systemName: "chevron.right.circle")
+                                        .font(.title3)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Select Location")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if !ancestors.isEmpty {
+                        Button("Back") {
+                            ancestors.removeLast()
+                            currentParentID = ancestors.last?.id
+                        }
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func hasChildren(_ location: Location) -> Bool {
+        locations.contains { $0.parentLocationID == location.id }
     }
 }
 
@@ -401,7 +589,7 @@ private struct BellCardView: View {
             .foregroundStyle(.secondary)
 
             HStack(spacing: 8) {
-                MetaChip(label: bell.storageLocationName, systemImage: "shippingbox.circle")
+                MetaChip(label: bell.storageDisplayPath, systemImage: "shippingbox.circle")
                 MetaChip(label: "\(bell.photoCount) photo", systemImage: "photo")
                 if bell.model3DCount > 0 {
                     MetaChip(label: "\(bell.model3DCount) 3D", systemImage: "cube.transparent")
