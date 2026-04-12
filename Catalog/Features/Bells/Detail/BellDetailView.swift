@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct BellDetailView: View {
-    let bell: BellRecord
+    @Binding var bell: BellRecord
+    let repository: any CatalogRepository
+    @State private var isPresentingEditor = false
 
     var body: some View {
         ScrollView {
@@ -80,9 +82,19 @@ struct BellDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    isPresentingEditor = true
                 } label: {
                     Image(systemName: "square.and.pencil")
                 }
+            }
+        }
+        .sheet(isPresented: $isPresentingEditor) {
+            BellEditorView(
+                collection: inferredCollection,
+                repository: repository,
+                bell: bell
+            ) { updatedBell in
+                bell = updatedBell
             }
         }
     }
@@ -107,6 +119,21 @@ struct BellDetailView: View {
                 .multilineTextAlignment(.trailing)
         }
     }
+
+    private var inferredCollection: CollectionSummary {
+        repository.fetchCollections().first(where: { $0.id == bell.item.collectionID }) ??
+            CollectionSummary(
+                id: bell.item.collectionID,
+                kind: .bells,
+                name: "Колокольчики",
+                subtitle: "",
+                itemCount: 0,
+                collaboratorCount: 0,
+                role: .owner,
+                status: .active,
+                sharingSummary: ""
+            )
+    }
 }
 
 private struct DetailBadge: View {
@@ -128,7 +155,26 @@ struct BellDetailView_Previews: PreviewProvider {
         NavigationStack {
             let repository = InMemoryCatalogRepository()
             let collection = repository.fetchCollections().first { $0.kind == .bells }!
-            BellDetailView(bell: repository.fetchBellRecords(for: collection.id)[0])
+            BellDetailPreviewHost(collectionID: collection.id, repository: repository)
         }
+    }
+}
+
+private struct BellDetailPreviewHost: View {
+    let collectionID: UUID
+    let repository: any CatalogRepository
+    @State private var bell: BellRecord
+
+    init(collectionID: UUID, repository: any CatalogRepository) {
+        self.collectionID = collectionID
+        self.repository = repository
+        _bell = State(initialValue: repository.fetchBellRecords(for: collectionID)[0])
+    }
+
+    var body: some View {
+        BellDetailView(
+            bell: $bell,
+            repository: repository
+        )
     }
 }

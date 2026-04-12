@@ -5,11 +5,20 @@ struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
 
+    @State private var bellRecords: [BellRecord]
     @State private var searchText = ""
     @State private var selectedCondition: ItemCondition?
+    @State private var isPresentingAddBell = false
+
+    init(collection: CollectionSummary, repository: any CatalogRepository, collaborators: [Collaborator]) {
+        self.collection = collection
+        self.repository = repository
+        self.collaborators = collaborators
+        _bellRecords = State(initialValue: repository.fetchBellRecords(for: collection.id))
+    }
 
     private var bells: [BellRecord] {
-        repository.fetchBellRecords(for: collection.id)
+        bellRecords
     }
 
     private var filteredBells: [BellRecord] {
@@ -52,12 +61,17 @@ struct BellCatalogView: View {
                 } else {
                     LazyVStack(spacing: 14) {
                         ForEach(filteredBells) { bell in
-                            NavigationLink {
-                                BellDetailView(bell: bell)
-                            } label: {
-                                BellCardView(bell: bell)
+                            if let bellBinding = binding(for: bell.id) {
+                                NavigationLink {
+                                    BellDetailView(
+                                        bell: bellBinding,
+                                        repository: repository
+                                    )
+                                } label: {
+                                    BellCardView(bell: bell)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -81,9 +95,18 @@ struct BellCatalogView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    isPresentingAddBell = true
                 } label: {
                     Image(systemName: "plus")
                 }
+            }
+        }
+        .sheet(isPresented: $isPresentingAddBell) {
+            BellEditorView(
+                collection: collection,
+                repository: repository
+            ) { newBell in
+                bellRecords.insert(newBell, at: 0)
             }
         }
     }
@@ -173,6 +196,168 @@ struct BellCatalogView: View {
         }
         .padding(16)
         .background(Color.white.opacity(0.48), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+    }
+
+    private func binding(for bellID: UUID) -> Binding<BellRecord>? {
+        guard let index = bellRecords.firstIndex(where: { $0.id == bellID }) else { return nil }
+        return $bellRecords[index]
+    }
+}
+
+struct BellEditorView: View {
+    let collection: CollectionSummary
+    let repository: any CatalogRepository
+    let onSave: (BellRecord) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var title = ""
+    @State private var notes = ""
+    @State private var yearText = ""
+    @State private var condition: ItemCondition = .good
+    @State private var acquisitionMethod: AcquisitionMethod = .bought
+    @State private var material: BellMaterial = .brass
+    @State private var customMaterialName = ""
+    @State private var selectedLocationID: UUID?
+    @State private var tagsText = ""
+    private let existingBellID: UUID?
+
+    private var availableLocations: [Location] {
+        guard let home = repository.fetchHomes().first else { return [] }
+        return repository.fetchLocations(in: home.id)
+    }
+
+    private var canSave: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    init(
+        collection: CollectionSummary,
+        repository: any CatalogRepository,
+        bell: BellRecord? = nil,
+        onSave: @escaping (BellRecord) -> Void
+    ) {
+        self.collection = collection
+        self.repository = repository
+        self.onSave = onSave
+        self.existingBellID = bell?.id
+        _title = State(initialValue: bell?.title ?? "")
+        _notes = State(initialValue: bell?.notes ?? "")
+        _yearText = State(initialValue: bell?.year.map(String.init) ?? "")
+        _condition = State(initialValue: bell?.condition ?? .good)
+        _acquisitionMethod = State(initialValue: bell?.acquisitionMethod ?? .bought)
+        _material = State(initialValue: bell?.details.material ?? .brass)
+        _customMaterialName = State(initialValue: bell?.details.customMaterialName ?? "")
+        _selectedLocationID = State(initialValue: bell?.item.locationID)
+        _tagsText = State(initialValue: bell?.tags.joined(separator: ", ") ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Main Info") {
+                    TextField("Title", text: $title)
+                    TextField("Notes", text: $notes, axis: .vertical)
+                        .lineLimit(3, reservesSpace: true)
+                    TextField("Year", text: $yearText)
+                        .keyboardType(.numberPad)
+                }
+
+                Section("Attributes") {
+                    Picker("Condition", selection: $condition) {
+                        ForEach(ItemCondition.allCases) { condition in
+                            Text(condition.rawValue).tag(condition)
+                        }
+                    }
+
+                    Picker("Acquisition", selection: $acquisitionMethod) {
+                        ForEach(AcquisitionMethod.allCases) { method in
+                            Text(method.rawValue).tag(method)
+                        }
+                    }
+
+                    Picker("Material", selection: $material) {
+                        ForEach(BellMaterial.allCases) { material in
+                            Text(material.displayName).tag(material)
+                        }
+                    }
+
+                    if material == .other {
+                        TextField("Custom material", text: $customMaterialName)
+                    }
+                }
+
+                Section("Storage") {
+                    Picker("Location", selection: $selectedLocationID) {
+                        Text("Unassigned").tag(Optional<UUID>.none)
+                        ForEach(availableLocations) { location in
+                            Text(location.name).tag(Optional(location.id))
+                        }
+                    }
+                }
+
+                Section("Tags") {
+                    TextField("museum, travel, gift", text: $tagsText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+            }
+            .navigationTitle("Add Bell")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Save") {
+                        saveBell()
+                    }
+                    .disabled(!canSave)
+                }
+            }
+        }
+    }
+
+    private func saveBell() {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCustomMaterial = customMaterialName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tags = tagsText
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        let itemID = existingBellID ?? UUID()
+        let location = availableLocations.first(where: { $0.id == selectedLocationID })
+
+        let newBell = BellRecord(
+            item: Item(
+                id: itemID,
+                collectionID: collection.id,
+                locationID: selectedLocationID,
+                title: trimmedTitle,
+                notes: trimmedNotes,
+                year: Int(yearText),
+                condition: condition,
+                acquisitionMethod: acquisitionMethod
+            ),
+            details: BellDetails(
+                itemID: itemID,
+                originPlaceID: nil,
+                material: material,
+                customMaterialName: material == .other ? trimmedCustomMaterial : nil
+            ),
+            originPlace: nil,
+            storageLocation: location,
+            mediaAssets: [],
+            createdBy: "You",
+            tags: tags
+        )
+
+        onSave(newBell)
+        dismiss()
     }
 }
 
