@@ -212,14 +212,17 @@ struct BellEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
     @State private var notes = ""
-    @State private var yearText = ""
+    @State private var selectedYear: Int?
     @State private var condition: ItemCondition = .good
     @State private var acquisitionMethod: AcquisitionMethod = .bought
     @State private var material: BellMaterial = .brass
     @State private var customMaterialName = ""
     @State private var selectedLocationID: UUID?
     @State private var tagsText = ""
+    @State private var selectedYearOption = "None"
     private let existingBellID: UUID?
+
+    private let yearOptions = ["None"] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     private var availableLocations: [Location] {
         guard let home = repository.fetchHomes().first else { return [] }
@@ -242,13 +245,14 @@ struct BellEditorView: View {
         self.existingBellID = bell?.id
         _title = State(initialValue: bell?.title ?? "")
         _notes = State(initialValue: bell?.notes ?? "")
-        _yearText = State(initialValue: bell?.year.map(String.init) ?? "")
+        _selectedYear = State(initialValue: bell?.year)
         _condition = State(initialValue: bell?.condition ?? .good)
         _acquisitionMethod = State(initialValue: bell?.acquisitionMethod ?? .bought)
         _material = State(initialValue: bell?.details.material ?? .brass)
         _customMaterialName = State(initialValue: bell?.details.customMaterialName ?? "")
         _selectedLocationID = State(initialValue: bell?.item.locationID)
         _tagsText = State(initialValue: bell?.tags.joined(separator: ", ") ?? "")
+        _selectedYearOption = State(initialValue: bell?.year.map(String.init) ?? "None")
     }
 
     var body: some View {
@@ -258,8 +262,12 @@ struct BellEditorView: View {
                     TextField("Title", text: $title)
                     TextField("Notes", text: $notes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
-                    TextField("Year", text: $yearText)
-                        .keyboardType(.numberPad)
+
+                    Picker("Year", selection: $selectedYearOption) {
+                        ForEach(yearOptions, id: \.self) { option in
+                            Text(option).tag(option)
+                        }
+                    }
                 }
 
                 Section("Attributes") {
@@ -339,7 +347,7 @@ struct BellEditorView: View {
                 locationID: selectedLocationID,
                 title: trimmedTitle,
                 notes: trimmedNotes,
-                year: Int(yearText),
+                year: selectedYearOption == "None" ? nil : Int(selectedYearOption),
                 condition: condition,
                 acquisitionMethod: acquisitionMethod
             ),
