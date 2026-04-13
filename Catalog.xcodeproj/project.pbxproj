@@ -24,6 +24,7 @@
 		C000000000000000000000AF /* BellDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000F /* BellDetailView.swift */; };
 		C000000000000000000000B0 /* BookLibraryPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000010 /* BookLibraryPlaceholderView.swift */; };
 		C000000000000000000000B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Assets.xcassets */; };
+		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +46,7 @@
 		C00000000000000000000010 /* BookLibraryPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookLibraryPlaceholderView.swift; sourceTree = "<group>"; };
 		C00000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Catalog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Catalog.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C00000000000000000000013 /* EditorFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFields.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -154,6 +156,7 @@
 			isa = PBXGroup;
 			children = (
 				C00000000000000000000004 /* CollectionCard.swift */,
+				C00000000000000000000013 /* EditorFields.swift */,
 			);
 			path = SharedUI;
 			sourceTree = "<group>";
@@ -346,6 +349,7 @@
 				C000000000000000000000AE /* BellCatalogView.swift in Sources */,
 				C000000000000000000000AF /* BellDetailView.swift in Sources */,
 				C000000000000000000000B0 /* BookLibraryPlaceholderView.swift in Sources */,
+				C000000000000000000000B2 /* EditorFields.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
