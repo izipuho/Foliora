@@ -31,6 +31,72 @@ enum BellCatalogMode {
     case search
 }
 
+enum BellGridLayoutMode: Int, CaseIterable {
+    case covers
+    case mini
+    case compact
+    case wide
+    case showcase
+
+    var columnCount: Int {
+        switch self {
+        case .covers:
+            return 4
+        case .mini:
+            return 3
+        case .compact:
+            return 2
+        case .wide, .showcase:
+            return 1
+        }
+    }
+
+    var cardHeight: CGFloat {
+        switch self {
+        case .covers:
+            return 92
+        case .mini:
+            return 144
+        case .compact:
+            return 220
+        case .wide:
+            return 196
+        case .showcase:
+            return 460
+        }
+    }
+
+    var cardPadding: CGFloat {
+        switch self {
+        case .covers:
+            return 0
+        case .mini:
+            return 10
+        case .compact:
+            return 14
+        case .wide:
+            return 18
+        case .showcase:
+            return 22
+        }
+    }
+
+    var spacing: CGFloat {
+        switch self {
+        case .covers:
+            return 8
+        case .mini:
+            return 10
+        case .compact:
+            return 12
+        case .wide:
+            return 14
+        case .showcase:
+            return 18
+        }
+    }
+}
+
 struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
@@ -41,6 +107,7 @@ struct BellCatalogView: View {
     @State private var bellRecords: [BellRecord]
     @State private var searchText = ""
     @State private var selectedCondition: ItemCondition?
+    @State private var layoutMode: BellGridLayoutMode = .compact
 
     init(
         collection: CollectionSummary,
@@ -89,10 +156,10 @@ struct BellCatalogView: View {
     }
 
     private var gridColumns: [GridItem] {
-        [
-            GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12)
-        ]
+        Array(
+            repeating: GridItem(.flexible(), spacing: layoutMode.spacing, alignment: .top),
+            count: layoutMode.columnCount
+        )
     }
 
     @ViewBuilder
@@ -170,7 +237,7 @@ struct BellCatalogView: View {
                 if bells.isEmpty {
                     emptyBellsGridState(title: emptyTitle, description: emptyDescription)
                 } else {
-                    LazyVGrid(columns: gridColumns, spacing: 12) {
+                    LazyVGrid(columns: gridColumns, spacing: layoutMode.spacing) {
                         ForEach(bells) { bell in
                             if let bellBinding = binding(for: bell.id) {
                                 NavigationLink {
@@ -179,7 +246,10 @@ struct BellCatalogView: View {
                                         repository: repository
                                     )
                                 } label: {
-                                    BellCardView(bell: bell)
+                                    BellCardView(
+                                        bell: bell,
+                                        layoutMode: layoutMode
+                                    )
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -190,7 +260,9 @@ struct BellCatalogView: View {
             .padding(.top, 20)
             .padding(.horizontal, 20)
             .padding(.bottom, 120)
+            .animation(.snappy(duration: 0.24), value: layoutMode)
         }
+        .simultaneousGesture(zoomGesture)
         .background(
             LinearGradient(
                 colors: themeColors,
@@ -297,6 +369,27 @@ struct BellCatalogView: View {
     private func deleteBell(_ bellID: UUID) {
         repository.deleteBellRecord(bellID: bellID)
         bellRecords.removeAll { $0.id == bellID }
+    }
+
+    private var zoomGesture: some Gesture {
+        MagnifyGesture()
+            .onEnded { value in
+                if value.magnification > 1.12 {
+                    zoomIn()
+                } else if value.magnification < 0.92 {
+                    zoomOut()
+                }
+            }
+    }
+
+    private func zoomIn() {
+        guard let nextMode = BellGridLayoutMode(rawValue: layoutMode.rawValue + 1) else { return }
+        layoutMode = nextMode
+    }
+
+    private func zoomOut() {
+        guard let previousMode = BellGridLayoutMode(rawValue: layoutMode.rawValue - 1) else { return }
+        layoutMode = previousMode
     }
 
     private func sorted(_ bells: [BellRecord]) -> [BellRecord] {
@@ -595,6 +688,7 @@ struct BellEditorView: View {
 
 private struct BellCardView: View {
     let bell: BellRecord
+    let layoutMode: BellGridLayoutMode
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -611,6 +705,55 @@ private struct BellCardView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
+            cardContent
+                .padding(layoutMode.cardPadding)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: layoutMode.cardHeight)
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.black.opacity(0.04), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
+    }
+
+    @ViewBuilder
+    private var cardContent: some View {
+        switch layoutMode {
+        case .covers:
+            if !hasCoverPhoto {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(bell.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+
+                    Text(bell.placeDisplayName)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+
+        case .mini:
+            VStack(alignment: .leading, spacing: 6) {
+                Spacer()
+
+                Text(bell.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(primaryTextColor)
+                    .lineLimit(2)
+
+                if !hasCoverPhoto {
+                    Text(bell.placeDisplayName)
+                        .font(.caption2)
+                        .foregroundStyle(secondaryTextColor)
+                        .lineLimit(1)
+                }
+            }
+
+        case .compact:
             VStack(alignment: .leading, spacing: 8) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(bell.title)
@@ -632,16 +775,77 @@ private struct BellCardView: View {
                     bright: hasCoverPhoto
                 )
             }
-            .padding(14)
+
+        case .wide:
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(bell.title)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(primaryTextColor)
+                        .lineLimit(2)
+
+                    Text(bell.placeDisplayName)
+                        .font(.subheadline)
+                        .foregroundStyle(secondaryTextColor)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    CompactMetaChip(
+                        label: bell.materialDisplayName,
+                        systemImage: "shippingbox.fill",
+                        bright: hasCoverPhoto
+                    )
+
+                    if let year = bell.year {
+                        CompactMetaChip(
+                            label: String(year),
+                            systemImage: "calendar",
+                            bright: hasCoverPhoto
+                        )
+                    }
+
+                    CompactMetaChip(
+                        label: bell.condition.displayName,
+                        systemImage: "checkmark.seal",
+                        bright: hasCoverPhoto
+                    )
+                }
+            }
+
+        case .showcase:
+            VStack(alignment: .leading, spacing: 12) {
+                Spacer()
+
+                Text(bell.title)
+                    .font(.title.weight(.semibold))
+                    .foregroundStyle(primaryTextColor)
+                    .lineLimit(3)
+
+                Text(bell.placeDisplayName)
+                    .font(.body)
+                    .foregroundStyle(secondaryTextColor)
+                    .lineLimit(2)
+
+                HStack(spacing: 8) {
+                    CompactMetaChip(
+                        label: bell.materialDisplayName,
+                        systemImage: "shippingbox.fill",
+                        bright: hasCoverPhoto
+                    )
+
+                    if let year = bell.year {
+                        CompactMetaChip(
+                            label: String(year),
+                            systemImage: "calendar",
+                            bright: hasCoverPhoto
+                        )
+                    }
+                }
+            }
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 220)
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.black.opacity(0.04), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
     }
 
     @ViewBuilder
