@@ -81,3 +81,44 @@
 "editor.location.current_path" = "Current Path";
 "editor.location.select" = "Select Location";
 "editor.location.next_level" = "Next Level";
+
+"enum.item_condition.mint" = "Mint";
+"enum.item_condition.good" = "Good";
+"enum.item_condition.worn" = "Worn";
+"enum.item_condition.damaged" = "Damaged";
+"enum.item_condition.needs_restoration" = "Needs Restoration";
+
+"enum.acquisition.bought" = "Bought";
+"enum.acquisition.gifted" = "Gifted";
+"enum.acquisition.inherited" = "Inherited";
+"enum.acquisition.found" = "Found";
+"enum.acquisition.other" = "Other";
+
+"enum.bell_material.brass" = "Brass";
+"enum.bell_material.bronze" = "Bronze";
+"enum.bell_material.ceramic" = "Ceramic";
+"enum.bell_material.porcelain" = "Porcelain";
+"enum.bell_material.glass" = "Glass";
+"enum.bell_material.wood" = "Wood";
+"enum.bell_material.silver" = "Silver";
+"enum.bell_material.other" = "Other";
+
+"enum.media_kind.photo" = "Photo";
+"enum.media_kind.document" = "Document";
+"enum.media_kind.model3d" = "3D Model";
+
+"enum.location_kind.floor" = "Floor";
+"enum.location_kind.room" = "Room";
+"enum.location_kind.cabinet" = "Cabinet";
+"enum.location_kind.shelf" = "Shelf";
+"enum.location_kind.box" = "Box";
+
+"enum.collection_status.active" = "Active";
+"enum.collection_status.planned" = "Planned";
+
+"enum.collection_role.owner" = "Owner";
+"enum.collection_role.editor" = "Editor";
+"enum.collection_role.contributor" = "Contributor";
+"enum.collection_role.viewer" = "Viewer";
+
+"common.unknown_origin" = "Unknown origin";

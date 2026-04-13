@@ -242,7 +242,7 @@ struct BellCatalogView: View {
                     }
 
                     ForEach(ItemCondition.allCases) { condition in
-                        FilterChip(title: condition.rawValue, isSelected: selectedCondition == condition, tint: collection.backgroundStyle.accentColor) {
+                        FilterChip(title: condition.displayName, isSelected: selectedCondition == condition, tint: collection.backgroundStyle.accentColor) {
                             selectedCondition = condition
                         }
                     }
@@ -367,13 +367,13 @@ struct BellEditorView: View {
 
                     Picker(BL("editor.condition"), selection: $condition) {
                         ForEach(ItemCondition.allCases) { condition in
-                            Text(condition.rawValue).tag(condition)
+                            Text(condition.displayName).tag(condition)
                         }
                     }
 
                     Picker(BL("editor.acquisition"), selection: $acquisitionMethod) {
                         ForEach(AcquisitionMethod.allCases) { method in
-                            Text(method.rawValue).tag(method)
+                            Text(method.displayName).tag(method)
                         }
                     }
 
@@ -529,7 +529,7 @@ private struct BellCardView: View {
             HStack {
                 Label(bell.materialDisplayName, systemImage: "shippingbox.fill")
                 Spacer()
-                Label(bell.condition.rawValue, systemImage: "checkmark.seal")
+                Label(bell.condition.displayName, systemImage: "checkmark.seal")
             }
             .font(.footnote.weight(.medium))
             .foregroundStyle(.secondary)

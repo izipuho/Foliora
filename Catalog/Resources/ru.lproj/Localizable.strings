@@ -81,3 +81,44 @@
 "editor.location.current_path" = "Текущий путь";
 "editor.location.select" = "Выбери расположение";
 "editor.location.next_level" = "Следующий уровень";
+
+"enum.item_condition.mint" = "Идеальное";
+"enum.item_condition.good" = "Хорошее";
+"enum.item_condition.worn" = "Потёртое";
+"enum.item_condition.damaged" = "Повреждено";
+"enum.item_condition.needs_restoration" = "Требует реставрации";
+
+"enum.acquisition.bought" = "Куплено";
+"enum.acquisition.gifted" = "Подарено";
+"enum.acquisition.inherited" = "Унаследовано";
+"enum.acquisition.found" = "Найдено";
+"enum.acquisition.other" = "Другое";
+
+"enum.bell_material.brass" = "Латунь";
+"enum.bell_material.bronze" = "Бронза";
+"enum.bell_material.ceramic" = "Керамика";
+"enum.bell_material.porcelain" = "Фарфор";
+"enum.bell_material.glass" = "Стекло";
+"enum.bell_material.wood" = "Дерево";
+"enum.bell_material.silver" = "Серебро";
+"enum.bell_material.other" = "Другое";
+
+"enum.media_kind.photo" = "Фото";
+"enum.media_kind.document" = "Документ";
+"enum.media_kind.model3d" = "3D-модель";
+
+"enum.location_kind.floor" = "Этаж";
+"enum.location_kind.room" = "Комната";
+"enum.location_kind.cabinet" = "Шкаф";
+"enum.location_kind.shelf" = "Полка";
+"enum.location_kind.box" = "Коробка";
+
+"enum.collection_status.active" = "Активна";
+"enum.collection_status.planned" = "Следующая";
+
+"enum.collection_role.owner" = "Владелец";
+"enum.collection_role.editor" = "Редактор";
+"enum.collection_role.contributor" = "Контрибьютор";
+"enum.collection_role.viewer" = "Наблюдатель";
+
+"common.unknown_origin" = "Происхождение неизвестно";

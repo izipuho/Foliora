@@ -1,5 +1,9 @@
 import Foundation
 
+private func MAL(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
+
 struct MediaAsset: Identifiable, Hashable, Codable {
     let id: UUID
     let itemID: UUID
@@ -19,11 +23,11 @@ enum MediaKind: String, CaseIterable, Hashable, Identifiable, Codable {
     var displayName: String {
         switch self {
         case .photo:
-            return "Photo"
+            return MAL("enum.media_kind.photo")
         case .document:
-            return "Document"
+            return MAL("enum.media_kind.document")
         case .model3D:
-            return "3D Model"
+            return MAL("enum.media_kind.model3d")
         }
     }
 }

@@ -1,5 +1,9 @@
 import Foundation
 
+private func BLD(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
+
 struct BellDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
     let originPlaceID: UUID?
@@ -24,21 +28,21 @@ enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
     var displayName: String {
         switch self {
         case .brass:
-            return "Brass"
+            return BLD("enum.bell_material.brass")
         case .bronze:
-            return "Bronze"
+            return BLD("enum.bell_material.bronze")
         case .ceramic:
-            return "Ceramic"
+            return BLD("enum.bell_material.ceramic")
         case .porcelain:
-            return "Porcelain"
+            return BLD("enum.bell_material.porcelain")
         case .glass:
-            return "Glass"
+            return BLD("enum.bell_material.glass")
         case .wood:
-            return "Wood"
+            return BLD("enum.bell_material.wood")
         case .silver:
-            return "Silver"
+            return BLD("enum.bell_material.silver")
         case .other:
-            return "Other"
+            return BLD("enum.bell_material.other")
         }
     }
 }
@@ -59,10 +63,10 @@ struct BellRecord: Identifiable, Hashable {
     var condition: ItemCondition { item.condition }
     var acquisitionMethod: AcquisitionMethod { item.acquisitionMethod }
     var notes: String { item.notes }
-    var placeDisplayName: String { originPlace?.displayName ?? "Unknown origin" }
+    var placeDisplayName: String { originPlace?.displayName ?? BLD("common.unknown_origin") }
     var countryName: String { originPlace?.countryName ?? "" }
     var cityName: String { originPlace?.cityName ?? "" }
-    var storageLocationName: String { storageLocation?.name ?? "Unassigned" }
+    var storageLocationName: String { storageLocation?.name ?? BLD("common.unassigned") }
     var storageDisplayPath: String { storagePath.isEmpty ? storageLocationName : storagePath }
     var photoCount: Int { mediaAssets.filter { $0.kind == .photo }.count }
     var model3DCount: Int { mediaAssets.filter { $0.kind == .model3D }.count }
