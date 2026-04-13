@@ -142,6 +142,12 @@ final class LocalCatalogRepository: CatalogRepository {
         }
     }
 
+    func deleteBellRecord(bellID: UUID) {
+        store.updateSnapshot { snapshot in
+            snapshot.bellItems.removeAll { $0.item.id == bellID }
+        }
+    }
+
     private func locationPath(for location: Location, locationsByID: [UUID: Location]) -> String {
         var parts = [location.name]
         var currentParentID = location.parentLocationID

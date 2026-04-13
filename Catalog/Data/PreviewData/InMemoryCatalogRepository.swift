@@ -325,4 +325,6 @@ final class InMemoryCatalogRepository: CatalogRepository {
     func deleteHome(homeID: UUID) {}
 
     func saveBellRecord(_ bell: BellRecord) {}
+
+    func deleteBellRecord(bellID: UUID) {}
 }

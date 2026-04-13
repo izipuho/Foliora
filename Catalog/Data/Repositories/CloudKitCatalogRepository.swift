@@ -70,6 +70,10 @@ final class CloudKitCatalogRepository: CatalogRepository {
     func saveBellRecord(_ bell: BellRecord) {
         fallbackRepository.saveBellRecord(bell)
     }
+
+    func deleteBellRecord(bellID: UUID) {
+        fallbackRepository.deleteBellRecord(bellID: bellID)
+    }
 }
 
 enum CloudKitSchema {

@@ -44,41 +44,65 @@ struct BellCatalogView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
-                searchSection
-                collaboratorStrip
+        List {
+            header
+                .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 0, trailing: 20))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
 
-                if filteredBells.isEmpty {
-                    ContentUnavailableView(
-                        "Ничего не найдено",
-                        systemImage: "bell.slash",
-                        description: Text("Попробуйте изменить запрос или сбросить фильтр по состоянию.")
-                    )
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
-                } else {
-                    LazyVStack(spacing: 14) {
-                        ForEach(filteredBells) { bell in
-                            if let bellBinding = binding(for: bell.id) {
-                                NavigationLink {
-                                    BellDetailView(
-                                        bell: bellBinding,
-                                        repository: repository
-                                    )
-                                } label: {
-                                    BellCardView(bell: bell)
-                                }
-                                .buttonStyle(.plain)
+            searchSection
+                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 0, trailing: 20))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+            collaboratorStrip
+                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 0, trailing: 20))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+            if filteredBells.isEmpty {
+                ContentUnavailableView(
+                    "Ничего не найдено",
+                    systemImage: "bell.slash",
+                    description: Text("Попробуйте изменить запрос или сбросить фильтр по состоянию.")
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 40)
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 120, trailing: 20))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            } else {
+                ForEach(filteredBells) { bell in
+                    if let bellBinding = binding(for: bell.id) {
+                        NavigationLink {
+                            BellDetailView(
+                                bell: bellBinding,
+                                repository: repository
+                            )
+                        } label: {
+                            BellCardView(bell: bell)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 6, trailing: 20))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button("Delete", role: .destructive) {
+                                deleteBell(bell.id)
                             }
                         }
                     }
                 }
+
+                Color.clear
+                    .frame(height: 100)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             }
-            .padding(20)
         }
-        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .background(
             LinearGradient(
                 colors: [
@@ -202,6 +226,11 @@ struct BellCatalogView: View {
     private func binding(for bellID: UUID) -> Binding<BellRecord>? {
         guard let index = bellRecords.firstIndex(where: { $0.id == bellID }) else { return nil }
         return $bellRecords[index]
+    }
+
+    private func deleteBell(_ bellID: UUID) {
+        repository.deleteBellRecord(bellID: bellID)
+        bellRecords.removeAll { $0.id == bellID }
     }
 }
 
