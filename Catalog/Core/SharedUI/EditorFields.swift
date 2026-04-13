@@ -158,34 +158,36 @@ struct TagEditorSection: View {
     @Binding var tags: [String]
 
     var body: some View {
-        HStack(spacing: 10) {
-            TextField(EL("editor.tags.add_placeholder"), text: $tagInput)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .onSubmit {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                TextField(EL("editor.tags.add_placeholder"), text: $tagInput)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .onSubmit {
+                        addTag()
+                    }
+
+                Button {
                     addTag()
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
                 }
-
-            Button(EL("common.add")) {
-                addTag()
+                .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityLabel(EL("common.add"))
             }
-            .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        }
 
-        if tags.isEmpty {
-            Text(EL("editor.tags.empty"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        } else {
-            ForEach(tags, id: \.self) { tag in
-                HStack {
-                    Text("#\(tag)")
-                        .font(.subheadline.weight(.medium))
-                    Spacer()
-                }
-                .swipeActions {
-                    Button(EL("common.delete"), role: .destructive) {
-                        removeTag(tag)
+            if tags.isEmpty {
+                Text(EL("editor.tags.empty"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                TagFlowLayout(spacing: 8) {
+                    ForEach(tags, id: \.self) { tag in
+                        TagChip(tag: tag) {
+                            removeTag(tag)
+                        }
                     }
                 }
             }
@@ -206,6 +208,95 @@ struct TagEditorSection: View {
 
     private func removeTag(_ tag: String) {
         tags.removeAll { $0 == tag }
+    }
+}
+
+private struct TagChip: View {
+    let tag: String
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text("#\(tag)")
+                .font(.subheadline.weight(.medium))
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(EL("common.delete"))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.thinMaterial, in: Capsule())
+    }
+}
+
+private struct TagFlowLayout: Layout {
+    let spacing: CGFloat
+
+    init(spacing: CGFloat = 8) {
+        self.spacing = spacing
+    }
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+
+            if currentX > 0, currentX + size.width > maxWidth {
+                currentX = 0
+                currentY += rowHeight + spacing
+                rowHeight = 0
+            }
+
+            currentX += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+
+        return CGSize(
+            width: proposal.width ?? currentX,
+            height: currentY + rowHeight
+        )
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        var currentX = bounds.minX
+        var currentY = bounds.minY
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+
+            if currentX > bounds.minX, currentX + size.width > bounds.maxX {
+                currentX = bounds.minX
+                currentY += rowHeight + spacing
+                rowHeight = 0
+            }
+
+            subview.place(
+                at: CGPoint(x: currentX, y: currentY),
+                proposal: ProposedViewSize(width: size.width, height: size.height)
+            )
+
+            currentX += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
     }
 }
 
