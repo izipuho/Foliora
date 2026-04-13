@@ -25,6 +25,8 @@
 		C000000000000000000000B0 /* BookLibraryPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000010 /* BookLibraryPlaceholderView.swift */; };
 		C000000000000000000000B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Assets.xcassets */; };
 		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
+		C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000014 /* CloudKitConfiguration.swift */; };
+		C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000015 /* CloudKitCatalogRepository.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +49,9 @@
 		C00000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Catalog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Catalog.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C00000000000000000000013 /* EditorFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFields.swift; sourceTree = "<group>"; };
+		C00000000000000000000014 /* CloudKitConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitConfiguration.swift; sourceTree = "<group>"; };
+		C00000000000000000000015 /* CloudKitCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCatalogRepository.swift; sourceTree = "<group>"; };
+		C00000000000000000000016 /* Catalog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catalog.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,6 +82,7 @@
 				C00000000000000000000037 /* Data */,
 				C00000000000000000000038 /* Features */,
 				C00000000000000000000039 /* Resources */,
+				C00000000000000000000016 /* Catalog.entitlements */,
 			);
 			path = Catalog;
 			sourceTree = "<group>";
@@ -94,6 +100,7 @@
 			children = (
 				C00000000000000000000001 /* CatalogApp.swift */,
 				C00000000000000000000002 /* AppContainer.swift */,
+				C00000000000000000000014 /* CloudKitConfiguration.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -192,6 +199,7 @@
 			isa = PBXGroup;
 			children = (
 				C0000000000000000000000B /* CatalogRepository.swift */,
+				C00000000000000000000015 /* CloudKitCatalogRepository.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -350,6 +358,8 @@
 				C000000000000000000000AF /* BellDetailView.swift in Sources */,
 				C000000000000000000000B0 /* BookLibraryPlaceholderView.swift in Sources */,
 				C000000000000000000000B2 /* EditorFields.swift in Sources */,
+				C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */,
+				C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -398,6 +408,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Catalog/Catalog.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8S22FH7RU6;
@@ -430,6 +441,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Catalog/Catalog.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8S22FH7RU6;
