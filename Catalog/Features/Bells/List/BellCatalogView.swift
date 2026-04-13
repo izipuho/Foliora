@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 private func BL(_ key: String) -> String {
     NSLocalizedString(key, comment: "")
@@ -63,59 +64,60 @@ struct BellCatalogView: View {
         collection.backgroundStyle.screenColors
     }
 
+    private var gridColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: 12),
+            GridItem(.flexible(), spacing: 12)
+        ]
+    }
+
+    @ViewBuilder
     var body: some View {
+        switch mode {
+        case .summary:
+            summaryContent
+        case .items:
+            bellGridContent(
+                bells: bells,
+                showsSearchControls: false,
+                emptyTitle: LocalizedStringKey(BL("bell_catalog.empty.title")),
+                emptyDescription: LocalizedStringKey(BL("bell_catalog.empty.description"))
+            )
+        case .search:
+            bellGridContent(
+                bells: filteredBells,
+                showsSearchControls: true,
+                emptyTitle: LocalizedStringKey(BL("bell_catalog.search.empty.title")),
+                emptyDescription: LocalizedStringKey(BL("bell_catalog.search.empty.description"))
+            )
+        }
+    }
+
+    private var summaryContent: some View {
         List {
-            switch mode {
-            case .summary:
-                if !collection.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    summaryDescription
-                        .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 0, trailing: 20))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                }
-
-                summaryInsights
-                    .listRowInsets(
-                        EdgeInsets(
-                            top: collection.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 20 : 12,
-                            leading: 20,
-                            bottom: 0,
-                            trailing: 20
-                        )
-                    )
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-
-                summaryRecentBells
-                    .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 120, trailing: 20))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-
-            case .items:
-                if bells.isEmpty {
-                    emptyBellsState(
-                        title: LocalizedStringKey(BL("bell_catalog.empty.title")),
-                        description: LocalizedStringKey(BL("bell_catalog.empty.description"))
-                    )
-                } else {
-                    bellListRows(bells)
-                }
-
-            case .search:
-                searchSection
+            if !collection.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                summaryDescription
                     .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 0, trailing: 20))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-
-                if filteredBells.isEmpty {
-                    emptyBellsState(
-                        title: LocalizedStringKey(BL("bell_catalog.search.empty.title")),
-                        description: LocalizedStringKey(BL("bell_catalog.search.empty.description"))
-                    )
-                } else {
-                    bellListRows(filteredBells)
-                }
             }
+
+            summaryInsights
+                .listRowInsets(
+                    EdgeInsets(
+                        top: collection.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 20 : 12,
+                        leading: 20,
+                        bottom: 0,
+                        trailing: 20
+                    )
+                )
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+            summaryRecentBells
+                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 120, trailing: 20))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
@@ -129,38 +131,53 @@ struct BellCatalogView: View {
         )
     }
 
-    @ViewBuilder
-    private func bellListRows(_ bells: [BellRecord]) -> some View {
-        ForEach(bells) { bell in
-            if let bellBinding = binding(for: bell.id) {
-                NavigationLink {
-                    BellDetailView(
-                        bell: bellBinding,
-                        repository: repository
-                    )
-                } label: {
-                    BellCardView(bell: bell)
+    private func bellGridContent(
+        bells: [BellRecord],
+        showsSearchControls: Bool,
+        emptyTitle: LocalizedStringKey,
+        emptyDescription: LocalizedStringKey
+    ) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if showsSearchControls {
+                    searchSection
                 }
-                .buttonStyle(.plain)
-                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 6, trailing: 20))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button("Delete", role: .destructive) {
-                        deleteBell(bell.id)
+
+                if bells.isEmpty {
+                    emptyBellsGridState(title: emptyTitle, description: emptyDescription)
+                } else {
+                    LazyVGrid(columns: gridColumns, spacing: 12) {
+                        ForEach(bells) { bell in
+                            if let bellBinding = binding(for: bell.id) {
+                                NavigationLink {
+                                    BellDetailView(
+                                        bell: bellBinding,
+                                        repository: repository
+                                    )
+                                } label: {
+                                    BellCardView(bell: bell)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
                     }
                 }
             }
+            .padding(.top, 20)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 120)
         }
-
-        Color.clear
-            .frame(height: 100)
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+        .background(
+            LinearGradient(
+                colors: themeColors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        )
     }
 
-    private func emptyBellsState(title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
+    private func emptyBellsGridState(title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
         ContentUnavailableView(
             title,
             systemImage: "bell.slash",
@@ -168,9 +185,6 @@ struct BellCatalogView: View {
         )
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
-        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 120, trailing: 20))
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
     }
 
     private var summaryInsights: some View {
@@ -519,76 +533,144 @@ private struct BellCardView: View {
     let bell: BellRecord
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
+        ZStack(alignment: .topLeading) {
+            cardBackground
+
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(hasCoverPhoto ? 0.34 : 0),
+                    Color.black.opacity(hasCoverPhoto ? 0.10 : 0),
+                    Color.black.opacity(hasCoverPhoto ? 0.08 : 0)
+                ],
+                startPoint: .bottom,
+                endPoint: .top
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(bell.title)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(primaryTextColor)
+                        .lineLimit(2)
 
                     Text(bell.placeDisplayName)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                        .foregroundStyle(secondaryTextColor)
+                        .lineLimit(2)
                 }
 
                 Spacer()
 
-                Image(systemName: "bell.badge.fill")
-                    .font(.title3)
-                    .foregroundStyle(Color(red: 0.72, green: 0.45, blue: 0.16))
+                CompactMetaChip(
+                    label: bell.materialDisplayName,
+                    systemImage: "shippingbox.fill",
+                    bright: hasCoverPhoto
+                )
             }
-
-            HStack {
-                Label(bell.materialDisplayName, systemImage: "shippingbox.fill")
-                Spacer()
-                Label(bell.condition.displayName, systemImage: "checkmark.seal")
-            }
-            .font(.footnote.weight(.medium))
-            .foregroundStyle(.secondary)
-
-            HStack(spacing: 8) {
-                MetaChip(label: bell.storageDisplayPath, systemImage: "shippingbox.circle")
-                MetaChip(label: "\(bell.photoCount) photo", systemImage: "photo")
-                if bell.model3DCount > 0 {
-                    MetaChip(label: "\(bell.model3DCount) 3D", systemImage: "cube.transparent")
-                }
-                if bell.documentCount > 0 {
-                    MetaChip(label: "\(bell.documentCount) doc", systemImage: "doc.text")
-                }
-            }
-
-            Text("Добавил: \(bell.createdBy)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if !bell.tags.isEmpty {
-                Text(bell.tags.map { "#\($0)" }.joined(separator: " "))
-                    .font(.caption)
-                    .foregroundStyle(Color(red: 0.43, green: 0.29, blue: 0.10))
-            }
+            .padding(14)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.86), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .frame(maxWidth: .infinity)
+        .frame(height: 220)
         .overlay(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(Color.black.opacity(0.04), lineWidth: 1)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
+    }
+
+    @ViewBuilder
+    private var cardBackground: some View {
+        if let coverPhotoAsset {
+            BellCardCoverBackground(asset: coverPhotoAsset)
+        } else {
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(0.88),
+                    Color.white.opacity(0.72)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+
+    private var coverPhotoAsset: MediaAsset? {
+        bell.mediaAssets
+            .filter({ $0.kind == .photo })
+            .sorted(by: { $0.sortOrder < $1.sortOrder })
+            .first
+    }
+
+    private var hasCoverPhoto: Bool {
+        coverPhotoAsset != nil
+    }
+
+    private var primaryTextColor: Color {
+        hasCoverPhoto ? .white : .primary
+    }
+
+    private var secondaryTextColor: Color {
+        hasCoverPhoto ? .white.opacity(0.86) : .secondary
     }
 }
 
-private struct MetaChip: View {
+private struct BellCardCoverBackground: View {
+    let asset: MediaAsset
+    private let mediaStore = LocalMediaFileStore.shared
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.88),
+                        Color.white.opacity(0.72)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        }
+        .task(id: asset.localIdentifier) {
+            loadImage()
+        }
+    }
+
+    private func loadImage() {
+        guard image == nil,
+              let url = mediaStore.fileURL(for: asset.localIdentifier),
+              let loadedImage = UIImage(contentsOfFile: url.path) else {
+            return
+        }
+
+        image = loadedImage
+    }
+}
+
+private struct CompactMetaChip: View {
     let label: String
     let systemImage: String
+    let bright: Bool
 
     var body: some View {
         Label(label, systemImage: systemImage)
-            .font(.caption.weight(.medium))
-            .padding(.vertical, 8)
-            .padding(.horizontal, 10)
-            .background(Color.black.opacity(0.04), in: Capsule())
-            .foregroundStyle(.secondary)
+            .font(.caption2.weight(.semibold))
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .background(
+                bright
+                    ? Color.white.opacity(0.16)
+                    : Color.black.opacity(0.04),
+                in: Capsule()
+            )
+            .foregroundStyle(bright ? .white : .secondary)
     }
 }
 
