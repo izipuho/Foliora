@@ -725,6 +725,10 @@ struct LocationHierarchyPickerView: View {
             .sorted { $0.name < $1.name }
     }
 
+    private var currentNode: Location? {
+        ancestors.last
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -748,62 +752,127 @@ struct LocationHierarchyPickerView: View {
                     Section(EL("editor.location.current_path")) {
                         Text(ancestors.map(\.name).joined(separator: " / "))
                             .foregroundStyle(.secondary)
+
+                        Button {
+                            goBackOneLevel()
+                        } label: {
+                            Label(EL("editor.location.up_one_level"), systemImage: "chevron.left")
+                        }
                     }
                 }
 
                 Section(ancestors.isEmpty ? EL("editor.location.select") : EL("editor.location.next_level")) {
+                    if let currentNode {
+                        Button {
+                            selectedLocationID = currentNode.id
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(currentNode.name)
+                                    Text(currentNode.kind.displayName)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Text(EL("editor.location.use_current"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                                if selectedLocationID == currentNode.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     ForEach(currentLocations) { location in
-                        HStack(spacing: 12) {
-                            Button {
+                        Button {
+                            if hasChildren(location) {
+                                ancestors.append(location)
+                                currentParentID = location.id
+                            } else {
                                 selectedLocationID = location.id
                                 dismiss()
-                            } label: {
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(location.name)
+                                        .foregroundStyle(.primary)
                                     Text(location.kind.displayName)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
-                            }
-                            .buttonStyle(.plain)
 
-                            Spacer()
+                                Spacer()
 
-                            if hasChildren(location) {
-                                Button {
-                                    ancestors.append(location)
-                                    currentParentID = location.id
-                                    selectedLocationID = location.id
-                                } label: {
-                                    Image(systemName: "chevron.right.circle")
-                                        .font(.title3)
+                                if hasChildren(location) {
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.tertiary)
+                                } else if selectedLocationID == location.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
                                 }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(.secondary)
                             }
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
             .navigationTitle(EL("editor.location.title"))
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                initializeNavigationState()
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    if !ancestors.isEmpty {
-                        Button(EL("common.back")) {
-                            ancestors.removeLast()
-                            currentParentID = ancestors.last?.id
-                        }
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
                     }
+                    .accessibilityLabel(EL("common.cancel"))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(EL("common.done")) {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
                     }
+                    .disabled(selectedLocationID == nil)
+                    .accessibilityLabel(EL("common.save"))
                 }
             }
         }
+    }
+
+    private func initializeNavigationState() {
+        guard ancestors.isEmpty, currentParentID == nil, let selectedLocationID else { return }
+        guard let selectedLocation = locations.first(where: { $0.id == selectedLocationID }) else { return }
+
+        let locationsByID = Dictionary(uniqueKeysWithValues: locations.map { ($0.id, $0) })
+        var path: [Location] = []
+        var parentID = selectedLocation.parentLocationID
+
+        while let currentParentID = parentID, let parent = locationsByID[currentParentID] {
+            path.insert(parent, at: 0)
+            parentID = parent.parentLocationID
+        }
+
+        ancestors = path
+        currentParentID = selectedLocation.parentLocationID
+    }
+
+    private func goBackOneLevel() {
+        guard !ancestors.isEmpty else { return }
+        ancestors.removeLast()
+        currentParentID = ancestors.last?.id
     }
 
     private func hasChildren(_ location: Location) -> Bool {

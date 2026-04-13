@@ -87,6 +87,8 @@
 "editor.location.current_path" = "Current Path";
 "editor.location.select" = "Select Location";
 "editor.location.next_level" = "Next Level";
+"editor.location.up_one_level" = "Up One Level";
+"editor.location.use_current" = "Use This Location";
 
 "enum.item_condition.mint" = "Mint";
 "enum.item_condition.good" = "Good";

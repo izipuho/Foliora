@@ -87,6 +87,8 @@
 "editor.location.current_path" = "Текущий путь";
 "editor.location.select" = "Выбери расположение";
 "editor.location.next_level" = "Следующий уровень";
+"editor.location.up_one_level" = "На уровень выше";
+"editor.location.use_current" = "Выбрать это расположение";
 
 "enum.item_condition.mint" = "Идеальное";
 "enum.item_condition.good" = "Хорошее";
