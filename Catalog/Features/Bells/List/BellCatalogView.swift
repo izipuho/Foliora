@@ -279,11 +279,11 @@ struct BellEditorView: View {
     @State private var tagInput = ""
     @State private var tags: [String] = []
     @State private var mediaAssets: [MediaAsset] = []
-    @State private var selectedYearOption = "None"
+    @State private var selectedYearOption = BL("editor.year.none")
     private let existingBellID: UUID?
     private let editorItemID: UUID
 
-    private let yearOptions = ["None"] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
+    private let yearOptions = [BL("editor.year.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     private var availableLocations: [Location] {
         repository.fetchLocations(in: collection.homeID)
@@ -332,89 +332,89 @@ struct BellEditorView: View {
         _selectedLocationID = State(initialValue: bell?.item.locationID)
         _tags = State(initialValue: bell?.tags ?? [])
         _mediaAssets = State(initialValue: bell?.mediaAssets ?? [])
-        _selectedYearOption = State(initialValue: bell?.year.map(String.init) ?? "None")
+        _selectedYearOption = State(initialValue: bell?.year.map(String.init) ?? BL("editor.year.none"))
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Main Info") {
-                    TextField("Title", text: $title)
-                    TextField("Notes", text: $notes, axis: .vertical)
+                Section(BL("editor.main_info")) {
+                    TextField(BL("editor.title"), text: $title)
+                    TextField(BL("editor.notes"), text: $notes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
 
                     YearPickerField(
-                        title: "Year",
+                        title: BL("editor.year"),
                         selection: $selectedYearOption,
                         options: yearOptions
                     )
                 }
 
-                Section("Attributes") {
+                Section(BL("editor.media")) {
+                    MediaSection(
+                        itemID: editorItemID,
+                        mediaAssets: $mediaAssets
+                    )
+                }
+
+                Section(BL("editor.attributes")) {
                     PlacePickerField(
-                        title: "Origin",
+                        title: BL("editor.origin"),
                         selectedLabel: selectedOriginLabel,
                         places: availablePlaces,
                         selectedPlaceID: $selectedOriginPlaceID
                     )
 
-                    Picker("Condition", selection: $condition) {
+                    Picker(BL("editor.condition"), selection: $condition) {
                         ForEach(ItemCondition.allCases) { condition in
                             Text(condition.rawValue).tag(condition)
                         }
                     }
 
-                    Picker("Acquisition", selection: $acquisitionMethod) {
+                    Picker(BL("editor.acquisition"), selection: $acquisitionMethod) {
                         ForEach(AcquisitionMethod.allCases) { method in
                             Text(method.rawValue).tag(method)
                         }
                     }
 
-                    Picker("Material", selection: $material) {
+                    Picker(BL("editor.material"), selection: $material) {
                         ForEach(BellMaterial.allCases) { material in
                             Text(material.displayName).tag(material)
                         }
                     }
 
                     if material == .other {
-                        TextField("Custom material", text: $customMaterialName)
+                        TextField(BL("editor.material.custom"), text: $customMaterialName)
                     }
                 }
 
-                Section("Storage") {
+                Section(BL("editor.storage")) {
                     LocationPickerField(
-                        title: "Location",
+                        title: BL("editor.location"),
                         selectedLabel: selectedLocationLabel,
                         locations: availableLocations,
                         selectedLocationID: $selectedLocationID
                     )
                 }
 
-                Section("Tags") {
+                Section(BL("editor.tags")) {
                     TagEditorSection(
                         tagInput: $tagInput,
                         tags: $tags
                     )
                 }
-
-                Section("Media") {
-                    MediaSection(
-                        itemID: editorItemID,
-                        mediaAssets: $mediaAssets
-                    )
-                }
             }
-            .navigationTitle("Add Bell")
+            .navigationTitle(existingBellID == nil ? BL("editor.bell.add") : BL("editor.bell.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
+                    Button(BL("common.cancel")) {
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
+                    Button(BL("common.save")) {
                         saveBell()
                     }
                     .disabled(!canSave)
@@ -449,7 +449,7 @@ struct BellEditorView: View {
                 locationID: selectedLocationID,
                 title: trimmedTitle,
                 notes: trimmedNotes,
-                year: selectedYearOption == "None" ? nil : Int(selectedYearOption),
+                year: selectedYearOption == BL("editor.year.none") ? nil : Int(selectedYearOption),
                 condition: condition,
                 acquisitionMethod: acquisitionMethod
             ),
@@ -475,7 +475,7 @@ struct BellEditorView: View {
         guard let selectedOriginPlaceID,
               let place = availablePlaces.first(where: { $0.id == selectedOriginPlaceID })
         else {
-            return "Unassigned"
+            return BL("common.unassigned")
         }
 
         return place.displayName
@@ -483,7 +483,7 @@ struct BellEditorView: View {
 
     private var selectedLocationLabel: String {
         guard let selectedLocationID, let path = locationPathByID[selectedLocationID] else {
-            return "Unassigned"
+            return BL("common.unassigned")
         }
 
         return path

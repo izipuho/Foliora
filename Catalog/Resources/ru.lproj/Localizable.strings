@@ -32,3 +32,52 @@
 "bell_catalog.summary.without_media" = "Без медиа";
 "bell_catalog.search.placeholder" = "Поиск по названию, городу или тегу";
 "bell_catalog.filter.all" = "Все";
+
+"common.add" = "Добавить";
+"common.back" = "Назад";
+"common.cancel" = "Отмена";
+"common.delete" = "Удалить";
+"common.done" = "Готово";
+"common.ok" = "OK";
+"common.save" = "Сохранить";
+"common.unassigned" = "Не указано";
+
+"editor.main_info" = "Основное";
+"editor.media" = "Медиа";
+"editor.attributes" = "Атрибуты";
+"editor.storage" = "Хранение";
+"editor.tags" = "Теги";
+"editor.title" = "Название";
+"editor.notes" = "Заметки";
+"editor.year" = "Год";
+"editor.year.none" = "Не указан";
+"editor.origin" = "Происхождение";
+"editor.condition" = "Состояние";
+"editor.acquisition" = "Получение";
+"editor.material" = "Материал";
+"editor.material.custom" = "Свой материал";
+"editor.location" = "Расположение";
+"editor.bell.add" = "Добавить колокольчик";
+"editor.bell.edit" = "Редактировать колокольчик";
+
+"editor.tags.add_placeholder" = "Добавить тег";
+"editor.tags.empty" = "Тегов пока нет.";
+
+"editor.media.empty.title" = "Медиа пока нет";
+"editor.media.empty.description" = "Добавь фотографии, документы или 3D-модели.";
+"editor.media.add" = "Добавить медиа";
+"editor.media.photo_library" = "Выбрать из медиатеки";
+"editor.media.camera" = "Сделать фото";
+"editor.media.document" = "Добавить документ";
+"editor.media.model" = "Добавить 3D-модель";
+"editor.media.model.placeholder_title" = "3D-модели будут позже";
+"editor.media.model.placeholder_message" = "Импорт 3D-моделей пока работает как заглушка. Фото и документы уже используют системные пикеры.";
+
+"editor.origin.title" = "Происхождение";
+"editor.origin.search" = "Поиск мест";
+"editor.origin.places" = "Места";
+
+"editor.location.title" = "Выбор расположения";
+"editor.location.current_path" = "Текущий путь";
+"editor.location.select" = "Выбери расположение";
+"editor.location.next_level" = "Следующий уровень";

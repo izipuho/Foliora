@@ -3,6 +3,10 @@ import PhotosUI
 import UniformTypeIdentifiers
 import UIKit
 
+private func EL(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
+
 struct YearPickerField: View {
     let title: String
     @Binding var selection: String
@@ -91,21 +95,21 @@ struct TagEditorSection: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            TextField("Add tag", text: $tagInput)
+            TextField(EL("editor.tags.add_placeholder"), text: $tagInput)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .onSubmit {
                     addTag()
                 }
 
-            Button("Add") {
+            Button(EL("common.add")) {
                 addTag()
             }
             .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
 
         if tags.isEmpty {
-            Text("No tags yet.")
+            Text(EL("editor.tags.empty"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } else {
@@ -116,7 +120,7 @@ struct TagEditorSection: View {
                     Spacer()
                 }
                 .swipeActions {
-                    Button("Delete", role: .destructive) {
+                    Button(EL("common.delete"), role: .destructive) {
                         removeTag(tag)
                     }
                 }
@@ -148,6 +152,7 @@ struct MediaSection: View {
 
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isPresentingPhotoPicker = false
+    @State private var isPresentingCamera = false
     @State private var isPresentingDocumentImporter = false
     @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
@@ -156,9 +161,9 @@ struct MediaSection: View {
     var body: some View {
         if mediaAssets.isEmpty {
             ContentUnavailableView(
-                "No media yet",
+                EL("editor.media.empty.title"),
                 systemImage: "photo.on.rectangle.angled",
-                description: Text("Add photos, documents, or 3D models.")
+                description: Text(EL("editor.media.empty.description"))
             )
         } else {
             LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 12) {
@@ -175,7 +180,7 @@ struct MediaSection: View {
         Button {
             isPresentingAddMediaOptions = true
         } label: {
-            Label("Add Media", systemImage: "plus")
+            Label(EL("editor.media.add"), systemImage: "plus")
         }
         .photosPicker(
             isPresented: $isPresentingPhotoPicker,
@@ -184,6 +189,11 @@ struct MediaSection: View {
             matching: .images,
             photoLibrary: .shared()
         )
+        .fullScreenCover(isPresented: $isPresentingCamera) {
+            CameraPickerView { image in
+                addCapturedPhoto(image)
+            }
+        }
         .fileImporter(
             isPresented: $isPresentingDocumentImporter,
             allowedContentTypes: [.content, .data],
@@ -192,25 +202,31 @@ struct MediaSection: View {
             guard case let .success(urls) = result else { return }
             addDocuments(from: urls)
         }
-        .confirmationDialog("Add Media", isPresented: $isPresentingAddMediaOptions, titleVisibility: .visible) {
-            Button("Add Photo") {
+        .confirmationDialog(EL("editor.media.add"), isPresented: $isPresentingAddMediaOptions, titleVisibility: .visible) {
+            Button(EL("editor.media.photo_library")) {
                 isPresentingPhotoPicker = true
             }
 
-            Button("Add Document") {
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button(EL("editor.media.camera")) {
+                    isPresentingCamera = true
+                }
+            }
+
+            Button(EL("editor.media.document")) {
                 isPresentingDocumentImporter = true
             }
 
-            Button("Add 3D Model") {
+            Button(EL("editor.media.model")) {
                 isShowingModelPlaceholder = true
             }
 
-            Button("Cancel", role: .cancel) {}
+            Button(EL("common.cancel"), role: .cancel) {}
         }
-        .alert("3D Models Coming Later", isPresented: $isShowingModelPlaceholder) {
-            Button("OK", role: .cancel) {}
+        .alert(EL("editor.media.model.placeholder_title"), isPresented: $isShowingModelPlaceholder) {
+            Button(EL("common.ok"), role: .cancel) {}
         } message: {
-            Text("3D model import is still a placeholder. Photos and documents already use real system pickers.")
+            Text(EL("editor.media.model.placeholder_message"))
         }
         .onChange(of: selectedPhotoItems) { _, newItems in
             Task {
@@ -251,6 +267,22 @@ struct MediaSection: View {
         }
 
         selectedPhotoItems = []
+    }
+
+    private func addCapturedPhoto(_ image: UIImage) {
+        guard let data = image.jpegData(compressionQuality: 0.92) else { return }
+        guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: "jpg") else { return }
+
+        mediaAssets.append(
+            MediaAsset(
+                id: UUID(),
+                itemID: itemID,
+                kind: .photo,
+                localIdentifier: identifier,
+                displayName: nil,
+                sortOrder: mediaAssets.count
+            )
+        )
     }
 
     private func addDocuments(from urls: [URL]) {
@@ -441,7 +473,7 @@ struct PlacePickerView: View {
                         dismiss()
                     } label: {
                         HStack {
-                            Text("Unassigned")
+                            Text(EL("common.unassigned"))
                             Spacer()
                             if selectedPlaceID == nil {
                                 Image(systemName: "checkmark")
@@ -451,7 +483,7 @@ struct PlacePickerView: View {
                     }
                 }
 
-                Section("Places") {
+                Section(EL("editor.origin.places")) {
                     ForEach(filteredPlaces) { place in
                         Button {
                             selectedPlaceID = place.id
@@ -478,12 +510,12 @@ struct PlacePickerView: View {
                     }
                 }
             }
-            .navigationTitle("Origin")
+            .navigationTitle(EL("editor.origin.title"))
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search places")
+            .searchable(text: $searchText, prompt: EL("editor.origin.search"))
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button(EL("common.done")) {
                         dismiss()
                     }
                 }
@@ -527,7 +559,7 @@ struct LocationHierarchyPickerView: View {
                         dismiss()
                     } label: {
                         HStack {
-                            Text("Unassigned")
+                            Text(EL("common.unassigned"))
                             Spacer()
                             if selectedLocationID == nil {
                                 Image(systemName: "checkmark")
@@ -538,13 +570,13 @@ struct LocationHierarchyPickerView: View {
                 }
 
                 if !ancestors.isEmpty {
-                    Section("Current Path") {
+                    Section(EL("editor.location.current_path")) {
                         Text(ancestors.map(\.name).joined(separator: " / "))
                             .foregroundStyle(.secondary)
                     }
                 }
 
-                Section(ancestors.isEmpty ? "Select Location" : "Next Level") {
+                Section(ancestors.isEmpty ? EL("editor.location.select") : EL("editor.location.next_level")) {
                     ForEach(currentLocations) { location in
                         HStack(spacing: 12) {
                             Button {
@@ -578,12 +610,12 @@ struct LocationHierarchyPickerView: View {
                     }
                 }
             }
-            .navigationTitle("Select Location")
+            .navigationTitle(EL("editor.location.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if !ancestors.isEmpty {
-                        Button("Back") {
+                        Button(EL("common.back")) {
                             ancestors.removeLast()
                             currentParentID = ancestors.last?.id
                         }
@@ -591,7 +623,7 @@ struct LocationHierarchyPickerView: View {
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button(EL("common.done")) {
                         dismiss()
                     }
                 }
@@ -601,5 +633,48 @@ struct LocationHierarchyPickerView: View {
 
     private func hasChildren(_ location: Location) -> Bool {
         locations.contains { $0.parentLocationID == location.id }
+    }
+}
+
+private struct CameraPickerView: UIViewControllerRepresentable {
+    let onImagePicked: (UIImage) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onImagePicked: onImagePicked, dismiss: dismiss)
+    }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let controller = UIImagePickerController()
+        controller.sourceType = .camera
+        controller.delegate = context.coordinator
+        controller.allowsEditing = false
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        let onImagePicked: (UIImage) -> Void
+        let dismiss: DismissAction
+
+        init(onImagePicked: @escaping (UIImage) -> Void, dismiss: DismissAction) {
+            self.onImagePicked = onImagePicked
+            self.dismiss = dismiss
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            dismiss()
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            if let image = info[.originalImage] as? UIImage {
+                onImagePicked(image)
+            }
+            dismiss()
+        }
     }
 }
