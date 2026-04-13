@@ -48,23 +48,26 @@ struct EnumSelectionRow<Option: Hashable>: View {
         .buttonStyle(.plain)
         .sheet(isPresented: $isPresentingPicker) {
             NavigationStack {
-                List(options, id: \.self) { option in
-                    Button {
-                        selection = option
-                        isPresentingPicker = false
-                    } label: {
+                List {
+                    ForEach(options, id: \.self) { option in
                         HStack {
                             Text(optionTitle(option))
                                 .foregroundStyle(.primary)
+
                             Spacer()
+
                             if option == selection {
                                 Image(systemName: "checkmark")
                                     .font(.body.weight(.semibold))
                                     .foregroundStyle(.tint)
                             }
                         }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selection = option
+                            isPresentingPicker = false
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
