@@ -4,7 +4,7 @@ struct CollectionCard: View {
     let collection: CollectionSummary
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top, spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -17,20 +17,9 @@ struct CollectionCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(collection.kind.title)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(collection.kind.tintColor)
-
-                        Spacer()
-
-                        Text(collection.status.label)
-                            .font(.caption.weight(.semibold))
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 10)
-                            .background(collection.status.badgeColor.opacity(0.16), in: Capsule())
-                            .foregroundStyle(collection.status.badgeColor)
-                    }
+                    Text(collection.kind.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(collection.kind.tintColor)
 
                     Text(collection.name)
                         .font(.title3.bold())
@@ -38,18 +27,16 @@ struct CollectionCard: View {
                     Text(collection.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
+
+                Spacer(minLength: 12)
             }
 
-            HStack(spacing: 12) {
-                CollectionMetric(title: "Предметов", value: "\(collection.itemCount)")
-                CollectionMetric(title: "Участников", value: "\(collection.collaboratorCount)")
-                CollectionMetric(title: "Моя роль", value: collection.role.shortLabel)
+            HStack(spacing: 10) {
+                countChip
+                Spacer()
             }
-
-            Label(collection.sharingSummary, systemImage: "person.crop.circle.badge.checkmark")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -67,22 +54,17 @@ struct CollectionCard: View {
                 .stroke(Color.black.opacity(0.05), lineWidth: 1)
         )
     }
-}
 
-private struct CollectionMetric: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(value)
-                .font(.headline.bold())
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    private var countChip: some View {
+        Label {
+            Text("\(collection.itemCount) items")
+        } icon: {
+            Image(systemName: "square.stack.3d.up")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Color.black.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .font(.footnote.weight(.medium))
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(Color.black.opacity(0.04), in: Capsule())
+        .foregroundStyle(.secondary)
     }
 }
