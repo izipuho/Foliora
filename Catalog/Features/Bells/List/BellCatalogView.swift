@@ -220,8 +220,10 @@ struct BellEditorView: View {
     @State private var selectedLocationID: UUID?
     @State private var tagInput = ""
     @State private var tags: [String] = []
+    @State private var mediaAssets: [MediaAsset] = []
     @State private var selectedYearOption = "None"
     private let existingBellID: UUID?
+    private let editorItemID: UUID
 
     private let yearOptions = ["None"] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
@@ -262,6 +264,7 @@ struct BellEditorView: View {
         self.repository = repository
         self.onSave = onSave
         self.existingBellID = bell?.id
+        self.editorItemID = bell?.id ?? UUID()
         _title = State(initialValue: bell?.title ?? "")
         _notes = State(initialValue: bell?.notes ?? "")
         _condition = State(initialValue: bell?.condition ?? .good)
@@ -271,6 +274,7 @@ struct BellEditorView: View {
         _selectedOriginPlaceID = State(initialValue: bell?.details.originPlaceID)
         _selectedLocationID = State(initialValue: bell?.item.locationID)
         _tags = State(initialValue: bell?.tags ?? [])
+        _mediaAssets = State(initialValue: bell?.mediaAssets ?? [])
         _selectedYearOption = State(initialValue: bell?.year.map(String.init) ?? "None")
     }
 
@@ -335,6 +339,13 @@ struct BellEditorView: View {
                         tags: $tags
                     )
                 }
+
+                Section("Media") {
+                    MediaSection(
+                        itemID: editorItemID,
+                        mediaAssets: $mediaAssets
+                    )
+                }
             }
             .navigationTitle("Add Bell")
             .navigationBarTitleDisplayMode(.inline)
@@ -360,9 +371,18 @@ struct BellEditorView: View {
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedCustomMaterial = customMaterialName.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let itemID = existingBellID ?? UUID()
+        let itemID = editorItemID
         let location = availableLocations.first(where: { $0.id == selectedLocationID })
         let originPlace = availablePlaces.first(where: { $0.id == selectedOriginPlaceID })
+        let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
+            MediaAsset(
+                id: asset.id,
+                itemID: itemID,
+                kind: asset.kind,
+                localIdentifier: asset.localIdentifier,
+                sortOrder: index
+            )
+        }
 
         let newBell = BellRecord(
             item: Item(
@@ -384,7 +404,7 @@ struct BellEditorView: View {
             originPlace: originPlace,
             storageLocation: location,
             storagePath: location.map(locationPath(for:)) ?? "Unassigned",
-            mediaAssets: [],
+            mediaAssets: normalizedMediaAssets,
             createdBy: "You",
             tags: tags
         )

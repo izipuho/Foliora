@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UniformTypeIdentifiers
 
 struct YearPickerField: View {
     let title: String
@@ -135,6 +137,185 @@ struct TagEditorSection: View {
 
     private func removeTag(_ tag: String) {
         tags.removeAll { $0 == tag }
+    }
+}
+
+struct MediaSection: View {
+    let itemID: UUID
+    @Binding var mediaAssets: [MediaAsset]
+
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
+    @State private var isPresentingPhotoPicker = false
+    @State private var isPresentingDocumentImporter = false
+    @State private var isShowingModelPlaceholder = false
+    @State private var isPresentingAddMediaOptions = false
+
+    var body: some View {
+        if mediaAssets.isEmpty {
+            ContentUnavailableView(
+                "No media yet",
+                systemImage: "photo.on.rectangle.angled",
+                description: Text("Add photos, documents, or 3D models.")
+            )
+        } else {
+            ForEach(sortedAssets) { asset in
+                HStack(spacing: 12) {
+                    Image(systemName: iconName(for: asset.kind))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title(for: asset))
+                        Text(asset.kind.displayName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+                }
+                .swipeActions {
+                    Button("Delete", role: .destructive) {
+                        mediaAssets.removeAll { $0.id == asset.id }
+                        reindexAssets()
+                    }
+                }
+            }
+        }
+
+        Button {
+            isPresentingAddMediaOptions = true
+        } label: {
+            Label("Add Media", systemImage: "plus")
+        }
+        .photosPicker(
+            isPresented: $isPresentingPhotoPicker,
+            selection: $selectedPhotoItems,
+            maxSelectionCount: nil,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .fileImporter(
+            isPresented: $isPresentingDocumentImporter,
+            allowedContentTypes: [.content, .data],
+            allowsMultipleSelection: true
+        ) { result in
+            guard case let .success(urls) = result else { return }
+            addDocuments(from: urls)
+        }
+        .confirmationDialog("Add Media", isPresented: $isPresentingAddMediaOptions, titleVisibility: .visible) {
+            Button("Add Photo") {
+                isPresentingPhotoPicker = true
+            }
+
+            Button("Add Document") {
+                isPresentingDocumentImporter = true
+            }
+
+            Button("Add 3D Model") {
+                isShowingModelPlaceholder = true
+            }
+
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert("3D Models Coming Later", isPresented: $isShowingModelPlaceholder) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("3D model import is still a placeholder. Photos and documents already use real system pickers.")
+        }
+        .onChange(of: selectedPhotoItems) { _, newItems in
+            addPhotos(from: newItems)
+        }
+    }
+
+    private var sortedAssets: [MediaAsset] {
+        mediaAssets.sorted { lhs, rhs in
+            if lhs.sortOrder == rhs.sortOrder {
+                return lhs.localIdentifier < rhs.localIdentifier
+            }
+
+            return lhs.sortOrder < rhs.sortOrder
+        }
+    }
+
+    private func addAsset(kind: MediaKind) {
+        let nextIndex = mediaAssets.count + 1
+        let asset = MediaAsset(
+            id: UUID(),
+            itemID: itemID,
+            kind: kind,
+            localIdentifier: "\(kind.rawValue)-\(nextIndex)",
+            sortOrder: mediaAssets.count
+        )
+
+        mediaAssets.append(asset)
+    }
+
+    private func addPhotos(from items: [PhotosPickerItem]) {
+        guard !items.isEmpty else { return }
+
+        for item in items {
+            let nextIndex = mediaAssets.count + 1
+            let identifier = item.itemIdentifier ?? "photo-\(nextIndex)"
+
+            mediaAssets.append(
+                MediaAsset(
+                    id: UUID(),
+                    itemID: itemID,
+                    kind: .photo,
+                    localIdentifier: identifier,
+                    sortOrder: mediaAssets.count
+                )
+            )
+        }
+
+        selectedPhotoItems = []
+    }
+
+    private func addDocuments(from urls: [URL]) {
+        guard !urls.isEmpty else { return }
+
+        for url in urls {
+            let fileName = url.lastPathComponent.isEmpty ? "document-\(mediaAssets.count + 1)" : url.lastPathComponent
+            mediaAssets.append(
+                MediaAsset(
+                    id: UUID(),
+                    itemID: itemID,
+                    kind: .document,
+                    localIdentifier: fileName,
+                    sortOrder: mediaAssets.count
+                )
+            )
+        }
+    }
+
+    private func reindexAssets() {
+        mediaAssets = mediaAssets
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .enumerated()
+            .map { index, asset in
+                MediaAsset(
+                    id: asset.id,
+                    itemID: asset.itemID,
+                    kind: asset.kind,
+                    localIdentifier: asset.localIdentifier,
+                    sortOrder: index
+                )
+            }
+    }
+
+    private func iconName(for kind: MediaKind) -> String {
+        switch kind {
+        case .photo:
+            return "photo"
+        case .document:
+            return "doc"
+        case .model3D:
+            return "cube.transparent"
+        }
+    }
+
+    private func title(for asset: MediaAsset) -> String {
+        asset.localIdentifier.replacingOccurrences(of: "-", with: " ").capitalized
     }
 }
 
