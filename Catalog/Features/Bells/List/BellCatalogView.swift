@@ -72,8 +72,22 @@ struct BellCatalogView: View {
         List {
             switch mode {
             case .summary:
+                if !collection.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    summaryDescription
+                        .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 0, trailing: 20))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
+
                 summaryInsights
-                    .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 0, trailing: 20))
+                    .listRowInsets(
+                        EdgeInsets(
+                            top: collection.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 20 : 12,
+                            leading: 20,
+                            bottom: 0,
+                            trailing: 20
+                        )
+                    )
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
 
@@ -232,6 +246,15 @@ struct BellCatalogView: View {
                 StatChip(title: BL("bell_catalog.summary.without_media"), value: "\(bells.filter { $0.mediaAssets.isEmpty }.count)")
             }
         }
+    }
+
+    private var summaryDescription: some View {
+        Text(collection.subtitle)
+            .font(.body)
+            .foregroundStyle(.secondary)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(0.52), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private var summaryRecentBells: some View {
