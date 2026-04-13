@@ -1,6 +1,5 @@
 import SwiftUI
 import PhotosUI
-import UniformTypeIdentifiers
 import UIKit
 
 private func EL(_ key: String) -> String {
@@ -308,7 +307,6 @@ struct MediaSection: View {
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isPresentingPhotoPicker = false
     @State private var isPresentingCamera = false
-    @State private var isPresentingDocumentImporter = false
     @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
     private let gridColumns = [GridItem(.adaptive(minimum: 96, maximum: 128), spacing: 12)]
@@ -352,14 +350,6 @@ struct MediaSection: View {
                 addCapturedPhoto(image)
             }
         }
-        .fileImporter(
-            isPresented: $isPresentingDocumentImporter,
-            allowedContentTypes: [.content, .data],
-            allowsMultipleSelection: true
-        ) { result in
-            guard case let .success(urls) = result else { return }
-            addDocuments(from: urls)
-        }
         .confirmationDialog(EL("editor.media.add"), isPresented: $isPresentingAddMediaOptions, titleVisibility: .visible) {
             Button(EL("editor.media.photo_library")) {
                 isPresentingPhotoPicker = true
@@ -369,10 +359,6 @@ struct MediaSection: View {
                 Button(EL("editor.media.camera")) {
                     isPresentingCamera = true
                 }
-            }
-
-            Button(EL("editor.media.document")) {
-                isPresentingDocumentImporter = true
             }
 
             Button(EL("editor.media.model")) {
@@ -447,24 +433,6 @@ struct MediaSection: View {
                 sortOrder: mediaAssets.count
             )
         )
-    }
-
-    private func addDocuments(from urls: [URL]) {
-        guard !urls.isEmpty else { return }
-
-        for url in urls {
-            guard let fileName = try? mediaStore.importDocument(from: url) else { continue }
-            mediaAssets.append(
-                MediaAsset(
-                    id: UUID(),
-                    itemID: itemID,
-                    kind: .document,
-                    localIdentifier: fileName,
-                    displayName: url.lastPathComponent,
-                    sortOrder: mediaAssets.count
-                )
-            )
-        }
     }
 
     private func reindexAssets() {

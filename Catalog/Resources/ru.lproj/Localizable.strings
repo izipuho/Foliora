@@ -69,15 +69,14 @@
 "editor.tags.empty" = "Тегов пока нет.";
 
 "editor.media.empty.title" = "Медиа пока нет";
-"editor.media.empty.description" = "Добавь фотографии, документы или 3D-модели.";
+"editor.media.empty.description" = "Добавь фотографии или 3D-модели.";
 "editor.media.add" = "Добавить медиа";
 "editor.media.photo_library" = "Выбрать из медиатеки";
 "editor.media.camera" = "Сделать фото";
-"editor.media.document" = "Добавить документ";
 "editor.media.cover" = "Обложка";
 "editor.media.model" = "Добавить 3D-модель";
 "editor.media.model.placeholder_title" = "3D-модели будут позже";
-"editor.media.model.placeholder_message" = "Импорт 3D-моделей пока работает как заглушка. Фото и документы уже используют системные пикеры.";
+"editor.media.model.placeholder_message" = "Импорт 3D-моделей пока работает как заглушка. Фото уже используют системные пикеры.";
 
 "editor.origin.title" = "Происхождение";
 "editor.origin.search" = "Поиск мест";
