@@ -1,10 +1,12 @@
 import SwiftUI
 import UIKit
+import QuickLook
 
 struct BellDetailView: View {
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
     @State private var isPresentingEditor = false
+    @State private var previewTarget: MediaPreviewTarget?
     private let mediaColumns = [GridItem(.adaptive(minimum: 108, maximum: 140), spacing: 12)]
 
     var body: some View {
@@ -56,7 +58,9 @@ struct BellDetailView: View {
 
                         LazyVGrid(columns: mediaColumns, alignment: .leading, spacing: 12) {
                             ForEach(bell.mediaAssets.sorted { $0.sortOrder < $1.sortOrder }) { asset in
-                                BellDetailMediaTile(asset: asset)
+                                BellDetailMediaTile(asset: asset) {
+                                    openPreview(for: asset)
+                                }
                             }
                         }
                     }
@@ -110,6 +114,14 @@ struct BellDetailView: View {
                 bell = updatedBell
             }
         }
+        .sheet(item: $previewTarget) { target in
+            switch target.kind {
+            case .photo:
+                MediaPhotoPreviewScreen(url: target.url)
+            case .document, .model3D:
+                QuickLookPreview(url: target.url)
+            }
+        }
     }
 
     private func detailSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -133,6 +145,12 @@ struct BellDetailView: View {
         }
     }
 
+    private func openPreview(for asset: MediaAsset) {
+        let mediaStore = LocalMediaFileStore.shared
+        guard let url = mediaStore.fileURL(for: asset.localIdentifier) else { return }
+        previewTarget = MediaPreviewTarget(url: url, kind: asset.kind)
+    }
+
     private var inferredCollection: CollectionSummary {
         repository.fetchCollections().first(where: { $0.id == bell.item.collectionID }) ??
             CollectionSummary(
@@ -151,22 +169,27 @@ struct BellDetailView: View {
 
 private struct BellDetailMediaTile: View {
     let asset: MediaAsset
+    let onTap: () -> Void
     private let mediaStore = LocalMediaFileStore.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            thumbnail
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
+                thumbnail
 
-            if asset.kind != .photo {
-                Text(mediaTitle)
-                    .font(.caption)
-                    .lineLimit(2)
+                if asset.kind != .photo {
+                    Text(mediaTitle)
+                        .font(.caption)
+                        .lineLimit(2)
+                        .foregroundStyle(.primary)
+                }
+
+                Text(asset.kind.displayName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
-
-            Text(asset.kind.displayName)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
         }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -236,6 +259,81 @@ private struct BellDetailMediaTile: View {
     private var documentExtension: String {
         let ext = URL(fileURLWithPath: asset.localIdentifier).pathExtension.uppercased()
         return ext.isEmpty ? "FILE" : ext
+    }
+}
+
+private struct MediaPreviewTarget: Identifiable {
+    let id = UUID()
+    let url: URL
+    let kind: MediaKind
+}
+
+private struct MediaPhotoPreviewScreen: View {
+    let url: URL
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+
+                if let image = UIImage(contentsOfFile: url.path) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black)
+                } else {
+                    ContentUnavailableView(
+                        "Preview Unavailable",
+                        systemImage: "photo",
+                        description: Text("The image file could not be loaded.")
+                    )
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct QuickLookPreview: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {
+        context.coordinator.url = url
+        uiViewController.reloadData()
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(url: url)
+    }
+
+    final class Coordinator: NSObject, QLPreviewControllerDataSource {
+        var url: URL
+
+        init(url: URL) {
+            self.url = url
+        }
+
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+            1
+        }
+
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            url as NSURL
+        }
     }
 }
 
