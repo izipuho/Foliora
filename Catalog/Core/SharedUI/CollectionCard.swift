@@ -42,7 +42,7 @@ struct CollectionCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
-                colors: [Color.white.opacity(0.94), Color.white.opacity(0.82)],
+                colors: collection.backgroundStyle.colors.map { $0.opacity(0.96) },
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             ),

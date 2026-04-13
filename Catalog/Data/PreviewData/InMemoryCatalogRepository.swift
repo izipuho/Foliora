@@ -73,7 +73,8 @@ final class InMemoryCatalogRepository: CatalogRepository {
                 homeID: homeID,
                 kind: .bells,
                 title: "Колокольчики семьи",
-                notes: "Первая живая коллекция с полным доступом по приглашениям."
+                notes: "Первая живая коллекция с полным доступом по приглашениям.",
+                backgroundStyle: .amber
             )
         ]
     }
@@ -101,6 +102,7 @@ final class InMemoryCatalogRepository: CatalogRepository {
                 kind: collection.kind,
                 name: collection.title,
                 subtitle: collection.notes,
+                backgroundStyle: collection.backgroundStyle,
                 itemCount: collection.kind == .bells ? fetchBellRecords(for: collection.id).count : 0,
                 collaboratorCount: activeMemberships.count,
                 role: activeMemberships.first(where: { $0.userID == "me" })?.role ?? .viewer,
@@ -316,6 +318,8 @@ final class InMemoryCatalogRepository: CatalogRepository {
     func deleteHome(homeID: UUID) {}
 
     func saveCollection(_ collection: Collection) {}
+
+    func deleteCollection(collectionID: UUID) {}
 
     func saveBellRecord(_ bell: BellRecord) {}
 

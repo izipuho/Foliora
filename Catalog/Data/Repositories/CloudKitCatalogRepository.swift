@@ -71,6 +71,10 @@ final class CloudKitCatalogRepository: CatalogRepository {
         fallbackRepository.saveCollection(collection)
     }
 
+    func deleteCollection(collectionID: UUID) {
+        fallbackRepository.deleteCollection(collectionID: collectionID)
+    }
+
     func saveBellRecord(_ bell: BellRecord) {
         fallbackRepository.saveBellRecord(bell)
     }

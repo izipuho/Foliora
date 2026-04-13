@@ -12,6 +12,7 @@ protocol CatalogRepository {
     func saveLocations(_ locations: [Location], in homeID: UUID)
     func deleteHome(homeID: UUID)
     func saveCollection(_ collection: Collection)
+    func deleteCollection(collectionID: UUID)
     func saveBellRecord(_ bell: BellRecord)
     func deleteBellRecord(bellID: UUID)
 }

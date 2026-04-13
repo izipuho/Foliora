@@ -1,19 +1,21 @@
 import SwiftUI
 
 struct BellCatalogView: View {
-    let collection: CollectionSummary
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
 
+    @Environment(\.dismiss) private var dismiss
+    @State private var collection: CollectionSummary
     @State private var bellRecords: [BellRecord]
     @State private var searchText = ""
     @State private var selectedCondition: ItemCondition?
     @State private var isPresentingAddBell = false
+    @State private var isPresentingEditCollection = false
 
     init(collection: CollectionSummary, repository: any CatalogRepository, collaborators: [Collaborator]) {
-        self.collection = collection
         self.repository = repository
         self.collaborators = collaborators
+        _collection = State(initialValue: collection)
         _bellRecords = State(initialValue: repository.fetchBellRecords(for: collection.id))
     }
 
@@ -41,6 +43,10 @@ struct BellCatalogView: View {
 
     private var materialCount: Int {
         Set(bells.map(\.materialDisplayName)).count
+    }
+
+    private var themeColors: [Color] {
+        collection.backgroundStyle.screenColors
     }
 
     var body: some View {
@@ -105,10 +111,7 @@ struct BellCatalogView: View {
         .scrollContentBackground(.hidden)
         .background(
             LinearGradient(
-                colors: [
-                    Color(red: 0.98, green: 0.96, blue: 0.90),
-                    Color(red: 0.95, green: 0.91, blue: 0.82)
-                ],
+                colors: themeColors,
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -117,6 +120,14 @@ struct BellCatalogView: View {
         .navigationTitle(collection.kind.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isPresentingEditCollection = true
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                }
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     isPresentingAddBell = true
@@ -132,6 +143,20 @@ struct BellCatalogView: View {
             ) { newBell in
                 repository.saveBellRecord(newBell)
                 bellRecords.insert(newBell, at: 0)
+            }
+        }
+        .sheet(isPresented: $isPresentingEditCollection) {
+            CollectionEditorView(
+                screenTitle: "Edit Collection",
+                initialTitle: collection.name,
+                initialNotes: collection.subtitle,
+                initialBackgroundStyle: collection.backgroundStyle,
+                allowsDeletion: true
+            ) { title, notes, backgroundStyle in
+                saveCollectionEdits(title: title, notes: notes, backgroundStyle: backgroundStyle)
+            } onDelete: {
+                repository.deleteCollection(collectionID: collection.id)
+                dismiss()
             }
         }
     }
@@ -151,12 +176,12 @@ struct BellCatalogView: View {
 
                 ZStack {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Color.white.opacity(0.66))
+                        .fill(collection.backgroundStyle.accentColor.opacity(0.12))
                         .frame(width: 62, height: 62)
 
                     Image(systemName: "bell.and.waves.left.and.right.fill")
                         .font(.title2.weight(.semibold))
-                        .foregroundStyle(Color(red: 0.72, green: 0.45, blue: 0.16))
+                        .foregroundStyle(collection.backgroundStyle.accentColor)
                 }
             }
 
@@ -167,7 +192,14 @@ struct BellCatalogView: View {
             }
         }
         .padding(20)
-        .background(Color.white.opacity(0.70), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(
+            LinearGradient(
+                colors: [Color.white.opacity(0.88), collection.backgroundStyle.colors[0].opacity(0.92)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 28, style: .continuous)
+        )
     }
 
     private var searchSection: some View {
@@ -175,16 +207,16 @@ struct BellCatalogView: View {
             TextField("Поиск по названию, городу или тегу", text: $searchText)
                 .textInputAutocapitalization(.sentences)
                 .padding(14)
-                .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(Color.white.opacity(0.84), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    FilterChip(title: "Все", isSelected: selectedCondition == nil) {
+                    FilterChip(title: "Все", isSelected: selectedCondition == nil, tint: collection.backgroundStyle.accentColor) {
                         selectedCondition = nil
                     }
 
                     ForEach(ItemCondition.allCases) { condition in
-                        FilterChip(title: condition.rawValue, isSelected: selectedCondition == condition) {
+                        FilterChip(title: condition.rawValue, isSelected: selectedCondition == condition, tint: collection.backgroundStyle.accentColor) {
                             selectedCondition = condition
                         }
                     }
@@ -211,7 +243,7 @@ struct BellCatalogView: View {
                         .padding(12)
                         .background(
                             collaborator.isCurrentUser
-                                ? Color(red: 0.61, green: 0.35, blue: 0.14).opacity(0.16)
+                                ? collection.backgroundStyle.accentColor.opacity(0.16)
                                 : Color.white.opacity(0.78),
                             in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                         )
@@ -231,6 +263,33 @@ struct BellCatalogView: View {
     private func deleteBell(_ bellID: UUID) {
         repository.deleteBellRecord(bellID: bellID)
         bellRecords.removeAll { $0.id == bellID }
+    }
+
+    private func saveCollectionEdits(title: String, notes: String, backgroundStyle: CollectionBackgroundStyle) {
+        guard let domainCollection = repository
+            .fetchHomes()
+            .flatMap({ repository.fetchDomainCollections(in: $0.id) })
+            .first(where: { $0.id == collection.id })
+        else {
+            return
+        }
+
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let updatedCollection = Collection(
+            id: domainCollection.id,
+            homeID: domainCollection.homeID,
+            kind: domainCollection.kind,
+            title: trimmedTitle.isEmpty ? domainCollection.title : trimmedTitle,
+            notes: trimmedNotes,
+            backgroundStyle: backgroundStyle
+        )
+
+        repository.saveCollection(updatedCollection)
+
+        if let refreshed = repository.fetchCollections().first(where: { $0.id == collection.id }) {
+            collection = refreshed
+        }
     }
 }
 
@@ -556,6 +615,7 @@ private struct MetaChip: View {
 private struct FilterChip: View {
     let title: String
     let isSelected: Bool
+    var tint: Color = Color(red: 0.53, green: 0.31, blue: 0.14)
     let action: () -> Void
 
     var body: some View {
@@ -566,7 +626,7 @@ private struct FilterChip: View {
                 .padding(.horizontal, 14)
                 .background(
                     isSelected
-                        ? Color(red: 0.53, green: 0.31, blue: 0.14)
+                        ? tint
                         : Color.white.opacity(0.72),
                     in: Capsule()
                 )

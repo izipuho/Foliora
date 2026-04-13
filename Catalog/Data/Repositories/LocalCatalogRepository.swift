@@ -41,6 +41,7 @@ final class LocalCatalogRepository: CatalogRepository {
                 kind: collection.kind,
                 name: collection.title,
                 subtitle: collection.notes,
+                backgroundStyle: collection.backgroundStyle,
                 itemCount: collection.kind == .bells ? snapshot.bellItems.filter { $0.item.collectionID == collection.id }.count : 0,
                 collaboratorCount: memberships.count,
                 role: memberships.first(where: { $0.userID == "me" })?.role ?? .viewer,
@@ -142,6 +143,21 @@ final class LocalCatalogRepository: CatalogRepository {
                     )
                 )
             }
+        }
+    }
+
+    func deleteCollection(collectionID: UUID) {
+        store.updateSnapshot { snapshot in
+            let removedBellItems = snapshot.bellItems.filter { $0.item.collectionID == collectionID }
+            let removedBellItemIDs = removedBellItems.map(\.item.id)
+
+            removedBellItems
+                .flatMap(\.mediaAssets)
+                .forEach { mediaStore.deleteFile(for: $0.localIdentifier) }
+
+            snapshot.collections.removeAll { $0.id == collectionID }
+            snapshot.memberships.removeAll { $0.collectionID == collectionID }
+            snapshot.bellItems.removeAll { removedBellItemIDs.contains($0.item.id) }
         }
     }
 

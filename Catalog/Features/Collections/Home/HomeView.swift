@@ -494,9 +494,8 @@ struct CollectionsView: View {
     let repository: any CatalogRepository
     @State private var path: [AppDestination] = []
     @State private var collections: [CollectionSummary]
-    @State private var isPresentingAddCollectionOptions = false
+    @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
-    private let availableCollectionKinds: [CollectionKind] = [.bells]
 
     init(repository: any CatalogRepository) {
         self.repository = repository
@@ -526,11 +525,18 @@ struct CollectionsView: View {
                     }
                 }
                 .onAppear {
+                    collections = repository.fetchCollections()
                     autoOpenSingleCollectionIfNeeded()
                 }
                 .onChange(of: collections.map(\.id)) { _, _ in
                     didAutoOpenSingleCollection = false
                     autoOpenSingleCollectionIfNeeded()
+                }
+                .navigationTitle("Коллекции")
+                .sheet(isPresented: $isPresentingAddCollectionEditor) {
+                    CollectionEditorView { title, notes, backgroundStyle in
+                        addCollection(title: title, notes: notes, backgroundStyle: backgroundStyle)
+                    }
                 }
         }
     }
@@ -557,24 +563,14 @@ struct CollectionsView: View {
                 .padding(.bottom, 120)
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-            .navigationTitle("Коллекции")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        isPresentingAddCollectionOptions = true
+                        isPresentingAddCollectionEditor = true
                     } label: {
-                        Image(systemName: collections.isEmpty ? "plus" : "line.3.horizontal.decrease.circle")
+                        Image(systemName: "plus")
                     }
                 }
-            }
-            .confirmationDialog("Add Collection", isPresented: $isPresentingAddCollectionOptions, titleVisibility: .visible) {
-                ForEach(availableCollectionKinds) { kind in
-                    Button(kind.title) {
-                        addCollection(kind)
-                    }
-                }
-
-                Button("Cancel", role: .cancel) {}
             }
         }
     }
@@ -589,7 +585,7 @@ struct CollectionsView: View {
             .frame(maxWidth: .infinity)
 
             Button {
-                isPresentingAddCollectionOptions = true
+                isPresentingAddCollectionEditor = true
             } label: {
                 Label("Add Collection", systemImage: "plus.circle.fill")
                     .font(.headline)
@@ -618,19 +614,26 @@ struct CollectionsView: View {
         }
     }
 
-    private func addCollection(_ kind: CollectionKind) {
+    private func addCollection(title: String, notes: String, backgroundStyle: CollectionBackgroundStyle) {
         guard let home = repository.fetchHomes().first else { return }
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let collection = Collection(
             id: UUID(),
             homeID: home.id,
-            kind: kind,
-            title: defaultTitle(for: kind),
-            notes: defaultNotes(for: kind)
+            kind: .bells,
+            title: trimmedTitle.isEmpty ? "Колокольчики" : trimmedTitle,
+            notes: trimmedNotes,
+            backgroundStyle: backgroundStyle
         )
 
         repository.saveCollection(collection)
         collections = repository.fetchCollections()
+        if let createdCollection = collections.first(where: { $0.id == collection.id }) {
+            path = [.collection(createdCollection)]
+            didAutoOpenSingleCollection = true
+        }
     }
 
     private func autoOpenSingleCollectionIfNeeded() {
@@ -642,22 +645,136 @@ struct CollectionsView: View {
         didAutoOpenSingleCollection = true
         path = [.collection(collection)]
     }
+}
 
-    private func defaultTitle(for kind: CollectionKind) -> String {
-        switch kind {
-        case .bells:
-            return "Колокольчики"
-        case .books:
-            return "Книги"
-        }
+struct CollectionEditorView: View {
+    let onSave: (String, String, CollectionBackgroundStyle) -> Void
+    let onDelete: (() -> Void)?
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var title = ""
+    @State private var notes = ""
+    @State private var backgroundStyle: CollectionBackgroundStyle = .amber
+    @State private var isPresentingDeleteConfirmation = false
+    private let screenTitle: String
+    private let allowsDeletion: Bool
+
+    init(
+        screenTitle: String = "Add Collection",
+        initialTitle: String = "",
+        initialNotes: String = "",
+        initialBackgroundStyle: CollectionBackgroundStyle = .amber,
+        allowsDeletion: Bool = false,
+        onSave: @escaping (String, String, CollectionBackgroundStyle) -> Void,
+        onDelete: (() -> Void)? = nil
+    ) {
+        self.screenTitle = screenTitle
+        self.allowsDeletion = allowsDeletion
+        self.onSave = onSave
+        self.onDelete = onDelete
+        _title = State(initialValue: initialTitle)
+        _notes = State(initialValue: initialNotes)
+        _backgroundStyle = State(initialValue: initialBackgroundStyle)
     }
 
-    private func defaultNotes(for kind: CollectionKind) -> String {
-        switch kind {
-        case .bells:
-            return "Main household bell collection."
-        case .books:
-            return "Home library."
+    private var canSave: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Type") {
+                    HStack {
+                        Label("Колокольчики", systemImage: "bell.fill")
+                        Spacer()
+                        Text("Bells")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section("Collection") {
+                    TextField("Name", text: $title)
+                    TextField("Notes", text: $notes, axis: .vertical)
+                        .lineLimit(3, reservesSpace: true)
+                }
+
+                Section("Card Background") {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 74, maximum: 110), spacing: 12)], spacing: 12) {
+                        ForEach(CollectionBackgroundStyle.allCases) { style in
+                            Button {
+                                backgroundStyle = style
+                            } label: {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: style.colors,
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(height: 64)
+                                        .overlay(alignment: .topTrailing) {
+                                            if backgroundStyle == style {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.title3)
+                                                    .symbolRenderingMode(.palette)
+                                                    .foregroundStyle(.white, Color.black.opacity(0.25))
+                                                    .padding(6)
+                                            }
+                                        }
+
+                                    Text(style.title)
+                                        .font(.caption)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                if allowsDeletion {
+                    Section {
+                        Button("Delete Collection", role: .destructive) {
+                            isPresentingDeleteConfirmation = true
+                        }
+                    }
+                }
+            }
+            .navigationTitle(screenTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Save") {
+                        onSave(title, notes, backgroundStyle)
+                        dismiss()
+                    }
+                    .disabled(!canSave)
+                }
+            }
+            .confirmationDialog(
+                "Delete Collection?",
+                isPresented: $isPresentingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Collection", role: .destructive) {
+                    onDelete?()
+                    dismiss()
+                }
+
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will remove the collection and all items inside it.")
+            }
         }
     }
 }

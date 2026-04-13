@@ -9,6 +9,10 @@ struct BellDetailView: View {
     @State private var previewTarget: MediaPreviewTarget?
     private let mediaColumns = [GridItem(.adaptive(minimum: 108, maximum: 140), spacing: 12)]
 
+    private var themeColors: [Color] {
+        inferredCollection.backgroundStyle.screenColors
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -19,10 +23,10 @@ struct BellDetailView: View {
                         .foregroundStyle(.secondary)
 
                     HStack(spacing: 8) {
-                        DetailBadge(label: bell.materialDisplayName, systemImage: "shippingbox.fill")
-                        DetailBadge(label: bell.condition.rawValue, systemImage: "checkmark.seal")
+                        DetailBadge(label: bell.materialDisplayName, systemImage: "shippingbox.fill", tint: inferredCollection.backgroundStyle.accentColor)
+                        DetailBadge(label: bell.condition.rawValue, systemImage: "checkmark.seal", tint: inferredCollection.backgroundStyle.accentColor)
                         if let year = bell.year {
-                            DetailBadge(label: String(year), systemImage: "calendar")
+                            DetailBadge(label: String(year), systemImage: "calendar", tint: inferredCollection.backgroundStyle.accentColor)
                         }
                     }
                 }
@@ -84,10 +88,7 @@ struct BellDetailView: View {
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .background(
             LinearGradient(
-                colors: [
-                    Color(red: 0.98, green: 0.96, blue: 0.90),
-                    Color(red: 0.95, green: 0.91, blue: 0.82)
-                ],
+                colors: themeColors,
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -132,7 +133,14 @@ struct BellDetailView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(
+            LinearGradient(
+                colors: [Color.white.opacity(0.84), inferredCollection.backgroundStyle.colors[0].opacity(0.78)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+        )
     }
 
     private func detailRow(_ title: String, value: String) -> some View {
@@ -158,6 +166,7 @@ struct BellDetailView: View {
                 kind: .bells,
                 name: "Колокольчики",
                 subtitle: "",
+                backgroundStyle: .amber,
                 itemCount: 0,
                 collaboratorCount: 0,
                 role: .owner,
@@ -340,14 +349,15 @@ private struct QuickLookPreview: UIViewControllerRepresentable {
 private struct DetailBadge: View {
     let label: String
     let systemImage: String
+    let tint: Color
 
     var body: some View {
         Label(label, systemImage: systemImage)
             .font(.caption.weight(.medium))
             .padding(.vertical, 8)
             .padding(.horizontal, 10)
-            .background(Color.black.opacity(0.05), in: Capsule())
-            .foregroundStyle(.secondary)
+            .background(tint.opacity(0.12), in: Capsule())
+            .foregroundStyle(tint)
     }
 }
 
