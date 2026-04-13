@@ -67,6 +67,10 @@ final class CloudKitCatalogRepository: CatalogRepository {
         fallbackRepository.deleteHome(homeID: homeID)
     }
 
+    func saveCollection(_ collection: Collection) {
+        fallbackRepository.saveCollection(collection)
+    }
+
     func saveBellRecord(_ bell: BellRecord) {
         fallbackRepository.saveBellRecord(bell)
     }

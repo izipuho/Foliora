@@ -3,7 +3,6 @@ import Foundation
 final class InMemoryCatalogRepository: CatalogRepository {
     private let homeID = UUID(uuidString: "A1000000-0000-0000-0000-000000000001")!
     private let bellCollectionID = UUID(uuidString: "3BC496BE-693A-4AAB-9D1B-7F6FB49B7A5A")!
-    private let bookCollectionID = UUID(uuidString: "566FBB01-5EE6-4DCC-A5A1-7D7774866D5B")!
     private let floorID = UUID(uuidString: "A2000000-0000-0000-0000-000000000001")!
     private let officeRoomID = UUID(uuidString: "A2000000-0000-0000-0000-000000000002")!
     private let glassCabinetID = UUID(uuidString: "A2000000-0000-0000-0000-000000000003")!
@@ -75,13 +74,6 @@ final class InMemoryCatalogRepository: CatalogRepository {
                 kind: .bells,
                 title: "Колокольчики семьи",
                 notes: "Первая живая коллекция с полным доступом по приглашениям."
-            ),
-            Collection(
-                id: bookCollectionID,
-                homeID: homeID,
-                kind: .books,
-                title: "Домашняя библиотека",
-                notes: "Следующий модуль. Будет отдельный UI для книг и собственные сценарии поиска."
             )
         ]
     }
@@ -93,11 +85,6 @@ final class InMemoryCatalogRepository: CatalogRepository {
                 Membership(id: UUID(uuidString: "C1000000-0000-0000-0000-000000000001")!, collectionID: bellCollectionID, userID: "me", role: .owner, status: .active),
                 Membership(id: UUID(uuidString: "C1000000-0000-0000-0000-000000000002")!, collectionID: bellCollectionID, userID: "marina", role: .editor, status: .active),
                 Membership(id: UUID(uuidString: "C1000000-0000-0000-0000-000000000003")!, collectionID: bellCollectionID, userID: "alexey", role: .contributor, status: .active)
-            ]
-        case bookCollectionID:
-            return [
-                Membership(id: UUID(uuidString: "C2000000-0000-0000-0000-000000000001")!, collectionID: bookCollectionID, userID: "me", role: .owner, status: .active),
-                Membership(id: UUID(uuidString: "C2000000-0000-0000-0000-000000000002")!, collectionID: bookCollectionID, userID: "nina", role: .editor, status: .active)
             ]
         default:
             return []
@@ -327,6 +314,8 @@ final class InMemoryCatalogRepository: CatalogRepository {
     func saveLocations(_ locations: [Location], in homeID: UUID) {}
 
     func deleteHome(homeID: UUID) {}
+
+    func saveCollection(_ collection: Collection) {}
 
     func saveBellRecord(_ bell: BellRecord) {}
 

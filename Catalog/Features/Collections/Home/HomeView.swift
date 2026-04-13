@@ -493,13 +493,53 @@ private struct HomeListCard: View {
 struct CollectionsView: View {
     let repository: any CatalogRepository
     @State private var path: [AppDestination] = []
+    @State private var collections: [CollectionSummary]
+    @State private var isPresentingAddCollectionOptions = false
+    @State private var didAutoOpenSingleCollection = false
+    private let availableCollectionKinds: [CollectionKind] = [.bells]
 
-    private var collections: [CollectionSummary] {
-        repository.fetchCollections()
+    init(repository: any CatalogRepository) {
+        self.repository = repository
+        _collections = State(initialValue: repository.fetchCollections())
     }
 
     var body: some View {
         NavigationStack(path: $path) {
+            collectionsRoot
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.99, green: 0.97, blue: 0.93),
+                            Color(red: 0.94, green: 0.92, blue: 0.86)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                )
+                .navigationDestination(for: AppDestination.self) { destination in
+                    switch destination {
+                    case .collection(let collection):
+                        collectionDestination(for: collection)
+                    case .home:
+                        EmptyView()
+                    }
+                }
+                .onAppear {
+                    autoOpenSingleCollectionIfNeeded()
+                }
+                .onChange(of: collections.map(\.id)) { _, _ in
+                    didAutoOpenSingleCollection = false
+                    autoOpenSingleCollectionIfNeeded()
+                }
+        }
+    }
+
+    @ViewBuilder
+    private var collectionsRoot: some View {
+        if collections.isEmpty {
+            emptyCollectionsView
+        } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(collections) { collection in
@@ -517,43 +557,107 @@ struct CollectionsView: View {
                 .padding(.bottom, 120)
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.99, green: 0.97, blue: 0.93),
-                        Color(red: 0.94, green: 0.92, blue: 0.86)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            )
             .navigationTitle("Коллекции")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        isPresentingAddCollectionOptions = true
                     } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
+                        Image(systemName: collections.isEmpty ? "plus" : "line.3.horizontal.decrease.circle")
                     }
                 }
             }
-            .navigationDestination(for: AppDestination.self) { destination in
-                switch destination {
-                case .collection(let collection):
-                    switch collection.kind {
-                    case .bells:
-                        BellCatalogView(
-                            collection: collection,
-                            repository: repository,
-                            collaborators: repository.fetchCollaborators(for: collection.id)
-                        )
-                    case .books:
-                        BookLibraryPlaceholderView(collection: collection)
+            .confirmationDialog("Add Collection", isPresented: $isPresentingAddCollectionOptions, titleVisibility: .visible) {
+                ForEach(availableCollectionKinds) { kind in
+                    Button(kind.title) {
+                        addCollection(kind)
                     }
-                case .home:
-                    EmptyView()
                 }
+
+                Button("Cancel", role: .cancel) {}
             }
+        }
+    }
+
+    private var emptyCollectionsView: some View {
+        VStack(spacing: 24) {
+            ContentUnavailableView(
+                "No Collections Yet",
+                systemImage: "square.grid.2x2",
+                description: Text("Add your first collection to start cataloging items.")
+            )
+            .frame(maxWidth: .infinity)
+
+            Button {
+                isPresentingAddCollectionOptions = true
+            } label: {
+                Label("Add Collection", systemImage: "plus.circle.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color(red: 0.53, green: 0.31, blue: 0.14))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 80)
+    }
+
+    @ViewBuilder
+    private func collectionDestination(for collection: CollectionSummary) -> some View {
+        switch collection.kind {
+        case .bells:
+            BellCatalogView(
+                collection: collection,
+                repository: repository,
+                collaborators: repository.fetchCollaborators(for: collection.id)
+            )
+        case .books:
+            BookLibraryPlaceholderView(collection: collection)
+        }
+    }
+
+    private func addCollection(_ kind: CollectionKind) {
+        guard let home = repository.fetchHomes().first else { return }
+
+        let collection = Collection(
+            id: UUID(),
+            homeID: home.id,
+            kind: kind,
+            title: defaultTitle(for: kind),
+            notes: defaultNotes(for: kind)
+        )
+
+        repository.saveCollection(collection)
+        collections = repository.fetchCollections()
+    }
+
+    private func autoOpenSingleCollectionIfNeeded() {
+        guard collections.count == 1 else { return }
+        guard path.isEmpty else { return }
+        guard !didAutoOpenSingleCollection else { return }
+        guard let collection = collections.first else { return }
+
+        didAutoOpenSingleCollection = true
+        path = [.collection(collection)]
+    }
+
+    private func defaultTitle(for kind: CollectionKind) -> String {
+        switch kind {
+        case .bells:
+            return "Колокольчики"
+        case .books:
+            return "Книги"
+        }
+    }
+
+    private func defaultNotes(for kind: CollectionKind) -> String {
+        switch kind {
+        case .bells:
+            return "Main household bell collection."
+        case .books:
+            return "Home library."
         }
     }
 }

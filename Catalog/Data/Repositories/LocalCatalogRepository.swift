@@ -11,6 +11,7 @@ final class LocalCatalogRepository: CatalogRepository {
         self.store = CatalogJSONStore(baseURL: baseURL)
         self.mediaStore = LocalMediaFileStore()
         store.bootstrapIfNeeded(using: seedRepository)
+        removeHiddenCollectionsFromLocalStore()
     }
 
     func fetchHomes() -> [Home] {
@@ -125,6 +126,25 @@ final class LocalCatalogRepository: CatalogRepository {
         }
     }
 
+    func saveCollection(_ collection: Collection) {
+        store.updateSnapshot { snapshot in
+            if let index = snapshot.collections.firstIndex(where: { $0.id == collection.id }) {
+                snapshot.collections[index] = collection
+            } else {
+                snapshot.collections.append(collection)
+                snapshot.memberships.append(
+                    Membership(
+                        id: UUID(),
+                        collectionID: collection.id,
+                        userID: "me",
+                        role: .owner,
+                        status: .active
+                    )
+                )
+            }
+        }
+    }
+
     func saveBellRecord(_ bell: BellRecord) {
         let entry = BellItemEntry(
             item: bell.item,
@@ -166,6 +186,24 @@ final class LocalCatalogRepository: CatalogRepository {
         }
 
         return parts.joined(separator: " / ")
+    }
+
+    private func removeHiddenCollectionsFromLocalStore() {
+        store.updateSnapshot { snapshot in
+            let removedCollectionIDs = snapshot.collections
+                .filter { $0.kind == .books }
+                .map(\.id)
+
+            guard !removedCollectionIDs.isEmpty else { return }
+
+            let removedBellItemIDs = snapshot.bellItems
+                .filter { removedCollectionIDs.contains($0.item.collectionID) }
+                .map(\.item.id)
+
+            snapshot.collections.removeAll { $0.kind == .books }
+            snapshot.memberships.removeAll { removedCollectionIDs.contains($0.collectionID) }
+            snapshot.bellItems.removeAll { removedBellItemIDs.contains($0.item.id) }
+        }
     }
 }
 
