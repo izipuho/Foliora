@@ -38,8 +38,13 @@
 "common.cancel" = "Cancel";
 "common.delete" = "Delete";
 "common.done" = "Done";
+"common.name" = "Name";
+"common.none" = "None";
+"common.notes" = "Notes";
+"common.no_notes" = "No notes yet.";
 "common.ok" = "OK";
 "common.save" = "Save";
+"common.unknown" = "Unknown";
 "common.unassigned" = "Unassigned";
 
 "editor.main_info" = "Main Info";
@@ -122,3 +127,74 @@
 "enum.collection_role.viewer" = "Viewer";
 
 "common.unknown_origin" = "Unknown origin";
+
+"home.screen.title" = "Homes";
+"home.new.default_name" = "New Home";
+"home.not_found.title" = "Home Not Found";
+"home.not_found.description" = "This home is no longer available.";
+"home.empty.title" = "No Homes";
+"home.empty.description" = "Create a home to organize rooms, shelves, and collections.";
+"home.add" = "Add Home";
+"home.details" = "Details";
+"home.delete.title" = "Delete Home?";
+"home.delete.confirm" = "Delete Home";
+"home.delete.message" = "This will remove the home and its location structure from the current session.";
+"home.editor.title" = "Edit Home";
+"home.editor.section_home" = "Home";
+"home.editor.section_locations" = "Locations";
+"home.location.empty.title" = "No Locations Yet";
+"home.location.empty.description" = "Add floors, rooms, cabinets, and shelves for this home.";
+"home.location.name" = "Location name";
+"home.location.kind" = "Kind";
+"home.location.parent" = "Parent";
+"home.location.add" = "Add Location";
+"home.location.new_default_name" = "New Location";
+"home.metric.collections" = "Collections";
+"home.metric.locations" = "Locations";
+"home.metric.floors" = "Floors";
+"home.storage_map" = "Storage Map";
+
+"collections.empty.title" = "No Collections Yet";
+"collections.empty.description" = "Add your first collection to start cataloging items.";
+"collections.add" = "Add Collection";
+"collections.search.prompt" = "Search collections";
+
+"collection_kind.bells" = "Bells";
+"collection_kind.books" = "Books";
+
+"collection_background.amber" = "Amber";
+"collection_background.sky" = "Sky";
+"collection_background.mint" = "Mint";
+"collection_background.rose" = "Rose";
+"collection_background.slate" = "Slate";
+
+"collection.editor.section_type" = "Type";
+"collection.editor.section_collection" = "Collection";
+"collection.editor.section_home" = "Home";
+"collection.editor.section_background" = "Card Background";
+"collection.editor.no_home" = "Create a home before adding a collection.";
+"collection.delete.title" = "Delete Collection?";
+"collection.delete.confirm" = "Delete Collection";
+"collection.delete.message" = "This will remove the collection and all items inside it.";
+
+"settings.appearance.title" = "Appearance";
+"settings.appearance.subtitle" = "Liquid Glass tab bar and collection-first layout are enabled in the current build.";
+"settings.sharing.title" = "Sharing";
+"settings.sharing.subtitle" = "Collections stay invitation-only and use role-based access.";
+"settings.storage.title" = "Storage";
+"settings.storage.subtitle" = "Homes, locations, items, and media are already represented in the domain model.";
+
+"bell.detail.title" = "Card";
+"bell.detail.section.attributes" = "Attributes";
+"bell.detail.section.media" = "Media";
+"bell.detail.section.tags" = "Tags";
+"bell.detail.section.notes" = "Notes";
+"bell.detail.material" = "Material";
+"bell.detail.condition" = "Condition";
+"bell.detail.acquisition" = "Acquisition";
+"bell.detail.storage" = "Stored In";
+"bell.detail.created_by" = "Added By";
+"bell.detail.year" = "Year";
+"bell.detail.photos" = "Photos";
+"bell.detail.models" = "3D Models";
+"bell.detail.documents" = "Documents";

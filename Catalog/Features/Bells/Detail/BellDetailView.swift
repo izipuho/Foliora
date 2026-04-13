@@ -2,6 +2,10 @@ import SwiftUI
 import UIKit
 import QuickLook
 
+private func DL(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
+
 struct BellDetailView: View {
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
@@ -41,21 +45,21 @@ struct BellDetailView: View {
                     in: RoundedRectangle(cornerRadius: 28, style: .continuous)
                 )
 
-                detailSection("Характеристики") {
-                    detailRow("Материал", value: bell.materialDisplayName)
-                    detailRow("Состояние", value: bell.condition.displayName)
-                    detailRow("Способ появления", value: bell.acquisitionMethod.displayName)
-                    detailRow("Хранится", value: bell.storageDisplayPath)
-                    detailRow("Добавил", value: bell.createdBy)
+                detailSection(DL("bell.detail.section.attributes")) {
+                    detailRow(DL("bell.detail.material"), value: bell.materialDisplayName)
+                    detailRow(DL("bell.detail.condition"), value: bell.condition.displayName)
+                    detailRow(DL("bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
+                    detailRow(DL("bell.detail.storage"), value: bell.storageDisplayPath)
+                    detailRow(DL("bell.detail.created_by"), value: bell.createdBy)
                     if let year = bell.year {
-                        detailRow("Год", value: String(year))
+                        detailRow(DL("bell.detail.year"), value: String(year))
                     }
                 }
 
-                detailSection("Медиа") {
-                    detailRow("Фото", value: String(bell.photoCount))
-                    detailRow("3D models", value: String(bell.model3DCount))
-                    detailRow("Documents", value: String(bell.documentCount))
+                detailSection(DL("bell.detail.section.media")) {
+                    detailRow(DL("bell.detail.photos"), value: String(bell.photoCount))
+                    detailRow(DL("bell.detail.models"), value: String(bell.model3DCount))
+                    detailRow(DL("bell.detail.documents"), value: String(bell.documentCount))
 
                     if !bell.mediaAssets.isEmpty {
                         Divider()
@@ -71,14 +75,14 @@ struct BellDetailView: View {
                 }
 
                 if !bell.tags.isEmpty {
-                    detailSection("Теги") {
+                    detailSection(DL("bell.detail.section.tags")) {
                         Text(bell.tags.map { "#\($0)" }.joined(separator: "  "))
                             .font(.subheadline)
                             .foregroundStyle(Color(red: 0.43, green: 0.29, blue: 0.10))
                     }
                 }
 
-                detailSection("Заметки") {
+                detailSection(DL("bell.detail.section.notes")) {
                     Text(bell.notes)
                         .font(.body)
                 }
@@ -94,7 +98,7 @@ struct BellDetailView: View {
             )
             .ignoresSafeArea()
         )
-        .navigationTitle("Карточка")
+        .navigationTitle(DL("bell.detail.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -165,7 +169,7 @@ struct BellDetailView: View {
                 id: bell.item.collectionID,
                 homeID: UUID(),
                 kind: .bells,
-                name: "Колокольчики",
+                name: DL("collection_kind.bells"),
                 subtitle: "",
                 backgroundStyle: .amber,
                 itemCount: 0,

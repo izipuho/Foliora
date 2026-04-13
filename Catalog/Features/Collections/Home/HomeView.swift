@@ -160,11 +160,11 @@ struct HomeView: View {
                 )
                 .ignoresSafeArea()
             )
-            .navigationTitle("Дома")
+            .navigationTitle(L("home.screen.title"))
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        let newHome = Home(id: UUID(), name: "New Home", notes: "")
+                        let newHome = Home(id: UUID(), name: L("home.new.default_name"), notes: "")
                         homes.append(newHome)
                         locationsByHomeID[newHome.id] = []
                         repository.saveHome(newHome)
@@ -201,9 +201,9 @@ struct HomeView: View {
                         )
                     } else {
                         ContentUnavailableView(
-                            "Home Not Found",
+                            L("home.not_found.title"),
                             systemImage: "house.slash",
-                            description: Text("This home is no longer available.")
+                            description: Text(L("home.not_found.description"))
                         )
                     }
                 }
@@ -215,22 +215,22 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 14) {
             if homes.isEmpty {
                 ContentUnavailableView(
-                    "No Homes",
+                    L("home.empty.title"),
                     systemImage: "house.slash",
-                    description: Text("Create a home to organize rooms, shelves, and collections.")
+                    description: Text(L("home.empty.description"))
                 )
                 .frame(maxWidth: .infinity)
                 .padding(.top, 80)
 
                 Button {
-                    let newHome = Home(id: UUID(), name: "New Home", notes: "")
+                    let newHome = Home(id: UUID(), name: L("home.new.default_name"), notes: "")
                     homes.append(newHome)
                     locationsByHomeID[newHome.id] = []
                     repository.saveHome(newHome)
                     repository.saveLocations([], in: newHome.id)
                     path.append(.home(newHome.id))
                 } label: {
-                    Label("Add Home", systemImage: "plus.circle.fill")
+                    Label(L("home.add"), systemImage: "plus.circle.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
@@ -297,7 +297,7 @@ private struct HomeDetailView: View {
                     }
                 )
 
-                Text("Details")
+                Text(L("home.details"))
                     .font(.headline)
                     .padding(.horizontal, 4)
 
@@ -332,17 +332,17 @@ private struct HomeDetailView: View {
             )
         }
         .confirmationDialog(
-            "Delete Home?",
+            L("home.delete.title"),
             isPresented: $isPresentingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Delete Home", role: .destructive) {
+            Button(L("home.delete.confirm"), role: .destructive) {
                 onDelete()
             }
 
-            Button("Cancel", role: .cancel) {}
+            Button(L("common.cancel"), role: .cancel) {}
         } message: {
-            Text("This will remove the home and its location structure from the current session.")
+            Text(L("home.delete.message"))
         }
     }
 }
@@ -356,40 +356,40 @@ private struct HomeEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Home") {
+                Section(L("home.editor.section_home")) {
                     TextField(
-                        "Name",
+                        L("common.name"),
                         text: $home.name
                     )
 
                     TextField(
-                        "Notes",
+                        L("common.notes"),
                         text: $home.notes,
                         axis: .vertical
                     )
                     .lineLimit(3, reservesSpace: true)
                 }
 
-                Section("Locations") {
+                Section(L("home.editor.section_locations")) {
                     if locations.isEmpty {
                         ContentUnavailableView(
-                            "No Locations Yet",
+                            L("home.location.empty.title"),
                             systemImage: "square.stack.3d.up.slash",
-                            description: Text("Add floors, rooms, cabinets, and shelves for this home.")
+                            description: Text(L("home.location.empty.description"))
                         )
                     } else {
                         ForEach($locations) { $location in
                             VStack(alignment: .leading, spacing: 10) {
-                                TextField("Location name", text: $location.name)
+                                TextField(L("home.location.name"), text: $location.name)
 
-                                Picker("Kind", selection: $location.kind) {
+                                Picker(L("home.location.kind"), selection: $location.kind) {
                                     ForEach(LocationKind.allCases) { kind in
                                         Text(kind.displayName).tag(kind)
                                     }
                                 }
 
                                 Picker(
-                                    "Parent",
+                                    L("home.location.parent"),
                                     selection: Binding(
                                         get: { location.parentLocationID },
                                         set: { newValue in
@@ -397,13 +397,13 @@ private struct HomeEditorView: View {
                                         }
                                     )
                                 ) {
-                                    Text("None").tag(Optional<UUID>.none)
+                                    Text(L("common.none")).tag(Optional<UUID>.none)
                                     ForEach(parentCandidates(for: location)) { candidate in
                                         Text(candidate.name).tag(Optional(candidate.id))
                                     }
                                 }
 
-                                TextField("Notes", text: $location.notes, axis: .vertical)
+                                TextField(L("common.notes"), text: $location.notes, axis: .vertical)
                                     .lineLimit(2, reservesSpace: true)
                             }
                             .padding(.vertical, 6)
@@ -414,15 +414,15 @@ private struct HomeEditorView: View {
                     Button {
                         addLocation()
                     } label: {
-                        Label("Add Location", systemImage: "plus.circle.fill")
+                        Label(L("home.location.add"), systemImage: "plus.circle.fill")
                     }
                 }
             }
-            .navigationTitle("Edit Home")
+            .navigationTitle(L("home.editor.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") {
+                    Button(L("common.done")) {
                         onSave()
                         dismiss()
                     }
@@ -438,7 +438,7 @@ private struct HomeEditorView: View {
                 homeID: home.id,
                 parentLocationID: nil,
                 kind: .room,
-                name: "New Location",
+                name: L("home.location.new_default_name"),
                 notes: ""
             )
         )
@@ -491,7 +491,7 @@ private struct HomeListCard: View {
                     Text(home.name)
                         .font(.title3.bold())
 
-                    Text(home.notes.isEmpty ? "No notes yet." : home.notes)
+                    Text(home.notes.isEmpty ? L("common.no_notes") : home.notes)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
@@ -505,9 +505,9 @@ private struct HomeListCard: View {
             }
 
             HStack(spacing: 12) {
-                listMetric(title: "Collections", value: "\(collectionCount)")
-                listMetric(title: "Locations", value: "\(locations.count)")
-                listMetric(title: "Floors", value: "\(floors)")
+                listMetric(title: L("home.metric.collections"), value: "\(collectionCount)")
+                listMetric(title: L("home.metric.locations"), value: "\(locations.count)")
+                listMetric(title: L("home.metric.floors"), value: "\(floors)")
             }
         }
         .padding(20)
@@ -625,16 +625,16 @@ struct CollectionsView: View {
     private var emptyCollectionsView: some View {
         VStack(spacing: 24) {
             ContentUnavailableView(
-                "No Collections Yet",
+                L("collections.empty.title"),
                 systemImage: "square.grid.2x2",
-                description: Text("Add your first collection to start cataloging items.")
+                description: Text(L("collections.empty.description"))
             )
             .frame(maxWidth: .infinity)
 
             Button {
                 isPresentingAddCollectionEditor = true
             } label: {
-                Label("Add Collection", systemImage: "plus.circle.fill")
+                Label(L("collections.add"), systemImage: "plus.circle.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
@@ -696,7 +696,7 @@ struct CollectionEditorView: View {
 
     init(
         homes: [Home],
-        screenTitle: String = "Add Collection",
+        screenTitle: String = "",
         initialTitle: String = "",
         initialNotes: String = "",
         initialHomeID: UUID? = nil,
@@ -725,7 +725,7 @@ struct CollectionEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Type") {
+                Section(L("collection.editor.section_type")) {
                     HStack {
                         Label(L("collection.editor.type_name_localized"), systemImage: "bell.fill")
                         Spacer()
@@ -734,33 +734,33 @@ struct CollectionEditorView: View {
                     }
                 }
 
-                Section("Collection") {
-                    TextField("Name", text: $title)
-                    TextField("Notes", text: $notes, axis: .vertical)
+                Section(L("collection.editor.section_collection")) {
+                    TextField(L("common.name"), text: $title)
+                    TextField(L("common.notes"), text: $notes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
                 }
 
-                Section("Home") {
+                Section(L("collection.editor.section_home")) {
                     if homes.isEmpty {
-                        Text("Create a home before adding a collection.")
+                        Text(L("collection.editor.no_home"))
                             .foregroundStyle(.secondary)
                     } else if allowsHomeSelection {
-                        Picker("Home", selection: $selectedHomeID) {
+                        Picker(L("home.screen.title"), selection: $selectedHomeID) {
                             ForEach(homes) { home in
                                 Text(home.name).tag(Optional(home.id))
                             }
                         }
                     } else {
                         HStack {
-                            Text("Home")
+                            Text(L("home.screen.title"))
                             Spacer()
-                            Text(homes.first(where: { $0.id == selectedHomeID })?.name ?? "Unknown")
+                            Text(homes.first(where: { $0.id == selectedHomeID })?.name ?? L("common.unknown"))
                                 .foregroundStyle(.secondary)
                         }
                     }
                 }
 
-                Section("Card Background") {
+                Section(L("collection.editor.section_background")) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 74, maximum: 110), spacing: 12)], spacing: 12) {
                         ForEach(CollectionBackgroundStyle.allCases) { style in
                             Button {
@@ -799,7 +799,7 @@ struct CollectionEditorView: View {
 
                 if allowsDeletion {
                     Section {
-                        Button("Delete Collection", role: .destructive) {
+                        Button(L("collection.delete.confirm"), role: .destructive) {
                             isPresentingDeleteConfirmation = true
                         }
                     }
@@ -809,13 +809,13 @@ struct CollectionEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
+                    Button(L("common.cancel")) {
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
+                    Button(L("common.save")) {
                         guard let selectedHomeID else { return }
                         onSave(title, notes, selectedHomeID, backgroundStyle)
                         dismiss()
@@ -824,18 +824,18 @@ struct CollectionEditorView: View {
                 }
             }
             .confirmationDialog(
-                "Delete Collection?",
+                L("collection.delete.title"),
                 isPresented: $isPresentingDeleteConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Delete Collection", role: .destructive) {
+                Button(L("collection.delete.confirm"), role: .destructive) {
                     onDelete?()
                     dismiss()
                 }
 
-                Button("Cancel", role: .cancel) {}
+                Button(L("common.cancel"), role: .cancel) {}
             } message: {
-                Text("This will remove the collection and all items inside it.")
+                Text(L("collection.delete.message"))
             }
         }
     }
@@ -992,20 +992,20 @@ private struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     settingsCard(
-                        title: "Appearance",
-                        subtitle: "Liquid Glass tab bar and collection-first layout are enabled in the current build.",
+                        title: L("settings.appearance.title"),
+                        subtitle: L("settings.appearance.subtitle"),
                         systemImage: "sparkles.rectangle.stack"
                     )
 
                     settingsCard(
-                        title: "Sharing",
-                        subtitle: "Collections stay invitation-only and use role-based access.",
+                        title: L("settings.sharing.title"),
+                        subtitle: L("settings.sharing.subtitle"),
                         systemImage: "person.2.badge.gearshape"
                     )
 
                     settingsCard(
-                        title: "Storage",
-                        subtitle: "Homes, locations, items, and media are already represented in the domain model.",
+                        title: L("settings.storage.title"),
+                        subtitle: L("settings.storage.subtitle"),
                         systemImage: "externaldrive.connected.to.line.below"
                     )
                 }
@@ -1026,7 +1026,7 @@ private struct SettingsView: View {
                 )
                 .ignoresSafeArea()
             )
-            .navigationTitle("Настройки")
+            .navigationTitle(RootTab.settings.title)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -1074,7 +1074,7 @@ private struct SearchTabView: View {
         .searchable(
             text: $query,
             isPresented: $isSearchPresented,
-            prompt: "Search collections"
+            prompt: L("collections.search.prompt")
         )
         .searchFocused($isSearchFocused)
         .defaultFocus($isSearchFocused, true)
@@ -1133,14 +1133,14 @@ private struct HomeCard: View {
             }
 
             HStack(spacing: 12) {
-                homeMetric(title: "Collections", value: "\(collectionCount)")
-                homeMetric(title: "Locations", value: "\(locations.count)")
-                homeMetric(title: "Floors", value: "\(floors.count)")
+                homeMetric(title: L("home.metric.collections"), value: "\(collectionCount)")
+                homeMetric(title: L("home.metric.locations"), value: "\(locations.count)")
+                homeMetric(title: L("home.metric.floors"), value: "\(floors.count)")
             }
         }
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .swipeActions {
-            Button("Delete", role: .destructive) {
+            Button(L("common.delete"), role: .destructive) {
                 onDelete()
             }
         }
@@ -1177,7 +1177,7 @@ private struct StorageMapCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Storage Map")
+            Text(L("home.storage_map"))
                 .font(.headline)
 
             ForEach(floors) { floor in

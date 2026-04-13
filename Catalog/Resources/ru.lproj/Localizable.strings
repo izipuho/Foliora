@@ -38,8 +38,13 @@
 "common.cancel" = "Отмена";
 "common.delete" = "Удалить";
 "common.done" = "Готово";
+"common.name" = "Название";
+"common.none" = "Нет";
+"common.notes" = "Заметки";
+"common.no_notes" = "Заметок пока нет.";
 "common.ok" = "OK";
 "common.save" = "Сохранить";
+"common.unknown" = "Неизвестно";
 "common.unassigned" = "Не указано";
 
 "editor.main_info" = "Основное";
@@ -122,3 +127,74 @@
 "enum.collection_role.viewer" = "Наблюдатель";
 
 "common.unknown_origin" = "Происхождение неизвестно";
+
+"home.screen.title" = "Дома";
+"home.new.default_name" = "Новый дом";
+"home.not_found.title" = "Дом не найден";
+"home.not_found.description" = "Этот дом больше недоступен.";
+"home.empty.title" = "Домов пока нет";
+"home.empty.description" = "Создай дом, чтобы организовать комнаты, полки и коллекции.";
+"home.add" = "Добавить дом";
+"home.details" = "Детали";
+"home.delete.title" = "Удалить дом?";
+"home.delete.confirm" = "Удалить дом";
+"home.delete.message" = "Дом и его структура расположений будут удалены из текущей сессии.";
+"home.editor.title" = "Редактирование дома";
+"home.editor.section_home" = "Дом";
+"home.editor.section_locations" = "Расположения";
+"home.location.empty.title" = "Расположений пока нет";
+"home.location.empty.description" = "Добавь этажи, комнаты, шкафы и полки для этого дома.";
+"home.location.name" = "Название расположения";
+"home.location.kind" = "Тип";
+"home.location.parent" = "Родитель";
+"home.location.add" = "Добавить расположение";
+"home.location.new_default_name" = "Новое расположение";
+"home.metric.collections" = "Коллекции";
+"home.metric.locations" = "Расположения";
+"home.metric.floors" = "Этажи";
+"home.storage_map" = "Карта хранения";
+
+"collections.empty.title" = "Коллекций пока нет";
+"collections.empty.description" = "Добавь первую коллекцию, чтобы начать каталогизацию.";
+"collections.add" = "Добавить коллекцию";
+"collections.search.prompt" = "Поиск коллекций";
+
+"collection_kind.bells" = "Колокольчики";
+"collection_kind.books" = "Книги";
+
+"collection_background.amber" = "Янтарь";
+"collection_background.sky" = "Небо";
+"collection_background.mint" = "Мята";
+"collection_background.rose" = "Роза";
+"collection_background.slate" = "Сланец";
+
+"collection.editor.section_type" = "Тип";
+"collection.editor.section_collection" = "Коллекция";
+"collection.editor.section_home" = "Дом";
+"collection.editor.section_background" = "Фон карточки";
+"collection.editor.no_home" = "Сначала создай дом, а потом коллекцию.";
+"collection.delete.title" = "Удалить коллекцию?";
+"collection.delete.confirm" = "Удалить коллекцию";
+"collection.delete.message" = "Коллекция и все предметы внутри неё будут удалены.";
+
+"settings.appearance.title" = "Внешний вид";
+"settings.appearance.subtitle" = "В текущей сборке включены Liquid Glass tab bar и коллекционно-ориентированная структура.";
+"settings.sharing.title" = "Шаринг";
+"settings.sharing.subtitle" = "Коллекции остаются приватными по приглашению и используют доступ по ролям.";
+"settings.storage.title" = "Хранение";
+"settings.storage.subtitle" = "Дома, расположения, предметы и медиа уже представлены в доменной модели.";
+
+"bell.detail.title" = "Карточка";
+"bell.detail.section.attributes" = "Характеристики";
+"bell.detail.section.media" = "Медиа";
+"bell.detail.section.tags" = "Теги";
+"bell.detail.section.notes" = "Заметки";
+"bell.detail.material" = "Материал";
+"bell.detail.condition" = "Состояние";
+"bell.detail.acquisition" = "Способ появления";
+"bell.detail.storage" = "Хранится";
+"bell.detail.created_by" = "Добавил";
+"bell.detail.year" = "Год";
+"bell.detail.photos" = "Фото";
+"bell.detail.models" = "3D-модели";
+"bell.detail.documents" = "Документы";
