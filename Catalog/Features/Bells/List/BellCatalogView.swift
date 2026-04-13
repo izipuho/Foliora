@@ -13,28 +13,23 @@ enum BellCatalogMode {
 struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
+    let collection: CollectionSummary
     let mode: BellCatalogMode
-    let onCloseCollection: () -> Void
 
-    @State private var collection: CollectionSummary
     @State private var bellRecords: [BellRecord]
     @State private var searchText = ""
     @State private var selectedCondition: ItemCondition?
-    @State private var isPresentingAddBell = false
-    @State private var isPresentingEditCollection = false
 
     init(
         collection: CollectionSummary,
         repository: any CatalogRepository,
         collaborators: [Collaborator],
-        mode: BellCatalogMode,
-        onCloseCollection: @escaping () -> Void
+        mode: BellCatalogMode
     ) {
         self.repository = repository
         self.collaborators = collaborators
+        self.collection = collection
         self.mode = mode
-        self.onCloseCollection = onCloseCollection
-        _collection = State(initialValue: collection)
         _bellRecords = State(initialValue: repository.fetchBellRecords(for: collection.id))
     }
 
@@ -132,63 +127,6 @@ struct BellCatalogView: View {
             )
             .ignoresSafeArea()
         )
-        .navigationTitle(navigationTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    onCloseCollection()
-                } label: {
-                    Image(systemName: "chevron.backward")
-                }
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isPresentingEditCollection = true
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                }
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isPresentingAddBell = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
-        }
-        .sheet(isPresented: $isPresentingAddBell) {
-            BellEditorView(
-                collection: collection,
-                repository: repository
-            ) { newBell in
-                repository.saveBellRecord(newBell)
-                bellRecords.insert(newBell, at: 0)
-            }
-        }
-        .sheet(isPresented: $isPresentingEditCollection) {
-            CollectionEditorView(
-                homes: repository.fetchHomes(),
-                screenTitle: "Edit Collection",
-                initialTitle: collection.name,
-                initialNotes: collection.subtitle,
-                initialHomeID: collection.homeID,
-                initialBackgroundStyle: collection.backgroundStyle,
-                allowsHomeSelection: false,
-                allowsDeletion: true
-            ) { title, notes, _, backgroundStyle in
-                saveCollectionEdits(title: title, notes: notes, backgroundStyle: backgroundStyle)
-            } onDelete: {
-                repository.deleteCollection(collectionID: collection.id)
-                onCloseCollection()
-            }
-        }
-    }
-
-    private var navigationTitle: String {
-        collection.name
     }
 
     @ViewBuilder
@@ -321,33 +259,6 @@ struct BellCatalogView: View {
     private func deleteBell(_ bellID: UUID) {
         repository.deleteBellRecord(bellID: bellID)
         bellRecords.removeAll { $0.id == bellID }
-    }
-
-    private func saveCollectionEdits(title: String, notes: String, backgroundStyle: CollectionBackgroundStyle) {
-        guard let domainCollection = repository
-            .fetchHomes()
-            .flatMap({ repository.fetchDomainCollections(in: $0.id) })
-            .first(where: { $0.id == collection.id })
-        else {
-            return
-        }
-
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        let updatedCollection = Collection(
-            id: domainCollection.id,
-            homeID: domainCollection.homeID,
-            kind: domainCollection.kind,
-            title: trimmedTitle.isEmpty ? domainCollection.title : trimmedTitle,
-            notes: trimmedNotes,
-            backgroundStyle: backgroundStyle
-        )
-
-        repository.saveCollection(updatedCollection)
-
-        if let refreshed = repository.fetchCollections().first(where: { $0.id == collection.id }) {
-            collection = refreshed
-        }
     }
 }
 
@@ -720,8 +631,7 @@ struct BellCatalogView_Previews: PreviewProvider {
                 collection: collection,
                 repository: repository,
                 collaborators: repository.fetchCollaborators(for: collection.id),
-                mode: .summary,
-                onCloseCollection: {}
+                mode: .summary
             )
         }
     }

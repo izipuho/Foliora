@@ -89,110 +89,27 @@ struct AppShellView: View {
 
 private struct ModernAppShellView: View {
     let repository: any CatalogRepository
-    @State private var activeCollection: CollectionSummary?
-    @State private var suppressCollectionsAutoOpen = false
 
     var body: some View {
-        Group {
-            if let activeCollection {
-                TabView {
-                    Tab(CollectionTab.summary.title, systemImage: CollectionTab.summary.systemImage) {
-                        NavigationStack {
-                            BellCatalogView(
-                                collection: activeCollection,
-                                repository: repository,
-                                collaborators: repository.fetchCollaborators(for: activeCollection.id),
-                                mode: .summary,
-                                onCloseCollection: closeActiveCollection
-                            )
-                        }
-                    }
+        TabView {
+            Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage) {
+                CollectionsView(repository: repository)
+            }
 
-                    Tab(CollectionTab.items.title, systemImage: CollectionTab.items.systemImage) {
-                        NavigationStack {
-                            BellCatalogView(
-                                collection: activeCollection,
-                                repository: repository,
-                                collaborators: repository.fetchCollaborators(for: activeCollection.id),
-                                mode: .items,
-                                onCloseCollection: closeActiveCollection
-                            )
-                        }
-                    }
+            Tab(RootTab.homes.title, systemImage: RootTab.homes.systemImage) {
+                HomeView(repository: repository)
+            }
 
-                    Tab(CollectionTab.map.title, systemImage: CollectionTab.map.systemImage) {
-                        NavigationStack {
-                            CollectionPlaceholderView(
-                                title: L("collection.placeholder.map.title"),
-                                systemImage: "map",
-                                description: L("collection.placeholder.map.description"),
-                                backgroundStyle: activeCollection.backgroundStyle,
-                                onClose: closeActiveCollection
-                            )
-                        }
-                    }
+            Tab(role: .search) {
+                SearchTabView()
+            }
 
-                    Tab(CollectionTab.participants.title, systemImage: CollectionTab.participants.systemImage) {
-                        NavigationStack {
-                            CollectionPlaceholderView(
-                                title: L("collection.placeholder.participants.title"),
-                                systemImage: "person.2.fill",
-                                description: L("collection.placeholder.participants.description"),
-                                backgroundStyle: activeCollection.backgroundStyle,
-                                onClose: closeActiveCollection
-                            )
-                        }
-                    }
-
-                    Tab(role: .search) {
-                        NavigationStack {
-                            BellCatalogView(
-                                collection: activeCollection,
-                                repository: repository,
-                                collaborators: repository.fetchCollaborators(for: activeCollection.id),
-                                mode: .search,
-                                onCloseCollection: closeActiveCollection
-                            )
-                        }
-                    }
-                }
-            } else {
-                TabView {
-                    Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage) {
-                        CollectionsView(
-                            repository: repository,
-                            allowsAutoOpenSingleCollection: !suppressCollectionsAutoOpen
-                        ) { collection in
-                            openCollection(collection)
-                        }
-                    }
-
-                    Tab(RootTab.homes.title, systemImage: RootTab.homes.systemImage) {
-                        HomeView(repository: repository)
-                    }
-
-                    Tab(role: .search) {
-                        SearchTabView()
-                    }
-
-                    Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage) {
-                        SettingsView()
-                    }
-                }
+            Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage) {
+                SettingsView()
             }
         }
         .modifier(ModernTabBarBehavior())
         .tabViewSearchActivation(.searchTabSelection)
-    }
-
-    private func openCollection(_ collection: CollectionSummary) {
-        suppressCollectionsAutoOpen = false
-        activeCollection = collection
-    }
-
-    private func closeActiveCollection() {
-        suppressCollectionsAutoOpen = true
-        activeCollection = nil
     }
 }
 private struct ModernTabBarBehavior: ViewModifier {
@@ -619,25 +536,18 @@ private struct HomeListCard: View {
 
 struct CollectionsView: View {
     let repository: any CatalogRepository
-    let allowsAutoOpenSingleCollection: Bool
-    let onOpenCollection: (CollectionSummary) -> Void
+    @State private var path: [AppDestination] = []
     @State private var collections: [CollectionSummary]
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
 
-    init(
-        repository: any CatalogRepository,
-        allowsAutoOpenSingleCollection: Bool = true,
-        onOpenCollection: @escaping (CollectionSummary) -> Void
-    ) {
+    init(repository: any CatalogRepository) {
         self.repository = repository
-        self.allowsAutoOpenSingleCollection = allowsAutoOpenSingleCollection
-        self.onOpenCollection = onOpenCollection
         _collections = State(initialValue: repository.fetchCollections())
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             collectionsRoot
                 .background(
                     LinearGradient(
@@ -650,6 +560,14 @@ struct CollectionsView: View {
                     )
                     .ignoresSafeArea()
                 )
+                .navigationDestination(for: AppDestination.self) { destination in
+                    switch destination {
+                    case .collection(let collection):
+                        CollectionShellView(collection: collection, repository: repository)
+                    case .home:
+                        EmptyView()
+                    }
+                }
                 .onAppear {
                     collections = repository.fetchCollections()
                     autoOpenSingleCollectionIfNeeded()
@@ -658,7 +576,7 @@ struct CollectionsView: View {
                     didAutoOpenSingleCollection = false
                     autoOpenSingleCollectionIfNeeded()
                 }
-                .navigationTitle("Коллекции")
+                .navigationTitle(RootTab.collections.title)
                 .sheet(isPresented: $isPresentingAddCollectionEditor) {
                     CollectionEditorView(
                         homes: repository.fetchHomes(),
@@ -679,7 +597,7 @@ struct CollectionsView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(collections) { collection in
                         Button {
-                            onOpenCollection(collection)
+                            path.append(.collection(collection))
                         } label: {
                             CollectionCard(collection: collection)
                         }
@@ -745,19 +663,19 @@ struct CollectionsView: View {
         repository.saveCollection(collection)
         collections = repository.fetchCollections()
         if let createdCollection = collections.first(where: { $0.id == collection.id }) {
-            onOpenCollection(createdCollection)
+            path = [.collection(createdCollection)]
             didAutoOpenSingleCollection = true
         }
     }
 
     private func autoOpenSingleCollectionIfNeeded() {
-        guard allowsAutoOpenSingleCollection else { return }
         guard collections.count == 1 else { return }
+        guard path.isEmpty else { return }
         guard !didAutoOpenSingleCollection else { return }
         guard let collection = collections.first else { return }
 
         didAutoOpenSingleCollection = true
-        onOpenCollection(collection)
+        path = [.collection(collection)]
     }
 }
 
@@ -920,6 +838,151 @@ struct CollectionEditorView: View {
                 Text("This will remove the collection and all items inside it.")
             }
         }
+    }
+}
+
+private struct CollectionShellView: View {
+    let repository: any CatalogRepository
+    @Environment(\.dismiss) private var dismiss
+    @State private var collection: CollectionSummary
+    @State private var selectedTab: CollectionTab = .summary
+    @State private var refreshID = UUID()
+    @State private var isPresentingAddBell = false
+    @State private var isPresentingEditCollection = false
+
+    init(collection: CollectionSummary, repository: any CatalogRepository) {
+        self.repository = repository
+        _collection = State(initialValue: collection)
+    }
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            Tab(CollectionTab.summary.title, systemImage: CollectionTab.summary.systemImage, value: .summary) {
+                BellCatalogView(
+                    collection: collection,
+                    repository: repository,
+                    collaborators: repository.fetchCollaborators(for: collection.id),
+                    mode: .summary
+                )
+                .id("summary-\(refreshID.uuidString)")
+            }
+
+            Tab(CollectionTab.items.title, systemImage: CollectionTab.items.systemImage, value: .items) {
+                BellCatalogView(
+                    collection: collection,
+                    repository: repository,
+                    collaborators: repository.fetchCollaborators(for: collection.id),
+                    mode: .items
+                )
+                .id("items-\(refreshID.uuidString)")
+            }
+
+            Tab(CollectionTab.map.title, systemImage: CollectionTab.map.systemImage, value: .map) {
+                CollectionPlaceholderView(
+                    title: L("collection.placeholder.map.title"),
+                    systemImage: "map",
+                    description: L("collection.placeholder.map.description"),
+                    backgroundStyle: collection.backgroundStyle
+                )
+            }
+
+            Tab(CollectionTab.participants.title, systemImage: CollectionTab.participants.systemImage, value: .participants) {
+                CollectionPlaceholderView(
+                    title: L("collection.placeholder.participants.title"),
+                    systemImage: "person.2.fill",
+                    description: L("collection.placeholder.participants.description"),
+                    backgroundStyle: collection.backgroundStyle
+                )
+            }
+
+            Tab(CollectionTab.search.title, systemImage: CollectionTab.search.systemImage, value: .search) {
+                BellCatalogView(
+                    collection: collection,
+                    repository: repository,
+                    collaborators: repository.fetchCollaborators(for: collection.id),
+                    mode: .search
+                )
+                .id("search-\(refreshID.uuidString)")
+            }
+        }
+        .toolbar(.hidden, for: .tabBar)
+        .navigationTitle(collection.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isPresentingEditCollection = true
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isPresentingAddBell = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $isPresentingAddBell) {
+            BellEditorView(
+                collection: collection,
+                repository: repository
+            ) { newBell in
+                repository.saveBellRecord(newBell)
+                refreshContent()
+                selectedTab = .items
+            }
+        }
+        .sheet(isPresented: $isPresentingEditCollection) {
+            CollectionEditorView(
+                homes: repository.fetchHomes(),
+                screenTitle: "Edit Collection",
+                initialTitle: collection.name,
+                initialNotes: collection.subtitle,
+                initialHomeID: collection.homeID,
+                initialBackgroundStyle: collection.backgroundStyle,
+                allowsHomeSelection: false,
+                allowsDeletion: true
+            ) { title, notes, _, backgroundStyle in
+                saveCollectionEdits(title: title, notes: notes, backgroundStyle: backgroundStyle)
+            } onDelete: {
+                repository.deleteCollection(collectionID: collection.id)
+                dismiss()
+            }
+        }
+    }
+
+    private func saveCollectionEdits(title: String, notes: String, backgroundStyle: CollectionBackgroundStyle) {
+        guard let domainCollection = repository
+            .fetchHomes()
+            .flatMap({ repository.fetchDomainCollections(in: $0.id) })
+            .first(where: { $0.id == collection.id })
+        else {
+            return
+        }
+
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let updatedCollection = Collection(
+            id: domainCollection.id,
+            homeID: domainCollection.homeID,
+            kind: domainCollection.kind,
+            title: trimmedTitle.isEmpty ? domainCollection.title : trimmedTitle,
+            notes: trimmedNotes,
+            backgroundStyle: backgroundStyle
+        )
+
+        repository.saveCollection(updatedCollection)
+        refreshContent()
+    }
+
+    private func refreshContent() {
+        if let refreshed = repository.fetchCollections().first(where: { $0.id == collection.id }) {
+            collection = refreshed
+        }
+        refreshID = UUID()
     }
 }
 
@@ -1195,7 +1258,6 @@ private struct CollectionPlaceholderView: View {
     let systemImage: String
     let description: String
     let backgroundStyle: CollectionBackgroundStyle
-    let onClose: () -> Void
 
     var body: some View {
         ContentUnavailableView(
@@ -1214,14 +1276,5 @@ private struct CollectionPlaceholderView: View {
         )
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    onClose()
-                } label: {
-                    Image(systemName: "chevron.backward")
-                }
-            }
-        }
     }
 }
