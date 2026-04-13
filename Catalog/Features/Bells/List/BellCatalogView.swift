@@ -410,6 +410,7 @@ struct BellEditorView: View {
                 itemID: itemID,
                 kind: asset.kind,
                 localIdentifier: asset.localIdentifier,
+                displayName: asset.displayName,
                 sortOrder: index
             )
         }

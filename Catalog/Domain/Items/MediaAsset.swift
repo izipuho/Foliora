@@ -5,6 +5,7 @@ struct MediaAsset: Identifiable, Hashable, Codable {
     let itemID: UUID
     var kind: MediaKind
     var localIdentifier: String
+    var displayName: String?
     var sortOrder: Int
 }
 

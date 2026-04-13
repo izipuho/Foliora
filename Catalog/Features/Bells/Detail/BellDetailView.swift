@@ -1,9 +1,11 @@
 import SwiftUI
+import UIKit
 
 struct BellDetailView: View {
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
     @State private var isPresentingEditor = false
+    private let mediaColumns = [GridItem(.adaptive(minimum: 108, maximum: 140), spacing: 12)]
 
     var body: some View {
         ScrollView {
@@ -48,6 +50,16 @@ struct BellDetailView: View {
                     detailRow("Фото", value: String(bell.photoCount))
                     detailRow("3D models", value: String(bell.model3DCount))
                     detailRow("Documents", value: String(bell.documentCount))
+
+                    if !bell.mediaAssets.isEmpty {
+                        Divider()
+
+                        LazyVGrid(columns: mediaColumns, alignment: .leading, spacing: 12) {
+                            ForEach(bell.mediaAssets.sorted { $0.sortOrder < $1.sortOrder }) { asset in
+                                BellDetailMediaTile(asset: asset)
+                            }
+                        }
+                    }
                 }
 
                 if !bell.tags.isEmpty {
@@ -134,6 +146,96 @@ struct BellDetailView: View {
                 status: .active,
                 sharingSummary: ""
             )
+    }
+}
+
+private struct BellDetailMediaTile: View {
+    let asset: MediaAsset
+    private let mediaStore = LocalMediaFileStore.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            thumbnail
+
+            if asset.kind != .photo {
+                Text(mediaTitle)
+                    .font(.caption)
+                    .lineLimit(2)
+            }
+
+            Text(asset.kind.displayName)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var thumbnail: some View {
+        switch asset.kind {
+        case .photo:
+            if let image = previewImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 116, height: 116)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            } else {
+                placeholder(systemImage: "photo")
+            }
+        case .document:
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.black.opacity(0.05))
+                VStack(spacing: 3) {
+                    Image(systemName: "doc.fill")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                    Text(documentExtension)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 116, height: 116)
+        case .model3D:
+            placeholder(systemImage: "cube.transparent")
+        }
+    }
+
+    private func placeholder(systemImage: String) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.black.opacity(0.05))
+            Image(systemName: systemImage)
+                .font(.title3)
+                .foregroundStyle(.secondary)
+        }
+        .frame(width: 116, height: 116)
+    }
+
+    private var previewImage: UIImage? {
+        guard let url = mediaStore.fileURL(for: asset.localIdentifier),
+              let image = UIImage(contentsOfFile: url.path) else {
+            return nil
+        }
+
+        return image
+    }
+
+    private var mediaTitle: String {
+        if let displayName = asset.displayName, !displayName.isEmpty {
+            return displayName
+        }
+
+        return URL(fileURLWithPath: asset.localIdentifier)
+            .deletingPathExtension()
+            .lastPathComponent
+            .replacingOccurrences(of: "-", with: " ")
+            .capitalized
+    }
+
+    private var documentExtension: String {
+        let ext = URL(fileURLWithPath: asset.localIdentifier).pathExtension.uppercased()
+        return ext.isEmpty ? "FILE" : ext
     }
 }
 

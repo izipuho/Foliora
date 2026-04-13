@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
+import UIKit
 
 struct YearPickerField: View {
     let title: String
@@ -143,12 +144,14 @@ struct TagEditorSection: View {
 struct MediaSection: View {
     let itemID: UUID
     @Binding var mediaAssets: [MediaAsset]
+    private let mediaStore = LocalMediaFileStore.shared
 
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isPresentingPhotoPicker = false
     @State private var isPresentingDocumentImporter = false
     @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
+    private let gridColumns = [GridItem(.adaptive(minimum: 96, maximum: 128), spacing: 12)]
 
     var body: some View {
         if mediaAssets.isEmpty {
@@ -158,23 +161,10 @@ struct MediaSection: View {
                 description: Text("Add photos, documents, or 3D models.")
             )
         } else {
-            ForEach(sortedAssets) { asset in
-                HStack(spacing: 12) {
-                    Image(systemName: iconName(for: asset.kind))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 24)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(title(for: asset))
-                        Text(asset.kind.displayName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-                }
-                .swipeActions {
-                    Button("Delete", role: .destructive) {
+            LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 12) {
+                ForEach(sortedAssets) { asset in
+                    MediaAssetGridTileView(asset: asset) {
+                        mediaStore.deleteFile(for: asset.localIdentifier)
                         mediaAssets.removeAll { $0.id == asset.id }
                         reindexAssets()
                     }
@@ -223,7 +213,9 @@ struct MediaSection: View {
             Text("3D model import is still a placeholder. Photos and documents already use real system pickers.")
         }
         .onChange(of: selectedPhotoItems) { _, newItems in
-            addPhotos(from: newItems)
+            Task {
+                await addPhotos(from: newItems)
+            }
         }
     }
 
@@ -237,25 +229,14 @@ struct MediaSection: View {
         }
     }
 
-    private func addAsset(kind: MediaKind) {
-        let nextIndex = mediaAssets.count + 1
-        let asset = MediaAsset(
-            id: UUID(),
-            itemID: itemID,
-            kind: kind,
-            localIdentifier: "\(kind.rawValue)-\(nextIndex)",
-            sortOrder: mediaAssets.count
-        )
-
-        mediaAssets.append(asset)
-    }
-
-    private func addPhotos(from items: [PhotosPickerItem]) {
+    @MainActor
+    private func addPhotos(from items: [PhotosPickerItem]) async {
         guard !items.isEmpty else { return }
 
         for item in items {
-            let nextIndex = mediaAssets.count + 1
-            let identifier = item.itemIdentifier ?? "photo-\(nextIndex)"
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            let fileExtension = item.supportedContentTypes.first?.preferredFilenameExtension
+            guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: fileExtension) else { continue }
 
             mediaAssets.append(
                 MediaAsset(
@@ -263,6 +244,7 @@ struct MediaSection: View {
                     itemID: itemID,
                     kind: .photo,
                     localIdentifier: identifier,
+                    displayName: nil,
                     sortOrder: mediaAssets.count
                 )
             )
@@ -275,13 +257,14 @@ struct MediaSection: View {
         guard !urls.isEmpty else { return }
 
         for url in urls {
-            let fileName = url.lastPathComponent.isEmpty ? "document-\(mediaAssets.count + 1)" : url.lastPathComponent
+            guard let fileName = try? mediaStore.importDocument(from: url) else { continue }
             mediaAssets.append(
                 MediaAsset(
                     id: UUID(),
                     itemID: itemID,
                     kind: .document,
                     localIdentifier: fileName,
+                    displayName: url.lastPathComponent,
                     sortOrder: mediaAssets.count
                 )
             )
@@ -298,24 +281,133 @@ struct MediaSection: View {
                     itemID: asset.itemID,
                     kind: asset.kind,
                     localIdentifier: asset.localIdentifier,
+                    displayName: asset.displayName,
                     sortOrder: index
                 )
             }
     }
+}
 
-    private func iconName(for kind: MediaKind) -> String {
-        switch kind {
-        case .photo:
-            return "photo"
-        case .document:
-            return "doc"
-        case .model3D:
-            return "cube.transparent"
+private struct MediaAssetGridTileView: View {
+    let asset: MediaAsset
+    let onDelete: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 8) {
+                MediaAssetThumbnailView(
+                    asset: asset,
+                    size: asset.kind == .photo ? 110 : 88
+                )
+
+                if asset.kind != .photo {
+                    Text(mediaTitle)
+                        .font(.caption)
+                        .lineLimit(2)
+                        .foregroundStyle(.primary)
+                }
+
+                Text(asset.kind.displayName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+            Button(action: onDelete) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, Color.black.opacity(0.35))
+            }
+            .buttonStyle(.plain)
+            .offset(x: 6, y: -6)
         }
     }
 
-    private func title(for asset: MediaAsset) -> String {
-        asset.localIdentifier.replacingOccurrences(of: "-", with: " ").capitalized
+    private var mediaTitle: String {
+        if let displayName = asset.displayName, !displayName.isEmpty {
+            return displayName
+        }
+
+        return URL(fileURLWithPath: asset.localIdentifier)
+            .deletingPathExtension()
+            .lastPathComponent
+            .replacingOccurrences(of: "-", with: " ")
+            .capitalized
+    }
+}
+
+private struct MediaAssetThumbnailView: View {
+    let asset: MediaAsset
+    let size: CGFloat
+    private let mediaStore = LocalMediaFileStore.shared
+
+    var body: some View {
+        Group {
+            switch asset.kind {
+            case .photo:
+                if let image = previewImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    placeholder(systemImage: "photo")
+                }
+            case .document:
+                documentPlaceholder
+            case .model3D:
+                placeholder(systemImage: "cube.transparent")
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+        )
+    }
+
+    private var previewImage: UIImage? {
+        guard let url = mediaStore.fileURL(for: asset.localIdentifier),
+              let image = UIImage(contentsOfFile: url.path) else {
+            return nil
+        }
+
+        return image
+    }
+
+    private var documentPlaceholder: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.black.opacity(0.05))
+
+            VStack(spacing: 3) {
+                Image(systemName: "doc.fill")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                Text(documentExtension)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func placeholder(systemImage: String) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.black.opacity(0.05))
+
+            Image(systemName: systemImage)
+                .font(.title3)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var documentExtension: String {
+        let ext = URL(fileURLWithPath: asset.localIdentifier).pathExtension.uppercased()
+        return ext.isEmpty ? "FILE" : ext
     }
 }
 

@@ -252,6 +252,7 @@ final class InMemoryCatalogRepository: CatalogRepository {
                 itemID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
                 kind: .photo,
                 localIdentifier: "bell-photo-1",
+                displayName: "Bell Photo",
                 sortOrder: 0
             ),
             MediaAsset(
@@ -259,6 +260,7 @@ final class InMemoryCatalogRepository: CatalogRepository {
                 itemID: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!,
                 kind: .model3D,
                 localIdentifier: "bell-model-1",
+                displayName: "Bell Model",
                 sortOrder: 1
             ),
             MediaAsset(
@@ -266,6 +268,7 @@ final class InMemoryCatalogRepository: CatalogRepository {
                 itemID: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
                 kind: .photo,
                 localIdentifier: "bell-photo-2",
+                displayName: "Lavender Bell Photo",
                 sortOrder: 0
             ),
             MediaAsset(
@@ -273,6 +276,7 @@ final class InMemoryCatalogRepository: CatalogRepository {
                 itemID: UUID(uuidString: "33333333-3333-3333-3333-333333333333")!,
                 kind: .document,
                 localIdentifier: "bell-note-1",
+                displayName: "Condition Notes",
                 sortOrder: 0
             )
         ]

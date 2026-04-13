@@ -2,12 +2,14 @@ import Foundation
 
 final class LocalCatalogRepository: CatalogRepository {
     private let store: CatalogJSONStore
+    private let mediaStore: LocalMediaFileStore
 
     init(
         baseURL: URL? = nil,
         seedRepository: any CatalogRepository = InMemoryCatalogRepository()
     ) {
         self.store = CatalogJSONStore(baseURL: baseURL)
+        self.mediaStore = LocalMediaFileStore()
         store.bootstrapIfNeeded(using: seedRepository)
     }
 
@@ -107,9 +109,13 @@ final class LocalCatalogRepository: CatalogRepository {
             let collectionIDs = snapshot.collections
                 .filter { $0.homeID == homeID }
                 .map(\.id)
-            let itemIDs = snapshot.bellItems
+            let removedBellItems = snapshot.bellItems
                 .filter { collectionIDs.contains($0.item.collectionID) }
-                .map(\.item.id)
+            let itemIDs = removedBellItems.map(\.item.id)
+
+            removedBellItems
+                .flatMap(\.mediaAssets)
+                .forEach { mediaStore.deleteFile(for: $0.localIdentifier) }
 
             snapshot.homes.removeAll { $0.id == homeID }
             snapshot.locations.removeAll { $0.homeID == homeID }
@@ -144,6 +150,8 @@ final class LocalCatalogRepository: CatalogRepository {
 
     func deleteBellRecord(bellID: UUID) {
         store.updateSnapshot { snapshot in
+            let assets = snapshot.bellItems.first(where: { $0.item.id == bellID })?.mediaAssets ?? []
+            assets.forEach { mediaStore.deleteFile(for: $0.localIdentifier) }
             snapshot.bellItems.removeAll { $0.item.id == bellID }
         }
     }
