@@ -408,16 +408,22 @@ struct BellEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(BL("common.cancel")) {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
                     }
+                    .accessibilityLabel(BL("common.cancel"))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(BL("common.save")) {
+                    Button {
                         saveBell()
+                    } label: {
+                        Image(systemName: "checkmark")
                     }
                     .disabled(!canSave)
+                    .accessibilityLabel(BL("common.save"))
                 }
             }
         }
