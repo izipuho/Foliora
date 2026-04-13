@@ -21,6 +21,70 @@ struct YearPickerField: View {
     }
 }
 
+struct EnumSelectionRow<Option: Hashable>: View {
+    let title: String
+    let selectedLabel: String
+    let options: [Option]
+    @Binding var selection: Option
+    let optionTitle: (Option) -> String
+
+    @State private var isPresentingPicker = false
+
+    var body: some View {
+        Button {
+            isPresentingPicker = true
+        } label: {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text(selectedLabel)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isPresentingPicker) {
+            NavigationStack {
+                List(options, id: \.self) { option in
+                    Button {
+                        selection = option
+                        isPresentingPicker = false
+                    } label: {
+                        HStack {
+                            Text(optionTitle(option))
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if option == selection {
+                                Image(systemName: "checkmark")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            isPresentingPicker = false
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .accessibilityLabel(EL("common.cancel"))
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
+    }
+}
+
 struct PlacePickerField: View {
     let title: String
     let selectedLabel: String

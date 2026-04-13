@@ -365,23 +365,29 @@ struct BellEditorView: View {
                         selectedPlaceID: $selectedOriginPlaceID
                     )
 
-                    Picker(BL("editor.condition"), selection: $condition) {
-                        ForEach(ItemCondition.allCases) { condition in
-                            Text(condition.displayName).tag(condition)
-                        }
-                    }
+                    EnumSelectionRow(
+                        title: BL("editor.condition"),
+                        selectedLabel: condition.displayName,
+                        options: ItemCondition.allCases,
+                        selection: $condition,
+                        optionTitle: \.displayName
+                    )
 
-                    Picker(BL("editor.acquisition"), selection: $acquisitionMethod) {
-                        ForEach(AcquisitionMethod.allCases) { method in
-                            Text(method.displayName).tag(method)
-                        }
-                    }
+                    EnumSelectionRow(
+                        title: BL("editor.acquisition"),
+                        selectedLabel: acquisitionMethod.displayName,
+                        options: AcquisitionMethod.allCases,
+                        selection: $acquisitionMethod,
+                        optionTitle: \.displayName
+                    )
 
-                    Picker(BL("editor.material"), selection: $material) {
-                        ForEach(BellMaterial.allCases) { material in
-                            Text(material.displayName).tag(material)
-                        }
-                    }
+                    EnumSelectionRow(
+                        title: BL("editor.material"),
+                        selectedLabel: material.displayName,
+                        options: BellMaterial.allCases,
+                        selection: $material,
+                        optionTitle: \.displayName
+                    )
 
                     if material == .other {
                         TextField(BL("editor.material.custom"), text: $customMaterialName)
