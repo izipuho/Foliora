@@ -15,6 +15,7 @@
 "collection.placeholder.participants.description" = "Collection members, roles, invites, and statuses will appear here.";
 
 "collection.editor.default_title" = "Bells";
+"collection.editor.edit_title" = "Edit Collection";
 "collection.editor.type_name_localized" = "Bells";
 "collection.editor.type_name_english" = "Bells";
 
@@ -32,6 +33,11 @@
 "bell_catalog.summary.without_media" = "Without media";
 "bell_catalog.search.placeholder" = "Search by title, city, or tag";
 "bell_catalog.filter.all" = "All";
+"bell_catalog.sort.menu" = "Sort";
+"bell_catalog.sort.title" = "By Title";
+"bell_catalog.sort.origin" = "By Origin";
+"bell_catalog.sort.year_newest" = "Newest Year";
+"bell_catalog.sort.year_oldest" = "Oldest Year";
 
 "common.add" = "Add";
 "common.back" = "Back";

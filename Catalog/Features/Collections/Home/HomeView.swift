@@ -849,6 +849,7 @@ private struct CollectionShellView: View {
     @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
     @State private var isPresentingEditCollection = false
+    @State private var selectedSort: BellSortOption = .title
 
     init(collection: CollectionSummary, repository: any CatalogRepository) {
         self.repository = repository
@@ -862,7 +863,8 @@ private struct CollectionShellView: View {
                     collection: collection,
                     repository: repository,
                     collaborators: repository.fetchCollaborators(for: collection.id),
-                    mode: .summary
+                    mode: .summary,
+                    sortOption: selectedSort
                 )
                 .id("summary-\(refreshID.uuidString)")
             }
@@ -872,7 +874,8 @@ private struct CollectionShellView: View {
                     collection: collection,
                     repository: repository,
                     collaborators: repository.fetchCollaborators(for: collection.id),
-                    mode: .items
+                    mode: .items,
+                    sortOption: selectedSort
                 )
                 .id("items-\(refreshID.uuidString)")
             }
@@ -900,7 +903,8 @@ private struct CollectionShellView: View {
                     collection: collection,
                     repository: repository,
                     collaborators: repository.fetchCollaborators(for: collection.id),
-                    mode: .search
+                    mode: .search,
+                    sortOption: selectedSort
                 )
                 .id("search-\(refreshID.uuidString)")
             }
@@ -909,11 +913,27 @@ private struct CollectionShellView: View {
         .navigationTitle(collection.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isPresentingEditCollection = true
-                } label: {
-                    Image(systemName: "square.and.pencil")
+            if selectedTab == .summary {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isPresentingEditCollection = true
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                    }
+                }
+            }
+
+            if selectedTab == .items {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Picker(L("bell_catalog.sort.menu"), selection: $selectedSort) {
+                            ForEach(BellSortOption.allCases, id: \.self) { option in
+                                Text(option.title).tag(option)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                    }
                 }
             }
 
@@ -938,7 +958,7 @@ private struct CollectionShellView: View {
         .sheet(isPresented: $isPresentingEditCollection) {
             CollectionEditorView(
                 homes: repository.fetchHomes(),
-                screenTitle: "Edit Collection",
+                screenTitle: L("collection.editor.edit_title"),
                 initialTitle: collection.name,
                 initialNotes: collection.subtitle,
                 initialHomeID: collection.homeID,

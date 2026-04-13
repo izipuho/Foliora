@@ -15,6 +15,7 @@
 "collection.placeholder.participants.description" = "Здесь появятся участники коллекции, роли, приглашения и статусы.";
 
 "collection.editor.default_title" = "Колокольчики";
+"collection.editor.edit_title" = "Редактировать коллекцию";
 "collection.editor.type_name_localized" = "Колокольчики";
 "collection.editor.type_name_english" = "Bells";
 
@@ -32,6 +33,11 @@
 "bell_catalog.summary.without_media" = "Без медиа";
 "bell_catalog.search.placeholder" = "Поиск по названию, городу или тегу";
 "bell_catalog.filter.all" = "Все";
+"bell_catalog.sort.menu" = "Сортировка";
+"bell_catalog.sort.title" = "По названию";
+"bell_catalog.sort.origin" = "По происхождению";
+"bell_catalog.sort.year_newest" = "Сначала новые";
+"bell_catalog.sort.year_oldest" = "Сначала старые";
 
 "common.add" = "Добавить";
 "common.back" = "Назад";

@@ -5,6 +5,26 @@ private func BL(_ key: String) -> String {
     NSLocalizedString(key, comment: "")
 }
 
+enum BellSortOption: String, CaseIterable, Hashable {
+    case title
+    case origin
+    case yearNewest
+    case yearOldest
+
+    var title: String {
+        switch self {
+        case .title:
+            return BL("bell_catalog.sort.title")
+        case .origin:
+            return BL("bell_catalog.sort.origin")
+        case .yearNewest:
+            return BL("bell_catalog.sort.year_newest")
+        case .yearOldest:
+            return BL("bell_catalog.sort.year_oldest")
+        }
+    }
+}
+
 enum BellCatalogMode {
     case summary
     case items
@@ -16,6 +36,7 @@ struct BellCatalogView: View {
     let collaborators: [Collaborator]
     let collection: CollectionSummary
     let mode: BellCatalogMode
+    let sortOption: BellSortOption
 
     @State private var bellRecords: [BellRecord]
     @State private var searchText = ""
@@ -25,21 +46,24 @@ struct BellCatalogView: View {
         collection: CollectionSummary,
         repository: any CatalogRepository,
         collaborators: [Collaborator],
-        mode: BellCatalogMode
+        mode: BellCatalogMode,
+        sortOption: BellSortOption = .title
     ) {
         self.repository = repository
         self.collaborators = collaborators
         self.collection = collection
         self.mode = mode
+        self.sortOption = sortOption
         _bellRecords = State(initialValue: repository.fetchBellRecords(for: collection.id))
     }
 
     private var bells: [BellRecord] {
-        bellRecords
+        sorted(bellRecords)
     }
 
     private var filteredBells: [BellRecord] {
-        bells.filter { bell in
+        sorted(
+            bellRecords.filter { bell in
             let matchesSearch =
                 searchText.isEmpty ||
                 bell.title.localizedCaseInsensitiveContains(searchText) ||
@@ -49,7 +73,7 @@ struct BellCatalogView: View {
 
             let matchesCondition = selectedCondition == nil || bell.condition == selectedCondition
             return matchesSearch && matchesCondition
-        }
+        })
     }
 
     private var countryCount: Int {
@@ -273,6 +297,46 @@ struct BellCatalogView: View {
     private func deleteBell(_ bellID: UUID) {
         repository.deleteBellRecord(bellID: bellID)
         bellRecords.removeAll { $0.id == bellID }
+    }
+
+    private func sorted(_ bells: [BellRecord]) -> [BellRecord] {
+        bells.sorted { lhs, rhs in
+            switch sortOption {
+            case .title:
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            case .origin:
+                let leftOrigin = lhs.placeDisplayName
+                let rightOrigin = rhs.placeDisplayName
+
+                if leftOrigin.localizedCaseInsensitiveCompare(rightOrigin) == .orderedSame {
+                    return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+                }
+
+                return leftOrigin.localizedCaseInsensitiveCompare(rightOrigin) == .orderedAscending
+            case .yearNewest:
+                switch (lhs.year, rhs.year) {
+                case let (left?, right?) where left != right:
+                    return left > right
+                case (.some, nil):
+                    return true
+                case (nil, .some):
+                    return false
+                default:
+                    return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+                }
+            case .yearOldest:
+                switch (lhs.year, rhs.year) {
+                case let (left?, right?) where left != right:
+                    return left < right
+                case (.some, nil):
+                    return true
+                case (nil, .some):
+                    return false
+                default:
+                    return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+                }
+            }
+        }
     }
 }
 
