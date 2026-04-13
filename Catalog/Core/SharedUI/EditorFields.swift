@@ -168,7 +168,10 @@ struct MediaSection: View {
         } else {
             LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 12) {
                 ForEach(sortedAssets) { asset in
-                    MediaAssetGridTileView(asset: asset) {
+                    MediaAssetGridTileView(
+                        asset: asset,
+                        isCover: asset.id == coverPhotoID
+                    ) {
                         mediaStore.deleteFile(for: asset.localIdentifier)
                         mediaAssets.removeAll { $0.id == asset.id }
                         reindexAssets()
@@ -243,6 +246,12 @@ struct MediaSection: View {
 
             return lhs.sortOrder < rhs.sortOrder
         }
+    }
+
+    private var coverPhotoID: UUID? {
+        let photoAssets = sortedAssets.filter { $0.kind == .photo }
+        guard photoAssets.count > 1 else { return nil }
+        return photoAssets.first?.id
     }
 
     @MainActor
@@ -322,6 +331,7 @@ struct MediaSection: View {
 
 private struct MediaAssetGridTileView: View {
     let asset: MediaAsset
+    let isCover: Bool
     let onDelete: () -> Void
 
     var body: some View {
@@ -339,9 +349,19 @@ private struct MediaAssetGridTileView: View {
                         .foregroundStyle(.primary)
                 }
 
-                Text(asset.kind.displayName)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text(asset.kind.displayName)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+
+                    if isCover {
+                        Text(EL("editor.media.cover"))
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(.regularMaterial, in: Capsule())
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)

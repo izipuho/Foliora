@@ -74,6 +74,7 @@
 "editor.media.photo_library" = "Choose from Library";
 "editor.media.camera" = "Take Photo";
 "editor.media.document" = "Add Document";
+"editor.media.cover" = "Cover";
 "editor.media.model" = "Add 3D Model";
 "editor.media.model.placeholder_title" = "3D Models Coming Later";
 "editor.media.model.placeholder_message" = "3D model import is still a placeholder. Photos and documents already use real system pickers.";
