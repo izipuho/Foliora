@@ -1,10 +1,21 @@
 import SwiftUI
 
+private func BL(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
+
+enum BellCatalogMode {
+    case summary
+    case items
+    case search
+}
+
 struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
+    let mode: BellCatalogMode
+    let onCloseCollection: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
     @State private var collection: CollectionSummary
     @State private var bellRecords: [BellRecord]
     @State private var searchText = ""
@@ -12,9 +23,17 @@ struct BellCatalogView: View {
     @State private var isPresentingAddBell = false
     @State private var isPresentingEditCollection = false
 
-    init(collection: CollectionSummary, repository: any CatalogRepository, collaborators: [Collaborator]) {
+    init(
+        collection: CollectionSummary,
+        repository: any CatalogRepository,
+        collaborators: [Collaborator],
+        mode: BellCatalogMode,
+        onCloseCollection: @escaping () -> Void
+    ) {
         self.repository = repository
         self.collaborators = collaborators
+        self.mode = mode
+        self.onCloseCollection = onCloseCollection
         _collection = State(initialValue: collection)
         _bellRecords = State(initialValue: repository.fetchBellRecords(for: collection.id))
     }
@@ -51,60 +70,42 @@ struct BellCatalogView: View {
 
     var body: some View {
         List {
-            header
-                .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 0, trailing: 20))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-
-            searchSection
-                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 0, trailing: 20))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-
-            collaboratorStrip
-                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 0, trailing: 20))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-
-            if filteredBells.isEmpty {
-                ContentUnavailableView(
-                    "Ничего не найдено",
-                    systemImage: "bell.slash",
-                    description: Text("Попробуйте изменить запрос или сбросить фильтр по состоянию.")
-                )
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 120, trailing: 20))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-            } else {
-                ForEach(filteredBells) { bell in
-                    if let bellBinding = binding(for: bell.id) {
-                        NavigationLink {
-                            BellDetailView(
-                                bell: bellBinding,
-                                repository: repository
-                            )
-                        } label: {
-                            BellCardView(bell: bell)
-                        }
-                        .buttonStyle(.plain)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 6, trailing: 20))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button("Delete", role: .destructive) {
-                                deleteBell(bell.id)
-                            }
-                        }
-                    }
-                }
-
-                Color.clear
-                    .frame(height: 100)
-                    .listRowInsets(EdgeInsets())
+            switch mode {
+            case .summary:
+                summaryInsights
+                    .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 0, trailing: 20))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
+
+                summaryRecentBells
+                    .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 120, trailing: 20))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+
+            case .items:
+                if bells.isEmpty {
+                    emptyBellsState(
+                        title: LocalizedStringKey(BL("bell_catalog.empty.title")),
+                        description: LocalizedStringKey(BL("bell_catalog.empty.description"))
+                    )
+                } else {
+                    bellListRows(bells)
+                }
+
+            case .search:
+                searchSection
+                    .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 0, trailing: 20))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+
+                if filteredBells.isEmpty {
+                    emptyBellsState(
+                        title: LocalizedStringKey(BL("bell_catalog.search.empty.title")),
+                        description: LocalizedStringKey(BL("bell_catalog.search.empty.description"))
+                    )
+                } else {
+                    bellListRows(filteredBells)
+                }
             }
         }
         .listStyle(.plain)
@@ -117,9 +118,17 @@ struct BellCatalogView: View {
             )
             .ignoresSafeArea()
         )
-        .navigationTitle(collection.kind.title)
+        .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    onCloseCollection()
+                } label: {
+                    Image(systemName: "chevron.backward")
+                }
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     isPresentingEditCollection = true
@@ -159,62 +168,115 @@ struct BellCatalogView: View {
                 saveCollectionEdits(title: title, notes: notes, backgroundStyle: backgroundStyle)
             } onDelete: {
                 repository.deleteCollection(collectionID: collection.id)
-                dismiss()
+                onCloseCollection()
             }
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(collection.name)
-                        .font(.largeTitle.bold())
+    private var navigationTitle: String {
+        collection.name
+    }
 
-                    Text("Отдельный UI для колокольчиков: происхождение, материал, состояние, заметки и прозрачный доступ участников коллекции.")
-                        .foregroundStyle(.secondary)
+    @ViewBuilder
+    private func bellListRows(_ bells: [BellRecord]) -> some View {
+        ForEach(bells) { bell in
+            if let bellBinding = binding(for: bell.id) {
+                NavigationLink {
+                    BellDetailView(
+                        bell: bellBinding,
+                        repository: repository
+                    )
+                } label: {
+                    BellCardView(bell: bell)
                 }
-
-                Spacer(minLength: 16)
-
-                ZStack {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(collection.backgroundStyle.accentColor.opacity(0.12))
-                        .frame(width: 62, height: 62)
-
-                    Image(systemName: "bell.and.waves.left.and.right.fill")
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(collection.backgroundStyle.accentColor)
+                .buttonStyle(.plain)
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 6, trailing: 20))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button("Delete", role: .destructive) {
+                        deleteBell(bell.id)
+                    }
                 }
-            }
-
-            HStack(spacing: 12) {
-                StatChip(title: "Items", value: "\(bells.count)")
-                StatChip(title: "Countries", value: "\(countryCount)")
-                StatChip(title: "Materials", value: "\(materialCount)")
             }
         }
-        .padding(20)
-        .background(
-            LinearGradient(
-                colors: [Color.white.opacity(0.88), collection.backgroundStyle.colors[0].opacity(0.92)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 28, style: .continuous)
+
+        Color.clear
+            .frame(height: 100)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+
+    private func emptyBellsState(title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
+        ContentUnavailableView(
+            title,
+            systemImage: "bell.slash",
+            description: Text(description)
         )
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 120, trailing: 20))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+    }
+
+    private var summaryInsights: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                StatChip(title: BL("bell_catalog.summary.items"), value: "\(bells.count)")
+                StatChip(title: BL("bell_catalog.summary.countries"), value: "\(countryCount)")
+                StatChip(title: BL("bell_catalog.summary.materials"), value: "\(materialCount)")
+                StatChip(title: BL("bell_catalog.summary.with_location"), value: "\(bells.filter { $0.item.locationID != nil }.count)")
+                StatChip(title: BL("bell_catalog.summary.with_photos"), value: "\(bells.filter { $0.photoCount > 0 }.count)")
+                StatChip(title: BL("bell_catalog.summary.without_media"), value: "\(bells.filter { $0.mediaAssets.isEmpty }.count)")
+            }
+        }
+    }
+
+    private var summaryRecentBells: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(BL("bell_catalog.summary.recent"))
+                .font(.headline)
+
+            if bells.isEmpty {
+                Text(BL("bell_catalog.summary.none"))
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(Array(bells.prefix(5))) { bell in
+                    HStack(spacing: 12) {
+                        Image(systemName: "bell.fill")
+                            .foregroundStyle(collection.backgroundStyle.accentColor)
+                            .frame(width: 20)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(bell.title)
+                                .font(.subheadline.weight(.semibold))
+                            Text(bell.placeDisplayName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.52), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private var searchSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextField("Поиск по названию, городу или тегу", text: $searchText)
+            TextField(BL("bell_catalog.search.placeholder"), text: $searchText)
                 .textInputAutocapitalization(.sentences)
                 .padding(14)
                 .background(Color.white.opacity(0.84), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    FilterChip(title: "Все", isSelected: selectedCondition == nil, tint: collection.backgroundStyle.accentColor) {
+                    FilterChip(title: BL("bell_catalog.filter.all"), isSelected: selectedCondition == nil, tint: collection.backgroundStyle.accentColor) {
                         selectedCondition = nil
                     }
 
@@ -226,36 +288,6 @@ struct BellCatalogView: View {
                 }
             }
         }
-    }
-
-    private var collaboratorStrip: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Доступ к коллекции")
-                .font(.headline)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(collaborators) { collaborator in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(collaborator.displayName)
-                                .font(.subheadline.weight(.semibold))
-                            Text(collaborator.role.title)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(12)
-                        .background(
-                            collaborator.isCurrentUser
-                                ? collection.backgroundStyle.accentColor.opacity(0.16)
-                                : Color.white.opacity(0.78),
-                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        )
-                    }
-                }
-            }
-        }
-        .padding(16)
-        .background(Color.white.opacity(0.48), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private func binding(for bellID: UUID) -> Binding<BellRecord>? {
@@ -664,7 +696,9 @@ struct BellCatalogView_Previews: PreviewProvider {
             BellCatalogView(
                 collection: collection,
                 repository: repository,
-                collaborators: repository.fetchCollaborators(for: collection.id)
+                collaborators: repository.fetchCollaborators(for: collection.id),
+                mode: .summary,
+                onCloseCollection: {}
             )
         }
     }

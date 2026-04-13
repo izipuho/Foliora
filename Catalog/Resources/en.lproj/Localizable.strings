@@ -1,0 +1,34 @@
+"root_tab.collections" = "Collections";
+"root_tab.homes" = "Homes";
+"root_tab.search" = "Search";
+"root_tab.settings" = "Settings";
+
+"collection_tab.summary" = "Summary";
+"collection_tab.items" = "Bells";
+"collection_tab.map" = "Map";
+"collection_tab.participants" = "Participants";
+"collection_tab.search" = "Search";
+
+"collection.placeholder.map.title" = "Map";
+"collection.placeholder.map.description" = "A geographic map of bells by origin will appear here.";
+"collection.placeholder.participants.title" = "Participants";
+"collection.placeholder.participants.description" = "Collection members, roles, invites, and statuses will appear here.";
+
+"collection.editor.default_title" = "Bells";
+"collection.editor.type_name_localized" = "Bells";
+"collection.editor.type_name_english" = "Bells";
+
+"bell_catalog.empty.title" = "No bells yet";
+"bell_catalog.empty.description" = "Add the first bell to start building this collection.";
+"bell_catalog.search.empty.title" = "Nothing found";
+"bell_catalog.search.empty.description" = "Try another query or reset the condition filter.";
+"bell_catalog.summary.recent" = "Recent";
+"bell_catalog.summary.none" = "No bells yet.";
+"bell_catalog.summary.items" = "Bells";
+"bell_catalog.summary.countries" = "Countries";
+"bell_catalog.summary.materials" = "Materials";
+"bell_catalog.summary.with_location" = "With location";
+"bell_catalog.summary.with_photos" = "With photos";
+"bell_catalog.summary.without_media" = "Without media";
+"bell_catalog.search.placeholder" = "Search by title, city, or tag";
+"bell_catalog.filter.all" = "All";

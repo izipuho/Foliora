@@ -1,0 +1,34 @@
+"root_tab.collections" = "Коллекции";
+"root_tab.homes" = "Дома";
+"root_tab.search" = "Поиск";
+"root_tab.settings" = "Настройки";
+
+"collection_tab.summary" = "Сводка";
+"collection_tab.items" = "Колокольчики";
+"collection_tab.map" = "Карта";
+"collection_tab.participants" = "Участники";
+"collection_tab.search" = "Поиск";
+
+"collection.placeholder.map.title" = "Карта";
+"collection.placeholder.map.description" = "Здесь появится географическая карта колокольчиков по месту происхождения.";
+"collection.placeholder.participants.title" = "Участники";
+"collection.placeholder.participants.description" = "Здесь появятся участники коллекции, роли, приглашения и статусы.";
+
+"collection.editor.default_title" = "Колокольчики";
+"collection.editor.type_name_localized" = "Колокольчики";
+"collection.editor.type_name_english" = "Bells";
+
+"bell_catalog.empty.title" = "Пока нет колокольчиков";
+"bell_catalog.empty.description" = "Добавь первый колокольчик, чтобы начать наполнять коллекцию.";
+"bell_catalog.search.empty.title" = "Ничего не найдено";
+"bell_catalog.search.empty.description" = "Попробуй другой запрос или сбрось фильтр по состоянию.";
+"bell_catalog.summary.recent" = "Недавние";
+"bell_catalog.summary.none" = "Пока нет колокольчиков.";
+"bell_catalog.summary.items" = "Колокольчики";
+"bell_catalog.summary.countries" = "Страны";
+"bell_catalog.summary.materials" = "Материалы";
+"bell_catalog.summary.with_location" = "С локацией";
+"bell_catalog.summary.with_photos" = "С фото";
+"bell_catalog.summary.without_media" = "Без медиа";
+"bell_catalog.search.placeholder" = "Поиск по названию, городу или тегу";
+"bell_catalog.filter.all" = "Все";

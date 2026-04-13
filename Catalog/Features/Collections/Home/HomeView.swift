@@ -1,5 +1,9 @@
 import SwiftUI
 
+private func L(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
+
 enum RootTab: String, CaseIterable, Identifiable {
     case collections
     case homes
@@ -11,13 +15,13 @@ enum RootTab: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .collections:
-            return "Коллекции"
+            return L("root_tab.collections")
         case .homes:
-            return "Дома"
+            return L("root_tab.homes")
         case .search:
-            return "Поиск"
+            return L("root_tab.search")
         case .settings:
-            return "Настройки"
+            return L("root_tab.settings")
         }
     }
 
@@ -35,6 +39,46 @@ enum RootTab: String, CaseIterable, Identifiable {
     }
 }
 
+enum CollectionTab: String, CaseIterable, Identifiable {
+    case summary
+    case items
+    case map
+    case participants
+    case search
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .summary:
+            return L("collection_tab.summary")
+        case .items:
+            return L("collection_tab.items")
+        case .map:
+            return L("collection_tab.map")
+        case .participants:
+            return L("collection_tab.participants")
+        case .search:
+            return L("collection_tab.search")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .summary:
+            return "rectangle.grid.2x2"
+        case .items:
+            return "bell.fill"
+        case .map:
+            return "map"
+        case .participants:
+            return "person.2.fill"
+        case .search:
+            return "magnifyingglass"
+        }
+    }
+}
+
 struct AppShellView: View {
     let repository: any CatalogRepository
 
@@ -45,27 +89,110 @@ struct AppShellView: View {
 
 private struct ModernAppShellView: View {
     let repository: any CatalogRepository
+    @State private var activeCollection: CollectionSummary?
+    @State private var suppressCollectionsAutoOpen = false
 
     var body: some View {
-        TabView {
-            Tab("Коллекции", systemImage: RootTab.collections.systemImage) {
-                CollectionsView(repository: repository)
-            }
+        Group {
+            if let activeCollection {
+                TabView {
+                    Tab(CollectionTab.summary.title, systemImage: CollectionTab.summary.systemImage) {
+                        NavigationStack {
+                            BellCatalogView(
+                                collection: activeCollection,
+                                repository: repository,
+                                collaborators: repository.fetchCollaborators(for: activeCollection.id),
+                                mode: .summary,
+                                onCloseCollection: closeActiveCollection
+                            )
+                        }
+                    }
 
-            Tab("Дома", systemImage: RootTab.homes.systemImage) {
-                HomeView(repository: repository)
-            }
+                    Tab(CollectionTab.items.title, systemImage: CollectionTab.items.systemImage) {
+                        NavigationStack {
+                            BellCatalogView(
+                                collection: activeCollection,
+                                repository: repository,
+                                collaborators: repository.fetchCollaborators(for: activeCollection.id),
+                                mode: .items,
+                                onCloseCollection: closeActiveCollection
+                            )
+                        }
+                    }
 
-            Tab(role: .search) {
-                SearchTabView()
-            }
+                    Tab(CollectionTab.map.title, systemImage: CollectionTab.map.systemImage) {
+                        NavigationStack {
+                            CollectionPlaceholderView(
+                                title: L("collection.placeholder.map.title"),
+                                systemImage: "map",
+                                description: L("collection.placeholder.map.description"),
+                                backgroundStyle: activeCollection.backgroundStyle,
+                                onClose: closeActiveCollection
+                            )
+                        }
+                    }
 
-            Tab("Настройки", systemImage: RootTab.settings.systemImage) {
-                SettingsView()
+                    Tab(CollectionTab.participants.title, systemImage: CollectionTab.participants.systemImage) {
+                        NavigationStack {
+                            CollectionPlaceholderView(
+                                title: L("collection.placeholder.participants.title"),
+                                systemImage: "person.2.fill",
+                                description: L("collection.placeholder.participants.description"),
+                                backgroundStyle: activeCollection.backgroundStyle,
+                                onClose: closeActiveCollection
+                            )
+                        }
+                    }
+
+                    Tab(role: .search) {
+                        NavigationStack {
+                            BellCatalogView(
+                                collection: activeCollection,
+                                repository: repository,
+                                collaborators: repository.fetchCollaborators(for: activeCollection.id),
+                                mode: .search,
+                                onCloseCollection: closeActiveCollection
+                            )
+                        }
+                    }
+                }
+            } else {
+                TabView {
+                    Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage) {
+                        CollectionsView(
+                            repository: repository,
+                            allowsAutoOpenSingleCollection: !suppressCollectionsAutoOpen
+                        ) { collection in
+                            openCollection(collection)
+                        }
+                    }
+
+                    Tab(RootTab.homes.title, systemImage: RootTab.homes.systemImage) {
+                        HomeView(repository: repository)
+                    }
+
+                    Tab(role: .search) {
+                        SearchTabView()
+                    }
+
+                    Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage) {
+                        SettingsView()
+                    }
+                }
             }
         }
         .modifier(ModernTabBarBehavior())
         .tabViewSearchActivation(.searchTabSelection)
+    }
+
+    private func openCollection(_ collection: CollectionSummary) {
+        suppressCollectionsAutoOpen = false
+        activeCollection = collection
+    }
+
+    private func closeActiveCollection() {
+        suppressCollectionsAutoOpen = true
+        activeCollection = nil
     }
 }
 private struct ModernTabBarBehavior: ViewModifier {
@@ -492,18 +619,25 @@ private struct HomeListCard: View {
 
 struct CollectionsView: View {
     let repository: any CatalogRepository
-    @State private var path: [AppDestination] = []
+    let allowsAutoOpenSingleCollection: Bool
+    let onOpenCollection: (CollectionSummary) -> Void
     @State private var collections: [CollectionSummary]
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
 
-    init(repository: any CatalogRepository) {
+    init(
+        repository: any CatalogRepository,
+        allowsAutoOpenSingleCollection: Bool = true,
+        onOpenCollection: @escaping (CollectionSummary) -> Void
+    ) {
         self.repository = repository
+        self.allowsAutoOpenSingleCollection = allowsAutoOpenSingleCollection
+        self.onOpenCollection = onOpenCollection
         _collections = State(initialValue: repository.fetchCollections())
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack {
             collectionsRoot
                 .background(
                     LinearGradient(
@@ -516,14 +650,6 @@ struct CollectionsView: View {
                     )
                     .ignoresSafeArea()
                 )
-                .navigationDestination(for: AppDestination.self) { destination in
-                    switch destination {
-                    case .collection(let collection):
-                        collectionDestination(for: collection)
-                    case .home:
-                        EmptyView()
-                    }
-                }
                 .onAppear {
                     collections = repository.fetchCollections()
                     autoOpenSingleCollectionIfNeeded()
@@ -553,7 +679,7 @@ struct CollectionsView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(collections) { collection in
                         Button {
-                            path.append(.collection(collection))
+                            onOpenCollection(collection)
                         } label: {
                             CollectionCard(collection: collection)
                         }
@@ -603,20 +729,6 @@ struct CollectionsView: View {
         .padding(.bottom, 80)
     }
 
-    @ViewBuilder
-    private func collectionDestination(for collection: CollectionSummary) -> some View {
-        switch collection.kind {
-        case .bells:
-            BellCatalogView(
-                collection: collection,
-                repository: repository,
-                collaborators: repository.fetchCollaborators(for: collection.id)
-            )
-        case .books:
-            BookLibraryPlaceholderView(collection: collection)
-        }
-    }
-
     private func addCollection(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -625,7 +737,7 @@ struct CollectionsView: View {
             id: UUID(),
             homeID: homeID,
             kind: .bells,
-            title: trimmedTitle.isEmpty ? "Колокольчики" : trimmedTitle,
+            title: trimmedTitle.isEmpty ? L("collection.editor.default_title") : trimmedTitle,
             notes: trimmedNotes,
             backgroundStyle: backgroundStyle
         )
@@ -633,19 +745,19 @@ struct CollectionsView: View {
         repository.saveCollection(collection)
         collections = repository.fetchCollections()
         if let createdCollection = collections.first(where: { $0.id == collection.id }) {
-            path = [.collection(createdCollection)]
+            onOpenCollection(createdCollection)
             didAutoOpenSingleCollection = true
         }
     }
 
     private func autoOpenSingleCollectionIfNeeded() {
+        guard allowsAutoOpenSingleCollection else { return }
         guard collections.count == 1 else { return }
-        guard path.isEmpty else { return }
         guard !didAutoOpenSingleCollection else { return }
         guard let collection = collections.first else { return }
 
         didAutoOpenSingleCollection = true
-        path = [.collection(collection)]
+        onOpenCollection(collection)
     }
 }
 
@@ -697,9 +809,9 @@ struct CollectionEditorView: View {
             Form {
                 Section("Type") {
                     HStack {
-                        Label("Колокольчики", systemImage: "bell.fill")
+                        Label(L("collection.editor.type_name_localized"), systemImage: "bell.fill")
                         Spacer()
-                        Text("Bells")
+                        Text(L("collection.editor.type_name_english"))
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -1074,6 +1186,42 @@ private struct StorageMapCard: View {
             return Color(red: 0.58, green: 0.44, blue: 0.18)
         default:
             return Color(red: 0.51, green: 0.31, blue: 0.14)
+        }
+    }
+}
+
+private struct CollectionPlaceholderView: View {
+    let title: String
+    let systemImage: String
+    let description: String
+    let backgroundStyle: CollectionBackgroundStyle
+    let onClose: () -> Void
+
+    var body: some View {
+        ContentUnavailableView(
+            title,
+            systemImage: systemImage,
+            description: Text(description)
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            LinearGradient(
+                colors: backgroundStyle.screenColors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        )
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    onClose()
+                } label: {
+                    Image(systemName: "chevron.backward")
+                }
+            }
         }
     }
 }

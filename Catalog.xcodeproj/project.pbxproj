@@ -25,6 +25,7 @@
 		C000000000000000000000B0 /* BookLibraryPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000010 /* BookLibraryPlaceholderView.swift */; };
 		C000000000000000000000B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Assets.xcassets */; };
 		C000000000000000000000B7 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000019 /* Localizable.stringsdict */; };
+		C000000000000000000000B8 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001C /* Localizable.strings */; };
 		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
 		C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000014 /* CloudKitConfiguration.swift */; };
 		C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000015 /* CloudKitCatalogRepository.swift */; };
@@ -59,6 +60,8 @@
 		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
 		C0000000000000000000001A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		C0000000000000000000001B /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ru; path = ru.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		C0000000000000000000001D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		C0000000000000000000001E /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -154,6 +157,7 @@
 			isa = PBXGroup;
 			children = (
 				C00000000000000000000011 /* Assets.xcassets */,
+				C0000000000000000000001C /* Localizable.strings */,
 				C00000000000000000000019 /* Localizable.stringsdict */,
 			);
 			path = Resources;
@@ -291,6 +295,15 @@
 			name = Localizable.stringsdict;
 			sourceTree = "<group>";
 		};
+		C0000000000000000000001C /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C0000000000000000000001D /* en */,
+				C0000000000000000000001E /* ru */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
 /* End PBXVariantGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -354,6 +367,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C000000000000000000000B1 /* Assets.xcassets in Resources */,
+				C000000000000000000000B8 /* Localizable.strings in Resources */,
 				C000000000000000000000B7 /* Localizable.stringsdict in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
