@@ -38,6 +38,7 @@ final class LocalCatalogRepository: CatalogRepository {
 
             return CollectionSummary(
                 id: collection.id,
+                homeID: collection.homeID,
                 kind: collection.kind,
                 name: collection.title,
                 subtitle: collection.notes,

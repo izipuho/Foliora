@@ -147,12 +147,15 @@ struct BellCatalogView: View {
         }
         .sheet(isPresented: $isPresentingEditCollection) {
             CollectionEditorView(
+                homes: repository.fetchHomes(),
                 screenTitle: "Edit Collection",
                 initialTitle: collection.name,
                 initialNotes: collection.subtitle,
+                initialHomeID: collection.homeID,
                 initialBackgroundStyle: collection.backgroundStyle,
+                allowsHomeSelection: false,
                 allowsDeletion: true
-            ) { title, notes, backgroundStyle in
+            ) { title, notes, _, backgroundStyle in
                 saveCollectionEdits(title: title, notes: notes, backgroundStyle: backgroundStyle)
             } onDelete: {
                 repository.deleteCollection(collectionID: collection.id)
@@ -317,8 +320,7 @@ struct BellEditorView: View {
     private let yearOptions = ["None"] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     private var availableLocations: [Location] {
-        guard let home = repository.fetchHomes().first else { return [] }
-        return repository.fetchLocations(in: home.id)
+        repository.fetchLocations(in: collection.homeID)
     }
 
     private var availablePlaces: [Place] {

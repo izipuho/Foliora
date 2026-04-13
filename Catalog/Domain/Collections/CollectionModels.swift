@@ -117,6 +117,20 @@ enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
             return Color(red: 0.10, green: 0.39, blue: 0.33)
         }
     }
+
+    func countLabel(for count: Int, locale: Locale = .autoupdatingCurrent) -> String {
+        let key: String
+
+        switch self {
+        case .bells:
+            key = "collection.count.bells"
+        case .books:
+            key = "collection.count.books"
+        }
+
+        let format = NSLocalizedString(key, comment: "Collection item count")
+        return String(format: format, locale: locale, count)
+    }
 }
 
 enum CollectionStatus: String, Hashable, Codable {
@@ -144,6 +158,7 @@ enum CollectionStatus: String, Hashable, Codable {
 
 struct CollectionSummary: Identifiable, Hashable, Codable {
     let id: UUID
+    let homeID: UUID
     let kind: CollectionKind
     let name: String
     let subtitle: String

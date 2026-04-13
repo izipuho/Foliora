@@ -17,10 +17,6 @@ struct CollectionCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(collection.kind.title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(collection.kind.tintColor)
-
                     Text(collection.name)
                         .font(.title3.bold())
 
@@ -41,30 +37,40 @@ struct CollectionCard: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            LinearGradient(
-                colors: collection.backgroundStyle.colors.map { $0.opacity(0.96) },
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 28, style: .continuous)
+            ZStack {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(.ultraThinMaterial)
+
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: collection.backgroundStyle.colors.map { $0.opacity(0.34) },
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color.white.opacity(0.10))
+            }
         )
         .shadow(color: Color.black.opacity(0.05), radius: 16, y: 8)
         .overlay(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+                .stroke(Color.white.opacity(0.42), lineWidth: 1)
         )
     }
 
     private var countChip: some View {
         Label {
-            Text("\(collection.itemCount) items")
+            Text(collection.kind.countLabel(for: collection.itemCount))
         } icon: {
             Image(systemName: "square.stack.3d.up")
         }
         .font(.footnote.weight(.medium))
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
-        .background(Color.black.opacity(0.04), in: Capsule())
+        .background(.thinMaterial, in: Capsule())
         .foregroundStyle(.secondary)
     }
 }

@@ -534,8 +534,11 @@ struct CollectionsView: View {
                 }
                 .navigationTitle("Коллекции")
                 .sheet(isPresented: $isPresentingAddCollectionEditor) {
-                    CollectionEditorView { title, notes, backgroundStyle in
-                        addCollection(title: title, notes: notes, backgroundStyle: backgroundStyle)
+                    CollectionEditorView(
+                        homes: repository.fetchHomes(),
+                        initialHomeID: repository.fetchHomes().first?.id
+                    ) { title, notes, homeID, backgroundStyle in
+                        addCollection(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
                     }
                 }
         }
@@ -614,14 +617,13 @@ struct CollectionsView: View {
         }
     }
 
-    private func addCollection(title: String, notes: String, backgroundStyle: CollectionBackgroundStyle) {
-        guard let home = repository.fetchHomes().first else { return }
+    private func addCollection(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let collection = Collection(
             id: UUID(),
-            homeID: home.id,
+            homeID: homeID,
             kind: .bells,
             title: trimmedTitle.isEmpty ? "Колокольчики" : trimmedTitle,
             notes: trimmedNotes,
@@ -648,37 +650,46 @@ struct CollectionsView: View {
 }
 
 struct CollectionEditorView: View {
-    let onSave: (String, String, CollectionBackgroundStyle) -> Void
+    let homes: [Home]
+    let allowsHomeSelection: Bool
+    let onSave: (String, String, UUID, CollectionBackgroundStyle) -> Void
     let onDelete: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
     @State private var notes = ""
+    @State private var selectedHomeID: UUID?
     @State private var backgroundStyle: CollectionBackgroundStyle = .amber
     @State private var isPresentingDeleteConfirmation = false
     private let screenTitle: String
     private let allowsDeletion: Bool
 
     init(
+        homes: [Home],
         screenTitle: String = "Add Collection",
         initialTitle: String = "",
         initialNotes: String = "",
+        initialHomeID: UUID? = nil,
         initialBackgroundStyle: CollectionBackgroundStyle = .amber,
+        allowsHomeSelection: Bool = true,
         allowsDeletion: Bool = false,
-        onSave: @escaping (String, String, CollectionBackgroundStyle) -> Void,
+        onSave: @escaping (String, String, UUID, CollectionBackgroundStyle) -> Void,
         onDelete: (() -> Void)? = nil
     ) {
+        self.homes = homes
+        self.allowsHomeSelection = allowsHomeSelection
         self.screenTitle = screenTitle
         self.allowsDeletion = allowsDeletion
         self.onSave = onSave
         self.onDelete = onDelete
         _title = State(initialValue: initialTitle)
         _notes = State(initialValue: initialNotes)
+        _selectedHomeID = State(initialValue: initialHomeID ?? homes.first?.id)
         _backgroundStyle = State(initialValue: initialBackgroundStyle)
     }
 
     private var canSave: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedHomeID != nil
     }
 
     var body: some View {
@@ -697,6 +708,26 @@ struct CollectionEditorView: View {
                     TextField("Name", text: $title)
                     TextField("Notes", text: $notes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
+                }
+
+                Section("Home") {
+                    if homes.isEmpty {
+                        Text("Create a home before adding a collection.")
+                            .foregroundStyle(.secondary)
+                    } else if allowsHomeSelection {
+                        Picker("Home", selection: $selectedHomeID) {
+                            ForEach(homes) { home in
+                                Text(home.name).tag(Optional(home.id))
+                            }
+                        }
+                    } else {
+                        HStack {
+                            Text("Home")
+                            Spacer()
+                            Text(homes.first(where: { $0.id == selectedHomeID })?.name ?? "Unknown")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
 
                 Section("Card Background") {
@@ -755,7 +786,8 @@ struct CollectionEditorView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") {
-                        onSave(title, notes, backgroundStyle)
+                        guard let selectedHomeID else { return }
+                        onSave(title, notes, selectedHomeID, backgroundStyle)
                         dismiss()
                     }
                     .disabled(!canSave)

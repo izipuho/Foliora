@@ -163,6 +163,7 @@ struct BellDetailView: View {
         repository.fetchCollections().first(where: { $0.id == bell.item.collectionID }) ??
             CollectionSummary(
                 id: bell.item.collectionID,
+                homeID: UUID(),
                 kind: .bells,
                 name: "Колокольчики",
                 subtitle: "",
