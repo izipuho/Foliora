@@ -1,6 +1,6 @@
 import Foundation
 
-struct MediaAsset: Identifiable, Hashable {
+struct MediaAsset: Identifiable, Hashable, Codable {
     let id: UUID
     let itemID: UUID
     var kind: MediaKind
@@ -8,7 +8,7 @@ struct MediaAsset: Identifiable, Hashable {
     var sortOrder: Int
 }
 
-enum MediaKind: String, CaseIterable, Hashable, Identifiable {
+enum MediaKind: String, CaseIterable, Hashable, Identifiable, Codable {
     case photo
     case document
     case model3D

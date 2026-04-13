@@ -1,6 +1,6 @@
 import Foundation
 
-struct BellDetails: Identifiable, Hashable {
+struct BellDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
     let originPlaceID: UUID?
     var material: BellMaterial
@@ -9,7 +9,7 @@ struct BellDetails: Identifiable, Hashable {
     var id: UUID { itemID }
 }
 
-enum BellMaterial: String, CaseIterable, Hashable, Identifiable {
+enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
     case brass
     case bronze
     case ceramic

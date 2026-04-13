@@ -123,6 +123,8 @@ struct HomeView: View {
                         let newHome = Home(id: UUID(), name: "New Home", notes: "")
                         homes.append(newHome)
                         locationsByHomeID[newHome.id] = []
+                        repository.saveHome(newHome)
+                        repository.saveLocations([], in: newHome.id)
                         path.append(.home(newHome.id))
                     } label: {
                         Image(systemName: "plus")
@@ -139,7 +141,12 @@ struct HomeView: View {
                             home: homeBinding,
                             locations: locationsBinding(for: homeID),
                             collectionCount: repository.fetchCollections().count,
+                            onSave: { updatedHome, updatedLocations in
+                                repository.saveHome(updatedHome)
+                                repository.saveLocations(updatedLocations, in: updatedHome.id)
+                            },
                             onDelete: {
+                                repository.deleteHome(homeID: homeID)
                                 homes.removeAll { $0.id == homeID }
                                 locationsByHomeID[homeID] = nil
                                 path.removeAll { destination in
@@ -175,6 +182,8 @@ struct HomeView: View {
                     let newHome = Home(id: UUID(), name: "New Home", notes: "")
                     homes.append(newHome)
                     locationsByHomeID[newHome.id] = []
+                    repository.saveHome(newHome)
+                    repository.saveLocations([], in: newHome.id)
                     path.append(.home(newHome.id))
                 } label: {
                     Label("Add Home", systemImage: "plus.circle.fill")
@@ -224,6 +233,7 @@ private struct HomeDetailView: View {
     @Binding var home: Home
     @Binding var locations: [Location]
     let collectionCount: Int
+    let onSave: (Home, [Location]) -> Void
     let onDelete: () -> Void
     @State private var isPresentingEditor = false
     @State private var isPresentingDeleteConfirmation = false
@@ -271,7 +281,10 @@ private struct HomeDetailView: View {
         .sheet(isPresented: $isPresentingEditor) {
             HomeEditorView(
                 home: $home,
-                locations: $locations
+                locations: $locations,
+                onSave: {
+                    onSave(home, locations)
+                }
             )
         }
         .confirmationDialog(
@@ -293,6 +306,7 @@ private struct HomeDetailView: View {
 private struct HomeEditorView: View {
     @Binding var home: Home
     @Binding var locations: [Location]
+    let onSave: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -365,6 +379,7 @@ private struct HomeEditorView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Done") {
+                        onSave()
                         dismiss()
                     }
                 }

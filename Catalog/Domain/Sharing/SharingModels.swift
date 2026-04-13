@@ -1,6 +1,6 @@
 import Foundation
 
-enum CollectionRole: String, Hashable {
+enum CollectionRole: String, Hashable, Codable {
     case owner
     case editor
     case contributor
@@ -33,7 +33,7 @@ enum CollectionRole: String, Hashable {
     }
 }
 
-enum MembershipStatus: String, Hashable, CaseIterable, Identifiable {
+enum MembershipStatus: String, Hashable, CaseIterable, Identifiable, Codable {
     case pending
     case active
     case revoked
@@ -41,7 +41,7 @@ enum MembershipStatus: String, Hashable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-struct Membership: Identifiable, Hashable {
+struct Membership: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
     let userID: String
@@ -49,7 +49,7 @@ struct Membership: Identifiable, Hashable {
     var status: MembershipStatus
 }
 
-struct Collaborator: Identifiable, Hashable {
+struct Collaborator: Identifiable, Hashable, Codable {
     let id: UUID
     let displayName: String
     let role: CollectionRole

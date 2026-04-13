@@ -106,6 +106,7 @@ struct BellCatalogView: View {
                 collection: collection,
                 repository: repository
             ) { newBell in
+                repository.saveBellRecord(newBell)
                 bellRecords.insert(newBell, at: 0)
             }
         }

@@ -1,13 +1,13 @@
 import Foundation
 import SwiftUI
 
-struct Home: Identifiable, Hashable {
+struct Home: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
     var notes: String
 }
 
-struct Location: Identifiable, Hashable {
+struct Location: Identifiable, Hashable, Codable {
     let id: UUID
     let homeID: UUID
     var parentLocationID: UUID?
@@ -16,7 +16,7 @@ struct Location: Identifiable, Hashable {
     var notes: String
 }
 
-struct Collection: Identifiable, Hashable {
+struct Collection: Identifiable, Hashable, Codable {
     let id: UUID
     let homeID: UUID
     var kind: CollectionKind
@@ -24,7 +24,7 @@ struct Collection: Identifiable, Hashable {
     var notes: String
 }
 
-enum LocationKind: String, CaseIterable, Hashable, Identifiable {
+enum LocationKind: String, CaseIterable, Hashable, Identifiable, Codable {
     case floor
     case room
     case cabinet
@@ -49,7 +49,7 @@ enum LocationKind: String, CaseIterable, Hashable, Identifiable {
     }
 }
 
-enum CollectionKind: String, CaseIterable, Hashable, Identifiable {
+enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
     case bells
     case books
 
@@ -83,7 +83,7 @@ enum CollectionKind: String, CaseIterable, Hashable, Identifiable {
     }
 }
 
-enum CollectionStatus: String, Hashable {
+enum CollectionStatus: String, Hashable, Codable {
     case active
     case planned
 
@@ -106,7 +106,7 @@ enum CollectionStatus: String, Hashable {
     }
 }
 
-struct CollectionSummary: Identifiable, Hashable {
+struct CollectionSummary: Identifiable, Hashable, Codable {
     let id: UUID
     let kind: CollectionKind
     let name: String

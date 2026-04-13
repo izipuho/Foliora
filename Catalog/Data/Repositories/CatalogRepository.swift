@@ -8,4 +8,8 @@ protocol CatalogRepository {
     func fetchCollections() -> [CollectionSummary]
     func fetchBellRecords(for collectionID: UUID) -> [BellRecord]
     func fetchCollaborators(for collectionID: UUID) -> [Collaborator]
+    func saveHome(_ home: Home)
+    func saveLocations(_ locations: [Location], in homeID: UUID)
+    func deleteHome(homeID: UUID)
+    func saveBellRecord(_ bell: BellRecord)
 }

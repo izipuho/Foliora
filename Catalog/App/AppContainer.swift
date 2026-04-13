@@ -7,8 +7,8 @@ struct AppContainer {
         self.repository = repository
     }
 
-    init(cloudKitConfiguration: CloudKitConfiguration = .default) {
-        self.repository = CloudKitCatalogRepository(configuration: cloudKitConfiguration)
+    init() {
+        self.repository = LocalCatalogRepository()
     }
 }
  

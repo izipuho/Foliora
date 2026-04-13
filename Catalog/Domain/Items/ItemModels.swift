@@ -1,6 +1,6 @@
 import Foundation
 
-struct Item: Identifiable, Hashable {
+struct Item: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
     let locationID: UUID?
@@ -11,7 +11,7 @@ struct Item: Identifiable, Hashable {
     var acquisitionMethod: AcquisitionMethod
 }
 
-enum ItemCondition: String, CaseIterable, Identifiable {
+enum ItemCondition: String, CaseIterable, Identifiable, Codable {
     case mint = "Mint"
     case good = "Good"
     case worn = "Worn"
@@ -21,7 +21,7 @@ enum ItemCondition: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum AcquisitionMethod: String, CaseIterable, Identifiable {
+enum AcquisitionMethod: String, CaseIterable, Identifiable, Codable {
     case bought = "Bought"
     case gifted = "Gifted"
     case inherited = "Inherited"

@@ -54,6 +54,22 @@ final class CloudKitCatalogRepository: CatalogRepository {
     func fetchCollaborators(for collectionID: UUID) -> [Collaborator] {
         fallbackRepository.fetchCollaborators(for: collectionID)
     }
+
+    func saveHome(_ home: Home) {
+        fallbackRepository.saveHome(home)
+    }
+
+    func saveLocations(_ locations: [Location], in homeID: UUID) {
+        fallbackRepository.saveLocations(locations, in: homeID)
+    }
+
+    func deleteHome(homeID: UUID) {
+        fallbackRepository.deleteHome(homeID: homeID)
+    }
+
+    func saveBellRecord(_ bell: BellRecord) {
+        fallbackRepository.saveBellRecord(bell)
+    }
 }
 
 enum CloudKitSchema {
