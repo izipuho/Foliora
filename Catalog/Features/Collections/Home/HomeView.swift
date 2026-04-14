@@ -1,5 +1,7 @@
 import SwiftUI
 import MapKit
+import PhotosUI
+import UIKit
 
 private func L(_ key: String) -> String {
     NSLocalizedString(key, comment: "")
@@ -849,8 +851,15 @@ private struct CollectionShellView: View {
     @State private var selectedTab: CollectionTab = .summary
     @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
+    @State private var isPresentingAddBellOptions = false
+    @State private var isPresentingPhotoPicker = false
+    @State private var isPresentingCamera = false
+    @State private var shouldPresentEditorAfterCamera = false
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
+    @State private var draftMediaAssets: [MediaAsset] = []
     @State private var isPresentingEditCollection = false
     @State private var selectedSort: BellSortOption = .title
+    private let mediaStore = LocalMediaFileStore.shared
 
     init(collection: CollectionSummary, repository: any CatalogRepository) {
         self.repository = repository
@@ -939,16 +948,55 @@ private struct CollectionShellView: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    isPresentingAddBell = true
+                    isPresentingAddBellOptions = true
                 } label: {
                     Image(systemName: "plus")
                 }
+                .confirmationDialog(L("editor.media.add"), isPresented: $isPresentingAddBellOptions, titleVisibility: .visible) {
+                    Button(L("editor.media.photo_library")) {
+                        isPresentingPhotoPicker = true
+                    }
+
+                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                        Button(L("editor.media.camera")) {
+                            isPresentingCamera = true
+                        }
+                    }
+
+                    Button(L("common.cancel"), role: .cancel) {}
+                }
             }
         }
-        .sheet(isPresented: $isPresentingAddBell) {
+        .photosPicker(
+            isPresented: $isPresentingPhotoPicker,
+            selection: $selectedPhotoItems,
+            maxSelectionCount: 1,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .fullScreenCover(isPresented: $isPresentingCamera) {
+            CollectionAddBellCameraPicker { image in
+                addCapturedPhotoAndPresentEditor(image)
+            }
+        }
+        .onChange(of: selectedPhotoItems) { _, newItems in
+            Task {
+                await addDraftPhotosAndPresentEditor(from: newItems)
+            }
+        }
+        .onChange(of: isPresentingCamera) { _, isPresented in
+            if !isPresented, shouldPresentEditorAfterCamera, !draftMediaAssets.isEmpty {
+                shouldPresentEditorAfterCamera = false
+                isPresentingAddBell = true
+            }
+        }
+        .sheet(isPresented: $isPresentingAddBell, onDismiss: {
+            draftMediaAssets = []
+        }) {
             BellEditorView(
                 collection: collection,
-                repository: repository
+                repository: repository,
+                initialMediaAssets: draftMediaAssets
             ) { newBell in
                 repository.saveBellRecord(newBell)
                 refreshContent()
@@ -1003,6 +1051,94 @@ private struct CollectionShellView: View {
             collection = refreshed
         }
         refreshID = UUID()
+    }
+
+    @MainActor
+    private func addDraftPhotosAndPresentEditor(from items: [PhotosPickerItem]) async {
+        guard !items.isEmpty else { return }
+
+        var newAssets: [MediaAsset] = []
+
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            let fileExtension = item.supportedContentTypes.first?.preferredFilenameExtension
+            guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: fileExtension) else { continue }
+
+            newAssets.append(
+                MediaAsset(
+                    id: UUID(),
+                    itemID: UUID(),
+                    kind: .photo,
+                    localIdentifier: identifier,
+                    displayName: nil,
+                    sortOrder: newAssets.count
+                )
+            )
+        }
+
+        selectedPhotoItems = []
+
+        guard !newAssets.isEmpty else { return }
+        draftMediaAssets = newAssets
+        isPresentingAddBell = true
+    }
+
+    private func addCapturedPhotoAndPresentEditor(_ image: UIImage) {
+        guard let data = image.jpegData(compressionQuality: 0.92) else { return }
+        guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: "jpg") else { return }
+
+        draftMediaAssets = [
+            MediaAsset(
+                id: UUID(),
+                itemID: UUID(),
+                kind: .photo,
+                localIdentifier: identifier,
+                displayName: nil,
+                sortOrder: 0
+            )
+        ]
+        shouldPresentEditorAfterCamera = true
+    }
+}
+
+private struct CollectionAddBellCameraPicker: UIViewControllerRepresentable {
+    let onImagePicked: (UIImage) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.allowsEditing = false
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        private let parent: CollectionAddBellCameraPicker
+
+        init(parent: CollectionAddBellCameraPicker) {
+            self.parent = parent
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.onImagePicked(image)
+            }
+            parent.dismiss()
+        }
     }
 }
 

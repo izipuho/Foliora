@@ -496,6 +496,7 @@ struct BellEditorView: View {
         collection: CollectionSummary,
         repository: any CatalogRepository,
         bell: BellRecord? = nil,
+        initialMediaAssets: [MediaAsset] = [],
         onSave: @escaping (BellRecord) -> Void
     ) {
         self.collection = collection
@@ -512,7 +513,7 @@ struct BellEditorView: View {
         _selectedOriginPlace = State(initialValue: bell?.originPlace)
         _selectedLocationID = State(initialValue: bell?.item.locationID)
         _tags = State(initialValue: bell?.tags ?? [])
-        _mediaAssets = State(initialValue: bell?.mediaAssets ?? [])
+        _mediaAssets = State(initialValue: bell?.mediaAssets ?? initialMediaAssets)
         _selectedAcquiredYearOption = State(initialValue: bell?.acquiredYear.map(String.init) ?? BL("editor.acquired_year.none"))
     }
 
