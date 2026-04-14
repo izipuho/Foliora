@@ -761,6 +761,7 @@ struct BellCardView: View {
                         .stroke(Color.black.opacity(0.04), lineWidth: 1)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
         } else {
             ZStack(alignment: .topLeading) {
@@ -788,6 +789,7 @@ struct BellCardView: View {
                     .stroke(Color.black.opacity(0.04), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
         }
     }
