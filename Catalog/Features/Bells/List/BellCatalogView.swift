@@ -118,6 +118,7 @@ struct BellCatalogView: View {
     @State private var searchText = ""
     @State private var selectedCondition: ItemCondition?
     @State private var layoutMode: BellGridLayoutMode = .compact
+    @State private var presentedBell: BellRecord?
 
     init(
         collection: CollectionSummary,
@@ -249,20 +250,15 @@ struct BellCatalogView: View {
                 } else {
                     LazyVGrid(columns: gridColumns, spacing: layoutMode.spacing) {
                         ForEach(bells) { bell in
-                            if let bellBinding = binding(for: bell.id) {
-                                NavigationLink {
-                                    BellDetailView(
-                                        bell: bellBinding,
-                                        repository: repository
-                                    )
-                                } label: {
-                                    BellCardView(
-                                        bell: bell,
-                                        layoutMode: layoutMode
-                                    )
-                                }
-                                .buttonStyle(.plain)
+                            Button {
+                                presentedBell = bell
+                            } label: {
+                                BellCardView(
+                                    bell: bell,
+                                    layoutMode: layoutMode
+                                )
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -281,6 +277,12 @@ struct BellCatalogView: View {
             )
             .ignoresSafeArea()
         )
+        .sheet(item: $presentedBell, onDismiss: {
+            bellRecords = repository.fetchBellRecords(for: collection.id)
+        }) { bell in
+            BellGridDetailSheetContainer(bell: bell, repository: repository)
+                .presentationDragIndicator(.visible)
+        }
     }
 
     private func emptyBellsGridState(title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
@@ -1040,5 +1042,17 @@ struct BellCatalogView_Previews: PreviewProvider {
                 mode: .summary
             )
         }
+    }
+}
+
+private struct BellGridDetailSheetContainer: View {
+    @State var bell: BellRecord
+    let repository: any CatalogRepository
+
+    var body: some View {
+        NavigationStack {
+            BellDetailView(bell: $bell, repository: repository)
+        }
+        .presentationBackground(.clear)
     }
 }

@@ -1688,5 +1688,6 @@ private struct BellDetailSheetContainer: View {
         NavigationStack {
             BellDetailView(bell: $bell, repository: repository)
         }
+        .presentationBackground(.clear)
     }
 }

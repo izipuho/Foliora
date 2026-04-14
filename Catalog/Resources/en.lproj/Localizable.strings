@@ -201,10 +201,16 @@
 "settings.storage.subtitle" = "Homes, locations, items, and media are already represented in the domain model.";
 
 "bell.detail.title" = "Card";
+"bell.detail.section.item" = "Item";
+"bell.detail.section.acquisition" = "How It Came to Me";
+"bell.detail.section.storage" = "Storage";
+"bell.detail.section.collection_info" = "Collection Info";
+"bell.detail.section.location" = "Origin & Storage";
 "bell.detail.section.attributes" = "Attributes";
 "bell.detail.section.media" = "Media";
 "bell.detail.section.tags" = "Tags";
 "bell.detail.section.notes" = "Notes";
+"bell.detail.origin" = "Origin";
 "bell.detail.material" = "Material";
 "bell.detail.condition" = "Condition";
 "bell.detail.acquisition" = "Acquisition";

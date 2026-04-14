@@ -201,10 +201,16 @@
 "settings.storage.subtitle" = "Дома, расположения, предметы и медиа уже представлены в доменной модели.";
 
 "bell.detail.title" = "Карточка";
+"bell.detail.section.item" = "О предмете";
+"bell.detail.section.acquisition" = "Как появился у меня";
+"bell.detail.section.storage" = "Хранение";
+"bell.detail.section.collection_info" = "Коллекционный учет";
+"bell.detail.section.location" = "Происхождение и хранение";
 "bell.detail.section.attributes" = "Характеристики";
 "bell.detail.section.media" = "Медиа";
 "bell.detail.section.tags" = "Теги";
 "bell.detail.section.notes" = "Заметки";
+"bell.detail.origin" = "Происхождение";
 "bell.detail.material" = "Материал";
 "bell.detail.condition" = "Состояние";
 "bell.detail.acquisition" = "Способ появления";
