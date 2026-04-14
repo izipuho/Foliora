@@ -54,14 +54,21 @@
 "common.unassigned" = "Не указано";
 
 "editor.main_info" = "Основное";
+"editor.description" = "Описание";
 "editor.media" = "Медиа";
+"editor.acquisition_details" = "Как появился у меня";
 "editor.attributes" = "Атрибуты";
 "editor.storage" = "Хранение";
+"editor.additional_details" = "Дополнительно";
 "editor.tags" = "Теги";
 "editor.title" = "Название";
 "editor.notes" = "Заметки";
+"editor.short_description" = "Краткое описание";
+"editor.note_history" = "Заметка или история";
 "editor.year" = "Год";
 "editor.year.none" = "Не указан";
+"editor.acquired_year" = "Год получения";
+"editor.acquired_year.none" = "Не указан";
 "editor.origin" = "Происхождение";
 "editor.condition" = "Состояние";
 "editor.acquisition" = "Получение";
@@ -204,6 +211,7 @@
 "bell.detail.storage" = "Хранится";
 "bell.detail.created_by" = "Добавил";
 "bell.detail.year" = "Год";
+"bell.detail.acquired_year" = "Год получения";
 "bell.detail.photos" = "Фото";
 "bell.detail.models" = "3D-модели";
 "bell.detail.documents" = "Документы";

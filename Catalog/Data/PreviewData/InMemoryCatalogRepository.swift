@@ -132,7 +132,7 @@ final class InMemoryCatalogRepository: CatalogRepository {
                     locationID: officeShelfID,
                     title: "Латунный колокольчик из Ярославля",
                     notes: "Куплен в музейной лавке. Звон высокий и очень чистый.",
-                    year: 2018,
+                    acquiredYear: 2018,
                     condition: .mint,
                     acquisitionMethod: .bought
                 ),
@@ -156,7 +156,7 @@ final class InMemoryCatalogRepository: CatalogRepository {
                     locationID: officeShelfID,
                     title: "Керамический колокольчик с лавандой",
                     notes: "Подарок от друзей. На ручке нарисована веточка лаванды.",
-                    year: 2022,
+                    acquiredYear: 2022,
                     condition: .good,
                     acquisitionMethod: .gifted
                 ),
@@ -180,7 +180,7 @@ final class InMemoryCatalogRepository: CatalogRepository {
                     locationID: officeShelfID,
                     title: "Старинный бронзовый колокольчик",
                     notes: "Есть небольшая трещина у язычка, но форма хорошо сохранилась.",
-                    year: 1960,
+                    acquiredYear: 1960,
                     condition: .needsRestoration,
                     acquisitionMethod: .bought
                 ),

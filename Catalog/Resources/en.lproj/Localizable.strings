@@ -54,14 +54,21 @@
 "common.unassigned" = "Unassigned";
 
 "editor.main_info" = "Main Info";
+"editor.description" = "Description";
 "editor.media" = "Media";
+"editor.acquisition_details" = "How It Came to Me";
 "editor.attributes" = "Attributes";
 "editor.storage" = "Storage";
+"editor.additional_details" = "Additional Details";
 "editor.tags" = "Tags";
 "editor.title" = "Title";
 "editor.notes" = "Notes";
+"editor.short_description" = "Short Description";
+"editor.note_history" = "Note or Story";
 "editor.year" = "Year";
 "editor.year.none" = "None";
+"editor.acquired_year" = "Year Added";
+"editor.acquired_year.none" = "None";
 "editor.origin" = "Origin";
 "editor.condition" = "Condition";
 "editor.acquisition" = "Acquisition";
@@ -204,6 +211,7 @@
 "bell.detail.storage" = "Stored In";
 "bell.detail.created_by" = "Added By";
 "bell.detail.year" = "Year";
+"bell.detail.acquired_year" = "Year Added";
 "bell.detail.photos" = "Photos";
 "bell.detail.models" = "3D Models";
 "bell.detail.documents" = "Documents";

@@ -417,7 +417,7 @@ struct BellCatalogView: View {
 
                 return leftOrigin.localizedCaseInsensitiveCompare(rightOrigin) == .orderedAscending
             case .yearNewest:
-                switch (lhs.year, rhs.year) {
+                switch (lhs.acquiredYear, rhs.acquiredYear) {
                 case let (left?, right?) where left != right:
                     return left > right
                 case (.some, nil):
@@ -428,7 +428,7 @@ struct BellCatalogView: View {
                     return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
                 }
             case .yearOldest:
-                switch (lhs.year, rhs.year) {
+                switch (lhs.acquiredYear, rhs.acquiredYear) {
                 case let (left?, right?) where left != right:
                     return left < right
                 case (.some, nil):
@@ -460,11 +460,11 @@ struct BellEditorView: View {
     @State private var tagInput = ""
     @State private var tags: [String] = []
     @State private var mediaAssets: [MediaAsset] = []
-    @State private var selectedYearOption = BL("editor.year.none")
+    @State private var selectedAcquiredYearOption = BL("editor.acquired_year.none")
     private let existingBellID: UUID?
     private let editorItemID: UUID
 
-    private let yearOptions = [BL("editor.year.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
+    private let acquiredYearOptions = [BL("editor.acquired_year.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     private var availableLocations: [Location] {
         repository.fetchLocations(in: collection.homeID)
@@ -513,24 +513,12 @@ struct BellEditorView: View {
         _selectedLocationID = State(initialValue: bell?.item.locationID)
         _tags = State(initialValue: bell?.tags ?? [])
         _mediaAssets = State(initialValue: bell?.mediaAssets ?? [])
-        _selectedYearOption = State(initialValue: bell?.year.map(String.init) ?? BL("editor.year.none"))
+        _selectedAcquiredYearOption = State(initialValue: bell?.acquiredYear.map(String.init) ?? BL("editor.acquired_year.none"))
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section(BL("editor.main_info")) {
-                    TextField(BL("editor.title"), text: $title)
-                    TextField(BL("editor.notes"), text: $notes, axis: .vertical)
-                        .lineLimit(3, reservesSpace: true)
-
-                    YearPickerField(
-                        title: BL("editor.year"),
-                        selection: $selectedYearOption,
-                        options: yearOptions
-                    )
-                }
-
                 Section(BL("editor.media")) {
                     MediaSection(
                         itemID: editorItemID,
@@ -538,20 +526,17 @@ struct BellEditorView: View {
                     )
                 }
 
-                Section(BL("editor.attributes")) {
-                    PlacePickerField(
-                        title: BL("editor.origin"),
-                        selectedLabel: selectedOriginLabel,
-                        places: availablePlaces,
-                        selectedPlace: $selectedOriginPlace
-                    )
+                Section(BL("editor.description")) {
+                    TextField(BL("editor.short_description"), text: $title)
+                    TextField(BL("editor.note_history"), text: $notes, axis: .vertical)
+                        .lineLimit(4, reservesSpace: true)
+                }
 
-                    EnumSelectionRow(
-                        title: BL("editor.condition"),
-                        selectedLabel: condition.displayName,
-                        options: ItemCondition.allCases,
-                        selection: $condition,
-                        optionTitle: \.displayName
+                Section(BL("editor.acquisition_details")) {
+                    YearPickerField(
+                        title: BL("editor.acquired_year"),
+                        selection: $selectedAcquiredYearOption,
+                        options: acquiredYearOptions
                     )
 
                     EnumSelectionRow(
@@ -559,6 +544,16 @@ struct BellEditorView: View {
                         selectedLabel: acquisitionMethod.displayName,
                         options: AcquisitionMethod.allCases,
                         selection: $acquisitionMethod,
+                        optionTitle: \.displayName
+                    )
+                }
+
+                Section(BL("editor.attributes")) {
+                    EnumSelectionRow(
+                        title: BL("editor.condition"),
+                        selectedLabel: condition.displayName,
+                        options: ItemCondition.allCases,
+                        selection: $condition,
                         optionTitle: \.displayName
                     )
 
@@ -581,6 +576,15 @@ struct BellEditorView: View {
                         selectedLabel: selectedLocationLabel,
                         locations: availableLocations,
                         selectedLocationID: $selectedLocationID
+                    )
+                }
+
+                Section(BL("editor.additional_details")) {
+                    PlacePickerField(
+                        title: BL("editor.origin"),
+                        selectedLabel: selectedOriginLabel,
+                        places: availablePlaces,
+                        selectedPlace: $selectedOriginPlace
                     )
                 }
 
@@ -642,7 +646,7 @@ struct BellEditorView: View {
                 locationID: selectedLocationID,
                 title: trimmedTitle,
                 notes: trimmedNotes,
-                year: selectedYearOption == BL("editor.year.none") ? nil : Int(selectedYearOption),
+                acquiredYear: selectedAcquiredYearOption == BL("editor.acquired_year.none") ? nil : Int(selectedAcquiredYearOption),
                 condition: condition,
                 acquisitionMethod: acquisitionMethod
             ),
@@ -737,9 +741,9 @@ struct BellCardView: View {
                             bright: hasCoverPhoto
                         )
 
-                        if let year = bell.year {
+                        if let acquiredYear = bell.acquiredYear {
                             CompactMetaChip(
-                                label: String(year),
+                                label: String(acquiredYear),
                                 systemImage: "calendar",
                                 bright: hasCoverPhoto
                             )
@@ -817,8 +821,8 @@ struct BellCardView: View {
                     .foregroundStyle(secondaryTextColor)
                     .lineLimit(1)
 
-                if let year = bell.year {
-                    Text(String(year))
+                if let acquiredYear = bell.acquiredYear {
+                    Text(String(acquiredYear))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(hasCoverPhoto ? .white.opacity(0.9) : .secondary)
                 }
@@ -840,9 +844,9 @@ struct BellCardView: View {
 
                 Spacer()
 
-                if let year = bell.year {
+                if let acquiredYear = bell.acquiredYear {
                     CompactMetaChip(
-                        label: String(year),
+                        label: String(acquiredYear),
                         systemImage: "calendar",
                         bright: hasCoverPhoto
                     )
@@ -875,9 +879,9 @@ struct BellCardView: View {
                         bright: hasCoverPhoto
                     )
 
-                    if let year = bell.year {
+                    if let acquiredYear = bell.acquiredYear {
                         CompactMetaChip(
-                            label: String(year),
+                            label: String(acquiredYear),
                             systemImage: "calendar",
                             bright: hasCoverPhoto
                         )

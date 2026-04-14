@@ -29,8 +29,8 @@ struct BellDetailView: View {
                     HStack(spacing: 8) {
                         DetailBadge(label: bell.materialDisplayName, systemImage: "shippingbox.fill", tint: inferredCollection.backgroundStyle.accentColor)
                         DetailBadge(label: bell.condition.displayName, systemImage: "checkmark.seal", tint: inferredCollection.backgroundStyle.accentColor)
-                        if let year = bell.year {
-                            DetailBadge(label: String(year), systemImage: "calendar", tint: inferredCollection.backgroundStyle.accentColor)
+                        if let acquiredYear = bell.acquiredYear {
+                            DetailBadge(label: String(acquiredYear), systemImage: "calendar", tint: inferredCollection.backgroundStyle.accentColor)
                         }
                     }
                 }
@@ -51,8 +51,8 @@ struct BellDetailView: View {
                     detailRow(DL("bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
                     detailRow(DL("bell.detail.storage"), value: bell.storageDisplayPath)
                     detailRow(DL("bell.detail.created_by"), value: bell.createdBy)
-                    if let year = bell.year {
-                        detailRow(DL("bell.detail.year"), value: String(year))
+                    if let acquiredYear = bell.acquiredYear {
+                        detailRow(DL("bell.detail.acquired_year"), value: String(acquiredYear))
                     }
                 }
 

@@ -59,7 +59,7 @@ struct BellRecord: Identifiable, Hashable {
 
     var id: UUID { item.id }
     var title: String { item.title }
-    var year: Int? { item.year }
+    var acquiredYear: Int? { item.acquiredYear }
     var condition: ItemCondition { item.condition }
     var acquisitionMethod: AcquisitionMethod { item.acquisitionMethod }
     var notes: String { item.notes }
