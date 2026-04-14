@@ -86,6 +86,7 @@
 
 "editor.origin.title" = "Origin";
 "editor.origin.search" = "Search places";
+"editor.origin.results" = "Search Results";
 "editor.origin.places" = "Places";
 
 "editor.location.title" = "Select Location";

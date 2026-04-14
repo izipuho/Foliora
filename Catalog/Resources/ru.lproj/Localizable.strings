@@ -86,6 +86,7 @@
 
 "editor.origin.title" = "Происхождение";
 "editor.origin.search" = "Поиск мест";
+"editor.origin.results" = "Результаты поиска";
 "editor.origin.places" = "Места";
 
 "editor.location.title" = "Выбор расположения";

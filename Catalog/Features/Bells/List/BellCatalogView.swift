@@ -449,7 +449,7 @@ struct BellEditorView: View {
     @State private var acquisitionMethod: AcquisitionMethod = .bought
     @State private var material: BellMaterial = .brass
     @State private var customMaterialName = ""
-    @State private var selectedOriginPlaceID: UUID?
+    @State private var selectedOriginPlace: Place?
     @State private var selectedLocationID: UUID?
     @State private var tagInput = ""
     @State private var tags: [String] = []
@@ -503,7 +503,7 @@ struct BellEditorView: View {
         _acquisitionMethod = State(initialValue: bell?.acquisitionMethod ?? .bought)
         _material = State(initialValue: bell?.details.material ?? .brass)
         _customMaterialName = State(initialValue: bell?.details.customMaterialName ?? "")
-        _selectedOriginPlaceID = State(initialValue: bell?.details.originPlaceID)
+        _selectedOriginPlace = State(initialValue: bell?.originPlace)
         _selectedLocationID = State(initialValue: bell?.item.locationID)
         _tags = State(initialValue: bell?.tags ?? [])
         _mediaAssets = State(initialValue: bell?.mediaAssets ?? [])
@@ -537,7 +537,7 @@ struct BellEditorView: View {
                         title: BL("editor.origin"),
                         selectedLabel: selectedOriginLabel,
                         places: availablePlaces,
-                        selectedPlaceID: $selectedOriginPlaceID
+                        selectedPlace: $selectedOriginPlace
                     )
 
                     EnumSelectionRow(
@@ -617,7 +617,7 @@ struct BellEditorView: View {
 
         let itemID = editorItemID
         let location = availableLocations.first(where: { $0.id == selectedLocationID })
-        let originPlace = availablePlaces.first(where: { $0.id == selectedOriginPlaceID })
+        let originPlace = selectedOriginPlace
         let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
             MediaAsset(
                 id: asset.id,
@@ -642,7 +642,7 @@ struct BellEditorView: View {
             ),
             details: BellDetails(
                 itemID: itemID,
-                originPlaceID: selectedOriginPlaceID,
+                originPlaceID: selectedOriginPlace?.id,
                 material: material,
                 customMaterialName: material == .other ? trimmedCustomMaterial : nil
             ),
@@ -659,13 +659,7 @@ struct BellEditorView: View {
     }
 
     private var selectedOriginLabel: String {
-        guard let selectedOriginPlaceID,
-              let place = availablePlaces.first(where: { $0.id == selectedOriginPlaceID })
-        else {
-            return BL("common.unassigned")
-        }
-
-        return place.displayName
+        selectedOriginPlace?.displayName ?? BL("common.unassigned")
     }
 
     private var selectedLocationLabel: String {

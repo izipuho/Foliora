@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UIKit
+@preconcurrency import MapKit
 
 private func EL(_ key: String) -> String {
     NSLocalizedString(key, comment: "")
@@ -91,7 +92,7 @@ struct PlacePickerField: View {
     let title: String
     let selectedLabel: String
     let places: [Place]
-    @Binding var selectedPlaceID: UUID?
+    @Binding var selectedPlace: Place?
 
     @State private var isPresentingPicker = false
 
@@ -115,7 +116,7 @@ struct PlacePickerField: View {
         .sheet(isPresented: $isPresentingPicker) {
             PlacePickerView(
                 places: places,
-                selectedPlaceID: $selectedPlaceID
+                selectedPlace: $selectedPlace
             )
         }
     }
@@ -591,9 +592,10 @@ private struct MediaAssetThumbnailView: View {
 
 struct PlacePickerView: View {
     let places: [Place]
-    @Binding var selectedPlaceID: UUID?
+    @Binding var selectedPlace: Place?
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @StateObject private var searchModel = PlaceSearchModel()
 
     private var filteredPlaces: [Place] {
         guard !searchText.isEmpty else { return places }
@@ -615,15 +617,49 @@ struct PlacePickerView: View {
             List {
                 Section {
                     Button {
-                        selectedPlaceID = nil
+                        selectedPlace = nil
                         dismiss()
                     } label: {
                         HStack {
                             Text(EL("common.unassigned"))
                             Spacer()
-                            if selectedPlaceID == nil {
+                            if selectedPlace == nil {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+
+                if !searchModel.results.isEmpty {
+                    Section(EL("editor.origin.results")) {
+                        ForEach(searchModel.results) { result in
+                            Button {
+                                PlaceSearchModel.resolve(result) { place in
+                                    guard let place else { return }
+                                        selectedPlace = place
+                                        dismiss()
+                                }
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(result.title)
+                                            .foregroundStyle(.primary)
+
+                                        if !result.subtitle.isEmpty {
+                                            Text(result.subtitle)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    if selectedPlace?.displayName == result.title {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(.tint)
+                                    }
+                                }
                             }
                         }
                     }
@@ -632,7 +668,7 @@ struct PlacePickerView: View {
                 Section(EL("editor.origin.places")) {
                     ForEach(filteredPlaces) { place in
                         Button {
-                            selectedPlaceID = place.id
+                            selectedPlace = place
                             dismiss()
                         } label: {
                             HStack {
@@ -647,7 +683,7 @@ struct PlacePickerView: View {
 
                                 Spacer()
 
-                                if selectedPlaceID == place.id {
+                                if selectedPlace?.id == place.id {
                                     Image(systemName: "checkmark")
                                         .foregroundStyle(.tint)
                                 }
@@ -659,11 +695,26 @@ struct PlacePickerView: View {
             .navigationTitle(EL("editor.origin.title"))
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: EL("editor.origin.search"))
+            .onChange(of: searchText) { _, newValue in
+                searchModel.updateQuery(newValue)
+            }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(EL("common.done")) {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
                     }
+                    .accessibilityLabel(EL("common.cancel"))
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .accessibilityLabel(EL("common.save"))
                 }
             }
         }
@@ -680,6 +731,117 @@ struct PlacePickerView: View {
             return value
         }
         .joined(separator: ", ")
+    }
+}
+
+private struct PlaceSearchSuggestion: Identifiable, Hashable {
+    let title: String
+    let subtitle: String
+    let completion: MKLocalSearchCompletion
+
+    var id: String { "\(title)|\(subtitle)" }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
+private final class PlaceSearchModel: NSObject, ObservableObject, MKLocalSearchCompleterDelegate, @unchecked Sendable {
+    @Published var results: [PlaceSearchSuggestion] = []
+
+    private let completer = MKLocalSearchCompleter()
+
+    override init() {
+        super.init()
+        completer.delegate = self
+        completer.resultTypes = [.address]
+    }
+
+    func updateQuery(_ query: String) {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            DispatchQueue.main.async {
+                self.results = []
+            }
+            completer.queryFragment = ""
+            return
+        }
+
+        completer.queryFragment = trimmed
+    }
+
+    func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        let mappedResults = completer.results.map {
+            PlaceSearchSuggestion(
+                title: $0.title,
+                subtitle: $0.subtitle,
+                completion: $0
+            )
+        }
+
+        DispatchQueue.main.async {
+            self.results = mappedResults
+        }
+    }
+
+    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: any Error) {
+        DispatchQueue.main.async {
+            self.results = []
+        }
+    }
+
+    static func resolve(_ suggestion: PlaceSearchSuggestion, completion: @escaping @MainActor (Place?) -> Void) {
+        let request = MKLocalSearch.Request(completion: suggestion.completion)
+        let search = MKLocalSearch(request: request)
+        search.start { response, _ in
+            guard let mapItem = response?.mapItems.first else {
+                DispatchQueue.main.async {
+                    completion(nil)
+                }
+                return
+            }
+
+            let address = mapItem.address
+            let representations = mapItem.addressRepresentations
+            let location = mapItem.location
+
+            let city = representations?.cityName
+            let countryName = representations?.regionName ?? suggestion.subtitle
+            let displayName: String = {
+                if let contextualCity = representations?.cityWithContext(.full), !contextualCity.isEmpty {
+                    return contextualCity
+                }
+
+                if let shortAddress = address?.shortAddress, !shortAddress.isEmpty {
+                    return shortAddress
+                }
+
+                if let fullAddress = address?.fullAddress, !fullAddress.isEmpty {
+                    return fullAddress
+                }
+
+                return suggestion.title
+            }()
+
+            let place = Place(
+                id: UUID(),
+                displayName: displayName,
+                countryCode: "",
+                countryName: countryName,
+                regionName: nil,
+                cityName: city,
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude
+            )
+
+            DispatchQueue.main.async {
+                completion(place)
+            }
+        }
     }
 }
 
