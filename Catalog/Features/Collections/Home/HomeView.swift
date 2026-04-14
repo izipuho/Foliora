@@ -1304,49 +1304,57 @@ private struct CollectionOriginMapView: View {
     let repository: any CatalogRepository
 
     @State private var position: MapCameraPosition = .automatic
-    @State private var selectedBellID: UUID?
+    @State private var selectedGroupID: String?
 
     private var bells: [BellRecord] {
         repository.fetchBellRecords(for: collection.id)
     }
 
-    private var mappedBells: [MappedBell] {
-        bells.compactMap { bell in
+    private var mappedGroups: [MapBellGroup] {
+        let grouped = Dictionary(grouping: bells.compactMap { bell -> (String, BellRecord, CLLocationCoordinate2D)? in
             guard let place = bell.originPlace,
                   let latitude = place.latitude,
                   let longitude = place.longitude else {
                 return nil
             }
 
-            return MappedBell(
-                id: bell.id,
-                title: bell.title,
-                subtitle: bell.placeDisplayName,
-                material: bell.materialDisplayName,
-                year: bell.year,
-                coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            let roundedLatitude = (latitude * 100).rounded() / 100
+            let roundedLongitude = (longitude * 100).rounded() / 100
+            let key = "\(roundedLatitude)|\(roundedLongitude)"
+            return (key, bell, CLLocationCoordinate2D(latitude: roundedLatitude, longitude: roundedLongitude))
+        }, by: \.0)
+
+        return grouped.compactMap { key, entries in
+            guard let coordinate = entries.first?.2 else { return nil }
+            let groupedBells = entries.map(\.1)
+            return MapBellGroup(
+                id: key,
+                coordinate: coordinate,
+                bells: groupedBells
             )
+        }
+        .sorted { lhs, rhs in
+            lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
         }
     }
 
-    private var selectedBell: MappedBell? {
-        mappedBells.first(where: { $0.id == selectedBellID })
+    private var selectedGroup: MapBellGroup? {
+        mappedGroups.first(where: { $0.id == selectedGroupID })
     }
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Map(position: $position, interactionModes: .all) {
-                ForEach(mappedBells) { bell in
-                    Annotation(bell.title, coordinate: bell.coordinate, anchor: .bottom) {
+                ForEach(mappedGroups) { group in
+                    Annotation("", coordinate: group.coordinate, anchor: .bottom) {
                         Button {
-                            selectedBellID = bell.id
+                            selectedGroupID = group.id
                         } label: {
-                            Image(systemName: selectedBellID == bell.id ? "mappin.circle.fill" : "mappin.circle")
-                                .font(.title2)
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(collection.backgroundStyle.accentColor)
-                                .padding(4)
-                                .background(.ultraThinMaterial, in: Circle())
+                            MapBellAnnotationView(
+                                bells: group.bells,
+                                isSelected: selectedGroupID == group.id,
+                                accentColor: collection.backgroundStyle.accentColor
+                            )
                         }
                         .buttonStyle(.plain)
                     }
@@ -1361,12 +1369,15 @@ private struct CollectionOriginMapView: View {
             .onAppear {
                 updateCameraIfNeeded()
             }
-            .onChange(of: mappedBells.map(\.id)) { _, _ in
+            .onChange(of: mappedGroups.map(\.id)) { _, _ in
                 updateCameraIfNeeded()
             }
             .overlay(alignment: .bottom) {
-                if let selectedBell {
-                    MapSelectionCard(bell: selectedBell)
+                if let selectedGroup {
+                    MapSelectionPanel(
+                        bells: selectedGroup.bells,
+                        repository: repository
+                    )
                         .padding(.horizontal, 16)
                         .padding(.bottom, 24)
                 }
@@ -1377,29 +1388,29 @@ private struct CollectionOriginMapView: View {
     }
 
     private func updateCameraIfNeeded() {
-        guard !mappedBells.isEmpty else {
+        guard !mappedGroups.isEmpty else {
             position = .region(
                 MKCoordinateRegion(
                     center: CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522),
                     span: MKCoordinateSpan(latitudeDelta: 80, longitudeDelta: 80)
                 )
             )
-            selectedBellID = nil
+            selectedGroupID = nil
             return
         }
 
-        if mappedBells.count == 1, let onlyBell = mappedBells.first {
+        if mappedGroups.count == 1, let onlyGroup = mappedGroups.first {
             position = .region(
                 MKCoordinateRegion(
-                    center: onlyBell.coordinate,
+                    center: onlyGroup.coordinate,
                     span: MKCoordinateSpan(latitudeDelta: 0.8, longitudeDelta: 0.8)
                 )
             )
-            selectedBellID = selectedBellID ?? onlyBell.id
+            selectedGroupID = selectedGroupID ?? onlyGroup.id
             return
         }
 
-        let coordinates = mappedBells.map(\.coordinate)
+        let coordinates = mappedGroups.map(\.coordinate)
         let latitudes = coordinates.map(\.latitude)
         let longitudes = coordinates.map(\.longitude)
 
@@ -1423,48 +1434,123 @@ private struct CollectionOriginMapView: View {
     }
 }
 
-private struct MappedBell: Identifiable {
-    let id: UUID
-    let title: String
-    let subtitle: String
-    let material: String
-    let year: Int?
+private struct MapBellGroup: Identifiable {
+    let id: String
     let coordinate: CLLocationCoordinate2D
+
+    let bells: [BellRecord]
+
+    var title: String {
+        bells.first?.title ?? ""
+    }
 }
 
-private struct MapSelectionCard: View {
-    let bell: MappedBell
+private struct MapBellAnnotationView: View {
+    let bells: [BellRecord]
+    let isSelected: Bool
+    let accentColor: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(bell.title)
-                .font(.headline)
-                .lineLimit(2)
+        ZStack(alignment: .topTrailing) {
+            annotationImage
+                .frame(width: isSelected ? 56 : 48, height: isSelected ? 56 : 48)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(isSelected ? accentColor : Color.white.opacity(0.9), lineWidth: isSelected ? 3 : 2)
+                )
+                .shadow(color: Color.black.opacity(0.18), radius: 10, y: 6)
 
-            Text(bell.subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-
-            HStack(spacing: 8) {
-                Label(bell.material, systemImage: "shippingbox.fill")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-
-                if let year = bell.year {
-                    Label(String(year), systemImage: "calendar")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
-                }
+            if bells.count > 1 {
+                Text("\(bells.count)")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(accentColor, in: Capsule())
+                    .offset(x: 6, y: -6)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.black.opacity(0.05), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 16, y: 8)
+    }
+
+    @ViewBuilder
+    private var annotationImage: some View {
+        if let bell = bells.first, let coverAsset = coverPhotoAsset(for: bell) {
+            BellCardCoverBackground(asset: coverAsset)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.regularMaterial)
+                Image(systemName: "bell.fill")
+                    .foregroundStyle(accentColor)
+            }
+        }
+    }
+
+    private func coverPhotoAsset(for bell: BellRecord) -> MediaAsset? {
+        bell.mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .first
+    }
+}
+
+private struct MapSelectionPanel: View {
+    let bells: [BellRecord]
+    let repository: any CatalogRepository
+
+    @State private var presentedBell: BellRecord?
+
+    var body: some View {
+        GeometryReader { proxy in
+            let availableWidth = proxy.size.width
+
+            Group {
+                if bells.count == 1, let bell = bells.first {
+                    Button {
+                        presentedBell = bell
+                    } label: {
+                        BellCardView(bell: bell, layoutMode: .wide)
+                            .frame(width: BellGridLayoutMode.wide.preferredCardWidth(for: availableWidth))
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: BellGridLayoutMode.mini.spacing) {
+                            ForEach(bells) { bell in
+                                Button {
+                                    presentedBell = bell
+                                } label: {
+                                    BellCardView(bell: bell, layoutMode: .mini)
+                                        .frame(
+                                            width: BellGridLayoutMode.mini.preferredCardWidth(for: availableWidth),
+                                            height: BellGridLayoutMode.mini.cardHeight
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .frame(height: BellGridLayoutMode.mini.stripHeight)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .frame(height: bells.count == 1 ? BellGridLayoutMode.wide.cardHeight : BellGridLayoutMode.mini.stripHeight)
+        .sheet(item: $presentedBell) { bell in
+            BellDetailSheetContainer(bell: bell, repository: repository)
+                .presentationDragIndicator(.visible)
+        }
+    }
+}
+
+private struct BellDetailSheetContainer: View {
+    @State var bell: BellRecord
+    let repository: any CatalogRepository
+
+    var body: some View {
+        NavigationStack {
+            BellDetailView(bell: $bell, repository: repository)
+        }
     }
 }

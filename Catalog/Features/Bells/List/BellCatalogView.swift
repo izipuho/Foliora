@@ -95,6 +95,16 @@ enum BellGridLayoutMode: Int, CaseIterable {
             return 18
         }
     }
+
+    func preferredCardWidth(for availableWidth: CGFloat) -> CGFloat {
+        let totalSpacing = spacing * CGFloat(max(columnCount - 1, 0))
+        let usableWidth = max(availableWidth - totalSpacing, 0)
+        return floor(usableWidth / CGFloat(columnCount))
+    }
+
+    var stripHeight: CGFloat {
+        cardHeight + spacing
+    }
 }
 
 struct BellCatalogView: View {
@@ -246,14 +256,10 @@ struct BellCatalogView: View {
                                         repository: repository
                                     )
                                 } label: {
-                                    if layoutMode == .wide {
-                                        WideBellCardView(bell: bell)
-                                    } else {
-                                        BellCardView(
-                                            bell: bell,
-                                            layoutMode: layoutMode
-                                        )
-                                    }
+                                    BellCardView(
+                                        bell: bell,
+                                        layoutMode: layoutMode
+                                    )
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -684,37 +690,99 @@ struct BellEditorView: View {
     }
 }
 
-private struct BellCardView: View {
+struct BellCardView: View {
     let bell: BellRecord
     let layoutMode: BellGridLayoutMode
 
+    @ViewBuilder
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            cardBackground
+        if layoutMode == .wide {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.clear)
+                .overlay {
+                    cardBackground
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                }
+                .overlay {
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(hasCoverPhoto ? 0.34 : 0),
+                            Color.black.opacity(hasCoverPhoto ? 0.10 : 0),
+                            Color.black.opacity(hasCoverPhoto ? 0.08 : 0)
+                        ],
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                }
+                .overlay(alignment: .topLeading) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(bell.title)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(hasCoverPhoto ? .white : .primary)
+                            .lineLimit(2)
 
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(hasCoverPhoto ? 0.34 : 0),
-                    Color.black.opacity(hasCoverPhoto ? 0.10 : 0),
-                    Color.black.opacity(hasCoverPhoto ? 0.08 : 0)
-                ],
-                startPoint: .bottom,
-                endPoint: .top
+                        Text(bell.placeDisplayName)
+                            .font(.caption)
+                            .foregroundStyle(hasCoverPhoto ? .white.opacity(0.86) : .secondary)
+                            .lineLimit(2)
+                    }
+                    .padding(layoutMode.cardPadding)
+                }
+                .overlay(alignment: .bottomLeading) {
+                    HStack(spacing: 8) {
+                        CompactMetaChip(
+                            label: bell.materialDisplayName,
+                            systemImage: "shippingbox.fill",
+                            bright: hasCoverPhoto
+                        )
+
+                        if let year = bell.year {
+                            CompactMetaChip(
+                                label: String(year),
+                                systemImage: "calendar",
+                                bright: hasCoverPhoto
+                            )
+                        }
+                    }
+                    .padding(layoutMode.cardPadding)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: layoutMode.cardHeight)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(Color.black.opacity(0.04), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
+        } else {
+            ZStack(alignment: .topLeading) {
+                cardBackground
+
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(hasCoverPhoto ? 0.34 : 0),
+                        Color.black.opacity(hasCoverPhoto ? 0.10 : 0),
+                        Color.black.opacity(hasCoverPhoto ? 0.08 : 0)
+                    ],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+                cardContent
+                    .padding(layoutMode.cardPadding)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: layoutMode.cardHeight)
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(Color.black.opacity(0.04), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-
-            cardContent
-                .padding(layoutMode.cardPadding)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: layoutMode.cardHeight)
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.black.opacity(0.04), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
     }
 
     @ViewBuilder
@@ -736,7 +804,7 @@ private struct BellCardView: View {
             }
 
         case .mini:
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Spacer()
 
                 Text(bell.title)
@@ -744,11 +812,15 @@ private struct BellCardView: View {
                     .foregroundStyle(primaryTextColor)
                     .lineLimit(2)
 
-                if !hasCoverPhoto {
-                    Text(bell.placeDisplayName)
-                        .font(.caption2)
-                        .foregroundStyle(secondaryTextColor)
-                        .lineLimit(1)
+                Text(bell.placeDisplayName)
+                    .font(.caption2)
+                    .foregroundStyle(secondaryTextColor)
+                    .lineLimit(1)
+
+                if let year = bell.year {
+                    Text(String(year))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(hasCoverPhoto ? .white.opacity(0.9) : .secondary)
                 }
             }
 
@@ -851,101 +923,7 @@ private struct BellCardView: View {
     }
 }
 
-private struct WideBellCardView: View {
-    let bell: BellRecord
-    private let mediaStore = LocalMediaFileStore.shared
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .fill(Color.clear)
-            .overlay {
-                cardBackground
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            }
-            .overlay {
-                LinearGradient(
-                    colors: [
-                        Color.black.opacity(hasCoverPhoto ? 0.34 : 0),
-                        Color.black.opacity(hasCoverPhoto ? 0.10 : 0),
-                        Color.black.opacity(hasCoverPhoto ? 0.08 : 0)
-                    ],
-                    startPoint: .bottom,
-                    endPoint: .top
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            }
-            .overlay(alignment: .topLeading) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(bell.title)
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(hasCoverPhoto ? .white : .primary)
-                        .lineLimit(2)
-
-                    Text(bell.placeDisplayName)
-                        .font(.caption)
-                        .foregroundStyle(hasCoverPhoto ? .white.opacity(0.86) : .secondary)
-                        .lineLimit(2)
-                }
-                .padding(18)
-            }
-            .overlay(alignment: .bottomLeading) {
-                HStack(spacing: 8) {
-                    CompactMetaChip(
-                        label: bell.materialDisplayName,
-                        systemImage: "shippingbox.fill",
-                        bright: hasCoverPhoto
-                    )
-
-                    if let year = bell.year {
-                        CompactMetaChip(
-                            label: String(year),
-                            systemImage: "calendar",
-                            bright: hasCoverPhoto
-                        )
-                    }
-                }
-                .padding(18)
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 170)
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.black.opacity(0.04), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
-    }
-
-    @ViewBuilder
-    private var cardBackground: some View {
-        if let coverPhotoAsset {
-            BellCardCoverBackground(asset: coverPhotoAsset)
-        } else {
-            LinearGradient(
-                colors: [
-                    Color.white.opacity(0.88),
-                    Color.white.opacity(0.72)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-    }
-
-    private var coverPhotoAsset: MediaAsset? {
-        bell.mediaAssets
-            .filter({ $0.kind == .photo })
-            .sorted(by: { $0.sortOrder < $1.sortOrder })
-            .first
-    }
-
-    private var hasCoverPhoto: Bool {
-        guard let asset = coverPhotoAsset else { return false }
-        return mediaStore.fileURL(for: asset.localIdentifier) != nil
-    }
-}
-
-private struct BellCardCoverBackground: View {
+struct BellCardCoverBackground: View {
     let asset: MediaAsset
     private let mediaStore = LocalMediaFileStore.shared
     @State private var image: UIImage?
