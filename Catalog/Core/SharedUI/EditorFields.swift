@@ -637,8 +637,8 @@ struct PlacePickerView: View {
                             Button {
                                 PlaceSearchModel.resolve(result) { place in
                                     guard let place else { return }
-                                        selectedPlace = place
-                                        dismiss()
+                                    selectedPlace = place
+                                    dismiss()
                                 }
                             } label: {
                                 HStack {
@@ -646,8 +646,8 @@ struct PlacePickerView: View {
                                         Text(result.title)
                                             .foregroundStyle(.primary)
 
-                                        if !result.subtitle.isEmpty {
-                                            Text(result.subtitle)
+                                        if !result.displaySubtitle.isEmpty {
+                                            Text(result.displaySubtitle)
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -737,6 +737,7 @@ struct PlacePickerView: View {
 private struct PlaceSearchSuggestion: Identifiable, Hashable {
     let title: String
     let subtitle: String
+    let displaySubtitle: String
     let completion: MKLocalSearchCompletion
 
     var id: String { "\(title)|\(subtitle)" }
@@ -779,6 +780,7 @@ private final class PlaceSearchModel: NSObject, ObservableObject, MKLocalSearchC
             PlaceSearchSuggestion(
                 title: $0.title,
                 subtitle: $0.subtitle,
+                displaySubtitle: $0.subtitle,
                 completion: $0
             )
         }
@@ -811,17 +813,19 @@ private final class PlaceSearchModel: NSObject, ObservableObject, MKLocalSearchC
 
             let city = representations?.cityName
             let countryName = representations?.regionName ?? suggestion.subtitle
+            let displaySubtitle = representations?.cityWithContext(.full) ?? suggestion.subtitle
             let displayName: String = {
-                if let contextualCity = representations?.cityWithContext(.full), !contextualCity.isEmpty {
-                    return contextualCity
+                let normalizedParts: [String] = [city, countryName].compactMap { value in
+                    guard let value, !value.isEmpty else { return nil }
+                    return value
+                }
+
+                if !normalizedParts.isEmpty {
+                    return normalizedParts.joined(separator: ", ")
                 }
 
                 if let shortAddress = address?.shortAddress, !shortAddress.isEmpty {
                     return shortAddress
-                }
-
-                if let fullAddress = address?.fullAddress, !fullAddress.isEmpty {
-                    return fullAddress
                 }
 
                 return suggestion.title
@@ -832,7 +836,7 @@ private final class PlaceSearchModel: NSObject, ObservableObject, MKLocalSearchC
                 displayName: displayName,
                 countryCode: "",
                 countryName: countryName,
-                regionName: nil,
+                regionName: displaySubtitle,
                 cityName: city,
                 latitude: location.coordinate.latitude,
                 longitude: location.coordinate.longitude
