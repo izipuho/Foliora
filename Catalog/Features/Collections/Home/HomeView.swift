@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 
 private func L(_ key: String) -> String {
     NSLocalizedString(key, comment: "")
@@ -881,12 +882,11 @@ private struct CollectionShellView: View {
             }
 
             Tab(CollectionTab.map.title, systemImage: CollectionTab.map.systemImage, value: .map) {
-                CollectionPlaceholderView(
-                    title: L("collection.placeholder.map.title"),
-                    systemImage: "map",
-                    description: L("collection.placeholder.map.description"),
-                    backgroundStyle: collection.backgroundStyle
+                CollectionOriginMapView(
+                    collection: collection,
+                    repository: repository
                 )
+                .id("map-\(refreshID.uuidString)")
             }
 
             Tab(CollectionTab.participants.title, systemImage: CollectionTab.participants.systemImage, value: .participants) {
@@ -1296,5 +1296,175 @@ private struct CollectionPlaceholderView: View {
         )
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct CollectionOriginMapView: View {
+    let collection: CollectionSummary
+    let repository: any CatalogRepository
+
+    @State private var position: MapCameraPosition = .automatic
+    @State private var selectedBellID: UUID?
+
+    private var bells: [BellRecord] {
+        repository.fetchBellRecords(for: collection.id)
+    }
+
+    private var mappedBells: [MappedBell] {
+        bells.compactMap { bell in
+            guard let place = bell.originPlace,
+                  let latitude = place.latitude,
+                  let longitude = place.longitude else {
+                return nil
+            }
+
+            return MappedBell(
+                id: bell.id,
+                title: bell.title,
+                subtitle: bell.placeDisplayName,
+                material: bell.materialDisplayName,
+                year: bell.year,
+                coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            )
+        }
+    }
+
+    private var selectedBell: MappedBell? {
+        mappedBells.first(where: { $0.id == selectedBellID })
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Map(position: $position, interactionModes: .all) {
+                ForEach(mappedBells) { bell in
+                    Annotation(bell.title, coordinate: bell.coordinate, anchor: .bottom) {
+                        Button {
+                            selectedBellID = bell.id
+                        } label: {
+                            Image(systemName: selectedBellID == bell.id ? "mappin.circle.fill" : "mappin.circle")
+                                .font(.title2)
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(collection.backgroundStyle.accentColor)
+                                .padding(4)
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .mapStyle(.standard(elevation: .realistic))
+            .mapControls {
+                MapCompass()
+                MapScaleView()
+            }
+            .ignoresSafeArea()
+            .onAppear {
+                updateCameraIfNeeded()
+            }
+            .onChange(of: mappedBells.map(\.id)) { _, _ in
+                updateCameraIfNeeded()
+            }
+            .overlay(alignment: .bottom) {
+                if let selectedBell {
+                    MapSelectionCard(bell: selectedBell)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 24)
+                }
+            }
+        }
+        .navigationTitle(L("collection.placeholder.map.title"))
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func updateCameraIfNeeded() {
+        guard !mappedBells.isEmpty else {
+            position = .region(
+                MKCoordinateRegion(
+                    center: CLLocationCoordinate2D(latitude: 48.8566, longitude: 2.3522),
+                    span: MKCoordinateSpan(latitudeDelta: 80, longitudeDelta: 80)
+                )
+            )
+            selectedBellID = nil
+            return
+        }
+
+        if mappedBells.count == 1, let onlyBell = mappedBells.first {
+            position = .region(
+                MKCoordinateRegion(
+                    center: onlyBell.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.8, longitudeDelta: 0.8)
+                )
+            )
+            selectedBellID = selectedBellID ?? onlyBell.id
+            return
+        }
+
+        let coordinates = mappedBells.map(\.coordinate)
+        let latitudes = coordinates.map(\.latitude)
+        let longitudes = coordinates.map(\.longitude)
+
+        guard let minLatitude = latitudes.min(),
+              let maxLatitude = latitudes.max(),
+              let minLongitude = longitudes.min(),
+              let maxLongitude = longitudes.max() else {
+            return
+        }
+
+        let center = CLLocationCoordinate2D(
+            latitude: (minLatitude + maxLatitude) / 2,
+            longitude: (minLongitude + maxLongitude) / 2
+        )
+        let span = MKCoordinateSpan(
+            latitudeDelta: max((maxLatitude - minLatitude) * 1.6, 8),
+            longitudeDelta: max((maxLongitude - minLongitude) * 1.6, 8)
+        )
+
+        position = .region(MKCoordinateRegion(center: center, span: span))
+    }
+}
+
+private struct MappedBell: Identifiable {
+    let id: UUID
+    let title: String
+    let subtitle: String
+    let material: String
+    let year: Int?
+    let coordinate: CLLocationCoordinate2D
+}
+
+private struct MapSelectionCard: View {
+    let bell: MappedBell
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(bell.title)
+                .font(.headline)
+                .lineLimit(2)
+
+            Text(bell.subtitle)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            HStack(spacing: 8) {
+                Label(bell.material, systemImage: "shippingbox.fill")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+
+                if let year = bell.year {
+                    Label(String(year), systemImage: "calendar")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.08), radius: 16, y: 8)
     }
 }
