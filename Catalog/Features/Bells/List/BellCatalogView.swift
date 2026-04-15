@@ -12,53 +12,27 @@ private enum SummaryCountKind {
     case cities
     case members
 
-    func title(for count: Int) -> String {
-        if Locale.preferredLanguages.first?.hasPrefix("ru") == true {
-            switch self {
-            case .bells:
-                return russianPlural(count, one: "колокольчик", few: "колокольчика", many: "колокольчиков")
-            case .materials:
-                return russianPlural(count, one: "материал", few: "материала", many: "материалов")
-            case .countries:
-                return russianPlural(count, one: "страна", few: "страны", many: "стран")
-            case .cities:
-                return russianPlural(count, one: "город", few: "города", many: "городов")
-            case .members:
-                return russianPlural(count, one: "участник", few: "участника", many: "участников")
-            }
-        }
-
+    var localizationKey: String {
         switch self {
         case .bells:
-            return count == 1 ? "bell" : "bells"
+            return "collection.count.bells"
         case .materials:
-            return count == 1 ? "material" : "materials"
+            return "collection.count.materials"
         case .countries:
-            return count == 1 ? "country" : "countries"
+            return "collection.count.countries"
         case .cities:
-            return count == 1 ? "city" : "cities"
+            return "collection.count.cities"
         case .members:
-            return count == 1 ? "member" : "members"
+            return "collection.count.members"
         }
     }
 }
 
-private func russianPlural(_ count: Int, one: String, few: String, many: String) -> String {
-    let remainder100 = count % 100
-    let remainder10 = count % 10
-
-    if remainder100 >= 11 && remainder100 <= 14 {
-        return many
-    }
-
-    switch remainder10 {
-    case 1:
-        return one
-    case 2...4:
-        return few
-    default:
-        return many
-    }
+private func localizedCount(_ count: Int, kind: SummaryCountKind) -> String {
+    String.localizedStringWithFormat(
+        NSLocalizedString(kind.localizationKey, comment: ""),
+        count
+    )
 }
 
 enum BellSortOption: String, CaseIterable, Hashable {
@@ -140,67 +114,38 @@ enum BellGridLayoutMode: Int, CaseIterable {
     case wide
     case showcase
 
-    var columnCount: Int {
-        switch self {
-        case .covers:
-            return 4
-        case .mini:
-            return 3
-        case .compact:
-            return 2
-        case .wide, .showcase:
-            return 1
-        }
+    struct Metrics {
+        let columnCount: Int
+        let cardHeight: CGFloat
+        let cardPadding: CGFloat
+        let spacing: CGFloat
     }
 
-    var cardHeight: CGFloat {
+    static let screenHorizontalPadding: CGFloat = 20
+
+    var metrics: Metrics {
         switch self {
         case .covers:
-            return 92
+            return Metrics(columnCount: 4, cardHeight: 92, cardPadding: 0, spacing: 8)
         case .mini:
-            return 144
+            return Metrics(columnCount: 3, cardHeight: 144, cardPadding: 10, spacing: 10)
         case .compact:
-            return 220
+            return Metrics(columnCount: 2, cardHeight: 220, cardPadding: 14, spacing: 12)
         case .wide:
-            return 170
+            return Metrics(columnCount: 1, cardHeight: 170, cardPadding: 18, spacing: 14)
         case .showcase:
-            return 460
+            return Metrics(columnCount: 1, cardHeight: 460, cardPadding: 22, spacing: 18)
         }
     }
 
-    var cardPadding: CGFloat {
-        switch self {
-        case .covers:
-            return 0
-        case .mini:
-            return 10
-        case .compact:
-            return 14
-        case .wide:
-            return 18
-        case .showcase:
-            return 22
-        }
-    }
+    var columnCount: Int { metrics.columnCount }
+    var cardHeight: CGFloat { metrics.cardHeight }
+    var cardPadding: CGFloat { metrics.cardPadding }
+    var spacing: CGFloat { metrics.spacing }
 
-    var spacing: CGFloat {
-        switch self {
-        case .covers:
-            return 8
-        case .mini:
-            return 10
-        case .compact:
-            return 12
-        case .wide:
-            return 14
-        case .showcase:
-            return 18
-        }
-    }
-
-    func preferredCardWidth(for availableWidth: CGFloat) -> CGFloat {
+    func cardWidth(forScreenWidth screenWidth: CGFloat) -> CGFloat {
         let totalSpacing = spacing * CGFloat(max(columnCount - 1, 0))
-        let usableWidth = max(availableWidth - totalSpacing, 0)
+        let usableWidth = max(screenWidth - (BellGridLayoutMode.screenHorizontalPadding * 2) - totalSpacing, 0)
         return floor(usableWidth / CGFloat(columnCount))
     }
 
@@ -306,6 +251,10 @@ struct BellCatalogView: View {
         )
     }
 
+    private var recentBells: [BellRecord] {
+        Array(bellRecords.prefix(5))
+    }
+
     private var topCountries: [(String, Int)] {
         Dictionary(grouping: bells.map(\.countryName).filter { !$0.isEmpty }, by: { $0 })
             .map { ($0.key, $0.value.count) }
@@ -342,33 +291,37 @@ struct BellCatalogView: View {
             }
     }
 
-    private var gridColumns: [GridItem] {
+    private func gridColumns(forScreenWidth screenWidth: CGFloat) -> [GridItem] {
         Array(
-            repeating: GridItem(.flexible(), spacing: layoutMode.spacing, alignment: .top),
+            repeating: GridItem(.fixed(layoutMode.cardWidth(forScreenWidth: screenWidth)), spacing: layoutMode.spacing, alignment: .top),
             count: layoutMode.columnCount
         )
     }
 
     @ViewBuilder
     var body: some View {
-        Group {
-            switch mode {
-            case .summary:
-                summaryContent
-            case .items:
-                bellGridContent(
-                    bells: filteredItemsBells,
-                    showsSearchControls: false,
-                    emptyTitle: LocalizedStringKey(BL("bell_catalog.empty.title")),
-                    emptyDescription: LocalizedStringKey(BL("bell_catalog.empty.description"))
-                )
-            case .search:
-                bellGridContent(
-                    bells: filteredBells,
-                    showsSearchControls: true,
-                    emptyTitle: LocalizedStringKey(BL("bell_catalog.search.empty.title")),
-                    emptyDescription: LocalizedStringKey(BL("bell_catalog.search.empty.description"))
-                )
+        GeometryReader { proxy in
+            Group {
+                switch mode {
+                case .summary:
+                    summaryContent(screenWidth: proxy.size.width)
+                case .items:
+                    bellGridContent(
+                        bells: filteredItemsBells,
+                        showsSearchControls: false,
+                        emptyTitle: LocalizedStringKey(BL("bell_catalog.empty.title")),
+                        emptyDescription: LocalizedStringKey(BL("bell_catalog.empty.description")),
+                        screenWidth: proxy.size.width
+                    )
+                case .search:
+                    bellGridContent(
+                        bells: filteredBells,
+                        showsSearchControls: true,
+                        emptyTitle: LocalizedStringKey(BL("bell_catalog.search.empty.title")),
+                        emptyDescription: LocalizedStringKey(BL("bell_catalog.search.empty.description")),
+                        screenWidth: proxy.size.width
+                    )
+                }
             }
         }
         .sheet(item: $presentedBell, onDismiss: {
@@ -379,7 +332,7 @@ struct BellCatalogView: View {
         }
     }
 
-    private var summaryContent: some View {
+    private func summaryContent(screenWidth: CGFloat) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 summaryOverviewCard
@@ -396,7 +349,7 @@ struct BellCatalogView: View {
                     rows: Array(topMaterials.prefix(4))
                 )
                 summaryTagCloudCard
-                summaryRecentBells
+                summaryRecentBells(screenWidth: screenWidth)
             }
             .padding(.top, 20)
             .padding(.horizontal, 20)
@@ -416,7 +369,8 @@ struct BellCatalogView: View {
         bells: [BellRecord],
         showsSearchControls: Bool,
         emptyTitle: LocalizedStringKey,
-        emptyDescription: LocalizedStringKey
+        emptyDescription: LocalizedStringKey,
+        screenWidth: CGFloat
     ) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -431,7 +385,7 @@ struct BellCatalogView: View {
                 if bells.isEmpty {
                     emptyBellsGridState(title: emptyTitle, description: emptyDescription)
                 } else {
-                    LazyVGrid(columns: gridColumns, spacing: layoutMode.spacing) {
+                    LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                         ForEach(bells) { bell in
                             Button {
                                 presentedBell = bell
@@ -488,7 +442,7 @@ struct BellCatalogView: View {
                     SummaryPill(systemImage: "house.fill", title: homeName, tint: collection.backgroundStyle.accentColor)
                     SummaryPill(
                         systemImage: "person.2.fill",
-                        title: "\(collection.collaboratorCount) \(SummaryCountKind.members.title(for: collection.collaboratorCount))",
+                        title: localizedCount(collection.collaboratorCount, kind: .members),
                         tint: collection.backgroundStyle.accentColor
                     )
                 }
@@ -501,10 +455,10 @@ struct BellCatalogView: View {
     private var summarySnapshotCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                summaryStatChip(value: "\(bells.count)", title: SummaryCountKind.bells.title(for: bells.count), filter: .all)
-                summaryStatChip(value: "\(materialCount)", title: SummaryCountKind.materials.title(for: materialCount), filter: .withMaterial)
-                summaryStatChip(value: "\(countryCount)", title: SummaryCountKind.countries.title(for: countryCount), filter: .withOrigin)
-                summaryStatChip(value: "\(cityCount)", title: SummaryCountKind.cities.title(for: cityCount), filter: .withCity)
+                summaryStatChip(value: "\(bells.count)", title: localizedCount(bells.count, kind: .bells), filter: .all)
+                summaryStatChip(value: "\(materialCount)", title: localizedCount(materialCount, kind: .materials), filter: .withMaterial)
+                summaryStatChip(value: "\(countryCount)", title: localizedCount(countryCount, kind: .countries), filter: .withOrigin)
+                summaryStatChip(value: "\(cityCount)", title: localizedCount(cityCount, kind: .cities), filter: .withCity)
             }
         }
         .summaryGlassCard()
@@ -561,7 +515,7 @@ struct BellCatalogView: View {
         .summaryGlassCard()
     }
 
-    private var summaryRecentBells: some View {
+    private func summaryRecentBells(screenWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(BL("bell_catalog.summary.recent"))
                 .font(.headline)
@@ -570,18 +524,12 @@ struct BellCatalogView: View {
                 Text(BL("bell_catalog.summary.none"))
                     .foregroundStyle(.secondary)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: 12) {
-                        ForEach(Array(bells.prefix(6))) { bell in
-                            Button {
-                                presentedBell = bell
-                            } label: {
-                                BellCardView(bell: bell, layoutMode: .mini)
-                                    .frame(width: 148)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                BellCardStripView(
+                    bells: recentBells,
+                    layoutMode: .mini,
+                    screenWidth: screenWidth
+                ) { bell in
+                    presentedBell = bell
                 }
             }
         }
@@ -1256,6 +1204,46 @@ struct BellCardView: View {
 
     private var secondaryTextColor: Color {
         hasCoverPhoto ? .white.opacity(0.86) : .secondary
+    }
+}
+
+struct BellCardStripView: View {
+    let bells: [BellRecord]
+    let layoutMode: BellGridLayoutMode
+    let screenWidth: CGFloat
+    let onSelect: (BellRecord) -> Void
+
+    var body: some View {
+        let width = layoutMode.cardWidth(forScreenWidth: screenWidth)
+
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: layoutMode.spacing) {
+                ForEach(bells) { bell in
+                    Button {
+                        onSelect(bell)
+                    } label: {
+                        BellCardView(bell: bell, layoutMode: layoutMode)
+                            .frame(width: width)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .frame(height: layoutMode.cardHeight)
+    }
+}
+
+struct BellCardHeroView: View {
+    let bell: BellRecord
+
+    var body: some View {
+        BellCardView(
+            bell: bell,
+            layoutMode: .wide
+        )
+        .frame(height: 210)
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
     }
 }
 

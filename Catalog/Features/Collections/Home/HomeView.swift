@@ -1648,40 +1648,27 @@ private struct MapSelectionPanel: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let availableWidth = proxy.size.width
-
             Group {
-                if bells.count == 1, let bell = bells.first {
-                    Button {
+                if bells.count == 1 {
+                    BellCardStripView(
+                        bells: bells,
+                        layoutMode: .wide,
+                        screenWidth: proxy.size.width + 32
+                    ) { bell in
                         presentedBell = bell
-                    } label: {
-                        BellCardView(bell: bell, layoutMode: .wide)
-                            .frame(width: BellGridLayoutMode.wide.preferredCardWidth(for: availableWidth))
                     }
-                    .buttonStyle(.plain)
                 } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: BellGridLayoutMode.mini.spacing) {
-                            ForEach(bells) { bell in
-                                Button {
-                                    presentedBell = bell
-                                } label: {
-                                    BellCardView(bell: bell, layoutMode: .mini)
-                                        .frame(
-                                            width: BellGridLayoutMode.mini.preferredCardWidth(for: availableWidth),
-                                            height: BellGridLayoutMode.mini.cardHeight
-                                        )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+                    BellCardStripView(
+                        bells: bells,
+                        layoutMode: .mini,
+                        screenWidth: proxy.size.width + 32
+                    ) { bell in
+                        presentedBell = bell
                     }
-                    .frame(height: BellGridLayoutMode.mini.stripHeight)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(height: bells.count == 1 ? BellGridLayoutMode.wide.cardHeight : BellGridLayoutMode.mini.stripHeight)
+        .frame(height: bells.count == 1 ? BellGridLayoutMode.wide.cardHeight : BellGridLayoutMode.mini.cardHeight)
         .sheet(item: $presentedBell) { bell in
             BellDetailSheetContainer(bell: bell, repository: repository)
                 .presentationDragIndicator(.visible)

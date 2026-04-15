@@ -23,7 +23,7 @@
 "bell_catalog.empty.description" = "Добавь первый колокольчик, чтобы начать наполнять коллекцию.";
 "bell_catalog.search.empty.title" = "Ничего не найдено";
 "bell_catalog.search.empty.description" = "Попробуй другой запрос или сбрось фильтр по состоянию.";
-"bell_catalog.summary.recent" = "Недавние";
+"bell_catalog.summary.recent" = "Последние добавленные";
 "bell_catalog.summary.none" = "Пока нет колокольчиков.";
 "bell_catalog.summary.snapshot" = "Снимок коллекции";
 "bell_catalog.summary.coverage" = "Заполненность";

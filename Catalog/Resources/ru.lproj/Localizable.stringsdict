@@ -42,5 +42,85 @@
 			<string>%d книги</string>
 		</dict>
 	</dict>
+	<key>collection.count.materials</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d материал</string>
+			<key>few</key>
+			<string>%d материала</string>
+			<key>many</key>
+			<string>%d материалов</string>
+			<key>other</key>
+			<string>%d материала</string>
+		</dict>
+	</dict>
+	<key>collection.count.countries</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d страна</string>
+			<key>few</key>
+			<string>%d страны</string>
+			<key>many</key>
+			<string>%d стран</string>
+			<key>other</key>
+			<string>%d страны</string>
+		</dict>
+	</dict>
+	<key>collection.count.cities</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d город</string>
+			<key>few</key>
+			<string>%d города</string>
+			<key>many</key>
+			<string>%d городов</string>
+			<key>other</key>
+			<string>%d города</string>
+		</dict>
+	</dict>
+	<key>collection.count.members</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d участник</string>
+			<key>few</key>
+			<string>%d участника</string>
+			<key>many</key>
+			<string>%d участников</string>
+			<key>other</key>
+			<string>%d участника</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

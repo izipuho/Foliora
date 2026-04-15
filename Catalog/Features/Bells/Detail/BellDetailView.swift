@@ -144,13 +144,7 @@ struct BellDetailView: View {
     }
 
     private var heroHeader: some View {
-        BellCardView(
-            bell: bell,
-            layoutMode: .wide
-        )
-        .frame(height: 210)
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
+        BellCardHeroView(bell: bell)
     }
 
     private func openPreview(for asset: MediaAsset) {

@@ -23,7 +23,7 @@
 "bell_catalog.empty.description" = "Add the first bell to start building this collection.";
 "bell_catalog.search.empty.title" = "Nothing found";
 "bell_catalog.search.empty.description" = "Try another query or reset the condition filter.";
-"bell_catalog.summary.recent" = "Recent";
+"bell_catalog.summary.recent" = "Recently Added";
 "bell_catalog.summary.none" = "No bells yet.";
 "bell_catalog.summary.snapshot" = "Collection Snapshot";
 "bell_catalog.summary.coverage" = "Coverage";
