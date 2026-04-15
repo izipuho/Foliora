@@ -5,6 +5,62 @@ private func BL(_ key: String) -> String {
     NSLocalizedString(key, comment: "")
 }
 
+private enum SummaryCountKind {
+    case bells
+    case materials
+    case countries
+    case cities
+    case members
+
+    func title(for count: Int) -> String {
+        if Locale.preferredLanguages.first?.hasPrefix("ru") == true {
+            switch self {
+            case .bells:
+                return russianPlural(count, one: "колокольчик", few: "колокольчика", many: "колокольчиков")
+            case .materials:
+                return russianPlural(count, one: "материал", few: "материала", many: "материалов")
+            case .countries:
+                return russianPlural(count, one: "страна", few: "страны", many: "стран")
+            case .cities:
+                return russianPlural(count, one: "город", few: "города", many: "городов")
+            case .members:
+                return russianPlural(count, one: "участник", few: "участника", many: "участников")
+            }
+        }
+
+        switch self {
+        case .bells:
+            return count == 1 ? "bell" : "bells"
+        case .materials:
+            return count == 1 ? "material" : "materials"
+        case .countries:
+            return count == 1 ? "country" : "countries"
+        case .cities:
+            return count == 1 ? "city" : "cities"
+        case .members:
+            return count == 1 ? "member" : "members"
+        }
+    }
+}
+
+private func russianPlural(_ count: Int, one: String, few: String, many: String) -> String {
+    let remainder100 = count % 100
+    let remainder10 = count % 10
+
+    if remainder100 >= 11 && remainder100 <= 14 {
+        return many
+    }
+
+    switch remainder10 {
+    case 1:
+        return one
+    case 2...4:
+        return few
+    default:
+        return many
+    }
+}
+
 enum BellSortOption: String, CaseIterable, Hashable {
     case title
     case origin
@@ -29,6 +85,52 @@ enum BellCatalogMode {
     case summary
     case items
     case search
+}
+
+enum BellSummaryFilter: Hashable {
+    case all
+    case withOrigin
+    case missingOrigin
+    case withCity
+    case withStorage
+    case missingStorage
+    case withNotes
+    case missingNotes
+    case withTags
+    case missingTags
+    case withMaterial
+    case country(String)
+    case material(String)
+    case tag(String)
+
+    func title() -> String {
+        switch self {
+        case .all:
+            return BL("bell_catalog.filter_summary.all")
+        case .withOrigin:
+            return BL("bell_catalog.summary.with_origin")
+        case .missingOrigin:
+            return BL("bell_catalog.filter_summary.missing_origin")
+        case .withCity:
+            return BL("bell_catalog.filter_summary.with_city")
+        case .withStorage:
+            return BL("bell_catalog.summary.with_storage")
+        case .missingStorage:
+            return BL("bell_catalog.filter_summary.missing_storage")
+        case .withNotes:
+            return BL("bell_catalog.summary.with_notes")
+        case .missingNotes:
+            return BL("bell_catalog.filter_summary.missing_notes")
+        case .withTags:
+            return BL("bell_catalog.summary.with_tags")
+        case .missingTags:
+            return BL("bell_catalog.filter_summary.missing_tags")
+        case .withMaterial:
+            return BL("bell_catalog.filter_summary.with_material")
+        case .country(let value), .material(let value), .tag(let value):
+            return value
+        }
+    }
 }
 
 enum BellGridLayoutMode: Int, CaseIterable {
@@ -113,6 +215,9 @@ struct BellCatalogView: View {
     let collection: CollectionSummary
     let mode: BellCatalogMode
     let sortOption: BellSortOption
+    let summaryFilter: BellSummaryFilter?
+    let onSelectSummaryFilter: ((BellSummaryFilter) -> Void)?
+    let onClearSummaryFilter: (() -> Void)?
 
     @State private var bellRecords: [BellRecord]
     @State private var searchText = ""
@@ -125,13 +230,19 @@ struct BellCatalogView: View {
         repository: any CatalogRepository,
         collaborators: [Collaborator],
         mode: BellCatalogMode,
-        sortOption: BellSortOption = .title
+        sortOption: BellSortOption = .title,
+        summaryFilter: BellSummaryFilter? = nil,
+        onSelectSummaryFilter: ((BellSummaryFilter) -> Void)? = nil,
+        onClearSummaryFilter: (() -> Void)? = nil
     ) {
         self.repository = repository
         self.collaborators = collaborators
         self.collection = collection
         self.mode = mode
         self.sortOption = sortOption
+        self.summaryFilter = summaryFilter
+        self.onSelectSummaryFilter = onSelectSummaryFilter
+        self.onClearSummaryFilter = onClearSummaryFilter
         _bellRecords = State(initialValue: repository.fetchBellRecords(for: collection.id))
     }
 
@@ -150,7 +261,8 @@ struct BellCatalogView: View {
                 bell.tags.joined(separator: " ").localizedCaseInsensitiveContains(searchText)
 
             let matchesCondition = selectedCondition == nil || bell.condition == selectedCondition
-            return matchesSearch && matchesCondition
+            let matchesSummaryFilter = matches(bell: bell, summaryFilter: summaryFilter)
+            return matchesSearch && matchesCondition && matchesSummaryFilter
         })
     }
 
@@ -162,8 +274,72 @@ struct BellCatalogView: View {
         Set(bells.map(\.materialDisplayName)).count
     }
 
+    private var cityCount: Int {
+        Set(bells.map(\.cityName).filter { !$0.isEmpty }).count
+    }
+
     private var themeColors: [Color] {
         collection.backgroundStyle.screenColors
+    }
+
+    private var homeName: String {
+        repository.fetchHomes().first(where: { $0.id == collection.homeID })?.name ?? BL("common.unknown")
+    }
+
+    private var bellsWithOriginCount: Int {
+        bells.filter { $0.originPlace != nil }.count
+    }
+
+    private var bellsWithStorageCount: Int {
+        bells.filter { $0.item.locationID != nil }.count
+    }
+
+    private var bellsWithPhotosCount: Int {
+        bells.filter { $0.photoCount > 0 }.count
+    }
+
+    private var filteredItemsBells: [BellRecord] {
+        sorted(
+            bellRecords.filter { bell in
+                matches(bell: bell, summaryFilter: summaryFilter)
+            }
+        )
+    }
+
+    private var topCountries: [(String, Int)] {
+        Dictionary(grouping: bells.map(\.countryName).filter { !$0.isEmpty }, by: { $0 })
+            .map { ($0.key, $0.value.count) }
+            .sorted { lhs, rhs in
+                if lhs.1 == rhs.1 {
+                    return lhs.0.localizedCaseInsensitiveCompare(rhs.0) == .orderedAscending
+                }
+
+                return lhs.1 > rhs.1
+            }
+    }
+
+    private var topMaterials: [(String, Int)] {
+        Dictionary(grouping: bells.map(\.materialDisplayName), by: { $0 })
+            .map { ($0.key, $0.value.count) }
+            .sorted { lhs, rhs in
+                if lhs.1 == rhs.1 {
+                    return lhs.0.localizedCaseInsensitiveCompare(rhs.0) == .orderedAscending
+                }
+
+                return lhs.1 > rhs.1
+            }
+    }
+
+    private var topTags: [(String, Int)] {
+        Dictionary(grouping: bells.flatMap(\.tags), by: { $0 })
+            .map { ($0.key, $0.value.count) }
+            .sorted { lhs, rhs in
+                if lhs.1 == rhs.1 {
+                    return lhs.0.localizedCaseInsensitiveCompare(rhs.0) == .orderedAscending
+                }
+
+                return lhs.1 > rhs.1
+            }
     }
 
     private var gridColumns: [GridItem] {
@@ -175,54 +351,57 @@ struct BellCatalogView: View {
 
     @ViewBuilder
     var body: some View {
-        switch mode {
-        case .summary:
-            summaryContent
-        case .items:
-            bellGridContent(
-                bells: bells,
-                showsSearchControls: false,
-                emptyTitle: LocalizedStringKey(BL("bell_catalog.empty.title")),
-                emptyDescription: LocalizedStringKey(BL("bell_catalog.empty.description"))
-            )
-        case .search:
-            bellGridContent(
-                bells: filteredBells,
-                showsSearchControls: true,
-                emptyTitle: LocalizedStringKey(BL("bell_catalog.search.empty.title")),
-                emptyDescription: LocalizedStringKey(BL("bell_catalog.search.empty.description"))
-            )
+        Group {
+            switch mode {
+            case .summary:
+                summaryContent
+            case .items:
+                bellGridContent(
+                    bells: filteredItemsBells,
+                    showsSearchControls: false,
+                    emptyTitle: LocalizedStringKey(BL("bell_catalog.empty.title")),
+                    emptyDescription: LocalizedStringKey(BL("bell_catalog.empty.description"))
+                )
+            case .search:
+                bellGridContent(
+                    bells: filteredBells,
+                    showsSearchControls: true,
+                    emptyTitle: LocalizedStringKey(BL("bell_catalog.search.empty.title")),
+                    emptyDescription: LocalizedStringKey(BL("bell_catalog.search.empty.description"))
+                )
+            }
+        }
+        .sheet(item: $presentedBell, onDismiss: {
+            bellRecords = repository.fetchBellRecords(for: collection.id)
+        }) { bell in
+            BellGridDetailSheetContainer(bell: bell, repository: repository)
+                .presentationDragIndicator(.visible)
         }
     }
 
     private var summaryContent: some View {
-        List {
-            if !collection.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                summaryDescription
-                    .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 0, trailing: 20))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-            }
-
-            summaryInsights
-                .listRowInsets(
-                    EdgeInsets(
-                        top: collection.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 20 : 12,
-                        leading: 20,
-                        bottom: 0,
-                        trailing: 20
-                    )
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                summaryOverviewCard
+                summarySnapshotCard
+                summaryCoverageCard
+                summaryBreakdownCard(
+                    title: BL("bell_catalog.summary.top_countries"),
+                    emptyTitle: BL("bell_catalog.summary.no_origin_data"),
+                    rows: Array(topCountries.prefix(4))
                 )
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-
-            summaryRecentBells
-                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 120, trailing: 20))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                summaryBreakdownCard(
+                    title: BL("bell_catalog.summary.top_materials"),
+                    emptyTitle: BL("bell_catalog.summary.no_material_data"),
+                    rows: Array(topMaterials.prefix(4))
+                )
+                summaryTagCloudCard
+                summaryRecentBells
+            }
+            .padding(.top, 20)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 120)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
         .background(
             LinearGradient(
                 colors: themeColors,
@@ -241,6 +420,10 @@ struct BellCatalogView: View {
     ) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if !showsSearchControls, let summaryFilter, summaryFilter != .all {
+                    activeSummaryFilterSection
+                }
+
                 if showsSearchControls {
                     searchSection
                 }
@@ -277,12 +460,6 @@ struct BellCatalogView: View {
             )
             .ignoresSafeArea()
         )
-        .sheet(item: $presentedBell, onDismiss: {
-            bellRecords = repository.fetchBellRecords(for: collection.id)
-        }) { bell in
-            BellGridDetailSheetContainer(bell: bell, repository: repository)
-                .presentationDragIndicator(.visible)
-        }
     }
 
     private func emptyBellsGridState(title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
@@ -295,26 +472,93 @@ struct BellCatalogView: View {
         .padding(.vertical, 40)
     }
 
-    private var summaryInsights: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                StatChip(title: BL("bell_catalog.summary.items"), value: "\(bells.count)")
-                StatChip(title: BL("bell_catalog.summary.countries"), value: "\(countryCount)")
-                StatChip(title: BL("bell_catalog.summary.materials"), value: "\(materialCount)")
-                StatChip(title: BL("bell_catalog.summary.with_location"), value: "\(bells.filter { $0.item.locationID != nil }.count)")
-                StatChip(title: BL("bell_catalog.summary.with_photos"), value: "\(bells.filter { $0.photoCount > 0 }.count)")
-                StatChip(title: BL("bell_catalog.summary.without_media"), value: "\(bells.filter { $0.mediaAssets.isEmpty }.count)")
+    private var summaryOverviewCard: some View {
+        Button {
+            onSelectSummaryFilter?(.all)
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                if !collection.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(collection.subtitle)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                HStack(spacing: 10) {
+                    SummaryPill(systemImage: "house.fill", title: homeName, tint: collection.backgroundStyle.accentColor)
+                    SummaryPill(
+                        systemImage: "person.2.fill",
+                        title: "\(collection.collaboratorCount) \(SummaryCountKind.members.title(for: collection.collaboratorCount))",
+                        tint: collection.backgroundStyle.accentColor
+                    )
+                }
             }
+            .summaryGlassCard()
         }
+        .buttonStyle(.plain)
     }
 
-    private var summaryDescription: some View {
-        Text(collection.subtitle)
-            .font(.body)
-            .foregroundStyle(.secondary)
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white.opacity(0.52), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+    private var summarySnapshotCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                summaryStatChip(value: "\(bells.count)", title: SummaryCountKind.bells.title(for: bells.count), filter: .all)
+                summaryStatChip(value: "\(materialCount)", title: SummaryCountKind.materials.title(for: materialCount), filter: .withMaterial)
+                summaryStatChip(value: "\(countryCount)", title: SummaryCountKind.countries.title(for: countryCount), filter: .withOrigin)
+                summaryStatChip(value: "\(cityCount)", title: SummaryCountKind.cities.title(for: cityCount), filter: .withCity)
+            }
+        }
+        .summaryGlassCard()
+    }
+
+    private var summaryCoverageCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(BL("bell_catalog.summary.coverage"))
+                .font(.headline)
+
+            SummaryCoverageRow(title: BL("bell_catalog.summary.with_origin"), value: bellsWithOriginCount, total: bells.count, tint: collection.backgroundStyle.accentColor) {
+                onSelectSummaryFilter?(.missingOrigin)
+            }
+            SummaryCoverageRow(title: BL("bell_catalog.summary.with_storage"), value: bellsWithStorageCount, total: bells.count, tint: collection.backgroundStyle.accentColor) {
+                onSelectSummaryFilter?(.missingStorage)
+            }
+            SummaryCoverageRow(title: BL("bell_catalog.summary.with_notes"), value: bells.filter { !$0.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.count, total: bells.count, tint: collection.backgroundStyle.accentColor) {
+                onSelectSummaryFilter?(.missingNotes)
+            }
+            SummaryCoverageRow(title: BL("bell_catalog.summary.with_tags"), value: bells.filter { !$0.tags.isEmpty }.count, total: bells.count, tint: collection.backgroundStyle.accentColor) {
+                onSelectSummaryFilter?(.missingTags)
+            }
+        }
+        .summaryGlassCard()
+    }
+
+    private func summaryBreakdownCard(
+        title: String,
+        emptyTitle: String,
+        rows: [(String, Int)]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.headline)
+
+            if rows.isEmpty {
+                Text(emptyTitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                        SummaryBreakdownRow(title: row.0, value: row.1, tint: collection.backgroundStyle.accentColor) {
+                            if title == BL("bell_catalog.summary.top_countries") {
+                                onSelectSummaryFilter?(.country(row.0))
+                            } else {
+                                onSelectSummaryFilter?(.material(row.0))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .summaryGlassCard()
     }
 
     private var summaryRecentBells: some View {
@@ -326,28 +570,111 @@ struct BellCatalogView: View {
                 Text(BL("bell_catalog.summary.none"))
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(Array(bells.prefix(5))) { bell in
-                    HStack(spacing: 12) {
-                        Image(systemName: "bell.fill")
-                            .foregroundStyle(collection.backgroundStyle.accentColor)
-                            .frame(width: 20)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(bell.title)
-                                .font(.subheadline.weight(.semibold))
-                            Text(bell.placeDisplayName)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(Array(bells.prefix(6))) { bell in
+                            Button {
+                                presentedBell = bell
+                            } label: {
+                                BellCardView(bell: bell, layoutMode: .mini)
+                                    .frame(width: 148)
+                            }
+                            .buttonStyle(.plain)
                         }
-
-                        Spacer()
                     }
-                    .padding(.vertical, 4)
                 }
             }
         }
-        .padding(16)
-        .background(Color.white.opacity(0.52), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .summaryGlassCard()
+    }
+
+    private var summaryTagCloudCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(BL("bell_catalog.summary.tag_cloud"))
+                .font(.headline)
+
+            if topTags.isEmpty {
+                Text(BL("bell_catalog.summary.no_tags"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                    ForEach(Array(topTags.prefix(16).enumerated()), id: \.offset) { _, row in
+                        SummaryTagCloudItem(
+                            tag: row.0,
+                            count: row.1,
+                            maxCount: topTags.first?.1 ?? row.1,
+                            tint: collection.backgroundStyle.accentColor
+                        ) {
+                            onSelectSummaryFilter?(.tag(row.0))
+                        }
+                    }
+                }
+            }
+        }
+        .summaryGlassCard()
+    }
+
+    private var activeSummaryFilterSection: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "tag.fill")
+                .foregroundStyle(collection.backgroundStyle.accentColor)
+
+            Text(String.localizedStringWithFormat(BL("bell_catalog.items.filtered_by_tag"), summaryFilter?.title() ?? ""))
+                .font(.subheadline.weight(.semibold))
+
+            Spacer()
+
+            Button(BL("common.clear")) {
+                onClearSummaryFilter?()
+            }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(collection.backgroundStyle.accentColor)
+        }
+        .padding(14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func summaryStatChip(value: String, title: String, filter: BellSummaryFilter) -> some View {
+        Button {
+            onSelectSummaryFilter?(filter)
+        } label: {
+            StatChip(value: value, title: title, tint: collection.backgroundStyle.accentColor)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func matches(bell: BellRecord, summaryFilter: BellSummaryFilter?) -> Bool {
+        switch summaryFilter {
+        case nil, .all:
+            return true
+        case .withOrigin:
+            return bell.originPlace != nil
+        case .missingOrigin:
+            return bell.originPlace == nil
+        case .withCity:
+            return !bell.cityName.isEmpty
+        case .withStorage:
+            return bell.item.locationID != nil
+        case .missingStorage:
+            return bell.item.locationID == nil
+        case .withNotes:
+            return !bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .missingNotes:
+            return bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .withTags:
+            return !bell.tags.isEmpty
+        case .missingTags:
+            return bell.tags.isEmpty
+        case .withMaterial:
+            return !bell.materialDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .country(let country):
+            return bell.countryName.localizedCaseInsensitiveCompare(country) == .orderedSame
+        case .material(let material):
+            return bell.materialDisplayName.localizedCaseInsensitiveCompare(material) == .orderedSame
+        case .tag(let tag):
+            return bell.tags.contains(where: { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame })
+        }
     }
 
     private var searchSection: some View {
@@ -1013,9 +1340,182 @@ private struct FilterChip: View {
     }
 }
 
-private struct StatChip: View {
+private struct SummaryPill: View {
+    let systemImage: String
     let title: String
+    let tint: Color
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.footnote.weight(.semibold))
+            .lineLimit(1)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .background(tint.opacity(0.12), in: Capsule())
+            .foregroundStyle(.primary)
+    }
+}
+
+private struct SummaryTagCloudItem: View {
+    let tag: String
+    let count: Int
+    let maxCount: Int
+    let tint: Color
+    let action: () -> Void
+
+    private var emphasis: Double {
+        guard maxCount > 1 else { return 1.0 }
+        return 0.45 + (Double(count - 1) / Double(maxCount - 1)) * 0.55
+    }
+
+    private var font: Font {
+        switch emphasis {
+        case 0.9...:
+            return .headline.weight(.bold)
+        case 0.75...:
+            return .subheadline.weight(.semibold)
+        case 0.6...:
+            return .footnote.weight(.semibold)
+        default:
+            return .caption.weight(.medium)
+        }
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Text(tag)
+                .font(font)
+                .foregroundStyle(tint.opacity(emphasis))
+                .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SummaryCoverageRow: View {
+    let title: String
+    let value: Int
+    let total: Int
+    let tint: Color
+    let action: () -> Void
+
+    private var progress: CGFloat {
+        guard total > 0 else { return 0 }
+        return CGFloat(value) / CGFloat(total)
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+
+                    Spacer()
+
+                    Text("\(value)/\(total)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.black.opacity(0.06))
+
+                        Capsule()
+                            .fill(tint)
+                            .frame(width: proxy.size.width * progress)
+                    }
+                }
+                .frame(height: 8)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SummaryBreakdownRow: View {
+    let title: String
+    let value: Int
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Text(title)
+                    .font(.subheadline)
+                    .lineLimit(1)
+
+                Spacer()
+
+                Text("\(value)")
+                    .font(.subheadline.weight(.bold))
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
+                    .background(tint.opacity(0.14), in: Capsule())
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct FlowLayout: Layout {
+    var horizontalSpacing: CGFloat
+    var verticalSpacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+
+            if currentX > 0, currentX + size.width > maxWidth {
+                currentX = 0
+                currentY += rowHeight + verticalSpacing
+                rowHeight = 0
+            }
+
+            rowHeight = max(rowHeight, size.height)
+            currentX += size.width + horizontalSpacing
+        }
+
+        return CGSize(width: maxWidth.isFinite ? maxWidth : currentX, height: currentY + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var currentX = bounds.minX
+        var currentY = bounds.minY
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+
+            if currentX > bounds.minX, currentX + size.width > bounds.maxX {
+                currentX = bounds.minX
+                currentY += rowHeight + verticalSpacing
+                rowHeight = 0
+            }
+
+            subview.place(
+                at: CGPoint(x: currentX, y: currentY),
+                proposal: ProposedViewSize(width: size.width, height: size.height)
+            )
+
+            currentX += size.width + horizontalSpacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
+private struct StatChip: View {
     let value: String
+    let title: String
+    let tint: Color
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -1028,7 +1528,25 @@ private struct StatChip: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.75), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct SummaryGlassCardModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(16)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Color.white.opacity(0.32), lineWidth: 1)
+            )
+    }
+}
+
+private extension View {
+    func summaryGlassCard() -> some View {
+        modifier(SummaryGlassCardModifier())
     }
 }
 

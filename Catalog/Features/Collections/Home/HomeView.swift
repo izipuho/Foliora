@@ -859,6 +859,7 @@ private struct CollectionShellView: View {
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var isPresentingEditCollection = false
     @State private var selectedSort: BellSortOption = .title
+    @State private var selectedSummaryFilter: BellSummaryFilter?
     private let mediaStore = LocalMediaFileStore.shared
 
     init(collection: CollectionSummary, repository: any CatalogRepository) {
@@ -874,7 +875,11 @@ private struct CollectionShellView: View {
                     repository: repository,
                     collaborators: repository.fetchCollaborators(for: collection.id),
                     mode: .summary,
-                    sortOption: selectedSort
+                    sortOption: selectedSort,
+                    onSelectSummaryFilter: { filter in
+                        selectedSummaryFilter = filter
+                        selectedTab = .items
+                    }
                 )
                 .id("summary-\(refreshID.uuidString)")
             }
@@ -885,7 +890,11 @@ private struct CollectionShellView: View {
                     repository: repository,
                     collaborators: repository.fetchCollaborators(for: collection.id),
                     mode: .items,
-                    sortOption: selectedSort
+                    sortOption: selectedSort,
+                    summaryFilter: selectedSummaryFilter,
+                    onClearSummaryFilter: {
+                        selectedSummaryFilter = nil
+                    }
                 )
                 .id("items-\(refreshID.uuidString)")
             }
