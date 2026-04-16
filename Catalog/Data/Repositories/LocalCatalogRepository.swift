@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 final class LocalCatalogRepository: CatalogRepository {
     private let store: CatalogJSONStore
     private let mediaStore: LocalMediaFileStore
@@ -224,6 +225,7 @@ final class LocalCatalogRepository: CatalogRepository {
     }
 }
 
+@MainActor
 private final class CatalogJSONStore {
     private let baseURL: URL
     private let fileURL: URL

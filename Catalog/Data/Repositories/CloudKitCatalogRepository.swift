@@ -1,6 +1,7 @@
 import CloudKit
 import Foundation
 
+@MainActor
 final class CloudKitCatalogRepository: CatalogRepository {
     private let configuration: CloudKitConfiguration
     private let container: CKContainer

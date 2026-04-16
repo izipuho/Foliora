@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 protocol CatalogRepository {
     func fetchHomes() -> [Home]
     func fetchLocations(in homeID: UUID) -> [Location]

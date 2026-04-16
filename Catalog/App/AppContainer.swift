@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct AppContainer {
     let repository: any CatalogRepository
 

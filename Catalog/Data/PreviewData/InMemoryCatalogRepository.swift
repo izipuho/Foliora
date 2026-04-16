@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 final class InMemoryCatalogRepository: CatalogRepository {
     private let homeID = UUID(uuidString: "A1000000-0000-0000-0000-000000000001")!
     private let bellCollectionID = UUID(uuidString: "3BC496BE-693A-4AAB-9D1B-7F6FB49B7A5A")!
