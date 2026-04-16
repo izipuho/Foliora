@@ -9,11 +9,13 @@ final class SwiftDataCatalogRepository: CatalogRepository {
 
     init(
         container: ModelContainer,
-        seedRepository: any CatalogRepository = InMemoryCatalogRepository()
+        seedRepository: (any CatalogRepository)? = nil
     ) {
         self.container = container
         self.context = container.mainContext
-        bootstrapIfNeeded(using: seedRepository)
+        if let seedRepository {
+            bootstrapIfNeeded(using: seedRepository)
+        }
     }
 
     func fetchHomes() -> [Home] {

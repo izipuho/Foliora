@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct CatalogApp: App {
@@ -7,6 +8,7 @@ struct CatalogApp: App {
     var body: some Scene {
         WindowGroup {
             AppShellView(repository: container.repository)
+                .modelContainer(container.swiftDataContainer)
         }
     }
 }
