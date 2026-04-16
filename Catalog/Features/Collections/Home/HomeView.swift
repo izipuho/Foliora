@@ -108,7 +108,7 @@ private struct ModernAppShellView: View {
             }
 
             Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage) {
-                SettingsView()
+                SettingsView(repository: repository)
             }
         }
         .modifier(ModernTabBarBehavior())
@@ -1152,6 +1152,15 @@ private struct CollectionAddBellCameraPicker: UIViewControllerRepresentable {
 }
 
 private struct SettingsView: View {
+    let repository: any CatalogRepository
+
+    @State private var exportDocument: CatalogTransferDocument?
+    @State private var isExportingDocument = false
+    @State private var isImportingDocument = false
+    @State private var importErrorMessage: String?
+    @State private var exportErrorMessage: String?
+    @State private var isShowingLegacyDeleteConfirmation = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -1173,6 +1182,35 @@ private struct SettingsView: View {
                         subtitle: L("settings.storage.subtitle"),
                         systemImage: "externaldrive.connected.to.line.below"
                     )
+
+                    settingsActionCard(
+                        title: "Data",
+                        subtitle: "Import and export the current app JSON format.",
+                        systemImage: "arrow.left.arrow.right.circle"
+                    ) {
+                        settingsButton(title: "Export JSON", systemImage: "square.and.arrow.up") {
+                            exportCurrentJSON()
+                        }
+
+                        settingsButton(title: "Import JSON", systemImage: "square.and.arrow.down") {
+                            isImportingDocument = true
+                        }
+                    }
+
+                    settingsActionCard(
+                        title: "Legacy Data",
+                        subtitle: "Temporary tools for moving data out of the old JSON store.",
+                        systemImage: "externaldrive.badge.timemachine"
+                    ) {
+                        settingsButton(title: "Export Legacy JSON", systemImage: "square.and.arrow.up.on.square") {
+                            exportLegacyJSON()
+                        }
+
+                        settingsButton(title: "Delete Legacy Data", systemImage: "trash") {
+                            isShowingLegacyDeleteConfirmation = true
+                        }
+                        .foregroundStyle(.red)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
@@ -1192,6 +1230,58 @@ private struct SettingsView: View {
                 .ignoresSafeArea()
             )
             .navigationTitle(RootTab.settings.title)
+            .fileExporter(
+                isPresented: $isExportingDocument,
+                document: exportDocument,
+                contentType: .json,
+                defaultFilename: "catalog-export"
+            ) { result in
+                if case .failure(let error) = result {
+                    exportErrorMessage = error.localizedDescription
+                }
+            }
+            .fileImporter(
+                isPresented: $isImportingDocument,
+                allowedContentTypes: [.json]
+            ) { result in
+                handleImport(result)
+            }
+            .alert("Export Failed", isPresented: Binding(
+                get: { exportErrorMessage != nil },
+                set: { newValue in
+                    if !newValue {
+                        exportErrorMessage = nil
+                    }
+                }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(exportErrorMessage ?? "")
+            }
+            .alert("Import Failed", isPresented: Binding(
+                get: { importErrorMessage != nil },
+                set: { newValue in
+                    if !newValue {
+                        importErrorMessage = nil
+                    }
+                }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(importErrorMessage ?? "")
+            }
+            .confirmationDialog(
+                "Delete legacy JSON data?",
+                isPresented: $isShowingLegacyDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Legacy Data", role: .destructive) {
+                    deleteLegacyData()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This only removes the old JSON store. It does not touch the new SwiftData store.")
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -1222,6 +1312,84 @@ private struct SettingsView: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private func settingsActionCard<Content: View>(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            settingsCard(title: title, subtitle: subtitle, systemImage: systemImage)
+            content()
+        }
+    }
+
+    private func settingsButton(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                Text(title)
+                Spacer()
+            }
+            .font(.headline)
+            .padding(.horizontal, 18)
+            .frame(height: 52)
+            .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func exportCurrentJSON() {
+        do {
+            let data = try CatalogJSONPort.exportData(from: repository)
+            exportDocument = CatalogTransferDocument(data: data)
+            isExportingDocument = true
+        } catch {
+            exportErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func exportLegacyJSON() {
+        do {
+            let legacyRepository = LocalCatalogRepository()
+            let data = try CatalogJSONPort.exportData(from: legacyRepository)
+            exportDocument = CatalogTransferDocument(data: data)
+            isExportingDocument = true
+        } catch {
+            exportErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func handleImport(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            do {
+                let accessed = url.startAccessingSecurityScopedResource()
+                defer {
+                    if accessed {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+
+                let data = try Data(contentsOf: url)
+                let container = try CatalogSwiftDataStack.makeContainer()
+                let swiftDataRepository = SwiftDataCatalogRepository(container: container)
+                try CatalogJSONPort.import(data: data, into: swiftDataRepository)
+            } catch {
+                importErrorMessage = error.localizedDescription
+            }
+        case .failure(let error):
+            importErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteLegacyData() {
+        let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Catalog", isDirectory: true)
+        let legacyFileURL = baseURL.appendingPathComponent("catalog-data.json")
+        try? FileManager.default.removeItem(at: legacyFileURL)
     }
 }
 

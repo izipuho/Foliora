@@ -232,6 +232,124 @@ final class SwiftDataCatalogRepository: CatalogRepository {
         saveContext()
     }
 
+    func replaceAllData(with bundle: CatalogTransferBundle) {
+        fetchEntities(MediaAssetEntity.self).forEach(context.delete)
+        fetchEntities(BellTagEntity.self).forEach(context.delete)
+        fetchEntities(BellEntity.self).forEach(context.delete)
+        fetchEntities(MembershipEntity.self).forEach(context.delete)
+        fetchEntities(CollectionEntity.self).forEach(context.delete)
+        fetchEntities(LocationEntity.self).forEach(context.delete)
+        fetchEntities(PlaceEntity.self).forEach(context.delete)
+        fetchEntities(HomeEntity.self).forEach(context.delete)
+        saveContext()
+
+        var homeEntities: [UUID: HomeEntity] = [:]
+        var locationEntities: [UUID: LocationEntity] = [:]
+        var collectionEntities: [UUID: CollectionEntity] = [:]
+        var placeEntities: [UUID: PlaceEntity] = [:]
+
+        for home in bundle.homes {
+            let entity = HomeEntity(id: home.id, name: home.name, notes: home.notes)
+            context.insert(entity)
+            homeEntities[home.id] = entity
+        }
+
+        for location in bundle.locations {
+            let entity = LocationEntity(
+                id: location.id,
+                kindRaw: location.kind.rawValue,
+                name: location.name,
+                notes: location.notes,
+                home: homeEntities[location.homeID]
+            )
+            context.insert(entity)
+            locationEntities[location.id] = entity
+        }
+
+        for location in bundle.locations {
+            guard let entity = locationEntities[location.id] else { continue }
+            entity.parent = location.parentLocationID.flatMap { locationEntities[$0] }
+        }
+
+        for collection in bundle.collections {
+            let entity = CollectionEntity(
+                id: collection.id,
+                kindRaw: collection.kind.rawValue,
+                title: collection.title,
+                notes: collection.notes,
+                backgroundStyleRaw: collection.backgroundStyle.rawValue,
+                home: homeEntities[collection.homeID]
+            )
+            context.insert(entity)
+            collectionEntities[collection.id] = entity
+        }
+
+        for membership in bundle.memberships {
+            let entity = MembershipEntity(
+                id: membership.id,
+                userID: membership.userID,
+                roleRaw: membership.role.rawValue,
+                statusRaw: membership.status.rawValue,
+                collection: collectionEntities[membership.collectionID]
+            )
+            context.insert(entity)
+        }
+
+        for place in bundle.places {
+            let entity = PlaceEntity(
+                id: place.id,
+                displayName: place.displayName,
+                countryCode: place.countryCode,
+                countryName: place.countryName,
+                regionName: place.regionName,
+                cityName: place.cityName,
+                latitude: place.latitude,
+                longitude: place.longitude
+            )
+            context.insert(entity)
+            placeEntities[place.id] = entity
+        }
+
+        for bell in bundle.bellItems {
+            let entity = BellEntity(
+                id: bell.item.id,
+                title: bell.item.title,
+                notes: bell.item.notes,
+                acquiredYear: bell.item.acquiredYear,
+                conditionRaw: bell.item.condition.rawValue,
+                acquisitionMethodRaw: bell.item.acquisitionMethod.rawValue,
+                materialRaw: bell.details.material.rawValue,
+                customMaterialName: bell.details.customMaterialName,
+                createdBy: bell.createdBy,
+                collection: collectionEntities[bell.item.collectionID],
+                location: bell.item.locationID.flatMap { locationEntities[$0] },
+                originPlace: bell.details.originPlaceID.flatMap { placeEntities[$0] }
+            )
+            context.insert(entity)
+
+            let mediaEntities = bell.mediaAssets.map { asset in
+                MediaAssetEntity(
+                    id: asset.id,
+                    kindRaw: asset.kind.rawValue,
+                    localIdentifier: asset.localIdentifier,
+                    displayName: asset.displayName,
+                    sortOrder: asset.sortOrder,
+                    bell: entity
+                )
+            }
+            mediaEntities.forEach(context.insert)
+            entity.mediaAssets = mediaEntities
+
+            let tagEntities = bell.tags.enumerated().map { index, tag in
+                BellTagEntity(value: tag, sortOrder: index, bell: entity)
+            }
+            tagEntities.forEach(context.insert)
+            entity.tags = tagEntities
+        }
+
+        saveContext()
+    }
+
     private func bootstrapIfNeeded(using repository: any CatalogRepository) {
         guard fetchEntities(HomeEntity.self).isEmpty else { return }
 

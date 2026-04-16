@@ -35,6 +35,9 @@
 		C000000000000000000000BA /* CatalogEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000025 /* CatalogEntities.swift */; };
 		C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000026 /* CatalogSwiftDataStack.swift */; };
 		C000000000000000000000BC /* SwiftDataCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000027 /* SwiftDataCatalogRepository.swift */; };
+		C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000028 /* CatalogTransferBundle.swift */; };
+		C000000000000000000000BE /* CatalogJSONPort.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000029 /* CatalogJSONPort.swift */; };
+		C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002A /* CatalogTransferDocument.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +69,9 @@
 		C00000000000000000000025 /* CatalogEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEntities.swift; sourceTree = "<group>"; };
 		C00000000000000000000026 /* CatalogSwiftDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSwiftDataStack.swift; sourceTree = "<group>"; };
 		C00000000000000000000027 /* SwiftDataCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataCatalogRepository.swift; sourceTree = "<group>"; };
+		C00000000000000000000028 /* CatalogTransferBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferBundle.swift; sourceTree = "<group>"; };
+		C00000000000000000000029 /* CatalogJSONPort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogJSONPort.swift; sourceTree = "<group>"; };
+		C0000000000000000000002A /* CatalogTransferDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferDocument.swift; sourceTree = "<group>"; };
 		C0000000000000000000001A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		C0000000000000000000001B /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ru; path = ru.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		C0000000000000000000001D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -147,6 +153,7 @@
 			children = (
 				C0000000000000000000003F /* Repositories */,
 				C00000000000000000000048 /* SwiftData */,
+				C00000000000000000000049 /* ImportExport */,
 				C00000000000000000000040 /* PreviewData */,
 			);
 			path = Data;
@@ -236,6 +243,16 @@
 				C00000000000000000000027 /* SwiftDataCatalogRepository.swift */,
 			);
 			path = SwiftData;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000049 /* ImportExport */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000028 /* CatalogTransferBundle.swift */,
+				C00000000000000000000029 /* CatalogJSONPort.swift */,
+				C0000000000000000000002A /* CatalogTransferDocument.swift */,
+			);
+			path = ImportExport;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000040 /* PreviewData */ = {
@@ -423,6 +440,9 @@
 				C000000000000000000000BA /* CatalogEntities.swift in Sources */,
 				C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */,
 				C000000000000000000000BC /* SwiftDataCatalogRepository.swift in Sources */,
+				C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */,
+				C000000000000000000000BE /* CatalogJSONPort.swift in Sources */,
+				C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */,
 				C000000000000000000000B9 /* BellCardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
