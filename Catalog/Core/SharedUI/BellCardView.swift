@@ -1,0 +1,423 @@
+import SwiftUI
+import UIKit
+
+enum BellGridLayoutMode: Int, CaseIterable {
+    case covers
+    case mini
+    case compact
+    case wide
+    case showcase
+
+    struct Metrics {
+        let columnCount: Int
+        let cardHeight: CGFloat
+        let cardPadding: CGFloat
+        let spacing: CGFloat
+    }
+
+    static let screenHorizontalPadding: CGFloat = 20
+
+    var metrics: Metrics {
+        switch self {
+        case .covers:
+            return Metrics(columnCount: 4, cardHeight: 92, cardPadding: 0, spacing: 8)
+        case .mini:
+            return Metrics(columnCount: 3, cardHeight: 144, cardPadding: 10, spacing: 10)
+        case .compact:
+            return Metrics(columnCount: 2, cardHeight: 220, cardPadding: 14, spacing: 12)
+        case .wide:
+            return Metrics(columnCount: 1, cardHeight: 220, cardPadding: 18, spacing: 14)
+        case .showcase:
+            return Metrics(columnCount: 1, cardHeight: 460, cardPadding: 22, spacing: 18)
+        }
+    }
+
+    var columnCount: Int { metrics.columnCount }
+    var cardHeight: CGFloat { metrics.cardHeight }
+    var cardPadding: CGFloat { metrics.cardPadding }
+    var spacing: CGFloat { metrics.spacing }
+
+    func cardWidth(forScreenWidth screenWidth: CGFloat) -> CGFloat {
+        let totalSpacing = spacing * CGFloat(max(columnCount - 1, 0))
+        let usableWidth = max(screenWidth - (BellGridLayoutMode.screenHorizontalPadding * 2) - totalSpacing, 0)
+        return floor(usableWidth / CGFloat(columnCount))
+    }
+
+    var stripHeight: CGFloat {
+        cardHeight + spacing
+    }
+}
+
+struct BellCardView: View {
+    let bell: BellRecord
+    let layoutMode: BellGridLayoutMode
+
+    private let style: BellCardStyle
+
+    init(bell: BellRecord, layoutMode: BellGridLayoutMode) {
+        self.bell = bell
+        self.layoutMode = layoutMode
+        self.style = BellCardStyle.style(for: layoutMode)
+    }
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if let coverPhotoAsset {
+                BellCardCoverBackground(asset: coverPhotoAsset)
+            }
+
+            coverGradient
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: layoutMode.cardHeight)
+        .overlay(alignment: .topLeading) {
+            GeometryReader { proxy in
+                cardContent(in: proxy.size)
+            }
+        }
+        .clipShape(cardShape)
+        .overlay(cardStroke)
+        .contentShape(cardShape)
+        .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
+    }
+
+    @ViewBuilder
+    private func cardContent(in size: CGSize) -> some View {
+        let contentWidth = max(size.width - (layoutMode.cardPadding * 2), 0)
+        let contentHeight = max(size.height - (layoutMode.cardPadding * 2), 0)
+
+        VStack(alignment: .leading, spacing: style.contentSpacing) {
+            if let titleStyle = style.title {
+                BellCardTitleBlock(
+                    bell: bell,
+                    style: titleStyle,
+                    primaryTextColor: primaryTextColor,
+                    secondaryTextColor: secondaryTextColor
+                )
+            }
+
+            if style.title != nil && style.meta != nil {
+                Spacer()
+            }
+
+            if let metaStyle = style.meta {
+                BellCardMetaBlock(
+                    bell: bell,
+                    style: metaStyle,
+                    bright: hasCoverPhoto
+                )
+            }
+        }
+        .frame(width: contentWidth, height: contentHeight, alignment: .topLeading)
+        .padding(layoutMode.cardPadding)
+    }
+
+    private var coverGradient: some View {
+        LinearGradient(
+            colors: [
+                Color.black.opacity(hasCoverPhoto ? 0.34 : 0),
+                Color.black.opacity(hasCoverPhoto ? 0.14 : 0),
+                Color.black.opacity(hasCoverPhoto ? 0.18 : 0)
+            ],
+            startPoint: .bottom,
+            endPoint: .top
+        )
+    }
+
+    private var cardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+    }
+
+    private var cardStroke: some View {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+            .stroke(Color.black.opacity(0.04), lineWidth: 1)
+    }
+
+    private var coverPhotoAsset: MediaAsset? {
+        bell.mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .first
+    }
+
+    private var hasCoverPhoto: Bool {
+        coverPhotoAsset != nil
+    }
+
+    private var primaryTextColor: Color {
+        hasCoverPhoto ? .white : .primary
+    }
+
+    private var secondaryTextColor: Color {
+        hasCoverPhoto ? .white.opacity(0.86) : .secondary
+    }
+}
+
+private struct BellCardStyle {
+    enum MetaField: Hashable {
+        case year
+    }
+
+    struct TitleBlockStyle {
+        let titleFont: Font
+        let titleLineLimit: Int
+        let showsSubtitle: Bool
+        let subtitleFont: Font
+        let subtitleLineLimit: Int
+        let spacing: CGFloat
+    }
+
+    struct MetaBlockStyle {
+        let fields: [MetaField]
+        let chipSpacing: CGFloat
+    }
+
+    let title: TitleBlockStyle?
+    let meta: MetaBlockStyle?
+    let contentSpacing: CGFloat
+
+    static let covers = BellCardStyle(
+        title: nil,
+        meta: nil,
+        contentSpacing: 4
+    )
+
+    static let mini = BellCardStyle(
+        title: TitleBlockStyle(
+            titleFont: .subheadline.weight(.semibold),
+            titleLineLimit: 2,
+            showsSubtitle: false,
+            subtitleFont: .caption2,
+            subtitleLineLimit: 1,
+            spacing: 4
+        ),
+        meta: MetaBlockStyle(
+            fields: [.year],
+            chipSpacing: 8
+        ),
+        contentSpacing: 4
+    )
+
+    static let compact = BellCardStyle(
+        title: TitleBlockStyle(
+            titleFont: .headline.weight(.semibold),
+            titleLineLimit: 2,
+            showsSubtitle: true,
+            subtitleFont: .caption,
+            subtitleLineLimit: 2,
+            spacing: 4
+        ),
+        meta: MetaBlockStyle(
+            fields: [.year],
+            chipSpacing: 8
+        ),
+        contentSpacing: 8
+    )
+
+    static let wide = BellCardStyle(
+        title: TitleBlockStyle(
+            titleFont: .headline.weight(.semibold),
+            titleLineLimit: 2,
+            showsSubtitle: true,
+            subtitleFont: .caption,
+            subtitleLineLimit: 2,
+            spacing: 4
+        ),
+        meta: MetaBlockStyle(
+            fields: [.year],
+            chipSpacing: 8
+        ),
+        contentSpacing: 8
+    )
+
+    static let showcase = BellCardStyle(
+        title: TitleBlockStyle(
+            titleFont: .title.weight(.semibold),
+            titleLineLimit: 3,
+            showsSubtitle: true,
+            subtitleFont: .body,
+            subtitleLineLimit: 2,
+            spacing: 6
+        ),
+        meta: MetaBlockStyle(
+            fields: [.year],
+            chipSpacing: 8
+        ),
+        contentSpacing: 12
+    )
+
+    private static let registry: [BellGridLayoutMode: BellCardStyle] = [
+        .covers: .covers,
+        .mini: .mini,
+        .compact: .compact,
+        .wide: .wide,
+        .showcase: .showcase
+    ]
+
+    static func style(for layoutMode: BellGridLayoutMode) -> BellCardStyle {
+        registry[layoutMode] ?? .compact
+    }
+}
+
+private struct BellCardTitleBlock: View {
+    let bell: BellRecord
+    let style: BellCardStyle.TitleBlockStyle
+    let primaryTextColor: Color
+    let secondaryTextColor: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: style.spacing) {
+            Text(bell.title)
+                .font(style.titleFont)
+                .foregroundStyle(primaryTextColor)
+                .lineLimit(style.titleLineLimit)
+                .shadow(color: Color.black.opacity(0.28), radius: 6, y: 1)
+
+            if style.showsSubtitle {
+                Text(bell.placeDisplayName)
+                    .font(style.subtitleFont)
+                    .foregroundStyle(secondaryTextColor)
+                    .lineLimit(style.subtitleLineLimit)
+                    .shadow(color: Color.black.opacity(0.22), radius: 5, y: 1)
+            }
+        }
+    }
+}
+
+private struct BellCardMetaBlock: View {
+    let bell: BellRecord
+    let style: BellCardStyle.MetaBlockStyle
+    let bright: Bool
+
+    private var metaItems: [BellCardMetaItem] {
+        style.fields.compactMap { field in
+            switch field {
+            case .year:
+                guard let acquiredYear = bell.acquiredYear else {
+                    return nil
+                }
+
+                return BellCardMetaItem(
+                    label: String(acquiredYear)
+                )
+            }
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: style.chipSpacing) {
+            ForEach(metaItems) { item in
+                BellCardMetaChip(
+                    label: item.label,
+                    bright: bright
+                )
+            }
+        }
+    }
+}
+
+private struct BellCardMetaItem: Identifiable {
+    let label: String
+
+    var id: String {
+        label
+    }
+}
+
+private struct BellCardMetaChip: View {
+    let label: String
+    let bright: Bool
+
+    var body: some View {
+        Text(label)
+            .font(.caption2.weight(.semibold))
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .background(
+                bright
+                    ? Color.white.opacity(0.16)
+                    : Color.black.opacity(0.04),
+                in: Capsule()
+            )
+            .foregroundStyle(bright ? .white : .secondary)
+            .shadow(color: bright ? Color.black.opacity(0.18) : .clear, radius: 4, y: 1)
+    }
+}
+
+struct BellCardStripView: View {
+    let bells: [BellRecord]
+    let layoutMode: BellGridLayoutMode
+    let screenWidth: CGFloat
+    let onSelect: (BellRecord) -> Void
+
+    var body: some View {
+        let width = layoutMode.cardWidth(forScreenWidth: screenWidth)
+
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: layoutMode.spacing) {
+                ForEach(bells) { bell in
+                    Button {
+                        onSelect(bell)
+                    } label: {
+                        BellCardView(bell: bell, layoutMode: layoutMode)
+                            .frame(width: width)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .frame(height: layoutMode.cardHeight)
+    }
+}
+
+struct BellCardHeroView: View {
+    let bell: BellRecord
+
+    var body: some View {
+        BellCardView(
+            bell: bell,
+            layoutMode: .wide
+        )
+        .frame(height: 210)
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+    }
+}
+
+struct BellCardCoverBackground: View {
+    let asset: MediaAsset
+    private let mediaStore = LocalMediaFileStore.shared
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.88),
+                        Color.white.opacity(0.72)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        }
+        .task(id: asset.localIdentifier) {
+            loadImage()
+        }
+    }
+
+    private func loadImage() {
+        guard image == nil,
+              let url = mediaStore.fileURL(for: asset.localIdentifier),
+              let loadedImage = UIImage(contentsOfFile: url.path) else {
+            return
+        }
+
+        image = loadedImage
+    }
+}
