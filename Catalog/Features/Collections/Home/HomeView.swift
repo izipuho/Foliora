@@ -78,7 +78,7 @@ private struct RootShellView: View {
             }
 
             Tab(role: .search) {
-                SearchTabView()
+                SearchTabView(repository: repository)
             }
         }
         .modifier(ModernTabBarBehavior())
@@ -1409,21 +1409,140 @@ private struct SettingsView: View {
 }
 
 private struct SearchTabView: View {
+    private enum SearchScope: String, CaseIterable, Identifiable {
+        case all
+        case title
+        case collection
+        case origin
+        case tags
+        case notes
+        case incomplete
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .all:
+                return L("search.scope.all")
+            case .title:
+                return L("search.scope.title")
+            case .collection:
+                return L("search.scope.collection")
+            case .origin:
+                return L("search.scope.origin")
+            case .tags:
+                return L("search.scope.tags")
+            case .notes:
+                return L("search.scope.notes")
+            case .incomplete:
+                return L("search.scope.incomplete")
+            }
+        }
+    }
+
+    let repository: any CatalogRepository
+    @AppStorage("search.tab.scope") private var selectedScopeRawValue = SearchScope.all.rawValue
     @State private var query = ""
     @State private var isSearchPresented = true
     @FocusState private var isSearchFocused: Bool
 
+    private var selectedScope: SearchScope {
+        get { SearchScope(rawValue: selectedScopeRawValue) ?? .all }
+        nonmutating set { selectedScopeRawValue = newValue.rawValue }
+    }
+
+    private var allBellCollections: [CollectionSummary] {
+        repository.fetchCollections().filter { $0.kind == .bells }
+    }
+
+    private var searchResults: [BellRecord] {
+        let allBells = allBellCollections.flatMap { collection in
+            repository.fetchBellRecords(for: collection.id)
+        }
+
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return allBells
+            .filter { bell in
+                matchesSearchScope(for: bell, query: trimmedQuery)
+            }
+            .sorted { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt > rhs.createdAt
+                }
+
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+    }
+
+    private var showsEmptySearchState: Bool {
+        query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedScope != .incomplete
+    }
+
     var body: some View {
         NavigationStack {
-            Color.clear
-                .ignoresSafeArea()
-                .toolbar(.hidden, for: .navigationBar)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if !showsEmptySearchState {
+                        Text(searchResultsCountText)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 2)
+                    }
+
+                    if showsEmptySearchState {
+                        ContentUnavailableView.search
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 48)
+                    } else if searchResults.isEmpty {
+                        ContentUnavailableView(
+                            L("bell_catalog.search.empty.title"),
+                            systemImage: "magnifyingglass",
+                            description: Text(L("bell_catalog.search.empty.description"))
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 48)
+                    } else {
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible(), spacing: 12),
+                                GridItem(.flexible(), spacing: 12)
+                            ],
+                            spacing: 16
+                        ) {
+                            ForEach(searchResults) { bell in
+                                NavigationLink {
+                                    SearchBellDetailContainer(
+                                        repository: repository,
+                                        bell: bell
+                                    )
+                                } label: {
+                                    BellSearchResultCard(
+                                        bell: bell,
+                                        collectionName: collectionName(for: bell)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 120)
+            .background(
+                Color(uiColor: .systemBackground)
+                    .ignoresSafeArea()
+            )
+            .searchable(
+                text: $query,
+                isPresented: $isSearchPresented,
+                prompt: L("collections.search.prompt")
+            )
+            .toolbar(.hidden, for: .navigationBar)
         }
-        .searchable(
-            text: $query,
-            isPresented: $isSearchPresented,
-            prompt: L("collections.search.prompt")
-        )
         .searchFocused($isSearchFocused)
         .defaultFocus($isSearchFocused, true)
         .onAppear {
@@ -1431,7 +1550,95 @@ private struct SearchTabView: View {
             isSearchFocused = true
         }
     }
+
+    private var searchResultsCountText: String {
+        String.localizedStringWithFormat(
+            NSLocalizedString("search.results.count", comment: ""),
+            searchResults.count
+        )
+    }
+
+    private func matchesSearchScope(for bell: BellRecord, query: String) -> Bool {
+        if selectedScope == .incomplete {
+            return matchesIncomplete(bell) && (query.isEmpty || searchableText(for: bell, scope: .all).localizedCaseInsensitiveContains(query))
+        }
+
+        guard !query.isEmpty else { return false }
+        return searchableText(for: bell, scope: selectedScope).localizedCaseInsensitiveContains(query)
+    }
+
+    private func searchableText(for bell: BellRecord, scope: SearchScope) -> String {
+        switch scope {
+        case .all:
+            return [
+                bell.title,
+                bell.notes,
+                bell.placeDisplayName,
+                bell.storageDisplayPath,
+                bell.condition.displayName,
+                bell.acquisitionMethod.displayName,
+                bell.details.material.displayName,
+                collectionName(for: bell),
+                bell.tags.joined(separator: " ")
+            ]
+            .joined(separator: "\n")
+        case .title:
+            return bell.title
+        case .collection:
+            return collectionName(for: bell)
+        case .origin:
+            return [bell.placeDisplayName, bell.storageDisplayPath]
+                .joined(separator: "\n")
+        case .tags:
+            return bell.tags.joined(separator: " ")
+        case .notes:
+            return bell.notes
+        case .incomplete:
+            return searchableText(for: bell, scope: .all)
+        }
+    }
+
+    private func matchesIncomplete(_ bell: BellRecord) -> Bool {
+        bell.originPlace == nil ||
+        bell.item.locationID == nil ||
+        bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        bell.tags.isEmpty
+    }
+
+    private func collectionName(for bell: BellRecord) -> String {
+        allBellCollections.first(where: { $0.id == bell.item.collectionID })?.name ?? ""
+    }
 }
+
+private struct SearchBellDetailContainer: View {
+    let repository: any CatalogRepository
+    @State var bell: BellRecord
+
+    var body: some View {
+        BellDetailView(bell: $bell, repository: repository)
+    }
+}
+
+private struct BellSearchResultCard: View {
+    let bell: BellRecord
+    let collectionName: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            BellCardView(bell: bell, layoutMode: .compact)
+                .allowsHitTesting(false)
+
+            if !collectionName.isEmpty {
+                Text(collectionName)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 
 
 private struct HomeCard: View {

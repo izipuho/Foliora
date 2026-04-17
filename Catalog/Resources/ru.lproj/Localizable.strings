@@ -245,3 +245,12 @@
 "bell.detail.photos" = "Фото";
 "bell.detail.models" = "3D-модели";
 "bell.detail.documents" = "Документы";
+
+"search.scope.all" = "Всё";
+"search.scope.title" = "Название";
+"search.scope.collection" = "Коллекция";
+"search.scope.origin" = "Место";
+"search.scope.tags" = "Теги";
+"search.scope.notes" = "Заметки";
+"search.scope.incomplete" = "Незаполненные";
+"search.results.count" = "%lld результатов";

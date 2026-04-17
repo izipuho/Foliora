@@ -245,3 +245,12 @@
 "bell.detail.photos" = "Photos";
 "bell.detail.models" = "3D Models";
 "bell.detail.documents" = "Documents";
+
+"search.scope.all" = "All";
+"search.scope.title" = "Title";
+"search.scope.collection" = "Collection";
+"search.scope.origin" = "Place";
+"search.scope.tags" = "Tags";
+"search.scope.notes" = "Notes";
+"search.scope.incomplete" = "Incomplete";
+"search.results.count" = "%lld results";

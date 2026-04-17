@@ -664,23 +664,6 @@ struct BellCatalogView: View {
     }
 }
 
-struct BellSearchView: View {
-    let collection: CollectionSummary
-    let repository: any CatalogRepository
-    let collaborators: [Collaborator]
-    let sortOption: BellSortOption
-
-    var body: some View {
-        BellCatalogView(
-            collection: collection,
-            repository: repository,
-            collaborators: collaborators,
-            mode: .search,
-            sortOption: sortOption
-        )
-    }
-}
-
 struct BellEditorView: View {
     let collection: CollectionSummary
     let repository: any CatalogRepository
