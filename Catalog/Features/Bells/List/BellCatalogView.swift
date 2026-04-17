@@ -35,36 +35,22 @@ private func localizedCount(_ count: Int, kind: SummaryCountKind) -> String {
     )
 }
 
-enum BellSortOption: String, CaseIterable, Hashable {
+enum BellOrderMode: String, CaseIterable, Hashable {
     case title
-    case origin
     case newestFirst
     case oldestFirst
-
-    var title: String {
-        switch self {
-        case .title:
-            return BL("bell_catalog.sort.title")
-        case .origin:
-            return BL("bell_catalog.sort.origin")
-        case .newestFirst:
-            return BL("bell_catalog.sort.newest_first")
-        case .oldestFirst:
-            return BL("bell_catalog.sort.oldest_first")
-        }
-    }
-}
-
-enum BellGroupingMode: String, CaseIterable, Hashable {
-    case none
     case geography
     case acquisitionYear
     case storage
 
     var title: String {
         switch self {
-        case .none:
-            return BL("bell_catalog.group.none")
+        case .title:
+            return BL("bell_catalog.sort.title")
+        case .newestFirst:
+            return BL("bell_catalog.sort.newest_first")
+        case .oldestFirst:
+            return BL("bell_catalog.sort.oldest_first")
         case .geography:
             return BL("bell_catalog.group.geography")
         case .acquisitionYear:
@@ -132,8 +118,7 @@ struct BellCatalogView: View {
     let collaborators: [Collaborator]
     let collection: CollectionSummary
     let mode: BellCatalogMode
-    let sortOption: BellSortOption
-    let groupingMode: BellGroupingMode
+    let orderMode: BellOrderMode
     let summaryFilter: BellSummaryFilter?
     let onSelectSummaryFilter: ((BellSummaryFilter) -> Void)?
     let onClearSummaryFilter: (() -> Void)?
@@ -150,8 +135,7 @@ struct BellCatalogView: View {
         repository: any CatalogRepository,
         collaborators: [Collaborator],
         mode: BellCatalogMode,
-        sortOption: BellSortOption = .title,
-        groupingMode: BellGroupingMode = .none,
+        orderMode: BellOrderMode = .title,
         summaryFilter: BellSummaryFilter? = nil,
         onSelectSummaryFilter: ((BellSummaryFilter) -> Void)? = nil,
         onClearSummaryFilter: (() -> Void)? = nil,
@@ -161,8 +145,7 @@ struct BellCatalogView: View {
         self.collaborators = collaborators
         self.collection = collection
         self.mode = mode
-        self.sortOption = sortOption
-        self.groupingMode = groupingMode
+        self.orderMode = orderMode
         self.summaryFilter = summaryFilter
         self.onSelectSummaryFilter = onSelectSummaryFilter
         self.onClearSummaryFilter = onClearSummaryFilter
@@ -408,7 +391,7 @@ struct BellCatalogView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 120)
                 .animation(.snappy(duration: 0.24), value: layoutMode)
-                .animation(.snappy(duration: 0.24), value: groupingMode)
+                .animation(.snappy(duration: 0.24), value: orderMode)
             }
             .simultaneousGesture(zoomGesture)
             .background(
@@ -420,7 +403,7 @@ struct BellCatalogView: View {
                 .ignoresSafeArea()
             )
             .overlay(alignment: .trailing) {
-                if groupingMode == .geography && usesGroupedSections {
+                if orderMode == .geography && usesGroupedSections {
                     geographyJumpIndex { sectionID in
                         withAnimation(.snappy(duration: 0.24)) {
                             scrollProxy.scrollTo(sectionID, anchor: .top)
@@ -429,7 +412,7 @@ struct BellCatalogView: View {
                     .padding(.trailing, 6)
                 }
             }
-            .onChange(of: groupingMode) { _, _ in
+            .onChange(of: orderMode) { _, _ in
                 activeJumpPopoverSectionID = nil
                 withAnimation(.snappy(duration: 0.24)) {
                     scrollProxy.scrollTo("bell-grid-top", anchor: .top)
@@ -669,12 +652,12 @@ struct BellCatalogView: View {
     }
 
     private var usesGroupedSections: Bool {
-        mode == .items && groupingMode != .none
+        mode == .items && [.geography, .acquisitionYear, .storage].contains(orderMode)
     }
 
     private func groupedSections(from bells: [BellRecord]) -> [BellGroupedSection] {
-        switch groupingMode {
-        case .none:
+        switch orderMode {
+        case .title, .newestFirst, .oldestFirst:
             return []
         case .geography:
             let unknown = BL("common.unknown")
@@ -769,7 +752,7 @@ struct BellCatalogView: View {
     ) -> some View {
         ForEach(sections) { section in
             Section {
-                if groupingMode == .storage {
+                if orderMode == .storage {
                     VStack(alignment: .leading, spacing: 14) {
                         ForEach(section.cabinetGroups) { cabinetGroup in
                             VStack(alignment: .leading, spacing: 10) {
@@ -813,7 +796,7 @@ struct BellCatalogView: View {
                 BellGroupedSectionHeader(
                     title: section.title,
                     tint: collection.backgroundStyle.accentColor,
-                    isJumpButton: groupingMode == .acquisitionYear || groupingMode == .storage,
+                    isJumpButton: orderMode == .acquisitionYear || orderMode == .storage,
                     action: {
                         activeJumpPopoverSectionID = section.id
                     }
@@ -821,7 +804,7 @@ struct BellCatalogView: View {
                 .id(section.id)
                 .popover(
                     isPresented: Binding(
-                        get: { activeJumpPopoverSectionID == section.id && (groupingMode == .acquisitionYear || groupingMode == .storage) },
+                        get: { activeJumpPopoverSectionID == section.id && (orderMode == .acquisitionYear || orderMode == .storage) },
                         set: { isPresented in
                             if !isPresented {
                                 activeJumpPopoverSectionID = nil
@@ -897,18 +880,9 @@ struct BellCatalogView: View {
 
     private func sorted(_ bells: [BellRecord]) -> [BellRecord] {
         bells.sorted { lhs, rhs in
-            switch sortOption {
+            switch orderMode {
             case .title:
                 return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            case .origin:
-                let leftOrigin = lhs.placeDisplayName
-                let rightOrigin = rhs.placeDisplayName
-
-                if leftOrigin.localizedCaseInsensitiveCompare(rightOrigin) == .orderedSame {
-                    return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-                }
-
-                return leftOrigin.localizedCaseInsensitiveCompare(rightOrigin) == .orderedAscending
             case .newestFirst:
                 if lhs.createdAt != rhs.createdAt {
                     return lhs.createdAt > rhs.createdAt
@@ -918,6 +892,39 @@ struct BellCatalogView: View {
                 if lhs.createdAt != rhs.createdAt {
                     return lhs.createdAt < rhs.createdAt
                 }
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            case .geography:
+                return geographySort(lhs, rhs)
+            case .acquisitionYear:
+                if lhs.acquiredYear != rhs.acquiredYear {
+                    switch (lhs.acquiredYear, rhs.acquiredYear) {
+                    case let (left?, right?):
+                        return left > right
+                    case (_?, nil):
+                        return true
+                    case (nil, _?):
+                        return false
+                    default:
+                        break
+                    }
+                }
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            case .storage:
+                let left = storageComponents(for: lhs)
+                let right = storageComponents(for: rhs)
+
+                if left.floor != right.floor {
+                    return compareDisplayValues(left.floor, right.floor, unknown: BL("common.unknown")) == .orderedAscending
+                }
+
+                if left.room != right.room {
+                    return compareDisplayValues(left.room, right.room, unknown: BL("common.unknown")) == .orderedAscending
+                }
+
+                if left.cabinet != right.cabinet {
+                    return compareDisplayValues(left.cabinet, right.cabinet, unknown: BL("common.unknown")) == .orderedAscending
+                }
+
                 return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
             }
         }

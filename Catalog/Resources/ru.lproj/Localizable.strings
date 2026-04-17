@@ -61,6 +61,7 @@
 "bell_catalog.sort.year_oldest" = "Сначала старые";
 "bell_catalog.sort.newest_first" = "Сначала новые";
 "bell_catalog.sort.oldest_first" = "Сначала старые";
+"bell_catalog.order.menu" = "Упорядочить";
 "bell_catalog.group.menu" = "Группировка";
 "bell_catalog.group.none" = "Нет";
 "bell_catalog.group.geography" = "География";
