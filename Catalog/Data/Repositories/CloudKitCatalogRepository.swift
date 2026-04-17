@@ -7,17 +7,12 @@ final class CloudKitCatalogRepository: CatalogRepository {
     private let container: CKContainer
     private let privateDatabase: CKDatabase
     private let sharedDatabase: CKDatabase
-    private let fallbackRepository: any CatalogRepository
 
-    init(
-        configuration: CloudKitConfiguration = .default,
-        fallbackRepository: any CatalogRepository = InMemoryCatalogRepository()
-    ) {
+    init(configuration: CloudKitConfiguration = .default) {
         self.configuration = configuration
         self.container = CKContainer(identifier: configuration.containerIdentifier)
         self.privateDatabase = container.privateCloudDatabase
         self.sharedDatabase = container.sharedCloudDatabase
-        self.fallbackRepository = fallbackRepository
     }
 
     var containerIdentifier: String {
@@ -29,59 +24,59 @@ final class CloudKitCatalogRepository: CatalogRepository {
     }
 
     func fetchHomes() -> [Home] {
-        fallbackRepository.fetchHomes()
+        []
     }
 
     func fetchLocations(in homeID: UUID) -> [Location] {
-        fallbackRepository.fetchLocations(in: homeID)
+        []
     }
 
     func fetchDomainCollections(in homeID: UUID) -> [Collection] {
-        fallbackRepository.fetchDomainCollections(in: homeID)
+        []
     }
 
     func fetchMemberships(for collectionID: UUID) -> [Membership] {
-        fallbackRepository.fetchMemberships(for: collectionID)
+        []
     }
 
     func fetchCollections() -> [CollectionSummary] {
-        fallbackRepository.fetchCollections()
+        []
     }
 
     func fetchBellRecords(for collectionID: UUID) -> [BellRecord] {
-        fallbackRepository.fetchBellRecords(for: collectionID)
+        []
     }
 
     func fetchCollaborators(for collectionID: UUID) -> [Collaborator] {
-        fallbackRepository.fetchCollaborators(for: collectionID)
+        []
     }
 
     func saveHome(_ home: Home) {
-        fallbackRepository.saveHome(home)
+        assertionFailure("CloudKit repository is not implemented yet.")
     }
 
     func saveLocations(_ locations: [Location], in homeID: UUID) {
-        fallbackRepository.saveLocations(locations, in: homeID)
+        assertionFailure("CloudKit repository is not implemented yet.")
     }
 
     func deleteHome(homeID: UUID) {
-        fallbackRepository.deleteHome(homeID: homeID)
+        assertionFailure("CloudKit repository is not implemented yet.")
     }
 
     func saveCollection(_ collection: Collection) {
-        fallbackRepository.saveCollection(collection)
+        assertionFailure("CloudKit repository is not implemented yet.")
     }
 
     func deleteCollection(collectionID: UUID) {
-        fallbackRepository.deleteCollection(collectionID: collectionID)
+        assertionFailure("CloudKit repository is not implemented yet.")
     }
 
     func saveBellRecord(_ bell: BellRecord) {
-        fallbackRepository.saveBellRecord(bell)
+        assertionFailure("CloudKit repository is not implemented yet.")
     }
 
     func deleteBellRecord(bellID: UUID) {
-        fallbackRepository.deleteBellRecord(bellID: bellID)
+        assertionFailure("CloudKit repository is not implemented yet.")
     }
 }
 

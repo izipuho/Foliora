@@ -29,7 +29,6 @@
 		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
 		C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000014 /* CloudKitConfiguration.swift */; };
 		C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000015 /* CloudKitCatalogRepository.swift */; };
-		C000000000000000000000B5 /* LocalCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000017 /* LocalCatalogRepository.swift */; };
 		C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000018 /* LocalMediaFileStore.swift */; };
 		C000000000000000000000B9 /* BellCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001F /* BellCardView.swift */; };
 		C000000000000000000000BA /* CatalogEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000025 /* CatalogEntities.swift */; };
@@ -63,7 +62,6 @@
 		C00000000000000000000014 /* CloudKitConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitConfiguration.swift; sourceTree = "<group>"; };
 		C00000000000000000000015 /* CloudKitCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCatalogRepository.swift; sourceTree = "<group>"; };
 		C00000000000000000000016 /* Catalog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catalog.entitlements; sourceTree = "<group>"; };
-		C00000000000000000000017 /* LocalCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCatalogRepository.swift; sourceTree = "<group>"; };
 		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
 		C0000000000000000000001F /* BellCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCardView.swift; sourceTree = "<group>"; };
 		C00000000000000000000025 /* CatalogEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEntities.swift; sourceTree = "<group>"; };
@@ -229,7 +227,6 @@
 			children = (
 				C0000000000000000000000B /* CatalogRepository.swift */,
 				C00000000000000000000015 /* CloudKitCatalogRepository.swift */,
-				C00000000000000000000017 /* LocalCatalogRepository.swift */,
 				C00000000000000000000018 /* LocalMediaFileStore.swift */,
 			);
 			path = Repositories;
@@ -435,7 +432,6 @@
 				C000000000000000000000B2 /* EditorFields.swift in Sources */,
 				C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */,
 				C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */,
-				C000000000000000000000B5 /* LocalCatalogRepository.swift in Sources */,
 				C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */,
 				C000000000000000000000BA /* CatalogEntities.swift in Sources */,
 				C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */,
