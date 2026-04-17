@@ -69,7 +69,6 @@ enum LocationKind: String, CaseIterable, Hashable, Identifiable, Codable {
     case room
     case cabinet
     case shelf
-    case box
 
     var id: String { rawValue }
 
@@ -83,9 +82,29 @@ enum LocationKind: String, CaseIterable, Hashable, Identifiable, Codable {
             return CL("enum.location_kind.cabinet")
         case .shelf:
             return CL("enum.location_kind.shelf")
-        case .box:
-            return CL("enum.location_kind.box")
         }
+    }
+
+    private var hierarchyRank: Int {
+        switch self {
+        case .floor:
+            return 0
+        case .room:
+            return 1
+        case .cabinet:
+            return 2
+        case .shelf:
+            return 3
+        }
+    }
+
+    func canContain(_ child: LocationKind) -> Bool {
+        hierarchyRank < child.hierarchyRank
+    }
+
+    func canBeChild(of parent: LocationKind?) -> Bool {
+        guard let parent else { return true }
+        return parent.canContain(self)
     }
 }
 

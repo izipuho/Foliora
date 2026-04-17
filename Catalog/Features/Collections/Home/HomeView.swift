@@ -385,7 +385,18 @@ private struct HomeEditorView: View {
                             VStack(alignment: .leading, spacing: 10) {
                                 TextField(L("home.location.name"), text: $location.name)
 
-                                Picker(L("home.location.kind"), selection: $location.kind) {
+                                Picker(
+                                    L("home.location.kind"),
+                                    selection: Binding(
+                                        get: { location.kind },
+                                        set: { newKind in
+                                            location.kind = newKind
+                                            if !hasValidParent(location) {
+                                                location.parentLocationID = nil
+                                            }
+                                        }
+                                    )
+                                ) {
                                     ForEach(LocationKind.allCases) { kind in
                                         Text(kind.displayName).tag(kind)
                                     }
@@ -396,7 +407,13 @@ private struct HomeEditorView: View {
                                     selection: Binding(
                                         get: { location.parentLocationID },
                                         set: { newValue in
-                                            location.parentLocationID = newValue
+                                            if let newValue,
+                                               let candidate = locations.first(where: { $0.id == newValue }),
+                                               isValidParent(candidate, for: location) {
+                                                location.parentLocationID = newValue
+                                            } else {
+                                                location.parentLocationID = nil
+                                            }
                                         }
                                     )
                                 ) {
@@ -426,6 +443,7 @@ private struct HomeEditorView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(L("common.done")) {
+                        locations = normalizedLocations()
                         onSave()
                         dismiss()
                     }
@@ -462,9 +480,51 @@ private struct HomeEditorView: View {
     }
 
     private func parentCandidates(for location: Location) -> [Location] {
-        locations.filter { candidate in
-            candidate.id != location.id && candidate.homeID == location.homeID
+        locations
+            .filter { candidate in
+                isValidParent(candidate, for: location)
+            }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private func normalizedLocations() -> [Location] {
+        locations.map { location in
+            guard hasValidParent(location) else {
+                var copy = location
+                copy.parentLocationID = nil
+                return copy
+            }
+
+            return location
         }
+    }
+
+    private func hasValidParent(_ location: Location) -> Bool {
+        guard let parentID = location.parentLocationID else { return true }
+        guard let parent = locations.first(where: { $0.id == parentID }) else { return false }
+        return isValidParent(parent, for: location)
+    }
+
+    private func isValidParent(_ candidate: Location, for location: Location) -> Bool {
+        guard candidate.id != location.id else { return false }
+        guard candidate.homeID == location.homeID else { return false }
+        guard location.kind.canBeChild(of: candidate.kind) else { return false }
+        guard !isDescendant(candidateID: candidate.id, of: location.id) else { return false }
+        return true
+    }
+
+    private func isDescendant(candidateID: UUID, of locationID: UUID) -> Bool {
+        var currentParentID = locations.first(where: { $0.id == candidateID })?.parentLocationID
+
+        while let parentID = currentParentID {
+            if parentID == locationID {
+                return true
+            }
+
+            currentParentID = locations.first(where: { $0.id == parentID })?.parentLocationID
+        }
+
+        return false
     }
 }
 
