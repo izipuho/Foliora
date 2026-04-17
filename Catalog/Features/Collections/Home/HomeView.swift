@@ -1051,12 +1051,21 @@ private struct CollectionShellView: View {
     }
 
     private var collectionModePicker: some View {
-        Picker("Collection Mode", selection: $selectedMode) {
-            ForEach(CollectionContentMode.allCases) { mode in
-                Text(mode.title).tag(mode)
+        HStack {
+            Spacer(minLength: 0)
+
+            Picker("Collection Mode", selection: $selectedMode) {
+                ForEach(CollectionContentMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
             }
+            .fixedSize(horizontal: true, vertical: false)
+            .pickerStyle(.segmented)
+            .tint(.primary.opacity(0.14))
+            .background(.regularMaterial, in: Capsule(style: .continuous))
+
+            Spacer(minLength: 0)
         }
-        .pickerStyle(.segmented)
         .padding(.horizontal, 20)
         .padding(.top, 6)
         .padding(.bottom, 4)
