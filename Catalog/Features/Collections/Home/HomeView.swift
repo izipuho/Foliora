@@ -97,6 +97,8 @@ struct HomeView: View {
     @State private var path: [AppDestination] = []
     @State private var homes: [Home]
     @State private var locationsByHomeID: [UUID: [Location]]
+    @State private var pendingDeleteHomeID: UUID?
+    @State private var isPresentingDeleteConfirmation = false
 
     init(repository: any CatalogRepository, embedsNavigation: Bool = true) {
         self.repository = repository
@@ -125,16 +127,30 @@ struct HomeView: View {
     }
 
     private var homeContent: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                homesSection
+        Group {
+            if homes.isEmpty {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        homesSection
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 120)
+                }
+                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            } else {
+                List {
+                    Section {
+                        homesRows
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 120)
         }
-        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .background(
             LinearGradient(
                 colors: [
@@ -155,11 +171,28 @@ struct HomeView: View {
                     locationsByHomeID[newHome.id] = []
                     repository.saveHome(newHome)
                     repository.saveLocations([], in: newHome.id)
-                    path.append(.home(newHome.id))
+                    if embedsNavigation {
+                        path.append(.home(newHome.id))
+                    }
                 } label: {
                     Image(systemName: "plus")
                 }
             }
+        }
+        .confirmationDialog(
+            L("home.delete.title"),
+            isPresented: $isPresentingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(L("home.delete.confirm"), role: .destructive) {
+                confirmDeleteHome()
+            }
+
+            Button(L("common.cancel"), role: .cancel) {
+                pendingDeleteHomeID = nil
+            }
+        } message: {
+            Text(L("home.delete.message"))
         }
         .navigationDestination(for: AppDestination.self) { destination in
             switch destination {
@@ -213,7 +246,9 @@ struct HomeView: View {
                     locationsByHomeID[newHome.id] = []
                     repository.saveHome(newHome)
                     repository.saveLocations([], in: newHome.id)
-                    path.append(.home(newHome.id))
+                    if embedsNavigation {
+                        path.append(.home(newHome.id))
+                    }
                 } label: {
                     Label(L("home.add"), systemImage: "plus.circle.fill")
                         .font(.headline)
@@ -222,18 +257,69 @@ struct HomeView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Color(red: 0.20, green: 0.42, blue: 0.34))
-            } else {
-                ForEach(homes) { home in
-                    Button {
-                        path.append(.home(home.id))
-                    } label: {
-                        HomeListCard(
-                            home: home,
-                            locations: locationsByHomeID[home.id] ?? [],
-                            collectionCount: repository.fetchCollections().count
-                        )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var homesRows: some View {
+        ForEach(homes) { home in
+            if embedsNavigation {
+                Button {
+                    path.append(.home(home.id))
+                } label: {
+                    HomeListCard(
+                        home: home,
+                        locations: locationsByHomeID[home.id] ?? [],
+                        collectionCount: repository.fetchCollections().count
+                    )
+                }
+                .buttonStyle(.plain)
+                .listRowSeparator(.hidden)
+                .swipeActions {
+                    Button(L("common.delete"), role: .destructive) {
+                        requestDeleteHome(home.id)
                     }
-                    .buttonStyle(.plain)
+                }
+            } else if let homeBinding = binding(for: home.id) {
+                NavigationLink {
+                    HomeDetailView(
+                        home: homeBinding,
+                        locations: locationsBinding(for: home.id),
+                        collectionCount: repository.fetchCollections().count,
+                        onSave: { updatedHome, updatedLocations in
+                            repository.saveHome(updatedHome)
+                            repository.saveLocations(updatedLocations, in: updatedHome.id)
+                        },
+                        onDelete: {
+                            deleteHome(home.id)
+                        }
+                    )
+                } label: {
+                    HomeListCard(
+                        home: home,
+                        locations: locationsByHomeID[home.id] ?? [],
+                        collectionCount: repository.fetchCollections().count
+                    )
+                }
+                .buttonStyle(.plain)
+                .listRowSeparator(.hidden)
+                .swipeActions {
+                    Button(L("common.delete"), role: .destructive) {
+                        requestDeleteHome(home.id)
+                    }
+                }
+            } else {
+                HomeListCard(
+                    home: home,
+                    locations: locationsByHomeID[home.id] ?? [],
+                    collectionCount: repository.fetchCollections().count
+                )
+                .listRowSeparator(.hidden)
+                .swipeActions {
+                    Button(L("common.delete"), role: .destructive) {
+                        requestDeleteHome(home.id)
+                    }
                 }
             }
         }
@@ -250,6 +336,27 @@ struct HomeView: View {
             set: { locationsByHomeID[homeID] = $0 }
         )
     }
+
+    private func requestDeleteHome(_ homeID: UUID) {
+        pendingDeleteHomeID = homeID
+        isPresentingDeleteConfirmation = true
+    }
+
+    private func confirmDeleteHome() {
+        guard let homeID = pendingDeleteHomeID else { return }
+        deleteHome(homeID)
+        pendingDeleteHomeID = nil
+    }
+
+    private func deleteHome(_ homeID: UUID) {
+        repository.deleteHome(homeID: homeID)
+        homes.removeAll { $0.id == homeID }
+        locationsByHomeID[homeID] = nil
+        path.removeAll { destination in
+            if case .home(let id) = destination { return id == homeID }
+            return false
+        }
+    }
 }
 
 struct HomeView_Previews: PreviewProvider {
@@ -264,6 +371,7 @@ private struct HomeDetailView: View {
     let collectionCount: Int
     let onSave: (Home, [Location]) -> Void
     let onDelete: () -> Void
+    @Environment(\.dismiss) private var dismiss
     @State private var isPresentingEditor = false
     @State private var isPresentingDeleteConfirmation = false
 
@@ -313,6 +421,10 @@ private struct HomeDetailView: View {
                 locations: $locations,
                 onSave: {
                     onSave(home, locations)
+                },
+                onDelete: {
+                    onDelete()
+                    dismiss()
                 }
             )
         }
@@ -323,6 +435,7 @@ private struct HomeDetailView: View {
         ) {
             Button(L("home.delete.confirm"), role: .destructive) {
                 onDelete()
+                dismiss()
             }
 
             Button(L("common.cancel"), role: .cancel) {}
@@ -336,7 +449,9 @@ private struct HomeEditorView: View {
     @Binding var home: Home
     @Binding var locations: [Location]
     let onSave: () -> Void
+    let onDelete: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
+    @State private var isPresentingDeleteConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -419,17 +534,51 @@ private struct HomeEditorView: View {
                         Label(L("home.location.add"), systemImage: "plus.circle.fill")
                     }
                 }
+
+                if onDelete != nil {
+                    Section {
+                        Button(role: .destructive) {
+                            isPresentingDeleteConfirmation = true
+                        } label: {
+                            Label(L("common.delete"), systemImage: "trash")
+                        }
+                    }
+                }
             }
             .navigationTitle(L("home.editor.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(L("common.done")) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         locations = normalizedLocations()
                         onSave()
                         dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
                     }
                 }
+            }
+            .confirmationDialog(
+                L("home.delete.title"),
+                isPresented: $isPresentingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(L("home.delete.confirm"), role: .destructive) {
+                    onDelete?()
+                    dismiss()
+                }
+
+                Button(L("common.cancel"), role: .cancel) {}
+            } message: {
+                Text(L("home.delete.message"))
             }
         }
     }
@@ -843,8 +992,10 @@ struct CollectionEditorView: View {
 
                 if allowsDeletion {
                     Section {
-                        Button(L("collection.delete.confirm"), role: .destructive) {
+                        Button(role: .destructive) {
                             isPresentingDeleteConfirmation = true
+                        } label: {
+                            Label(L("common.delete"), systemImage: "trash")
                         }
                     }
                 }
@@ -853,16 +1004,20 @@ struct CollectionEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(L("common.cancel")) {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
                     }
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(L("common.save")) {
+                    Button {
                         guard let selectedHomeID else { return }
                         onSave(title, notes, selectedHomeID, backgroundStyle)
                         dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
                     }
                     .disabled(!canSave)
                 }
