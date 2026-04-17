@@ -950,6 +950,7 @@ private struct CollectionShellView: View {
         }
         .navigationTitle(collection.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             if selectedMode == .items {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -960,7 +961,7 @@ private struct CollectionShellView: View {
                             }
                         }
                     } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
+                        floatingToolbarIcon(systemName: "line.3.horizontal.decrease")
                     }
                 }
             }
@@ -969,7 +970,7 @@ private struct CollectionShellView: View {
                 Button {
                     isPresentingEditCollection = true
                 } label: {
-                    Image(systemName: "slider.horizontal.3")
+                    floatingToolbarIcon(systemName: "slider.horizontal.3")
                 }
             }
 
@@ -977,7 +978,7 @@ private struct CollectionShellView: View {
                 Button {
                     isPresentingAddBellOptions = true
                 } label: {
-                    Image(systemName: "plus")
+                    floatingToolbarIcon(systemName: "plus")
                 }
                 .confirmationDialog(L("editor.media.add"), isPresented: $isPresentingAddBellOptions, titleVisibility: .visible) {
                     Button(L("editor.media.photo_library")) {
@@ -1057,9 +1058,14 @@ private struct CollectionShellView: View {
         }
         .pickerStyle(.segmented)
         .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
-        .background(.thinMaterial)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
+    }
+
+    private func floatingToolbarIcon(systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.system(size: 17, weight: .semibold))
+            .frame(width: 34, height: 34)
     }
 
     private func saveCollectionEdits(title: String, notes: String, backgroundStyle: CollectionBackgroundStyle) {
