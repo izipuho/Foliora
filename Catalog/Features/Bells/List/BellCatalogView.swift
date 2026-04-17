@@ -55,6 +55,26 @@ enum BellSortOption: String, CaseIterable, Hashable {
     }
 }
 
+enum BellGroupingMode: String, CaseIterable, Hashable {
+    case none
+    case geography
+    case acquisitionYear
+    case storage
+
+    var title: String {
+        switch self {
+        case .none:
+            return BL("bell_catalog.group.none")
+        case .geography:
+            return BL("bell_catalog.group.geography")
+        case .acquisitionYear:
+            return BL("bell_catalog.group.acquisition_year")
+        case .storage:
+            return BL("bell_catalog.group.storage")
+        }
+    }
+}
+
 enum BellCatalogMode {
     case summary
     case items
@@ -113,6 +133,7 @@ struct BellCatalogView: View {
     let collection: CollectionSummary
     let mode: BellCatalogMode
     let sortOption: BellSortOption
+    let groupingMode: BellGroupingMode
     let summaryFilter: BellSummaryFilter?
     let onSelectSummaryFilter: ((BellSummaryFilter) -> Void)?
     let onClearSummaryFilter: (() -> Void)?
@@ -122,6 +143,7 @@ struct BellCatalogView: View {
     @State private var selectedCondition: ItemCondition?
     @State private var layoutMode: BellGridLayoutMode = .compact
     @State private var presentedBell: BellRecord?
+    @State private var activeJumpPopoverSectionID: String?
 
     init(
         collection: CollectionSummary,
@@ -129,6 +151,7 @@ struct BellCatalogView: View {
         collaborators: [Collaborator],
         mode: BellCatalogMode,
         sortOption: BellSortOption = .title,
+        groupingMode: BellGroupingMode = .none,
         summaryFilter: BellSummaryFilter? = nil,
         onSelectSummaryFilter: ((BellSummaryFilter) -> Void)? = nil,
         onClearSummaryFilter: (() -> Void)? = nil,
@@ -139,6 +162,7 @@ struct BellCatalogView: View {
         self.collection = collection
         self.mode = mode
         self.sortOption = sortOption
+        self.groupingMode = groupingMode
         self.summaryFilter = summaryFilter
         self.onSelectSummaryFilter = onSelectSummaryFilter
         self.onClearSummaryFilter = onClearSummaryFilter
@@ -184,6 +208,12 @@ struct BellCatalogView: View {
 
     private var themeColors: [Color] {
         collection.backgroundStyle.screenColors
+    }
+
+    private var locationsByID: [UUID: Location] {
+        Dictionary(
+            uniqueKeysWithValues: repository.fetchLocations(in: collection.homeID).map { ($0.id, $0) }
+        )
     }
 
     private var homeName: String {
@@ -335,48 +365,77 @@ struct BellCatalogView: View {
         emptyDescription: LocalizedStringKey,
         screenWidth: CGFloat
     ) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if !showsSearchControls, let summaryFilter, summaryFilter != .all {
-                    activeSummaryFilterSection
-                }
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: usesGroupedSections ? [.sectionHeaders] : []) {
+                    Color.clear
+                        .frame(height: 0)
+                        .id("bell-grid-top")
 
-                if showsSearchControls {
-                    searchFiltersSection
-                }
+                    if !showsSearchControls, let summaryFilter, summaryFilter != .all {
+                        activeSummaryFilterSection
+                    }
 
-                if bells.isEmpty {
-                    emptyBellsGridState(title: emptyTitle, description: emptyDescription)
-                } else {
-                    LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
-                        ForEach(bells) { bell in
-                            Button {
-                                presentedBell = bell
-                            } label: {
-                                BellCardView(
-                                    bell: bell,
-                                    layoutMode: layoutMode
-                                )
+                    if showsSearchControls {
+                        searchFiltersSection
+                    }
+
+                    if bells.isEmpty {
+                        emptyBellsGridState(title: emptyTitle, description: emptyDescription)
+                    } else if usesGroupedSections {
+                        groupedBellSectionsContent(
+                            sections: groupedSections(from: bells),
+                            screenWidth: screenWidth,
+                            scrollProxy: scrollProxy
+                        )
+                    } else {
+                        LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
+                            ForEach(bells) { bell in
+                                Button {
+                                    presentedBell = bell
+                                } label: {
+                                    BellCardView(
+                                        bell: bell,
+                                        layoutMode: layoutMode
+                                    )
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
+                .padding(.top, 20)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 120)
+                .animation(.snappy(duration: 0.24), value: layoutMode)
+                .animation(.snappy(duration: 0.24), value: groupingMode)
             }
-            .padding(.top, 20)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 120)
-            .animation(.snappy(duration: 0.24), value: layoutMode)
-        }
-        .simultaneousGesture(zoomGesture)
-        .background(
-            LinearGradient(
-                colors: themeColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+            .simultaneousGesture(zoomGesture)
+            .background(
+                LinearGradient(
+                    colors: themeColors,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
             )
-            .ignoresSafeArea()
-        )
+            .overlay(alignment: .trailing) {
+                if groupingMode == .geography && usesGroupedSections {
+                    geographyJumpIndex { sectionID in
+                        withAnimation(.snappy(duration: 0.24)) {
+                            scrollProxy.scrollTo(sectionID, anchor: .top)
+                        }
+                    }
+                    .padding(.trailing, 6)
+                }
+            }
+            .onChange(of: groupingMode) { _, _ in
+                activeJumpPopoverSectionID = nil
+                withAnimation(.snappy(duration: 0.24)) {
+                    scrollProxy.scrollTo("bell-grid-top", anchor: .top)
+                }
+            }
+        }
     }
 
     private func emptyBellsGridState(title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
@@ -609,6 +668,207 @@ struct BellCatalogView: View {
         return $bellRecords[index]
     }
 
+    private var usesGroupedSections: Bool {
+        mode == .items && groupingMode != .none
+    }
+
+    private func groupedSections(from bells: [BellRecord]) -> [BellGroupedSection] {
+        switch groupingMode {
+        case .none:
+            return []
+        case .geography:
+            let unknown = BL("common.unknown")
+            let grouped = Dictionary(grouping: bells, by: { normalizedCountry(for: $0) })
+            let orderedCountries = grouped.keys.sorted {
+                compareDisplayValues($0, $1, unknown: unknown) == .orderedAscending
+            }
+
+            return orderedCountries.map { country in
+                BellGroupedSection(
+                    id: "geography-\(country)",
+                    title: country,
+                    jumpTitle: country,
+                    indexTitle: String(country.prefix(1)).uppercased(),
+                    bells: grouped[country, default: []].sorted(by: geographySort),
+                    cabinetGroups: []
+                )
+            }
+        case .acquisitionYear:
+            let unknown = BL("common.unknown")
+            let grouped = Dictionary(grouping: bells, by: { acquisitionYearGroupTitle(for: $0) })
+            let orderedTitles = grouped.keys.sorted { lhs, rhs in
+                switch (Int(lhs), Int(rhs)) {
+                case let (left?, right?):
+                    return left > right
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                default:
+                    return compareDisplayValues(lhs, rhs, unknown: unknown) == .orderedAscending
+                }
+            }
+
+            return orderedTitles.map { title in
+                BellGroupedSection(
+                    id: "year-\(title)",
+                    title: title,
+                    jumpTitle: title,
+                    indexTitle: nil,
+                    bells: grouped[title, default: []].sorted {
+                        $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+                    },
+                    cabinetGroups: []
+                )
+            }
+        case .storage:
+            let grouped = Dictionary(grouping: bells, by: storageHeaderTitle(for:))
+            let orderedHeaders = grouped.keys.sorted { lhs, rhs in
+                let left = storageSortComponents(from: lhs)
+                let right = storageSortComponents(from: rhs)
+
+                if left.floor != right.floor {
+                    return compareDisplayValues(left.floor, right.floor, unknown: BL("common.unknown")) == .orderedAscending
+                }
+
+                return compareDisplayValues(left.room, right.room, unknown: BL("common.unknown")) == .orderedAscending
+            }
+
+            return orderedHeaders.map { header in
+                let cabinetGroups = Dictionary(grouping: grouped[header, default: []], by: storageCabinetTitle(for:))
+                    .map { key, value in
+                        BellStorageCabinetGroup(
+                            id: "\(header)-\(key)",
+                            title: key,
+                            bells: value.sorted {
+                                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+                            }
+                        )
+                    }
+                    .sorted {
+                        compareDisplayValues($0.title, $1.title, unknown: BL("common.unknown")) == .orderedAscending
+                    }
+
+                return BellGroupedSection(
+                    id: "storage-\(header)",
+                    title: header,
+                    jumpTitle: header,
+                    indexTitle: nil,
+                    bells: [],
+                    cabinetGroups: cabinetGroups
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func groupedBellSectionsContent(
+        sections: [BellGroupedSection],
+        screenWidth: CGFloat,
+        scrollProxy: ScrollViewProxy
+    ) -> some View {
+        ForEach(sections) { section in
+            Section {
+                if groupingMode == .storage {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ForEach(section.cabinetGroups) { cabinetGroup in
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(cabinetGroup.title)
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 4)
+
+                                LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
+                                    ForEach(cabinetGroup.bells) { bell in
+                                        Button {
+                                            presentedBell = bell
+                                        } label: {
+                                            BellCardView(
+                                                bell: bell,
+                                                layoutMode: layoutMode
+                                            )
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
+                        ForEach(section.bells) { bell in
+                            Button {
+                                presentedBell = bell
+                            } label: {
+                                BellCardView(
+                                    bell: bell,
+                                    layoutMode: layoutMode
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            } header: {
+                BellGroupedSectionHeader(
+                    title: section.title,
+                    tint: collection.backgroundStyle.accentColor,
+                    isJumpButton: groupingMode == .acquisitionYear || groupingMode == .storage,
+                    action: {
+                        activeJumpPopoverSectionID = section.id
+                    }
+                )
+                .id(section.id)
+                .popover(
+                    isPresented: Binding(
+                        get: { activeJumpPopoverSectionID == section.id && (groupingMode == .acquisitionYear || groupingMode == .storage) },
+                        set: { isPresented in
+                            if !isPresented {
+                                activeJumpPopoverSectionID = nil
+                            }
+                        }
+                    )
+                ) {
+                    BellGroupingJumpPopover(
+                        titles: sections.map(\.jumpTitle),
+                        onSelect: { title in
+                            guard let targetSection = sections.first(where: { $0.jumpTitle == title }) else { return }
+                            activeJumpPopoverSectionID = nil
+                            withAnimation(.snappy(duration: 0.24)) {
+                                scrollProxy.scrollTo(targetSection.id, anchor: .top)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    private func geographyJumpIndex(onSelect: @escaping (String) -> Void) -> some View {
+        let entries = Dictionary(
+            grouping: groupedSections(from: filteredItemsBells),
+            by: \.indexTitle
+        )
+        .compactMap { key, value -> BellGeographyIndexEntry? in
+            guard let key, let section = value.first else { return nil }
+            return BellGeographyIndexEntry(id: key, title: key, targetSectionID: section.id)
+        }
+        .sorted { $0.title < $1.title }
+
+        return VStack(spacing: 4) {
+            ForEach(entries) { entry in
+                Button(entry.title) {
+                    onSelect(entry.targetSectionID)
+                }
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 6)
+        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+    }
+
     private func deleteBell(_ bellID: UUID) {
         repository.deleteBellRecord(bellID: bellID)
         bellRecords.removeAll { $0.id == bellID }
@@ -661,6 +921,195 @@ struct BellCatalogView: View {
                 return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
             }
         }
+    }
+
+    private func normalizedCountry(for bell: BellRecord) -> String {
+        let country = bell.countryName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return country.isEmpty ? BL("common.unknown") : country
+    }
+
+    private func normalizedRegion(for bell: BellRecord) -> String {
+        let region = (bell.originPlace?.regionName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return region.isEmpty ? BL("common.unknown") : region
+    }
+
+    private func normalizedCity(for bell: BellRecord) -> String {
+        let city = bell.cityName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return city.isEmpty ? BL("common.unknown") : city
+    }
+
+    private func acquisitionYearGroupTitle(for bell: BellRecord) -> String {
+        bell.acquiredYear.map(String.init) ?? BL("common.unknown")
+    }
+
+    private func storageHeaderTitle(for bell: BellRecord) -> String {
+        let components = storageComponents(for: bell)
+        if components.floor == BL("common.unknown"), components.room == BL("common.unknown") {
+            return BL("common.unknown")
+        }
+
+        return "\(components.floor) · \(components.room)"
+    }
+
+    private func storageCabinetTitle(for bell: BellRecord) -> String {
+        storageComponents(for: bell).cabinet
+    }
+
+    private func storageComponents(for bell: BellRecord) -> (floor: String, room: String, cabinet: String) {
+        guard let locationID = bell.item.locationID else {
+            let unknown = BL("common.unknown")
+            return (unknown, unknown, unknown)
+        }
+
+        var floor = BL("common.unknown")
+        var room = BL("common.unknown")
+        var cabinet = BL("common.unknown")
+        var currentID: UUID? = locationID
+
+        while let id = currentID, let location = locationsByID[id] {
+            switch location.kind {
+            case .floor:
+                floor = location.name
+            case .room:
+                room = location.name
+            case .cabinet:
+                cabinet = location.name
+            case .shelf:
+                break
+            }
+
+            currentID = location.parentLocationID
+        }
+
+        return (floor, room, cabinet)
+    }
+
+    private func storageSortComponents(from header: String) -> (floor: String, room: String) {
+        let parts = header.components(separatedBy: " · ")
+        if parts.count == 2 {
+            return (parts[0], parts[1])
+        }
+
+        return (header, header)
+    }
+
+    private func compareDisplayValues(_ lhs: String, _ rhs: String, unknown: String) -> ComparisonResult {
+        let leftIsUnknown = lhs == unknown
+        let rightIsUnknown = rhs == unknown
+
+        if leftIsUnknown != rightIsUnknown {
+            return leftIsUnknown ? .orderedDescending : .orderedAscending
+        }
+
+        return lhs.localizedCaseInsensitiveCompare(rhs)
+    }
+
+    private func geographySort(_ lhs: BellRecord, _ rhs: BellRecord) -> Bool {
+        let countryComparison = compareDisplayValues(normalizedCountry(for: lhs), normalizedCountry(for: rhs), unknown: BL("common.unknown"))
+        if countryComparison != .orderedSame {
+            return countryComparison == .orderedAscending
+        }
+
+        let regionComparison = compareDisplayValues(normalizedRegion(for: lhs), normalizedRegion(for: rhs), unknown: BL("common.unknown"))
+        if regionComparison != .orderedSame {
+            return regionComparison == .orderedAscending
+        }
+
+        let cityComparison = compareDisplayValues(normalizedCity(for: lhs), normalizedCity(for: rhs), unknown: BL("common.unknown"))
+        if cityComparison != .orderedSame {
+            return cityComparison == .orderedAscending
+        }
+
+        return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+    }
+}
+
+private struct BellGroupedSection: Identifiable {
+    let id: String
+    let title: String
+    let jumpTitle: String
+    let indexTitle: String?
+    let bells: [BellRecord]
+    let cabinetGroups: [BellStorageCabinetGroup]
+}
+
+private struct BellStorageCabinetGroup: Identifiable {
+    let id: String
+    let title: String
+    let bells: [BellRecord]
+}
+
+private struct BellGeographyIndexEntry: Identifiable {
+    let id: String
+    let title: String
+    let targetSectionID: String
+}
+
+private struct BellGroupedSectionHeader: View {
+    let title: String
+    let tint: Color
+    let isJumpButton: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Group {
+            if isJumpButton {
+                Button(action: action) {
+                    headerContent
+                }
+                .buttonStyle(.plain)
+            } else {
+                headerContent
+            }
+        }
+    }
+
+    private var headerContent: some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            if isJumpButton {
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .background(.regularMaterial)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.black.opacity(0.06))
+                .frame(height: 0.5)
+        }
+    }
+}
+
+private struct BellGroupingJumpPopover: View {
+    let titles: [String]
+    let onSelect: (String) -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(titles, id: \.self) { title in
+                    Button(title) {
+                        onSelect(title)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+            }
+            .padding(12)
+        }
+        .frame(minWidth: 220, idealWidth: 260, maxWidth: 320, minHeight: 160, idealHeight: 280, maxHeight: 360)
     }
 }
 

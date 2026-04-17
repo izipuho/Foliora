@@ -61,6 +61,11 @@
 "bell_catalog.sort.year_oldest" = "Oldest Year";
 "bell_catalog.sort.newest_first" = "Newest First";
 "bell_catalog.sort.oldest_first" = "Oldest First";
+"bell_catalog.group.menu" = "Group by";
+"bell_catalog.group.none" = "None";
+"bell_catalog.group.geography" = "Geography";
+"bell_catalog.group.acquisition_year" = "Acquisition Year";
+"bell_catalog.group.storage" = "Storage";
 
 "common.add" = "Add";
 "common.back" = "Back";

@@ -1055,6 +1055,7 @@ private struct CollectionShellView: View {
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var isPresentingEditCollection = false
     @State private var selectedSort: BellSortOption = .title
+    @State private var selectedGrouping: BellGroupingMode = .none
     @State private var selectedSummaryFilter: BellSummaryFilter?
     private let mediaStore = LocalMediaFileStore.shared
 
@@ -1073,6 +1074,7 @@ private struct CollectionShellView: View {
                     collaborators: repository.fetchCollaborators(for: collection.id),
                     mode: .summary,
                     sortOption: selectedSort,
+                    groupingMode: .none,
                     onSelectSummaryFilter: { filter in
                         selectedSummaryFilter = filter
                         selectedMode = .items
@@ -1086,6 +1088,7 @@ private struct CollectionShellView: View {
                     collaborators: repository.fetchCollaborators(for: collection.id),
                     mode: .items,
                     sortOption: selectedSort,
+                    groupingMode: selectedGrouping,
                     summaryFilter: selectedSummaryFilter,
                     onClearSummaryFilter: {
                         selectedSummaryFilter = nil
@@ -1110,9 +1113,19 @@ private struct CollectionShellView: View {
             if selectedMode == .items {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Picker(L("bell_catalog.sort.menu"), selection: $selectedSort) {
-                            ForEach(BellSortOption.allCases, id: \.self) { option in
-                                Text(option.title).tag(option)
+                        Section(L("bell_catalog.sort.menu")) {
+                            Picker(L("bell_catalog.sort.menu"), selection: $selectedSort) {
+                                ForEach(BellSortOption.allCases, id: \.self) { option in
+                                    Text(option.title).tag(option)
+                                }
+                            }
+                        }
+
+                        Section(L("bell_catalog.group.menu")) {
+                            Picker(L("bell_catalog.group.menu"), selection: $selectedGrouping) {
+                                ForEach(BellGroupingMode.allCases, id: \.self) { option in
+                                    Text(option.title).tag(option)
+                                }
                             }
                         }
                     } label: {
