@@ -151,6 +151,7 @@ final class BellEntity {
     var title: String
     var notes: String
     var acquiredYear: Int?
+    var createdAt: Date
     var conditionRaw: String
     var acquisitionMethodRaw: String
     var materialRaw: String
@@ -172,6 +173,7 @@ final class BellEntity {
         title: String,
         notes: String,
         acquiredYear: Int?,
+        createdAt: Date,
         conditionRaw: String,
         acquisitionMethodRaw: String,
         materialRaw: String,
@@ -185,6 +187,7 @@ final class BellEntity {
         self.title = title
         self.notes = notes
         self.acquiredYear = acquiredYear
+        self.createdAt = createdAt
         self.conditionRaw = conditionRaw
         self.acquisitionMethodRaw = acquisitionMethodRaw
         self.materialRaw = materialRaw

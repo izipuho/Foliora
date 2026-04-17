@@ -38,8 +38,8 @@ private func localizedCount(_ count: Int, kind: SummaryCountKind) -> String {
 enum BellSortOption: String, CaseIterable, Hashable {
     case title
     case origin
-    case yearNewest
-    case yearOldest
+    case newestFirst
+    case oldestFirst
 
     var title: String {
         switch self {
@@ -47,10 +47,10 @@ enum BellSortOption: String, CaseIterable, Hashable {
             return BL("bell_catalog.sort.title")
         case .origin:
             return BL("bell_catalog.sort.origin")
-        case .yearNewest:
-            return BL("bell_catalog.sort.year_newest")
-        case .yearOldest:
-            return BL("bell_catalog.sort.year_oldest")
+        case .newestFirst:
+            return BL("bell_catalog.sort.newest_first")
+        case .oldestFirst:
+            return BL("bell_catalog.sort.oldest_first")
         }
     }
 }
@@ -211,7 +211,11 @@ struct BellCatalogView: View {
     }
 
     private var recentBells: [BellRecord] {
-        Array(bellRecords.prefix(5))
+        Array(
+            bellRecords
+                .sorted { $0.createdAt > $1.createdAt }
+                .prefix(5)
+        )
     }
 
     private var topCountries: [(String, Int)] {
@@ -645,28 +649,16 @@ struct BellCatalogView: View {
                 }
 
                 return leftOrigin.localizedCaseInsensitiveCompare(rightOrigin) == .orderedAscending
-            case .yearNewest:
-                switch (lhs.acquiredYear, rhs.acquiredYear) {
-                case let (left?, right?) where left != right:
-                    return left > right
-                case (.some, nil):
-                    return true
-                case (nil, .some):
-                    return false
-                default:
-                    return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            case .newestFirst:
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt > rhs.createdAt
                 }
-            case .yearOldest:
-                switch (lhs.acquiredYear, rhs.acquiredYear) {
-                case let (left?, right?) where left != right:
-                    return left < right
-                case (.some, nil):
-                    return true
-                case (nil, .some):
-                    return false
-                default:
-                    return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            case .oldestFirst:
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt < rhs.createdAt
                 }
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
             }
         }
     }
@@ -708,6 +700,7 @@ struct BellEditorView: View {
     @State private var mediaAssets: [MediaAsset] = []
     @State private var selectedAcquiredYearOption = BL("editor.acquired_year.none")
     private let existingBellID: UUID?
+    private let existingCreatedAt: Date?
     private let editorItemID: UUID
 
     private let acquiredYearOptions = [BL("editor.acquired_year.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -749,6 +742,7 @@ struct BellEditorView: View {
         self.repository = repository
         self.onSave = onSave
         self.existingBellID = bell?.id
+        self.existingCreatedAt = bell?.createdAt
         self.editorItemID = bell?.id ?? UUID()
         _title = State(initialValue: bell?.title ?? "")
         _notes = State(initialValue: bell?.notes ?? "")
@@ -891,6 +885,7 @@ struct BellEditorView: View {
                 id: itemID,
                 collectionID: collection.id,
                 locationID: selectedLocationID,
+                createdAt: existingCreatedAt ?? .now,
                 title: trimmedTitle,
                 notes: trimmedNotes,
                 acquiredYear: selectedAcquiredYearOption == BL("editor.acquired_year.none") ? nil : Int(selectedAcquiredYearOption),

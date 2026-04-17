@@ -8,6 +8,7 @@ struct Item: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
     let locationID: UUID?
+    let createdAt: Date
     var title: String
     var notes: String
     var acquiredYear: Int?
@@ -18,6 +19,7 @@ struct Item: Identifiable, Hashable, Codable {
         case id
         case collectionID
         case locationID
+        case createdAt
         case title
         case notes
         case acquiredYear
@@ -29,6 +31,7 @@ struct Item: Identifiable, Hashable, Codable {
         id: UUID,
         collectionID: UUID,
         locationID: UUID?,
+        createdAt: Date,
         title: String,
         notes: String,
         acquiredYear: Int?,
@@ -38,6 +41,7 @@ struct Item: Identifiable, Hashable, Codable {
         self.id = id
         self.collectionID = collectionID
         self.locationID = locationID
+        self.createdAt = createdAt
         self.title = title
         self.notes = notes
         self.acquiredYear = acquiredYear
@@ -50,6 +54,7 @@ struct Item: Identifiable, Hashable, Codable {
         id = try container.decode(UUID.self, forKey: .id)
         collectionID = try container.decode(UUID.self, forKey: .collectionID)
         locationID = try container.decodeIfPresent(UUID.self, forKey: .locationID)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
         title = try container.decode(String.self, forKey: .title)
         notes = try container.decode(String.self, forKey: .notes)
         acquiredYear = try container.decodeIfPresent(Int.self, forKey: .acquiredYear)
@@ -62,6 +67,7 @@ struct Item: Identifiable, Hashable, Codable {
         try container.encode(id, forKey: .id)
         try container.encode(collectionID, forKey: .collectionID)
         try container.encodeIfPresent(locationID, forKey: .locationID)
+        try container.encode(createdAt, forKey: .createdAt)
         try container.encode(title, forKey: .title)
         try container.encode(notes, forKey: .notes)
         try container.encodeIfPresent(acquiredYear, forKey: .acquiredYear)

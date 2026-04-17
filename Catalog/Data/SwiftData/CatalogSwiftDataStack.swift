@@ -19,13 +19,17 @@ enum CatalogSwiftDataStack {
         if inMemory {
             configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         } else {
-            let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("Catalog", isDirectory: true)
-            try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
-            let storeURL = baseURL.appendingPathComponent("catalog.store")
+            let storeURL = try persistentStoreURL()
             configuration = ModelConfiguration(schema: schema, url: storeURL)
         }
 
         return try ModelContainer(for: schema, configurations: [configuration])
+    }
+
+    private static func persistentStoreURL() throws -> URL {
+        let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Catalog", isDirectory: true)
+        try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
+        return baseURL.appendingPathComponent("catalog.store")
     }
 }

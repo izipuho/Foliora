@@ -59,6 +59,8 @@
 "bell_catalog.sort.origin" = "По происхождению";
 "bell_catalog.sort.year_newest" = "Сначала новые";
 "bell_catalog.sort.year_oldest" = "Сначала старые";
+"bell_catalog.sort.newest_first" = "Сначала новые";
+"bell_catalog.sort.oldest_first" = "Сначала старые";
 
 "common.add" = "Добавить";
 "common.back" = "Назад";

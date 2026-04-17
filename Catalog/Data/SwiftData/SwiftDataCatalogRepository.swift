@@ -173,6 +173,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
             title: bell.item.title,
             notes: bell.item.notes,
             acquiredYear: bell.item.acquiredYear,
+            createdAt: bell.item.createdAt,
             conditionRaw: bell.item.condition.rawValue,
             acquisitionMethodRaw: bell.item.acquisitionMethod.rawValue,
             materialRaw: bell.details.material.rawValue,
@@ -184,6 +185,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
         entity.title = bell.item.title
         entity.notes = bell.item.notes
         entity.acquiredYear = bell.item.acquiredYear
+        entity.createdAt = bell.item.createdAt
         entity.conditionRaw = bell.item.condition.rawValue
         entity.acquisitionMethodRaw = bell.item.acquisitionMethod.rawValue
         entity.materialRaw = bell.details.material.rawValue
@@ -312,6 +314,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 title: bell.item.title,
                 notes: bell.item.notes,
                 acquiredYear: bell.item.acquiredYear,
+                createdAt: bell.item.createdAt,
                 conditionRaw: bell.item.condition.rawValue,
                 acquisitionMethodRaw: bell.item.acquisitionMethod.rawValue,
                 materialRaw: bell.details.material.rawValue,
@@ -380,6 +383,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 id: entity.id,
                 collectionID: entity.collection?.id ?? UUID(),
                 locationID: entity.location?.id,
+                createdAt: entity.createdAt,
                 title: entity.title,
                 notes: entity.notes,
                 acquiredYear: entity.acquiredYear,
