@@ -9,9 +9,8 @@ private func L(_ key: String) -> String {
 
 enum RootTab: String, CaseIterable, Identifiable {
     case collections
-    case homes
-    case search
     case settings
+    case search
 
     var id: String { rawValue }
 
@@ -19,12 +18,10 @@ enum RootTab: String, CaseIterable, Identifiable {
         switch self {
         case .collections:
             return L("root_tab.collections")
-        case .homes:
-            return L("root_tab.homes")
-        case .search:
-            return L("root_tab.search")
         case .settings:
             return L("root_tab.settings")
+        case .search:
+            return L("root_tab.search")
         }
     }
 
@@ -32,22 +29,18 @@ enum RootTab: String, CaseIterable, Identifiable {
         switch self {
         case .collections:
             return "square.grid.2x2"
-        case .homes:
-            return "house"
-        case .search:
-            return "magnifyingglass"
         case .settings:
             return "gearshape"
+        case .search:
+            return "magnifyingglass"
         }
     }
 }
 
-enum CollectionTab: String, CaseIterable, Identifiable {
+enum CollectionContentMode: String, CaseIterable, Identifiable {
     case summary
     case items
     case map
-    case participants
-    case search
 
     var id: String { rawValue }
 
@@ -59,25 +52,6 @@ enum CollectionTab: String, CaseIterable, Identifiable {
             return L("collection_tab.items")
         case .map:
             return L("collection_tab.map")
-        case .participants:
-            return L("collection_tab.participants")
-        case .search:
-            return L("collection_tab.search")
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .summary:
-            return "rectangle.grid.2x2"
-        case .items:
-            return "bell.fill"
-        case .map:
-            return "map"
-        case .participants:
-            return "person.2.fill"
-        case .search:
-            return "magnifyingglass"
         }
     }
 }
@@ -86,11 +60,11 @@ struct AppShellView: View {
     let repository: any CatalogRepository
 
     var body: some View {
-        ModernAppShellView(repository: repository)
+        RootShellView(repository: repository)
     }
 }
 
-private struct ModernAppShellView: View {
+private struct RootShellView: View {
     let repository: any CatalogRepository
 
     var body: some View {
@@ -99,16 +73,12 @@ private struct ModernAppShellView: View {
                 CollectionsView(repository: repository)
             }
 
-            Tab(RootTab.homes.title, systemImage: RootTab.homes.systemImage) {
-                HomeView(repository: repository)
+            Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage) {
+                SettingsView(repository: repository)
             }
 
             Tab(role: .search) {
                 SearchTabView()
-            }
-
-            Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage) {
-                SettingsView(repository: repository)
             }
         }
         .modifier(ModernTabBarBehavior())
@@ -123,12 +93,14 @@ private struct ModernTabBarBehavior: ViewModifier {
 
 struct HomeView: View {
     let repository: any CatalogRepository
+    let embedsNavigation: Bool
     @State private var path: [AppDestination] = []
     @State private var homes: [Home]
     @State private var locationsByHomeID: [UUID: [Location]]
 
-    init(repository: any CatalogRepository) {
+    init(repository: any CatalogRepository, embedsNavigation: Bool = true) {
         self.repository = repository
+        self.embedsNavigation = embedsNavigation
         let initialHomes = repository.fetchHomes()
         _homes = State(initialValue: initialHomes)
         _locationsByHomeID = State(
@@ -141,74 +113,84 @@ struct HomeView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    homesSection
+        Group {
+            if embedsNavigation {
+                NavigationStack(path: $path) {
+                    homeContent
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 120)
+            } else {
+                homeContent
             }
-            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.99, green: 0.97, blue: 0.93),
-                        Color(red: 0.94, green: 0.92, blue: 0.86)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+        }
+    }
+
+    private var homeContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                homesSection
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 120)
+        }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.99, green: 0.97, blue: 0.93),
+                    Color(red: 0.94, green: 0.92, blue: 0.86)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
-            .navigationTitle(L("home.screen.title"))
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        let newHome = Home(id: UUID(), name: L("home.new.default_name"), notes: "")
-                        homes.append(newHome)
-                        locationsByHomeID[newHome.id] = []
-                        repository.saveHome(newHome)
-                        repository.saveLocations([], in: newHome.id)
-                        path.append(.home(newHome.id))
-                    } label: {
-                        Image(systemName: "plus")
-                    }
+            .ignoresSafeArea()
+        )
+        .navigationTitle(L("home.screen.title"))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    let newHome = Home(id: UUID(), name: L("home.new.default_name"), notes: "")
+                    homes.append(newHome)
+                    locationsByHomeID[newHome.id] = []
+                    repository.saveHome(newHome)
+                    repository.saveLocations([], in: newHome.id)
+                    path.append(.home(newHome.id))
+                } label: {
+                    Image(systemName: "plus")
                 }
             }
-            .navigationDestination(for: AppDestination.self) { destination in
-                switch destination {
-                case .collection:
-                    EmptyView()
-                case .home(let homeID):
-                    if let homeBinding = binding(for: homeID) {
-                        HomeDetailView(
-                            home: homeBinding,
-                            locations: locationsBinding(for: homeID),
-                            collectionCount: repository.fetchCollections().count,
-                            onSave: { updatedHome, updatedLocations in
-                                repository.saveHome(updatedHome)
-                                repository.saveLocations(updatedLocations, in: updatedHome.id)
-                            },
-                            onDelete: {
-                                repository.deleteHome(homeID: homeID)
-                                homes.removeAll { $0.id == homeID }
-                                locationsByHomeID[homeID] = nil
-                                path.removeAll { destination in
-                                    if case .home(let id) = destination { return id == homeID }
-                                    return false
-                                }
+        }
+        .navigationDestination(for: AppDestination.self) { destination in
+            switch destination {
+            case .collection:
+                EmptyView()
+            case .home(let homeID):
+                if let homeBinding = binding(for: homeID) {
+                    HomeDetailView(
+                        home: homeBinding,
+                        locations: locationsBinding(for: homeID),
+                        collectionCount: repository.fetchCollections().count,
+                        onSave: { updatedHome, updatedLocations in
+                            repository.saveHome(updatedHome)
+                            repository.saveLocations(updatedLocations, in: updatedHome.id)
+                        },
+                        onDelete: {
+                            repository.deleteHome(homeID: homeID)
+                            homes.removeAll { $0.id == homeID }
+                            locationsByHomeID[homeID] = nil
+                            path.removeAll { destination in
+                                if case .home(let id) = destination { return id == homeID }
+                                return false
                             }
-                        )
-                    } else {
-                        ContentUnavailableView(
-                            L("home.not_found.title"),
-                            systemImage: "house.slash",
-                            description: Text(L("home.not_found.description"))
-                        )
-                    }
+                        }
+                    )
+                } else {
+                    ContentUnavailableView(
+                        L("home.not_found.title"),
+                        systemImage: "house.slash",
+                        description: Text(L("home.not_found.description"))
+                    )
                 }
             }
         }
@@ -599,8 +581,8 @@ private struct HomeListCard: View {
 
 struct CollectionsView: View {
     let repository: any CatalogRepository
-    @State private var path: [AppDestination] = []
     @State private var collections: [CollectionSummary]
+    @State private var path: [AppDestination] = []
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
 
@@ -623,14 +605,6 @@ struct CollectionsView: View {
                     )
                     .ignoresSafeArea()
                 )
-                .navigationDestination(for: AppDestination.self) { destination in
-                    switch destination {
-                    case .collection(let collection):
-                        CollectionShellView(collection: collection, repository: repository)
-                    case .home:
-                        EmptyView()
-                    }
-                }
                 .onAppear {
                     collections = repository.fetchCollections()
                     autoOpenSingleCollectionIfNeeded()
@@ -646,6 +620,14 @@ struct CollectionsView: View {
                         initialHomeID: repository.fetchHomes().first?.id
                     ) { title, notes, homeID, backgroundStyle in
                         addCollection(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
+                    }
+                }
+                .navigationDestination(for: AppDestination.self) { destination in
+                    switch destination {
+                    case .collection(let collection):
+                        CollectionShellView(collection: collection, repository: repository)
+                    case .home:
+                        EmptyView()
                     }
                 }
         }
@@ -726,19 +708,18 @@ struct CollectionsView: View {
         repository.saveCollection(collection)
         collections = repository.fetchCollections()
         if let createdCollection = collections.first(where: { $0.id == collection.id }) {
-            path = [.collection(createdCollection)]
             didAutoOpenSingleCollection = true
+            path.append(.collection(createdCollection))
         }
     }
 
     private func autoOpenSingleCollectionIfNeeded() {
         guard collections.count == 1 else { return }
-        guard path.isEmpty else { return }
         guard !didAutoOpenSingleCollection else { return }
         guard let collection = collections.first else { return }
 
         didAutoOpenSingleCollection = true
-        path = [.collection(collection)]
+        path.append(.collection(collection))
     }
 }
 
@@ -908,7 +889,7 @@ private struct CollectionShellView: View {
     let repository: any CatalogRepository
     @Environment(\.dismiss) private var dismiss
     @State private var collection: CollectionSummary
-    @State private var selectedTab: CollectionTab = .summary
+    @State private var selectedMode: CollectionContentMode = .summary
     @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
     @State private var isPresentingAddBellOptions = false
@@ -928,8 +909,9 @@ private struct CollectionShellView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            Tab(CollectionTab.summary.title, systemImage: CollectionTab.summary.systemImage, value: .summary) {
+        Group {
+            switch selectedMode {
+            case .summary:
                 BellCatalogView(
                     collection: collection,
                     repository: repository,
@@ -938,13 +920,11 @@ private struct CollectionShellView: View {
                     sortOption: selectedSort,
                     onSelectSummaryFilter: { filter in
                         selectedSummaryFilter = filter
-                        selectedTab = .items
+                        selectedMode = .items
                     }
                 )
                 .id("summary-\(refreshID.uuidString)")
-            }
-
-            Tab(CollectionTab.items.title, systemImage: CollectionTab.items.systemImage, value: .items) {
+            case .items:
                 BellCatalogView(
                     collection: collection,
                     repository: repository,
@@ -957,51 +937,21 @@ private struct CollectionShellView: View {
                     }
                 )
                 .id("items-\(refreshID.uuidString)")
-            }
-
-            Tab(CollectionTab.map.title, systemImage: CollectionTab.map.systemImage, value: .map) {
+            case .map:
                 CollectionOriginMapView(
                     collection: collection,
                     repository: repository
                 )
                 .id("map-\(refreshID.uuidString)")
             }
-
-            Tab(CollectionTab.participants.title, systemImage: CollectionTab.participants.systemImage, value: .participants) {
-                CollectionPlaceholderView(
-                    title: L("collection.placeholder.participants.title"),
-                    systemImage: "person.2.fill",
-                    description: L("collection.placeholder.participants.description"),
-                    backgroundStyle: collection.backgroundStyle
-                )
-            }
-
-            Tab(CollectionTab.search.title, systemImage: CollectionTab.search.systemImage, value: .search) {
-                BellCatalogView(
-                    collection: collection,
-                    repository: repository,
-                    collaborators: repository.fetchCollaborators(for: collection.id),
-                    mode: .search,
-                    sortOption: selectedSort
-                )
-                .id("search-\(refreshID.uuidString)")
-            }
         }
-        .toolbar(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .top) {
+            collectionModePicker
+        }
         .navigationTitle(collection.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if selectedTab == .summary {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isPresentingEditCollection = true
-                    } label: {
-                        Image(systemName: "square.and.pencil")
-                    }
-                }
-            }
-
-            if selectedTab == .items {
+            if selectedMode == .items {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Picker(L("bell_catalog.sort.menu"), selection: $selectedSort) {
@@ -1012,6 +962,14 @@ private struct CollectionShellView: View {
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                     }
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isPresentingEditCollection = true
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
                 }
             }
 
@@ -1069,7 +1027,7 @@ private struct CollectionShellView: View {
             ) { newBell in
                 repository.saveBellRecord(newBell)
                 refreshContent()
-                selectedTab = .items
+                selectedMode = .items
             }
         }
         .sheet(isPresented: $isPresentingEditCollection) {
@@ -1089,6 +1047,19 @@ private struct CollectionShellView: View {
                 dismiss()
             }
         }
+    }
+
+    private var collectionModePicker: some View {
+        Picker("Collection Mode", selection: $selectedMode) {
+            ForEach(CollectionContentMode.allCases) { mode in
+                Text(mode.title).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
+        .background(.thinMaterial)
     }
 
     private func saveCollectionEdits(title: String, notes: String, backgroundStyle: CollectionBackgroundStyle) {
@@ -1242,6 +1213,17 @@ private struct SettingsView: View {
                         systemImage: "externaldrive.connected.to.line.below"
                     )
 
+                    NavigationLink {
+                        HomeView(repository: repository, embedsNavigation: false)
+                    } label: {
+                        settingsNavigationCard(
+                            title: L("root_tab.homes"),
+                            subtitle: L("settings.storage.subtitle"),
+                            systemImage: "house"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
                     settingsActionCard(
                         title: "Data",
                         subtitle: "Import and export the current app JSON format.",
@@ -1314,14 +1296,6 @@ private struct SettingsView: View {
             } message: {
                 Text(importErrorMessage ?? "")
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                    } label: {
-                        Image(systemName: "gearshape.2")
-                    }
-                }
-            }
         }
     }
 
@@ -1344,6 +1318,18 @@ private struct SettingsView: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private func settingsNavigationCard(title: String, subtitle: String, systemImage: String) -> some View {
+        HStack(spacing: 12) {
+            settingsCard(title: title, subtitle: subtitle, systemImage: systemImage)
+
+            Image(systemName: "chevron.right")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.trailing, 18)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private func settingsActionCard<Content: View>(

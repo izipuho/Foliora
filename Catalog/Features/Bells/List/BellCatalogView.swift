@@ -116,9 +116,9 @@ struct BellCatalogView: View {
     let summaryFilter: BellSummaryFilter?
     let onSelectSummaryFilter: ((BellSummaryFilter) -> Void)?
     let onClearSummaryFilter: (() -> Void)?
+    let externalSearchText: String?
 
     @State private var bellRecords: [BellRecord]
-    @State private var searchText = ""
     @State private var selectedCondition: ItemCondition?
     @State private var layoutMode: BellGridLayoutMode = .compact
     @State private var presentedBell: BellRecord?
@@ -131,7 +131,8 @@ struct BellCatalogView: View {
         sortOption: BellSortOption = .title,
         summaryFilter: BellSummaryFilter? = nil,
         onSelectSummaryFilter: ((BellSummaryFilter) -> Void)? = nil,
-        onClearSummaryFilter: (() -> Void)? = nil
+        onClearSummaryFilter: (() -> Void)? = nil,
+        externalSearchText: String? = nil
     ) {
         self.repository = repository
         self.collaborators = collaborators
@@ -141,7 +142,12 @@ struct BellCatalogView: View {
         self.summaryFilter = summaryFilter
         self.onSelectSummaryFilter = onSelectSummaryFilter
         self.onClearSummaryFilter = onClearSummaryFilter
+        self.externalSearchText = externalSearchText
         _bellRecords = State(initialValue: repository.fetchBellRecords(for: collection.id))
+    }
+
+    private var effectiveSearchText: String {
+        externalSearchText ?? ""
     }
 
     private var bells: [BellRecord] {
@@ -152,11 +158,11 @@ struct BellCatalogView: View {
         sorted(
             bellRecords.filter { bell in
             let matchesSearch =
-                searchText.isEmpty ||
-                bell.title.localizedCaseInsensitiveContains(searchText) ||
-                bell.countryName.localizedCaseInsensitiveContains(searchText) ||
-                bell.cityName.localizedCaseInsensitiveContains(searchText) ||
-                bell.tags.joined(separator: " ").localizedCaseInsensitiveContains(searchText)
+                effectiveSearchText.isEmpty ||
+                bell.title.localizedCaseInsensitiveContains(effectiveSearchText) ||
+                bell.countryName.localizedCaseInsensitiveContains(effectiveSearchText) ||
+                bell.cityName.localizedCaseInsensitiveContains(effectiveSearchText) ||
+                bell.tags.joined(separator: " ").localizedCaseInsensitiveContains(effectiveSearchText)
 
             let matchesCondition = selectedCondition == nil || bell.condition == selectedCondition
             let matchesSummaryFilter = matches(bell: bell, summaryFilter: summaryFilter)
@@ -332,7 +338,7 @@ struct BellCatalogView: View {
                 }
 
                 if showsSearchControls {
-                    searchSection
+                    searchFiltersSection
                 }
 
                 if bells.isEmpty {
@@ -578,23 +584,16 @@ struct BellCatalogView: View {
         }
     }
 
-    private var searchSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            TextField(BL("bell_catalog.search.placeholder"), text: $searchText)
-                .textInputAutocapitalization(.sentences)
-                .padding(14)
-                .background(Color.white.opacity(0.84), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    private var searchFiltersSection: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                FilterChip(title: BL("bell_catalog.filter.all"), isSelected: selectedCondition == nil, tint: collection.backgroundStyle.accentColor) {
+                    selectedCondition = nil
+                }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    FilterChip(title: BL("bell_catalog.filter.all"), isSelected: selectedCondition == nil, tint: collection.backgroundStyle.accentColor) {
-                        selectedCondition = nil
-                    }
-
-                    ForEach(ItemCondition.allCases) { condition in
-                        FilterChip(title: condition.displayName, isSelected: selectedCondition == condition, tint: collection.backgroundStyle.accentColor) {
-                            selectedCondition = condition
-                        }
+                ForEach(ItemCondition.allCases) { condition in
+                    FilterChip(title: condition.displayName, isSelected: selectedCondition == condition, tint: collection.backgroundStyle.accentColor) {
+                        selectedCondition = condition
                     }
                 }
             }
@@ -670,6 +669,23 @@ struct BellCatalogView: View {
                 }
             }
         }
+    }
+}
+
+struct BellSearchView: View {
+    let collection: CollectionSummary
+    let repository: any CatalogRepository
+    let collaborators: [Collaborator]
+    let sortOption: BellSortOption
+
+    var body: some View {
+        BellCatalogView(
+            collection: collection,
+            repository: repository,
+            collaborators: collaborators,
+            mode: .search,
+            sortOption: sortOption
+        )
     }
 }
 
