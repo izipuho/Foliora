@@ -1,10 +1,6 @@
 import Foundation
 import SwiftData
 
-private func SDL(_ key: String) -> String {
-    NSLocalizedString(key, comment: "")
-}
-
 @MainActor
 final class SwiftDataCatalogRepository: CatalogRepository {
     private let container: ModelContainer
@@ -105,9 +101,9 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 id: location.id,
                 kindRaw: location.kind.rawValue,
                 name: location.name,
-                notes: location.notes,
-                home: home
+                notes: location.notes
             )
+            entity.home = home
             context.insert(entity)
             entitiesByID[location.id] = entity
         }
@@ -135,8 +131,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
             kindRaw: collection.kind.rawValue,
             title: collection.title,
             notes: collection.notes,
-            backgroundStyleRaw: collection.backgroundStyle.rawValue,
-            home: home
+            backgroundStyleRaw: collection.backgroundStyle.rawValue
         )
 
         entity.kindRaw = collection.kind.rawValue
@@ -154,9 +149,9 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 id: UUID(),
                 userID: currentUserID,
                 roleRaw: CollectionRole.owner.rawValue,
-                statusRaw: MembershipStatus.active.rawValue,
-                collection: entity
+                statusRaw: MembershipStatus.active.rawValue
             )
+            membership.collection = entity
             context.insert(membership)
         }
 
@@ -182,8 +177,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
             acquisitionMethodRaw: bell.item.acquisitionMethod.rawValue,
             materialRaw: bell.details.material.rawValue,
             customMaterialName: bell.details.customMaterialName,
-            createdBy: bell.createdBy,
-            collection: collection
+            createdBy: bell.createdBy
         )
 
         entity.title = bell.item.title
@@ -212,16 +206,17 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 kindRaw: asset.kind.rawValue,
                 localIdentifier: asset.localIdentifier,
                 displayName: asset.displayName,
-                sortOrder: asset.sortOrder,
-                bell: entity
+                sortOrder: asset.sortOrder
             )
         }
+        newMediaAssets.forEach { $0.bell = entity }
         newMediaAssets.forEach(context.insert)
         entity.mediaAssets = newMediaAssets
 
         let newTags = bell.tags.enumerated().map { index, tag in
-            BellTagEntity(value: tag, sortOrder: index, bell: entity)
+            BellTagEntity(value: tag, sortOrder: index)
         }
+        newTags.forEach { $0.bell = entity }
         newTags.forEach(context.insert)
         entity.tags = newTags
 
@@ -261,9 +256,9 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 id: location.id,
                 kindRaw: location.kind.rawValue,
                 name: location.name,
-                notes: location.notes,
-                home: homeEntities[location.homeID]
+                notes: location.notes
             )
+            entity.home = homeEntities[location.homeID]
             context.insert(entity)
             locationEntities[location.id] = entity
         }
@@ -279,9 +274,9 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 kindRaw: collection.kind.rawValue,
                 title: collection.title,
                 notes: collection.notes,
-                backgroundStyleRaw: collection.backgroundStyle.rawValue,
-                home: homeEntities[collection.homeID]
+                backgroundStyleRaw: collection.backgroundStyle.rawValue
             )
+            entity.home = homeEntities[collection.homeID]
             context.insert(entity)
             collectionEntities[collection.id] = entity
         }
@@ -291,9 +286,9 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 id: membership.id,
                 userID: membership.userID,
                 roleRaw: membership.role.rawValue,
-                statusRaw: membership.status.rawValue,
-                collection: collectionEntities[membership.collectionID]
+                statusRaw: membership.status.rawValue
             )
+            entity.collection = collectionEntities[membership.collectionID]
             context.insert(entity)
         }
 
@@ -323,11 +318,11 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 acquisitionMethodRaw: bell.item.acquisitionMethod.rawValue,
                 materialRaw: bell.details.material.rawValue,
                 customMaterialName: bell.details.customMaterialName,
-                createdBy: bell.createdBy,
-                collection: collectionEntities[bell.item.collectionID],
-                location: bell.item.locationID.flatMap { locationEntities[$0] },
-                originPlace: bell.details.originPlaceID.flatMap { placeEntities[$0] }
+                createdBy: bell.createdBy
             )
+            entity.collection = collectionEntities[bell.item.collectionID]
+            entity.location = bell.item.locationID.flatMap { locationEntities[$0] }
+            entity.originPlace = bell.details.originPlaceID.flatMap { placeEntities[$0] }
             context.insert(entity)
 
             let mediaEntities = bell.mediaAssets.map { asset in
@@ -336,16 +331,17 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                     kindRaw: asset.kind.rawValue,
                     localIdentifier: asset.localIdentifier,
                     displayName: asset.displayName,
-                    sortOrder: asset.sortOrder,
-                    bell: entity
+                    sortOrder: asset.sortOrder
                 )
             }
+            mediaEntities.forEach { $0.bell = entity }
             mediaEntities.forEach(context.insert)
             entity.mediaAssets = mediaEntities
 
             let tagEntities = bell.tags.enumerated().map { index, tag in
-                BellTagEntity(value: tag, sortOrder: index, bell: entity)
+                BellTagEntity(value: tag, sortOrder: index)
             }
+            tagEntities.forEach { $0.bell = entity }
             tagEntities.forEach(context.insert)
             entity.tags = tagEntities
         }
@@ -402,7 +398,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
             ),
             originPlace: entity.originPlace.map(place(from:)),
             storageLocation: location,
-            storagePath: entity.location.map(locationPath(from:)) ?? SDL("common.unassigned"),
+            storagePath: entity.storagePath,
             mediaAssets: entity.mediaAssets
                 .sorted { $0.sortOrder < $1.sortOrder }
                 .map(mediaAsset(from:)),
@@ -411,18 +407,6 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 .sorted { $0.sortOrder < $1.sortOrder }
                 .map(\.value)
         )
-    }
-
-    private func locationPath(from entity: LocationEntity) -> String {
-        var parts = [entity.name]
-        var current = entity.parent
-
-        while let parent = current {
-            parts.insert(parent.name, at: 0)
-            current = parent.parent
-        }
-
-        return parts.joined(separator: " / ")
     }
 
     private func location(from entity: LocationEntity) -> Location {

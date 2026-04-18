@@ -1,6 +1,10 @@
 import Foundation
 import SwiftData
 
+private func SDE(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
+
 @Model
 final class HomeEntity {
     @Attribute(.unique) var id: UUID
@@ -40,16 +44,24 @@ final class LocationEntity {
         id: UUID,
         kindRaw: String,
         name: String,
-        notes: String,
-        home: HomeEntity? = nil,
-        parent: LocationEntity? = nil
+        notes: String
     ) {
         self.id = id
         self.kindRaw = kindRaw
         self.name = name
         self.notes = notes
-        self.home = home
-        self.parent = parent
+    }
+
+    var pathDisplayName: String {
+        var parts = [name]
+        var current = parent
+
+        while let location = current {
+            parts.insert(location.name, at: 0)
+            current = location.parent
+        }
+
+        return parts.joined(separator: " / ")
     }
 }
 
@@ -74,21 +86,19 @@ final class CollectionEntity {
         kindRaw: String,
         title: String,
         notes: String,
-        backgroundStyleRaw: String,
-        home: HomeEntity? = nil
+        backgroundStyleRaw: String
     ) {
         self.id = id
         self.kindRaw = kindRaw
         self.title = title
         self.notes = notes
         self.backgroundStyleRaw = backgroundStyleRaw
-        self.home = home
     }
 }
 
 @Model
 final class MembershipEntity {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var userID: String
     var roleRaw: String
     var statusRaw: String
@@ -99,14 +109,12 @@ final class MembershipEntity {
         id: UUID,
         userID: String,
         roleRaw: String,
-        statusRaw: String,
-        collection: CollectionEntity? = nil
+        statusRaw: String
     ) {
         self.id = id
         self.userID = userID
         self.roleRaw = roleRaw
         self.statusRaw = statusRaw
-        self.collection = collection
     }
 }
 
@@ -178,10 +186,7 @@ final class BellEntity {
         acquisitionMethodRaw: String,
         materialRaw: String,
         customMaterialName: String?,
-        createdBy: String,
-        collection: CollectionEntity? = nil,
-        location: LocationEntity? = nil,
-        originPlace: PlaceEntity? = nil
+        createdBy: String
     ) {
         self.id = id
         self.title = title
@@ -193,31 +198,39 @@ final class BellEntity {
         self.materialRaw = materialRaw
         self.customMaterialName = customMaterialName
         self.createdBy = createdBy
-        self.collection = collection
-        self.location = location
-        self.originPlace = originPlace
+    }
+
+    var placeDisplayName: String {
+        originPlace?.displayName ?? SDE("common.unknown_origin")
+    }
+
+    var storageLocationName: String {
+        location?.name ?? SDE("common.unassigned")
+    }
+
+    var storagePath: String {
+        location?.pathDisplayName ?? storageLocationName
     }
 }
 
 @Model
 final class BellTagEntity {
-    @Attribute(.unique) var id: UUID
+    var id: UUID = UUID()
     var value: String
     var sortOrder: Int
 
     var bell: BellEntity?
 
-    init(id: UUID = UUID(), value: String, sortOrder: Int, bell: BellEntity? = nil) {
+    init(id: UUID = UUID(), value: String, sortOrder: Int) {
         self.id = id
         self.value = value
         self.sortOrder = sortOrder
-        self.bell = bell
     }
 }
 
 @Model
 final class MediaAssetEntity {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var kindRaw: String
     var localIdentifier: String
     var displayName: String?
@@ -230,14 +243,12 @@ final class MediaAssetEntity {
         kindRaw: String,
         localIdentifier: String,
         displayName: String?,
-        sortOrder: Int,
-        bell: BellEntity? = nil
+        sortOrder: Int
     ) {
         self.id = id
         self.kindRaw = kindRaw
         self.localIdentifier = localIdentifier
         self.displayName = displayName
         self.sortOrder = sortOrder
-        self.bell = bell
     }
 }
