@@ -1049,6 +1049,7 @@ private struct CollectionShellView: View {
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var isPresentingEditCollection = false
     @State private var selectedOrder: BellOrderMode = .title
+    @State private var selectedLayoutMode: BellGridLayoutMode = .compact
     @State private var selectedSummaryFilter: BellSummaryFilter?
     private let mediaStore = LocalMediaFileStore.shared
 
@@ -1066,6 +1067,7 @@ private struct CollectionShellView: View {
                     repository: repository,
                     collaborators: repository.fetchCollaborators(for: collection.id),
                     mode: .summary,
+                    layoutMode: .constant(.compact),
                     orderMode: .title,
                     onSelectSummaryFilter: { filter in
                         selectedSummaryFilter = filter
@@ -1079,6 +1081,7 @@ private struct CollectionShellView: View {
                     repository: repository,
                     collaborators: repository.fetchCollaborators(for: collection.id),
                     mode: .items,
+                    layoutMode: $selectedLayoutMode,
                     orderMode: selectedOrder,
                     summaryFilter: selectedSummaryFilter,
                     onClearSummaryFilter: {

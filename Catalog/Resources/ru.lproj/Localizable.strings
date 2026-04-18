@@ -275,3 +275,10 @@
 "search.scope.notes" = "Заметки";
 "search.scope.incomplete" = "Незаполненные";
 "search.results.count" = "%lld результатов";
+
+"bell_catalog.layout.menu" = "Вид";
+"bell_catalog.layout.covers" = "Обложки";
+"bell_catalog.layout.mini" = "Мини";
+"bell_catalog.layout.compact" = "Компактный";
+"bell_catalog.layout.wide" = "Широкий";
+"bell_catalog.layout.showcase" = "Витрина";

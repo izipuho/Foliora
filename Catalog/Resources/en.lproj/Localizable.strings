@@ -275,3 +275,10 @@
 "search.scope.notes" = "Notes";
 "search.scope.incomplete" = "Incomplete";
 "search.results.count" = "%lld results";
+
+"bell_catalog.layout.menu" = "Layout";
+"bell_catalog.layout.covers" = "Covers";
+"bell_catalog.layout.mini" = "Mini";
+"bell_catalog.layout.compact" = "Compact";
+"bell_catalog.layout.wide" = "Wide";
+"bell_catalog.layout.showcase" = "Showcase";

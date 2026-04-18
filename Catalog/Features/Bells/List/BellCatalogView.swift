@@ -124,9 +124,9 @@ struct BellCatalogView: View {
     let onClearSummaryFilter: (() -> Void)?
     let externalSearchText: String?
 
+    @Binding var layoutMode: BellGridLayoutMode
     @State private var viewModel: BellCatalogViewModel
     @State private var selectedCondition: ItemCondition?
-    @State private var layoutMode: BellGridLayoutMode = .compact
     @State private var presentedBell: BellRecord?
     @State private var activeJumpPopoverSectionID: String?
 
@@ -135,6 +135,7 @@ struct BellCatalogView: View {
         repository: any CatalogRepository,
         collaborators: [Collaborator],
         mode: BellCatalogMode,
+        layoutMode: Binding<BellGridLayoutMode> = .constant(.compact),
         orderMode: BellOrderMode = .title,
         summaryFilter: BellSummaryFilter? = nil,
         onSelectSummaryFilter: ((BellSummaryFilter) -> Void)? = nil,
@@ -145,6 +146,7 @@ struct BellCatalogView: View {
         self.collaborators = collaborators
         self.collection = collection
         self.mode = mode
+        self._layoutMode = layoutMode
         self.orderMode = orderMode
         self.summaryFilter = summaryFilter
         self.onSelectSummaryFilter = onSelectSummaryFilter
@@ -185,12 +187,50 @@ struct BellCatalogView: View {
         )
     }
 
+    private var orderedLayoutModes: [BellGridLayoutMode] {
+        [.covers, .mini, .compact, .wide, .showcase]
+    }
 
     private func gridColumns(forScreenWidth screenWidth: CGFloat) -> [GridItem] {
         Array(
             repeating: GridItem(.fixed(layoutMode.cardWidth(forScreenWidth: screenWidth)), spacing: layoutMode.spacing, alignment: .top),
             count: layoutMode.columnCount
         )
+    }
+
+    private var layoutMagnifyGesture: some Gesture {
+        MagnifyGesture()
+            .onEnded { value in
+                guard mode == .items else { return }
+                let threshold: CGFloat = 0.12
+                let delta = value.magnification - 1
+
+                if delta >= threshold {
+                    zoomOutLayout()
+                } else if delta <= -threshold {
+                    zoomInLayout()
+                }
+            }
+    }
+
+    private func zoomInLayout() {
+        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode), currentIndex > 0 else {
+            return
+        }
+
+        withAnimation(.snappy(duration: 0.24)) {
+            layoutMode = orderedLayoutModes[currentIndex - 1]
+        }
+    }
+
+    private func zoomOutLayout() {
+        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode), currentIndex < orderedLayoutModes.count - 1 else {
+            return
+        }
+
+        withAnimation(.snappy(duration: 0.24)) {
+            layoutMode = orderedLayoutModes[currentIndex + 1]
+        }
     }
 
     @ViewBuilder
@@ -273,7 +313,34 @@ struct BellCatalogView: View {
         )
     }
 
+    @ViewBuilder
     private func bellGridContent(
+        bells: [BellRecord],
+        showsSearchControls: Bool,
+        emptyTitle: LocalizedStringKey,
+        emptyDescription: LocalizedStringKey,
+        screenWidth: CGFloat
+    ) -> some View {
+        if orderMode == .geography && usesGroupedSectionsInCurrentMode {
+            groupedGeographyListContent(
+                bells: bells,
+                showsSearchControls: showsSearchControls,
+                emptyTitle: emptyTitle,
+                emptyDescription: emptyDescription,
+                screenWidth: screenWidth
+            )
+        } else {
+            standardBellGridContent(
+                bells: bells,
+                showsSearchControls: showsSearchControls,
+                emptyTitle: emptyTitle,
+                emptyDescription: emptyDescription,
+                screenWidth: screenWidth
+            )
+        }
+    }
+
+    private func standardBellGridContent(
         bells: [BellRecord],
         showsSearchControls: Bool,
         emptyTitle: LocalizedStringKey,
@@ -325,7 +392,6 @@ struct BellCatalogView: View {
                 .animation(.snappy(duration: 0.24), value: layoutMode)
                 .animation(.snappy(duration: 0.24), value: orderMode)
             }
-            .simultaneousGesture(zoomGesture)
             .background(
                 LinearGradient(
                     colors: themeColors,
@@ -334,15 +400,8 @@ struct BellCatalogView: View {
                 )
                 .ignoresSafeArea()
             )
+            .simultaneousGesture(layoutMagnifyGesture)
             .overlay(alignment: .trailing) {
-                if orderMode == .geography && usesGroupedSectionsInCurrentMode {
-                    geographyJumpIndex { sectionID in
-                        withAnimation(.snappy(duration: 0.24)) {
-                            scrollProxy.scrollTo(sectionID, anchor: .top)
-                        }
-                    }
-                    .padding(.trailing, 6)
-                }
             }
             .onChange(of: orderMode) { _, _ in
                 activeJumpPopoverSectionID = nil
@@ -351,6 +410,75 @@ struct BellCatalogView: View {
                 }
             }
         }
+    }
+
+    private func groupedGeographyListContent(
+        bells: [BellRecord],
+        showsSearchControls: Bool,
+        emptyTitle: LocalizedStringKey,
+        emptyDescription: LocalizedStringKey,
+        screenWidth: CGFloat
+    ) -> some View {
+        let sections = viewModel.groupedSections(from: bells)
+
+        return List {
+            if !showsSearchControls, let summaryFilter, summaryFilter != .all {
+                Section {
+                    activeSummaryFilterSection
+                        .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 6, trailing: 20))
+                        .listRowBackground(Color.clear)
+                }
+            }
+
+            if bells.isEmpty {
+                Section {
+                    emptyBellsGridState(title: emptyTitle, description: emptyDescription)
+                        .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20))
+                        .listRowBackground(Color.clear)
+                }
+            } else {
+                ForEach(sections) { section in
+                    Section {
+                        LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
+                            ForEach(section.bells) { bell in
+                                Button {
+                                    presentedBell = bell
+                                } label: {
+                                    BellCardView(
+                                        bell: bell,
+                                        layoutMode: layoutMode
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    } header: {
+                        BellGroupedSectionHeader(
+                            title: section.title,
+                            tint: collection.backgroundStyle.accentColor,
+                            isJumpButton: false,
+                            action: {}
+                        )
+                        .sectionIndexLabel(section.indexTitle)
+                    }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 12, trailing: 20))
+                    .listRowBackground(Color.clear)
+                }
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .listSectionIndexVisibility(.visible)
+        .background(
+            LinearGradient(
+                colors: themeColors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        )
+        .simultaneousGesture(layoutMagnifyGesture)
     }
 
     private func emptyBellsGridState(title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
@@ -484,7 +612,7 @@ struct BellCatalogView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                TagFlowLayout(spacing: 8) {
                     ForEach(Array(viewModel.topTags.prefix(16).enumerated()), id: \.offset) { _, row in
                         SummaryTagCloudItem(
                             tag: row.0,
@@ -634,45 +762,9 @@ struct BellCatalogView: View {
         }
     }
 
-    private func geographyJumpIndex(onSelect: @escaping (String) -> Void) -> some View {
-        return VStack(spacing: 4) {
-            ForEach(viewModel.geographyIndexEntries) { entry in
-                Button(entry.title) {
-                    onSelect(entry.targetSectionID)
-                }
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 6)
-        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-    }
-
     private func deleteBell(_ bellID: UUID) {
         repository.deleteBellRecord(bellID: bellID)
         viewModel.bellRecords.removeAll { $0.id == bellID }
-    }
-
-    private var zoomGesture: some Gesture {
-        MagnifyGesture()
-            .onEnded { value in
-                if value.magnification > 1.12 {
-                    zoomIn()
-                } else if value.magnification < 0.92 {
-                    zoomOut()
-                }
-            }
-    }
-
-    private func zoomIn() {
-        guard let nextMode = BellGridLayoutMode(rawValue: layoutMode.rawValue + 1) else { return }
-        layoutMode = nextMode
-    }
-
-    private func zoomOut() {
-        guard let previousMode = BellGridLayoutMode(rawValue: layoutMode.rawValue - 1) else { return }
-        layoutMode = previousMode
     }
 
     private var homeName: String {
@@ -1424,57 +1516,6 @@ private struct SummaryBreakdownRow: View {
             }
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct FlowLayout: Layout {
-    var horizontalSpacing: CGFloat
-    var verticalSpacing: CGFloat
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-
-            if currentX > 0, currentX + size.width > maxWidth {
-                currentX = 0
-                currentY += rowHeight + verticalSpacing
-                rowHeight = 0
-            }
-
-            rowHeight = max(rowHeight, size.height)
-            currentX += size.width + horizontalSpacing
-        }
-
-        return CGSize(width: maxWidth.isFinite ? maxWidth : currentX, height: currentY + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var currentX = bounds.minX
-        var currentY = bounds.minY
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-
-            if currentX > bounds.minX, currentX + size.width > bounds.maxX {
-                currentX = bounds.minX
-                currentY += rowHeight + verticalSpacing
-                rowHeight = 0
-            }
-
-            subview.place(
-                at: CGPoint(x: currentX, y: currentY),
-                proposal: ProposedViewSize(width: size.width, height: size.height)
-            )
-
-            currentX += size.width + horizontalSpacing
-            rowHeight = max(rowHeight, size.height)
-        }
     }
 }
 
