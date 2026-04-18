@@ -10,6 +10,18 @@ enum CatalogCornerRadii {
     static let thumbnail: CGFloat = 12
 }
 
+enum CatalogLayoutInsets {
+    static let screen: CGFloat = 20
+    static let overlay: CGFloat = 16
+}
+
+enum CatalogSpacing {
+    static let micro: CGFloat = 4
+    static let compact: CGFloat = 6
+    static let regular: CGFloat = 12
+    static let section: CGFloat = 24
+}
+
 enum CatalogPillPadding {
     case micro
     case compact
@@ -56,7 +68,7 @@ enum BellGridLayoutMode: Int, CaseIterable {
         let spacing: CGFloat
     }
 
-    static let screenHorizontalPadding: CGFloat = 20
+    static let screenHorizontalPadding: CGFloat = CatalogLayoutInsets.screen
 
     var metrics: Metrics {
         switch self {
@@ -415,8 +427,8 @@ struct BellCardHeroView: View {
             layoutMode: .wide
         )
         .frame(height: 210)
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
+        .padding(.horizontal, CatalogLayoutInsets.screen)
+        .padding(.top, CatalogSpacing.regular)
     }
 }
 

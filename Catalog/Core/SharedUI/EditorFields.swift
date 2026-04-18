@@ -215,7 +215,7 @@ private struct TagChip: View {
     let onRemove: () -> Void
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: CatalogSpacing.compact) {
             Text("#\(tag)")
                 .font(.subheadline.weight(.medium))
 
@@ -227,8 +227,7 @@ private struct TagChip: View {
             .buttonStyle(.plain)
             .accessibilityLabel(String(localized: "common.delete"))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .catalogPillPadding(.regular)
         .background(.thinMaterial, in: Capsule())
     }
 }

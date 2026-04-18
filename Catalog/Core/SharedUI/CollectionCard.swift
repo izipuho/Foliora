@@ -34,7 +34,7 @@ struct CollectionCard: View {
                 Spacer()
             }
         }
-        .padding(20)
+        .padding(CatalogLayoutInsets.screen)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)

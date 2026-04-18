@@ -122,6 +122,8 @@ struct HomeView: View {
         }
     }
 
+    private var scrollContentBottomInset: CGFloat { 120 }
+
     private var homeContent: some View {
         Group {
             if homes.isEmpty {
@@ -130,10 +132,10 @@ struct HomeView: View {
                         homesSection
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                    .padding(.bottom, 120)
                 }
+                .contentMargins(.horizontal, nil, for: .scrollContent)
+                .contentMargins(.top, nil, for: .scrollContent)
+                .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
                 .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             } else {
                 List {
@@ -141,9 +143,13 @@ struct HomeView: View {
                         homesRows
                     }
                     .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+                    .listRowInsets(.top, 0)
+                    .listRowInsets(.bottom, 0)
                 }
                 .listStyle(.plain)
+                .contentMargins(.horizontal, nil, for: .scrollContent)
+                .contentMargins(.top, nil, for: .scrollContent)
+                .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
                 .scrollContentBackground(.hidden)
             }
         }
@@ -382,15 +388,15 @@ private struct HomeDetailView: View {
 
                 Text(String(localized: "home.details"))
                     .font(.headline)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, CatalogSpacing.micro)
 
                 StorageMapCard(locations: locations)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 120)
         }
+        .contentMargins(.horizontal, nil, for: .scrollContent)
+        .contentMargins(.top, nil, for: .scrollContent)
+        .contentMargins(.bottom, 120, for: .scrollContent)
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .background(
             LinearGradient(
@@ -513,7 +519,7 @@ private struct HomeEditorView: View {
                                 TextField(String(localized: "common.notes"), text: $location.notes, axis: .vertical)
                                     .lineLimit(2, reservesSpace: true)
                             }
-                            .padding(.vertical, 6)
+                            .padding(.vertical, CatalogSpacing.compact)
                         }
                         .onDelete(perform: deleteLocations)
                     }
@@ -694,14 +700,14 @@ private struct HomeListCard: View {
                 listMetric(title: String(localized: "home.metric.floors"), value: "\(floors)")
             }
         }
-        .padding(20)
+        .padding(CatalogLayoutInsets.screen)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
         .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
     }
 
     private func listMetric(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: CatalogSpacing.micro) {
             Text(value)
                 .font(.headline.bold())
             Text(title)
@@ -709,7 +715,7 @@ private struct HomeListCard: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(CatalogSpacing.regular)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
     }
 }
@@ -785,10 +791,10 @@ struct CollectionsView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 120)
             }
+            .contentMargins(.horizontal, nil, for: .scrollContent)
+            .contentMargins(.top, nil, for: .scrollContent)
+            .contentMargins(.bottom, 120, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -823,7 +829,7 @@ struct CollectionsView: View {
             .tint(Color(red: 0.53, green: 0.31, blue: 0.14))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .padding(.horizontal, 20)
+        .padding(.horizontal)
         .padding(.bottom, 80)
     }
 
@@ -961,7 +967,7 @@ struct CollectionEditorView: View {
                                                     .font(.title3)
                                                     .symbolRenderingMode(.palette)
                                                     .foregroundStyle(.white, Color.black.opacity(0.25))
-                                                    .padding(6)
+                                                    .padding(CatalogSpacing.compact)
                                             }
                                         }
 
@@ -1210,9 +1216,9 @@ private struct CollectionShellView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 6)
-        .padding(.bottom, 4)
+        .padding(.horizontal, CatalogLayoutInsets.screen)
+        .padding(.top, CatalogSpacing.compact)
+        .padding(.bottom, CatalogSpacing.micro)
     }
 
     private func floatingToolbarIcon(systemName: String) -> some View {
@@ -1398,10 +1404,10 @@ private struct SettingsView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 120)
             }
+            .contentMargins(.horizontal, nil, for: .scrollContent)
+            .contentMargins(.top, nil, for: .scrollContent)
+            .contentMargins(.bottom, 120, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .background(
                 LinearGradient(
@@ -1673,9 +1679,9 @@ private struct SearchTabView: View {
                 }
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 120)
+            .padding(.top, CatalogLayoutInsets.overlay)
+            .contentMargins(.horizontal, nil, for: .scrollContent)
+            .contentMargins(.bottom, 120, for: .scrollContent)
             .background(
                 Color(uiColor: .systemBackground)
                     .ignoresSafeArea()
@@ -1776,7 +1782,7 @@ private struct BellSearchResultCard: View {
                 Text(collectionName)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, CatalogSpacing.micro)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1843,14 +1849,14 @@ private struct HomeCard: View {
                 onDelete()
             }
         }
-        .padding(20)
+        .padding(CatalogLayoutInsets.screen)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
         .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
     }
 
     private func homeMetric(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: CatalogSpacing.micro) {
             Text(value)
                 .font(.headline.bold())
             Text(title)
@@ -1858,7 +1864,7 @@ private struct HomeCard: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(CatalogSpacing.regular)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
     }
 }
@@ -1899,7 +1905,7 @@ private struct StorageMapCard: View {
                 .background(Color.black.opacity(0.035), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
             }
         }
-        .padding(20)
+        .padding(CatalogLayoutInsets.screen)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
         .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
@@ -2048,8 +2054,8 @@ private struct CollectionOriginMapView: View {
                         bells: selectedGroup.bells,
                         repository: repository
                     )
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 24)
+                        .padding(.horizontal, CatalogLayoutInsets.overlay)
+                        .padding(.bottom, CatalogSpacing.section)
                 }
             }
         }

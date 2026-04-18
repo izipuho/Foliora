@@ -57,9 +57,9 @@ struct BellDetailView: View {
                         )
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-                .padding(.bottom, 24)
+                .padding(.horizontal, CatalogLayoutInsets.screen)
+                .padding(.top, CatalogSpacing.section)
+                .padding(.bottom, CatalogSpacing.section)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.white.opacity(0.94))
             }
@@ -347,7 +347,7 @@ private struct OriginTile: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: CatalogSpacing.compact) {
                     Label(String(localized: "bell.detail.origin"), systemImage: "mappin.and.ellipse")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white)
@@ -357,7 +357,7 @@ private struct OriginTile: View {
                         .foregroundStyle(.white)
                         .lineLimit(2)
                 }
-                .padding(12)
+                .padding(CatalogSpacing.regular)
             }
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottomLeading)
             .overlay(

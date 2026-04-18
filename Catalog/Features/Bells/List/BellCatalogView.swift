@@ -183,6 +183,8 @@ struct BellCatalogView: View {
         )
     }
 
+    private var scrollContentBottomInset: CGFloat { 120 }
+
     private var orderedLayoutModes: [BellGridLayoutMode] {
         [.covers, .mini, .compact, .wide, .showcase]
     }
@@ -295,10 +297,10 @@ struct BellCatalogView: View {
                 summaryTagCloudCard
                 summaryRecentBells(screenWidth: screenWidth)
             }
-            .padding(.top, 20)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 120)
         }
+        .contentMargins(.horizontal, nil, for: .scrollContent)
+        .contentMargins(.top, nil, for: .scrollContent)
+        .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
         .background(
             LinearGradient(
                 colors: themeColors,
@@ -382,12 +384,12 @@ struct BellCatalogView: View {
                         }
                     }
                 }
-                .padding(.top, 20)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 120)
                 .animation(.snappy(duration: 0.24), value: layoutMode)
                 .animation(.snappy(duration: 0.24), value: orderMode)
             }
+            .contentMargins(.horizontal, nil, for: .scrollContent)
+            .contentMargins(.top, nil, for: .scrollContent)
+            .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
             .background(
                 LinearGradient(
                     colors: themeColors,
@@ -421,7 +423,8 @@ struct BellCatalogView: View {
             if !showsSearchControls, let summaryFilter, summaryFilter != .all {
                 Section {
                     activeSummaryFilterSection
-                        .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 6, trailing: 20))
+                        .listRowInsets(.top, 10)
+                        .listRowInsets(.bottom, 6)
                         .listRowBackground(Color.clear)
                 }
             }
@@ -429,7 +432,8 @@ struct BellCatalogView: View {
             if bells.isEmpty {
                 Section {
                     emptyBellsGridState(title: emptyTitle, description: emptyDescription)
-                        .listRowInsets(EdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20))
+                        .listRowInsets(.top, nil)
+                        .listRowInsets(.bottom, 20)
                         .listRowBackground(Color.clear)
                 }
             } else {
@@ -458,12 +462,16 @@ struct BellCatalogView: View {
                         )
                         .sectionIndexLabel(section.indexTitle)
                     }
-                    .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 12, trailing: 20))
+                    .listRowInsets(.top, 0)
+                    .listRowInsets(.bottom, 12)
                     .listRowBackground(Color.clear)
                 }
             }
         }
         .listStyle(.plain)
+        .contentMargins(.horizontal, nil, for: .scrollContent)
+        .contentMargins(.top, nil, for: .scrollContent)
+        .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
         .scrollContentBackground(.hidden)
         .listSectionIndexVisibility(.visible)
         .background(
@@ -690,7 +698,7 @@ struct BellCatalogView: View {
                                 Text(cabinetGroup.title)
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 4)
+                                    .padding(.horizontal, CatalogSpacing.micro)
 
                                 LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                                     ForEach(cabinetGroup.bells) { bell in
@@ -828,7 +836,7 @@ private struct BellGroupingJumpPopover: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: CatalogSpacing.compact) {
                 ForEach(titles, id: \.self) { title in
                     Button(title) {
                         onSelect(title)
@@ -836,11 +844,11 @@ private struct BellGroupingJumpPopover: View {
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 10)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, CatalogSpacing.regular)
                     .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
                 }
             }
-            .padding(12)
+            .padding(CatalogSpacing.regular)
         }
         .frame(minWidth: 220, idealWidth: 260, maxWidth: 320, minHeight: 160, idealHeight: 280, maxHeight: 360)
     }
@@ -1285,7 +1293,7 @@ private struct PhotoSuggestionRow: View {
                 .buttonStyle(.bordered)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, CatalogSpacing.micro)
     }
 
     private var confidenceLabel: String {
@@ -1364,7 +1372,7 @@ private struct PhotoSuggestedTagsRow: View {
                 .buttonStyle(.bordered)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, CatalogSpacing.micro)
     }
 }
 
@@ -1515,7 +1523,7 @@ private struct StatChip: View {
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: CatalogSpacing.micro) {
             Text(value)
                 .font(.title2.weight(.bold))
             Text(title)
@@ -1523,7 +1531,7 @@ private struct StatChip: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 10)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, CatalogSpacing.regular)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
     }
@@ -1532,7 +1540,7 @@ private struct StatChip: View {
 private struct SummaryGlassCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding(16)
+            .padding()
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)

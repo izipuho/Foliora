@@ -13,7 +13,7 @@ struct BookLibraryPlaceholderView: View {
                     Text("Для книг будет отдельный интерфейс: полки, авторы, издания, статусы прочтения и поиск по библиотеке. Этот модуль пока только обозначен архитектурно.")
                         .foregroundStyle(.secondary)
                 }
-                .padding(20)
+                .padding(CatalogLayoutInsets.screen)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
 
                 ContentUnavailableView(
@@ -24,8 +24,10 @@ struct BookLibraryPlaceholderView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 30)
             }
-            .padding(20)
         }
+        .contentMargins(.horizontal, nil, for: .scrollContent)
+        .contentMargins(.top, nil, for: .scrollContent)
+        .contentMargins(.bottom, 120, for: .scrollContent)
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .background(
             LinearGradient(
