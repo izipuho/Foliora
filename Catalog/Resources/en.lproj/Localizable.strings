@@ -121,6 +121,16 @@
 "editor.media.model" = "Add 3D Model";
 "editor.media.model.placeholder_title" = "3D Models Coming Later";
 "editor.media.model.placeholder_message" = "3D model import is still a placeholder. Photos already use real system pickers.";
+"editor.photo_analysis.accept" = "Apply";
+"editor.photo_analysis.analyzing" = "Analyzing photo…";
+"editor.photo_analysis.detected_text" = "Detected text";
+"editor.photo_analysis.condition" = "Condition";
+"editor.photo_analysis.material" = "Material";
+"editor.photo_analysis.notes" = "Description";
+"editor.photo_analysis.reject" = "Dismiss";
+"editor.photo_analysis.section" = "Photo Suggestions";
+"editor.photo_analysis.tags" = "Tags";
+"editor.photo_analysis.title" = "Title";
 
 "editor.origin.title" = "Origin";
 "editor.origin.search" = "Search places";

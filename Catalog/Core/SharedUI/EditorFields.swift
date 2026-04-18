@@ -237,7 +237,7 @@ private struct TagChip: View {
     }
 }
 
-private struct TagFlowLayout: Layout {
+struct TagFlowLayout: Layout {
     let spacing: CGFloat
 
     init(spacing: CGFloat = 8) {
@@ -306,6 +306,7 @@ private struct TagFlowLayout: Layout {
 struct MediaSection: View {
     let itemID: UUID
     @Binding var mediaAssets: [MediaAsset]
+    var onPhotoAdded: ((UIImage) -> Void)? = nil
     private let mediaStore = LocalMediaFileStore.shared
 
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
@@ -418,6 +419,10 @@ struct MediaSection: View {
                     sortOrder: mediaAssets.count
                 )
             )
+
+            if let image = UIImage(data: data) {
+                onPhotoAdded?(image)
+            }
         }
 
         selectedPhotoItems = []
@@ -437,6 +442,8 @@ struct MediaSection: View {
                 sortOrder: mediaAssets.count
             )
         )
+
+        onPhotoAdded?(image)
     }
 
     private func reindexAssets() {

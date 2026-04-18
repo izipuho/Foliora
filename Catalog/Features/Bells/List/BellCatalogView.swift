@@ -1144,6 +1144,9 @@ struct BellEditorView: View {
     @State private var mediaAssets: [MediaAsset] = []
     @State private var selectedAcquiredYearOption = BL("editor.acquired_year.none")
     @State private var highlightedSection: StartSection?
+    @State private var hasTriggeredInitialPhotoAnalysis = false
+    @StateObject private var photoAnalysis = BellPhotoAnalysisController()
+    private let mediaStore = LocalMediaFileStore.shared
     private let existingBellID: UUID?
     private let existingCreatedAt: Date?
     private let editorItemID: UUID
@@ -1211,8 +1214,116 @@ struct BellEditorView: View {
                     Section(BL("editor.media")) {
                         MediaSection(
                             itemID: editorItemID,
-                            mediaAssets: $mediaAssets
+                            mediaAssets: $mediaAssets,
+                            onPhotoAdded: { image in
+                                guard existingBellID == nil else { return }
+                                photoAnalysis.analyze(image: image)
+                            }
                         )
+                    }
+
+                    if photoAnalysis.hasSuggestions {
+                        Section(BL("editor.photo_analysis.section")) {
+                            if photoAnalysis.isAnalyzing {
+                                HStack(spacing: 10) {
+                                    ProgressView()
+                                    Text(BL("editor.photo_analysis.analyzing"))
+                                        .foregroundStyle(.secondary)
+                                }
+                            } else {
+                                if !photoAnalysis.result.tags.isEmpty {
+                                    PhotoAnalysisTagCloud(tags: photoAnalysis.result.tags)
+                                }
+
+                                if !photoAnalysis.result.recognizedText.isEmpty {
+                                    PhotoRecognizedTextBlock(textFeatures: photoAnalysis.result.recognizedText)
+                                }
+
+                                if let titleSuggestion = photoAnalysis.result.title {
+                                    PhotoSuggestionRow(
+                                        title: BL("editor.photo_analysis.title"),
+                                        suggestedValue: titleSuggestion.value,
+                                        confidence: titleSuggestion.confidence,
+                                        onAccept: {
+                                            title = titleSuggestion.value
+                                            photoAnalysis.dismiss(.title)
+                                        },
+                                        onReject: {
+                                            photoAnalysis.dismiss(.title)
+                                        }
+                                    )
+                                }
+
+                                if let notesSuggestion = photoAnalysis.result.notes {
+                                    PhotoSuggestionRow(
+                                        title: BL("editor.photo_analysis.notes"),
+                                        suggestedValue: notesSuggestion.value,
+                                        confidence: notesSuggestion.confidence,
+                                        onAccept: {
+                                            notes = notesSuggestion.value
+                                            photoAnalysis.dismiss(.notes)
+                                        },
+                                        onReject: {
+                                            photoAnalysis.dismiss(.notes)
+                                        }
+                                    )
+                                }
+
+                                if let materialSuggestion = photoAnalysis.result.material {
+                                    PhotoSuggestionRow(
+                                        title: BL("editor.photo_analysis.material"),
+                                        suggestedValue: materialSuggestionLabel(materialSuggestion),
+                                        confidence: materialSuggestion.confidence,
+                                        onAccept: {
+                                            material = materialSuggestion.value
+                                            if materialSuggestion.value == .other {
+                                                customMaterialName = photoAnalysis.result.customMaterialName?.value ?? ""
+                                                photoAnalysis.dismiss(.customMaterialName)
+                                            } else {
+                                                customMaterialName = ""
+                                            }
+                                            photoAnalysis.dismiss(.material)
+                                        },
+                                        onReject: {
+                                            photoAnalysis.dismiss(.material)
+                                            photoAnalysis.dismiss(.customMaterialName)
+                                        }
+                                    )
+                                }
+
+                                if let conditionSuggestion = photoAnalysis.result.condition {
+                                    PhotoSuggestionRow(
+                                        title: BL("editor.photo_analysis.condition"),
+                                        suggestedValue: conditionSuggestion.value.displayName,
+                                        confidence: conditionSuggestion.confidence,
+                                        onAccept: {
+                                            condition = conditionSuggestion.value
+                                            photoAnalysis.dismiss(.condition)
+                                        },
+                                        onReject: {
+                                            photoAnalysis.dismiss(.condition)
+                                        }
+                                    )
+                                }
+
+                                if !photoAnalysis.result.suggestedTags.isEmpty {
+                                    PhotoSuggestedTagsRow(
+                                        title: BL("editor.photo_analysis.tags"),
+                                        suggestions: photoAnalysis.result.suggestedTags,
+                                        onAcceptAll: {
+                                            let newValues = photoAnalysis.result.suggestedTags.map(\.value)
+                                            for value in newValues where !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
+                                                tags.append(value)
+                                            }
+                                            photoAnalysis.dismiss(.suggestedTags)
+                                        },
+                                        onReject: {
+                                            photoAnalysis.dismiss(.suggestedTags)
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     Section(BL("editor.description")) {
@@ -1322,6 +1433,9 @@ struct BellEditorView: View {
                         }
                     }
                 }
+                .task {
+                    await triggerInitialPhotoAnalysisIfNeeded()
+                }
             }
         }
     }
@@ -1385,6 +1499,23 @@ struct BellEditorView: View {
         dismiss()
     }
 
+    @MainActor
+    private func triggerInitialPhotoAnalysisIfNeeded() async {
+        guard existingBellID == nil else { return }
+        guard !hasTriggeredInitialPhotoAnalysis else { return }
+        guard !photoAnalysis.hasSuggestions else { return }
+
+        let firstPhotoAsset = mediaAssets.first(where: { $0.kind == .photo })
+        guard let firstPhotoAsset,
+              let fileURL = mediaStore.fileURL(for: firstPhotoAsset.localIdentifier),
+              let image = UIImage(contentsOfFile: fileURL.path) else {
+            return
+        }
+
+        hasTriggeredInitialPhotoAnalysis = true
+        photoAnalysis.analyze(image: image)
+    }
+
     private var selectedOriginLabel: String {
         selectedOriginPlace?.displayName ?? BL("common.unassigned")
     }
@@ -1408,6 +1539,135 @@ struct BellEditorView: View {
         }
 
         return parts.joined(separator: " / ")
+    }
+
+    private func materialSuggestionLabel(_ suggestion: SuggestedFieldValue<BellMaterial>) -> String {
+        if suggestion.value == .other,
+           let customMaterial = photoAnalysis.result.customMaterialName?.value,
+           !customMaterial.isEmpty {
+            return customMaterial
+        }
+
+        return suggestion.value.displayName
+    }
+}
+
+private struct PhotoSuggestionRow: View {
+    let title: String
+    let suggestedValue: String
+    let confidence: Double
+    let onAccept: () -> Void
+    let onReject: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(confidenceLabel)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(suggestedValue)
+                .foregroundStyle(.primary)
+
+            HStack(spacing: 10) {
+                Button(action: onAccept) {
+                    Label(BL("editor.photo_analysis.accept"), systemImage: "checkmark.circle.fill")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button(action: onReject) {
+                    Label(BL("editor.photo_analysis.reject"), systemImage: "xmark.circle")
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var confidenceLabel: String {
+        "\(Int((confidence * 100).rounded()))%"
+    }
+}
+
+private struct PhotoAnalysisTagCloud: View {
+    let tags: [NormalizedVisionTag]
+
+    var body: some View {
+        TagFlowLayout(spacing: 8) {
+            ForEach(tags, id: \.self) { tag in
+                Text(tag.tag.rawValue)
+                    .font(.caption.weight(.medium))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(.thinMaterial, in: Capsule())
+            }
+        }
+    }
+}
+
+private struct PhotoRecognizedTextBlock: View {
+    let textFeatures: [RecognizedTextFeature]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(BL("editor.photo_analysis.detected_text"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            TagFlowLayout(spacing: 8) {
+                ForEach(textFeatures, id: \.self) { feature in
+                    Text(feature.text)
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(.thinMaterial, in: Capsule())
+                }
+            }
+        }
+    }
+}
+
+private struct PhotoSuggestedTagsRow: View {
+    let title: String
+    let suggestions: [SuggestedFieldValue<String>]
+    let onAcceptAll: () -> Void
+    let onReject: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+
+            TagFlowLayout(spacing: 8) {
+                ForEach(suggestions, id: \.value) { suggestion in
+                    Text(suggestion.value)
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(.thinMaterial, in: Capsule())
+                }
+            }
+
+            HStack(spacing: 10) {
+                Button(action: onAcceptAll) {
+                    Label(BL("editor.photo_analysis.accept"), systemImage: "checkmark.circle.fill")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button(action: onReject) {
+                    Label(BL("editor.photo_analysis.reject"), systemImage: "xmark.circle")
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
