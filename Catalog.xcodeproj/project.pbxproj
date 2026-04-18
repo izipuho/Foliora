@@ -38,6 +38,7 @@
 		C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002A /* CatalogTransferDocument.swift */; };
 		C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
 		C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
+		C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002D /* BellCatalogViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -72,6 +73,7 @@
 		C0000000000000000000002A /* CatalogTransferDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferDocument.swift; sourceTree = "<group>"; };
 		C0000000000000000000002B /* PhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysis.swift; sourceTree = "<group>"; };
 		C0000000000000000000002C /* BellPhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellPhotoAnalysis.swift; sourceTree = "<group>"; };
+		C0000000000000000000002D /* BellCatalogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogViewModel.swift; sourceTree = "<group>"; };
 		C0000000000000000000001A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		C0000000000000000000001B /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ru; path = ru.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		C0000000000000000000001D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -308,6 +310,7 @@
 			isa = PBXGroup;
 			children = (
 				C0000000000000000000000E /* BellCatalogView.swift */,
+				C0000000000000000000002D /* BellCatalogViewModel.swift */,
 			);
 			path = List;
 			sourceTree = "<group>";
@@ -452,6 +455,7 @@
 				C000000000000000000000B9 /* BellCardView.swift in Sources */,
 				C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */,
 				C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */,
+				C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

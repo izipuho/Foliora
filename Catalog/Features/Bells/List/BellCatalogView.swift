@@ -124,7 +124,7 @@ struct BellCatalogView: View {
     let onClearSummaryFilter: (() -> Void)?
     let externalSearchText: String?
 
-    @State private var bellRecords: [BellRecord]
+    @State private var viewModel: BellCatalogViewModel
     @State private var selectedCondition: ItemCondition?
     @State private var layoutMode: BellGridLayoutMode = .compact
     @State private var presentedBell: BellRecord?
@@ -150,47 +150,33 @@ struct BellCatalogView: View {
         self.onSelectSummaryFilter = onSelectSummaryFilter
         self.onClearSummaryFilter = onClearSummaryFilter
         self.externalSearchText = externalSearchText
-        _bellRecords = State(initialValue: repository.fetchBellRecords(for: collection.id))
+        let initialBellRecords = repository.fetchBellRecords(for: collection.id)
+        let initialLocationsByID = Dictionary(
+            uniqueKeysWithValues: repository.fetchLocations(in: collection.homeID).map { ($0.id, $0) }
+        )
+        let initialHomeName = repository.fetchHomes().first(where: { $0.id == collection.homeID })?.name ?? BL("common.unknown")
+        _viewModel = State(
+            initialValue: BellCatalogViewModel(
+                bellRecords: initialBellRecords,
+                orderMode: orderMode,
+                summaryFilter: summaryFilter,
+                searchText: externalSearchText ?? "",
+                locationsByID: initialLocationsByID,
+                homeName: initialHomeName
+            )
+        )
     }
 
     private var effectiveSearchText: String {
         externalSearchText ?? ""
     }
 
-    private var bells: [BellRecord] {
-        sorted(bellRecords)
-    }
-
-    private var filteredBells: [BellRecord] {
-        sorted(
-            bellRecords.filter { bell in
-            let matchesSearch =
-                effectiveSearchText.isEmpty ||
-                bell.title.localizedCaseInsensitiveContains(effectiveSearchText) ||
-                bell.countryName.localizedCaseInsensitiveContains(effectiveSearchText) ||
-                bell.cityName.localizedCaseInsensitiveContains(effectiveSearchText) ||
-                bell.tags.joined(separator: " ").localizedCaseInsensitiveContains(effectiveSearchText)
-
-            let matchesCondition = selectedCondition == nil || bell.condition == selectedCondition
-            let matchesSummaryFilter = matches(bell: bell, summaryFilter: summaryFilter)
-            return matchesSearch && matchesCondition && matchesSummaryFilter
-        })
-    }
-
-    private var countryCount: Int {
-        Set(bells.map(\.countryName).filter { !$0.isEmpty }).count
-    }
-
-    private var materialCount: Int {
-        Set(bells.map(\.materialDisplayName)).count
-    }
-
-    private var cityCount: Int {
-        Set(bells.map(\.cityName).filter { !$0.isEmpty }).count
-    }
-
     private var themeColors: [Color] {
         collection.backgroundStyle.screenColors
+    }
+
+    private var usesGroupedSectionsInCurrentMode: Bool {
+        mode == .items && viewModel.usesGroupedSections
     }
 
     private var locationsByID: [UUID: Location] {
@@ -199,73 +185,6 @@ struct BellCatalogView: View {
         )
     }
 
-    private var homeName: String {
-        repository.fetchHomes().first(where: { $0.id == collection.homeID })?.name ?? BL("common.unknown")
-    }
-
-    private var bellsWithOriginCount: Int {
-        bells.filter { $0.originPlace != nil }.count
-    }
-
-    private var bellsWithStorageCount: Int {
-        bells.filter { $0.item.locationID != nil }.count
-    }
-
-    private var bellsWithPhotosCount: Int {
-        bells.filter { $0.photoCount > 0 }.count
-    }
-
-    private var filteredItemsBells: [BellRecord] {
-        sorted(
-            bellRecords.filter { bell in
-                matches(bell: bell, summaryFilter: summaryFilter)
-            }
-        )
-    }
-
-    private var recentBells: [BellRecord] {
-        Array(
-            bellRecords
-                .sorted { $0.createdAt > $1.createdAt }
-                .prefix(5)
-        )
-    }
-
-    private var topCountries: [(String, Int)] {
-        Dictionary(grouping: bells.map(\.countryName).filter { !$0.isEmpty }, by: { $0 })
-            .map { ($0.key, $0.value.count) }
-            .sorted { lhs, rhs in
-                if lhs.1 == rhs.1 {
-                    return lhs.0.localizedCaseInsensitiveCompare(rhs.0) == .orderedAscending
-                }
-
-                return lhs.1 > rhs.1
-            }
-    }
-
-    private var topMaterials: [(String, Int)] {
-        Dictionary(grouping: bells.map(\.materialDisplayName), by: { $0 })
-            .map { ($0.key, $0.value.count) }
-            .sorted { lhs, rhs in
-                if lhs.1 == rhs.1 {
-                    return lhs.0.localizedCaseInsensitiveCompare(rhs.0) == .orderedAscending
-                }
-
-                return lhs.1 > rhs.1
-            }
-    }
-
-    private var topTags: [(String, Int)] {
-        Dictionary(grouping: bells.flatMap(\.tags), by: { $0 })
-            .map { ($0.key, $0.value.count) }
-            .sorted { lhs, rhs in
-                if lhs.1 == rhs.1 {
-                    return lhs.0.localizedCaseInsensitiveCompare(rhs.0) == .orderedAscending
-                }
-
-                return lhs.1 > rhs.1
-            }
-    }
 
     private func gridColumns(forScreenWidth screenWidth: CGFloat) -> [GridItem] {
         Array(
@@ -283,7 +202,7 @@ struct BellCatalogView: View {
                     summaryContent(screenWidth: proxy.size.width)
                 case .items:
                     bellGridContent(
-                        bells: filteredItemsBells,
+                        bells: viewModel.filteredItemsBells,
                         showsSearchControls: false,
                         emptyTitle: LocalizedStringKey(BL("bell_catalog.empty.title")),
                         emptyDescription: LocalizedStringKey(BL("bell_catalog.empty.description")),
@@ -291,7 +210,7 @@ struct BellCatalogView: View {
                     )
                 case .search:
                     bellGridContent(
-                        bells: filteredBells,
+                        bells: viewModel.filteredBells,
                         showsSearchControls: true,
                         emptyTitle: LocalizedStringKey(BL("bell_catalog.search.empty.title")),
                         emptyDescription: LocalizedStringKey(BL("bell_catalog.search.empty.description")),
@@ -301,10 +220,23 @@ struct BellCatalogView: View {
             }
         }
         .sheet(item: $presentedBell, onDismiss: {
-            bellRecords = repository.fetchBellRecords(for: collection.id)
+            viewModel.refreshBellRecords(from: repository, collectionID: collection.id)
         }) { bell in
             BellGridDetailSheetContainer(bell: bell, repository: repository)
                 .presentationDragIndicator(.visible)
+        }
+        .onAppear(perform: syncViewModelContext)
+        .onChange(of: orderMode) { _, _ in
+            syncViewModelContext()
+        }
+        .onChange(of: summaryFilter) { _, _ in
+            syncViewModelContext()
+        }
+        .onChange(of: externalSearchText) { _, _ in
+            syncViewModelContext()
+        }
+        .onChange(of: selectedCondition) { _, value in
+            viewModel.selectedCondition = value
         }
     }
 
@@ -317,12 +249,12 @@ struct BellCatalogView: View {
                 summaryBreakdownCard(
                     title: BL("bell_catalog.summary.top_countries"),
                     emptyTitle: BL("bell_catalog.summary.no_origin_data"),
-                    rows: Array(topCountries.prefix(4))
+                    rows: Array(viewModel.topCountries.prefix(4))
                 )
                 summaryBreakdownCard(
                     title: BL("bell_catalog.summary.top_materials"),
                     emptyTitle: BL("bell_catalog.summary.no_material_data"),
-                    rows: Array(topMaterials.prefix(4))
+                    rows: Array(viewModel.topMaterials.prefix(4))
                 )
                 summaryTagCloudCard
                 summaryRecentBells(screenWidth: screenWidth)
@@ -350,7 +282,7 @@ struct BellCatalogView: View {
     ) -> some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: usesGroupedSections ? [.sectionHeaders] : []) {
+                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: usesGroupedSectionsInCurrentMode ? [.sectionHeaders] : []) {
                     Color.clear
                         .frame(height: 0)
                         .id("bell-grid-top")
@@ -365,9 +297,9 @@ struct BellCatalogView: View {
 
                     if bells.isEmpty {
                         emptyBellsGridState(title: emptyTitle, description: emptyDescription)
-                    } else if usesGroupedSections {
+                    } else if usesGroupedSectionsInCurrentMode {
                         groupedBellSectionsContent(
-                            sections: groupedSections(from: bells),
+                            sections: viewModel.groupedSections(from: bells),
                             screenWidth: screenWidth,
                             scrollProxy: scrollProxy
                         )
@@ -403,7 +335,7 @@ struct BellCatalogView: View {
                 .ignoresSafeArea()
             )
             .overlay(alignment: .trailing) {
-                if orderMode == .geography && usesGroupedSections {
+                if orderMode == .geography && usesGroupedSectionsInCurrentMode {
                     geographyJumpIndex { sectionID in
                         withAnimation(.snappy(duration: 0.24)) {
                             scrollProxy.scrollTo(sectionID, anchor: .top)
@@ -445,6 +377,7 @@ struct BellCatalogView: View {
 
                 HStack(spacing: 10) {
                     SummaryPill(systemImage: "house.fill", title: homeName, tint: collection.backgroundStyle.accentColor)
+                    
                     SummaryPill(
                         systemImage: "person.2.fill",
                         title: localizedCount(collection.collaboratorCount, kind: .members),
@@ -460,10 +393,10 @@ struct BellCatalogView: View {
     private var summarySnapshotCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                summaryStatChip(value: "\(bells.count)", title: localizedCount(bells.count, kind: .bells), filter: .all)
-                summaryStatChip(value: "\(materialCount)", title: localizedCount(materialCount, kind: .materials), filter: .withMaterial)
-                summaryStatChip(value: "\(countryCount)", title: localizedCount(countryCount, kind: .countries), filter: .withOrigin)
-                summaryStatChip(value: "\(cityCount)", title: localizedCount(cityCount, kind: .cities), filter: .withCity)
+                summaryStatChip(value: "\(viewModel.bells.count)", title: localizedCount(viewModel.bells.count, kind: .bells), filter: .all)
+                summaryStatChip(value: "\(viewModel.materialCount)", title: localizedCount(viewModel.materialCount, kind: .materials), filter: .withMaterial)
+                summaryStatChip(value: "\(viewModel.countryCount)", title: localizedCount(viewModel.countryCount, kind: .countries), filter: .withOrigin)
+                summaryStatChip(value: "\(viewModel.cityCount)", title: localizedCount(viewModel.cityCount, kind: .cities), filter: .withCity)
             }
         }
         .summaryGlassCard()
@@ -474,16 +407,16 @@ struct BellCatalogView: View {
             Text(BL("bell_catalog.summary.coverage"))
                 .font(.headline)
 
-            SummaryCoverageRow(title: BL("bell_catalog.summary.with_origin"), value: bellsWithOriginCount, total: bells.count, tint: collection.backgroundStyle.accentColor) {
+            SummaryCoverageRow(title: BL("bell_catalog.summary.with_origin"), value: viewModel.bellsWithOriginCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
                 onSelectSummaryFilter?(.missingOrigin)
             }
-            SummaryCoverageRow(title: BL("bell_catalog.summary.with_storage"), value: bellsWithStorageCount, total: bells.count, tint: collection.backgroundStyle.accentColor) {
+            SummaryCoverageRow(title: BL("bell_catalog.summary.with_storage"), value: viewModel.bellsWithStorageCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
                 onSelectSummaryFilter?(.missingStorage)
             }
-            SummaryCoverageRow(title: BL("bell_catalog.summary.with_notes"), value: bells.filter { !$0.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.count, total: bells.count, tint: collection.backgroundStyle.accentColor) {
+            SummaryCoverageRow(title: BL("bell_catalog.summary.with_notes"), value: viewModel.bellsWithNotesCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
                 onSelectSummaryFilter?(.missingNotes)
             }
-            SummaryCoverageRow(title: BL("bell_catalog.summary.with_tags"), value: bells.filter { !$0.tags.isEmpty }.count, total: bells.count, tint: collection.backgroundStyle.accentColor) {
+            SummaryCoverageRow(title: BL("bell_catalog.summary.with_tags"), value: viewModel.bellsWithTagsCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
                 onSelectSummaryFilter?(.missingTags)
             }
         }
@@ -525,12 +458,12 @@ struct BellCatalogView: View {
             Text(BL("bell_catalog.summary.recent"))
                 .font(.headline)
 
-            if bells.isEmpty {
+            if viewModel.bells.isEmpty {
                 Text(BL("bell_catalog.summary.none"))
                     .foregroundStyle(.secondary)
             } else {
                 BellCardStripView(
-                    bells: recentBells,
+                    bells: viewModel.recentBells,
                     layoutMode: .mini,
                     screenWidth: screenWidth
                 ) { bell in
@@ -546,17 +479,17 @@ struct BellCatalogView: View {
             Text(BL("bell_catalog.summary.tag_cloud"))
                 .font(.headline)
 
-            if topTags.isEmpty {
+            if viewModel.topTags.isEmpty {
                 Text(BL("bell_catalog.summary.no_tags"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
                 FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
-                    ForEach(Array(topTags.prefix(16).enumerated()), id: \.offset) { _, row in
+                    ForEach(Array(viewModel.topTags.prefix(16).enumerated()), id: \.offset) { _, row in
                         SummaryTagCloudItem(
                             tag: row.0,
                             count: row.1,
-                            maxCount: topTags.first?.1 ?? row.1,
+                            maxCount: viewModel.topTags.first?.1 ?? row.1,
                             tint: collection.backgroundStyle.accentColor
                         ) {
                             onSelectSummaryFilter?(.tag(row.0))
@@ -597,39 +530,6 @@ struct BellCatalogView: View {
         .buttonStyle(.plain)
     }
 
-    private func matches(bell: BellRecord, summaryFilter: BellSummaryFilter?) -> Bool {
-        switch summaryFilter {
-        case nil, .all:
-            return true
-        case .withOrigin:
-            return bell.originPlace != nil
-        case .missingOrigin:
-            return bell.originPlace == nil
-        case .withCity:
-            return !bell.cityName.isEmpty
-        case .withStorage:
-            return bell.item.locationID != nil
-        case .missingStorage:
-            return bell.item.locationID == nil
-        case .withNotes:
-            return !bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .missingNotes:
-            return bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .withTags:
-            return !bell.tags.isEmpty
-        case .missingTags:
-            return bell.tags.isEmpty
-        case .withMaterial:
-            return !bell.materialDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .country(let country):
-            return bell.countryName.localizedCaseInsensitiveCompare(country) == .orderedSame
-        case .material(let material):
-            return bell.materialDisplayName.localizedCaseInsensitiveCompare(material) == .orderedSame
-        case .tag(let tag):
-            return bell.tags.contains(where: { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame })
-        }
-    }
-
     private var searchFiltersSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
@@ -647,101 +547,8 @@ struct BellCatalogView: View {
     }
 
     private func binding(for bellID: UUID) -> Binding<BellRecord>? {
-        guard let index = bellRecords.firstIndex(where: { $0.id == bellID }) else { return nil }
-        return $bellRecords[index]
-    }
-
-    private var usesGroupedSections: Bool {
-        mode == .items && [.geography, .acquisitionYear, .storage].contains(orderMode)
-    }
-
-    private func groupedSections(from bells: [BellRecord]) -> [BellGroupedSection] {
-        switch orderMode {
-        case .title, .newestFirst, .oldestFirst:
-            return []
-        case .geography:
-            let unknown = BL("common.unknown")
-            let grouped = Dictionary(grouping: bells, by: { normalizedCountry(for: $0) })
-            let orderedCountries = grouped.keys.sorted {
-                compareDisplayValues($0, $1, unknown: unknown) == .orderedAscending
-            }
-
-            return orderedCountries.map { country in
-                BellGroupedSection(
-                    id: "geography-\(country)",
-                    title: country,
-                    jumpTitle: country,
-                    indexTitle: String(country.prefix(1)).uppercased(),
-                    bells: grouped[country, default: []].sorted(by: geographySort),
-                    cabinetGroups: []
-                )
-            }
-        case .acquisitionYear:
-            let unknown = BL("common.unknown")
-            let grouped = Dictionary(grouping: bells, by: { acquisitionYearGroupTitle(for: $0) })
-            let orderedTitles = grouped.keys.sorted { lhs, rhs in
-                switch (Int(lhs), Int(rhs)) {
-                case let (left?, right?):
-                    return left > right
-                case (_?, nil):
-                    return true
-                case (nil, _?):
-                    return false
-                default:
-                    return compareDisplayValues(lhs, rhs, unknown: unknown) == .orderedAscending
-                }
-            }
-
-            return orderedTitles.map { title in
-                BellGroupedSection(
-                    id: "year-\(title)",
-                    title: title,
-                    jumpTitle: title,
-                    indexTitle: nil,
-                    bells: grouped[title, default: []].sorted {
-                        $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
-                    },
-                    cabinetGroups: []
-                )
-            }
-        case .storage:
-            let grouped = Dictionary(grouping: bells, by: storageHeaderTitle(for:))
-            let orderedHeaders = grouped.keys.sorted { lhs, rhs in
-                let left = storageSortComponents(from: lhs)
-                let right = storageSortComponents(from: rhs)
-
-                if left.floor != right.floor {
-                    return compareDisplayValues(left.floor, right.floor, unknown: BL("common.unknown")) == .orderedAscending
-                }
-
-                return compareDisplayValues(left.room, right.room, unknown: BL("common.unknown")) == .orderedAscending
-            }
-
-            return orderedHeaders.map { header in
-                let cabinetGroups = Dictionary(grouping: grouped[header, default: []], by: storageCabinetTitle(for:))
-                    .map { key, value in
-                        BellStorageCabinetGroup(
-                            id: "\(header)-\(key)",
-                            title: key,
-                            bells: value.sorted {
-                                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
-                            }
-                        )
-                    }
-                    .sorted {
-                        compareDisplayValues($0.title, $1.title, unknown: BL("common.unknown")) == .orderedAscending
-                    }
-
-                return BellGroupedSection(
-                    id: "storage-\(header)",
-                    title: header,
-                    jumpTitle: header,
-                    indexTitle: nil,
-                    bells: [],
-                    cabinetGroups: cabinetGroups
-                )
-            }
-        }
+        guard let index = viewModel.bellRecords.firstIndex(where: { $0.id == bellID }) else { return nil }
+        return $viewModel.bellRecords[index]
     }
 
     @ViewBuilder
@@ -828,18 +635,8 @@ struct BellCatalogView: View {
     }
 
     private func geographyJumpIndex(onSelect: @escaping (String) -> Void) -> some View {
-        let entries = Dictionary(
-            grouping: groupedSections(from: filteredItemsBells),
-            by: \.indexTitle
-        )
-        .compactMap { key, value -> BellGeographyIndexEntry? in
-            guard let key, let section = value.first else { return nil }
-            return BellGeographyIndexEntry(id: key, title: key, targetSectionID: section.id)
-        }
-        .sorted { $0.title < $1.title }
-
         return VStack(spacing: 4) {
-            ForEach(entries) { entry in
+            ForEach(viewModel.geographyIndexEntries) { entry in
                 Button(entry.title) {
                     onSelect(entry.targetSectionID)
                 }
@@ -854,7 +651,7 @@ struct BellCatalogView: View {
 
     private func deleteBell(_ bellID: UUID) {
         repository.deleteBellRecord(bellID: bellID)
-        bellRecords.removeAll { $0.id == bellID }
+        viewModel.bellRecords.removeAll { $0.id == bellID }
     }
 
     private var zoomGesture: some Gesture {
@@ -878,178 +675,19 @@ struct BellCatalogView: View {
         layoutMode = previousMode
     }
 
-    private func sorted(_ bells: [BellRecord]) -> [BellRecord] {
-        bells.sorted { lhs, rhs in
-            switch orderMode {
-            case .title:
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            case .newestFirst:
-                if lhs.createdAt != rhs.createdAt {
-                    return lhs.createdAt > rhs.createdAt
-                }
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            case .oldestFirst:
-                if lhs.createdAt != rhs.createdAt {
-                    return lhs.createdAt < rhs.createdAt
-                }
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            case .geography:
-                return geographySort(lhs, rhs)
-            case .acquisitionYear:
-                if lhs.acquiredYear != rhs.acquiredYear {
-                    switch (lhs.acquiredYear, rhs.acquiredYear) {
-                    case let (left?, right?):
-                        return left > right
-                    case (_?, nil):
-                        return true
-                    case (nil, _?):
-                        return false
-                    default:
-                        break
-                    }
-                }
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            case .storage:
-                let left = storageComponents(for: lhs)
-                let right = storageComponents(for: rhs)
-
-                if left.floor != right.floor {
-                    return compareDisplayValues(left.floor, right.floor, unknown: BL("common.unknown")) == .orderedAscending
-                }
-
-                if left.room != right.room {
-                    return compareDisplayValues(left.room, right.room, unknown: BL("common.unknown")) == .orderedAscending
-                }
-
-                if left.cabinet != right.cabinet {
-                    return compareDisplayValues(left.cabinet, right.cabinet, unknown: BL("common.unknown")) == .orderedAscending
-                }
-
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            }
-        }
+    private var homeName: String {
+        viewModel.homeName
     }
 
-    private func normalizedCountry(for bell: BellRecord) -> String {
-        let country = bell.countryName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return country.isEmpty ? BL("common.unknown") : country
+    private func syncViewModelContext() {
+        viewModel.updateContext(
+            orderMode: orderMode,
+            summaryFilter: summaryFilter,
+            searchText: effectiveSearchText,
+            locationsByID: locationsByID,
+            homeName: repository.fetchHomes().first(where: { $0.id == collection.homeID })?.name ?? BL("common.unknown")
+        )
     }
-
-    private func normalizedRegion(for bell: BellRecord) -> String {
-        let region = (bell.originPlace?.regionName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        return region.isEmpty ? BL("common.unknown") : region
-    }
-
-    private func normalizedCity(for bell: BellRecord) -> String {
-        let city = bell.cityName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return city.isEmpty ? BL("common.unknown") : city
-    }
-
-    private func acquisitionYearGroupTitle(for bell: BellRecord) -> String {
-        bell.acquiredYear.map(String.init) ?? BL("common.unknown")
-    }
-
-    private func storageHeaderTitle(for bell: BellRecord) -> String {
-        let components = storageComponents(for: bell)
-        if components.floor == BL("common.unknown"), components.room == BL("common.unknown") {
-            return BL("common.unknown")
-        }
-
-        return "\(components.floor) · \(components.room)"
-    }
-
-    private func storageCabinetTitle(for bell: BellRecord) -> String {
-        storageComponents(for: bell).cabinet
-    }
-
-    private func storageComponents(for bell: BellRecord) -> (floor: String, room: String, cabinet: String) {
-        guard let locationID = bell.item.locationID else {
-            let unknown = BL("common.unknown")
-            return (unknown, unknown, unknown)
-        }
-
-        var floor = BL("common.unknown")
-        var room = BL("common.unknown")
-        var cabinet = BL("common.unknown")
-        var currentID: UUID? = locationID
-
-        while let id = currentID, let location = locationsByID[id] {
-            switch location.kind {
-            case .floor:
-                floor = location.name
-            case .room:
-                room = location.name
-            case .cabinet:
-                cabinet = location.name
-            case .shelf:
-                break
-            }
-
-            currentID = location.parentLocationID
-        }
-
-        return (floor, room, cabinet)
-    }
-
-    private func storageSortComponents(from header: String) -> (floor: String, room: String) {
-        let parts = header.components(separatedBy: " · ")
-        if parts.count == 2 {
-            return (parts[0], parts[1])
-        }
-
-        return (header, header)
-    }
-
-    private func compareDisplayValues(_ lhs: String, _ rhs: String, unknown: String) -> ComparisonResult {
-        let leftIsUnknown = lhs == unknown
-        let rightIsUnknown = rhs == unknown
-
-        if leftIsUnknown != rightIsUnknown {
-            return leftIsUnknown ? .orderedDescending : .orderedAscending
-        }
-
-        return lhs.localizedCaseInsensitiveCompare(rhs)
-    }
-
-    private func geographySort(_ lhs: BellRecord, _ rhs: BellRecord) -> Bool {
-        let countryComparison = compareDisplayValues(normalizedCountry(for: lhs), normalizedCountry(for: rhs), unknown: BL("common.unknown"))
-        if countryComparison != .orderedSame {
-            return countryComparison == .orderedAscending
-        }
-
-        let regionComparison = compareDisplayValues(normalizedRegion(for: lhs), normalizedRegion(for: rhs), unknown: BL("common.unknown"))
-        if regionComparison != .orderedSame {
-            return regionComparison == .orderedAscending
-        }
-
-        let cityComparison = compareDisplayValues(normalizedCity(for: lhs), normalizedCity(for: rhs), unknown: BL("common.unknown"))
-        if cityComparison != .orderedSame {
-            return cityComparison == .orderedAscending
-        }
-
-        return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-    }
-}
-
-private struct BellGroupedSection: Identifiable {
-    let id: String
-    let title: String
-    let jumpTitle: String
-    let indexTitle: String?
-    let bells: [BellRecord]
-    let cabinetGroups: [BellStorageCabinetGroup]
-}
-
-private struct BellStorageCabinetGroup: Identifiable {
-    let id: String
-    let title: String
-    let bells: [BellRecord]
-}
-
-private struct BellGeographyIndexEntry: Identifiable {
-    let id: String
-    let title: String
-    let targetSectionID: String
 }
 
 private struct BellGroupedSectionHeader: View {
