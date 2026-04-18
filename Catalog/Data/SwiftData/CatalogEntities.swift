@@ -1,10 +1,6 @@
 import Foundation
 import SwiftData
 
-private func SDE(_ key: String) -> String {
-    NSLocalizedString(key, comment: "")
-}
-
 @Model
 final class HomeEntity {
     @Attribute(.unique) var id: UUID
@@ -201,11 +197,11 @@ final class BellEntity {
     }
 
     var placeDisplayName: String {
-        originPlace?.displayName ?? SDE("common.unknown_origin")
+        originPlace?.displayName ?? String(localized: "common.unknown_origin")
     }
 
     var storageLocationName: String {
-        location?.name ?? SDE("common.unassigned")
+        location?.name ?? String(localized: "common.unassigned")
     }
 
     var storagePath: String {

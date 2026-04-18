@@ -1,9 +1,5 @@
 import Foundation
 
-private func BLD(_ key: String) -> String {
-    NSLocalizedString(key, comment: "")
-}
-
 struct BellDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
     let originPlaceID: UUID?
@@ -28,21 +24,21 @@ enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
     var displayName: String {
         switch self {
         case .brass:
-            return BLD("enum.bell_material.brass")
+            return String(localized: "enum.bell_material.brass")
         case .bronze:
-            return BLD("enum.bell_material.bronze")
+            return String(localized: "enum.bell_material.bronze")
         case .ceramic:
-            return BLD("enum.bell_material.ceramic")
+            return String(localized: "enum.bell_material.ceramic")
         case .porcelain:
-            return BLD("enum.bell_material.porcelain")
+            return String(localized: "enum.bell_material.porcelain")
         case .glass:
-            return BLD("enum.bell_material.glass")
+            return String(localized: "enum.bell_material.glass")
         case .wood:
-            return BLD("enum.bell_material.wood")
+            return String(localized: "enum.bell_material.wood")
         case .silver:
-            return BLD("enum.bell_material.silver")
+            return String(localized: "enum.bell_material.silver")
         case .other:
-            return BLD("enum.bell_material.other")
+            return String(localized: "enum.bell_material.other")
         }
     }
 }
@@ -64,10 +60,10 @@ struct BellRecord: Identifiable, Hashable {
     var condition: ItemCondition { item.condition }
     var acquisitionMethod: AcquisitionMethod { item.acquisitionMethod }
     var notes: String { item.notes }
-    var placeDisplayName: String { originPlace?.displayName ?? BLD("common.unknown_origin") }
+    var placeDisplayName: String { originPlace?.displayName ?? String(localized: "common.unknown_origin") }
     var countryName: String { originPlace?.countryName ?? "" }
     var cityName: String { originPlace?.cityName ?? "" }
-    var storageLocationName: String { storageLocation?.name ?? BLD("common.unassigned") }
+    var storageLocationName: String { storageLocation?.name ?? String(localized: "common.unassigned") }
     var storageDisplayPath: String { storagePath.isEmpty ? storageLocationName : storagePath }
     var photoCount: Int { mediaAssets.filter { $0.kind == .photo }.count }
     var model3DCount: Int { mediaAssets.filter { $0.kind == .model3D }.count }

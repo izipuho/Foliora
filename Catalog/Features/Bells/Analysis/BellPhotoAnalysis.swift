@@ -353,7 +353,7 @@ enum BellAnalysisLanguage: Sendable {
     case russian
 
     static var current: BellAnalysisLanguage {
-        let identifier = Locale.preferredLanguages.first?.lowercased() ?? ""
+        let identifier = Locale.autoupdatingCurrent.identifier.lowercased()
         return identifier.hasPrefix("ru") ? .russian : .english
     }
 

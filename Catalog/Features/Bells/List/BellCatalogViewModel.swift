@@ -1,10 +1,6 @@
 import Foundation
 import Observation
 
-private func BLVM(_ key: String) -> String {
-    NSLocalizedString(key, comment: "")
-}
-
 @MainActor
 @Observable
 final class BellCatalogViewModel {
@@ -239,15 +235,15 @@ final class BellCatalogViewModel {
                 let right = storageComponents(for: rhs)
 
                 if left.floor != right.floor {
-                    return compareDisplayValues(left.floor, right.floor, unknown: BLVM("common.unknown")) == .orderedAscending
+                    return compareDisplayValues(left.floor, right.floor, unknown: String(localized: "common.unknown")) == .orderedAscending
                 }
 
                 if left.room != right.room {
-                    return compareDisplayValues(left.room, right.room, unknown: BLVM("common.unknown")) == .orderedAscending
+                    return compareDisplayValues(left.room, right.room, unknown: String(localized: "common.unknown")) == .orderedAscending
                 }
 
                 if left.cabinet != right.cabinet {
-                    return compareDisplayValues(left.cabinet, right.cabinet, unknown: BLVM("common.unknown")) == .orderedAscending
+                    return compareDisplayValues(left.cabinet, right.cabinet, unknown: String(localized: "common.unknown")) == .orderedAscending
                 }
 
                 return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
@@ -260,7 +256,7 @@ final class BellCatalogViewModel {
         case .title, .newestFirst, .oldestFirst:
             return []
         case .geography:
-            let unknown = BLVM("common.unknown")
+            let unknown = String(localized: "common.unknown")
             let grouped = Dictionary(grouping: bells, by: { normalizedCountry(for: $0) })
             let orderedCountries = grouped.keys.sorted {
                 compareDisplayValues($0, $1, unknown: unknown) == .orderedAscending
@@ -277,7 +273,7 @@ final class BellCatalogViewModel {
                 )
             }
         case .acquisitionYear:
-            let unknown = BLVM("common.unknown")
+            let unknown = String(localized: "common.unknown")
             let grouped = Dictionary(grouping: bells, by: { acquisitionYearGroupTitle(for: $0) })
             let orderedTitles = grouped.keys.sorted { lhs, rhs in
                 switch (Int(lhs), Int(rhs)) {
@@ -311,10 +307,10 @@ final class BellCatalogViewModel {
                 let right = storageSortComponents(from: rhs)
 
                 if left.floor != right.floor {
-                    return compareDisplayValues(left.floor, right.floor, unknown: BLVM("common.unknown")) == .orderedAscending
+                    return compareDisplayValues(left.floor, right.floor, unknown: String(localized: "common.unknown")) == .orderedAscending
                 }
 
-                return compareDisplayValues(left.room, right.room, unknown: BLVM("common.unknown")) == .orderedAscending
+                return compareDisplayValues(left.room, right.room, unknown: String(localized: "common.unknown")) == .orderedAscending
             }
 
             return orderedHeaders.map { header in
@@ -329,7 +325,7 @@ final class BellCatalogViewModel {
                         )
                     }
                     .sorted {
-                        compareDisplayValues($0.title, $1.title, unknown: BLVM("common.unknown")) == .orderedAscending
+                        compareDisplayValues($0.title, $1.title, unknown: String(localized: "common.unknown")) == .orderedAscending
                     }
 
                 return BellGroupedSection(
@@ -346,27 +342,27 @@ final class BellCatalogViewModel {
 
     private func normalizedCountry(for bell: BellRecord) -> String {
         let country = bell.countryName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return country.isEmpty ? BLVM("common.unknown") : country
+        return country.isEmpty ? String(localized: "common.unknown") : country
     }
 
     private func normalizedRegion(for bell: BellRecord) -> String {
         let region = (bell.originPlace?.regionName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        return region.isEmpty ? BLVM("common.unknown") : region
+        return region.isEmpty ? String(localized: "common.unknown") : region
     }
 
     private func normalizedCity(for bell: BellRecord) -> String {
         let city = bell.cityName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return city.isEmpty ? BLVM("common.unknown") : city
+        return city.isEmpty ? String(localized: "common.unknown") : city
     }
 
     private func acquisitionYearGroupTitle(for bell: BellRecord) -> String {
-        bell.acquiredYear.map(String.init) ?? BLVM("common.unknown")
+        bell.acquiredYear.map(String.init) ?? String(localized: "common.unknown")
     }
 
     private func storageHeaderTitle(for bell: BellRecord) -> String {
         let components = storageComponents(for: bell)
-        if components.floor == BLVM("common.unknown"), components.room == BLVM("common.unknown") {
-            return BLVM("common.unknown")
+        if components.floor == String(localized: "common.unknown"), components.room == String(localized: "common.unknown") {
+            return String(localized: "common.unknown")
         }
 
         return "\(components.floor) · \(components.room)"
@@ -378,13 +374,13 @@ final class BellCatalogViewModel {
 
     private func storageComponents(for bell: BellRecord) -> (floor: String, room: String, cabinet: String) {
         guard let locationID = bell.item.locationID else {
-            let unknown = BLVM("common.unknown")
+            let unknown = String(localized: "common.unknown")
             return (unknown, unknown, unknown)
         }
 
-        var floor = BLVM("common.unknown")
-        var room = BLVM("common.unknown")
-        var cabinet = BLVM("common.unknown")
+        var floor = String(localized: "common.unknown")
+        var room = String(localized: "common.unknown")
+        var cabinet = String(localized: "common.unknown")
         var currentID: UUID? = locationID
 
         while let id = currentID, let location = locationsByID[id] {
@@ -426,17 +422,17 @@ final class BellCatalogViewModel {
     }
 
     private func geographySort(_ lhs: BellRecord, _ rhs: BellRecord) -> Bool {
-        let countryComparison = compareDisplayValues(normalizedCountry(for: lhs), normalizedCountry(for: rhs), unknown: BLVM("common.unknown"))
+        let countryComparison = compareDisplayValues(normalizedCountry(for: lhs), normalizedCountry(for: rhs), unknown: String(localized: "common.unknown"))
         if countryComparison != .orderedSame {
             return countryComparison == .orderedAscending
         }
 
-        let regionComparison = compareDisplayValues(normalizedRegion(for: lhs), normalizedRegion(for: rhs), unknown: BLVM("common.unknown"))
+        let regionComparison = compareDisplayValues(normalizedRegion(for: lhs), normalizedRegion(for: rhs), unknown: String(localized: "common.unknown"))
         if regionComparison != .orderedSame {
             return regionComparison == .orderedAscending
         }
 
-        let cityComparison = compareDisplayValues(normalizedCity(for: lhs), normalizedCity(for: rhs), unknown: BLVM("common.unknown"))
+        let cityComparison = compareDisplayValues(normalizedCity(for: lhs), normalizedCity(for: rhs), unknown: String(localized: "common.unknown"))
         if cityComparison != .orderedSame {
             return cityComparison == .orderedAscending
         }

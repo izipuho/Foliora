@@ -1,9 +1,5 @@
 import Foundation
 
-private func SL(_ key: String) -> String {
-    NSLocalizedString(key, comment: "")
-}
-
 enum CollectionRole: String, Hashable, Codable {
     case owner
     case editor
@@ -26,13 +22,13 @@ enum CollectionRole: String, Hashable, Codable {
     var title: String {
         switch self {
         case .owner:
-            return SL("enum.collection_role.owner")
+            return String(localized: "enum.collection_role.owner")
         case .editor:
-            return SL("enum.collection_role.editor")
+            return String(localized: "enum.collection_role.editor")
         case .contributor:
-            return SL("enum.collection_role.contributor")
+            return String(localized: "enum.collection_role.contributor")
         case .viewer:
-            return SL("enum.collection_role.viewer")
+            return String(localized: "enum.collection_role.viewer")
         }
     }
 }

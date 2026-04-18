@@ -1,10 +1,6 @@
 import SwiftUI
 import UIKit
 
-private func BL(_ key: String) -> String {
-    NSLocalizedString(key, comment: "")
-}
-
 private enum SummaryCountKind {
     case bells
     case materials
@@ -12,7 +8,7 @@ private enum SummaryCountKind {
     case cities
     case members
 
-    var localizationKey: String {
+    var resource: LocalizedStringResource {
         switch self {
         case .bells:
             return "collection.count.bells"
@@ -30,7 +26,7 @@ private enum SummaryCountKind {
 
 private func localizedCount(_ count: Int, kind: SummaryCountKind) -> String {
     String.localizedStringWithFormat(
-        NSLocalizedString(kind.localizationKey, comment: ""),
+        String(localized: kind.resource),
         count
     )
 }
@@ -46,17 +42,17 @@ enum BellOrderMode: String, CaseIterable, Hashable {
     var title: String {
         switch self {
         case .title:
-            return BL("bell_catalog.sort.title")
+            return String(localized: "bell_catalog.sort.title")
         case .newestFirst:
-            return BL("bell_catalog.sort.newest_first")
+            return String(localized: "bell_catalog.sort.newest_first")
         case .oldestFirst:
-            return BL("bell_catalog.sort.oldest_first")
+            return String(localized: "bell_catalog.sort.oldest_first")
         case .geography:
-            return BL("bell_catalog.group.geography")
+            return String(localized: "bell_catalog.group.geography")
         case .acquisitionYear:
-            return BL("bell_catalog.group.acquisition_year")
+            return String(localized: "bell_catalog.group.acquisition_year")
         case .storage:
-            return BL("bell_catalog.group.storage")
+            return String(localized: "bell_catalog.group.storage")
         }
     }
 }
@@ -86,27 +82,27 @@ enum BellSummaryFilter: Hashable {
     func title() -> String {
         switch self {
         case .all:
-            return BL("bell_catalog.filter_summary.all")
+            return String(localized: "bell_catalog.filter_summary.all")
         case .withOrigin:
-            return BL("bell_catalog.summary.with_origin")
+            return String(localized: "bell_catalog.summary.with_origin")
         case .missingOrigin:
-            return BL("bell_catalog.filter_summary.missing_origin")
+            return String(localized: "bell_catalog.filter_summary.missing_origin")
         case .withCity:
-            return BL("bell_catalog.filter_summary.with_city")
+            return String(localized: "bell_catalog.filter_summary.with_city")
         case .withStorage:
-            return BL("bell_catalog.summary.with_storage")
+            return String(localized: "bell_catalog.summary.with_storage")
         case .missingStorage:
-            return BL("bell_catalog.filter_summary.missing_storage")
+            return String(localized: "bell_catalog.filter_summary.missing_storage")
         case .withNotes:
-            return BL("bell_catalog.summary.with_notes")
+            return String(localized: "bell_catalog.summary.with_notes")
         case .missingNotes:
-            return BL("bell_catalog.filter_summary.missing_notes")
+            return String(localized: "bell_catalog.filter_summary.missing_notes")
         case .withTags:
-            return BL("bell_catalog.summary.with_tags")
+            return String(localized: "bell_catalog.summary.with_tags")
         case .missingTags:
-            return BL("bell_catalog.filter_summary.missing_tags")
+            return String(localized: "bell_catalog.filter_summary.missing_tags")
         case .withMaterial:
-            return BL("bell_catalog.filter_summary.with_material")
+            return String(localized: "bell_catalog.filter_summary.with_material")
         case .country(let value), .material(let value), .tag(let value):
             return value
         }
@@ -156,7 +152,7 @@ struct BellCatalogView: View {
         let initialLocationsByID = Dictionary(
             uniqueKeysWithValues: repository.fetchLocations(in: collection.homeID).map { ($0.id, $0) }
         )
-        let initialHomeName = repository.fetchHomes().first(where: { $0.id == collection.homeID })?.name ?? BL("common.unknown")
+        let initialHomeName = repository.fetchHomes().first(where: { $0.id == collection.homeID })?.name ?? String(localized: "common.unknown")
         _viewModel = State(
             initialValue: BellCatalogViewModel(
                 bellRecords: initialBellRecords,
@@ -244,16 +240,16 @@ struct BellCatalogView: View {
                     bellGridContent(
                         bells: viewModel.filteredItemsBells,
                         showsSearchControls: false,
-                        emptyTitle: LocalizedStringKey(BL("bell_catalog.empty.title")),
-                        emptyDescription: LocalizedStringKey(BL("bell_catalog.empty.description")),
+                        emptyTitle: LocalizedStringKey(String(localized: "bell_catalog.empty.title")),
+                        emptyDescription: LocalizedStringKey(String(localized: "bell_catalog.empty.description")),
                         screenWidth: proxy.size.width
                     )
                 case .search:
                     bellGridContent(
                         bells: viewModel.filteredBells,
                         showsSearchControls: true,
-                        emptyTitle: LocalizedStringKey(BL("bell_catalog.search.empty.title")),
-                        emptyDescription: LocalizedStringKey(BL("bell_catalog.search.empty.description")),
+                        emptyTitle: LocalizedStringKey(String(localized: "bell_catalog.search.empty.title")),
+                        emptyDescription: LocalizedStringKey(String(localized: "bell_catalog.search.empty.description")),
                         screenWidth: proxy.size.width
                     )
                 }
@@ -287,13 +283,13 @@ struct BellCatalogView: View {
                 summarySnapshotCard
                 summaryCoverageCard
                 summaryBreakdownCard(
-                    title: BL("bell_catalog.summary.top_countries"),
-                    emptyTitle: BL("bell_catalog.summary.no_origin_data"),
+                    title: String(localized: "bell_catalog.summary.top_countries"),
+                    emptyTitle: String(localized: "bell_catalog.summary.no_origin_data"),
                     rows: Array(viewModel.topCountries.prefix(4))
                 )
                 summaryBreakdownCard(
-                    title: BL("bell_catalog.summary.top_materials"),
-                    emptyTitle: BL("bell_catalog.summary.no_material_data"),
+                    title: String(localized: "bell_catalog.summary.top_materials"),
+                    emptyTitle: String(localized: "bell_catalog.summary.no_material_data"),
                     rows: Array(viewModel.topMaterials.prefix(4))
                 )
                 summaryTagCloudCard
@@ -532,19 +528,19 @@ struct BellCatalogView: View {
 
     private var summaryCoverageCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(BL("bell_catalog.summary.coverage"))
+            Text(String(localized: "bell_catalog.summary.coverage"))
                 .font(.headline)
 
-            SummaryCoverageRow(title: BL("bell_catalog.summary.with_origin"), value: viewModel.bellsWithOriginCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
+            SummaryCoverageRow(title: String(localized: "bell_catalog.summary.with_origin"), value: viewModel.bellsWithOriginCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
                 onSelectSummaryFilter?(.missingOrigin)
             }
-            SummaryCoverageRow(title: BL("bell_catalog.summary.with_storage"), value: viewModel.bellsWithStorageCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
+            SummaryCoverageRow(title: String(localized: "bell_catalog.summary.with_storage"), value: viewModel.bellsWithStorageCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
                 onSelectSummaryFilter?(.missingStorage)
             }
-            SummaryCoverageRow(title: BL("bell_catalog.summary.with_notes"), value: viewModel.bellsWithNotesCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
+            SummaryCoverageRow(title: String(localized: "bell_catalog.summary.with_notes"), value: viewModel.bellsWithNotesCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
                 onSelectSummaryFilter?(.missingNotes)
             }
-            SummaryCoverageRow(title: BL("bell_catalog.summary.with_tags"), value: viewModel.bellsWithTagsCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
+            SummaryCoverageRow(title: String(localized: "bell_catalog.summary.with_tags"), value: viewModel.bellsWithTagsCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
                 onSelectSummaryFilter?(.missingTags)
             }
         }
@@ -568,7 +564,7 @@ struct BellCatalogView: View {
                 VStack(spacing: 10) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                         SummaryBreakdownRow(title: row.0, value: row.1, tint: collection.backgroundStyle.accentColor) {
-                            if title == BL("bell_catalog.summary.top_countries") {
+                            if title == String(localized: "bell_catalog.summary.top_countries") {
                                 onSelectSummaryFilter?(.country(row.0))
                             } else {
                                 onSelectSummaryFilter?(.material(row.0))
@@ -583,11 +579,11 @@ struct BellCatalogView: View {
 
     private func summaryRecentBells(screenWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(BL("bell_catalog.summary.recent"))
+            Text(String(localized: "bell_catalog.summary.recent"))
                 .font(.headline)
 
             if viewModel.bells.isEmpty {
-                Text(BL("bell_catalog.summary.none"))
+                Text(String(localized: "bell_catalog.summary.none"))
                     .foregroundStyle(.secondary)
             } else {
                 BellCardStripView(
@@ -604,11 +600,11 @@ struct BellCatalogView: View {
 
     private var summaryTagCloudCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(BL("bell_catalog.summary.tag_cloud"))
+            Text(String(localized: "bell_catalog.summary.tag_cloud"))
                 .font(.headline)
 
             if viewModel.topTags.isEmpty {
-                Text(BL("bell_catalog.summary.no_tags"))
+                Text(String(localized: "bell_catalog.summary.no_tags"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
@@ -634,12 +630,12 @@ struct BellCatalogView: View {
             Image(systemName: "tag.fill")
                 .foregroundStyle(collection.backgroundStyle.accentColor)
 
-            Text(String.localizedStringWithFormat(BL("bell_catalog.items.filtered_by_tag"), summaryFilter?.title() ?? ""))
+            Text(String.localizedStringWithFormat(String(localized: "bell_catalog.items.filtered_by_tag"), summaryFilter?.title() ?? ""))
                 .font(.subheadline.weight(.semibold))
 
             Spacer()
 
-            Button(BL("common.clear")) {
+            Button(String(localized: "common.clear")) {
                 onClearSummaryFilter?()
             }
             .font(.footnote.weight(.semibold))
@@ -661,7 +657,7 @@ struct BellCatalogView: View {
     private var searchFiltersSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                FilterChip(title: BL("bell_catalog.filter.all"), isSelected: selectedCondition == nil, tint: collection.backgroundStyle.accentColor) {
+                FilterChip(title: String(localized: "bell_catalog.filter.all"), isSelected: selectedCondition == nil, tint: collection.backgroundStyle.accentColor) {
                     selectedCondition = nil
                 }
 
@@ -777,7 +773,7 @@ struct BellCatalogView: View {
             summaryFilter: summaryFilter,
             searchText: effectiveSearchText,
             locationsByID: locationsByID,
-            homeName: repository.fetchHomes().first(where: { $0.id == collection.homeID })?.name ?? BL("common.unknown")
+            homeName: repository.fetchHomes().first(where: { $0.id == collection.homeID })?.name ?? String(localized: "common.unknown")
         )
     }
 }
@@ -872,14 +868,14 @@ struct BellEditorView: View {
     @State private var tagInput = ""
     @State private var tags: [String] = []
     @State private var mediaAssets: [MediaAsset] = []
-    @State private var selectedAcquiredYearOption = BL("editor.acquired_year.none")
+    @State private var selectedAcquiredYearOption = String(localized: "editor.acquired_year.none")
     @State private var highlightedSection: StartSection?
     @StateObject private var photoAnalysis = BellPhotoAnalysisController()
     private let existingBellID: UUID?
     private let existingCreatedAt: Date?
     private let editorItemID: UUID
 
-    private let acquiredYearOptions = [BL("editor.acquired_year.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
+    private let acquiredYearOptions = [String(localized: "editor.acquired_year.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     private var availableLocations: [Location] {
         repository.fetchLocations(in: collection.homeID)
@@ -932,14 +928,14 @@ struct BellEditorView: View {
         _selectedLocationID = State(initialValue: bell?.item.locationID)
         _tags = State(initialValue: bell?.tags ?? [])
         _mediaAssets = State(initialValue: bell?.mediaAssets ?? initialMediaAssets)
-        _selectedAcquiredYearOption = State(initialValue: bell?.acquiredYear.map(String.init) ?? BL("editor.acquired_year.none"))
+        _selectedAcquiredYearOption = State(initialValue: bell?.acquiredYear.map(String.init) ?? String(localized: "editor.acquired_year.none"))
     }
 
     var body: some View {
         NavigationStack {
             ScrollViewReader { scrollProxy in
                 Form {
-                    Section(BL("editor.media")) {
+                    Section(String(localized: "editor.media")) {
                         MediaSection(
                             itemID: editorItemID,
                             mediaAssets: $mediaAssets
@@ -947,11 +943,11 @@ struct BellEditorView: View {
                     }
 
                     if photoAnalysis.hasSuggestions {
-                        Section(BL("editor.photo_analysis.section")) {
+                        Section(String(localized: "editor.photo_analysis.section")) {
                             if photoAnalysis.isAnalyzing {
                                 HStack(spacing: 10) {
                                     ProgressView()
-                                    Text(BL("editor.photo_analysis.analyzing"))
+                                    Text(String(localized: "editor.photo_analysis.analyzing"))
                                         .foregroundStyle(.secondary)
                                 }
                             } else {
@@ -965,7 +961,7 @@ struct BellEditorView: View {
 
                                 if let titleSuggestion = photoAnalysis.result.title {
                                     PhotoSuggestionRow(
-                                        title: BL("editor.photo_analysis.title"),
+                                        title: String(localized: "editor.photo_analysis.title"),
                                         suggestedValue: titleSuggestion.value,
                                         confidence: titleSuggestion.confidence,
                                         onAccept: {
@@ -980,7 +976,7 @@ struct BellEditorView: View {
 
                                 if let notesSuggestion = photoAnalysis.result.notes {
                                     PhotoSuggestionRow(
-                                        title: BL("editor.photo_analysis.notes"),
+                                        title: String(localized: "editor.photo_analysis.notes"),
                                         suggestedValue: notesSuggestion.value,
                                         confidence: notesSuggestion.confidence,
                                         onAccept: {
@@ -995,7 +991,7 @@ struct BellEditorView: View {
 
                                 if let materialSuggestion = photoAnalysis.result.material {
                                     PhotoSuggestionRow(
-                                        title: BL("editor.photo_analysis.material"),
+                                        title: String(localized: "editor.photo_analysis.material"),
                                         suggestedValue: materialSuggestionLabel(materialSuggestion),
                                         confidence: materialSuggestion.confidence,
                                         onAccept: {
@@ -1017,7 +1013,7 @@ struct BellEditorView: View {
 
                                 if let conditionSuggestion = photoAnalysis.result.condition {
                                     PhotoSuggestionRow(
-                                        title: BL("editor.photo_analysis.condition"),
+                                        title: String(localized: "editor.photo_analysis.condition"),
                                         suggestedValue: conditionSuggestion.value.displayName,
                                         confidence: conditionSuggestion.confidence,
                                         onAccept: {
@@ -1032,7 +1028,7 @@ struct BellEditorView: View {
 
                                 if !photoAnalysis.result.suggestedTags.isEmpty {
                                     PhotoSuggestedTagsRow(
-                                        title: BL("editor.photo_analysis.tags"),
+                                        title: String(localized: "editor.photo_analysis.tags"),
                                         suggestions: photoAnalysis.result.suggestedTags,
                                         onAcceptAll: {
                                             let newValues = photoAnalysis.result.suggestedTags.map(\.value)
@@ -1050,21 +1046,21 @@ struct BellEditorView: View {
                         }
                     }
 
-                    Section(BL("editor.description")) {
-                        TextField(BL("editor.short_description"), text: $title)
-                        TextField(BL("editor.note_history"), text: $notes, axis: .vertical)
+                    Section(String(localized: "editor.description")) {
+                        TextField(String(localized: "editor.short_description"), text: $title)
+                        TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
                             .lineLimit(4, reservesSpace: true)
                     }
 
-                    Section(BL("editor.acquisition_details")) {
+                    Section(String(localized: "editor.acquisition_details")) {
                         YearPickerField(
-                            title: BL("editor.acquired_year"),
+                            title: String(localized: "editor.acquired_year"),
                             selection: $selectedAcquiredYearOption,
                             options: acquiredYearOptions
                         )
 
                         EnumSelectionRow(
-                            title: BL("editor.acquisition"),
+                            title: String(localized: "editor.acquisition"),
                             selectedLabel: acquisitionMethod.displayName,
                             options: AcquisitionMethod.allCases,
                             selection: $acquisitionMethod,
@@ -1072,9 +1068,9 @@ struct BellEditorView: View {
                         )
                     }
 
-                    Section(BL("editor.attributes")) {
+                    Section(String(localized: "editor.attributes")) {
                         EnumSelectionRow(
-                            title: BL("editor.condition"),
+                            title: String(localized: "editor.condition"),
                             selectedLabel: condition.displayName,
                             options: ItemCondition.allCases,
                             selection: $condition,
@@ -1082,7 +1078,7 @@ struct BellEditorView: View {
                         )
 
                         EnumSelectionRow(
-                            title: BL("editor.material"),
+                            title: String(localized: "editor.material"),
                             selectedLabel: material.displayName,
                             options: BellMaterial.allCases,
                             selection: $material,
@@ -1090,13 +1086,13 @@ struct BellEditorView: View {
                         )
 
                         if material == .other {
-                            TextField(BL("editor.material.custom"), text: $customMaterialName)
+                            TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
                         }
                     }
 
-                    Section(BL("editor.storage")) {
+                    Section(String(localized: "editor.storage")) {
                         LocationPickerField(
-                            title: BL("editor.location"),
+                            title: String(localized: "editor.location"),
                             selectedLabel: selectedLocationLabel,
                             locations: availableLocations,
                             selectedLocationID: $selectedLocationID
@@ -1105,23 +1101,23 @@ struct BellEditorView: View {
                     .id(StartSection.storage)
                     .listRowBackground(sectionBackground(for: .storage))
 
-                    Section(BL("editor.additional_details")) {
+                    Section(String(localized: "editor.additional_details")) {
                         PlacePickerField(
-                            title: BL("editor.origin"),
+                            title: String(localized: "editor.origin"),
                             selectedLabel: selectedOriginLabel,
                             places: availablePlaces,
                             selectedPlace: $selectedOriginPlace
                         )
                     }
 
-                    Section(BL("editor.tags")) {
+                    Section(String(localized: "editor.tags")) {
                         TagEditorSection(
                             tagInput: $tagInput,
                             tags: $tags
                         )
                     }
                 }
-                .navigationTitle(existingBellID == nil ? BL("editor.bell.add") : BL("editor.bell.edit"))
+                .navigationTitle(existingBellID == nil ? String(localized: "editor.bell.add") : String(localized: "editor.bell.edit"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
@@ -1130,7 +1126,7 @@ struct BellEditorView: View {
                         } label: {
                             Image(systemName: "xmark")
                         }
-                        .accessibilityLabel(BL("common.cancel"))
+                        .accessibilityLabel(String(localized: "common.cancel"))
                     }
 
                     ToolbarItem(placement: .topBarTrailing) {
@@ -1140,7 +1136,7 @@ struct BellEditorView: View {
                             Image(systemName: "checkmark")
                         }
                         .disabled(!canSave)
-                        .accessibilityLabel(BL("common.save"))
+                        .accessibilityLabel(String(localized: "common.save"))
                     }
                 }
                 .task {
@@ -1198,7 +1194,7 @@ struct BellEditorView: View {
                 createdAt: existingCreatedAt ?? .now,
                 title: trimmedTitle,
                 notes: trimmedNotes,
-                acquiredYear: selectedAcquiredYearOption == BL("editor.acquired_year.none") ? nil : Int(selectedAcquiredYearOption),
+                acquiredYear: selectedAcquiredYearOption == String(localized: "editor.acquired_year.none") ? nil : Int(selectedAcquiredYearOption),
                 condition: condition,
                 acquisitionMethod: acquisitionMethod
             ),
@@ -1210,7 +1206,7 @@ struct BellEditorView: View {
             ),
             originPlace: originPlace,
             storageLocation: location,
-            storagePath: location.map(locationPath(for:)) ?? BL("common.unassigned"),
+            storagePath: location.map(locationPath(for:)) ?? String(localized: "common.unassigned"),
             mediaAssets: normalizedMediaAssets,
             createdBy: "You",
             tags: tags
@@ -1221,12 +1217,12 @@ struct BellEditorView: View {
     }
 
     private var selectedOriginLabel: String {
-        selectedOriginPlace?.displayName ?? BL("common.unassigned")
+        selectedOriginPlace?.displayName ?? String(localized: "common.unassigned")
     }
 
     private var selectedLocationLabel: String {
         guard let selectedLocationID, let path = locationPathByID[selectedLocationID] else {
-            return BL("common.unassigned")
+            return String(localized: "common.unassigned")
         }
 
         return path
@@ -1279,12 +1275,12 @@ private struct PhotoSuggestionRow: View {
 
             HStack(spacing: 10) {
                 Button(action: onAccept) {
-                    Label(BL("editor.photo_analysis.accept"), systemImage: "checkmark.circle.fill")
+                    Label(String(localized: "editor.photo_analysis.accept"), systemImage: "checkmark.circle.fill")
                 }
                 .buttonStyle(.borderedProminent)
 
                 Button(action: onReject) {
-                    Label(BL("editor.photo_analysis.reject"), systemImage: "xmark.circle")
+                    Label(String(localized: "editor.photo_analysis.reject"), systemImage: "xmark.circle")
                 }
                 .buttonStyle(.bordered)
             }
@@ -1318,7 +1314,7 @@ private struct PhotoRecognizedTextBlock: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(BL("editor.photo_analysis.detected_text"))
+            Text(String(localized: "editor.photo_analysis.detected_text"))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
@@ -1361,12 +1357,12 @@ private struct PhotoSuggestedTagsRow: View {
 
             HStack(spacing: 10) {
                 Button(action: onAcceptAll) {
-                    Label(BL("editor.photo_analysis.accept"), systemImage: "checkmark.circle.fill")
+                    Label(String(localized: "editor.photo_analysis.accept"), systemImage: "checkmark.circle.fill")
                 }
                 .buttonStyle(.borderedProminent)
 
                 Button(action: onReject) {
-                    Label(BL("editor.photo_analysis.reject"), systemImage: "xmark.circle")
+                    Label(String(localized: "editor.photo_analysis.reject"), systemImage: "xmark.circle")
                 }
                 .buttonStyle(.bordered)
             }

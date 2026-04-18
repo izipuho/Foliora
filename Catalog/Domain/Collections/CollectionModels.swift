@@ -1,10 +1,6 @@
 import Foundation
 import SwiftUI
 
-private func CL(_ key: String) -> String {
-    NSLocalizedString(key, comment: "")
-}
-
 struct Home: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
@@ -75,13 +71,13 @@ enum LocationKind: String, CaseIterable, Hashable, Identifiable, Codable {
     var displayName: String {
         switch self {
         case .floor:
-            return CL("enum.location_kind.floor")
+            return String(localized: "enum.location_kind.floor")
         case .room:
-            return CL("enum.location_kind.room")
+            return String(localized: "enum.location_kind.room")
         case .cabinet:
-            return CL("enum.location_kind.cabinet")
+            return String(localized: "enum.location_kind.cabinet")
         case .shelf:
-            return CL("enum.location_kind.shelf")
+            return String(localized: "enum.location_kind.shelf")
         }
     }
 
@@ -151,7 +147,7 @@ enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
             key = "collection.count.books"
         }
 
-        let format = NSLocalizedString(key, comment: "Collection item count")
+        let format = String(localized: LocalizedStringResource(stringLiteral: key))
         return String(format: format, locale: locale, count)
     }
 }
@@ -163,9 +159,9 @@ enum CollectionStatus: String, Hashable, Codable {
     var label: String {
         switch self {
         case .active:
-            return CL("enum.collection_status.active")
+            return String(localized: "enum.collection_status.active")
         case .planned:
-            return CL("enum.collection_status.planned")
+            return String(localized: "enum.collection_status.planned")
         }
     }
 

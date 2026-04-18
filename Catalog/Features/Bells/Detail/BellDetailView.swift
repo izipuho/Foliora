@@ -3,10 +3,6 @@ import UIKit
 import QuickLook
 import MapKit
 
-private func DL(_ key: String) -> String {
-    NSLocalizedString(key, comment: "")
-}
-
 struct BellDetailView: View {
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
@@ -22,12 +18,12 @@ struct BellDetailView: View {
                 heroHeader
 
                 VStack(alignment: .leading, spacing: 18) {
-                    detailSection(DL("bell.detail.section.collection_info")) {
-                        detailRow(DL("bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
-                        detailRow(DL("bell.detail.condition"), value: bell.condition.displayName)
+                    detailSection(String(localized: "bell.detail.section.collection_info")) {
+                        detailRow(String(localized: "bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
+                        detailRow(String(localized: "bell.detail.condition"), value: bell.condition.displayName)
                     }
 
-                    detailSection(DL("bell.detail.section.location")) {
+                    detailSection(String(localized: "bell.detail.section.location")) {
                         OriginStorageSection(
                             place: bell.originPlace,
                             storagePath: bell.storageDisplayPath,
@@ -39,7 +35,7 @@ struct BellDetailView: View {
                         )
                     }
 
-                    detailSection(DL("bell.detail.section.media")) {
+                    detailSection(String(localized: "bell.detail.section.media")) {
                         MediaSection(
                             itemID: bell.id,
                             mediaAssets: mediaAssetsBinding
@@ -47,11 +43,11 @@ struct BellDetailView: View {
                     }
 
                     detailSection(
-                        DL("bell.detail.section.notes"),
+                        String(localized: "bell.detail.section.notes"),
                         isHighlighted: isNotesOrTagsDirty,
                         tint: inferredCollection.backgroundStyle.accentColor
                     ) {
-                        TextField(DL("editor.note_history"), text: $draftNotes, axis: .vertical)
+                        TextField(String(localized: "editor.note_history"), text: $draftNotes, axis: .vertical)
                             .lineLimit(6, reservesSpace: true)
                             .textFieldStyle(.plain)
 
@@ -83,7 +79,7 @@ struct BellDetailView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel(DL("common.cancel"))
+                    .accessibilityLabel(String(localized: "common.cancel"))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -92,7 +88,7 @@ struct BellDetailView: View {
                     } label: {
                         Image(systemName: "checkmark")
                     }
-                    .accessibilityLabel(DL("common.save"))
+                    .accessibilityLabel(String(localized: "common.save"))
                 }
             } else {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -101,7 +97,7 @@ struct BellDetailView: View {
                     } label: {
                         Image(systemName: "square.and.pencil")
                     }
-                    .accessibilityLabel(DL("common.edit"))
+                    .accessibilityLabel(String(localized: "common.edit"))
                 }
             }
         }
@@ -185,7 +181,7 @@ struct BellDetailView: View {
                 id: bell.item.collectionID,
                 homeID: UUID(),
                 kind: .bells,
-                name: DL("collection_kind.bells"),
+                name: String(localized: "collection_kind.bells"),
                 subtitle: "",
                 backgroundStyle: .amber,
                 itemCount: 0,
@@ -270,7 +266,7 @@ struct BellDetailView: View {
             details: bell.details,
             originPlace: bell.originPlace,
             storageLocation: location,
-            storagePath: location.map { locationPath(for: $0, locationsByID: locationsByID) } ?? DL("common.unassigned"),
+            storagePath: location.map { locationPath(for: $0, locationsByID: locationsByID) } ?? String(localized: "common.unassigned"),
             mediaAssets: normalizedMediaAssets,
             createdBy: bell.createdBy,
             tags: tags ?? bell.tags
@@ -359,11 +355,11 @@ private struct OriginTile: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Label(DL("bell.detail.origin"), systemImage: "mappin.and.ellipse")
+                    Label(String(localized: "bell.detail.origin"), systemImage: "mappin.and.ellipse")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white)
 
-                    Text(place?.displayName ?? DL("common.unassigned"))
+                    Text(place?.displayName ?? String(localized: "common.unassigned"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
                         .lineLimit(2)
@@ -446,12 +442,12 @@ private struct StorageTile: View {
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(accentColor)
 
-            Text(DL("bell.detail.storage.assign.action"))
+            Text(String(localized: "bell.detail.storage.assign.action"))
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(accentColor)
                 .multilineTextAlignment(.center)
 
-            Text(DL("bell.detail.storage.placeholder"))
+            Text(String(localized: "bell.detail.storage.placeholder"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

@@ -3,10 +3,6 @@ import PhotosUI
 import UIKit
 @preconcurrency import MapKit
 
-private func EL(_ key: String) -> String {
-    NSLocalizedString(key, comment: "")
-}
-
 struct YearPickerField: View {
     let title: String
     @Binding var selection: String
@@ -79,7 +75,7 @@ struct EnumSelectionRow<Option: Hashable>: View {
                         } label: {
                             Image(systemName: "xmark")
                         }
-                        .accessibilityLabel(EL("common.cancel"))
+                        .accessibilityLabel(String(localized: "common.cancel"))
                     }
                 }
             }
@@ -163,7 +159,7 @@ struct TagEditorSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                TextField(EL("editor.tags.add_placeholder"), text: $tagInput)
+                TextField(String(localized: "editor.tags.add_placeholder"), text: $tagInput)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
@@ -178,11 +174,11 @@ struct TagEditorSection: View {
                         .font(.title3)
                 }
                 .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .accessibilityLabel(EL("common.add"))
+                .accessibilityLabel(String(localized: "common.add"))
             }
 
             if tags.isEmpty {
-                Text(EL("editor.tags.empty"))
+                Text(String(localized: "editor.tags.empty"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
@@ -229,7 +225,7 @@ private struct TagChip: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(EL("common.delete"))
+            .accessibilityLabel(String(localized: "common.delete"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -319,9 +315,9 @@ struct MediaSection: View {
     var body: some View {
         if mediaAssets.isEmpty {
             ContentUnavailableView(
-                EL("editor.media.empty.title"),
+                String(localized: "editor.media.empty.title"),
                 systemImage: "photo.on.rectangle.angled",
-                description: Text(EL("editor.media.empty.description"))
+                description: Text(String(localized: "editor.media.empty.description"))
             )
         } else {
             LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 12) {
@@ -341,7 +337,7 @@ struct MediaSection: View {
         Button {
             isPresentingAddMediaOptions = true
         } label: {
-            Label(EL("editor.media.add"), systemImage: "plus")
+            Label(String(localized: "editor.media.add"), systemImage: "plus")
         }
         .photosPicker(
             isPresented: $isPresentingPhotoPicker,
@@ -355,27 +351,27 @@ struct MediaSection: View {
                 addCapturedPhoto(image)
             }
         }
-        .confirmationDialog(EL("editor.media.add"), isPresented: $isPresentingAddMediaOptions, titleVisibility: .visible) {
-            Button(EL("editor.media.photo_library")) {
+        .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresentingAddMediaOptions, titleVisibility: .visible) {
+            Button(String(localized: "editor.media.photo_library")) {
                 isPresentingPhotoPicker = true
             }
 
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button(EL("editor.media.camera")) {
+                Button(String(localized: "editor.media.camera")) {
                     isPresentingCamera = true
                 }
             }
 
-            Button(EL("editor.media.model")) {
+            Button(String(localized: "editor.media.model")) {
                 isShowingModelPlaceholder = true
             }
 
-            Button(EL("common.cancel"), role: .cancel) {}
+            Button(String(localized: "common.cancel"), role: .cancel) {}
         }
-        .alert(EL("editor.media.model.placeholder_title"), isPresented: $isShowingModelPlaceholder) {
-            Button(EL("common.ok"), role: .cancel) {}
+        .alert(String(localized: "editor.media.model.placeholder_title"), isPresented: $isShowingModelPlaceholder) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
-            Text(EL("editor.media.model.placeholder_message"))
+            Text(String(localized: "editor.media.model.placeholder_message"))
         }
         .onChange(of: selectedPhotoItems) { _, newItems in
             Task {
@@ -489,7 +485,7 @@ private struct MediaAssetGridTileView: View {
                         .foregroundStyle(.secondary)
 
                     if isCover {
-                        Text(EL("editor.media.cover"))
+                        Text(String(localized: "editor.media.cover"))
                             .font(.caption2.weight(.semibold))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
@@ -628,7 +624,7 @@ struct PlacePickerView: View {
                         dismiss()
                     } label: {
                         HStack {
-                            Text(EL("common.unassigned"))
+                            Text(String(localized: "common.unassigned"))
                             Spacer()
                             if selectedPlace == nil {
                                 Image(systemName: "checkmark")
@@ -639,7 +635,7 @@ struct PlacePickerView: View {
                 }
 
                 if !searchModel.results.isEmpty {
-                    Section(EL("editor.origin.results")) {
+                    Section(String(localized: "editor.origin.results")) {
                         ForEach(searchModel.results) { result in
                             Button {
                                 PlaceSearchModel.resolve(result) { place in
@@ -672,7 +668,7 @@ struct PlacePickerView: View {
                     }
                 }
 
-                Section(EL("editor.origin.places")) {
+                Section(String(localized: "editor.origin.places")) {
                     ForEach(filteredPlaces) { place in
                         Button {
                             selectedPlace = place
@@ -699,9 +695,9 @@ struct PlacePickerView: View {
                     }
                 }
             }
-            .navigationTitle(EL("editor.origin.title"))
+            .navigationTitle(String(localized: "editor.origin.title"))
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: EL("editor.origin.search"))
+            .searchable(text: $searchText, prompt: String(localized: "editor.origin.search"))
             .onChange(of: searchText) { _, newValue in
                 searchModel.updateQuery(newValue)
             }
@@ -712,7 +708,7 @@ struct PlacePickerView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel(EL("common.cancel"))
+                    .accessibilityLabel(String(localized: "common.cancel"))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -721,7 +717,7 @@ struct PlacePickerView: View {
                     } label: {
                         Image(systemName: "checkmark")
                     }
-                    .accessibilityLabel(EL("common.save"))
+                    .accessibilityLabel(String(localized: "common.save"))
                 }
             }
         }
@@ -882,7 +878,7 @@ struct LocationHierarchyPickerView: View {
                         dismiss()
                     } label: {
                         HStack {
-                            Text(EL("common.unassigned"))
+                            Text(String(localized: "common.unassigned"))
                             Spacer()
                             if selectedLocationID == nil {
                                 Image(systemName: "checkmark")
@@ -893,19 +889,19 @@ struct LocationHierarchyPickerView: View {
                 }
 
                 if !ancestors.isEmpty {
-                    Section(EL("editor.location.current_path")) {
+                    Section(String(localized: "editor.location.current_path")) {
                         Text(ancestors.map(\.name).joined(separator: " / "))
                             .foregroundStyle(.secondary)
 
                         Button {
                             goBackOneLevel()
                         } label: {
-                            Label(EL("editor.location.up_one_level"), systemImage: "chevron.left")
+                            Label(String(localized: "editor.location.up_one_level"), systemImage: "chevron.left")
                         }
                     }
                 }
 
-                Section(ancestors.isEmpty ? EL("editor.location.select") : EL("editor.location.next_level")) {
+                Section(ancestors.isEmpty ? String(localized: "editor.location.select") : String(localized: "editor.location.next_level")) {
                     if let currentNode {
                         Button {
                             selectedLocationID = currentNode.id
@@ -920,7 +916,7 @@ struct LocationHierarchyPickerView: View {
 
                                 Spacer()
 
-                                Text(EL("editor.location.use_current"))
+                                Text(String(localized: "editor.location.use_current"))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
 
@@ -968,7 +964,7 @@ struct LocationHierarchyPickerView: View {
                     }
                 }
             }
-            .navigationTitle(EL("editor.location.title"))
+            .navigationTitle(String(localized: "editor.location.title"))
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 initializeNavigationState()
@@ -980,7 +976,7 @@ struct LocationHierarchyPickerView: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                    .accessibilityLabel(EL("common.cancel"))
+                    .accessibilityLabel(String(localized: "common.cancel"))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -990,7 +986,7 @@ struct LocationHierarchyPickerView: View {
                         Image(systemName: "checkmark")
                     }
                     .disabled(selectedLocationID == nil)
-                    .accessibilityLabel(EL("common.save"))
+                    .accessibilityLabel(String(localized: "common.save"))
                 }
             }
         }

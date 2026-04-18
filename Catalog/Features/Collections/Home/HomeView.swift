@@ -3,10 +3,6 @@ import MapKit
 import PhotosUI
 import UIKit
 
-private func L(_ key: String) -> String {
-    NSLocalizedString(key, comment: "")
-}
-
 enum RootTab: String, CaseIterable, Identifiable {
     case collections
     case settings
@@ -17,11 +13,11 @@ enum RootTab: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .collections:
-            return L("root_tab.collections")
+            return String(localized: "root_tab.collections")
         case .settings:
-            return L("root_tab.settings")
+            return String(localized: "root_tab.settings")
         case .search:
-            return L("root_tab.search")
+            return String(localized: "root_tab.search")
         }
     }
 
@@ -47,11 +43,11 @@ enum CollectionContentMode: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .summary:
-            return L("collection_tab.summary")
+            return String(localized: "collection_tab.summary")
         case .items:
-            return L("collection_tab.items")
+            return String(localized: "collection_tab.items")
         case .map:
-            return L("collection_tab.map")
+            return String(localized: "collection_tab.map")
         }
     }
 }
@@ -162,11 +158,11 @@ struct HomeView: View {
             )
             .ignoresSafeArea()
         )
-        .navigationTitle(L("home.screen.title"))
+        .navigationTitle(String(localized: "home.screen.title"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    let newHome = Home(id: UUID(), name: L("home.new.default_name"), notes: "")
+                    let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), notes: "")
                     homes.append(newHome)
                     locationsByHomeID[newHome.id] = []
                     repository.saveHome(newHome)
@@ -180,19 +176,19 @@ struct HomeView: View {
             }
         }
         .confirmationDialog(
-            L("home.delete.title"),
+            String(localized: "home.delete.title"),
             isPresented: $isPresentingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button(L("home.delete.confirm"), role: .destructive) {
+            Button(String(localized: "home.delete.confirm"), role: .destructive) {
                 confirmDeleteHome()
             }
 
-            Button(L("common.cancel"), role: .cancel) {
+            Button(String(localized: "common.cancel"), role: .cancel) {
                 pendingDeleteHomeID = nil
             }
         } message: {
-            Text(L("home.delete.message"))
+            Text(String(localized: "home.delete.message"))
         }
         .navigationDestination(for: AppDestination.self) { destination in
             switch destination {
@@ -220,9 +216,9 @@ struct HomeView: View {
                     )
                 } else {
                     ContentUnavailableView(
-                        L("home.not_found.title"),
+                        String(localized: "home.not_found.title"),
                         systemImage: "house.slash",
-                        description: Text(L("home.not_found.description"))
+                        description: Text(String(localized: "home.not_found.description"))
                     )
                 }
             }
@@ -233,15 +229,15 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 14) {
             if homes.isEmpty {
                 ContentUnavailableView(
-                    L("home.empty.title"),
+                    String(localized: "home.empty.title"),
                     systemImage: "house.slash",
-                    description: Text(L("home.empty.description"))
+                    description: Text(String(localized: "home.empty.description"))
                 )
                 .frame(maxWidth: .infinity)
                 .padding(.top, 80)
 
                 Button {
-                    let newHome = Home(id: UUID(), name: L("home.new.default_name"), notes: "")
+                    let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), notes: "")
                     homes.append(newHome)
                     locationsByHomeID[newHome.id] = []
                     repository.saveHome(newHome)
@@ -250,7 +246,7 @@ struct HomeView: View {
                         path.append(.home(newHome.id))
                     }
                 } label: {
-                    Label(L("home.add"), systemImage: "plus.circle.fill")
+                    Label(String(localized: "home.add"), systemImage: "plus.circle.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
@@ -277,7 +273,7 @@ struct HomeView: View {
                 .buttonStyle(.plain)
                 .listRowSeparator(.hidden)
                 .swipeActions {
-                    Button(L("common.delete"), role: .destructive) {
+                    Button(String(localized: "common.delete"), role: .destructive) {
                         requestDeleteHome(home.id)
                     }
                 }
@@ -305,7 +301,7 @@ struct HomeView: View {
                 .buttonStyle(.plain)
                 .listRowSeparator(.hidden)
                 .swipeActions {
-                    Button(L("common.delete"), role: .destructive) {
+                    Button(String(localized: "common.delete"), role: .destructive) {
                         requestDeleteHome(home.id)
                     }
                 }
@@ -317,7 +313,7 @@ struct HomeView: View {
                 )
                 .listRowSeparator(.hidden)
                 .swipeActions {
-                    Button(L("common.delete"), role: .destructive) {
+                    Button(String(localized: "common.delete"), role: .destructive) {
                         requestDeleteHome(home.id)
                     }
                 }
@@ -384,7 +380,7 @@ private struct HomeDetailView: View {
                     }
                 )
 
-                Text(L("home.details"))
+                Text(String(localized: "home.details"))
                     .font(.headline)
                     .padding(.horizontal, 4)
 
@@ -423,18 +419,18 @@ private struct HomeDetailView: View {
             )
         }
         .confirmationDialog(
-            L("home.delete.title"),
+            String(localized: "home.delete.title"),
             isPresented: $isPresentingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button(L("home.delete.confirm"), role: .destructive) {
+            Button(String(localized: "home.delete.confirm"), role: .destructive) {
                 onDelete()
                 dismiss()
             }
 
-            Button(L("common.cancel"), role: .cancel) {}
+            Button(String(localized: "common.cancel"), role: .cancel) {}
         } message: {
-            Text(L("home.delete.message"))
+            Text(String(localized: "home.delete.message"))
         }
     }
 }
@@ -450,34 +446,34 @@ private struct HomeEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(L("home.editor.section_home")) {
+                Section(String(localized: "home.editor.section_home")) {
                     TextField(
-                        L("common.name"),
+                        String(localized: "common.name"),
                         text: $home.name
                     )
 
                     TextField(
-                        L("common.notes"),
+                        String(localized: "common.notes"),
                         text: $home.notes,
                         axis: .vertical
                     )
                     .lineLimit(3, reservesSpace: true)
                 }
 
-                Section(L("home.editor.section_locations")) {
+                Section(String(localized: "home.editor.section_locations")) {
                     if locations.isEmpty {
                         ContentUnavailableView(
-                            L("home.location.empty.title"),
+                            String(localized: "home.location.empty.title"),
                             systemImage: "square.stack.3d.up.slash",
-                            description: Text(L("home.location.empty.description"))
+                            description: Text(String(localized: "home.location.empty.description"))
                         )
                     } else {
                         ForEach($locations) { $location in
                             VStack(alignment: .leading, spacing: 10) {
-                                TextField(L("home.location.name"), text: $location.name)
+                                TextField(String(localized: "home.location.name"), text: $location.name)
 
                                 Picker(
-                                    L("home.location.kind"),
+                                    String(localized: "home.location.kind"),
                                     selection: Binding(
                                         get: { location.kind },
                                         set: { newKind in
@@ -494,7 +490,7 @@ private struct HomeEditorView: View {
                                 }
 
                                 Picker(
-                                    L("home.location.parent"),
+                                    String(localized: "home.location.parent"),
                                     selection: Binding(
                                         get: { location.parentLocationID },
                                         set: { newValue in
@@ -508,13 +504,13 @@ private struct HomeEditorView: View {
                                         }
                                     )
                                 ) {
-                                    Text(L("common.none")).tag(Optional<UUID>.none)
+                                    Text(String(localized: "common.none")).tag(Optional<UUID>.none)
                                     ForEach(parentCandidates(for: location)) { candidate in
                                         Text(candidate.name).tag(Optional(candidate.id))
                                     }
                                 }
 
-                                TextField(L("common.notes"), text: $location.notes, axis: .vertical)
+                                TextField(String(localized: "common.notes"), text: $location.notes, axis: .vertical)
                                     .lineLimit(2, reservesSpace: true)
                             }
                             .padding(.vertical, 6)
@@ -525,7 +521,7 @@ private struct HomeEditorView: View {
                     Button {
                         addLocation()
                     } label: {
-                        Label(L("home.location.add"), systemImage: "plus.circle.fill")
+                        Label(String(localized: "home.location.add"), systemImage: "plus.circle.fill")
                     }
                 }
 
@@ -534,12 +530,12 @@ private struct HomeEditorView: View {
                         Button(role: .destructive) {
                             isPresentingDeleteConfirmation = true
                         } label: {
-                            Label(L("common.delete"), systemImage: "trash")
+                            Label(String(localized: "common.delete"), systemImage: "trash")
                         }
                     }
                 }
             }
-            .navigationTitle(L("home.editor.title"))
+            .navigationTitle(String(localized: "home.editor.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -561,18 +557,18 @@ private struct HomeEditorView: View {
                 }
             }
             .confirmationDialog(
-                L("home.delete.title"),
+                String(localized: "home.delete.title"),
                 isPresented: $isPresentingDeleteConfirmation,
                 titleVisibility: .visible
             ) {
-                Button(L("home.delete.confirm"), role: .destructive) {
+                Button(String(localized: "home.delete.confirm"), role: .destructive) {
                     onDelete?()
                     dismiss()
                 }
 
-                Button(L("common.cancel"), role: .cancel) {}
+                Button(String(localized: "common.cancel"), role: .cancel) {}
             } message: {
-                Text(L("home.delete.message"))
+                Text(String(localized: "home.delete.message"))
             }
         }
     }
@@ -584,7 +580,7 @@ private struct HomeEditorView: View {
                 homeID: home.id,
                 parentLocationID: nil,
                 kind: .room,
-                name: L("home.location.new_default_name"),
+                name: String(localized: "home.location.new_default_name"),
                 notes: ""
             )
         )
@@ -679,7 +675,7 @@ private struct HomeListCard: View {
                     Text(home.name)
                         .font(.title3.bold())
 
-                    Text(home.notes.isEmpty ? L("common.no_notes") : home.notes)
+                    Text(home.notes.isEmpty ? String(localized: "common.no_notes") : home.notes)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
@@ -693,9 +689,9 @@ private struct HomeListCard: View {
             }
 
             HStack(spacing: 12) {
-                listMetric(title: L("home.metric.collections"), value: "\(collectionCount)")
-                listMetric(title: L("home.metric.locations"), value: "\(locations.count)")
-                listMetric(title: L("home.metric.floors"), value: "\(floors)")
+                listMetric(title: String(localized: "home.metric.collections"), value: "\(collectionCount)")
+                listMetric(title: String(localized: "home.metric.locations"), value: "\(locations.count)")
+                listMetric(title: String(localized: "home.metric.floors"), value: "\(floors)")
             }
         }
         .padding(20)
@@ -813,16 +809,16 @@ struct CollectionsView: View {
     private var emptyCollectionsView: some View {
         VStack(spacing: 24) {
             ContentUnavailableView(
-                L("collections.empty.title"),
+                String(localized: "collections.empty.title"),
                 systemImage: "square.grid.2x2",
-                description: Text(L("collections.empty.description"))
+                description: Text(String(localized: "collections.empty.description"))
             )
             .frame(maxWidth: .infinity)
 
             Button {
                 isPresentingAddCollectionEditor = true
             } label: {
-                Label(L("collections.add"), systemImage: "plus.circle.fill")
+                Label(String(localized: "collections.add"), systemImage: "plus.circle.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
@@ -843,7 +839,7 @@ struct CollectionsView: View {
             id: UUID(),
             homeID: homeID,
             kind: .bells,
-            title: trimmedTitle.isEmpty ? L("collection.editor.default_title") : trimmedTitle,
+            title: trimmedTitle.isEmpty ? String(localized: "collection.editor.default_title") : trimmedTitle,
             notes: trimmedNotes,
             backgroundStyle: backgroundStyle
         )
@@ -912,42 +908,42 @@ struct CollectionEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(L("collection.editor.section_type")) {
+                Section(String(localized: "collection.editor.section_type")) {
                     HStack {
-                        Label(L("collection.editor.type_name_localized"), systemImage: "bell.fill")
+                        Label(String(localized: "collection.editor.type_name_localized"), systemImage: "bell.fill")
                         Spacer()
-                        Text(L("collection.editor.type_name_english"))
+                        Text(String(localized: "collection.editor.type_name_english"))
                             .foregroundStyle(.secondary)
                     }
                 }
 
-                Section(L("collection.editor.section_collection")) {
-                    TextField(L("common.name"), text: $title)
-                    TextField(L("common.notes"), text: $notes, axis: .vertical)
+                Section(String(localized: "collection.editor.section_collection")) {
+                    TextField(String(localized: "common.name"), text: $title)
+                    TextField(String(localized: "common.notes"), text: $notes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
                 }
 
-                Section(L("collection.editor.section_home")) {
+                Section(String(localized: "collection.editor.section_home")) {
                     if homes.isEmpty {
-                        Text(L("collection.editor.no_home"))
+                        Text(String(localized: "collection.editor.no_home"))
                             .foregroundStyle(.secondary)
                     } else if allowsHomeSelection {
-                        Picker(L("home.screen.title"), selection: $selectedHomeID) {
+                        Picker(String(localized: "home.screen.title"), selection: $selectedHomeID) {
                             ForEach(homes) { home in
                                 Text(home.name).tag(Optional(home.id))
                             }
                         }
                     } else {
                         HStack {
-                            Text(L("home.screen.title"))
+                            Text(String(localized: "home.screen.title"))
                             Spacer()
-                            Text(homes.first(where: { $0.id == selectedHomeID })?.name ?? L("common.unknown"))
+                            Text(homes.first(where: { $0.id == selectedHomeID })?.name ?? String(localized: "common.unknown"))
                                 .foregroundStyle(.secondary)
                         }
                     }
                 }
 
-                Section(L("collection.editor.section_background")) {
+                Section(String(localized: "collection.editor.section_background")) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 74, maximum: 110), spacing: 12)], spacing: 12) {
                         ForEach(CollectionBackgroundStyle.allCases) { style in
                             Button {
@@ -989,7 +985,7 @@ struct CollectionEditorView: View {
                         Button(role: .destructive) {
                             isPresentingDeleteConfirmation = true
                         } label: {
-                            Label(L("common.delete"), systemImage: "trash")
+                            Label(String(localized: "common.delete"), systemImage: "trash")
                         }
                     }
                 }
@@ -1017,18 +1013,18 @@ struct CollectionEditorView: View {
                 }
             }
             .confirmationDialog(
-                L("collection.delete.title"),
+                String(localized: "collection.delete.title"),
                 isPresented: $isPresentingDeleteConfirmation,
                 titleVisibility: .visible
             ) {
-                Button(L("collection.delete.confirm"), role: .destructive) {
+                Button(String(localized: "collection.delete.confirm"), role: .destructive) {
                     onDelete?()
                     dismiss()
                 }
 
-                Button(L("common.cancel"), role: .cancel) {}
+                Button(String(localized: "common.cancel"), role: .cancel) {}
             } message: {
-                Text(L("collection.delete.message"))
+                Text(String(localized: "collection.delete.message"))
             }
         }
     }
@@ -1107,7 +1103,7 @@ private struct CollectionShellView: View {
             if selectedMode == .items {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Picker(L("bell_catalog.order.menu"), selection: $selectedOrder) {
+                        Picker(String(localized: "bell_catalog.order.menu"), selection: $selectedOrder) {
                             ForEach(BellOrderMode.allCases, id: \.self) { option in
                                 Text(option.title).tag(option)
                             }
@@ -1132,18 +1128,18 @@ private struct CollectionShellView: View {
                 } label: {
                     floatingToolbarIcon(systemName: "plus")
                 }
-                .confirmationDialog(L("editor.media.add"), isPresented: $isPresentingAddBellOptions, titleVisibility: .visible) {
-                    Button(L("editor.media.photo_library")) {
+                .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresentingAddBellOptions, titleVisibility: .visible) {
+                    Button(String(localized: "editor.media.photo_library")) {
                         isPresentingPhotoPicker = true
                     }
 
                     if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                        Button(L("editor.media.camera")) {
+                        Button(String(localized: "editor.media.camera")) {
                             isPresentingCamera = true
                         }
                     }
 
-                    Button(L("common.cancel"), role: .cancel) {}
+                    Button(String(localized: "common.cancel"), role: .cancel) {}
                 }
             }
         }
@@ -1186,7 +1182,7 @@ private struct CollectionShellView: View {
         .sheet(isPresented: $isPresentingEditCollection) {
             CollectionEditorView(
                 homes: repository.fetchHomes(),
-                screenTitle: L("collection.editor.edit_title"),
+                screenTitle: String(localized: "collection.editor.edit_title"),
                 initialTitle: collection.name,
                 initialNotes: collection.subtitle,
                 initialHomeID: collection.homeID,
@@ -1363,20 +1359,20 @@ private struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     settingsCard(
-                        title: L("settings.appearance.title"),
-                        subtitle: L("settings.appearance.subtitle"),
+                        title: String(localized: "settings.appearance.title"),
+                        subtitle: String(localized: "settings.appearance.subtitle"),
                         systemImage: "sparkles.rectangle.stack"
                     )
 
                     settingsCard(
-                        title: L("settings.sharing.title"),
-                        subtitle: L("settings.sharing.subtitle"),
+                        title: String(localized: "settings.sharing.title"),
+                        subtitle: String(localized: "settings.sharing.subtitle"),
                         systemImage: "person.2.badge.gearshape"
                     )
 
                     settingsCard(
-                        title: L("settings.storage.title"),
-                        subtitle: L("settings.storage.subtitle"),
+                        title: String(localized: "settings.storage.title"),
+                        subtitle: String(localized: "settings.storage.subtitle"),
                         systemImage: "externaldrive.connected.to.line.below"
                     )
 
@@ -1384,8 +1380,8 @@ private struct SettingsView: View {
                         HomeView(repository: repository, embedsNavigation: false)
                     } label: {
                         settingsNavigationCard(
-                            title: L("root_tab.homes"),
-                            subtitle: L("settings.storage.subtitle"),
+                            title: String(localized: "root_tab.homes"),
+                            subtitle: String(localized: "settings.storage.subtitle"),
                             systemImage: "house"
                         )
                     }
@@ -1575,19 +1571,19 @@ private struct SearchTabView: View {
         var title: String {
             switch self {
             case .all:
-                return L("search.scope.all")
+                return String(localized: "search.scope.all")
             case .title:
-                return L("search.scope.title")
+                return String(localized: "search.scope.title")
             case .collection:
-                return L("search.scope.collection")
+                return String(localized: "search.scope.collection")
             case .origin:
-                return L("search.scope.origin")
+                return String(localized: "search.scope.origin")
             case .tags:
-                return L("search.scope.tags")
+                return String(localized: "search.scope.tags")
             case .notes:
-                return L("search.scope.notes")
+                return String(localized: "search.scope.notes")
             case .incomplete:
-                return L("search.scope.incomplete")
+                return String(localized: "search.scope.incomplete")
             }
         }
     }
@@ -1648,9 +1644,9 @@ private struct SearchTabView: View {
                             .padding(.top, 48)
                     } else if searchResults.isEmpty {
                         ContentUnavailableView(
-                            L("bell_catalog.search.empty.title"),
+                            String(localized: "bell_catalog.search.empty.title"),
                             systemImage: "magnifyingglass",
-                            description: Text(L("bell_catalog.search.empty.description"))
+                            description: Text(String(localized: "bell_catalog.search.empty.description"))
                         )
                         .frame(maxWidth: .infinity)
                         .padding(.top, 48)
@@ -1691,7 +1687,7 @@ private struct SearchTabView: View {
             .searchable(
                 text: $query,
                 isPresented: $isSearchPresented,
-                prompt: L("collections.search.prompt")
+                prompt: String(localized: "collections.search.prompt")
             )
             .toolbar(.hidden, for: .navigationBar)
         }
@@ -1705,7 +1701,7 @@ private struct SearchTabView: View {
 
     private var searchResultsCountText: String {
         String.localizedStringWithFormat(
-            NSLocalizedString("search.results.count", comment: ""),
+            String(localized: "search.results.count"),
             searchResults.count
         )
     }
@@ -1840,14 +1836,14 @@ private struct HomeCard: View {
             }
 
             HStack(spacing: 12) {
-                homeMetric(title: L("home.metric.collections"), value: "\(collectionCount)")
-                homeMetric(title: L("home.metric.locations"), value: "\(locations.count)")
-                homeMetric(title: L("home.metric.floors"), value: "\(floors.count)")
+                homeMetric(title: String(localized: "home.metric.collections"), value: "\(collectionCount)")
+                homeMetric(title: String(localized: "home.metric.locations"), value: "\(locations.count)")
+                homeMetric(title: String(localized: "home.metric.floors"), value: "\(floors.count)")
             }
         }
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .swipeActions {
-            Button(L("common.delete"), role: .destructive) {
+            Button(String(localized: "common.delete"), role: .destructive) {
                 onDelete()
             }
         }
@@ -1884,7 +1880,7 @@ private struct StorageMapCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(L("home.storage_map"))
+            Text(String(localized: "home.storage_map"))
                 .font(.headline)
 
             ForEach(floors) { floor in
@@ -2070,7 +2066,7 @@ private struct CollectionOriginMapView: View {
                 }
             }
         }
-        .navigationTitle(L("collection.placeholder.map.title"))
+        .navigationTitle(String(localized: "collection.placeholder.map.title"))
         .navigationBarTitleDisplayMode(.inline)
     }
 
