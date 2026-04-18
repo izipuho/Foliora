@@ -10,10 +10,11 @@ private func DL(_ key: String) -> String {
 struct BellDetailView: View {
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
+    @State private var draftNotes = ""
+    @State private var draftTags: [String] = []
+    @State private var tagInput = ""
     @State private var isPresentingEditor = false
-    @State private var previewTarget: MediaPreviewTarget?
-    @State private var editorStartSection: BellEditorView.StartSection?
-    private let mediaColumns = [GridItem(.adaptive(minimum: 108, maximum: 140), spacing: 12)]
+    @State private var isPresentingLocationPicker = false
 
     var body: some View {
         ScrollView {
@@ -32,49 +33,32 @@ struct BellDetailView: View {
                             storagePath: bell.storageDisplayPath,
                             accentColor: inferredCollection.backgroundStyle.accentColor,
                             isStorageAssigned: bell.item.locationID != nil,
-                            onAssignStorage: {
-                                editorStartSection = .storage
-                                isPresentingEditor = true
+                            onEditStorage: {
+                                isPresentingLocationPicker = true
                             }
                         )
                     }
 
-                    if !detailMediaAssets.isEmpty {
-                        detailSection(DL("bell.detail.section.media")) {
-                            LazyVGrid(columns: mediaColumns, alignment: .leading, spacing: 12) {
-                                ForEach(detailMediaAssets) { asset in
-                                    BellDetailMediaTile(asset: asset) {
-                                        openPreview(for: asset)
-                                    }
-                                }
-                            }
-                        }
+                    detailSection(DL("bell.detail.section.media")) {
+                        MediaSection(
+                            itemID: bell.id,
+                            mediaAssets: mediaAssetsBinding
+                        )
                     }
 
-                    if hasNotesOrTags {
-                        detailSection(DL("bell.detail.section.notes")) {
-                            if !bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                Text(bell.notes)
-                                    .font(.body)
-                            }
+                    detailSection(
+                        DL("bell.detail.section.notes"),
+                        isHighlighted: isNotesOrTagsDirty,
+                        tint: inferredCollection.backgroundStyle.accentColor
+                    ) {
+                        TextField(DL("editor.note_history"), text: $draftNotes, axis: .vertical)
+                            .lineLimit(6, reservesSpace: true)
+                            .textFieldStyle(.plain)
 
-                            if !bell.tags.isEmpty {
-                                DetailTagFlowLayout(spacing: 8) {
-                                    ForEach(bell.tags, id: \.self) { tag in
-                                        DetailTagChip(
-                                            tag: tag,
-                                            accentColor: inferredCollection.backgroundStyle.accentColor
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        detailSection(DL("bell.detail.section.notes")) {
-                            Text(DL("common.no_notes"))
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-                        }
+                        TagEditorSection(
+                            tagInput: $tagInput,
+                            tags: $draftTags
+                        )
                     }
                 }
                 .padding(.horizontal, 20)
@@ -92,11 +76,32 @@ struct BellDetailView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isPresentingEditor = true
-                } label: {
-                    Image(systemName: "square.and.pencil")
+            if isNotesOrTagsDirty {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        discardNotesAndTagsChanges()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(DL("common.cancel"))
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        saveNotesAndTagsChanges()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .accessibilityLabel(DL("common.save"))
+                }
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isPresentingEditor = true
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                    }
+                    .accessibilityLabel(DL("common.edit"))
                 }
             }
         }
@@ -104,29 +109,33 @@ struct BellDetailView: View {
             BellEditorView(
                 collection: inferredCollection,
                 repository: repository,
-                bell: bell,
-                startSection: editorStartSection
+                bell: bell
             ) { updatedBell in
                 repository.saveBellRecord(updatedBell)
                 bell = updatedBell
             }
         }
-        .sheet(item: $previewTarget) { target in
-            switch target.kind {
-            case .photo:
-                MediaPhotoPreviewScreen(url: target.url)
-            case .document, .model3D:
-                QuickLookPreview(url: target.url)
-            }
+        .sheet(isPresented: $isPresentingLocationPicker) {
+            LocationHierarchyPickerView(
+                locations: availableLocations,
+                selectedLocationID: locationIDBinding
+            )
         }
-        .onChange(of: isPresentingEditor) { _, isPresented in
-            if !isPresented {
-                editorStartSection = nil
-            }
+        .onAppear {
+            syncDraftsFromBell()
+        }
+        .onChange(of: bell) { _, _ in
+            guard !isNotesOrTagsDirty else { return }
+            syncDraftsFromBell()
         }
     }
 
-    private func detailSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func detailSection<Content: View>(
+        _ title: String,
+        isHighlighted: Bool = false,
+        tint: Color = .clear,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.headline)
@@ -135,14 +144,21 @@ struct BellDetailView: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            .ultraThinMaterial,
-            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(isHighlighted ? AnyShapeStyle(tint.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.45), lineWidth: 1)
+                .stroke(
+                    isHighlighted ? tint.opacity(0.42) : Color.white.opacity(0.45),
+                    lineWidth: isHighlighted ? 1.5 : 1
+                )
         )
-        .shadow(color: Color.black.opacity(0.04), radius: 10, y: 4)
+        .shadow(
+            color: isHighlighted ? tint.opacity(0.14) : Color.black.opacity(0.04),
+            radius: isHighlighted ? 14 : 10,
+            y: 4
+        )
     }
 
     private func detailRow(_ title: String, value: String) -> some View {
@@ -159,25 +175,8 @@ struct BellDetailView: View {
         BellCardHeroView(bell: bell)
     }
 
-    private func openPreview(for asset: MediaAsset) {
-        let mediaStore = LocalMediaFileStore.shared
-        guard let url = mediaStore.fileURL(for: asset.localIdentifier) else { return }
-        previewTarget = MediaPreviewTarget(url: url, kind: asset.kind)
-    }
-
-    private var detailMediaAssets: [MediaAsset] {
-        let sortedAssets = bell.mediaAssets.sorted { $0.sortOrder < $1.sortOrder }
-        let photoAssets = sortedAssets.filter { $0.kind == .photo }
-
-        if photoAssets.count > 1, let coverPhotoID = photoAssets.first?.id {
-            return sortedAssets.filter { $0.id != coverPhotoID }
-        }
-
-        return sortedAssets
-    }
-
-    private var hasNotesOrTags: Bool {
-        !bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !bell.tags.isEmpty
+    private var availableLocations: [Location] {
+        repository.fetchLocations(in: inferredCollection.homeID)
     }
 
     private var inferredCollection: CollectionSummary {
@@ -196,6 +195,102 @@ struct BellDetailView: View {
                 sharingSummary: ""
             )
     }
+
+    private var isNotesOrTagsDirty: Bool {
+        draftNotes != bell.notes || draftTags != bell.tags
+    }
+
+    private func syncDraftsFromBell() {
+        draftNotes = bell.notes
+        draftTags = bell.tags
+        tagInput = ""
+    }
+
+    private var mediaAssetsBinding: Binding<[MediaAsset]> {
+        Binding(
+            get: { bell.mediaAssets },
+            set: { persist(mediaAssets: $0) }
+        )
+    }
+
+    private var locationIDBinding: Binding<UUID?> {
+        Binding(
+            get: { bell.item.locationID },
+            set: { persist(locationID: $0) }
+        )
+    }
+
+    private func discardNotesAndTagsChanges() {
+        syncDraftsFromBell()
+    }
+
+    private func saveNotesAndTagsChanges() {
+        persist(
+            notes: draftNotes.trimmingCharacters(in: .whitespacesAndNewlines),
+            tags: draftTags
+        )
+        syncDraftsFromBell()
+    }
+
+    private func persist(
+        notes: String? = nil,
+        tags: [String]? = nil,
+        mediaAssets: [MediaAsset]? = nil,
+        locationID: UUID?? = nil
+    ) {
+        let resolvedLocationID = locationID ?? bell.item.locationID
+        let location = availableLocations.first(where: { $0.id == resolvedLocationID })
+        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
+        let normalizedMediaAssets = (mediaAssets ?? bell.mediaAssets)
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .enumerated()
+            .map { index, asset in
+                MediaAsset(
+                    id: asset.id,
+                    itemID: bell.id,
+                    kind: asset.kind,
+                    localIdentifier: asset.localIdentifier,
+                    displayName: asset.displayName,
+                    sortOrder: index
+                )
+            }
+
+        let updatedBell = BellRecord(
+            item: Item(
+                id: bell.item.id,
+                collectionID: bell.item.collectionID,
+                locationID: resolvedLocationID,
+                createdAt: bell.item.createdAt,
+                title: bell.item.title,
+                notes: notes ?? bell.notes,
+                acquiredYear: bell.item.acquiredYear,
+                condition: bell.item.condition,
+                acquisitionMethod: bell.item.acquisitionMethod
+            ),
+            details: bell.details,
+            originPlace: bell.originPlace,
+            storageLocation: location,
+            storagePath: location.map { locationPath(for: $0, locationsByID: locationsByID) } ?? DL("common.unassigned"),
+            mediaAssets: normalizedMediaAssets,
+            createdBy: bell.createdBy,
+            tags: tags ?? bell.tags
+        )
+
+        repository.saveBellRecord(updatedBell)
+        bell = updatedBell
+    }
+
+    private func locationPath(for location: Location, locationsByID: [UUID: Location]) -> String {
+        var parts = [location.name]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            parts.insert(parent.name, at: 0)
+            currentParentID = parent.parentLocationID
+        }
+
+        return parts.joined(separator: " / ")
+    }
 }
 
 private struct OriginStorageSection: View {
@@ -203,7 +298,7 @@ private struct OriginStorageSection: View {
     let storagePath: String
     let accentColor: Color
     let isStorageAssigned: Bool
-    let onAssignStorage: () -> Void
+    let onEditStorage: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -213,7 +308,7 @@ private struct OriginStorageSection: View {
                 storagePath: storagePath,
                 accentColor: accentColor,
                 isAssigned: isStorageAssigned,
-                onAssignStorage: onAssignStorage
+                onEditStorage: onEditStorage
             )
         }
     }
@@ -289,7 +384,7 @@ private struct StorageTile: View {
     let storagePath: String
     let accentColor: Color
     let isAssigned: Bool
-    let onAssignStorage: () -> Void
+    let onEditStorage: () -> Void
 
     private var pathParts: [String] {
         storagePath
@@ -299,16 +394,10 @@ private struct StorageTile: View {
     }
 
     var body: some View {
-        Group {
-            if isAssigned {
-                tileContent
-            } else {
-                Button(action: onAssignStorage) {
-                    tileContent
-                }
-                .buttonStyle(.plain)
-            }
+        Button(action: onEditStorage) {
+            tileContent
         }
+        .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 

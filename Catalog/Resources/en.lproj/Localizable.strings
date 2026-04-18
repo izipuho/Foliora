@@ -74,6 +74,7 @@
 "common.clear" = "Clear";
 "common.delete" = "Delete";
 "common.done" = "Done";
+"common.edit" = "Edit";
 "common.name" = "Name";
 "common.none" = "None";
 "common.notes" = "Notes";

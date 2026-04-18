@@ -74,6 +74,7 @@
 "common.clear" = "Сбросить";
 "common.delete" = "Удалить";
 "common.done" = "Готово";
+"common.edit" = "Редактировать";
 "common.name" = "Название";
 "common.none" = "Нет";
 "common.notes" = "Заметки";
