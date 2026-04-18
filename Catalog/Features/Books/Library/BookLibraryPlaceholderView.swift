@@ -50,10 +50,3 @@ struct BookLibraryPlaceholderView: View {
         }
     }
 }
-
-struct BookLibraryPlaceholderView_Previews: PreviewProvider {
-    static var previews: some View {
-        let repository = InMemoryCatalogRepository()
-        BookLibraryPlaceholderView(collection: repository.fetchCollections().first { $0.kind == .books }!)
-    }
-}

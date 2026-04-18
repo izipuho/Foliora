@@ -1644,21 +1644,6 @@ private extension View {
     }
 }
 
-struct BellCatalogView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationStack {
-            let repository = InMemoryCatalogRepository()
-            let collection = repository.fetchCollections().first { $0.kind == .bells }!
-            BellCatalogView(
-                collection: collection,
-                repository: repository,
-                collaborators: repository.fetchCollaborators(for: collection.id),
-                mode: .summary
-            )
-        }
-    }
-}
-
 private struct BellGridDetailSheetContainer: View {
     @State var bell: BellRecord
     let repository: any CatalogRepository

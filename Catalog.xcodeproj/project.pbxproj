@@ -18,7 +18,6 @@
 		C000000000000000000000A9 /* MediaAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000009 /* MediaAsset.swift */; };
 		C000000000000000000000AA /* SharingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000A /* SharingModels.swift */; };
 		C000000000000000000000AB /* CatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000B /* CatalogRepository.swift */; };
-		C000000000000000000000AC /* InMemoryCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000C /* InMemoryCatalogRepository.swift */; };
 		C000000000000000000000AD /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000D /* HomeView.swift */; };
 		C000000000000000000000AE /* BellCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000E /* BellCatalogView.swift */; };
 		C000000000000000000000AF /* BellDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000F /* BellDetailView.swift */; };
@@ -51,7 +50,6 @@
 		C00000000000000000000009 /* MediaAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAsset.swift; sourceTree = "<group>"; };
 		C0000000000000000000000A /* SharingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingModels.swift; sourceTree = "<group>"; };
 		C0000000000000000000000B /* CatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogRepository.swift; sourceTree = "<group>"; };
-		C0000000000000000000000C /* InMemoryCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryCatalogRepository.swift; sourceTree = "<group>"; };
 		C0000000000000000000000D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C0000000000000000000000E /* BellCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogView.swift; sourceTree = "<group>"; };
 		C0000000000000000000000F /* BellDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellDetailView.swift; sourceTree = "<group>"; };
@@ -152,7 +150,6 @@
 				C0000000000000000000003F /* Repositories */,
 				C00000000000000000000048 /* SwiftData */,
 				C00000000000000000000049 /* ImportExport */,
-				C00000000000000000000040 /* PreviewData */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -250,14 +247,6 @@
 				C0000000000000000000002A /* CatalogTransferDocument.swift */,
 			);
 			path = ImportExport;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000040 /* PreviewData */ = {
-			isa = PBXGroup;
-			children = (
-				C0000000000000000000000C /* InMemoryCatalogRepository.swift */,
-			);
-			path = PreviewData;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000041 /* Collections */ = {
@@ -424,7 +413,6 @@
 				C000000000000000000000A9 /* MediaAsset.swift in Sources */,
 				C000000000000000000000AA /* SharingModels.swift in Sources */,
 				C000000000000000000000AB /* CatalogRepository.swift in Sources */,
-				C000000000000000000000AC /* InMemoryCatalogRepository.swift in Sources */,
 				C000000000000000000000AD /* HomeView.swift in Sources */,
 				C000000000000000000000AE /* BellCatalogView.swift in Sources */,
 				C000000000000000000000AF /* BellDetailView.swift in Sources */,

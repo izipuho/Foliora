@@ -624,16 +624,6 @@ private struct DetailBadge: View {
     }
 }
 
-struct BellDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationStack {
-            let repository = InMemoryCatalogRepository()
-            let collection = repository.fetchCollections().first { $0.kind == .bells }!
-            BellDetailPreviewHost(collectionID: collection.id, repository: repository)
-        }
-    }
-}
-
 private struct BellDetailPreviewHost: View {
     let collectionID: UUID
     let repository: any CatalogRepository

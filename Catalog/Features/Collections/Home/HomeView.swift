@@ -359,12 +359,6 @@ struct HomeView: View {
     }
 }
 
-struct HomeView_Previews: PreviewProvider {
-    static var previews: some View {
-        HomeView(repository: InMemoryCatalogRepository())
-    }
-}
-
 private struct HomeDetailView: View {
     @Binding var home: Home
     @Binding var locations: [Location]
