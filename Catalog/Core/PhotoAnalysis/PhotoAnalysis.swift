@@ -48,11 +48,12 @@ struct NormalizedVisionTag: Hashable, Sendable {
 }
 
 struct PhotoAnalysisResult: Sendable {
+    let visionFeatures: [VisionFeature]
     let tags: [NormalizedVisionTag]
     let recognizedText: [RecognizedTextFeature]
     let visualKeywords: [VisualKeyword]
 
-    static let empty = PhotoAnalysisResult(tags: [], recognizedText: [], visualKeywords: [])
+    static let empty = PhotoAnalysisResult(visionFeatures: [], tags: [], recognizedText: [], visualKeywords: [])
 }
 
 protocol VisionFeatureExtracting: Sendable {
@@ -188,9 +189,11 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
 
         let features = await extractedFeatures ?? []
         let recognizedText = await extractedText ?? []
+        let filteredFeatures = filteredVisionFeatures(features)
 
         return PhotoAnalysisResult(
-            tags: normalize(features: filteredVisionFeatures(features)),
+            visionFeatures: filteredFeatures,
+            tags: normalize(features: filteredFeatures),
             recognizedText: recognizedText,
             visualKeywords: extractVisualKeywords(from: features)
         )

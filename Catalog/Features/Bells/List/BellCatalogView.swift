@@ -1144,9 +1144,7 @@ struct BellEditorView: View {
     @State private var mediaAssets: [MediaAsset] = []
     @State private var selectedAcquiredYearOption = BL("editor.acquired_year.none")
     @State private var highlightedSection: StartSection?
-    @State private var hasTriggeredInitialPhotoAnalysis = false
     @StateObject private var photoAnalysis = BellPhotoAnalysisController()
-    private let mediaStore = LocalMediaFileStore.shared
     private let existingBellID: UUID?
     private let existingCreatedAt: Date?
     private let editorItemID: UUID
@@ -1214,11 +1212,7 @@ struct BellEditorView: View {
                     Section(BL("editor.media")) {
                         MediaSection(
                             itemID: editorItemID,
-                            mediaAssets: $mediaAssets,
-                            onPhotoAdded: { image in
-                                guard existingBellID == nil else { return }
-                                photoAnalysis.analyze(image: image)
-                            }
+                            mediaAssets: $mediaAssets
                         )
                     }
 
@@ -1433,9 +1427,6 @@ struct BellEditorView: View {
                         }
                     }
                 }
-                .task {
-                    await triggerInitialPhotoAnalysisIfNeeded()
-                }
             }
         }
     }
@@ -1497,23 +1488,6 @@ struct BellEditorView: View {
 
         onSave(newBell)
         dismiss()
-    }
-
-    @MainActor
-    private func triggerInitialPhotoAnalysisIfNeeded() async {
-        guard existingBellID == nil else { return }
-        guard !hasTriggeredInitialPhotoAnalysis else { return }
-        guard !photoAnalysis.hasSuggestions else { return }
-
-        let firstPhotoAsset = mediaAssets.first(where: { $0.kind == .photo })
-        guard let firstPhotoAsset,
-              let fileURL = mediaStore.fileURL(for: firstPhotoAsset.localIdentifier),
-              let image = UIImage(contentsOfFile: fileURL.path) else {
-            return
-        }
-
-        hasTriggeredInitialPhotoAnalysis = true
-        photoAnalysis.analyze(image: image)
     }
 
     private var selectedOriginLabel: String {

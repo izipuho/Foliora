@@ -5,6 +5,7 @@ import FoundationModels
 #endif
 
 struct BellPhotoAnalysisResult: Sendable {
+    let visionFeatures: [VisionFeature]
     let tags: [NormalizedVisionTag]
     let recognizedText: [RecognizedTextFeature]
     let visualKeywords: [VisualKeyword]
@@ -16,6 +17,7 @@ struct BellPhotoAnalysisResult: Sendable {
     let suggestedTags: [SuggestedFieldValue<String>]
 
     static let empty = BellPhotoAnalysisResult(
+        visionFeatures: [],
         tags: [],
         recognizedText: [],
         visualKeywords: [],
@@ -38,6 +40,7 @@ protocol BellPhotoSuggestionMapping: Sendable {
 
 protocol BellSemanticInferring: Sendable {
     func infer(
+        visionFeatures: [VisionFeature],
         tags: [NormalizedVisionTag],
         recognizedText: [RecognizedTextFeature],
         visualKeywords: [VisualKeyword],
@@ -45,70 +48,39 @@ protocol BellSemanticInferring: Sendable {
     ) async -> BellPhotoSemanticSummary?
 }
 
-protocol BellTitleGenerating: Sendable {
-    func generateTitle(
-        from tags: [NormalizedVisionTag],
-        recognizedText: [RecognizedTextFeature],
-        visualKeywords: [VisualKeyword]
-    ) async -> SuggestedFieldValue<String>?
-}
-
 struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
     private let semanticInferer: any BellSemanticInferring
-    private let titleGenerator: any BellTitleGenerating
     private let language: BellAnalysisLanguage
 
     init(
         semanticInferer: any BellSemanticInferring = FoundationModelBellSemanticInferer(),
-        titleGenerator: any BellTitleGenerating = FoundationModelBellTitleGenerator(),
         language: BellAnalysisLanguage = .current
     ) {
         self.semanticInferer = semanticInferer
-        self.titleGenerator = titleGenerator
         self.language = language
     }
 
     func map(analysis: PhotoAnalysisResult) async -> BellPhotoAnalysisResult {
+        let visionFeatures = analysis.visionFeatures
         let tags = analysis.tags
         let recognizedText = analysis.recognizedText
         let visualKeywords = analysis.visualKeywords
         let semanticSummary = await semanticInferer.infer(
+            visionFeatures: visionFeatures,
             tags: tags,
             recognizedText: recognizedText,
             visualKeywords: visualKeywords,
             language: language
         )
-        let titleSuggestion = await makeTitleSuggestion(
-            from: tags,
-            recognizedText: recognizedText,
-            visualKeywords: visualKeywords,
-            semanticSummary: semanticSummary
-        )
-        let notesSuggestion = makeNotesSuggestion(
-            from: tags,
-            visualKeywords: visualKeywords,
-            titleSuggestion: titleSuggestion,
-            semanticSummary: semanticSummary
-        )
-        let materialSuggestion = makeMaterialSuggestion(
-            from: tags,
-            recognizedText: recognizedText,
-            semanticSummary: semanticSummary
-        )
-        let conditionSuggestion = makeConditionSuggestion(from: tags, semanticSummary: semanticSummary)
-        let customMaterialSuggestion = makeCustomMaterialSuggestion(
-            from: tags,
-            recognizedText: recognizedText,
-            materialSuggestion: materialSuggestion
-        )
-        let suggestedTags = makeSuggestedTags(
-            from: tags,
-            visualKeywords: visualKeywords,
-            materialSuggestion: materialSuggestion,
-            semanticSummary: semanticSummary
-        )
+        let titleSuggestion = makeTitleSuggestion(from: semanticSummary)
+        let notesSuggestion = makeNotesSuggestion(from: semanticSummary)
+        let materialSuggestion = makeMaterialSuggestion(from: semanticSummary)
+        let conditionSuggestion = makeConditionSuggestion(from: semanticSummary)
+        let customMaterialSuggestion = makeCustomMaterialSuggestion(from: semanticSummary, materialSuggestion: materialSuggestion)
+        let suggestedTags = makeSuggestedTags(from: semanticSummary)
 
         return BellPhotoAnalysisResult(
+            visionFeatures: visionFeatures,
             tags: tags,
             recognizedText: recognizedText,
             visualKeywords: visualKeywords,
@@ -121,380 +93,68 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         )
     }
 
-    private func makeTitleSuggestion(
-        from tags: [NormalizedVisionTag],
-        recognizedText: [RecognizedTextFeature],
-        visualKeywords: [VisualKeyword],
-        semanticSummary: BellPhotoSemanticSummary?
-    ) async -> SuggestedFieldValue<String>? {
-        if let semanticTitle = semanticSummary?.title?.nilIfBlank {
-            return SuggestedFieldValue(value: semanticTitle, confidence: semanticSummary?.confidence ?? 0.82)
-        }
-
-        let filteredRecognizedText = titleRelevantText(from: recognizedText)
-
-        if let generated = await titleGenerator.generateTitle(
-            from: tags,
-            recognizedText: filteredRecognizedText,
-            visualKeywords: visualKeywords
-        ) {
-            return generated
-        }
-
-        return SuggestedFieldValue(
-            value: heuristicTitle(from: tags, recognizedText: filteredRecognizedText, visualKeywords: visualKeywords),
-            confidence: tags.isEmpty && filteredRecognizedText.isEmpty ? 0.35 : 0.56
-        )
+    private func makeTitleSuggestion(from semanticSummary: BellPhotoSemanticSummary?) -> SuggestedFieldValue<String>? {
+        guard let value = semanticSummary?.title?.nilIfBlank else { return nil }
+        return SuggestedFieldValue(value: value, confidence: semanticSummary?.confidence ?? 0.82)
     }
 
-    private func makeNotesSuggestion(
-        from tags: [NormalizedVisionTag],
-        visualKeywords: [VisualKeyword],
-        titleSuggestion: SuggestedFieldValue<String>?,
-        semanticSummary: BellPhotoSemanticSummary?
-    ) -> SuggestedFieldValue<String>? {
-        if let semanticNotes = semanticSummary?.notes?.nilIfBlank {
-            return SuggestedFieldValue(value: semanticNotes, confidence: semanticSummary?.confidence ?? 0.78)
-        }
-
-        let materialName = inferredMaterialLabel(from: tags)
-        let subjectName = preferredSubjectWord(from: visualKeywords)
-
-        let text: String
-        switch (language, materialName, subjectName) {
-        case (.russian, let material?, let subject?):
-            text = "\(material) колокольчик в виде \(language.objectCase(of: subject))."
-        case (.russian, let material?, nil):
-            text = "\(material) декоративный колокольчик."
-        case (.russian, nil, let subject?):
-            text = "Декоративный колокольчик в виде \(language.objectCase(of: subject))."
-        case (.russian, nil, nil):
-            text = "Декоративный колокольчик."
-        case (.english, let material?, let subject?):
-            text = "\(material) bell shaped like a \(subject.lowercased())."
-        case (.english, let material?, nil):
-            text = "Decorative \(material.lowercased()) bell."
-        case (.english, nil, let subject?):
-            text = "Decorative bell shaped like a \(subject.lowercased())."
-        case (.english, nil, nil):
-            text = "Decorative bell."
-        }
-
-        return SuggestedFieldValue(value: text, confidence: titleSuggestion?.confidence ?? 0.58)
+    private func makeNotesSuggestion(from semanticSummary: BellPhotoSemanticSummary?) -> SuggestedFieldValue<String>? {
+        guard let value = semanticSummary?.notes?.nilIfBlank else { return nil }
+        return SuggestedFieldValue(value: value, confidence: semanticSummary?.confidence ?? 0.78)
     }
 
-    private func makeMaterialSuggestion(
-        from tags: [NormalizedVisionTag],
-        recognizedText: [RecognizedTextFeature],
-        semanticSummary: BellPhotoSemanticSummary?
-    ) -> SuggestedFieldValue<BellMaterial>? {
-        if let semanticMaterial = material(from: semanticSummary?.material) {
-            return SuggestedFieldValue(value: semanticMaterial, confidence: semanticSummary?.confidence ?? 0.78)
-        }
-
-        if let brassText = textConfidence(matchingAny: ["brass", "латун"], in: recognizedText) {
-            return SuggestedFieldValue(value: .brass, confidence: brassText)
-        }
-        if let bronzeText = textConfidence(matchingAny: ["bronze", "бронз"], in: recognizedText) {
-            return SuggestedFieldValue(value: .bronze, confidence: bronzeText)
-        }
-        if let porcelainText = textConfidence(matchingAny: ["porcelain", "фарфор"], in: recognizedText) {
-            return SuggestedFieldValue(value: .porcelain, confidence: porcelainText)
-        }
-        if let ceramicText = textConfidence(matchingAny: ["ceramic", "керами"], in: recognizedText) {
-            return SuggestedFieldValue(value: .ceramic, confidence: ceramicText)
-        }
-        if let glassText = textConfidence(matchingAny: ["glass", "crystal", "стекл", "хруст"], in: recognizedText) {
-            return SuggestedFieldValue(value: .glass, confidence: glassText)
-        }
-        if let woodText = textConfidence(matchingAny: ["wood", "дерев"], in: recognizedText) {
-            return SuggestedFieldValue(value: .wood, confidence: woodText)
-        }
-        if let silverText = textConfidence(matchingAny: ["silver", "сереб"], in: recognizedText) {
-            return SuggestedFieldValue(value: .silver, confidence: silverText)
-        }
-
-        if let brass = confidence(for: .brass, in: tags) {
-            return SuggestedFieldValue(value: .brass, confidence: brass)
-        }
-        if let bronze = confidence(for: .bronze, in: tags) {
-            return SuggestedFieldValue(value: .bronze, confidence: bronze)
-        }
-        if let porcelain = confidence(for: .porcelain, in: tags) {
-            return SuggestedFieldValue(value: .porcelain, confidence: porcelain)
-        }
-        if let ceramic = confidence(for: .ceramic, in: tags) {
-            return SuggestedFieldValue(value: .ceramic, confidence: ceramic)
-        }
-        if let glass = confidence(for: .glass, in: tags) {
-            return SuggestedFieldValue(value: .glass, confidence: glass)
-        }
-        if let wood = confidence(for: .wood, in: tags) {
-            return SuggestedFieldValue(value: .wood, confidence: wood)
-        }
-        if let silver = confidence(for: .silver, in: tags) {
-            return SuggestedFieldValue(value: .silver, confidence: silver)
-        }
-
-        if tags.contains(where: { $0.tag == .decorative }) && !tags.contains(where: { $0.tag == .metal }) {
-            return SuggestedFieldValue(value: .ceramic, confidence: 0.38)
-        }
-        if let stone = confidence(for: .stone, in: tags) {
-            return SuggestedFieldValue(value: .other, confidence: stone)
-        }
-        if let plastic = confidence(for: .plastic, in: tags) {
-            return SuggestedFieldValue(value: .other, confidence: plastic)
-        }
-
-        return nil
+    private func makeMaterialSuggestion(from semanticSummary: BellPhotoSemanticSummary?) -> SuggestedFieldValue<BellMaterial>? {
+        guard let value = material(from: semanticSummary?.material) else { return nil }
+        return SuggestedFieldValue(value: value, confidence: semanticSummary?.confidence ?? 0.78)
     }
 
     private func makeCustomMaterialSuggestion(
-        from tags: [NormalizedVisionTag],
-        recognizedText: [RecognizedTextFeature],
+        from semanticSummary: BellPhotoSemanticSummary?,
         materialSuggestion: SuggestedFieldValue<BellMaterial>?
     ) -> SuggestedFieldValue<String>? {
         guard materialSuggestion?.value == .other else { return nil }
-
-        if let stoneText = textConfidence(matchingAny: ["stone", "marble", "кам", "мрамор"], in: recognizedText) {
-            return SuggestedFieldValue(value: "Stone", confidence: stoneText)
-        }
-        if let plasticText = textConfidence(matchingAny: ["plastic", "polymer", "resin", "пласт", "полимер", "смола"], in: recognizedText) {
-            return SuggestedFieldValue(value: "Plastic", confidence: plasticText)
-        }
-        if let stone = confidence(for: .stone, in: tags) {
-            return SuggestedFieldValue(value: "Stone", confidence: stone)
-        }
-        if let plastic = confidence(for: .plastic, in: tags) {
-            return SuggestedFieldValue(value: "Plastic", confidence: plastic)
-        }
-
-        return nil
+        guard let value = semanticSummary?.customMaterialName?.nilIfBlank else { return nil }
+        return SuggestedFieldValue(value: value, confidence: semanticSummary?.confidence ?? 0.74)
     }
 
-    private func makeConditionSuggestion(
-        from tags: [NormalizedVisionTag],
-        semanticSummary: BellPhotoSemanticSummary?
-    ) -> SuggestedFieldValue<ItemCondition>? {
-        if let semanticCondition = condition(from: semanticSummary?.condition) {
-            return SuggestedFieldValue(value: semanticCondition, confidence: semanticSummary?.confidence ?? 0.74)
-        }
-
-        if let damaged = confidence(for: .damaged, in: tags), damaged >= 0.70 {
-            return SuggestedFieldValue(value: .damaged, confidence: damaged)
-        }
-        if let worn = confidence(for: .worn, in: tags), worn >= 0.62 {
-            return SuggestedFieldValue(value: .worn, confidence: worn)
-        }
-
-        let antique = confidence(for: .antique, in: tags) ?? 0
-        let vintage = confidence(for: .vintage, in: tags) ?? 0
-        if max(antique, vintage) >= 0.66 {
-            return SuggestedFieldValue(value: .worn, confidence: max(antique, vintage))
-        }
-
-        return SuggestedFieldValue(value: .good, confidence: 0.55)
+    private func makeConditionSuggestion(from semanticSummary: BellPhotoSemanticSummary?) -> SuggestedFieldValue<ItemCondition>? {
+        guard let value = condition(from: semanticSummary?.condition) else { return nil }
+        return SuggestedFieldValue(value: value, confidence: semanticSummary?.confidence ?? 0.74)
     }
 
-    private func heuristicTitle(
-        from tags: [NormalizedVisionTag],
-        recognizedText: [RecognizedTextFeature],
-        visualKeywords: [VisualKeyword]
-    ) -> String {
-        var words: [String] = []
-
-        if let inscriptionTitle = inscriptionTitleCandidate(from: recognizedText) {
-            return inscriptionTitle
-        }
-
-        if tags.contains(where: { $0.tag == .decorative }) {
-            words.append(language.decorativeWord)
-        } else if tags.contains(where: { $0.tag == .antique || $0.tag == .vintage }) {
-            words.append(language.vintageWord)
-        }
-
-        if let materialWord = inferredMaterialLabel(from: tags) {
-            words.append(materialWord)
-        }
-
-        if let subjectWord = preferredSubjectWord(from: visualKeywords) {
-            words.append(subjectWord)
-        }
-
-        words.append(language.bellWord)
-        return words.prefix(5).joined(separator: " ")
-    }
-
-    private func confidence(for tag: PhotoSemanticTag, in tags: [NormalizedVisionTag]) -> Double? {
-        tags.first(where: { $0.tag == tag })?.confidence
-    }
-
-    private func textConfidence(matchingAny needles: [String], in recognizedText: [RecognizedTextFeature]) -> Double? {
-        recognizedText
-            .filter { feature in
-                let haystack = feature.text.lowercased()
-                return feature.confidence >= 0.68 && needles.contains(where: { haystack.contains($0) })
-            }
-            .map(\.confidence)
-            .max()
-    }
-
-    private func titleRelevantText(from recognizedText: [RecognizedTextFeature]) -> [RecognizedTextFeature] {
-        let titleKeywords = [
-            "bell", "handbell", "cowbell",
-            "колокол", "колоколь",
-            "brass", "bronze", "ceramic", "porcelain", "glass", "wood", "silver",
-            "латун", "бронз", "керами", "фарфор", "стекл", "хруст", "дерев", "сереб"
-        ]
-
-        return recognizedText.filter { feature in
-            guard feature.confidence >= 0.72 else { return false }
-            let text = feature.text.lowercased()
-            return titleKeywords.contains(where: { text.contains($0) })
-        }
-    }
-
-    private func inscriptionTitleCandidate(from recognizedText: [RecognizedTextFeature]) -> String? {
-        recognizedText
-            .filter { $0.confidence >= 0.82 }
-            .map(\.text)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first { text in
-                let words = text.split(whereSeparator: \.isWhitespace)
-                let lowered = text.lowercased()
-                let containsKnownWord =
-                    lowered.contains("bell") ||
-                    lowered.contains("колокол") ||
-                    lowered.contains("колоколь") ||
-                    lowered.contains("brass") ||
-                    lowered.contains("bronze") ||
-                    lowered.contains("ceramic") ||
-                    lowered.contains("porcelain") ||
-                    lowered.contains("glass")
-
-                let digits = text.unicodeScalars.filter(CharacterSet.decimalDigits.contains)
-                return !text.isEmpty &&
-                    words.count <= 4 &&
-                    text.rangeOfCharacter(from: .letters) != nil &&
-                    digits.isEmpty &&
-                    containsKnownWord
-            }
-    }
-
-    private func preferredSubjectWord(from visualKeywords: [VisualKeyword]) -> String? {
-        visualKeywords
-            .filter { $0.confidence >= 0.28 }
-            .map(\.value)
-            .compactMap { keyword in
-                switch keyword {
-                case "hedgehog": return language.subjectWordHedgehog
-                case "owl": return language.subjectWordOwl
-                case "bird": return language.subjectWordBird
-                case "cat": return language.subjectWordCat
-                case "dog": return language.subjectWordDog
-                case "animal": return language.subjectWordAnimal
-                default: return nil
-                }
-            }
-            .first
-    }
-
-    private func makeSuggestedTags(
-        from tags: [NormalizedVisionTag],
-        visualKeywords: [VisualKeyword],
-        materialSuggestion: SuggestedFieldValue<BellMaterial>?,
-        semanticSummary: BellPhotoSemanticSummary?
-    ) -> [SuggestedFieldValue<String>] {
-        var suggestions: [SuggestedFieldValue<String>] = []
-
-        if let semanticTags = semanticSummary?.tags, !semanticTags.isEmpty {
-            suggestions.append(contentsOf: semanticTags.compactMap {
-                guard let value = $0.nilIfBlank else { return nil }
-                return SuggestedFieldValue(value: value, confidence: semanticSummary?.confidence ?? 0.76)
-            })
-        }
-
-        if tags.contains(where: { $0.tag == .decorative }) {
-            suggestions.append(SuggestedFieldValue(value: language.tagDecorative, confidence: 0.72))
-        }
-
-        for keyword in visualKeywords.prefix(3) where keyword.confidence >= 0.28 {
-            switch keyword.value {
-            case "hedgehog", "owl", "bird", "cat", "dog", "animal", "figurine":
-                suggestions.append(SuggestedFieldValue(value: localizedTagValue(for: keyword.value), confidence: keyword.confidence))
-            default:
-                break
-            }
-        }
-
-        if let materialSuggestion {
-            switch materialSuggestion.value {
-            case .ceramic:
-                suggestions.append(SuggestedFieldValue(value: language.tagCeramic, confidence: materialSuggestion.confidence))
-            case .porcelain:
-                suggestions.append(SuggestedFieldValue(value: language.tagPorcelain, confidence: materialSuggestion.confidence))
-            case .glass:
-                suggestions.append(SuggestedFieldValue(value: language.tagGlass, confidence: materialSuggestion.confidence))
-            case .wood:
-                suggestions.append(SuggestedFieldValue(value: language.tagWood, confidence: materialSuggestion.confidence))
-            default:
-                break
-            }
-        }
+    private func makeSuggestedTags(from semanticSummary: BellPhotoSemanticSummary?) -> [SuggestedFieldValue<String>] {
+        guard let semanticSummary else { return [] }
 
         var seen = Set<String>()
-        return suggestions.filter { seen.insert($0.value.lowercased()).inserted }
-    }
-
-    private func localizedTagValue(for keyword: String) -> String {
-        switch keyword {
-        case "hedgehog": return language.tagHedgehog
-        case "owl": return language.tagOwl
-        case "bird": return language.tagBird
-        case "cat": return language.tagCat
-        case "dog": return language.tagDog
-        case "animal": return language.tagAnimal
-        case "figurine": return language.tagFigurine
-        default: return keyword
+        return semanticSummary.tags.compactMap { rawTag in
+            guard let value = rawTag.nilIfBlank else { return nil }
+            let normalized = value.lowercased()
+            guard seen.insert(normalized).inserted else { return nil }
+            return SuggestedFieldValue(value: value, confidence: semanticSummary.confidence)
         }
-    }
-
-    private func inferredMaterialLabel(from tags: [NormalizedVisionTag]) -> String? {
-        if tags.contains(where: { $0.tag == .brass }) { return language.materialBrass }
-        if tags.contains(where: { $0.tag == .bronze }) { return language.materialBronze }
-        if tags.contains(where: { $0.tag == .porcelain }) { return language.materialPorcelain }
-        if tags.contains(where: { $0.tag == .ceramic }) { return language.materialCeramic }
-        if tags.contains(where: { $0.tag == .glass }) { return language.materialGlass }
-        if tags.contains(where: { $0.tag == .wood }) { return language.materialWood }
-        if tags.contains(where: { $0.tag == .silver }) { return language.materialSilver }
-        if tags.contains(where: { $0.tag == .decorative }) && !tags.contains(where: { $0.tag == .metal }) {
-            return language.materialCeramic
-        }
-        return nil
     }
 
     private func material(from rawValue: String?) -> BellMaterial? {
         switch rawValue?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "brass": return .brass
-        case "bronze": return .bronze
-        case "ceramic": return .ceramic
-        case "porcelain": return .porcelain
-        case "glass": return .glass
-        case "wood": return .wood
-        case "silver": return .silver
-        case "other": return .other
+        case "brass", "латунь", "латунный", "латунная": return .brass
+        case "bronze", "бронза", "бронзовый", "бронзовая": return .bronze
+        case "ceramic", "керамика", "керамический", "керамическая": return .ceramic
+        case "porcelain", "фарфор", "фарфоровый", "фарфоровая": return .porcelain
+        case "glass", "стекло", "стеклянный", "стеклянная": return .glass
+        case "wood", "дерево", "деревянный", "деревянная": return .wood
+        case "silver", "серебро", "серебряный", "серебряная": return .silver
+        case "other", "другое", "иной", "неизвестно", "unknown": return .other
         default: return nil
         }
     }
 
     private func condition(from rawValue: String?) -> ItemCondition? {
         switch rawValue?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "mint": return .mint
-        case "good": return .good
-        case "worn": return .worn
-        case "damaged": return .damaged
-        case "needsrestoration": return .needsRestoration
-        case "needs_restoration": return .needsRestoration
+        case "mint", "идеальное", "идеальный", "отличное", "отличный": return .mint
+        case "good", "хорошее", "хороший": return .good
+        case "worn", "изношенное", "изношенный", "потертое", "потертый": return .worn
+        case "damaged", "поврежденное", "поврежденный", "сломанное", "сломанный": return .damaged
+        case "needsrestoration", "needs_restoration", "требует реставрации", "реставрация": return .needsRestoration
         default: return nil
         }
     }
@@ -504,6 +164,7 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
     let title: String?
     let notes: String?
     let material: String?
+    let customMaterialName: String?
     let condition: String?
     let tags: [String]
     let confidence: Double
@@ -512,6 +173,7 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
         title: String?,
         notes: String?,
         material: String?,
+        customMaterialName: String?,
         condition: String?,
         tags: [String],
         confidence: Double
@@ -519,6 +181,7 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
         self.title = title
         self.notes = notes
         self.material = material
+        self.customMaterialName = customMaterialName
         self.condition = condition
         self.tags = tags
         self.confidence = confidence
@@ -528,6 +191,7 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
         case title
         case notes
         case material
+        case customMaterialName
         case condition
         case tags
         case confidence
@@ -538,6 +202,7 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
         title = try container.decodeIfPresent(String.self, forKey: .title)
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
         material = try container.decodeIfPresent(String.self, forKey: .material)
+        customMaterialName = try container.decodeIfPresent(String.self, forKey: .customMaterialName)
         condition = try container.decodeIfPresent(String.self, forKey: .condition)
         tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
         confidence = try container.decodeIfPresent(Double.self, forKey: .confidence) ?? 0.72
@@ -546,6 +211,7 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
 
 struct FoundationModelBellSemanticInferer: BellSemanticInferring {
     func infer(
+        visionFeatures: [VisionFeature],
         tags: [NormalizedVisionTag],
         recognizedText: [RecognizedTextFeature],
         visualKeywords: [VisualKeyword],
@@ -553,6 +219,7 @@ struct FoundationModelBellSemanticInferer: BellSemanticInferring {
     ) async -> BellPhotoSemanticSummary? {
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
+            let visionList = visionFeatures.map { "\($0.label):\($0.confidence)" }.joined(separator: ", ")
             let tagList = tags.map { "\($0.tag.rawValue):\($0.confidence)" }.joined(separator: ", ")
             let textList = recognizedText.map { "\($0.text):\($0.confidence)" }.joined(separator: ", ")
             let keywordList = visualKeywords.map { "\($0.value):\($0.confidence)" }.joined(separator: ", ")
@@ -561,13 +228,14 @@ struct FoundationModelBellSemanticInferer: BellSemanticInferring {
                 instructions: """
                 You infer structured semantic suggestions for a bell photo.
                 Output strictly valid JSON with keys:
-                title, notes, material, condition, tags, confidence.
+                title, notes, material, customMaterialName, condition, tags, confidence.
                 Constraints:
                 - title and notes must be in \(language.outputLanguageName)
                 - title must be specific, concise, and useful for a collector
                 - avoid generic outputs like "bell", "decorative bell", "figurine bell" unless no better specificity exists
                 - prefer concrete visible subject matter when supported by the signals
                 - material must be one of: brass, bronze, ceramic, porcelain, glass, wood, silver, other, or null
+                - customMaterialName is only allowed when material is other; otherwise use null
                 - condition must be one of: mint, good, worn, damaged, needsRestoration, or null
                 - tags must be short user-facing tags in \(language.outputLanguageName)
                 - do not invent country, city, year, brand, or provenance
@@ -578,6 +246,7 @@ struct FoundationModelBellSemanticInferer: BellSemanticInferring {
             do {
                 let response = try await session.respond(
                     to: """
+                    Raw vision labels: \(visionList)
                     Normalized tags: \(tagList)
                     Recognized text: \(textList)
                     Visual keywords: \(keywordList)
@@ -585,13 +254,7 @@ struct FoundationModelBellSemanticInferer: BellSemanticInferring {
                     """
                 )
 
-                guard let json = extractJSONObject(from: response.content),
-                      let data = json.data(using: .utf8) else {
-                    return nil
-                }
-
-                let decoder = JSONDecoder()
-                return try decoder.decode(BellPhotoSemanticSummary.self, from: data)
+                return parseSemanticSummary(from: response.content)
             } catch {
                 return nil
             }
@@ -609,62 +272,79 @@ struct FoundationModelBellSemanticInferer: BellSemanticInferring {
 
         return String(raw[start...end])
     }
-}
 
-struct FoundationModelBellTitleGenerator: BellTitleGenerating {
-    func generateTitle(
-        from tags: [NormalizedVisionTag],
-        recognizedText: [RecognizedTextFeature],
-        visualKeywords: [VisualKeyword]
-    ) async -> SuggestedFieldValue<String>? {
-        guard !tags.isEmpty || !recognizedText.isEmpty || !visualKeywords.isEmpty else {
-            return SuggestedFieldValue(value: "Bell", confidence: 0.35)
+    private func parseSemanticSummary(from raw: String) -> BellPhotoSemanticSummary? {
+        guard let json = extractJSONObject(from: raw),
+              let data = json.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
         }
 
-        #if canImport(FoundationModels)
-        if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
-            let tagList = tags.map(\.tag.rawValue).joined(separator: ", ")
-            let textList = recognizedText.map(\.text).joined(separator: ", ")
-            let keywordList = visualKeywords.map(\.value).joined(separator: ", ")
-            let session = LanguageModelSession(
-                instructions: """
-                You generate short, generic bell titles.
-                Keep output between 2 and 4 words, with a hard maximum of 5 words.
-                You may use recognized inscription text only when it is clearly generic and short.
-                Prefer concrete decorative subject words like hedgehog or owl when they are present.
-                Do not mention country, city, year, brand, maker, or speculative facts.
-                Output must be in \(BellAnalysisLanguage.current.outputLanguageName).
-                Return only the title text.
-                """
-            )
+        let title = stringValue(for: ["title", "name"], in: object)
+        let notes = stringValue(for: ["notes", "description", "summary"], in: object)
+        let material = stringValue(for: ["material"], in: object)
+        let customMaterialName = stringValue(for: ["customMaterialName", "custom_material_name"], in: object)
+        let condition = stringValue(for: ["condition"], in: object)
+        let tags = arrayOfStringsValue(for: ["tags", "keywords"], in: object)
+        let confidence = doubleValue(for: ["confidence"], in: object) ?? 0.72
 
-            do {
-                let response = try await session.respond(
-                    to: "Vision tags: \(tagList). Recognized text: \(textList). Visual keywords: \(keywordList). Generate one concise human-readable title for a bell."
-                )
-                let sanitized = sanitizeTitle(response.content)
-                return SuggestedFieldValue(value: sanitized, confidence: 0.74)
-            } catch {
-                return nil
+        let summary = BellPhotoSemanticSummary(
+            title: title,
+            notes: notes,
+            material: material,
+            customMaterialName: customMaterialName,
+            condition: condition,
+            tags: tags,
+            confidence: confidence
+        )
+
+        if title == nil, notes == nil, material == nil, customMaterialName == nil, condition == nil, tags.isEmpty {
+            return nil
+        }
+
+        return summary
+    }
+
+    private func stringValue(for keys: [String], in object: [String: Any]) -> String? {
+        for key in keys {
+            if let value = object[key] as? String, let normalized = value.nilIfBlank {
+                return normalized
             }
         }
-        #endif
-
         return nil
     }
 
-    private func sanitizeTitle(_ raw: String) -> String {
-        let trimmed = raw
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "\"'“”‘’"))
+    private func arrayOfStringsValue(for keys: [String], in object: [String: Any]) -> [String] {
+        for key in keys {
+            if let values = object[key] as? [String] {
+                return values.compactMap(\.nilIfBlank)
+            }
 
-        let collapsed = trimmed
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .prefix(5)
-            .joined(separator: " ")
+            if let value = object[key] as? String {
+                return value
+                    .split(separator: ",")
+                    .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .compactMap(\.nilIfBlank)
+            }
+        }
 
-        return collapsed.isEmpty ? "Bell" : collapsed
+        return []
+    }
+
+    private func doubleValue(for keys: [String], in object: [String: Any]) -> Double? {
+        for key in keys {
+            if let value = object[key] as? Double {
+                return value
+            }
+            if let value = object[key] as? NSNumber {
+                return value.doubleValue
+            }
+            if let value = object[key] as? String, let parsed = Double(value) {
+                return parsed
+            }
+        }
+
+        return nil
     }
 }
 
@@ -681,52 +361,6 @@ enum BellAnalysisLanguage: Sendable {
         switch self {
         case .english: return "English"
         case .russian: return "Russian"
-        }
-    }
-
-    var bellWord: String { self == .russian ? "колокольчик" : "Bell" }
-    var decorativeWord: String { self == .russian ? "Декоративный" : "Decorative" }
-    var vintageWord: String { self == .russian ? "Винтажный" : "Vintage" }
-
-    var materialBrass: String { self == .russian ? "Латунный" : "Brass" }
-    var materialBronze: String { self == .russian ? "Бронзовый" : "Bronze" }
-    var materialCeramic: String { self == .russian ? "Керамический" : "Ceramic" }
-    var materialPorcelain: String { self == .russian ? "Фарфоровый" : "Porcelain" }
-    var materialGlass: String { self == .russian ? "Стеклянный" : "Glass" }
-    var materialWood: String { self == .russian ? "Деревянный" : "Wooden" }
-    var materialSilver: String { self == .russian ? "Серебряный" : "Silver" }
-
-    var subjectWordHedgehog: String { self == .russian ? "Ёжик" : "Hedgehog" }
-    var subjectWordOwl: String { self == .russian ? "Сова" : "Owl" }
-    var subjectWordBird: String { self == .russian ? "Птица" : "Bird" }
-    var subjectWordCat: String { self == .russian ? "Кот" : "Cat" }
-    var subjectWordDog: String { self == .russian ? "Собака" : "Dog" }
-    var subjectWordFigurine: String { self == .russian ? "Фигурка" : "Figurine" }
-    var subjectWordAnimal: String { self == .russian ? "Животное" : "Animal" }
-
-    var tagDecorative: String { self == .russian ? "декоративный" : "decorative" }
-    var tagCeramic: String { self == .russian ? "керамика" : "ceramic" }
-    var tagPorcelain: String { self == .russian ? "фарфор" : "porcelain" }
-    var tagGlass: String { self == .russian ? "стекло" : "glass" }
-    var tagWood: String { self == .russian ? "дерево" : "wood" }
-    var tagHedgehog: String { self == .russian ? "ежик" : "hedgehog" }
-    var tagOwl: String { self == .russian ? "сова" : "owl" }
-    var tagBird: String { self == .russian ? "птица" : "bird" }
-    var tagCat: String { self == .russian ? "кот" : "cat" }
-    var tagDog: String { self == .russian ? "собака" : "dog" }
-    var tagAnimal: String { self == .russian ? "животное" : "animal" }
-    var tagFigurine: String { self == .russian ? "фигурка" : "figurine" }
-
-    func objectCase(of subject: String) -> String {
-        switch (self, subject) {
-        case (.russian, "Ёжик"): return "ёжика"
-        case (.russian, "Сова"): return "совы"
-        case (.russian, "Птица"): return "птицы"
-        case (.russian, "Кот"): return "кота"
-        case (.russian, "Собака"): return "собаки"
-        case (.russian, "Фигурка"): return "фигурки"
-        case (.russian, "Животное"): return "животного"
-        default: return subject.lowercased()
         }
     }
 }
@@ -782,6 +416,7 @@ final class BellPhotoAnalysisController: ObservableObject {
 
     func dismiss(_ field: Field) {
         result = BellPhotoAnalysisResult(
+            visionFeatures: result.visionFeatures,
             tags: result.tags,
             recognizedText: result.recognizedText,
             visualKeywords: result.visualKeywords,
