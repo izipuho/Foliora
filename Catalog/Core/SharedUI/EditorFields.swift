@@ -487,15 +487,14 @@ private struct MediaAssetGridTileView: View {
                     if isCover {
                         Text(String(localized: "editor.media.cover"))
                             .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
+                            .catalogPillPadding(.micro)
                             .background(.regularMaterial, in: Capsule())
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
-            .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
 
             Button(action: onDelete) {
                 Image(systemName: "xmark.circle.fill")
@@ -544,9 +543,9 @@ private struct MediaAssetThumbnailView: View {
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
                 .stroke(Color.black.opacity(0.06), lineWidth: 1)
         )
     }
@@ -562,7 +561,7 @@ private struct MediaAssetThumbnailView: View {
 
     private var documentPlaceholder: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
                 .fill(Color.black.opacity(0.05))
 
             VStack(spacing: 3) {
@@ -578,7 +577,7 @@ private struct MediaAssetThumbnailView: View {
 
     private func placeholder(systemImage: String) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
                 .fill(Color.black.opacity(0.05))
 
             Image(systemName: systemImage)

@@ -140,11 +140,11 @@ struct BellDetailView: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
                 .fill(isHighlighted ? AnyShapeStyle(tint.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
                 .stroke(
                     isHighlighted ? tint.opacity(0.42) : Color.white.opacity(0.45),
                     lineWidth: isHighlighted ? 1.5 : 1
@@ -332,10 +332,10 @@ private struct OriginTile: View {
                         Marker("", coordinate: coordinate)
                     }
                     .mapStyle(.standard(elevation: .flat))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
                 } else {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
                             .fill(Color.black.opacity(0.05))
                         Image(systemName: "mappin.slash")
                             .font(.title3)
@@ -352,7 +352,7 @@ private struct OriginTile: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 6) {
                     Label(String(localized: "bell.detail.origin"), systemImage: "mappin.and.ellipse")
@@ -368,7 +368,7 @@ private struct OriginTile: View {
             }
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottomLeading)
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
                     .stroke(accentColor.opacity(0.22), lineWidth: 1)
             )
         }
@@ -426,9 +426,9 @@ private struct StorageTile: View {
             }
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
             .padding(14)
-            .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
                     .stroke(accentColor.opacity(0.22), lineWidth: 1)
             )
         }
@@ -457,9 +457,9 @@ private struct StorageTile: View {
         }
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
         .padding(14)
-        .background(accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
                 .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [6, 6]))
                 .foregroundStyle(accentColor.opacity(0.38))
         )
@@ -473,8 +473,7 @@ private struct DetailTagChip: View {
     var body: some View {
         Text("#\(tag)")
             .font(.subheadline.weight(.medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .catalogPillPadding(.regular)
             .background(
                 Capsule(style: .continuous)
                     .fill(accentColor.opacity(0.16))
@@ -562,13 +561,13 @@ private struct BellDetailMediaTile: View {
                     .resizable()
                     .scaledToFill()
                     .frame(width: 116, height: 116)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous))
             } else {
                 placeholder(systemImage: "photo")
             }
         case .document:
             ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous)
                     .fill(Color.black.opacity(0.05))
                 VStack(spacing: 3) {
                     Image(systemName: "doc.fill")
@@ -587,7 +586,7 @@ private struct BellDetailMediaTile: View {
 
     private func placeholder(systemImage: String) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous)
                 .fill(Color.black.opacity(0.05))
             Image(systemName: systemImage)
                 .font(.title3)

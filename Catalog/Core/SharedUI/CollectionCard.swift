@@ -7,7 +7,7 @@ struct CollectionCard: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top, spacing: 14) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
                         .fill(collection.kind.tintColor.opacity(0.12))
                         .frame(width: 52, height: 52)
 
@@ -38,10 +38,10 @@ struct CollectionCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             ZStack {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
                     .fill(.ultraThinMaterial)
 
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: collection.backgroundStyle.colors.map { $0.opacity(0.34) },
@@ -50,13 +50,13 @@ struct CollectionCard: View {
                         )
                     )
 
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
                     .fill(Color.white.opacity(0.10))
             }
         )
         .shadow(color: Color.black.opacity(0.05), radius: 16, y: 8)
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
                 .stroke(Color.white.opacity(0.42), lineWidth: 1)
         )
     }
@@ -68,8 +68,7 @@ struct CollectionCard: View {
             Image(systemName: "square.stack.3d.up")
         }
         .font(.footnote.weight(.medium))
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
+        .catalogPillPadding(.regular)
         .background(.thinMaterial, in: Capsule())
         .foregroundStyle(.secondary)
     }

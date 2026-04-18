@@ -1,6 +1,47 @@
 import SwiftUI
 import UIKit
 
+enum CatalogCornerRadii {
+    static let hero: CGFloat = 28
+    static let section: CGFloat = 24
+    static let medium: CGFloat = 18
+    static let tile: CGFloat = 16
+    static let highlight: CGFloat = 14
+    static let thumbnail: CGFloat = 12
+}
+
+enum CatalogPillPadding {
+    case micro
+    case compact
+    case regular
+    case prominent
+
+    var horizontal: CGFloat {
+        switch self {
+        case .micro: return 6
+        case .compact: return 8
+        case .regular: return 12
+        case .prominent: return 14
+        }
+    }
+
+    var vertical: CGFloat {
+        switch self {
+        case .micro: return 3
+        case .compact: return 6
+        case .regular: return 8
+        case .prominent: return 10
+        }
+    }
+}
+
+extension View {
+    func catalogPillPadding(_ style: CatalogPillPadding) -> some View {
+        padding(.horizontal, style.horizontal)
+            .padding(.vertical, style.vertical)
+    }
+}
+
 enum BellGridLayoutMode: Int, CaseIterable {
     case covers
     case mini
@@ -53,11 +94,13 @@ struct BellCardView: View {
     let layoutMode: BellGridLayoutMode
 
     private let style: BellCardStyle
+    private let cornerRadius: CGFloat
 
     init(bell: BellRecord, layoutMode: BellGridLayoutMode) {
         self.bell = bell
         self.layoutMode = layoutMode
         self.style = BellCardStyle.style(for: layoutMode)
+        self.cornerRadius = BellCardStyle.cornerRadius(for: layoutMode)
     }
 
     var body: some View {
@@ -125,11 +168,11 @@ struct BellCardView: View {
     }
 
     private var cardShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
 
     private var cardStroke: some View {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .stroke(Color.black.opacity(0.04), lineWidth: 1)
     }
 
@@ -257,6 +300,10 @@ private struct BellCardStyle {
     static func style(for layoutMode: BellGridLayoutMode) -> BellCardStyle {
         registry[layoutMode] ?? .compact
     }
+
+    static func cornerRadius(for layoutMode: BellGridLayoutMode) -> CGFloat {
+        layoutMode == .showcase ? CatalogCornerRadii.hero : CatalogCornerRadii.tile
+    }
 }
 
 private struct BellCardTitleBlock: View {
@@ -331,8 +378,7 @@ private struct BellCardMetaChip: View {
     var body: some View {
         Text(label)
             .font(.caption2.weight(.semibold))
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
+            .catalogPillPadding(.compact)
             .background(
                 bright
                     ? Color.white.opacity(0.16)

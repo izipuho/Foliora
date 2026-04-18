@@ -642,7 +642,7 @@ struct BellCatalogView: View {
             .foregroundStyle(collection.backgroundStyle.accentColor)
         }
         .padding(14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
     }
 
     private func summaryStatChip(value: String, title: String, filter: BellSummaryFilter) -> some View {
@@ -837,7 +837,7 @@ private struct BellGroupingJumpPopover: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 10)
                     .padding(.horizontal, 12)
-                    .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
                 }
             }
             .padding(12)
@@ -1160,7 +1160,7 @@ struct BellEditorView: View {
     @ViewBuilder
     private func sectionBackground(for section: StartSection) -> some View {
         if highlightedSection == section {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous)
                 .fill(collection.backgroundStyle.accentColor.opacity(0.10))
         } else {
             Color.clear
@@ -1301,8 +1301,7 @@ private struct PhotoAnalysisTagCloud: View {
             ForEach(tags, id: \.self) { tag in
                 Text(tag.tag.rawValue)
                     .font(.caption.weight(.medium))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
+                    .catalogPillPadding(.regular)
                     .background(.thinMaterial, in: Capsule())
             }
         }
@@ -1322,8 +1321,7 @@ private struct PhotoRecognizedTextBlock: View {
                 ForEach(textFeatures, id: \.self) { feature in
                     Text(feature.text)
                         .font(.caption.weight(.medium))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
+                        .catalogPillPadding(.regular)
                         .background(.thinMaterial, in: Capsule())
                 }
             }
@@ -1349,8 +1347,7 @@ private struct PhotoSuggestedTagsRow: View {
                 ForEach(suggestions, id: \.value) { suggestion in
                     Text(suggestion.value)
                         .font(.caption.weight(.medium))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
+                        .catalogPillPadding(.regular)
                         .background(.thinMaterial, in: Capsule())
                 }
             }
@@ -1381,8 +1378,7 @@ private struct FilterChip: View {
         Button(action: action) {
             Text(title)
                 .font(.footnote.weight(.semibold))
-                .padding(.vertical, 10)
-                .padding(.horizontal, 14)
+                .catalogPillPadding(.prominent)
                 .background(
                     isSelected
                         ? tint
@@ -1403,8 +1399,7 @@ private struct SummaryPill: View {
         Label(title, systemImage: systemImage)
             .font(.footnote.weight(.semibold))
             .lineLimit(1)
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
+            .catalogPillPadding(.regular)
             .background(tint.opacity(0.12), in: Capsule())
             .foregroundStyle(.primary)
     }
@@ -1506,8 +1501,7 @@ private struct SummaryBreakdownRow: View {
 
                 Text("\(value)")
                     .font(.subheadline.weight(.bold))
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 10)
+                    .catalogPillPadding(.compact)
                     .background(tint.opacity(0.14), in: Capsule())
             }
         }
@@ -1531,7 +1525,7 @@ private struct StatChip: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
     }
 }
 
@@ -1539,9 +1533,9 @@ private struct SummaryGlassCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(16)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
                     .stroke(Color.white.opacity(0.32), lineWidth: 1)
             )
     }

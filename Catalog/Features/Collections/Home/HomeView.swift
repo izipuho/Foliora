@@ -662,7 +662,7 @@ private struct HomeListCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 14) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
                         .fill(Color(red: 0.20, green: 0.42, blue: 0.34).opacity(0.12))
                         .frame(width: 54, height: 54)
 
@@ -696,9 +696,9 @@ private struct HomeListCard: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
                 .stroke(Color.white.opacity(0.45), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
@@ -714,7 +714,7 @@ private struct HomeListCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
     }
 }
 
@@ -950,7 +950,7 @@ struct CollectionEditorView: View {
                                 backgroundStyle = style
                             } label: {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
                                         .fill(
                                             LinearGradient(
                                                 colors: style.colors,
@@ -1468,7 +1468,7 @@ private struct SettingsView: View {
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Color(red: 0.18, green: 0.34, blue: 0.64))
                 .frame(width: 44, height: 44)
-                .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
@@ -1480,7 +1480,7 @@ private struct SettingsView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
     }
 
     private func settingsNavigationCard(title: String, subtitle: String, systemImage: String) -> some View {
@@ -1492,7 +1492,7 @@ private struct SettingsView: View {
                 .foregroundStyle(.secondary)
                 .padding(.trailing, 18)
         }
-        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
     }
 
     private func settingsActionCard<Content: View>(
@@ -1517,7 +1517,7 @@ private struct SettingsView: View {
             .font(.headline)
             .padding(.horizontal, 18)
             .frame(height: 52)
-            .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -1804,7 +1804,7 @@ private struct HomeCard: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 14) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
                         .fill(Color(red: 0.20, green: 0.42, blue: 0.34).opacity(0.12))
                         .frame(width: 54, height: 54)
 
@@ -1841,7 +1841,7 @@ private struct HomeCard: View {
                 homeMetric(title: String(localized: "home.metric.floors"), value: "\(floors.count)")
             }
         }
-        .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
         .swipeActions {
             Button(String(localized: "common.delete"), role: .destructive) {
                 onDelete()
@@ -1849,9 +1849,9 @@ private struct HomeCard: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
                 .stroke(Color.white.opacity(0.45), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
@@ -1867,7 +1867,7 @@ private struct HomeCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
     }
 }
 
@@ -1904,14 +1904,14 @@ private struct StorageMapCard: View {
                     }
                 }
                 .padding(14)
-                .background(Color.black.opacity(0.035), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .background(Color.black.opacity(0.035), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
             }
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
                 .stroke(Color.white.opacity(0.45), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
@@ -1930,12 +1930,11 @@ private struct StorageMapCard: View {
             Text(location.name)
                 .font(.subheadline.weight(.semibold))
 
-            Text(location.kind.displayName)
-                .font(.caption.weight(.medium))
-                .padding(.vertical, 5)
-                .padding(.horizontal, 8)
-                .background(Color.black.opacity(0.05), in: Capsule())
-                .foregroundStyle(.secondary)
+                Text(location.kind.displayName)
+                    .font(.caption.weight(.medium))
+                    .catalogPillPadding(.compact)
+                    .background(Color.black.opacity(0.05), in: Capsule())
+                    .foregroundStyle(.secondary)
 
             Spacer()
         }
@@ -2137,9 +2136,9 @@ private struct MapBellAnnotationView: View {
         ZStack(alignment: .topTrailing) {
             annotationImage
                 .frame(width: isSelected ? 56 : 48, height: isSelected ? 56 : 48)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
                         .stroke(isSelected ? accentColor : Color.white.opacity(0.9), lineWidth: isSelected ? 3 : 2)
                 )
                 .shadow(color: Color.black.opacity(0.18), radius: 10, y: 6)
@@ -2148,8 +2147,7 @@ private struct MapBellAnnotationView: View {
                 Text("\(bells.count)")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
+                    .catalogPillPadding(.micro)
                     .background(accentColor, in: Capsule())
                     .offset(x: 6, y: -6)
             }
@@ -2162,7 +2160,7 @@ private struct MapBellAnnotationView: View {
             BellCardCoverBackground(asset: coverAsset)
         } else {
             ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
                     .fill(.regularMaterial)
                 Image(systemName: "bell.fill")
                     .foregroundStyle(accentColor)

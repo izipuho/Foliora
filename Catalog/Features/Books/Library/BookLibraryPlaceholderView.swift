@@ -14,7 +14,7 @@ struct BookLibraryPlaceholderView: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(20)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
 
                 ContentUnavailableView(
                     "Модуль книг следующий в очереди",
