@@ -1,6 +1,10 @@
 import Foundation
 import SwiftData
 
+private func SDL(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
+
 @MainActor
 final class SwiftDataCatalogRepository: CatalogRepository {
     private let container: ModelContainer
@@ -398,7 +402,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
             ),
             originPlace: entity.originPlace.map(place(from:)),
             storageLocation: location,
-            storagePath: entity.location.map(locationPath(from:)) ?? "Unassigned",
+            storagePath: entity.location.map(locationPath(from:)) ?? SDL("common.unassigned"),
             mediaAssets: entity.mediaAssets
                 .sorted { $0.sortOrder < $1.sortOrder }
                 .map(mediaAsset(from:)),

@@ -1,5 +1,9 @@
 import Foundation
 
+private func PDL(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
+
 @MainActor
 final class InMemoryCatalogRepository: CatalogRepository {
     private let homeID = UUID(uuidString: "A1000000-0000-0000-0000-000000000001")!
@@ -278,7 +282,7 @@ final class InMemoryCatalogRepository: CatalogRepository {
 
     private func locationPath(for locationID: UUID?, locationsByID: [UUID: Location]) -> String {
         guard let locationID, let location = locationsByID[locationID] else {
-            return "Unassigned"
+            return PDL("common.unassigned")
         }
 
         var parts = [location.name]

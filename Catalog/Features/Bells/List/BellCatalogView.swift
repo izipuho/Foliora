@@ -1121,8 +1121,13 @@ private struct BellGroupingJumpPopover: View {
 }
 
 struct BellEditorView: View {
+    enum StartSection: Hashable {
+        case storage
+    }
+
     let collection: CollectionSummary
     let repository: any CatalogRepository
+    let startSection: StartSection?
     let onSave: (BellRecord) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -1138,6 +1143,7 @@ struct BellEditorView: View {
     @State private var tags: [String] = []
     @State private var mediaAssets: [MediaAsset] = []
     @State private var selectedAcquiredYearOption = BL("editor.acquired_year.none")
+    @State private var highlightedSection: StartSection?
     private let existingBellID: UUID?
     private let existingCreatedAt: Date?
     private let editorItemID: UUID
@@ -1175,10 +1181,12 @@ struct BellEditorView: View {
         repository: any CatalogRepository,
         bell: BellRecord? = nil,
         initialMediaAssets: [MediaAsset] = [],
+        startSection: StartSection? = nil,
         onSave: @escaping (BellRecord) -> Void
     ) {
         self.collection = collection
         self.repository = repository
+        self.startSection = startSection
         self.onSave = onSave
         self.existingBellID = bell?.id
         self.existingCreatedAt = bell?.createdAt
@@ -1198,105 +1206,133 @@ struct BellEditorView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section(BL("editor.media")) {
-                    MediaSection(
-                        itemID: editorItemID,
-                        mediaAssets: $mediaAssets
-                    )
-                }
+            ScrollViewReader { scrollProxy in
+                Form {
+                    Section(BL("editor.media")) {
+                        MediaSection(
+                            itemID: editorItemID,
+                            mediaAssets: $mediaAssets
+                        )
+                    }
 
-                Section(BL("editor.description")) {
-                    TextField(BL("editor.short_description"), text: $title)
-                    TextField(BL("editor.note_history"), text: $notes, axis: .vertical)
-                        .lineLimit(4, reservesSpace: true)
-                }
+                    Section(BL("editor.description")) {
+                        TextField(BL("editor.short_description"), text: $title)
+                        TextField(BL("editor.note_history"), text: $notes, axis: .vertical)
+                            .lineLimit(4, reservesSpace: true)
+                    }
 
-                Section(BL("editor.acquisition_details")) {
-                    YearPickerField(
-                        title: BL("editor.acquired_year"),
-                        selection: $selectedAcquiredYearOption,
-                        options: acquiredYearOptions
-                    )
+                    Section(BL("editor.acquisition_details")) {
+                        YearPickerField(
+                            title: BL("editor.acquired_year"),
+                            selection: $selectedAcquiredYearOption,
+                            options: acquiredYearOptions
+                        )
 
-                    EnumSelectionRow(
-                        title: BL("editor.acquisition"),
-                        selectedLabel: acquisitionMethod.displayName,
-                        options: AcquisitionMethod.allCases,
-                        selection: $acquisitionMethod,
-                        optionTitle: \.displayName
-                    )
-                }
+                        EnumSelectionRow(
+                            title: BL("editor.acquisition"),
+                            selectedLabel: acquisitionMethod.displayName,
+                            options: AcquisitionMethod.allCases,
+                            selection: $acquisitionMethod,
+                            optionTitle: \.displayName
+                        )
+                    }
 
-                Section(BL("editor.attributes")) {
-                    EnumSelectionRow(
-                        title: BL("editor.condition"),
-                        selectedLabel: condition.displayName,
-                        options: ItemCondition.allCases,
-                        selection: $condition,
-                        optionTitle: \.displayName
-                    )
+                    Section(BL("editor.attributes")) {
+                        EnumSelectionRow(
+                            title: BL("editor.condition"),
+                            selectedLabel: condition.displayName,
+                            options: ItemCondition.allCases,
+                            selection: $condition,
+                            optionTitle: \.displayName
+                        )
 
-                    EnumSelectionRow(
-                        title: BL("editor.material"),
-                        selectedLabel: material.displayName,
-                        options: BellMaterial.allCases,
-                        selection: $material,
-                        optionTitle: \.displayName
-                    )
+                        EnumSelectionRow(
+                            title: BL("editor.material"),
+                            selectedLabel: material.displayName,
+                            options: BellMaterial.allCases,
+                            selection: $material,
+                            optionTitle: \.displayName
+                        )
 
-                    if material == .other {
-                        TextField(BL("editor.material.custom"), text: $customMaterialName)
+                        if material == .other {
+                            TextField(BL("editor.material.custom"), text: $customMaterialName)
+                        }
+                    }
+
+                    Section(BL("editor.storage")) {
+                        LocationPickerField(
+                            title: BL("editor.location"),
+                            selectedLabel: selectedLocationLabel,
+                            locations: availableLocations,
+                            selectedLocationID: $selectedLocationID
+                        )
+                    }
+                    .id(StartSection.storage)
+                    .listRowBackground(sectionBackground(for: .storage))
+
+                    Section(BL("editor.additional_details")) {
+                        PlacePickerField(
+                            title: BL("editor.origin"),
+                            selectedLabel: selectedOriginLabel,
+                            places: availablePlaces,
+                            selectedPlace: $selectedOriginPlace
+                        )
+                    }
+
+                    Section(BL("editor.tags")) {
+                        TagEditorSection(
+                            tagInput: $tagInput,
+                            tags: $tags
+                        )
                     }
                 }
+                .navigationTitle(existingBellID == nil ? BL("editor.bell.add") : BL("editor.bell.edit"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .accessibilityLabel(BL("common.cancel"))
+                    }
 
-                Section(BL("editor.storage")) {
-                    LocationPickerField(
-                        title: BL("editor.location"),
-                        selectedLabel: selectedLocationLabel,
-                        locations: availableLocations,
-                        selectedLocationID: $selectedLocationID
-                    )
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            saveBell()
+                        } label: {
+                            Image(systemName: "checkmark")
+                        }
+                        .disabled(!canSave)
+                        .accessibilityLabel(BL("common.save"))
+                    }
                 }
-
-                Section(BL("editor.additional_details")) {
-                    PlacePickerField(
-                        title: BL("editor.origin"),
-                        selectedLabel: selectedOriginLabel,
-                        places: availablePlaces,
-                        selectedPlace: $selectedOriginPlace
-                    )
-                }
-
-                Section(BL("editor.tags")) {
-                    TagEditorSection(
-                        tagInput: $tagInput,
-                        tags: $tags
-                    )
+                .task {
+                    guard let startSection else { return }
+                    highlightedSection = startSection
+                    try? await Task.sleep(for: .milliseconds(150))
+                    withAnimation(.snappy(duration: 0.28)) {
+                        scrollProxy.scrollTo(startSection, anchor: .top)
+                    }
+                    try? await Task.sleep(for: .seconds(1.2))
+                    if highlightedSection == startSection {
+                        withAnimation(.easeOut(duration: 0.35)) {
+                            highlightedSection = nil
+                        }
+                    }
                 }
             }
-            .navigationTitle(existingBellID == nil ? BL("editor.bell.add") : BL("editor.bell.edit"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                    .accessibilityLabel(BL("common.cancel"))
-                }
+        }
+    }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        saveBell()
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
-                    .disabled(!canSave)
-                    .accessibilityLabel(BL("common.save"))
-                }
-            }
+    @ViewBuilder
+    private func sectionBackground(for section: StartSection) -> some View {
+        if highlightedSection == section {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(collection.backgroundStyle.accentColor.opacity(0.10))
+        } else {
+            Color.clear
         }
     }
 
@@ -1339,7 +1375,7 @@ struct BellEditorView: View {
             ),
             originPlace: originPlace,
             storageLocation: location,
-            storagePath: location.map(locationPath(for:)) ?? "Unassigned",
+            storagePath: location.map(locationPath(for:)) ?? BL("common.unassigned"),
             mediaAssets: normalizedMediaAssets,
             createdBy: "You",
             tags: tags

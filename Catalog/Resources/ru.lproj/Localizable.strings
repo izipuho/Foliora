@@ -251,6 +251,10 @@
 "bell.detail.photos" = "Фото";
 "bell.detail.models" = "3D-модели";
 "bell.detail.documents" = "Документы";
+"bell.detail.storage.assign.title" = "Указать место хранения?";
+"bell.detail.storage.assign.message" = "Откроется редактирование колокольчика, где можно выбрать место.";
+"bell.detail.storage.assign.action" = "Указать место";
+"bell.detail.storage.placeholder" = "Место хранения еще не выбрано. Нажми, чтобы указать его.";
 
 "search.scope.all" = "Всё";
 "search.scope.title" = "Название";

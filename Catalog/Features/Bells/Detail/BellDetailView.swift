@@ -12,6 +12,7 @@ struct BellDetailView: View {
     let repository: any CatalogRepository
     @State private var isPresentingEditor = false
     @State private var previewTarget: MediaPreviewTarget?
+    @State private var editorStartSection: BellEditorView.StartSection?
     private let mediaColumns = [GridItem(.adaptive(minimum: 108, maximum: 140), spacing: 12)]
 
     var body: some View {
@@ -29,7 +30,12 @@ struct BellDetailView: View {
                         OriginStorageSection(
                             place: bell.originPlace,
                             storagePath: bell.storageDisplayPath,
-                            accentColor: inferredCollection.backgroundStyle.accentColor
+                            accentColor: inferredCollection.backgroundStyle.accentColor,
+                            isStorageAssigned: bell.item.locationID != nil,
+                            onAssignStorage: {
+                                editorStartSection = .storage
+                                isPresentingEditor = true
+                            }
                         )
                     }
 
@@ -98,7 +104,8 @@ struct BellDetailView: View {
             BellEditorView(
                 collection: inferredCollection,
                 repository: repository,
-                bell: bell
+                bell: bell,
+                startSection: editorStartSection
             ) { updatedBell in
                 repository.saveBellRecord(updatedBell)
                 bell = updatedBell
@@ -110,6 +117,11 @@ struct BellDetailView: View {
                 MediaPhotoPreviewScreen(url: target.url)
             case .document, .model3D:
                 QuickLookPreview(url: target.url)
+            }
+        }
+        .onChange(of: isPresentingEditor) { _, isPresented in
+            if !isPresented {
+                editorStartSection = nil
             }
         }
     }
@@ -190,12 +202,19 @@ private struct OriginStorageSection: View {
     let place: Place?
     let storagePath: String
     let accentColor: Color
+    let isStorageAssigned: Bool
+    let onAssignStorage: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             OriginTile(place: place, accentColor: accentColor)
 
-            StorageTile(storagePath: storagePath, accentColor: accentColor)
+            StorageTile(
+                storagePath: storagePath,
+                accentColor: accentColor,
+                isAssigned: isStorageAssigned,
+                onAssignStorage: onAssignStorage
+            )
         }
     }
 }
@@ -216,7 +235,7 @@ private struct OriginTile: View {
                     Map(initialPosition: .region(
                         MKCoordinateRegion(
                             center: coordinate,
-                            span: MKCoordinateSpan(latitudeDelta: 0.8, longitudeDelta: 0.8)
+                            span: MKCoordinateSpan(latitudeDelta: 4.8, longitudeDelta: 4.8)
                         )
                     ), interactionModes: []) {
                         Marker("", coordinate: coordinate)
@@ -269,6 +288,8 @@ private struct OriginTile: View {
 private struct StorageTile: View {
     let storagePath: String
     let accentColor: Color
+    let isAssigned: Bool
+    let onAssignStorage: () -> Void
 
     private var pathParts: [String] {
         storagePath
@@ -278,6 +299,30 @@ private struct StorageTile: View {
     }
 
     var body: some View {
+        Group {
+            if isAssigned {
+                tileContent
+            } else {
+                Button(action: onAssignStorage) {
+                    tileContent
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var tileContent: some View {
+        Group {
+            if isAssigned {
+                assignedTileContent
+            } else {
+                placeholderTileContent
+            }
+        }
+    }
+
+    private var assignedTileContent: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(pathParts.enumerated()), id: \.offset) { index, part in
@@ -302,7 +347,37 @@ private struct StorageTile: View {
                     .stroke(accentColor.opacity(0.22), lineWidth: 1)
             )
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var placeholderTileContent: some View {
+        VStack(spacing: 8) {
+            Spacer(minLength: 0)
+
+            Image(systemName: "square.stack.3d.up.slash")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(accentColor)
+
+            Text(DL("bell.detail.storage.assign.action"))
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(accentColor)
+                .multilineTextAlignment(.center)
+
+            Text(DL("bell.detail.storage.placeholder"))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+        .padding(14)
+        .background(accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [6, 6]))
+                .foregroundStyle(accentColor.opacity(0.38))
+        )
     }
 }
 

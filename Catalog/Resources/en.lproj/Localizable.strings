@@ -251,6 +251,10 @@
 "bell.detail.photos" = "Photos";
 "bell.detail.models" = "3D Models";
 "bell.detail.documents" = "Documents";
+"bell.detail.storage.assign.title" = "Set storage location?";
+"bell.detail.storage.assign.message" = "This opens bell editing so you can choose where it is stored.";
+"bell.detail.storage.assign.action" = "Set location";
+"bell.detail.storage.placeholder" = "Storage location has not been chosen yet. Tap to assign it.";
 
 "search.scope.all" = "All";
 "search.scope.title" = "Title";
