@@ -109,7 +109,7 @@ struct BellCardView: View {
                 BellCardCoverBackground(asset: coverPhotoAsset)
             }
 
-            coverGradient
+            coverScrim
         }
         .frame(maxWidth: .infinity)
         .frame(height: layoutMode.cardHeight)
@@ -119,7 +119,6 @@ struct BellCardView: View {
             }
         }
         .clipShape(cardShape)
-        .overlay(cardStroke)
         .contentShape(cardShape)
         .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
     }
@@ -155,12 +154,11 @@ struct BellCardView: View {
         .padding(layoutMode.cardPadding)
     }
 
-    private var coverGradient: some View {
+    private var coverScrim: some View {
         LinearGradient(
             colors: [
-                Color.black.opacity(hasCoverPhoto ? 0.34 : 0),
-                Color.black.opacity(hasCoverPhoto ? 0.14 : 0),
-                Color.black.opacity(hasCoverPhoto ? 0.18 : 0)
+                Color.black.opacity(hasCoverPhoto ? 0.22 : 0),
+                Color.black.opacity(hasCoverPhoto ? 0.02 : 0)
             ],
             startPoint: .bottom,
             endPoint: .top
@@ -169,11 +167,6 @@ struct BellCardView: View {
 
     private var cardShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-    }
-
-    private var cardStroke: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .stroke(Color.black.opacity(0.04), lineWidth: 1)
     }
 
     private var coverPhotoAsset: MediaAsset? {
@@ -318,14 +311,12 @@ private struct BellCardTitleBlock: View {
                 .font(style.titleFont)
                 .foregroundStyle(primaryTextColor)
                 .lineLimit(style.titleLineLimit)
-                .shadow(color: Color.black.opacity(0.28), radius: 6, y: 1)
 
             if style.showsSubtitle {
                 Text(bell.placeDisplayName)
                     .font(style.subtitleFont)
                     .foregroundStyle(secondaryTextColor)
                     .lineLimit(style.subtitleLineLimit)
-                    .shadow(color: Color.black.opacity(0.22), radius: 5, y: 1)
             }
         }
     }
@@ -386,7 +377,6 @@ private struct BellCardMetaChip: View {
                 in: Capsule()
             )
             .foregroundStyle(bright ? .white : .secondary)
-            .shadow(color: bright ? Color.black.opacity(0.18) : .clear, radius: 4, y: 1)
     }
 }
 

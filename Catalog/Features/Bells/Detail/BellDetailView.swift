@@ -143,13 +143,6 @@ struct BellDetailView: View {
             RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
                 .fill(isHighlighted ? AnyShapeStyle(tint.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
-                .stroke(
-                    isHighlighted ? tint.opacity(0.42) : Color.white.opacity(0.45),
-                    lineWidth: isHighlighted ? 1.5 : 1
-                )
-        )
         .shadow(
             color: isHighlighted ? tint.opacity(0.14) : Color.black.opacity(0.04),
             radius: isHighlighted ? 14 : 10,

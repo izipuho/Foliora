@@ -697,10 +697,6 @@ private struct HomeListCard: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
-                .stroke(Color.white.opacity(0.45), lineWidth: 1)
-        )
         .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
     }
 
@@ -1850,10 +1846,6 @@ private struct HomeCard: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
-                .stroke(Color.white.opacity(0.45), lineWidth: 1)
-        )
         .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
     }
 
@@ -1910,10 +1902,6 @@ private struct StorageMapCard: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
-                .stroke(Color.white.opacity(0.45), lineWidth: 1)
-        )
         .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
     }
 
@@ -2141,7 +2129,6 @@ private struct MapBellAnnotationView: View {
                     RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
                         .stroke(isSelected ? accentColor : Color.white.opacity(0.9), lineWidth: isSelected ? 3 : 2)
                 )
-                .shadow(color: Color.black.opacity(0.18), radius: 10, y: 6)
 
             if bells.count > 1 {
                 Text("\(bells.count)")

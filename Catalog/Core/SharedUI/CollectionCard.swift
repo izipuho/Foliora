@@ -37,28 +37,16 @@ struct CollectionCard: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
-                    .fill(.ultraThinMaterial)
-
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: collection.backgroundStyle.colors.map { $0.opacity(0.34) },
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: collection.backgroundStyle.colors.map { $0.opacity(0.42) },
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
-                    .fill(Color.white.opacity(0.10))
-            }
+                )
         )
         .shadow(color: Color.black.opacity(0.05), radius: 16, y: 8)
-        .overlay(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
-                .stroke(Color.white.opacity(0.42), lineWidth: 1)
-        )
     }
 
     private var countChip: some View {
