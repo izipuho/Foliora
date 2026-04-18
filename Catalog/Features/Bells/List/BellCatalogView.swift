@@ -824,7 +824,7 @@ private struct BellGroupedSectionHeader: View {
         .background(.regularMaterial)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(Color.black.opacity(0.06))
+                .fill(CatalogSemanticColors.separator)
                 .frame(height: 0.5)
         }
     }
@@ -845,7 +845,7 @@ private struct BellGroupingJumpPopover: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 10)
                     .padding(.horizontal, CatalogSpacing.regular)
-                    .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
+                    .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
                 }
             }
             .padding(CatalogSpacing.regular)
@@ -1390,7 +1390,7 @@ private struct FilterChip: View {
                 .background(
                     isSelected
                         ? tint
-                        : Color.white.opacity(0.72),
+                        : CatalogMediaContrast.overlayChipMuted,
                     in: Capsule()
                 )
                 .foregroundStyle(isSelected ? .white : .primary)
@@ -1478,7 +1478,7 @@ private struct SummaryCoverageRow: View {
                 GeometryReader { proxy in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.black.opacity(0.06))
+                            .fill(CatalogSemanticColors.separator)
 
                         Capsule()
                             .fill(tint)
@@ -1544,7 +1544,7 @@ private struct SummaryGlassCardModifier: ViewModifier {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
-                    .stroke(Color.white.opacity(0.32), lineWidth: 1)
+                    .stroke(CatalogMediaContrast.glassStroke, lineWidth: 1)
             )
     }
 }

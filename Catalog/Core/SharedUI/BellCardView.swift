@@ -22,6 +22,73 @@ enum CatalogSpacing {
     static let section: CGFloat = 24
 }
 
+enum CatalogSemanticColors {
+    static let separator = Color(uiColor: .separator)
+    static let groupedSurface = Color(uiColor: .secondarySystemGroupedBackground)
+    static let groupedSurfaceElevated = Color(uiColor: .tertiarySystemGroupedBackground)
+    static let fill = Color(uiColor: .systemFill)
+    static let secondaryFill = Color(uiColor: .secondarySystemFill)
+    static let tertiaryFill = Color(uiColor: .tertiarySystemFill)
+    static let quaternaryFill = Color(uiColor: .quaternarySystemFill)
+    static let tertiaryLabel = Color(uiColor: .tertiaryLabel)
+}
+
+enum CatalogMediaContrast {
+    static let coverScrimBottom = Color.black.opacity(0.22)
+    static let coverScrimTop = Color.black.opacity(0.02)
+    static let overlayChip = Color.white.opacity(0.16)
+    static let overlayChipMuted = Color.white.opacity(0.72)
+    static let glassStroke = Color.white.opacity(0.32)
+    static let mediaSelectionStroke = Color.white.opacity(0.9)
+    static let previewGradientStart = Color.white.opacity(0.88)
+    static let previewGradientEnd = Color.white.opacity(0.72)
+    static let mapScrimTop = Color.black.opacity(0)
+    static let mapScrimMiddle = Color.black.opacity(0.10)
+    static let mapScrimBottom = Color.black.opacity(0.30)
+    static let iconPaletteShadowSoft = Color.black.opacity(0.25)
+    static let iconPaletteShadowStrong = Color.black.opacity(0.35)
+}
+
+struct CatalogShadowStyle {
+    let color: Color
+    let radius: CGFloat
+    let y: CGFloat
+}
+
+enum CatalogElevation {
+    static let card = CatalogShadowStyle(
+        color: CatalogSemanticColors.separator.opacity(0.22),
+        radius: 12,
+        y: 6
+    )
+
+    static let floatingCard = CatalogShadowStyle(
+        color: CatalogSemanticColors.separator.opacity(0.22),
+        radius: 14,
+        y: 8
+    )
+
+    static let collectionCard = CatalogShadowStyle(
+        color: CatalogSemanticColors.separator.opacity(0.22),
+        radius: 16,
+        y: 8
+    )
+
+    static let detailSection = CatalogShadowStyle(
+        color: CatalogSemanticColors.separator.opacity(0.22),
+        radius: 10,
+        y: 4
+    )
+
+    static func highlightedDetailSection(tint: Color) -> CatalogShadowStyle {
+        CatalogShadowStyle(
+            color: tint.opacity(0.14),
+            radius: 14,
+            y: 4
+        )
+    }
+}
+
 enum CatalogPillPadding {
     case micro
     case compact
@@ -51,6 +118,10 @@ extension View {
     func catalogPillPadding(_ style: CatalogPillPadding) -> some View {
         padding(.horizontal, style.horizontal)
             .padding(.vertical, style.vertical)
+    }
+
+    func catalogShadow(_ style: CatalogShadowStyle) -> some View {
+        shadow(color: style.color, radius: style.radius, y: style.y)
     }
 }
 
@@ -132,7 +203,7 @@ struct BellCardView: View {
         }
         .clipShape(cardShape)
         .contentShape(cardShape)
-        .shadow(color: Color.black.opacity(0.04), radius: 12, y: 6)
+        .catalogShadow(CatalogElevation.card)
     }
 
     @ViewBuilder
@@ -169,8 +240,8 @@ struct BellCardView: View {
     private var coverScrim: some View {
         LinearGradient(
             colors: [
-                Color.black.opacity(hasCoverPhoto ? 0.22 : 0),
-                Color.black.opacity(hasCoverPhoto ? 0.02 : 0)
+                hasCoverPhoto ? CatalogMediaContrast.coverScrimBottom : .clear,
+                hasCoverPhoto ? CatalogMediaContrast.coverScrimTop : .clear
             ],
             startPoint: .bottom,
             endPoint: .top
@@ -384,8 +455,8 @@ private struct BellCardMetaChip: View {
             .catalogPillPadding(.compact)
             .background(
                 bright
-                    ? Color.white.opacity(0.16)
-                    : Color.black.opacity(0.04),
+                    ? CatalogMediaContrast.overlayChip
+                    : CatalogSemanticColors.groupedSurface,
                 in: Capsule()
             )
             .foregroundStyle(bright ? .white : .secondary)
@@ -446,8 +517,8 @@ struct BellCardCoverBackground: View {
             } else {
                 LinearGradient(
                     colors: [
-                        Color.white.opacity(0.88),
-                        Color.white.opacity(0.72)
+                        CatalogMediaContrast.previewGradientStart,
+                        CatalogMediaContrast.previewGradientEnd
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing

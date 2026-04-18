@@ -493,13 +493,13 @@ private struct MediaAssetGridTileView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
-            .background(Color.black.opacity(0.04), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
+            .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
 
             Button(action: onDelete) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title3)
                     .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, Color.black.opacity(0.35))
+                    .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowStrong)
             }
             .buttonStyle(.plain)
             .offset(x: 6, y: -6)
@@ -545,7 +545,7 @@ private struct MediaAssetThumbnailView: View {
         .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
-                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                .stroke(CatalogSemanticColors.separator, lineWidth: 1)
         )
     }
 
@@ -561,7 +561,7 @@ private struct MediaAssetThumbnailView: View {
     private var documentPlaceholder: some View {
         ZStack {
             RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
-                .fill(Color.black.opacity(0.05))
+                .fill(CatalogSemanticColors.groupedSurfaceElevated)
 
             VStack(spacing: 3) {
                 Image(systemName: "doc.fill")
@@ -577,7 +577,7 @@ private struct MediaAssetThumbnailView: View {
     private func placeholder(systemImage: String) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
-                .fill(Color.black.opacity(0.05))
+                .fill(CatalogSemanticColors.groupedSurfaceElevated)
 
             Image(systemName: systemImage)
                 .font(.title3)

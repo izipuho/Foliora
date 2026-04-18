@@ -46,7 +46,7 @@ struct CollectionCard: View {
                     )
                 )
         )
-        .shadow(color: Color.black.opacity(0.05), radius: 16, y: 8)
+        .catalogShadow(CatalogElevation.collectionCard)
     }
 
     private var countChip: some View {

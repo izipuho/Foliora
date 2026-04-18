@@ -703,7 +703,7 @@ private struct HomeListCard: View {
         .padding(CatalogLayoutInsets.screen)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
-        .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
+        .catalogShadow(CatalogElevation.floatingCard)
     }
 
     private func listMetric(title: String, value: String) -> some View {
@@ -966,7 +966,7 @@ struct CollectionEditorView: View {
                                                 Image(systemName: "checkmark.circle.fill")
                                                     .font(.title3)
                                                     .symbolRenderingMode(.palette)
-                                                    .foregroundStyle(.white, Color.black.opacity(0.25))
+                                                    .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowSoft)
                                                     .padding(CatalogSpacing.compact)
                                             }
                                         }
@@ -1470,7 +1470,7 @@ private struct SettingsView: View {
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Color(red: 0.18, green: 0.34, blue: 0.64))
                 .frame(width: 44, height: 44)
-                .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
+                .background(CatalogSemanticColors.groupedSurfaceElevated, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
@@ -1482,7 +1482,7 @@ private struct SettingsView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
+        .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
     }
 
     private func settingsNavigationCard(title: String, subtitle: String, systemImage: String) -> some View {
@@ -1519,7 +1519,7 @@ private struct SettingsView: View {
             .font(.headline)
             .padding(.horizontal, 18)
             .frame(height: 52)
-            .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
+            .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -1852,7 +1852,7 @@ private struct HomeCard: View {
         .padding(CatalogLayoutInsets.screen)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
-        .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
+        .catalogShadow(CatalogElevation.floatingCard)
     }
 
     private func homeMetric(title: String, value: String) -> some View {
@@ -1902,13 +1902,13 @@ private struct StorageMapCard: View {
                     }
                 }
                 .padding(14)
-                .background(Color.black.opacity(0.035), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
+                .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
             }
         }
         .padding(CatalogLayoutInsets.screen)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
-        .shadow(color: Color.black.opacity(0.04), radius: 14, y: 8)
+        .catalogShadow(CatalogElevation.floatingCard)
     }
 
     private func children(of location: Location) -> [Location] {
@@ -1927,7 +1927,7 @@ private struct StorageMapCard: View {
                 Text(location.kind.displayName)
                     .font(.caption.weight(.medium))
                     .catalogPillPadding(.compact)
-                    .background(Color.black.opacity(0.05), in: Capsule())
+                    .background(CatalogSemanticColors.groupedSurfaceElevated, in: Capsule())
                     .foregroundStyle(.secondary)
 
             Spacer()
@@ -2133,7 +2133,7 @@ private struct MapBellAnnotationView: View {
                 .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
-                        .stroke(isSelected ? accentColor : Color.white.opacity(0.9), lineWidth: isSelected ? 3 : 2)
+                        .stroke(isSelected ? accentColor : CatalogMediaContrast.mediaSelectionStroke, lineWidth: isSelected ? 3 : 2)
                 )
 
             if bells.count > 1 {

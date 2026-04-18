@@ -61,7 +61,7 @@ struct BellDetailView: View {
                 .padding(.top, CatalogSpacing.section)
                 .padding(.bottom, CatalogSpacing.section)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white.opacity(0.94))
+                .background(Color(uiColor: .systemBackground))
             }
         }
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
@@ -143,10 +143,10 @@ struct BellDetailView: View {
             RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
                 .fill(isHighlighted ? AnyShapeStyle(tint.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
         )
-        .shadow(
-            color: isHighlighted ? tint.opacity(0.14) : Color.black.opacity(0.04),
-            radius: isHighlighted ? 14 : 10,
-            y: 4
+        .catalogShadow(
+            isHighlighted
+                ? CatalogElevation.highlightedDetailSection(tint: tint)
+                : CatalogElevation.detailSection
         )
     }
 
@@ -329,7 +329,7 @@ private struct OriginTile: View {
                 } else {
                     ZStack {
                         RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
-                            .fill(Color.black.opacity(0.05))
+                            .fill(CatalogSemanticColors.groupedSurfaceElevated)
                         Image(systemName: "mappin.slash")
                             .font(.title3)
                             .foregroundStyle(.secondary)
@@ -338,9 +338,9 @@ private struct OriginTile: View {
 
                 LinearGradient(
                     colors: [
-                        Color.black.opacity(0),
-                        Color.black.opacity(0.10),
-                        Color.black.opacity(0.30)
+                        CatalogMediaContrast.mapScrimTop,
+                        CatalogMediaContrast.mapScrimMiddle,
+                        CatalogMediaContrast.mapScrimBottom
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -406,7 +406,7 @@ private struct StorageTile: View {
                 ForEach(Array(pathParts.enumerated()), id: \.offset) { index, part in
                     HStack(spacing: 8) {
                         Circle()
-                            .fill(index == pathParts.count - 1 ? accentColor.opacity(0.80) : Color.black.opacity(0.14))
+                            .fill(index == pathParts.count - 1 ? accentColor.opacity(0.80) : CatalogSemanticColors.tertiaryLabel)
                             .frame(width: 7, height: 7)
 
                         Text(part)
@@ -419,7 +419,7 @@ private struct StorageTile: View {
             }
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
             .padding(14)
-            .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
+            .background(CatalogSemanticColors.groupedSurfaceElevated, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
                     .stroke(accentColor.opacity(0.22), lineWidth: 1)
@@ -561,7 +561,7 @@ private struct BellDetailMediaTile: View {
         case .document:
             ZStack {
                 RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous)
-                    .fill(Color.black.opacity(0.05))
+                    .fill(CatalogSemanticColors.groupedSurfaceElevated)
                 VStack(spacing: 3) {
                     Image(systemName: "doc.fill")
                         .font(.title3)
@@ -580,7 +580,7 @@ private struct BellDetailMediaTile: View {
     private func placeholder(systemImage: String) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous)
-                .fill(Color.black.opacity(0.05))
+                .fill(CatalogSemanticColors.groupedSurfaceElevated)
             Image(systemName: systemImage)
                 .font(.title3)
                 .foregroundStyle(.secondary)
