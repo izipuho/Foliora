@@ -240,6 +240,12 @@
 "settings.sharing.subtitle" = "Collections stay invitation-only and use role-based access.";
 "settings.storage.title" = "Storage";
 "settings.storage.subtitle" = "Homes, locations, items, and media are already represented in the domain model.";
+"settings.data.section_title" = "Data";
+"settings.data.export" = "Export JSON";
+"settings.data.import" = "Import JSON";
+"settings.data.footer" = "Import and export the current app JSON format.";
+"settings.export.error_title" = "Export Failed";
+"settings.import.error_title" = "Import Failed";
 
 "bell.detail.title" = "Card";
 "bell.detail.section.item" = "Item";

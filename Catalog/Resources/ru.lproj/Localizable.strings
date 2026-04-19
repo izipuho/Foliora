@@ -240,6 +240,12 @@
 "settings.sharing.subtitle" = "Коллекции остаются приватными по приглашению и используют доступ по ролям.";
 "settings.storage.title" = "Хранение";
 "settings.storage.subtitle" = "Дома, расположения, предметы и медиа уже представлены в доменной модели.";
+"settings.data.section_title" = "Данные";
+"settings.data.export" = "Экспорт JSON";
+"settings.data.import" = "Импорт JSON";
+"settings.data.footer" = "Импорт и экспорт текущего JSON-формата приложения.";
+"settings.export.error_title" = "Ошибка экспорта";
+"settings.import.error_title" = "Ошибка импорта";
 
 "bell.detail.title" = "Карточка";
 "bell.detail.section.item" = "О предмете";

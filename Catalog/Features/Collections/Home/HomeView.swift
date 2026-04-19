@@ -1373,68 +1373,36 @@ private struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    settingsCard(
-                        title: String(localized: "settings.appearance.title"),
-                        subtitle: String(localized: "settings.appearance.subtitle"),
-                        systemImage: "sparkles.rectangle.stack"
-                    )
-
-                    settingsCard(
-                        title: String(localized: "settings.sharing.title"),
-                        subtitle: String(localized: "settings.sharing.subtitle"),
-                        systemImage: "person.2.badge.gearshape"
-                    )
-
-                    settingsCard(
-                        title: String(localized: "settings.storage.title"),
-                        subtitle: String(localized: "settings.storage.subtitle"),
-                        systemImage: "externaldrive.connected.to.line.below"
-                    )
-
+            List {
+                Section {
                     NavigationLink {
                         HomeView(repository: repository, embedsNavigation: false)
                     } label: {
-                        settingsNavigationCard(
-                            title: String(localized: "root_tab.homes"),
-                            subtitle: String(localized: "settings.storage.subtitle"),
-                            systemImage: "house"
-                        )
+                        Label(String(localized: "root_tab.homes"), systemImage: "house")
                     }
-                    .buttonStyle(.plain)
-
-                    settingsActionCard(
-                        title: "Data",
-                        subtitle: "Import and export the current app JSON format.",
-                        systemImage: "arrow.left.arrow.right.circle"
-                    ) {
-                        settingsButton(title: "Export JSON", systemImage: "square.and.arrow.up") {
-                            exportCurrentJSON()
-                        }
-
-                        settingsButton(title: "Import JSON", systemImage: "square.and.arrow.down") {
-                            isImportingDocument = true
-                        }
-                    }
+                } footer: {
+                    Text(String(localized: "settings.storage.subtitle"))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Section {
+                    Button {
+                        exportCurrentJSON()
+                    } label: {
+                        Label(String(localized: "settings.data.export"), systemImage: "square.and.arrow.up")
+                    }
+
+                    Button {
+                        isImportingDocument = true
+                    } label: {
+                        Label(String(localized: "settings.data.import"), systemImage: "square.and.arrow.down")
+                    }
+                } header: {
+                    Text(String(localized: "settings.data.section_title"))
+                } footer: {
+                    Text(String(localized: "settings.data.footer"))
+                }
             }
-            .contentMargins(.horizontal, nil, for: .scrollContent)
-            .contentMargins(.top, nil, for: .scrollContent)
-            .contentMargins(.bottom, 120, for: .scrollContent)
-            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.95, green: 0.96, blue: 0.99),
-                        Color(red: 0.90, green: 0.92, blue: 0.97)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            )
+            .listStyle(.insetGrouped)
             .navigationTitle(RootTab.settings.title)
             .fileExporter(
                 isPresented: $isExportingDocument,
@@ -1452,7 +1420,7 @@ private struct SettingsView: View {
             ) { result in
                 handleImport(result)
             }
-            .alert("Export Failed", isPresented: Binding(
+            .alert(String(localized: "settings.export.error_title"), isPresented: Binding(
                 get: { exportErrorMessage != nil },
                 set: { newValue in
                     if !newValue {
@@ -1460,11 +1428,11 @@ private struct SettingsView: View {
                     }
                 }
             )) {
-                Button("OK", role: .cancel) {}
+                Button(String(localized: "common.ok"), role: .cancel) {}
             } message: {
                 Text(exportErrorMessage ?? "")
             }
-            .alert("Import Failed", isPresented: Binding(
+            .alert(String(localized: "settings.import.error_title"), isPresented: Binding(
                 get: { importErrorMessage != nil },
                 set: { newValue in
                     if !newValue {
@@ -1472,71 +1440,11 @@ private struct SettingsView: View {
                     }
                 }
             )) {
-                Button("OK", role: .cancel) {}
+                Button(String(localized: "common.ok"), role: .cancel) {}
             } message: {
                 Text(importErrorMessage ?? "")
             }
         }
-    }
-
-    private func settingsCard(title: String, subtitle: String, systemImage: String) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: systemImage)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Color(red: 0.18, green: 0.34, blue: 0.64))
-                .frame(width: 44, height: 44)
-                .background(CatalogSemanticColors.groupedSurfaceElevated, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.headline)
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
-    }
-
-    private func settingsNavigationCard(title: String, subtitle: String, systemImage: String) -> some View {
-        HStack(spacing: 12) {
-            settingsCard(title: title, subtitle: subtitle, systemImage: systemImage)
-
-            Image(systemName: "chevron.right")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.trailing, 18)
-        }
-        .contentShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
-    }
-
-    private func settingsActionCard<Content: View>(
-        title: String,
-        subtitle: String,
-        systemImage: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            settingsCard(title: title, subtitle: subtitle, systemImage: systemImage)
-            content()
-        }
-    }
-
-    private func settingsButton(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: systemImage)
-                Text(title)
-                Spacer()
-            }
-            .font(.headline)
-            .padding(.horizontal, 18)
-            .frame(height: 52)
-            .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
-        }
-        .buttonStyle(.plain)
     }
 
     private func exportCurrentJSON() {
