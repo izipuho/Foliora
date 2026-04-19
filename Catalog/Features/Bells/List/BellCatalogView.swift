@@ -31,6 +31,32 @@ private func localizedCount(_ count: Int, kind: SummaryCountKind) -> String {
     )
 }
 
+private enum BellCatalogCoordinateSpace {
+    static let pinchGrid = "bellCatalogPinchGrid"
+}
+
+private struct BellCardFramePreferenceKey: PreferenceKey {
+    static let defaultValue: [UUID: CGRect] = [:]
+
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+private extension CGRect {
+    var center: CGPoint {
+        CGPoint(x: midX, y: midY)
+    }
+}
+
+private extension CGPoint {
+    func distanceSquared(to point: CGPoint) -> CGFloat {
+        let dx = x - point.x
+        let dy = y - point.y
+        return (dx * dx) + (dy * dy)
+    }
+}
+
 enum BellOrderMode: String, CaseIterable, Hashable {
     case title
     case newestFirst
@@ -133,7 +159,13 @@ struct BellCatalogView: View {
     @State private var visualScale: CGFloat = 1
     @State private var layoutFeedbackTrigger: Int = 0
     @State private var activeLayoutThresholdDirection: LayoutThresholdDirection?
+    @State private var accumulatedMagnificationDelta: CGFloat = 0
+    @State private var lastGestureMagnification: CGFloat?
+    @State private var pinchOriginBellID: UUID?
+    @State private var pinchNavigatedBell: BellRecord?
+    @State private var bellCardFrames: [UUID: CGRect] = [:]
     @Namespace private var bellGridTransitionNamespace
+    @Namespace private var bellDetailZoomNamespace
 
     init(
         collection: CollectionSummary,
@@ -209,24 +241,35 @@ struct BellCatalogView: View {
         MagnifyGesture()
             .onChanged { value in
                 guard mode == .items else { return }
-                updateLayoutThresholdFeedback(for: value.magnification)
+                capturePinchOriginBellIfNeeded(at: value.startLocation)
+                updateAccumulatedMagnification(with: value.magnification)
+                updateLayoutThresholdFeedback(for: value)
                 visualScale = clampedVisualScale(for: value.magnification)
             }
             .onEnded { value in
                 guard mode == .items else { return }
-                let threshold: CGFloat = 0.12
-                let delta = value.magnification - 1
+                let effectiveThreshold = zoomThreshold(forVelocity: value.velocity)
+                let finalAccumulatedDelta = accumulatedMagnificationDelta
+                let shouldOpenDetailFromPinch = layoutMode == .showcase && !canZoomOut && finalAccumulatedDelta >= effectiveThreshold
 
                 withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.84, blendDuration: 0.12)) {
                     activeLayoutThresholdDirection = nil
                     visualScale = 1
 
-                    if delta >= threshold {
+                    if shouldOpenDetailFromPinch,
+                       let pinchOriginBellID,
+                       let bell = displayedItemsBell(withID: pinchOriginBellID) {
+                        pinchNavigatedBell = bell
+                    } else if finalAccumulatedDelta >= effectiveThreshold {
                         zoomOutLayout()
-                    } else if delta <= -threshold {
+                    } else if finalAccumulatedDelta <= -effectiveThreshold {
                         zoomInLayout()
                     }
                 }
+
+                accumulatedMagnificationDelta = 0
+                lastGestureMagnification = nil
+                pinchOriginBellID = nil
             }
     }
 
@@ -234,14 +277,25 @@ struct BellCatalogView: View {
         min(max(magnification, 0.88), 1.16)
     }
 
-    private func updateLayoutThresholdFeedback(for magnification: CGFloat) {
-        let threshold: CGFloat = 0.12
-        let delta = magnification - 1
+    private func updateAccumulatedMagnification(with magnification: CGFloat) {
+        let previousMagnification = lastGestureMagnification ?? 1
+        accumulatedMagnificationDelta += magnification - previousMagnification
+        lastGestureMagnification = magnification
+    }
+
+    private func zoomThreshold(forVelocity velocity: CGFloat) -> CGFloat {
+        let baseThreshold: CGFloat = 0.12
+        let velocityReduction = min(abs(velocity) * 0.015, 0.05)
+        return max(0.05, baseThreshold - velocityReduction)
+    }
+
+    private func updateLayoutThresholdFeedback(for value: MagnifyGesture.Value) {
+        let threshold = zoomThreshold(forVelocity: value.velocity)
         let newDirection: LayoutThresholdDirection?
 
-        if delta >= threshold, canZoomOut {
+        if accumulatedMagnificationDelta >= threshold, canZoomOut {
             newDirection = .zoomOut
-        } else if delta <= -threshold, canZoomIn {
+        } else if accumulatedMagnificationDelta <= -threshold, canZoomIn {
             newDirection = .zoomIn
         } else {
             newDirection = nil
@@ -254,6 +308,23 @@ struct BellCatalogView: View {
         if newDirection != nil {
             layoutFeedbackTrigger += 1
         }
+    }
+
+    private func capturePinchOriginBellIfNeeded(at location: CGPoint) {
+        guard pinchOriginBellID == nil else { return }
+
+        if let exactMatch = bellCardFrames.first(where: { $0.value.contains(location) }) {
+            pinchOriginBellID = exactMatch.key
+            return
+        }
+
+        pinchOriginBellID = bellCardFrames.min { lhs, rhs in
+            lhs.value.center.distanceSquared(to: location) < rhs.value.center.distanceSquared(to: location)
+        }?.key
+    }
+
+    private func displayedItemsBell(withID bellID: UUID) -> BellRecord? {
+        viewModel.filteredItemsBells.first(where: { $0.id == bellID })
     }
 
     private var canZoomIn: Bool {
@@ -318,19 +389,38 @@ struct BellCatalogView: View {
             BellGridDetailSheetContainer(bell: bell, repository: repository)
                 .presentationDragIndicator(.visible)
         }
+        .navigationDestination(item: $pinchNavigatedBell) { bell in
+            BellGridDetailNavigationContainer(bell: bell, repository: repository)
+                .navigationTransition(.zoom(sourceID: bell.id, in: bellDetailZoomNamespace))
+        }
         .sensoryFeedback(.impact(weight: .light), trigger: layoutFeedbackTrigger)
+        .coordinateSpace(name: BellCatalogCoordinateSpace.pinchGrid)
+        .onPreferenceChange(BellCardFramePreferenceKey.self) { frames in
+            bellCardFrames = frames
+        }
         .onAppear(perform: syncViewModelContext)
         .onChange(of: orderMode) { _, _ in
+            accumulatedMagnificationDelta = 0
+            lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
             visualScale = 1
+            pinchOriginBellID = nil
             syncViewModelContext()
         }
         .onChange(of: summaryFilter) { _, _ in
+            accumulatedMagnificationDelta = 0
+            lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
             visualScale = 1
+            pinchOriginBellID = nil
             syncViewModelContext()
         }
         .onChange(of: externalSearchText) { _, _ in
+            accumulatedMagnificationDelta = 0
+            lastGestureMagnification = nil
+            activeLayoutThresholdDirection = nil
+            visualScale = 1
+            pinchOriginBellID = nil
             syncViewModelContext()
         }
         .onChange(of: selectedCondition) { _, value in
@@ -440,6 +530,15 @@ struct BellCatalogView: View {
                                         layoutMode: layoutMode
                                     )
                                     .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
+                                    .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
+                                    .background {
+                                        GeometryReader { proxy in
+                                            Color.clear.preference(
+                                                key: BellCardFramePreferenceKey.self,
+                                                value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
+                                            )
+                                        }
+                                    }
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -513,6 +612,15 @@ struct BellCatalogView: View {
                                         layoutMode: layoutMode
                                     )
                                     .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
+                                    .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
+                                    .background {
+                                        GeometryReader { proxy in
+                                            Color.clear.preference(
+                                                key: BellCardFramePreferenceKey.self,
+                                                value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
+                                            )
+                                        }
+                                    }
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -776,6 +884,15 @@ struct BellCatalogView: View {
                                                 layoutMode: layoutMode
                                             )
                                             .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
+                                            .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
+                                            .background {
+                                                GeometryReader { proxy in
+                                                    Color.clear.preference(
+                                                        key: BellCardFramePreferenceKey.self,
+                                                        value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
+                                                    )
+                                                }
+                                            }
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -794,6 +911,15 @@ struct BellCatalogView: View {
                                     layoutMode: layoutMode
                                 )
                                 .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
+                                .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
+                                .background {
+                                    GeometryReader { proxy in
+                                        Color.clear.preference(
+                                            key: BellCardFramePreferenceKey.self,
+                                            value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
+                                        )
+                                    }
+                                }
                             }
                             .buttonStyle(.plain)
                         }
@@ -1632,5 +1758,14 @@ private struct BellGridDetailSheetContainer: View {
             BellDetailView(bell: $bell, repository: repository)
         }
         .presentationBackground(.clear)
+    }
+}
+
+private struct BellGridDetailNavigationContainer: View {
+    @State var bell: BellRecord
+    let repository: any CatalogRepository
+
+    var body: some View {
+        BellDetailView(bell: $bell, repository: repository)
     }
 }
