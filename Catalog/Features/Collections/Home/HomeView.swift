@@ -1102,7 +1102,18 @@ private struct CollectionShellView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
-            if selectedMode == .items {
+            switch selectedMode {
+            case .summary:
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isPresentingEditCollection = true
+                    } label: {
+                        floatingToolbarIcon(systemName: "square.and.pencil")
+                    }
+                }
+
+                addBellToolbarItem
+            case .items:
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Picker(String(localized: "bell_catalog.order.menu"), selection: $selectedOrder) {
@@ -1114,35 +1125,10 @@ private struct CollectionShellView: View {
                         floatingToolbarIcon(systemName: "line.3.horizontal.decrease")
                     }
                 }
-            }
 
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isPresentingEditCollection = true
-                } label: {
-                    floatingToolbarIcon(systemName: "slider.horizontal.3")
-                }
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isPresentingAddBellOptions = true
-                } label: {
-                    floatingToolbarIcon(systemName: "plus")
-                }
-                .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresentingAddBellOptions, titleVisibility: .visible) {
-                    Button(String(localized: "editor.media.photo_library")) {
-                        isPresentingPhotoPicker = true
-                    }
-
-                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                        Button(String(localized: "editor.media.camera")) {
-                            isPresentingCamera = true
-                        }
-                    }
-
-                    Button(String(localized: "common.cancel"), role: .cancel) {}
-                }
+                addBellToolbarItem
+            case .map:
+                addBellToolbarItem
             }
         }
         .photosPicker(
@@ -1227,10 +1213,33 @@ private struct CollectionShellView: View {
         .padding(.bottom, CatalogSpacing.micro)
     }
 
+    private var addBellToolbarItem: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                isPresentingAddBellOptions = true
+            } label: {
+                floatingToolbarIcon(systemName: "plus")
+            }
+            .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresentingAddBellOptions, titleVisibility: .visible) {
+                Button(String(localized: "editor.media.photo_library")) {
+                    isPresentingPhotoPicker = true
+                }
+
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button(String(localized: "editor.media.camera")) {
+                        isPresentingCamera = true
+                    }
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+            }
+        }
+    }
+
     private func floatingToolbarIcon(systemName: String) -> some View {
         Image(systemName: systemName)
             .font(.system(size: 17, weight: .semibold))
-            .frame(width: 34, height: 34)
+            .frame(width: 30, height: 30)
     }
 
     private func saveCollectionEdits(title: String, notes: String, backgroundStyle: CollectionBackgroundStyle) {
