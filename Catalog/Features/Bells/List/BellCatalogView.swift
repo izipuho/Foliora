@@ -110,6 +110,11 @@ enum BellSummaryFilter: Hashable {
 }
 
 struct BellCatalogView: View {
+    private enum LayoutThresholdDirection {
+        case zoomIn
+        case zoomOut
+    }
+
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
     let collection: CollectionSummary
@@ -126,6 +131,8 @@ struct BellCatalogView: View {
     @State private var presentedBell: BellRecord?
     @State private var activeJumpPopoverSectionID: String?
     @State private var visualScale: CGFloat = 1
+    @State private var layoutFeedbackTrigger: Int = 0
+    @State private var activeLayoutThresholdDirection: LayoutThresholdDirection?
     @Namespace private var bellGridTransitionNamespace
 
     init(
@@ -202,6 +209,7 @@ struct BellCatalogView: View {
         MagnifyGesture()
             .onChanged { value in
                 guard mode == .items else { return }
+                updateLayoutThresholdFeedback(for: value.magnification)
                 visualScale = clampedVisualScale(for: value.magnification)
             }
             .onEnded { value in
@@ -210,6 +218,7 @@ struct BellCatalogView: View {
                 let delta = value.magnification - 1
 
                 withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.84, blendDuration: 0.12)) {
+                    activeLayoutThresholdDirection = nil
                     visualScale = 1
 
                     if delta >= threshold {
@@ -223,6 +232,38 @@ struct BellCatalogView: View {
 
     private func clampedVisualScale(for magnification: CGFloat) -> CGFloat {
         min(max(magnification, 0.88), 1.16)
+    }
+
+    private func updateLayoutThresholdFeedback(for magnification: CGFloat) {
+        let threshold: CGFloat = 0.12
+        let delta = magnification - 1
+        let newDirection: LayoutThresholdDirection?
+
+        if delta >= threshold, canZoomOut {
+            newDirection = .zoomOut
+        } else if delta <= -threshold, canZoomIn {
+            newDirection = .zoomIn
+        } else {
+            newDirection = nil
+        }
+
+        guard newDirection != activeLayoutThresholdDirection else { return }
+
+        activeLayoutThresholdDirection = newDirection
+
+        if newDirection != nil {
+            layoutFeedbackTrigger += 1
+        }
+    }
+
+    private var canZoomIn: Bool {
+        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode) else { return false }
+        return currentIndex > 0
+    }
+
+    private var canZoomOut: Bool {
+        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode) else { return false }
+        return currentIndex < orderedLayoutModes.count - 1
     }
 
     private func zoomInLayout() {
@@ -277,12 +318,15 @@ struct BellCatalogView: View {
             BellGridDetailSheetContainer(bell: bell, repository: repository)
                 .presentationDragIndicator(.visible)
         }
+        .sensoryFeedback(.impact(weight: .light), trigger: layoutFeedbackTrigger)
         .onAppear(perform: syncViewModelContext)
         .onChange(of: orderMode) { _, _ in
+            activeLayoutThresholdDirection = nil
             visualScale = 1
             syncViewModelContext()
         }
         .onChange(of: summaryFilter) { _, _ in
+            activeLayoutThresholdDirection = nil
             visualScale = 1
             syncViewModelContext()
         }
