@@ -4,7 +4,35 @@ import SwiftUI
 struct Home: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
+    var iconName: String
     var notes: String
+
+    init(
+        id: UUID,
+        name: String,
+        iconName: String = "house.fill",
+        notes: String
+    ) {
+        self.id = id
+        self.name = name
+        self.iconName = iconName
+        self.notes = notes
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case iconName
+        case notes
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        iconName = try container.decodeIfPresent(String.self, forKey: .iconName) ?? "house.fill"
+        notes = try container.decode(String.self, forKey: .notes)
+    }
 }
 
 struct Location: Identifiable, Hashable, Codable {

@@ -165,7 +165,7 @@ struct HomeView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), notes: "")
+                    let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), iconName: "house.fill", notes: "")
                     homes.append(newHome)
                     locationsByHomeID[newHome.id] = []
                     repository.saveHome(newHome)
@@ -240,7 +240,7 @@ struct HomeView: View {
                 .padding(.top, 80)
 
                 Button {
-                    let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), notes: "")
+                    let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), iconName: "house.fill", notes: "")
                     homes.append(newHome)
                     locationsByHomeID[newHome.id] = []
                     repository.saveHome(newHome)
@@ -369,45 +369,43 @@ private struct HomeDetailView: View {
     @State private var isPresentingDeleteConfirmation = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                HomeCard(
-                    home: home,
-                    locations: locations,
-                    collectionCount: collectionCount,
-                    onEdit: {
-                        isPresentingEditor = true
-                    },
-                    onDelete: {
-                        isPresentingDeleteConfirmation = true
-                    }
-                )
-
+        List {
+            Section {
+                HomeIdentityHeader(home: home)
+            } header: {
                 Text(String(localized: "home.details"))
-                    .font(.headline)
-                    .padding(.horizontal, CatalogSpacing.micro)
+            }
 
+            Section(String(localized: "home.metric.collections")) {
+                if collectionCount == 0 {
+                    Text(String(localized: "home.list.collections.empty"))
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(
+                        String.localizedStringWithFormat(
+                            NSLocalizedString("home.list.collections.count", comment: "Home detail collection count"),
+                            collectionCount
+                        )
+                    )
+                }
+            }
+
+            Section(String(localized: "home.storage_map")) {
                 StorageMapCard(locations: locations)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .contentMargins(.horizontal, nil, for: .scrollContent)
-        .contentMargins(.top, nil, for: .scrollContent)
-        .contentMargins(.bottom, 120, for: .scrollContent)
-        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.99, green: 0.97, blue: 0.93),
-                    Color(red: 0.94, green: 0.92, blue: 0.86)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
+        .listStyle(.insetGrouped)
         .navigationTitle(home.name)
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isPresentingEditor = true
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                }
+            }
+        }
         .sheet(isPresented: $isPresentingEditor) {
             HomeEditorView(
                 home: $home,
@@ -454,6 +452,13 @@ private struct HomeEditorView: View {
                         String(localized: "common.name"),
                         text: $home.name
                     )
+
+                    Picker(String(localized: "home.icon"), selection: $home.iconName) {
+                        ForEach(HomeIconOption.allCases) { option in
+                            Label(option.title, systemImage: option.systemImage)
+                                .tag(option.systemImage)
+                        }
+                    }
 
                     TextField(
                         String(localized: "common.notes"),
@@ -684,7 +689,7 @@ private struct HomeListCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "house.fill")
+            Image(systemName: home.iconName)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.tint)
                 .frame(width: 30, height: 30)
@@ -700,6 +705,81 @@ private struct HomeListCard: View {
             }
         }
         .padding(.vertical, 6)
+    }
+}
+
+private struct HomeIdentityHeader: View {
+    let home: Home
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: home.iconName)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(.tint)
+                .frame(width: 44, height: 44)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(home.name)
+                    .font(.headline)
+
+                if home.notes.isEmpty {
+                    Text(String(localized: "home.notes.empty"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(home.notes)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private enum HomeIconOption: String, CaseIterable, Identifiable {
+    case house = "house.fill"
+    case building = "building.2.fill"
+    case cottage = "mountain.2.fill"
+    case treehouse = "tree.fill"
+    case city = "building.columns.fill"
+    case warehouse = "shippingbox.fill"
+
+    var id: String { rawValue }
+    var systemImage: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .house:
+            return String(localized: "home.icon.house")
+        case .building:
+            return String(localized: "home.icon.building")
+        case .cottage:
+            return String(localized: "home.icon.cottage")
+        case .treehouse:
+            return String(localized: "home.icon.treehouse")
+        case .city:
+            return String(localized: "home.icon.city")
+        case .warehouse:
+            return String(localized: "home.icon.warehouse")
+        }
+    }
+}
+
+private extension LocationKind {
+    var sortRank: Int {
+        switch self {
+        case .floor:
+            return 0
+        case .room:
+            return 1
+        case .cabinet:
+            return 2
+        case .shelf:
+            return 3
+        }
     }
 }
 
@@ -1694,165 +1774,175 @@ private struct BellSearchResultCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
-
-
-
-private struct HomeCard: View {
-    let home: Home
-    let locations: [Location]
-    let collectionCount: Int
-    let onEdit: () -> Void
-    let onDelete: () -> Void
-
-    private var floors: [Location] {
-        locations.filter { $0.kind == .floor }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
-                        .fill(Color(red: 0.20, green: 0.42, blue: 0.34).opacity(0.12))
-                        .frame(width: 54, height: 54)
-
-                    Image(systemName: "house.fill")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Color(red: 0.20, green: 0.42, blue: 0.34))
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(home.name)
-                        .font(.title3.bold())
-
-                    Text(home.notes)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 12)
-
-                Button {
-                    onEdit()
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                        .font(.system(size: 18, weight: .bold))
-                        .frame(width: 38, height: 38)
-                        .background(.ultraThinMaterial, in: Circle())
-                }
-                .buttonStyle(.plain)
-            }
-
-            HStack(spacing: 12) {
-                homeMetric(title: String(localized: "home.metric.collections"), value: "\(collectionCount)")
-                homeMetric(title: String(localized: "home.metric.locations"), value: "\(locations.count)")
-                homeMetric(title: String(localized: "home.metric.floors"), value: "\(floors.count)")
-            }
-        }
-        .contentShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
-        .swipeActions {
-            Button(String(localized: "common.delete"), role: .destructive) {
-                onDelete()
-            }
-        }
-        .padding(CatalogLayoutInsets.screen)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
-        .catalogShadow(CatalogElevation.floatingCard)
-    }
-
-    private func homeMetric(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: CatalogSpacing.micro) {
-            Text(value)
-                .font(.headline.bold())
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(CatalogSpacing.regular)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
-    }
-}
-
 private struct StorageMapCard: View {
     let locations: [Location]
 
-    private var floors: [Location] {
-        locations.filter { $0.kind == .floor }
+    private var rootLocations: [Location] {
+        locations
+            .filter { $0.parentLocationID == nil }
+            .sorted(by: locationSort)
+    }
+
+    private var floorCount: Int {
+        locations.filter { $0.kind == .floor }.count
+    }
+
+    private var roomCount: Int {
+        locations.filter { $0.kind == .room }.count
+    }
+
+    private var cabinetCount: Int {
+        let cabinets = locations.filter { $0.kind == .cabinet }.count
+        let standaloneShelves = locations.filter { location in
+            location.kind == .shelf && !hasAncestor(ofKind: .cabinet, for: location)
+        }.count
+        return cabinets + standaloneShelves
+    }
+
+    private var flattenedLocations: [StorageMapNode] {
+        rootLocations.flatMap { flatten(location: $0, depth: 0) }
+    }
+
+    private var storageSummaryText: String {
+        var parts: [String] = []
+
+        if floorCount > 0 {
+            parts.append(localizedStorageCount("home.storage.count.floors", floorCount))
+        }
+
+        parts.append(localizedStorageCount("home.storage.count.rooms", roomCount))
+        parts.append(localizedStorageCount("home.storage.count.cabinets", cabinetCount))
+
+        return parts.joined(separator: " · ")
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(String(localized: "home.storage_map"))
-                .font(.headline)
+        if locations.isEmpty {
+            ContentUnavailableView(
+                String(localized: "home.location.empty.title"),
+                systemImage: "square.stack.3d.up.slash",
+                description: Text(String(localized: "home.location.empty.description"))
+            )
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, CatalogSpacing.section)
+        } else {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(storageSummaryText)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
 
-            ForEach(floors) { floor in
-                VStack(alignment: .leading, spacing: 8) {
-                    locationRow(location: floor, depth: 0)
-
-                    ForEach(children(of: floor), id: \.id) { room in
-                        VStack(alignment: .leading, spacing: 8) {
-                            locationRow(location: room, depth: 1)
-
-                            ForEach(children(of: room), id: \.id) { container in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    locationRow(location: container, depth: 2)
-
-                                    ForEach(children(of: container), id: \.id) { shelf in
-                                        locationRow(location: shelf, depth: 3)
-                                    }
-                                }
-                            }
-                        }
-                    }
+                ForEach(flattenedLocations) { node in
+                    locationRow(location: node.location, depth: node.depth)
                 }
-                .padding(14)
-                .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
             }
         }
-        .padding(CatalogLayoutInsets.screen)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
-        .catalogShadow(CatalogElevation.floatingCard)
     }
 
     private func children(of location: Location) -> [Location] {
-        locations.filter { $0.parentLocationID == location.id }
+        locations
+            .filter { $0.parentLocationID == location.id }
+            .sorted(by: locationSort)
+    }
+
+    private func hasAncestor(ofKind kind: LocationKind, for location: Location) -> Bool {
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID,
+              let parent = locations.first(where: { $0.id == parentID }) {
+            if parent.kind == kind {
+                return true
+            }
+
+            currentParentID = parent.parentLocationID
+        }
+
+        return false
+    }
+
+    private func flatten(location: Location, depth: Int) -> [StorageMapNode] {
+        [StorageMapNode(location: location, depth: depth)] +
+        visibleChildren(of: location).flatMap { flatten(location: $0, depth: depth + 1) }
+    }
+
+    private func visibleChildren(of location: Location) -> [Location] {
+        children(of: location).filter { child in
+            !(location.kind == .cabinet && child.kind == .shelf)
+        }
+    }
+
+    private func shelfCount(in cabinet: Location) -> Int {
+        guard cabinet.kind == .cabinet else { return 0 }
+        return children(of: cabinet).filter { $0.kind == .shelf }.count
+    }
+
+    private func localizedStorageCount(_ key: String, _ count: Int) -> String {
+        String.localizedStringWithFormat(
+            NSLocalizedString(key, comment: "Home storage summary count"),
+            count
+        )
+    }
+
+    private var locationSort: (Location, Location) -> Bool {
+        { lhs, rhs in
+            if lhs.kind != rhs.kind {
+                return lhs.kind.sortRank < rhs.kind.sortRank
+            }
+
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
     }
 
     private func locationRow(location: Location, depth: Int) -> some View {
         HStack(spacing: 10) {
             Circle()
-                .fill(depthColor(depth))
+                .fill(kindColor(location.kind))
                 .frame(width: 8, height: 8)
 
             Text(location.name)
                 .font(.subheadline.weight(.semibold))
 
-                Text(location.kind.displayName)
-                    .font(.caption.weight(.medium))
-                    .catalogPillPadding(.compact)
-                    .background(CatalogSemanticColors.groupedSurfaceElevated, in: Capsule())
+            if let shelfSummary = shelfSummaryText(for: location) {
+                Text(shelfSummary)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
+            }
 
             Spacer()
         }
         .padding(.leading, CGFloat(depth) * 18)
     }
 
-    private func depthColor(_ depth: Int) -> Color {
-        switch depth {
-        case 0:
+    private func shelfSummaryText(for location: Location) -> String? {
+        guard location.kind == .cabinet else { return nil }
+        let shelfCount = shelfCount(in: location)
+        guard shelfCount > 0 else { return nil }
+
+        let localizedCount = String.localizedStringWithFormat(
+            NSLocalizedString("home.storage.count.shelves", comment: "Shelf count under cabinet"),
+            shelfCount
+        )
+        return "(\(localizedCount))"
+    }
+
+    private func kindColor(_ kind: LocationKind) -> Color {
+        switch kind {
+        case .floor:
             return Color(red: 0.20, green: 0.42, blue: 0.34)
-        case 1:
+        case .room:
             return Color(red: 0.36, green: 0.52, blue: 0.24)
-        case 2:
+        case .cabinet:
             return Color(red: 0.58, green: 0.44, blue: 0.18)
-        default:
+        case .shelf:
             return Color(red: 0.51, green: 0.31, blue: 0.14)
         }
     }
+}
+
+private struct StorageMapNode: Identifiable {
+    let location: Location
+    let depth: Int
+
+    var id: UUID { location.id }
 }
 
 private struct CollectionPlaceholderView: View {

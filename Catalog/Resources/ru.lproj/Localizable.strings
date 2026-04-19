@@ -199,6 +199,13 @@
 "home.editor.title" = "Редактирование дома";
 "home.editor.section_home" = "Дом";
 "home.editor.section_locations" = "Расположения";
+"home.icon" = "Иконка";
+"home.icon.house" = "Дом";
+"home.icon.building" = "Здание";
+"home.icon.cottage" = "Коттедж";
+"home.icon.treehouse" = "Дерево";
+"home.icon.city" = "Город";
+"home.icon.warehouse" = "Склад";
 "home.location.empty.title" = "Расположений пока нет";
 "home.location.empty.description" = "Добавь этажи, комнаты, шкафы и полки для этого дома.";
 "home.location.name" = "Название расположения";
@@ -209,8 +216,11 @@
 "home.metric.collections" = "Коллекции";
 "home.metric.locations" = "Расположения";
 "home.metric.floors" = "Этажи";
+"home.metric.rooms" = "Комнаты";
+"home.metric.cabinets" = "Шкафы";
 "home.list.collections.empty" = "Коллекций пока нет";
 "home.list.storage.empty" = "Места хранения не настроены";
+"home.notes.empty" = "Описание пока не добавлено.";
 "home.storage_map" = "Карта хранения";
 
 "collections.empty.title" = "Коллекций пока нет";

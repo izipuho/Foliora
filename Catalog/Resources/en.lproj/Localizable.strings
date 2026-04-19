@@ -199,6 +199,13 @@
 "home.editor.title" = "Edit Home";
 "home.editor.section_home" = "Home";
 "home.editor.section_locations" = "Locations";
+"home.icon" = "Icon";
+"home.icon.house" = "House";
+"home.icon.building" = "Building";
+"home.icon.cottage" = "Cottage";
+"home.icon.treehouse" = "Tree";
+"home.icon.city" = "City";
+"home.icon.warehouse" = "Warehouse";
 "home.location.empty.title" = "No Locations Yet";
 "home.location.empty.description" = "Add floors, rooms, cabinets, and shelves for this home.";
 "home.location.name" = "Location name";
@@ -209,8 +216,11 @@
 "home.metric.collections" = "Collections";
 "home.metric.locations" = "Locations";
 "home.metric.floors" = "Floors";
+"home.metric.rooms" = "Rooms";
+"home.metric.cabinets" = "Cabinets";
 "home.list.collections.empty" = "No collections yet";
 "home.list.storage.empty" = "Storage locations not configured";
+"home.notes.empty" = "No description yet.";
 "home.storage_map" = "Storage Map";
 
 "collections.empty.title" = "No Collections Yet";

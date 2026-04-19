@@ -5,6 +5,7 @@ import SwiftData
 final class HomeEntity {
     @Attribute(.unique) var id: UUID
     var name: String
+    var iconName: String?
     var notes: String
 
     @Relationship(deleteRule: .cascade, inverse: \LocationEntity.home)
@@ -13,9 +14,10 @@ final class HomeEntity {
     @Relationship(deleteRule: .cascade, inverse: \CollectionEntity.home)
     var collections: [CollectionEntity] = []
 
-    init(id: UUID, name: String, notes: String) {
+    init(id: UUID, name: String, iconName: String?, notes: String) {
         self.id = id
         self.name = name
+        self.iconName = iconName
         self.notes = notes
     }
 }

@@ -114,5 +114,69 @@
 			<string>%d collections</string>
 		</dict>
 	</dict>
+	<key>home.storage.count.floors</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d floor</string>
+			<key>other</key>
+			<string>%d floors</string>
+		</dict>
+	</dict>
+	<key>home.storage.count.rooms</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d room</string>
+			<key>other</key>
+			<string>%d rooms</string>
+		</dict>
+	</dict>
+	<key>home.storage.count.cabinets</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d cabinet</string>
+			<key>other</key>
+			<string>%d cabinets</string>
+		</dict>
+	</dict>
+	<key>home.storage.count.shelves</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d shelf</string>
+			<key>other</key>
+			<string>%d shelves</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

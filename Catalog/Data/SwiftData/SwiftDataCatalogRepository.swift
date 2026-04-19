@@ -14,7 +14,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
 
     func fetchHomes() -> [Home] {
         fetchEntities(HomeEntity.self, sortBy: [SortDescriptor(\.name)]).map {
-            Home(id: $0.id, name: $0.name, notes: $0.notes)
+            Home(id: $0.id, name: $0.name, iconName: $0.iconName ?? "house.fill", notes: $0.notes)
         }
     }
 
@@ -76,8 +76,9 @@ final class SwiftDataCatalogRepository: CatalogRepository {
     }
 
     func saveHome(_ home: Home) {
-        let entity = fetchHomeEntity(by: home.id) ?? HomeEntity(id: home.id, name: home.name, notes: home.notes)
+        let entity = fetchHomeEntity(by: home.id) ?? HomeEntity(id: home.id, name: home.name, iconName: home.iconName, notes: home.notes)
         entity.name = home.name
+        entity.iconName = home.iconName
         entity.notes = home.notes
 
         if entity.modelContext == nil {
@@ -246,7 +247,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
         var placeEntities: [UUID: PlaceEntity] = [:]
 
         for home in bundle.homes {
-            let entity = HomeEntity(id: home.id, name: home.name, notes: home.notes)
+            let entity = HomeEntity(id: home.id, name: home.name, iconName: home.iconName, notes: home.notes)
             context.insert(entity)
             homeEntities[home.id] = entity
         }

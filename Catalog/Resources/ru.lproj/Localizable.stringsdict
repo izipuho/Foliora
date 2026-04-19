@@ -142,5 +142,85 @@
 			<string>%d коллекции</string>
 		</dict>
 	</dict>
+	<key>home.storage.count.floors</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d этаж</string>
+			<key>few</key>
+			<string>%d этажа</string>
+			<key>many</key>
+			<string>%d этажей</string>
+			<key>other</key>
+			<string>%d этажа</string>
+		</dict>
+	</dict>
+	<key>home.storage.count.rooms</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d комната</string>
+			<key>few</key>
+			<string>%d комнаты</string>
+			<key>many</key>
+			<string>%d комнат</string>
+			<key>other</key>
+			<string>%d комнаты</string>
+		</dict>
+	</dict>
+	<key>home.storage.count.cabinets</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d шкаф</string>
+			<key>few</key>
+			<string>%d шкафа</string>
+			<key>many</key>
+			<string>%d шкафов</string>
+			<key>other</key>
+			<string>%d шкафа</string>
+		</dict>
+	</dict>
+	<key>home.storage.count.shelves</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d полка</string>
+			<key>few</key>
+			<string>%d полки</string>
+			<key>many</key>
+			<string>%d полок</string>
+			<key>other</key>
+			<string>%d полки</string>
+		</dict>
+	</dict>
 </dict>
 </plist>
