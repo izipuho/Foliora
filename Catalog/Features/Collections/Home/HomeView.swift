@@ -1204,15 +1204,21 @@ private struct CollectionShellView: View {
         HStack {
             Spacer(minLength: 0)
 
-            Picker("Collection Mode", selection: $selectedMode) {
-                ForEach(CollectionContentMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
+            HStack {
+                Picker("Collection Mode", selection: $selectedMode) {
+                    ForEach(CollectionContentMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
                 }
+                .fixedSize(horizontal: true, vertical: false)
+                .pickerStyle(.segmented)
             }
-            .fixedSize(horizontal: true, vertical: false)
-            .pickerStyle(.segmented)
-            .tint(.primary.opacity(0.14))
-            .background(.regularMaterial, in: Capsule(style: .continuous))
+            .padding(CatalogSpacing.micro)
+            .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+            .overlay {
+                Capsule(style: .continuous)
+                    .stroke(CatalogMediaContrast.glassStroke, lineWidth: 1)
+            }
 
             Spacer(minLength: 0)
         }
