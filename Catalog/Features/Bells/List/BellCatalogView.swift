@@ -125,6 +125,8 @@ struct BellCatalogView: View {
     @State private var selectedCondition: ItemCondition?
     @State private var presentedBell: BellRecord?
     @State private var activeJumpPopoverSectionID: String?
+    @State private var visualScale: CGFloat = 1
+    @Namespace private var bellGridTransitionNamespace
 
     init(
         collection: CollectionSummary,
@@ -198,17 +200,29 @@ struct BellCatalogView: View {
 
     private var layoutMagnifyGesture: some Gesture {
         MagnifyGesture()
+            .onChanged { value in
+                guard mode == .items else { return }
+                visualScale = clampedVisualScale(for: value.magnification)
+            }
             .onEnded { value in
                 guard mode == .items else { return }
                 let threshold: CGFloat = 0.12
                 let delta = value.magnification - 1
 
-                if delta >= threshold {
-                    zoomOutLayout()
-                } else if delta <= -threshold {
-                    zoomInLayout()
+                withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.84, blendDuration: 0.12)) {
+                    visualScale = 1
+
+                    if delta >= threshold {
+                        zoomOutLayout()
+                    } else if delta <= -threshold {
+                        zoomInLayout()
+                    }
                 }
             }
+    }
+
+    private func clampedVisualScale(for magnification: CGFloat) -> CGFloat {
+        min(max(magnification, 0.88), 1.16)
     }
 
     private func zoomInLayout() {
@@ -265,9 +279,11 @@ struct BellCatalogView: View {
         }
         .onAppear(perform: syncViewModelContext)
         .onChange(of: orderMode) { _, _ in
+            visualScale = 1
             syncViewModelContext()
         }
         .onChange(of: summaryFilter) { _, _ in
+            visualScale = 1
             syncViewModelContext()
         }
         .onChange(of: externalSearchText) { _, _ in
@@ -368,6 +384,7 @@ struct BellCatalogView: View {
                             screenWidth: screenWidth,
                             scrollProxy: scrollProxy
                         )
+                        .scaleEffect(visualScale, anchor: .center)
                     } else {
                         LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                             ForEach(bells) { bell in
@@ -378,13 +395,16 @@ struct BellCatalogView: View {
                                         bell: bell,
                                         layoutMode: layoutMode
                                     )
+                                    .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
+                        .scaleEffect(visualScale, anchor: .center)
                     }
                 }
                 .animation(.snappy(duration: 0.24), value: layoutMode)
+                .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.86, blendDuration: 0.12), value: visualScale)
                 .animation(.snappy(duration: 0.24), value: orderMode)
             }
             .contentMargins(.horizontal, nil, for: .scrollContent)
@@ -448,10 +468,12 @@ struct BellCatalogView: View {
                                         bell: bell,
                                         layoutMode: layoutMode
                                     )
+                                    .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
+                        .scaleEffect(visualScale, anchor: .center)
                         .padding(.vertical, 8)
                     } header: {
                         BellGroupedSectionHeader(
@@ -709,6 +731,7 @@ struct BellCatalogView: View {
                                                 bell: bell,
                                                 layoutMode: layoutMode
                                             )
+                                            .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -726,6 +749,7 @@ struct BellCatalogView: View {
                                     bell: bell,
                                     layoutMode: layoutMode
                                 )
+                                .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
                             }
                             .buttonStyle(.plain)
                         }
