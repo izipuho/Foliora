@@ -209,6 +209,8 @@
 "home.metric.collections" = "Collections";
 "home.metric.locations" = "Locations";
 "home.metric.floors" = "Floors";
+"home.list.collections.empty" = "No collections yet";
+"home.list.storage.empty" = "Storage locations not configured";
 "home.storage_map" = "Storage Map";
 
 "collections.empty.title" = "No Collections Yet";

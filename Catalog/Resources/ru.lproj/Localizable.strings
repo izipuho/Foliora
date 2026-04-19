@@ -209,6 +209,8 @@
 "home.metric.collections" = "Коллекции";
 "home.metric.locations" = "Расположения";
 "home.metric.floors" = "Этажи";
+"home.list.collections.empty" = "Коллекций пока нет";
+"home.list.storage.empty" = "Места хранения не настроены";
 "home.storage_map" = "Карта хранения";
 
 "collections.empty.title" = "Коллекций пока нет";

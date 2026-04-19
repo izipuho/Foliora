@@ -142,15 +142,11 @@ struct HomeView: View {
                     Section {
                         homesRows
                     }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(.top, 0)
-                    .listRowInsets(.bottom, 0)
                 }
-                .listStyle(.plain)
+                .listStyle(.insetGrouped)
                 .contentMargins(.horizontal, nil, for: .scrollContent)
                 .contentMargins(.top, nil, for: .scrollContent)
                 .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
-                .scrollContentBackground(.hidden)
             }
         }
         .background(
@@ -165,6 +161,7 @@ struct HomeView: View {
             .ignoresSafeArea()
         )
         .navigationTitle(String(localized: "home.screen.title"))
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -205,7 +202,7 @@ struct HomeView: View {
                     HomeDetailView(
                         home: homeBinding,
                         locations: locationsBinding(for: homeID),
-                        collectionCount: repository.fetchCollections().count,
+                        collectionCount: repository.fetchDomainCollections(in: homeID).count,
                         onSave: { updatedHome, updatedLocations in
                             repository.saveHome(updatedHome)
                             repository.saveLocations(updatedLocations, in: updatedHome.id)
@@ -273,7 +270,7 @@ struct HomeView: View {
                     HomeListCard(
                         home: home,
                         locations: locationsByHomeID[home.id] ?? [],
-                        collectionCount: repository.fetchCollections().count
+                        collectionCount: repository.fetchDomainCollections(in: home.id).count
                     )
                 }
                 .buttonStyle(.plain)
@@ -288,7 +285,7 @@ struct HomeView: View {
                     HomeDetailView(
                         home: homeBinding,
                         locations: locationsBinding(for: home.id),
-                        collectionCount: repository.fetchCollections().count,
+                        collectionCount: repository.fetchDomainCollections(in: home.id).count,
                         onSave: { updatedHome, updatedLocations in
                             repository.saveHome(updatedHome)
                             repository.saveLocations(updatedLocations, in: updatedHome.id)
@@ -301,7 +298,7 @@ struct HomeView: View {
                     HomeListCard(
                         home: home,
                         locations: locationsByHomeID[home.id] ?? [],
-                        collectionCount: repository.fetchCollections().count
+                        collectionCount: repository.fetchDomainCollections(in: home.id).count
                     )
                 }
                 .buttonStyle(.plain)
@@ -315,7 +312,7 @@ struct HomeView: View {
                 HomeListCard(
                     home: home,
                     locations: locationsByHomeID[home.id] ?? [],
-                    collectionCount: repository.fetchCollections().count
+                    collectionCount: repository.fetchDomainCollections(in: home.id).count
                 )
                 .listRowSeparator(.hidden)
                 .swipeActions {
@@ -660,63 +657,49 @@ private struct HomeListCard: View {
     let locations: [Location]
     let collectionCount: Int
 
-    private var floors: Int {
-        locations.filter { $0.kind == .floor }.count
+    private var hasStorageLocations: Bool {
+        !locations.isEmpty
+    }
+
+    private var subtitle: String {
+        let collectionsSummary: String
+        if collectionCount == 0 {
+            collectionsSummary = String(localized: "home.list.collections.empty")
+        } else {
+            collectionsSummary = String.localizedStringWithFormat(
+                NSLocalizedString("home.list.collections.count", comment: "Home list collection count"),
+                collectionCount
+            )
+        }
+
+        guard !hasStorageLocations else {
+            return collectionsSummary
+        }
+
+        return [
+            collectionsSummary,
+            String(localized: "home.list.storage.empty")
+        ].joined(separator: " · ")
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
-                        .fill(Color(red: 0.20, green: 0.42, blue: 0.34).opacity(0.12))
-                        .frame(width: 54, height: 54)
+        HStack(spacing: 12) {
+            Image(systemName: "house.fill")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.tint)
+                .frame(width: 30, height: 30)
 
-                    Image(systemName: "house.fill")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Color(red: 0.20, green: 0.42, blue: 0.34))
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(home.name)
+                    .font(.body.weight(.semibold))
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(home.name)
-                        .font(.title3.bold())
-
-                    Text(home.notes.isEmpty ? String(localized: "common.no_notes") : home.notes)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
-
-            HStack(spacing: 12) {
-                listMetric(title: String(localized: "home.metric.collections"), value: "\(collectionCount)")
-                listMetric(title: String(localized: "home.metric.locations"), value: "\(locations.count)")
-                listMetric(title: String(localized: "home.metric.floors"), value: "\(floors)")
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
             }
         }
-        .padding(CatalogLayoutInsets.screen)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
-        .catalogShadow(CatalogElevation.floatingCard)
-    }
-
-    private func listMetric(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: CatalogSpacing.micro) {
-            Text(value)
-                .font(.headline.bold())
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(CatalogSpacing.regular)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
+        .padding(.vertical, 6)
     }
 }
 

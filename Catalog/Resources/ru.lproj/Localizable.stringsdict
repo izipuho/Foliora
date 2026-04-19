@@ -122,5 +122,25 @@
 			<string>%d участника</string>
 		</dict>
 	</dict>
+	<key>home.list.collections.count</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d коллекция</string>
+			<key>few</key>
+			<string>%d коллекции</string>
+			<key>many</key>
+			<string>%d коллекций</string>
+			<key>other</key>
+			<string>%d коллекции</string>
+		</dict>
+	</dict>
 </dict>
 </plist>
