@@ -2126,10 +2126,15 @@ private struct MapBellAnnotationView: View {
     let isSelected: Bool
     let accentColor: Color
 
+    private var annotationSize: CGSize {
+        let side = isSelected ? 56.0 : 48.0
+        return CGSize(width: side, height: side)
+    }
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             annotationImage
-                .frame(width: isSelected ? 56 : 48, height: isSelected ? 56 : 48)
+                .frame(width: annotationSize.width, height: annotationSize.height)
                 .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
@@ -2150,7 +2155,7 @@ private struct MapBellAnnotationView: View {
     @ViewBuilder
     private var annotationImage: some View {
         if let bell = bells.first, let coverAsset = coverPhotoAsset(for: bell) {
-            BellCardCoverBackground(asset: coverAsset)
+            BellCardCoverBackground(asset: coverAsset, size: annotationSize)
         } else {
             ZStack {
                 RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)

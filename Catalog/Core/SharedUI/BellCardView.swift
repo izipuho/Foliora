@@ -187,23 +187,30 @@ struct BellCardView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            if let coverPhotoAsset {
-                BellCardCoverBackground(asset: coverPhotoAsset)
-            }
+        GeometryReader { proxy in
+            let cardSize = proxy.size
 
-            coverScrim
+            ZStack(alignment: .topLeading) {
+                if let coverPhotoAsset {
+                    BellCardCoverBackground(
+                        asset: coverPhotoAsset,
+                        size: cardSize
+                    )
+                }
+
+                coverScrim
+                    .frame(width: cardSize.width, height: cardSize.height)
+            }
+            .frame(width: cardSize.width, height: cardSize.height)
+            .overlay(alignment: .topLeading) {
+                cardContent(in: cardSize)
+            }
+            .clipShape(cardShape)
+            .contentShape(cardShape)
+            .catalogShadow(CatalogElevation.card)
         }
         .frame(maxWidth: .infinity)
         .frame(height: layoutMode.cardHeight)
-        .overlay(alignment: .topLeading) {
-            GeometryReader { proxy in
-                cardContent(in: proxy.size)
-            }
-        }
-        .clipShape(cardShape)
-        .contentShape(cardShape)
-        .catalogShadow(CatalogElevation.card)
     }
 
     @ViewBuilder
@@ -505,6 +512,7 @@ struct BellCardHeroView: View {
 
 struct BellCardCoverBackground: View {
     let asset: MediaAsset
+    let size: CGSize
     private let mediaStore = LocalMediaFileStore.shared
     @State private var image: UIImage?
 
@@ -514,6 +522,8 @@ struct BellCardCoverBackground: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
             } else {
                 LinearGradient(
                     colors: [
@@ -523,6 +533,7 @@ struct BellCardCoverBackground: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
+                .frame(width: size.width, height: size.height)
             }
         }
         .task(id: asset.localIdentifier) {
