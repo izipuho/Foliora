@@ -31,6 +31,7 @@
 "bell_catalog.summary.countries" = "Countries";
 "bell_catalog.summary.materials" = "Materials";
 "bell_catalog.summary.with_origin" = "With origin";
+"bell_catalog.summary.with_year" = "With year";
 "bell_catalog.summary.with_storage" = "With storage";
 "bell_catalog.summary.with_notes" = "With notes";
 "bell_catalog.summary.with_tags" = "With tags";
@@ -38,6 +39,7 @@
 "bell_catalog.filter_summary.with_material" = "With material";
 "bell_catalog.filter_summary.all" = "All bells";
 "bell_catalog.filter_summary.missing_origin" = "Without origin";
+"bell_catalog.filter_summary.missing_year" = "Without year";
 "bell_catalog.filter_summary.missing_storage" = "Without storage";
 "bell_catalog.filter_summary.missing_notes" = "Without notes";
 "bell_catalog.filter_summary.missing_tags" = "Without tags";
@@ -50,6 +52,12 @@
 "bell_catalog.summary.no_tags" = "No tags yet.";
 "bell_catalog.summary.no_origin_data" = "No origin data yet.";
 "bell_catalog.summary.no_material_data" = "No material data yet.";
+"bell_catalog.dashboard.total" = "Total";
+"bell_catalog.dashboard.countries" = "Countries";
+"bell_catalog.dashboard.cities" = "Cities";
+"bell_catalog.dashboard.health" = "Data Health";
+"bell_catalog.dashboard.health.subtitle" = "Key field coverage";
+"bell_catalog.dashboard.top_geography" = "Top Geography";
 "bell_catalog.summary.members_count" = "%d members";
 "bell_catalog.items.filtered_by_tag" = "Filtered by: %@";
 "bell_catalog.search.placeholder" = "Search by title, city, or tag";

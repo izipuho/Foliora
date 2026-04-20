@@ -83,6 +83,10 @@ final class BellCatalogViewModel {
         bells.filter { $0.originPlace != nil }.count
     }
 
+    var bellsWithAcquiredYearCount: Int {
+        bells.filter { $0.acquiredYear != nil }.count
+    }
+
     var bellsWithStorageCount: Int {
         bells.filter { $0.item.locationID != nil }.count
     }
@@ -174,6 +178,10 @@ final class BellCatalogViewModel {
             return bell.originPlace != nil
         case .missingOrigin:
             return bell.originPlace == nil
+        case .withYear:
+            return bell.acquiredYear != nil
+        case .missingYear:
+            return bell.acquiredYear == nil
         case .withCity:
             return !bell.cityName.isEmpty
         case .withStorage:

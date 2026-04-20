@@ -83,16 +83,12 @@ enum BellOrderMode: String, CaseIterable, Hashable {
     }
 }
 
-enum BellCatalogMode {
-    case summary
-    case items
-    case search
-}
-
 enum BellSummaryFilter: Hashable {
     case all
     case withOrigin
     case missingOrigin
+    case withYear
+    case missingYear
     case withCity
     case withStorage
     case missingStorage
@@ -113,6 +109,10 @@ enum BellSummaryFilter: Hashable {
             return String(localized: "bell_catalog.summary.with_origin")
         case .missingOrigin:
             return String(localized: "bell_catalog.filter_summary.missing_origin")
+        case .withYear:
+            return String(localized: "bell_catalog.summary.with_year")
+        case .missingYear:
+            return String(localized: "bell_catalog.filter_summary.missing_year")
         case .withCity:
             return String(localized: "bell_catalog.filter_summary.with_city")
         case .withStorage:
@@ -144,18 +144,15 @@ struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
     let collection: CollectionSummary
-    let mode: BellCatalogMode
-    let orderMode: BellOrderMode
-    let summaryFilter: BellSummaryFilter?
-    let onSelectSummaryFilter: ((BellSummaryFilter) -> Void)?
-    let onClearSummaryFilter: (() -> Void)?
-    let externalSearchText: String?
-
     @Binding var layoutMode: BellGridLayoutMode
+    @Binding var orderMode: BellOrderMode
+    @Binding var summaryFilter: BellSummaryFilter?
     @State private var viewModel: BellCatalogViewModel
-    @State private var selectedCondition: ItemCondition?
     @State private var presentedBell: BellRecord?
     @State private var activeJumpPopoverSectionID: String?
+    @State private var isPresentingDataHealthPopover = false
+    @State private var isPresentingTopGeographyPopover = false
+    @State private var pendingScrollTargetID: String?
     @State private var visualScale: CGFloat = 1
     @State private var layoutFeedbackTrigger: Int = 0
     @State private var activeLayoutThresholdDirection: LayoutThresholdDirection?
@@ -171,24 +168,16 @@ struct BellCatalogView: View {
         collection: CollectionSummary,
         repository: any CatalogRepository,
         collaborators: [Collaborator],
-        mode: BellCatalogMode,
         layoutMode: Binding<BellGridLayoutMode> = .constant(.compact),
-        orderMode: BellOrderMode = .title,
-        summaryFilter: BellSummaryFilter? = nil,
-        onSelectSummaryFilter: ((BellSummaryFilter) -> Void)? = nil,
-        onClearSummaryFilter: (() -> Void)? = nil,
-        externalSearchText: String? = nil
+        orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
+        summaryFilter: Binding<BellSummaryFilter?> = .constant(nil)
     ) {
         self.repository = repository
         self.collaborators = collaborators
         self.collection = collection
-        self.mode = mode
         self._layoutMode = layoutMode
-        self.orderMode = orderMode
-        self.summaryFilter = summaryFilter
-        self.onSelectSummaryFilter = onSelectSummaryFilter
-        self.onClearSummaryFilter = onClearSummaryFilter
-        self.externalSearchText = externalSearchText
+        self._orderMode = orderMode
+        self._summaryFilter = summaryFilter
         let initialBellRecords = repository.fetchBellRecords(for: collection.id)
         let initialLocationsByID = Dictionary(
             uniqueKeysWithValues: repository.fetchLocations(in: collection.homeID).map { ($0.id, $0) }
@@ -197,25 +186,21 @@ struct BellCatalogView: View {
         _viewModel = State(
             initialValue: BellCatalogViewModel(
                 bellRecords: initialBellRecords,
-                orderMode: orderMode,
-                summaryFilter: summaryFilter,
-                searchText: externalSearchText ?? "",
+                orderMode: orderMode.wrappedValue,
+                summaryFilter: summaryFilter.wrappedValue,
+                searchText: "",
                 locationsByID: initialLocationsByID,
                 homeName: initialHomeName
             )
         )
     }
 
-    private var effectiveSearchText: String {
-        externalSearchText ?? ""
-    }
-
     private var themeColors: [Color] {
         collection.backgroundStyle.screenColors
     }
 
-    private var usesGroupedSectionsInCurrentMode: Bool {
-        mode == .items && viewModel.usesGroupedSections
+    private var usesGroupedSections: Bool {
+        viewModel.usesGroupedSections
     }
 
     private var locationsByID: [UUID: Location] {
@@ -240,14 +225,12 @@ struct BellCatalogView: View {
     private var layoutMagnifyGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                guard mode == .items else { return }
                 capturePinchOriginBellIfNeeded(at: value.startLocation)
                 updateAccumulatedMagnification(with: value.magnification)
                 updateLayoutThresholdFeedback(for: value)
                 visualScale = clampedVisualScale(for: value.magnification)
             }
             .onEnded { value in
-                guard mode == .items else { return }
                 let effectiveThreshold = zoomThreshold(forVelocity: value.velocity)
                 let finalAccumulatedDelta = accumulatedMagnificationDelta
                 let shouldOpenDetailFromPinch = layoutMode == .showcase && !canZoomOut && finalAccumulatedDelta >= effectiveThreshold
@@ -324,7 +307,7 @@ struct BellCatalogView: View {
     }
 
     private func displayedItemsBell(withID bellID: UUID) -> BellRecord? {
-        viewModel.filteredItemsBells.first(where: { $0.id == bellID })
+        viewModel.filteredBells.first(where: { $0.id == bellID })
     }
 
     private var canZoomIn: Bool {
@@ -357,31 +340,13 @@ struct BellCatalogView: View {
         }
     }
 
-    @ViewBuilder
     var body: some View {
         GeometryReader { proxy in
-            Group {
-                switch mode {
-                case .summary:
-                    summaryContent(screenWidth: proxy.size.width)
-                case .items:
-                    bellGridContent(
-                        bells: viewModel.filteredItemsBells,
-                        showsSearchControls: false,
-                        emptyTitle: LocalizedStringKey(String(localized: "bell_catalog.empty.title")),
-                        emptyDescription: LocalizedStringKey(String(localized: "bell_catalog.empty.description")),
-                        screenWidth: proxy.size.width
-                    )
-                case .search:
-                    bellGridContent(
-                        bells: viewModel.filteredBells,
-                        showsSearchControls: true,
-                        emptyTitle: LocalizedStringKey(String(localized: "bell_catalog.search.empty.title")),
-                        emptyDescription: LocalizedStringKey(String(localized: "bell_catalog.search.empty.description")),
-                        screenWidth: proxy.size.width
-                    )
-                }
-            }
+            unifiedFeedContent(
+                bells: viewModel.filteredBells,
+                screenWidth: proxy.size.width,
+                screenHeight: proxy.size.height
+            )
         }
         .sheet(item: $presentedBell, onDismiss: {
             viewModel.refreshBellRecords(from: repository, collectionID: collection.id)
@@ -415,104 +380,32 @@ struct BellCatalogView: View {
             pinchOriginBellID = nil
             syncViewModelContext()
         }
-        .onChange(of: externalSearchText) { _, _ in
-            accumulatedMagnificationDelta = 0
-            lastGestureMagnification = nil
-            activeLayoutThresholdDirection = nil
-            visualScale = 1
-            pinchOriginBellID = nil
-            syncViewModelContext()
-        }
-        .onChange(of: selectedCondition) { _, value in
-            viewModel.selectedCondition = value
-        }
     }
 
-    private func summaryContent(screenWidth: CGFloat) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                summaryOverviewCard
-                summarySnapshotCard
-                summaryCoverageCard
-                summaryBreakdownCard(
-                    title: String(localized: "bell_catalog.summary.top_countries"),
-                    emptyTitle: String(localized: "bell_catalog.summary.no_origin_data"),
-                    rows: Array(viewModel.topCountries.prefix(4))
-                )
-                summaryBreakdownCard(
-                    title: String(localized: "bell_catalog.summary.top_materials"),
-                    emptyTitle: String(localized: "bell_catalog.summary.no_material_data"),
-                    rows: Array(viewModel.topMaterials.prefix(4))
-                )
-                summaryTagCloudCard
-                summaryRecentBells(screenWidth: screenWidth)
-            }
-        }
-        .contentMargins(.horizontal, nil, for: .scrollContent)
-        .contentMargins(.top, nil, for: .scrollContent)
-        .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
-        .background(
-            LinearGradient(
-                colors: themeColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
-    }
-
-    @ViewBuilder
-    private func bellGridContent(
+    private func unifiedFeedContent(
         bells: [BellRecord],
-        showsSearchControls: Bool,
-        emptyTitle: LocalizedStringKey,
-        emptyDescription: LocalizedStringKey,
-        screenWidth: CGFloat
-    ) -> some View {
-        if orderMode == .geography && usesGroupedSectionsInCurrentMode {
-            groupedGeographyListContent(
-                bells: bells,
-                showsSearchControls: showsSearchControls,
-                emptyTitle: emptyTitle,
-                emptyDescription: emptyDescription,
-                screenWidth: screenWidth
-            )
-        } else {
-            standardBellGridContent(
-                bells: bells,
-                showsSearchControls: showsSearchControls,
-                emptyTitle: emptyTitle,
-                emptyDescription: emptyDescription,
-                screenWidth: screenWidth
-            )
-        }
-    }
-
-    private func standardBellGridContent(
-        bells: [BellRecord],
-        showsSearchControls: Bool,
-        emptyTitle: LocalizedStringKey,
-        emptyDescription: LocalizedStringKey,
-        screenWidth: CGFloat
+        screenWidth: CGFloat,
+        screenHeight: CGFloat
     ) -> some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: usesGroupedSectionsInCurrentMode ? [.sectionHeaders] : []) {
+                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: usesGroupedSections ? [.sectionHeaders] : []) {
                     Color.clear
                         .frame(height: 0)
                         .id("bell-grid-top")
 
-                    if !showsSearchControls, let summaryFilter, summaryFilter != .all {
+                    dashboardHeader(screenHeight: screenHeight)
+
+                    if let summaryFilter, summaryFilter != .all {
                         activeSummaryFilterSection
                     }
 
-                    if showsSearchControls {
-                        searchFiltersSection
-                    }
-
                     if bells.isEmpty {
-                        emptyBellsGridState(title: emptyTitle, description: emptyDescription)
-                    } else if usesGroupedSectionsInCurrentMode {
+                        emptyBellsGridState(
+                            title: LocalizedStringKey(String(localized: "bell_catalog.empty.title")),
+                            description: LocalizedStringKey(String(localized: "bell_catalog.empty.description"))
+                        )
+                    } else if usesGroupedSections {
                         groupedBellSectionsContent(
                             sections: viewModel.groupedSections(from: bells),
                             screenWidth: screenWidth,
@@ -562,101 +455,30 @@ struct BellCatalogView: View {
                 .ignoresSafeArea()
             )
             .simultaneousGesture(layoutMagnifyGesture)
-            .overlay(alignment: .trailing) {
-            }
             .onChange(of: orderMode) { _, _ in
                 activeJumpPopoverSectionID = nil
-                withAnimation(.snappy(duration: 0.24)) {
-                    scrollProxy.scrollTo("bell-grid-top", anchor: .top)
-                }
-            }
-        }
-    }
-
-    private func groupedGeographyListContent(
-        bells: [BellRecord],
-        showsSearchControls: Bool,
-        emptyTitle: LocalizedStringKey,
-        emptyDescription: LocalizedStringKey,
-        screenWidth: CGFloat
-    ) -> some View {
-        let sections = viewModel.groupedSections(from: bells)
-
-        return List {
-            if !showsSearchControls, let summaryFilter, summaryFilter != .all {
-                Section {
-                    activeSummaryFilterSection
-                        .listRowInsets(.top, 10)
-                        .listRowInsets(.bottom, 6)
-                        .listRowBackground(Color.clear)
-                }
-            }
-
-            if bells.isEmpty {
-                Section {
-                    emptyBellsGridState(title: emptyTitle, description: emptyDescription)
-                        .listRowInsets(.top, nil)
-                        .listRowInsets(.bottom, 20)
-                        .listRowBackground(Color.clear)
-                }
-            } else {
-                ForEach(sections) { section in
-                    Section {
-                        LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
-                            ForEach(section.bells) { bell in
-                                Button {
-                                    presentedBell = bell
-                                } label: {
-                                    BellCardView(
-                                        bell: bell,
-                                        layoutMode: layoutMode
-                                    )
-                                    .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
-                                    .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
-                                    .background {
-                                        GeometryReader { proxy in
-                                            Color.clear.preference(
-                                                key: BellCardFramePreferenceKey.self,
-                                                value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
-                                            )
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .scaleEffect(visualScale, anchor: .center)
-                        .padding(.vertical, 8)
-                    } header: {
-                        BellGroupedSectionHeader(
-                            title: section.title,
-                            tint: collection.backgroundStyle.accentColor,
-                            isJumpButton: false,
-                            action: {}
-                        )
-                        .sectionIndexLabel(section.indexTitle)
+                let targetID = pendingScrollTargetID ?? "bell-grid-top"
+                DispatchQueue.main.async {
+                    withAnimation(.snappy(duration: 0.24)) {
+                        scrollProxy.scrollTo(targetID, anchor: .top)
                     }
-                    .listRowInsets(.top, 0)
-                    .listRowInsets(.bottom, 12)
-                    .listRowBackground(Color.clear)
+                    pendingScrollTargetID = nil
+                }
+            }
+            .onChange(of: pendingScrollTargetID) { _, targetID in
+                guard let targetID else { return }
+                withAnimation(.snappy(duration: 0.24)) {
+                    scrollProxy.scrollTo(targetID, anchor: .top)
+                }
+            }
+            .onChange(of: summaryFilter) { _, _ in
+                if case .some(.tag(_)) = summaryFilter {
+                    withAnimation(.snappy(duration: 0.24)) {
+                        scrollProxy.scrollTo("bell-grid-top", anchor: .top)
+                    }
                 }
             }
         }
-        .listStyle(.plain)
-        .contentMargins(.horizontal, nil, for: .scrollContent)
-        .contentMargins(.top, nil, for: .scrollContent)
-        .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
-        .scrollContentBackground(.hidden)
-        .listSectionIndexVisibility(.visible)
-        .background(
-            LinearGradient(
-                colors: themeColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
-        .simultaneousGesture(layoutMagnifyGesture)
     }
 
     private func emptyBellsGridState(title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
@@ -667,144 +489,6 @@ struct BellCatalogView: View {
         )
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
-    }
-
-    private var summaryOverviewCard: some View {
-        Button {
-            onSelectSummaryFilter?(.all)
-        } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                if !collection.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(collection.subtitle)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                HStack(spacing: 10) {
-                    SummaryPill(systemImage: "house.fill", title: homeName, tint: collection.backgroundStyle.accentColor)
-                    
-                    SummaryPill(
-                        systemImage: "person.2.fill",
-                        title: localizedCount(collection.collaboratorCount, kind: .members),
-                        tint: collection.backgroundStyle.accentColor
-                    )
-                }
-            }
-            .summaryGlassCard()
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var summarySnapshotCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                summaryStatChip(value: "\(viewModel.bells.count)", title: localizedCount(viewModel.bells.count, kind: .bells), filter: .all)
-                summaryStatChip(value: "\(viewModel.materialCount)", title: localizedCount(viewModel.materialCount, kind: .materials), filter: .withMaterial)
-                summaryStatChip(value: "\(viewModel.countryCount)", title: localizedCount(viewModel.countryCount, kind: .countries), filter: .withOrigin)
-                summaryStatChip(value: "\(viewModel.cityCount)", title: localizedCount(viewModel.cityCount, kind: .cities), filter: .withCity)
-            }
-        }
-        .summaryGlassCard()
-    }
-
-    private var summaryCoverageCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "bell_catalog.summary.coverage"))
-                .font(.headline)
-
-            SummaryCoverageRow(title: String(localized: "bell_catalog.summary.with_origin"), value: viewModel.bellsWithOriginCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
-                onSelectSummaryFilter?(.missingOrigin)
-            }
-            SummaryCoverageRow(title: String(localized: "bell_catalog.summary.with_storage"), value: viewModel.bellsWithStorageCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
-                onSelectSummaryFilter?(.missingStorage)
-            }
-            SummaryCoverageRow(title: String(localized: "bell_catalog.summary.with_notes"), value: viewModel.bellsWithNotesCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
-                onSelectSummaryFilter?(.missingNotes)
-            }
-            SummaryCoverageRow(title: String(localized: "bell_catalog.summary.with_tags"), value: viewModel.bellsWithTagsCount, total: viewModel.bells.count, tint: collection.backgroundStyle.accentColor) {
-                onSelectSummaryFilter?(.missingTags)
-            }
-        }
-        .summaryGlassCard()
-    }
-
-    private func summaryBreakdownCard(
-        title: String,
-        emptyTitle: String,
-        rows: [(String, Int)]
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-
-            if rows.isEmpty {
-                Text(emptyTitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                        SummaryBreakdownRow(title: row.0, value: row.1, tint: collection.backgroundStyle.accentColor) {
-                            if title == String(localized: "bell_catalog.summary.top_countries") {
-                                onSelectSummaryFilter?(.country(row.0))
-                            } else {
-                                onSelectSummaryFilter?(.material(row.0))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .summaryGlassCard()
-    }
-
-    private func summaryRecentBells(screenWidth: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "bell_catalog.summary.recent"))
-                .font(.headline)
-
-            if viewModel.bells.isEmpty {
-                Text(String(localized: "bell_catalog.summary.none"))
-                    .foregroundStyle(.secondary)
-            } else {
-                BellCardStripView(
-                    bells: viewModel.recentBells,
-                    layoutMode: .mini,
-                    screenWidth: screenWidth
-                ) { bell in
-                    presentedBell = bell
-                }
-            }
-        }
-        .summaryGlassCard()
-    }
-
-    private var summaryTagCloudCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "bell_catalog.summary.tag_cloud"))
-                .font(.headline)
-
-            if viewModel.topTags.isEmpty {
-                Text(String(localized: "bell_catalog.summary.no_tags"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                TagFlowLayout(spacing: 8) {
-                    ForEach(Array(viewModel.topTags.prefix(16).enumerated()), id: \.offset) { _, row in
-                        SummaryTagCloudItem(
-                            tag: row.0,
-                            count: row.1,
-                            maxCount: viewModel.topTags.first?.1 ?? row.1,
-                            tint: collection.backgroundStyle.accentColor
-                        ) {
-                            onSelectSummaryFilter?(.tag(row.0))
-                        }
-                    }
-                }
-            }
-        }
-        .summaryGlassCard()
     }
 
     private var activeSummaryFilterSection: some View {
@@ -818,7 +502,7 @@ struct BellCatalogView: View {
             Spacer()
 
             Button(String(localized: "common.clear")) {
-                onClearSummaryFilter?()
+                summaryFilter = nil
             }
             .font(.footnote.weight(.semibold))
             .foregroundStyle(collection.backgroundStyle.accentColor)
@@ -827,29 +511,209 @@ struct BellCatalogView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
     }
 
-    private func summaryStatChip(value: String, title: String, filter: BellSummaryFilter) -> some View {
-        Button {
-            onSelectSummaryFilter?(filter)
-        } label: {
-            StatChip(value: value, title: title, tint: collection.backgroundStyle.accentColor)
+    private func dashboardHeader(screenHeight: CGFloat) -> some View {
+        let headerHeight = min(max(screenHeight * 0.36, 220), 320)
+
+        return VStack(alignment: .leading, spacing: 14) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    dashboardMetricChip(
+                        title: String(localized: "bell_catalog.dashboard.total"),
+                        value: "\(viewModel.bells.count)",
+                        systemImage: "bell.fill"
+                    ) {
+                        summaryFilter = nil
+                    }
+
+                    dashboardMetricChip(
+                        title: String(localized: "bell_catalog.dashboard.countries"),
+                        value: "\(viewModel.countryCount)",
+                        systemImage: "globe.europe.africa.fill"
+                    ) {
+                        summaryFilter = .withOrigin
+                    }
+
+                    dashboardMetricChip(
+                        title: String(localized: "bell_catalog.dashboard.cities"),
+                        value: "\(viewModel.cityCount)",
+                        systemImage: "building.2.fill"
+                    ) {
+                        summaryFilter = .withCity
+                    }
+                }
+            }
+            .scrollClipDisabled()
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    DashboardTopGeographyCard(
+                        countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                        flag: topGeography?.flag ?? "🌍",
+                        countText: topGeographyCountText,
+                        tint: collection.backgroundStyle.accentColor,
+                        action: {
+                            guard !topGeographyEntries.isEmpty else { return }
+                            isPresentingTopGeographyPopover = true
+                        }
+                    )
+                    .popover(isPresented: $isPresentingTopGeographyPopover) {
+                        TopGeographyPopover(
+                            entries: topGeographyEntries,
+                            onSelect: { country in
+                                isPresentingTopGeographyPopover = false
+                                focusGeography(country: country)
+                            }
+                        )
+                    }
+
+                    DashboardDataHealthCard(
+                        progress: dataHealthProgress,
+                        tint: collection.backgroundStyle.accentColor
+                    ) {
+                        isPresentingDataHealthPopover = true
+                    }
+                    .popover(isPresented: $isPresentingDataHealthPopover) {
+                        DataHealthPopover(
+                            entries: dataHealthEntries,
+                            onSelect: { filter in
+                                isPresentingDataHealthPopover = false
+                                summaryFilter = filter
+                            }
+                        )
+                    }
+                }
+            }
+            .scrollClipDisabled()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxHeight: headerHeight, alignment: .top)
+        .padding(.horizontal, CatalogLayoutInsets.screen)
+        .padding(.top, CatalogSpacing.compact)
+        .padding(.vertical, 4)
+        .scrollTransition(axis: .vertical) { content, phase in
+            content
+                .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
+                .opacity(phase.isIdentity ? 1 : 0.82)
+        }
+    }
+
+    private func dashboardMetricChip(
+        title: String,
+        value: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(collection.backgroundStyle.accentColor)
+
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+
+                Text(value)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 8)
         }
         .buttonStyle(.plain)
     }
 
-    private var searchFiltersSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                FilterChip(title: String(localized: "bell_catalog.filter.all"), isSelected: selectedCondition == nil, tint: collection.backgroundStyle.accentColor) {
-                    selectedCondition = nil
-                }
+    private var dataHealthProgress: Double {
+        guard !viewModel.bells.isEmpty else { return 0 }
+        let completeFields = viewModel.bellsWithOriginCount + viewModel.bellsWithAcquiredYearCount + viewModel.bellsWithStorageCount + viewModel.bellsWithNotesCount + viewModel.bellsWithTagsCount
+        let totalFields = viewModel.bells.count * 5
+        return min(max(Double(completeFields) / Double(totalFields), 0), 1)
+    }
 
-                ForEach(ItemCondition.allCases) { condition in
-                    FilterChip(title: condition.displayName, isSelected: selectedCondition == condition, tint: collection.backgroundStyle.accentColor) {
-                        selectedCondition = condition
-                    }
-                }
-            }
+    private var dataHealthEntries: [DataHealthEntry] {
+        [
+            DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.with_origin"),
+                countText: "\(viewModel.bellsWithOriginCount)/\(viewModel.bells.count)",
+                filter: .missingOrigin
+            ),
+            DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.with_year"),
+                countText: "\(viewModel.bellsWithAcquiredYearCount)/\(viewModel.bells.count)",
+                filter: .missingYear
+            ),
+            DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.with_storage"),
+                countText: "\(viewModel.bellsWithStorageCount)/\(viewModel.bells.count)",
+                filter: .missingStorage
+            ),
+            DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.with_notes"),
+                countText: "\(viewModel.bellsWithNotesCount)/\(viewModel.bells.count)",
+                filter: .missingNotes
+            ),
+            DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.with_tags"),
+                countText: "\(viewModel.bellsWithTagsCount)/\(viewModel.bells.count)",
+                filter: .missingTags
+            )
+        ]
+    }
+
+    private var topGeography: (name: String, flag: String, count: Int)? {
+        guard let topCountry = viewModel.topCountries.first else { return nil }
+        let countryCode = viewModel.bells
+            .first(where: { $0.countryName.localizedCaseInsensitiveCompare(topCountry.0) == .orderedSame })?
+            .originPlace?
+            .countryCode ?? ""
+
+        return (
+            name: topCountry.0,
+            flag: flagEmoji(for: countryCode),
+            count: topCountry.1
+        )
+    }
+
+    private var topGeographyEntries: [TopGeographyEntry] {
+        Array(viewModel.topCountries.prefix(5)).map { row in
+            let countryCode = viewModel.bells
+                .first(where: { $0.countryName.localizedCaseInsensitiveCompare(row.0) == .orderedSame })?
+                .originPlace?
+                .countryCode ?? ""
+
+            return TopGeographyEntry(
+                country: row.0,
+                flag: flagEmoji(for: countryCode),
+                countText: localizedCount(row.1, kind: .bells)
+            )
         }
+    }
+
+    private var topGeographyCountText: String {
+        guard let topGeography else { return String(localized: "bell_catalog.summary.no_origin_data") }
+        return localizedCount(topGeography.count, kind: .bells)
+    }
+
+    private func focusTopGeography() {
+        guard let topCountry = topGeography?.name else { return }
+        focusGeography(country: topCountry)
+    }
+
+    private func focusGeography(country: String) {
+        pendingScrollTargetID = "geography-\(country)"
+        if orderMode != .geography {
+            orderMode = .geography
+        }
+    }
+
+    private func flagEmoji(for countryCode: String) -> String {
+        let normalizedCode = countryCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard normalizedCode.count == 2 else { return "🌍" }
+
+        let base: UInt32 = 127397
+        let scalars = normalizedCode.unicodeScalars.compactMap { UnicodeScalar(base + $0.value) }
+        return scalars.count == 2 ? String(String.UnicodeScalarView(scalars)) : "🌍"
     }
 
     private func binding(for bellID: UUID) -> Binding<BellRecord>? {
@@ -973,7 +837,7 @@ struct BellCatalogView: View {
         viewModel.updateContext(
             orderMode: orderMode,
             summaryFilter: summaryFilter,
-            searchText: effectiveSearchText,
+            searchText: "",
             locationsByID: locationsByID,
             homeName: repository.fetchHomes().first(where: { $0.id == collection.homeID })?.name ?? String(localized: "common.unknown")
         )
@@ -1632,6 +1496,172 @@ private struct SummaryTagCloudItem: View {
                 .padding(.vertical, 2)
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct DashboardDataHealthCard: View {
+    let progress: Double
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .stroke(CatalogSemanticColors.separator, lineWidth: 8)
+
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(tint, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+
+                    Text(progress.formatted(.percent.precision(.fractionLength(0))))
+                        .font(.subheadline.weight(.bold))
+                }
+                .frame(width: 56, height: 56)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "bell_catalog.dashboard.health"))
+                        .font(.headline)
+                    Text(String(localized: "bell_catalog.dashboard.health.subtitle"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding()
+            .frame(width: 240, alignment: .leading)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 8)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct DashboardTopGeographyCard: View {
+    let countryName: String
+    let flag: String
+    let countText: String
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Text(flag)
+                    .font(.system(size: 34))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "bell_catalog.dashboard.top_geography"))
+                        .font(.headline)
+                    Text(countryName)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                    Text(countText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "arrow.turn.down.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(tint)
+            }
+            .padding()
+            .frame(width: 240, alignment: .leading)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 8)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct TopGeographyEntry: Identifiable {
+    let country: String
+    let flag: String
+    let countText: String
+
+    var id: String { country }
+}
+
+private struct TopGeographyPopover: View {
+    let entries: [TopGeographyEntry]
+    let onSelect: (String) -> Void
+
+    var body: some View {
+        NavigationStack {
+            List(entries) { entry in
+                Button {
+                    onSelect(entry.country)
+                } label: {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.country)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+
+                            Text(entry.countText)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle(String(localized: "bell_catalog.dashboard.top_geography"))
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.medium])
+    }
+}
+
+private struct DataHealthEntry: Identifiable {
+    let title: String
+    let countText: String
+    let filter: BellSummaryFilter
+
+    var id: String { title }
+}
+
+private struct DataHealthPopover: View {
+    let entries: [DataHealthEntry]
+    let onSelect: (BellSummaryFilter) -> Void
+
+    var body: some View {
+        NavigationStack {
+            List(entries) { entry in
+                Button {
+                    onSelect(entry.filter)
+                } label: {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.title)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+
+                            Text(entry.countText)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle(String(localized: "bell_catalog.dashboard.health"))
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.medium])
     }
 }
 

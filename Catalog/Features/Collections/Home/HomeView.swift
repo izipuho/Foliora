@@ -33,25 +33,6 @@ enum RootTab: String, CaseIterable, Identifiable {
     }
 }
 
-enum CollectionContentMode: String, CaseIterable, Identifiable {
-    case summary
-    case items
-    case map
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .summary:
-            return String(localized: "collection_tab.summary")
-        case .items:
-            return String(localized: "collection_tab.items")
-        case .map:
-            return String(localized: "collection_tab.map")
-        }
-    }
-}
-
 struct AppShellView: View {
     let repository: any CatalogRepository
 
@@ -1520,7 +1501,6 @@ private struct CollectionShellView: View {
     let repository: any CatalogRepository
     @Environment(\.dismiss) private var dismiss
     @State private var collection: CollectionSummary
-    @State private var selectedMode: CollectionContentMode = .summary
     @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
     @State private var isPresentingAddBellOptions = false
@@ -1530,7 +1510,8 @@ private struct CollectionShellView: View {
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var isPresentingEditCollection = false
-    @State private var selectedOrder: BellOrderMode = .title
+    @State private var isPresentingMap = false
+    @State private var selectedOrder: BellOrderMode = .newestFirst
     @State private var selectedLayoutMode: BellGridLayoutMode = .compact
     @State private var selectedSummaryFilter: BellSummaryFilter?
     private let mediaStore = LocalMediaFileStore.shared
@@ -1541,79 +1522,55 @@ private struct CollectionShellView: View {
     }
 
     var body: some View {
-        Group {
-            switch selectedMode {
-            case .summary:
-                BellCatalogView(
-                    collection: collection,
-                    repository: repository,
-                    collaborators: repository.fetchCollaborators(for: collection.id),
-                    mode: .summary,
-                    layoutMode: .constant(.compact),
-                    orderMode: .title,
-                    onSelectSummaryFilter: { filter in
-                        selectedSummaryFilter = filter
-                        selectedMode = .items
-                    }
-                )
-                .id("summary-\(refreshID.uuidString)")
-            case .items:
-                BellCatalogView(
-                    collection: collection,
-                    repository: repository,
-                    collaborators: repository.fetchCollaborators(for: collection.id),
-                    mode: .items,
-                    layoutMode: $selectedLayoutMode,
-                    orderMode: selectedOrder,
-                    summaryFilter: selectedSummaryFilter,
-                    onClearSummaryFilter: {
-                        selectedSummaryFilter = nil
-                    }
-                )
-                .id("items-\(refreshID.uuidString)")
-            case .map:
-                CollectionOriginMapView(
-                    collection: collection,
-                    repository: repository
-                )
-                .id("map-\(refreshID.uuidString)")
-            }
-        }
-        .safeAreaInset(edge: .top) {
-            collectionModePicker
-        }
+        BellCatalogView(
+            collection: collection,
+            repository: repository,
+            collaborators: repository.fetchCollaborators(for: collection.id),
+            layoutMode: $selectedLayoutMode,
+            orderMode: $selectedOrder,
+            summaryFilter: $selectedSummaryFilter
+        )
+        .id("collection-\(refreshID.uuidString)")
         .navigationTitle(collection.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
-            switch selectedMode {
-            case .summary:
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isPresentingEditCollection = true
-                    } label: {
-                        floatingToolbarIcon(systemName: "square.and.pencil")
-                    }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isPresentingEditCollection = true
+                } label: {
+                    floatingToolbarIcon(systemName: "square.and.pencil")
                 }
-
-                addBellToolbarItem
-            case .items:
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Picker(String(localized: "bell_catalog.order.menu"), selection: $selectedOrder) {
-                            ForEach(BellOrderMode.allCases, id: \.self) { option in
-                                Text(option.title).tag(option)
-                            }
-                        }
-                    } label: {
-                        floatingToolbarIcon(systemName: "line.3.horizontal.decrease")
-                    }
-                }
-
-                addBellToolbarItem
-            case .map:
-                addBellToolbarItem
             }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Picker(String(localized: "bell_catalog.order.menu"), selection: $selectedOrder) {
+                        ForEach(BellOrderMode.allCases, id: \.self) { option in
+                            Text(option.title).tag(option)
+                        }
+                    }
+                } label: {
+                    floatingToolbarIcon(systemName: "line.3.horizontal.decrease")
+                }
+            }
+
+            addBellToolbarItem
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                isPresentingMap = true
+            } label: {
+                Image(systemName: "map.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .padding(18)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .shadow(color: .black.opacity(0.05), radius: 8)
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, CatalogLayoutInsets.overlay)
+            .padding(.bottom, 68)
         }
         .photosPicker(
             isPresented: $isPresentingPhotoPicker,
@@ -1648,7 +1605,6 @@ private struct CollectionShellView: View {
             ) { newBell in
                 repository.saveBellRecord(newBell)
                 refreshContent()
-                selectedMode = .items
             }
         }
         .sheet(isPresented: $isPresentingEditCollection) {
@@ -1668,33 +1624,23 @@ private struct CollectionShellView: View {
                 dismiss()
             }
         }
-    }
-
-    private var collectionModePicker: some View {
-        HStack {
-            Spacer(minLength: 0)
-
-            HStack {
-                Picker("Collection Mode", selection: $selectedMode) {
-                    ForEach(CollectionContentMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
+        .sheet(isPresented: $isPresentingMap) {
+            NavigationStack {
+                CollectionOriginMapView(
+                    collection: collection,
+                    repository: repository
+                )
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(String(localized: "common.done")) {
+                            isPresentingMap = false
+                        }
                     }
                 }
-                .fixedSize(horizontal: true, vertical: false)
-                .pickerStyle(.segmented)
             }
-            .padding(CatalogSpacing.micro)
-            .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-            .overlay {
-                Capsule(style: .continuous)
-                    .stroke(CatalogMediaContrast.glassStroke, lineWidth: 1)
-            }
-
-            Spacer(minLength: 0)
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
-        .padding(.horizontal, CatalogLayoutInsets.screen)
-        .padding(.top, CatalogSpacing.compact)
-        .padding(.bottom, CatalogSpacing.micro)
     }
 
     private var addBellToolbarItem: some ToolbarContent {

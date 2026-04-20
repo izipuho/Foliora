@@ -31,6 +31,7 @@
 "bell_catalog.summary.countries" = "Страны";
 "bell_catalog.summary.materials" = "Материалы";
 "bell_catalog.summary.with_origin" = "С происхождением";
+"bell_catalog.summary.with_year" = "С годом";
 "bell_catalog.summary.with_storage" = "С местом хранения";
 "bell_catalog.summary.with_notes" = "С заметками";
 "bell_catalog.summary.with_tags" = "С тэгами";
@@ -38,6 +39,7 @@
 "bell_catalog.filter_summary.with_material" = "С материалом";
 "bell_catalog.filter_summary.all" = "Все колокольчики";
 "bell_catalog.filter_summary.missing_origin" = "Без происхождения";
+"bell_catalog.filter_summary.missing_year" = "Без года";
 "bell_catalog.filter_summary.missing_storage" = "Без места хранения";
 "bell_catalog.filter_summary.missing_notes" = "Без заметок";
 "bell_catalog.filter_summary.missing_tags" = "Без тэгов";
@@ -50,6 +52,12 @@
 "bell_catalog.summary.no_tags" = "Тэгов пока нет.";
 "bell_catalog.summary.no_origin_data" = "Пока нет данных о происхождении.";
 "bell_catalog.summary.no_material_data" = "Пока нет данных о материалах.";
+"bell_catalog.dashboard.total" = "Всего";
+"bell_catalog.dashboard.countries" = "Страны";
+"bell_catalog.dashboard.cities" = "Города";
+"bell_catalog.dashboard.health" = "Заполненность";
+"bell_catalog.dashboard.health.subtitle" = "Заполненность ключевых полей";
+"bell_catalog.dashboard.top_geography" = "Главная география";
 "bell_catalog.summary.members_count" = "%d участников";
 "bell_catalog.items.filtered_by_tag" = "Фильтр: %@";
 "bell_catalog.search.placeholder" = "Поиск по названию, городу или тегу";
