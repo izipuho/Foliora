@@ -35,6 +35,28 @@ private enum BellCatalogCoordinateSpace {
     static let pinchGrid = "bellCatalogPinchGrid"
 }
 
+private enum BellCatalogFeedback: Equatable {
+    case success
+    case warning
+    case selection
+
+    var sensoryFeedback: SensoryFeedback {
+        switch self {
+        case .success:
+            return .success
+        case .warning:
+            return .warning
+        case .selection:
+            return .selection
+        }
+    }
+}
+
+private struct BellCatalogFeedbackEvent: Equatable {
+    let kind: BellCatalogFeedback
+    let token: Int
+}
+
 private struct BellCardFramePreferenceKey: PreferenceKey {
     static let defaultValue: [UUID: CGRect] = [:]
 
@@ -149,12 +171,16 @@ struct BellCatalogView: View {
     @Binding var summaryFilter: BellSummaryFilter?
     @State private var viewModel: BellCatalogViewModel
     @State private var presentedBell: BellRecord?
+    @State private var bellPendingMove: BellRecord?
+    @State private var bellPendingDeletion: BellRecord?
+    @State private var isPresentingDeleteConfirmation = false
     @State private var activeJumpPopoverSectionID: String?
     @State private var isPresentingDataHealthPopover = false
     @State private var isPresentingTopGeographyPopover = false
     @State private var pendingScrollTargetID: String?
     @State private var visualScale: CGFloat = 1
-    @State private var layoutFeedbackTrigger: Int = 0
+    @State private var feedbackEvent: BellCatalogFeedbackEvent?
+    @State private var feedbackToken = 0
     @State private var activeLayoutThresholdDirection: LayoutThresholdDirection?
     @State private var accumulatedMagnificationDelta: CGFloat = 0
     @State private var lastGestureMagnification: CGFloat?
@@ -289,8 +315,13 @@ struct BellCatalogView: View {
         activeLayoutThresholdDirection = newDirection
 
         if newDirection != nil {
-            layoutFeedbackTrigger += 1
+            emitFeedback(.selection)
         }
+    }
+
+    private func emitFeedback(_ kind: BellCatalogFeedback) {
+        feedbackToken += 1
+        feedbackEvent = BellCatalogFeedbackEvent(kind: kind, token: feedbackToken)
     }
 
     private func capturePinchOriginBellIfNeeded(at location: CGPoint) {
@@ -354,11 +385,40 @@ struct BellCatalogView: View {
             BellGridDetailSheetContainer(bell: bell, repository: repository)
                 .presentationDragIndicator(.visible)
         }
+        .sheet(item: $bellPendingMove) { bell in
+            BellQuickMoveSheet(
+                bell: bell,
+                locations: availableLocations,
+                locationPathByID: locationPathByID
+            ) { locationID in
+                moveBell(bell, to: locationID)
+            }
+        }
         .navigationDestination(item: $pinchNavigatedBell) { bell in
             BellGridDetailNavigationContainer(bell: bell, repository: repository)
                 .navigationTransition(.zoom(sourceID: bell.id, in: bellDetailZoomNamespace))
         }
-        .sensoryFeedback(.impact(weight: .light), trigger: layoutFeedbackTrigger)
+        .confirmationDialog(
+            String(localized: "bell.context.delete.title"),
+            isPresented: $isPresentingDeleteConfirmation,
+            titleVisibility: .visible,
+            presenting: bellPendingDeletion
+        ) { bell in
+            Button(String(localized: "bell.context.delete.confirm"), role: .destructive) {
+                deleteBell(bell.id)
+                emitFeedback(.warning)
+                bellPendingDeletion = nil
+            }
+
+            Button(String(localized: "common.cancel"), role: .cancel) {
+                bellPendingDeletion = nil
+            }
+        } message: { _ in
+            Text(String(localized: "bell.context.delete.message"))
+        }
+        .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
+            newValue?.kind.sensoryFeedback
+        }
         .coordinateSpace(name: BellCatalogCoordinateSpace.pinchGrid)
         .onPreferenceChange(BellCardFramePreferenceKey.self) { frames in
             bellCardFrames = frames
@@ -415,25 +475,7 @@ struct BellCatalogView: View {
                     } else {
                         LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                             ForEach(bells) { bell in
-                                Button {
-                                    presentedBell = bell
-                                } label: {
-                                    BellCardView(
-                                        bell: bell,
-                                        layoutMode: layoutMode
-                                    )
-                                    .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
-                                    .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
-                                    .background {
-                                        GeometryReader { proxy in
-                                            Color.clear.preference(
-                                                key: BellCardFramePreferenceKey.self,
-                                                value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
-                                            )
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.plain)
+                                bellCardButton(bell)
                             }
                         }
                         .scaleEffect(visualScale, anchor: .center)
@@ -740,25 +782,7 @@ struct BellCatalogView: View {
 
                                 LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                                     ForEach(cabinetGroup.bells) { bell in
-                                        Button {
-                                            presentedBell = bell
-                                        } label: {
-                                            BellCardView(
-                                                bell: bell,
-                                                layoutMode: layoutMode
-                                            )
-                                            .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
-                                            .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
-                                            .background {
-                                                GeometryReader { proxy in
-                                                    Color.clear.preference(
-                                                        key: BellCardFramePreferenceKey.self,
-                                                        value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        .buttonStyle(.plain)
+                                        bellCardButton(bell)
                                     }
                                 }
                             }
@@ -767,25 +791,7 @@ struct BellCatalogView: View {
                 } else {
                     LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                         ForEach(section.bells) { bell in
-                            Button {
-                                presentedBell = bell
-                            } label: {
-                                BellCardView(
-                                    bell: bell,
-                                    layoutMode: layoutMode
-                                )
-                                .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
-                                .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
-                                .background {
-                                    GeometryReader { proxy in
-                                        Color.clear.preference(
-                                            key: BellCardFramePreferenceKey.self,
-                                            value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
-                                        )
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
+                            bellCardButton(bell)
                         }
                     }
                 }
@@ -827,6 +833,174 @@ struct BellCatalogView: View {
     private func deleteBell(_ bellID: UUID) {
         repository.deleteBellRecord(bellID: bellID)
         viewModel.bellRecords.removeAll { $0.id == bellID }
+    }
+
+    private var availableLocations: [Location] {
+        repository.fetchLocations(in: collection.homeID)
+    }
+
+    private var locationPathByID: [UUID: String] {
+        Dictionary(
+            uniqueKeysWithValues: availableLocations.map { location in
+                (location.id, locationPath(for: location))
+            }
+        )
+    }
+
+    private func bellCardButton(_ bell: BellRecord) -> some View {
+        Button {
+            presentedBell = bell
+        } label: {
+            BellCardView(
+                bell: bell,
+                layoutMode: layoutMode
+            )
+            .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
+            .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
+            .background {
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: BellCardFramePreferenceKey.self,
+                        value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
+                    )
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            bellCardContextMenu(for: bell)
+        } preview: {
+            BellCardContextPreview(bell: bell, repository: repository)
+        }
+    }
+
+    @ViewBuilder
+    private func bellCardContextMenu(for bell: BellRecord) -> some View {
+        Button {
+            bellPendingMove = bell
+        } label: {
+            Label(String(localized: "bell.context.move"), systemImage: "folder")
+        }
+
+        Button {
+            duplicateBell(bell)
+        } label: {
+            Label(String(localized: "common.duplicate"), systemImage: "plus.square.on.square")
+        }
+
+        ShareLink(
+            item: bellShareText(for: bell),
+            preview: SharePreview(bell.title)
+        ) {
+            Label(String(localized: "common.share"), systemImage: "square.and.arrow.up")
+        }
+
+        Button(role: .destructive) {
+            bellPendingDeletion = bell
+            isPresentingDeleteConfirmation = true
+        } label: {
+            Label(String(localized: "common.delete"), systemImage: "trash")
+        }
+    }
+
+    private func duplicateBell(_ bell: BellRecord) {
+        let newBellID = UUID()
+        let duplicatedMediaAssets = bell.mediaAssets.enumerated().map { offset, asset in
+            MediaAsset(
+                id: UUID(),
+                itemID: newBellID,
+                kind: asset.kind,
+                localIdentifier: asset.localIdentifier,
+                displayName: asset.displayName,
+                sortOrder: offset
+            )
+        }
+
+        let duplicatedBell = BellRecord(
+            item: Item(
+                id: newBellID,
+                collectionID: bell.item.collectionID,
+                locationID: bell.item.locationID,
+                createdAt: .now,
+                title: bell.title,
+                notes: bell.notes,
+                acquiredYear: bell.acquiredYear,
+                condition: bell.condition,
+                acquisitionMethod: bell.acquisitionMethod
+            ),
+            details: BellDetails(
+                itemID: newBellID,
+                originPlaceID: bell.details.originPlaceID,
+                material: bell.details.material,
+                customMaterialName: bell.details.customMaterialName
+            ),
+            originPlace: bell.originPlace,
+            storageLocation: bell.storageLocation,
+            storagePath: bell.storagePath,
+            mediaAssets: duplicatedMediaAssets,
+            createdBy: bell.createdBy,
+            tags: bell.tags
+        )
+
+        repository.saveBellRecord(duplicatedBell)
+        viewModel.refreshBellRecords(from: repository, collectionID: collection.id)
+        emitFeedback(.success)
+    }
+
+    private func moveBell(_ bell: BellRecord, to locationID: UUID?) {
+        let location = locationID.flatMap { locationsByID[$0] }
+
+        let movedBell = BellRecord(
+            item: Item(
+                id: bell.item.id,
+                collectionID: bell.item.collectionID,
+                locationID: locationID,
+                createdAt: bell.createdAt,
+                title: bell.title,
+                notes: bell.notes,
+                acquiredYear: bell.acquiredYear,
+                condition: bell.condition,
+                acquisitionMethod: bell.acquisitionMethod
+            ),
+            details: bell.details,
+            originPlace: bell.originPlace,
+            storageLocation: location,
+            storagePath: location.map(locationPath(for:)) ?? String(localized: "common.unassigned"),
+            mediaAssets: bell.mediaAssets,
+            createdBy: bell.createdBy,
+            tags: bell.tags
+        )
+
+        repository.saveBellRecord(movedBell)
+        viewModel.refreshBellRecords(from: repository, collectionID: collection.id)
+        emitFeedback(.success)
+    }
+
+    private func bellShareText(for bell: BellRecord) -> String {
+        var lines = [bell.title]
+
+        if bell.originPlace != nil {
+            lines.append(bell.placeDisplayName)
+        }
+
+        if !bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            lines.append("")
+            lines.append(bell.notes)
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    private func locationPath(for location: Location) -> String {
+        var parts = [location.name]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            parts.insert(parent.name, at: 0)
+            currentParentID = parent.parentLocationID
+        }
+
+        return parts.joined(separator: " / ")
     }
 
     private var homeName: String {
@@ -1789,5 +1963,86 @@ private struct BellGridDetailNavigationContainer: View {
 
     var body: some View {
         BellDetailView(bell: $bell, repository: repository)
+    }
+}
+
+private struct BellCardContextPreview: View {
+    @State var bell: BellRecord
+    let repository: any CatalogRepository
+
+    var body: some View {
+        NavigationStack {
+            BellDetailView(bell: $bell, repository: repository)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+private struct BellQuickMoveSheet: View {
+    let bell: BellRecord
+    let locations: [Location]
+    let locationPathByID: [UUID: String]
+    let onSave: (UUID?) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedLocationID: UUID?
+
+    init(
+        bell: BellRecord,
+        locations: [Location],
+        locationPathByID: [UUID: String],
+        onSave: @escaping (UUID?) -> Void
+    ) {
+        self.bell = bell
+        self.locations = locations
+        self.locationPathByID = locationPathByID
+        self.onSave = onSave
+        _selectedLocationID = State(initialValue: bell.item.locationID)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(String(localized: "editor.storage")) {
+                    LocationPickerField(
+                        title: String(localized: "editor.location"),
+                        selectedLabel: selectedLocationLabel,
+                        locations: locations,
+                        selectedLocationID: $selectedLocationID
+                    )
+                }
+            }
+            .navigationTitle(String(localized: "bell.context.move"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        onSave(selectedLocationID)
+                        dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.save"))
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var selectedLocationLabel: String {
+        guard let selectedLocationID, let path = locationPathByID[selectedLocationID] else {
+            return String(localized: "common.unassigned")
+        }
+
+        return path
     }
 }

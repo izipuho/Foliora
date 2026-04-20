@@ -297,6 +297,10 @@
 "bell.detail.storage.placeholder" = "Storage location has not been chosen yet. Tap to assign it.";
 "bell.detail.preview.unavailable" = "Preview Unavailable";
 "bell.detail.preview.load_error" = "The image file could not be loaded.";
+"bell.context.move" = "Move to...";
+"bell.context.delete.title" = "Delete Bell?";
+"bell.context.delete.confirm" = "Delete Bell";
+"bell.context.delete.message" = "This bell will be removed from the collection.";
 
 "search.scope.all" = "All";
 "search.scope.title" = "Title";
@@ -313,3 +317,5 @@
 "bell_catalog.layout.compact" = "Compact";
 "bell_catalog.layout.wide" = "Wide";
 "bell_catalog.layout.showcase" = "Showcase";
+"common.duplicate" = "Duplicate";
+"common.share" = "Share";

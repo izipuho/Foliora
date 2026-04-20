@@ -297,6 +297,10 @@
 "bell.detail.storage.placeholder" = "Место хранения еще не выбрано. Нажми, чтобы указать его.";
 "bell.detail.preview.unavailable" = "Предпросмотр недоступен";
 "bell.detail.preview.load_error" = "Не удалось загрузить файл изображения.";
+"bell.context.move" = "Переместить в...";
+"bell.context.delete.title" = "Удалить колокольчик?";
+"bell.context.delete.confirm" = "Удалить колокольчик";
+"bell.context.delete.message" = "Колокольчик будет удален из коллекции.";
 
 "search.scope.all" = "Всё";
 "search.scope.title" = "Название";
@@ -313,3 +317,5 @@
 "bell_catalog.layout.compact" = "Компактный";
 "bell_catalog.layout.wide" = "Широкий";
 "bell_catalog.layout.showcase" = "Витрина";
+"common.duplicate" = "Дублировать";
+"common.share" = "Поделиться";
