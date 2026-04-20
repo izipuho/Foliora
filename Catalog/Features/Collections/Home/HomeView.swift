@@ -443,6 +443,7 @@ private struct HomeEditorView: View {
     let onDelete: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var isPresentingDeleteConfirmation = false
+    @State private var isPresentingAddLocationSheet = false
 
     var body: some View {
         NavigationStack {
@@ -527,7 +528,7 @@ private struct HomeEditorView: View {
                     }
 
                     Button {
-                        addLocation()
+                        isPresentingAddLocationSheet = true
                     } label: {
                         Label(String(localized: "home.location.add"), systemImage: "plus.circle.fill")
                     }
@@ -578,20 +579,16 @@ private struct HomeEditorView: View {
             } message: {
                 Text(String(localized: "home.delete.message"))
             }
+            .sheet(isPresented: $isPresentingAddLocationSheet) {
+                AddLocationSheet(
+                    homeID: home.id,
+                    existingLocations: locations,
+                    onAdd: { newLocations in
+                        locations.append(contentsOf: newLocations)
+                    }
+                )
+            }
         }
-    }
-
-    private func addLocation() {
-        locations.append(
-            Location(
-                id: UUID(),
-                homeID: home.id,
-                parentLocationID: nil,
-                kind: .room,
-                name: String(localized: "home.location.new_default_name"),
-                notes: ""
-            )
-        )
     }
 
     private func deleteLocations(at offsets: IndexSet) {
@@ -654,6 +651,141 @@ private struct HomeEditorView: View {
         }
 
         return false
+    }
+}
+
+private struct AddLocationSheet: View {
+    let homeID: UUID
+    let existingLocations: [Location]
+    let onAdd: ([Location]) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var kind: LocationKind = .room
+    @State private var name: String = ""
+    @State private var parentLocationID: UUID?
+    @State private var notes: String = ""
+    @State private var shelfCount: Int = 0
+
+    private var draftLocation: Location {
+        Location(
+            id: UUID(),
+            homeID: homeID,
+            parentLocationID: parentLocationID,
+            kind: kind,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? defaultName(for: kind) : name,
+            notes: notes
+        )
+    }
+
+    private var parentCandidates: [Location] {
+        existingLocations
+            .filter { candidate in
+                kind.canBeChild(of: candidate.kind)
+            }
+            .sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    private var canSave: Bool {
+        !draftLocation.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(String(localized: "home.location.add")) {
+                    Picker(String(localized: "home.location.kind"), selection: $kind) {
+                        ForEach(LocationKind.allCases) { kind in
+                            Text(kind.displayName).tag(kind)
+                        }
+                    }
+                    .onChange(of: kind) { _, newKind in
+                        if !newKind.canBeChild(of: parentLocationID.flatMap { id in
+                            existingLocations.first(where: { $0.id == id })?.kind
+                        }) {
+                            parentLocationID = nil
+                        }
+
+                        if newKind != .cabinet {
+                            shelfCount = 0
+                        }
+                    }
+
+                    TextField(String(localized: "home.location.name"), text: $name, prompt: Text(defaultName(for: kind)))
+
+                    Picker(String(localized: "home.location.parent"), selection: $parentLocationID) {
+                        Text(String(localized: "common.none")).tag(Optional<UUID>.none)
+                        ForEach(parentCandidates) { candidate in
+                            Text(candidate.name).tag(Optional(candidate.id))
+                        }
+                    }
+
+                    if kind == .cabinet {
+                        Stepper(value: $shelfCount, in: 0...24) {
+                            Text(
+                                String.localizedStringWithFormat(
+                                    NSLocalizedString("home.location.shelf_count", comment: "Shelf count when creating cabinet"),
+                                    shelfCount
+                                )
+                            )
+                        }
+                    }
+
+                    TextField(String(localized: "common.notes"), text: $notes, axis: .vertical)
+                        .lineLimit(3, reservesSpace: true)
+                }
+            }
+            .navigationTitle(String(localized: "home.location.add"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: { Image(systemName: "xmark") }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { save() } label: { Image(systemName: "checkmark") }
+                    .disabled(!canSave)
+                }
+            }
+        }
+    }
+
+    private func save() {
+        let baseLocation = draftLocation
+        var createdLocations: [Location] = [baseLocation]
+
+        if kind == .cabinet, shelfCount > 0 {
+            createdLocations.append(contentsOf: (1...shelfCount).map { index in
+                Location(
+                    id: UUID(),
+                    homeID: homeID,
+                    parentLocationID: baseLocation.id,
+                    kind: .shelf,
+                    name: String.localizedStringWithFormat(
+                        NSLocalizedString("home.location.shelf_default_name", comment: "Default generated shelf name"),
+                        index
+                    ),
+                    notes: ""
+                )
+            })
+        }
+
+        onAdd(createdLocations)
+        dismiss()
+    }
+
+    private func defaultName(for kind: LocationKind) -> String {
+        switch kind {
+        case .floor:
+            return String(localized: "enum.location_kind.floor")
+        case .room:
+            return String(localized: "enum.location_kind.room")
+        case .cabinet:
+            return String(localized: "enum.location_kind.cabinet")
+        case .shelf:
+            return String(localized: "enum.location_kind.shelf")
+        }
     }
 }
 

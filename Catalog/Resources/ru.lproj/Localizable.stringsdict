@@ -222,5 +222,25 @@
 			<string>%d полки</string>
 		</dict>
 	</dict>
+	<key>home.location.shelf_count</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d полка</string>
+			<key>few</key>
+			<string>%d полки</string>
+			<key>many</key>
+			<string>%d полок</string>
+			<key>other</key>
+			<string>%d полки</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

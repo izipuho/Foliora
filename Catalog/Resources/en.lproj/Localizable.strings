@@ -213,6 +213,7 @@
 "home.location.parent" = "Parent";
 "home.location.add" = "Add Location";
 "home.location.new_default_name" = "New Location";
+"home.location.shelf_default_name" = "Shelf %d";
 "home.metric.collections" = "Collections";
 "home.metric.locations" = "Locations";
 "home.metric.floors" = "Floors";

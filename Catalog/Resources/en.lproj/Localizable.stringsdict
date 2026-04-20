@@ -178,5 +178,21 @@
 			<string>%d shelves</string>
 		</dict>
 	</dict>
+	<key>home.location.shelf_count</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d shelf</string>
+			<key>other</key>
+			<string>%d shelves</string>
+		</dict>
+	</dict>
 </dict>
 </plist>
