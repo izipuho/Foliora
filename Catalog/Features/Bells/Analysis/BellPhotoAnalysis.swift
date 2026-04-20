@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import UIKit
 #if canImport(FoundationModels)
 import FoundationModels
@@ -373,7 +374,8 @@ private extension String {
 }
 
 @MainActor
-final class BellPhotoAnalysisController: ObservableObject {
+@Observable
+final class BellPhotoAnalysisController {
     enum Field {
         case title
         case notes
@@ -383,8 +385,8 @@ final class BellPhotoAnalysisController: ObservableObject {
         case suggestedTags
     }
 
-    @Published private(set) var isAnalyzing = false
-    @Published private(set) var result: BellPhotoAnalysisResult = .empty
+    private(set) var isAnalyzing = false
+    private(set) var result: BellPhotoAnalysisResult = .empty
 
     private let service: any PhotoAnalysisService
     private let mapper: any BellPhotoSuggestionMapping

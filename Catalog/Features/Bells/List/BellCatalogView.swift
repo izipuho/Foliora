@@ -1131,7 +1131,7 @@ struct BellEditorView: View {
     @State private var highlightedSection: StartSection?
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
-    @StateObject private var photoAnalysis = BellPhotoAnalysisController()
+    @State private var photoAnalysis = BellPhotoAnalysisController()
     private let existingBellID: UUID?
     private let existingCreatedAt: Date?
     private let editorItemID: UUID

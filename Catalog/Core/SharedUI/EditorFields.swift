@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UIKit
+import Observation
 @preconcurrency import MapKit
 
 struct YearPickerField: View {
@@ -596,7 +597,7 @@ struct PlacePickerView: View {
     @Binding var selectedPlace: Place?
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
-    @StateObject private var searchModel = PlaceSearchModel()
+    @State private var searchModel = PlaceSearchModel()
 
     private var filteredPlaces: [Place] {
         guard !searchText.isEmpty else { return places }
@@ -744,8 +745,9 @@ private struct PlaceSearchSuggestion: Identifiable, Hashable {
     }
 }
 
-private final class PlaceSearchModel: NSObject, ObservableObject, MKLocalSearchCompleterDelegate, @unchecked Sendable {
-    @Published var results: [PlaceSearchSuggestion] = []
+@Observable
+private final class PlaceSearchModel: NSObject, MKLocalSearchCompleterDelegate, @unchecked Sendable {
+    var results: [PlaceSearchSuggestion] = []
 
     private let completer = MKLocalSearchCompleter()
 
@@ -758,7 +760,7 @@ private final class PlaceSearchModel: NSObject, ObservableObject, MKLocalSearchC
     func updateQuery(_ query: String) {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self.results = []
             }
             completer.queryFragment = ""
@@ -778,13 +780,13 @@ private final class PlaceSearchModel: NSObject, ObservableObject, MKLocalSearchC
             )
         }
 
-        DispatchQueue.main.async {
+        Task { @MainActor in
             self.results = mappedResults
         }
     }
 
     func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: any Error) {
-        DispatchQueue.main.async {
+        Task { @MainActor in
             self.results = []
         }
     }
