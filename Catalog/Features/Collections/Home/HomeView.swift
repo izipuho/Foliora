@@ -1943,9 +1943,54 @@ private struct SearchTabView: View {
         }
     }
 
+    private enum SearchToken: Identifiable, Hashable {
+        case material(String)
+        case countryCity(country: String, city: String?)
+        case tag(String)
+
+        var id: String {
+            switch self {
+            case .material(let value):
+                return "material:\(value.lowercased())"
+            case .countryCity(let country, let city):
+                let normalizedCity = city?.lowercased() ?? ""
+                return "country-city:\(country.lowercased()):\(normalizedCity)"
+            case .tag(let value):
+                return "tag:\(value.lowercased())"
+            }
+        }
+
+        var title: String {
+            switch self {
+            case .material(let value):
+                return value
+            case .countryCity(let country, let city):
+                if let city, !city.isEmpty {
+                    return "\(country) · \(city)"
+                }
+
+                return country
+            case .tag(let value):
+                return "#\(value)"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .material:
+                return "square.grid.3x3.topleft.filled"
+            case .countryCity:
+                return "mappin.and.ellipse"
+            case .tag:
+                return "tag"
+            }
+        }
+    }
+
     let repository: any CatalogRepository
     @AppStorage("search.tab.scope") private var selectedScopeRawValue = SearchScope.all.rawValue
     @State private var query = ""
+    @State private var selectedTokens: [SearchToken] = []
     @State private var isSearchPresented = true
     @FocusState private var isSearchFocused: Bool
 
@@ -1958,16 +2003,59 @@ private struct SearchTabView: View {
         repository.fetchCollections().filter { $0.kind == .bells }
     }
 
-    private var searchResults: [BellRecord] {
-        let allBells = allBellCollections.flatMap { collection in
+    private var allBells: [BellRecord] {
+        allBellCollections.flatMap { collection in
             repository.fetchBellRecords(for: collection.id)
         }
+    }
 
+    private var suggestedTokens: [SearchToken] {
+        let materialTokens = topTokens(
+            from: allBells.map { SearchToken.material($0.details.material.displayName) },
+            limit: 8
+        )
+
+        let countryCityTokens = topTokens(
+            from: allBells.compactMap { bell -> SearchToken? in
+                let country = bell.countryName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !country.isEmpty else { return nil }
+
+                let city = bell.cityName.trimmingCharacters(in: .whitespacesAndNewlines)
+                return .countryCity(country: country, city: city.isEmpty ? nil : city)
+            },
+            limit: 10
+        )
+
+        let tagTokens = topTokens(
+            from: allBells.flatMap { bell in
+                bell.tags.map { SearchToken.tag($0) }
+            },
+            limit: 12
+        )
+
+        return (materialTokens + countryCityTokens + tagTokens)
+            .filter { !selectedTokens.contains($0) }
+    }
+
+    private func topTokens(from tokens: [SearchToken], limit: Int) -> [SearchToken] {
+        Dictionary(tokens.map { ($0, 1) }, uniquingKeysWith: +)
+            .sorted { lhs, rhs in
+                if lhs.value != rhs.value {
+                    return lhs.value > rhs.value
+                }
+
+                return lhs.key.title.localizedCaseInsensitiveCompare(rhs.key.title) == .orderedAscending
+            }
+            .prefix(limit)
+            .map(\.key)
+    }
+
+    private var searchResults: [BellRecord] {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return allBells
             .filter { bell in
-                matchesSearchScope(for: bell, query: trimmedQuery)
+                matchesSearchScope(for: bell, query: trimmedQuery) && matchesSelectedTokens(for: bell)
             }
             .sorted { lhs, rhs in
                 if lhs.createdAt != rhs.createdAt {
@@ -1979,7 +2067,9 @@ private struct SearchTabView: View {
     }
 
     private var showsEmptySearchState: Bool {
-        query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedScope != .incomplete
+        query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        selectedTokens.isEmpty &&
+        selectedScope != .incomplete
     }
 
     var body: some View {
@@ -2041,9 +2131,13 @@ private struct SearchTabView: View {
             )
             .searchable(
                 text: $query,
+                tokens: $selectedTokens,
+                suggestedTokens: .constant(suggestedTokens),
                 isPresented: $isSearchPresented,
                 prompt: String(localized: "collections.search.prompt")
-            )
+            ) { token in
+                Label(token.title, systemImage: token.systemImage)
+            }
             .toolbar(.hidden, for: .navigationBar)
         }
         .searchFocused($isSearchFocused)
@@ -2106,6 +2200,54 @@ private struct SearchTabView: View {
         bell.item.locationID == nil ||
         bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
         bell.tags.isEmpty
+    }
+
+    private func matchesSelectedTokens(for bell: BellRecord) -> Bool {
+        let materialTokens = selectedTokens.compactMap { token -> String? in
+            guard case .material(let material) = token else { return nil }
+            return material
+        }
+
+        let countryCityTokens = selectedTokens.compactMap { token -> (country: String, city: String?)? in
+            guard case .countryCity(let country, let city) = token else { return nil }
+            return (country, city)
+        }
+
+        let tagTokens = selectedTokens.compactMap { token -> String? in
+            guard case .tag(let tag) = token else { return nil }
+            return tag
+        }
+
+        if !materialTokens.isEmpty {
+            let matchesMaterial = materialTokens.contains { material in
+                bell.details.material.displayName.localizedCaseInsensitiveCompare(material) == .orderedSame
+            }
+            guard matchesMaterial else { return false }
+        }
+
+        if !countryCityTokens.isEmpty {
+            let matchesCountryCity = countryCityTokens.contains { token in
+                let matchesCountry = bell.countryName.localizedCaseInsensitiveCompare(token.country) == .orderedSame
+                guard matchesCountry else { return false }
+
+                if let city = token.city, !city.isEmpty {
+                    guard let bellCity = bell.originPlace?.cityName else { return false }
+                    return bellCity.localizedCaseInsensitiveCompare(city) == .orderedSame
+                }
+
+                return true
+            }
+            guard matchesCountryCity else { return false }
+        }
+
+        if !tagTokens.isEmpty {
+            let matchesTag = tagTokens.contains { tag in
+                bell.tags.contains { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame }
+            }
+            guard matchesTag else { return false }
+        }
+
+        return true
     }
 
     private func collectionName(for bell: BellRecord) -> String {

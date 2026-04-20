@@ -4,6 +4,22 @@ import QuickLook
 import MapKit
 
 struct BellDetailView: View {
+    private enum DetailFeedback: Equatable {
+        case success
+
+        var sensoryFeedback: SensoryFeedback {
+            switch self {
+            case .success:
+                return .success
+            }
+        }
+    }
+
+    private struct DetailFeedbackEvent: Equatable {
+        let kind: DetailFeedback
+        let token: Int
+    }
+
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
     @State private var draftNotes = ""
@@ -11,6 +27,8 @@ struct BellDetailView: View {
     @State private var tagInput = ""
     @State private var isPresentingEditor = false
     @State private var isPresentingLocationPicker = false
+    @State private var feedbackEvent: DetailFeedbackEvent?
+    @State private var feedbackToken = 0
 
     var body: some View {
         ScrollView {
@@ -69,6 +87,9 @@ struct BellDetailView: View {
             Color(uiColor: .systemBackground)
                 .ignoresSafeArea()
         )
+        .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
+            newValue?.kind.sensoryFeedback
+        }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -207,6 +228,12 @@ struct BellDetailView: View {
             tags: draftTags
         )
         syncDraftsFromBell()
+        emitFeedback(.success)
+    }
+
+    private func emitFeedback(_ kind: DetailFeedback) {
+        feedbackToken += 1
+        feedbackEvent = DetailFeedbackEvent(kind: kind, token: feedbackToken)
     }
 
     private func persist(

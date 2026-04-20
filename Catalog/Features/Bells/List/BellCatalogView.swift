@@ -1091,6 +1091,25 @@ struct BellEditorView: View {
         case storage
     }
 
+    private enum AnalysisFeedback: Equatable {
+        case success
+        case warning
+
+        var sensoryFeedback: SensoryFeedback {
+            switch self {
+            case .success:
+                return .impact(weight: .light)
+            case .warning:
+                return .warning
+            }
+        }
+    }
+
+    private struct AnalysisFeedbackEvent: Equatable {
+        let kind: AnalysisFeedback
+        let token: Int
+    }
+
     let collection: CollectionSummary
     let repository: any CatalogRepository
     let startSection: StartSection?
@@ -1110,6 +1129,8 @@ struct BellEditorView: View {
     @State private var mediaAssets: [MediaAsset] = []
     @State private var selectedAcquiredYearOption = String(localized: "editor.acquired_year.none")
     @State private var highlightedSection: StartSection?
+    @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
+    @State private var analysisFeedbackToken = 0
     @StateObject private var photoAnalysis = BellPhotoAnalysisController()
     private let existingBellID: UUID?
     private let existingCreatedAt: Date?
@@ -1385,6 +1406,13 @@ struct BellEditorView: View {
                         }
                     }
                 }
+                .sensoryFeedback(trigger: analysisFeedbackEvent) { _, newValue in
+                    newValue?.kind.sensoryFeedback
+                }
+                .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
+                    guard wasAnalyzing, !isAnalyzing else { return }
+                    handlePhotoAnalysisCompletion()
+                }
             }
         }
     }
@@ -1397,6 +1425,21 @@ struct BellEditorView: View {
         } else {
             Color.clear
         }
+    }
+
+    private func emitAnalysisFeedback(_ kind: AnalysisFeedback) {
+        analysisFeedbackToken += 1
+        analysisFeedbackEvent = AnalysisFeedbackEvent(kind: kind, token: analysisFeedbackToken)
+    }
+
+    private func handlePhotoAnalysisCompletion() {
+        if photoAnalysis.result.hasSuggestions {
+            emitAnalysisFeedback(.success)
+        }
+
+        // Keep failures / empty results silent by default.
+        // If the analysis flow is re-enabled and warning feedback is needed later,
+        // emit `.warning` here in a more selective way.
     }
 
     private func saveBell() {
