@@ -109,7 +109,7 @@ enum LocationKind: String, CaseIterable, Hashable, Identifiable, Codable {
         }
     }
 
-    private var hierarchyRank: Int {
+    private var hierarchyDepth: Int {
         switch self {
         case .floor:
             return 0
@@ -123,7 +123,9 @@ enum LocationKind: String, CaseIterable, Hashable, Identifiable, Codable {
     }
 
     func canContain(_ child: LocationKind) -> Bool {
-        hierarchyRank < child.hierarchyRank
+        // A location may contain any lower level in the storage tree.
+        // Intermediate levels are optional: floor -> shelf is valid.
+        hierarchyDepth < child.hierarchyDepth
     }
 
     func canBeChild(of parent: LocationKind?) -> Bool {

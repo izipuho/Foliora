@@ -780,6 +780,19 @@ private struct AddLocationSheet: View {
             }
     }
 
+    private var lockedParent: Location? {
+        guard let initialParentLocationID else { return nil }
+        return existingLocations.first(where: { $0.id == initialParentLocationID })
+    }
+
+    private var availableKinds: [LocationKind] {
+        if let lockedParent {
+            return LocationKind.allCases.filter { $0.canBeChild(of: lockedParent.kind) }
+        }
+
+        return LocationKind.allCases
+    }
+
     private var canSave: Bool {
         !draftLocation.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -789,7 +802,7 @@ private struct AddLocationSheet: View {
             Form {
                 Section(String(localized: "home.location.add")) {
                     Picker(String(localized: "home.location.kind"), selection: $kind) {
-                        ForEach(LocationKind.allCases) { kind in
+                        ForEach(availableKinds) { kind in
                             Text(kind.displayName).tag(kind)
                         }
                     }
@@ -807,10 +820,16 @@ private struct AddLocationSheet: View {
 
                     TextField(String(localized: "home.location.name"), text: $name, prompt: Text(defaultName(for: kind)))
 
-                    Picker(String(localized: "home.location.parent"), selection: $parentLocationID) {
-                        Text(String(localized: "common.none")).tag(Optional<UUID>.none)
-                        ForEach(parentCandidates) { candidate in
-                            Text(candidate.name).tag(Optional(candidate.id))
+                    if let lockedParent {
+                        LabeledContent(String(localized: "home.location.parent")) {
+                            Text(lockedParent.name)
+                        }
+                    } else {
+                        Picker(String(localized: "home.location.parent"), selection: $parentLocationID) {
+                            Text(String(localized: "common.none")).tag(Optional<UUID>.none)
+                            ForEach(parentCandidates) { candidate in
+                                Text(candidate.name).tag(Optional(candidate.id))
+                            }
                         }
                     }
 
@@ -839,6 +858,11 @@ private struct AddLocationSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { save() } label: { Image(systemName: "checkmark") }
                     .disabled(!canSave)
+                }
+            }
+            .onAppear {
+                if !availableKinds.contains(kind), let firstAvailableKind = availableKinds.first {
+                    kind = firstAvailableKind
                 }
             }
         }
