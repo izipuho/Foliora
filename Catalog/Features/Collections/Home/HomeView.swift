@@ -444,6 +444,15 @@ private struct HomeEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isPresentingDeleteConfirmation = false
     @State private var isPresentingAddLocationSheet = false
+    @State private var editingLocationID: UUID?
+    @State private var addingChildContext: AddChildContext?
+
+    private var flattenedLocations: [EditableLocationNode] {
+        let roots = locations
+            .filter { $0.parentLocationID == nil }
+            .sorted(by: locationSort)
+        return roots.flatMap { flatten(location: $0, depth: 0) }
+    }
 
     var body: some View {
         NavigationStack {
@@ -477,54 +486,31 @@ private struct HomeEditorView: View {
                             description: Text(String(localized: "home.location.empty.description"))
                         )
                     } else {
-                        ForEach($locations) { $location in
-                            VStack(alignment: .leading, spacing: 10) {
-                                TextField(String(localized: "home.location.name"), text: $location.name)
-
-                                Picker(
-                                    String(localized: "home.location.kind"),
-                                    selection: Binding(
-                                        get: { location.kind },
-                                        set: { newKind in
-                                            location.kind = newKind
-                                            if !hasValidParent(location) {
-                                                location.parentLocationID = nil
-                                            }
+                        ForEach(flattenedLocations) { node in
+                            Button {
+                                editingLocationID = node.location.id
+                            } label: {
+                                EditableLocationRow(
+                                    location: node.location,
+                                    depth: node.depth,
+                                    showsAddChildAction: defaultChildKind(for: node.location) != nil,
+                                    onAddChild: {
+                                        if let childKind = defaultChildKind(for: node.location) {
+                                            addingChildContext = AddChildContext(
+                                                parentID: node.location.id,
+                                                childKind: childKind
+                                            )
                                         }
-                                    )
-                                ) {
-                                    ForEach(LocationKind.allCases) { kind in
-                                        Text(kind.displayName).tag(kind)
                                     }
-                                }
-
-                                Picker(
-                                    String(localized: "home.location.parent"),
-                                    selection: Binding(
-                                        get: { location.parentLocationID },
-                                        set: { newValue in
-                                            if let newValue,
-                                               let candidate = locations.first(where: { $0.id == newValue }),
-                                               isValidParent(candidate, for: location) {
-                                                location.parentLocationID = newValue
-                                            } else {
-                                                location.parentLocationID = nil
-                                            }
-                                        }
-                                    )
-                                ) {
-                                    Text(String(localized: "common.none")).tag(Optional<UUID>.none)
-                                    ForEach(parentCandidates(for: location)) { candidate in
-                                        Text(candidate.name).tag(Optional(candidate.id))
-                                    }
-                                }
-
-                                TextField(String(localized: "common.notes"), text: $location.notes, axis: .vertical)
-                                    .lineLimit(2, reservesSpace: true)
+                                )
                             }
-                            .padding(.vertical, CatalogSpacing.compact)
+                            .buttonStyle(.plain)
+                            .swipeActions {
+                                Button(String(localized: "common.delete"), role: .destructive) {
+                                    deleteLocation(node.location.id)
+                                }
+                            }
                         }
-                        .onDelete(perform: deleteLocations)
                     }
 
                     Button {
@@ -583,17 +569,72 @@ private struct HomeEditorView: View {
                 AddLocationSheet(
                     homeID: home.id,
                     existingLocations: locations,
+                    initialKind: .room,
+                    initialParentLocationID: nil,
                     onAdd: { newLocations in
                         locations.append(contentsOf: newLocations)
                     }
                 )
             }
+            .sheet(
+                isPresented: Binding(
+                    get: { addingChildContext != nil },
+                    set: { newValue in
+                        if !newValue {
+                            addingChildContext = nil
+                        }
+                    }
+                )
+            ) {
+                if let addingChildContext {
+                    AddLocationSheet(
+                        homeID: home.id,
+                        existingLocations: locations,
+                        initialKind: addingChildContext.childKind,
+                        initialParentLocationID: addingChildContext.parentID,
+                        onAdd: { newLocations in
+                            locations.append(contentsOf: newLocations)
+                            self.addingChildContext = nil
+                        }
+                    )
+                }
+            }
+            .sheet(
+                isPresented: Binding(
+                    get: { editingLocationID != nil },
+                    set: { newValue in
+                        if !newValue {
+                            editingLocationID = nil
+                        }
+                    }
+                )
+            ) {
+                if let location = editingLocationBinding {
+                    EditLocationSheet(
+                        location: location,
+                        allLocations: locations,
+                        onDelete: { deletedID in
+                            deleteLocation(deletedID)
+                            editingLocationID = nil
+                        }
+                    )
+                }
+            }
         }
     }
 
-    private func deleteLocations(at offsets: IndexSet) {
-        let removedIDs = Set(offsets.map { locations[$0].id })
-        locations.remove(atOffsets: offsets)
+    private var editingLocationBinding: Binding<Location>? {
+        guard let editingLocationID,
+              let index = locations.firstIndex(where: { $0.id == editingLocationID }) else {
+            return nil
+        }
+
+        return $locations[index]
+    }
+
+    private func deleteLocation(_ locationID: UUID) {
+        let removedIDs = Set([locationID])
+        locations.removeAll { removedIDs.contains($0.id) }
         locations = locations.map { location in
             guard removedIDs.contains(location.parentLocationID ?? UUID()) else {
                 return location
@@ -652,19 +693,71 @@ private struct HomeEditorView: View {
 
         return false
     }
+
+    private func flatten(location: Location, depth: Int) -> [EditableLocationNode] {
+        [EditableLocationNode(location: location, depth: depth)] +
+        children(of: location).flatMap { flatten(location: $0, depth: depth + 1) }
+    }
+
+    private func children(of location: Location) -> [Location] {
+        locations
+            .filter { $0.parentLocationID == location.id }
+            .sorted(by: locationSort)
+    }
+
+    private var locationSort: (Location, Location) -> Bool {
+        { lhs, rhs in
+            if lhs.kind != rhs.kind {
+                return lhs.kind.sortRank < rhs.kind.sortRank
+            }
+
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    private func defaultChildKind(for location: Location) -> LocationKind? {
+        switch location.kind {
+        case .floor:
+            return .room
+        case .room:
+            return .cabinet
+        case .cabinet:
+            return .shelf
+        case .shelf:
+            return nil
+        }
+    }
 }
 
 private struct AddLocationSheet: View {
     let homeID: UUID
     let existingLocations: [Location]
+    let initialKind: LocationKind
+    let initialParentLocationID: UUID?
     let onAdd: ([Location]) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var kind: LocationKind = .room
+    @State private var kind: LocationKind
     @State private var name: String = ""
     @State private var parentLocationID: UUID?
     @State private var notes: String = ""
     @State private var shelfCount: Int = 0
+
+    init(
+        homeID: UUID,
+        existingLocations: [Location],
+        initialKind: LocationKind = .room,
+        initialParentLocationID: UUID? = nil,
+        onAdd: @escaping ([Location]) -> Void
+    ) {
+        self.homeID = homeID
+        self.existingLocations = existingLocations
+        self.initialKind = initialKind
+        self.initialParentLocationID = initialParentLocationID
+        self.onAdd = onAdd
+        _kind = State(initialValue: initialKind)
+        _parentLocationID = State(initialValue: initialParentLocationID)
+    }
 
     private var draftLocation: Location {
         Location(
@@ -786,6 +879,184 @@ private struct AddLocationSheet: View {
         case .shelf:
             return String(localized: "enum.location_kind.shelf")
         }
+    }
+}
+
+private struct EditableLocationNode: Identifiable {
+    let location: Location
+    let depth: Int
+
+    var id: UUID { location.id }
+}
+
+private struct AddChildContext: Identifiable {
+    let parentID: UUID
+    let childKind: LocationKind
+
+    var id: UUID { parentID }
+}
+
+private struct EditableLocationRow: View {
+    let location: Location
+    let depth: Int
+    let showsAddChildAction: Bool
+    let onAddChild: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(kindColor(location.kind))
+                .frame(width: 8, height: 8)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(location.name)
+                    .font(.body.weight(.medium))
+
+                HStack(spacing: 6) {
+                    Text(location.kind.displayName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if !location.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text("·")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+
+                        Text(location.notes)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+
+            Spacer()
+
+            if showsAddChildAction {
+                Button(action: onAddChild) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(.tint)
+                        .frame(width: 30, height: 30)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .padding(.leading, CGFloat(depth) * 18)
+        .padding(.vertical, 4)
+    }
+
+    private func kindColor(_ kind: LocationKind) -> Color {
+        switch kind {
+        case .floor:
+            return Color(red: 0.20, green: 0.42, blue: 0.34)
+        case .room:
+            return Color(red: 0.36, green: 0.52, blue: 0.24)
+        case .cabinet:
+            return Color(red: 0.58, green: 0.44, blue: 0.18)
+        case .shelf:
+            return Color(red: 0.51, green: 0.31, blue: 0.14)
+        }
+    }
+}
+
+private struct EditLocationSheet: View {
+    @Binding var location: Location
+    let allLocations: [Location]
+    let onDelete: (UUID) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var isPresentingDeleteConfirmation = false
+
+    private var parentCandidates: [Location] {
+        allLocations
+            .filter { candidate in
+                isValidParent(candidate, for: location)
+            }
+            .sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(String(localized: "home.editor.section_locations")) {
+                    LabeledContent(String(localized: "home.location.kind")) {
+                        Text(location.kind.displayName)
+                    }
+
+                    TextField(String(localized: "home.location.name"), text: $location.name)
+
+                    Picker(String(localized: "home.location.parent"), selection: $location.parentLocationID) {
+                        Text(String(localized: "common.none")).tag(Optional<UUID>.none)
+                        ForEach(parentCandidates) { candidate in
+                            Text(candidate.name).tag(Optional(candidate.id))
+                        }
+                    }
+
+                    TextField(String(localized: "common.notes"), text: $location.notes, axis: .vertical)
+                        .lineLimit(3, reservesSpace: true)
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        isPresentingDeleteConfirmation = true
+                    } label: {
+                        Label(String(localized: "common.delete"), systemImage: "trash")
+                    }
+                }
+            }
+            .navigationTitle(location.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: { Image(systemName: "xmark") }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { dismiss() } label: { Image(systemName: "checkmark") }
+                }
+            }
+            .confirmationDialog(
+                String(localized: "home.delete.title"),
+                isPresented: $isPresentingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "common.delete"), role: .destructive) {
+                    onDelete(location.id)
+                    dismiss()
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "home.location.delete.message"))
+            }
+        }
+    }
+
+    private func isValidParent(_ candidate: Location, for location: Location) -> Bool {
+        guard candidate.id != location.id else { return false }
+        guard candidate.homeID == location.homeID else { return false }
+        guard location.kind.canBeChild(of: candidate.kind) else { return false }
+        guard !isDescendant(candidateID: candidate.id, of: location.id) else { return false }
+        return true
+    }
+
+    private func isDescendant(candidateID: UUID, of locationID: UUID) -> Bool {
+        var currentParentID = allLocations.first(where: { $0.id == candidateID })?.parentLocationID
+
+        while let parentID = currentParentID {
+            if parentID == locationID {
+                return true
+            }
+
+            currentParentID = allLocations.first(where: { $0.id == parentID })?.parentLocationID
+        }
+
+        return false
     }
 }
 

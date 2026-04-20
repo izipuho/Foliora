@@ -212,8 +212,10 @@
 "home.location.kind" = "Тип";
 "home.location.parent" = "Родитель";
 "home.location.add" = "Добавить расположение";
+"home.location.add_child" = "Добавить дочерний элемент";
 "home.location.new_default_name" = "Новое расположение";
 "home.location.shelf_default_name" = "Полка %d";
+"home.location.delete.message" = "Расположение будет удалено. Дочерние элементы останутся без родителя.";
 "home.metric.collections" = "Коллекции";
 "home.metric.locations" = "Расположения";
 "home.metric.floors" = "Этажи";

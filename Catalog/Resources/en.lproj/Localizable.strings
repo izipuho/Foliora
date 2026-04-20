@@ -212,8 +212,10 @@
 "home.location.kind" = "Kind";
 "home.location.parent" = "Parent";
 "home.location.add" = "Add Location";
+"home.location.add_child" = "Add Child Location";
 "home.location.new_default_name" = "New Location";
 "home.location.shelf_default_name" = "Shelf %d";
+"home.location.delete.message" = "This location will be deleted. Child items will remain without a parent.";
 "home.metric.collections" = "Collections";
 "home.metric.locations" = "Locations";
 "home.metric.floors" = "Floors";
