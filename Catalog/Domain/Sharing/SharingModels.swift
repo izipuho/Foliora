@@ -7,16 +7,7 @@ enum CollectionRole: String, Hashable, Codable {
     case viewer
 
     var shortLabel: String {
-        switch self {
-        case .owner:
-            return "owner"
-        case .editor:
-            return "editor"
-        case .contributor:
-            return "contributor"
-        case .viewer:
-            return "viewer"
-        }
+        title.lowercased(with: .autoupdatingCurrent)
     }
 
     var title: String {

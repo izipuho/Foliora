@@ -143,9 +143,9 @@ enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
     var title: String {
         switch self {
         case .bells:
-            return "Колокольчики"
+            return String(localized: "collection_kind.bells")
         case .books:
-            return "Книги"
+            return String(localized: "collection_kind.books")
         }
     }
 
@@ -231,15 +231,15 @@ enum CollectionBackgroundStyle: String, CaseIterable, Hashable, Identifiable, Co
     var title: String {
         switch self {
         case .amber:
-            return "Amber"
+            return String(localized: "collection_background.amber")
         case .sky:
-            return "Sky"
+            return String(localized: "collection_background.sky")
         case .mint:
-            return "Mint"
+            return String(localized: "collection_background.mint")
         case .rose:
-            return "Rose"
+            return String(localized: "collection_background.rose")
         case .slate:
-            return "Slate"
+            return String(localized: "collection_background.slate")
         }
     }
 
