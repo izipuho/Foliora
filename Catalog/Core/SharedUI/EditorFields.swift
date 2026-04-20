@@ -701,20 +701,12 @@ struct PlacePickerView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
+                    Button { dismiss() } label: { Image(systemName: "xmark") }
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
+                    Button { dismiss() } label: { Image(systemName: "checkmark") }
                     .accessibilityLabel(String(localized: "common.save"))
                 }
             }
@@ -969,20 +961,12 @@ struct LocationHierarchyPickerView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
+                    Button { dismiss() } label: { Image(systemName: "xmark") }
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
+                    Button { dismiss() } label: { Image(systemName: "checkmark") }
                     .disabled(selectedLocationID == nil)
                     .accessibilityLabel(String(localized: "common.save"))
                 }

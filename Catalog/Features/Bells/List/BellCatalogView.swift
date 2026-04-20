@@ -1323,20 +1323,12 @@ struct BellEditorView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark")
-                        }
+                        Button { dismiss() } label: { Image(systemName: "xmark") }
                         .accessibilityLabel(String(localized: "common.cancel"))
                     }
 
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            saveBell()
-                        } label: {
-                            Image(systemName: "checkmark")
-                        }
+                        Button { saveBell() } label: { Image(systemName: "checkmark") }
                         .disabled(!canSave)
                         .accessibilityLabel(String(localized: "common.save"))
                     }

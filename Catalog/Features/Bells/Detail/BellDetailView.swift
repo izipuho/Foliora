@@ -74,29 +74,17 @@ struct BellDetailView: View {
         .toolbar {
             if isNotesOrTagsDirty {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        discardNotesAndTagsChanges()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
+                    Button { discardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        saveNotesAndTagsChanges()
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
+                    Button { saveNotesAndTagsChanges() } label: { Image(systemName: "checkmark") }
                     .accessibilityLabel(String(localized: "common.save"))
                 }
             } else {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isPresentingEditor = true
-                    } label: {
-                        Image(systemName: "square.and.pencil")
-                    }
+                    Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
                     .accessibilityLabel(String(localized: "common.edit"))
                 }
             }

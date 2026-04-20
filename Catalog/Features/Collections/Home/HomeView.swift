@@ -1191,11 +1191,7 @@ struct CollectionEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
+                    Button { dismiss() } label: { Image(systemName: "xmark") }
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -1203,9 +1199,7 @@ struct CollectionEditorView: View {
                         guard let selectedHomeID else { return }
                         onSave(title, notes, selectedHomeID, backgroundStyle)
                         dismiss()
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
+                    } label: { Image(systemName: "checkmark") }
                     .disabled(!canSave)
                 }
             }
