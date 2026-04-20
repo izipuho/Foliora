@@ -287,6 +287,8 @@
 "bell.detail.storage.assign.message" = "This opens bell editing so you can choose where it is stored.";
 "bell.detail.storage.assign.action" = "Set location";
 "bell.detail.storage.placeholder" = "Storage location has not been chosen yet. Tap to assign it.";
+"bell.detail.preview.unavailable" = "Preview Unavailable";
+"bell.detail.preview.load_error" = "The image file could not be loaded.";
 
 "search.scope.all" = "All";
 "search.scope.title" = "Title";

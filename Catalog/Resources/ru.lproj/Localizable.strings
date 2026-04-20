@@ -287,6 +287,8 @@
 "bell.detail.storage.assign.message" = "Откроется редактирование колокольчика, где можно выбрать место.";
 "bell.detail.storage.assign.action" = "Указать место";
 "bell.detail.storage.placeholder" = "Место хранения еще не выбрано. Нажми, чтобы указать его.";
+"bell.detail.preview.unavailable" = "Предпросмотр недоступен";
+"bell.detail.preview.load_error" = "Не удалось загрузить файл изображения.";
 
 "search.scope.all" = "Всё";
 "search.scope.title" = "Название";

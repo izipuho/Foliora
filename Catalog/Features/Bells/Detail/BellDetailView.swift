@@ -613,15 +613,15 @@ private struct MediaPhotoPreviewScreen: View {
                         .background(Color.black)
                 } else {
                     ContentUnavailableView(
-                        "Preview Unavailable",
+                        String(localized: "bell.detail.preview.unavailable"),
                         systemImage: "photo",
-                        description: Text("The image file could not be loaded.")
+                        description: Text(String(localized: "bell.detail.preview.load_error"))
                     )
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button(String(localized: "common.done")) {
                         dismiss()
                     }
                 }
