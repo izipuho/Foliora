@@ -301,6 +301,9 @@
 "bell.detail.storage.placeholder" = "Место хранения еще не выбрано. Нажми, чтобы указать его.";
 "bell.detail.preview.unavailable" = "Предпросмотр недоступен";
 "bell.detail.preview.load_error" = "Не удалось загрузить файл изображения.";
+"bell.detail.unsaved_changes.title" = "Есть несохраненные изменения";
+"bell.detail.unsaved_changes.message" = "Сохранить изменения заметок и тегов перед выходом или сбросить их?";
+"bell.detail.unsaved_changes.discard" = "Сбросить изменения";
 "bell.context.move" = "Переместить в...";
 "bell.context.delete.title" = "Удалить колокольчик?";
 "bell.context.delete.confirm" = "Удалить колокольчик";

@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import UIKit
 import Observation
+import QuickLook
 @preconcurrency import MapKit
 
 struct YearPickerField: View {
@@ -233,76 +234,11 @@ private struct TagChip: View {
     }
 }
 
-struct TagFlowLayout: Layout {
-    let spacing: CGFloat
-
-    init(spacing: CGFloat = 8) {
-        self.spacing = spacing
-    }
-
-    func sizeThatFits(
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-
-            if currentX > 0, currentX + size.width > maxWidth {
-                currentX = 0
-                currentY += rowHeight + spacing
-                rowHeight = 0
-            }
-
-            currentX += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-
-        return CGSize(
-            width: proposal.width ?? currentX,
-            height: currentY + rowHeight
-        )
-    }
-
-    func placeSubviews(
-        in bounds: CGRect,
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) {
-        var currentX = bounds.minX
-        var currentY = bounds.minY
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-
-            if currentX > bounds.minX, currentX + size.width > bounds.maxX {
-                currentX = bounds.minX
-                currentY += rowHeight + spacing
-                rowHeight = 0
-            }
-
-            subview.place(
-                at: CGPoint(x: currentX, y: currentY),
-                proposal: ProposedViewSize(width: size.width, height: size.height)
-            )
-
-            currentX += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-    }
-}
-
 struct MediaSection: View {
     let itemID: UUID
     @Binding var mediaAssets: [MediaAsset]
     var analysisHighlightedAssetID: UUID? = nil
+    var allowsDeletion = true
     var onPhotoAdded: ((UIImage) -> Void)? = nil
     private let mediaStore = LocalMediaFileStore.shared
 
@@ -311,36 +247,43 @@ struct MediaSection: View {
     @State private var isPresentingCamera = false
     @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
-    private let gridColumns = [GridItem(.adaptive(minimum: 96, maximum: 128), spacing: 12)]
+    @State private var previewTarget: MediaPreviewTarget?
 
     var body: some View {
-        if mediaAssets.isEmpty {
-            ContentUnavailableView(
-                String(localized: "editor.media.empty.title"),
-                systemImage: "photo.on.rectangle.angled",
-                description: Text(String(localized: "editor.media.empty.description"))
-            )
-        } else {
-            LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 12) {
+        ScrollView(.horizontal) {
+            LazyHStack(alignment: .top, spacing: CatalogSpacing.compact) {
                 ForEach(sortedAssets) { asset in
                     MediaAssetGridTileView(
                         asset: asset,
                         isCover: asset.id == coverPhotoID,
-                        isAnalysisHighlighted: asset.id == analysisHighlightedAssetID
-                    ) {
-                        mediaStore.deleteFile(for: asset.localIdentifier)
-                        mediaAssets.removeAll { $0.id == asset.id }
-                        reindexAssets()
-                    }
+                        isAnalysisHighlighted: asset.id == analysisHighlightedAssetID,
+                        allowsDeletion: allowsDeletion,
+                        onTap: {
+                            preview(asset)
+                        },
+                        onDelete: {
+                            mediaStore.deleteFile(for: asset.localIdentifier)
+                            mediaAssets.removeAll { $0.id == asset.id }
+                            reindexAssets()
+                        }
+                    )
                 }
+
+                Button {
+                    isPresentingAddMediaOptions = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(.green, in: Circle())
+                        .frame(width: 48, height: 110)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "editor.media.add"))
             }
         }
-
-        Button {
-            isPresentingAddMediaOptions = true
-        } label: {
-            Label(String(localized: "editor.media.add"), systemImage: "plus")
-        }
+        .scrollIndicators(.hidden)
         .photosPicker(
             isPresented: $isPresentingPhotoPicker,
             selection: $selectedPhotoItems,
@@ -375,11 +318,20 @@ struct MediaSection: View {
         } message: {
             Text(String(localized: "editor.media.model.placeholder_message"))
         }
+        .sheet(item: $previewTarget) { target in
+            QuickLookPreview(url: target.url)
+        }
         .onChange(of: selectedPhotoItems) { _, newItems in
             Task {
                 await addPhotos(from: newItems)
             }
         }
+    }
+
+    private func preview(_ asset: MediaAsset) {
+        guard asset.kind == .photo || asset.kind == .document else { return }
+        guard let url = mediaStore.fileURL(for: asset.localIdentifier) else { return }
+        previewTarget = MediaPreviewTarget(url: url)
     }
 
     private var sortedAssets: [MediaAsset] {
@@ -465,6 +417,8 @@ private struct MediaAssetGridTileView: View {
     let asset: MediaAsset
     let isCover: Bool
     let isAnalysisHighlighted: Bool
+    let allowsDeletion: Bool
+    let onTap: () -> Void
     let onDelete: () -> Void
     @State private var highlightPulse = false
 
@@ -482,26 +436,13 @@ private struct MediaAssetGridTileView: View {
                         .lineLimit(2)
                         .foregroundStyle(.primary)
                 }
-
-                HStack(spacing: 6) {
-                    Text(asset.kind.displayName)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-
-                    if isCover {
-                        Text(String(localized: "editor.media.cover"))
-                            .font(.caption2.weight(.semibold))
-                            .catalogPillPadding(.micro)
-                            .background(.regularMaterial, in: Capsule())
-                    }
-                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(10)
-            .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
+            .frame(width: 110, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
+            .onTapGesture(perform: onTap)
             .overlay {
                 if isAnalysisHighlighted {
-                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
+                    RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
                         .stroke(
                             AngularGradient(
                                 colors: [
@@ -523,6 +464,12 @@ private struct MediaAssetGridTileView: View {
                         )
                 }
             }
+            .overlay {
+                if isCover {
+                    RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
+                        .stroke(.tint.opacity(0.75), lineWidth: 3)
+                }
+            }
             .onAppear {
                 guard isAnalysisHighlighted else { return }
                 highlightPulse = true
@@ -531,14 +478,26 @@ private struct MediaAssetGridTileView: View {
                 highlightPulse = isHighlighted
             }
 
-            Button(action: onDelete) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title3)
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowStrong)
+            if allowsDeletion {
+                Button(action: onDelete) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowStrong)
+                }
+                .buttonStyle(.plain)
+                .offset(x: 6, y: -6)
             }
-            .buttonStyle(.plain)
-            .offset(x: 6, y: -6)
+
+            if isCover {
+                Image(systemName: "star.fill")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 20, height: 20)
+                    .background(.tint, in: Circle())
+                    .padding(5)
+                    .frame(width: 110, height: 110, alignment: .bottomLeading)
+            }
         }
     }
 
@@ -552,6 +511,46 @@ private struct MediaAssetGridTileView: View {
             .lastPathComponent
             .replacingOccurrences(of: "-", with: " ")
             .capitalized
+    }
+}
+
+private struct MediaPreviewTarget: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+private struct QuickLookPreview: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {
+        context.coordinator.url = url
+        uiViewController.reloadData()
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(url: url)
+    }
+
+    final class Coordinator: NSObject, QLPreviewControllerDataSource {
+        var url: URL
+
+        init(url: URL) {
+            self.url = url
+        }
+
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+            1
+        }
+
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            url as NSURL
+        }
     }
 }
 
@@ -579,10 +578,6 @@ private struct MediaAssetThumbnailView: View {
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
-                .stroke(CatalogSemanticColors.separator, lineWidth: 1)
-        )
     }
 
     private var previewImage: UIImage? {

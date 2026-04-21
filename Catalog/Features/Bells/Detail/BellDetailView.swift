@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import QuickLook
 import MapKit
 import SwiftData
 
@@ -30,8 +29,22 @@ struct BellDetailView: View {
     @State private var tagInput = ""
     @State private var isPresentingEditor = false
     @State private var isPresentingLocationPicker = false
+    @State private var isPresentingUnsavedChangesConfirmation = false
     @State private var feedbackEvent: DetailFeedbackEvent?
     @State private var feedbackToken = 0
+
+    init(bell: Binding<BellRecord>, repository: any CatalogRepository) {
+        _bell = bell
+        self.repository = repository
+
+        let collectionID = bell.wrappedValue.item.collectionID
+        _collectionEntities = Query(
+            filter: #Predicate<CollectionEntity> { entity in
+                entity.id == collectionID
+            },
+            sort: \.title
+        )
+    }
 
     var body: some View {
         ScrollView {
@@ -48,7 +61,7 @@ struct BellDetailView: View {
                         OriginStorageSection(
                             place: bell.originPlace,
                             storagePath: bell.storageDisplayPath,
-                            accentColor: inferredCollection.backgroundStyle.accentColor,
+                            accentColor: detailAccentColor,
                             isStorageAssigned: bell.item.locationID != nil,
                             onEditStorage: {
                                 isPresentingLocationPicker = true
@@ -59,14 +72,15 @@ struct BellDetailView: View {
                     detailSection(String(localized: "bell.detail.section.media")) {
                         MediaSection(
                             itemID: bell.id,
-                            mediaAssets: mediaAssetsBinding
+                            mediaAssets: mediaAssetsBinding,
+                            allowsDeletion: false
                         )
                     }
 
                     detailSection(
                         String(localized: "bell.detail.section.notes"),
                         isHighlighted: isNotesOrTagsDirty,
-                        tint: inferredCollection.backgroundStyle.accentColor
+                        tint: detailAccentColor
                     ) {
                         TextField(String(localized: "editor.note_history"), text: $draftNotes, axis: .vertical)
                             .lineLimit(6, reservesSpace: true)
@@ -93,12 +107,13 @@ struct BellDetailView: View {
         .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
             newValue?.kind.sensoryFeedback
         }
+        .interactiveDismissDisabled(isNotesOrTagsDirty)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isNotesOrTagsDirty {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { discardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
+                    Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
 
@@ -113,14 +128,35 @@ struct BellDetailView: View {
                 }
             }
         }
+        .confirmationDialog(
+            String(localized: "bell.detail.unsaved_changes.title"),
+            isPresented: $isPresentingUnsavedChangesConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "common.save")) {
+                saveNotesAndTagsChanges()
+            }
+
+            Button(String(localized: "bell.detail.unsaved_changes.discard"), role: .destructive) {
+                discardNotesAndTagsChanges()
+            }
+
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "bell.detail.unsaved_changes.message"))
+        }
         .sheet(isPresented: $isPresentingEditor) {
-            BellEditorView(
-                collection: inferredCollection,
-                repository: repository,
-                bell: bell
-            ) { updatedBell in
-                repository.saveBellRecord(updatedBell)
-                bell = updatedBell
+            if let collection = inferredCollection {
+                BellEditorView(
+                    collection: collection,
+                    repository: repository,
+                    bell: bell
+                ) { updatedBell in
+                    repository.saveBellRecord(updatedBell)
+                    bell = updatedBell
+                }
+            } else {
+                ContentUnavailableView(String(localized: "home.not_found.title"), systemImage: "folder.badge.questionmark")
             }
         }
         .sheet(isPresented: $isPresentingLocationPicker) {
@@ -177,26 +213,18 @@ struct BellDetailView: View {
     }
 
     private var availableLocations: [Location] {
-        locationEntities
-            .filter { $0.home?.id == inferredCollection.homeID }
+        guard let homeID = inferredCollection?.homeID else { return [] }
+        return locationEntities
+            .filter { $0.home?.id == homeID }
             .map(\.locationSnapshot)
     }
 
-    private var inferredCollection: CollectionSummary {
-        collectionEntities.first(where: { $0.id == bell.item.collectionID })?.summarySnapshot ??
-            CollectionSummary(
-                id: bell.item.collectionID,
-                homeID: UUID(),
-                kind: .bells,
-                name: String(localized: "collection_kind.bells"),
-                subtitle: "",
-                backgroundStyle: .amber,
-                itemCount: 0,
-                collaboratorCount: 0,
-                role: .owner,
-                status: .active,
-                sharingSummary: ""
-            )
+    private var inferredCollection: CollectionSummary? {
+        collectionEntities.first?.summarySnapshot
+    }
+
+    private var detailAccentColor: Color {
+        inferredCollection?.backgroundStyle.accentColor ?? .accentColor
     }
 
     private var isNotesOrTagsDirty: Bool {
@@ -221,6 +249,11 @@ struct BellDetailView: View {
             get: { bell.item.locationID },
             set: { persist(locationID: $0) }
         )
+    }
+
+    private func requestDiscardNotesAndTagsChanges() {
+        guard isNotesOrTagsDirty else { return }
+        isPresentingUnsavedChangesConfirmation = true
     }
 
     private func discardNotesAndTagsChanges() {
@@ -299,425 +332,6 @@ struct BellDetailView: View {
         }
 
         return parts.joined(separator: " / ")
-    }
-}
-
-private struct OriginStorageSection: View {
-    let place: Place?
-    let storagePath: String
-    let accentColor: Color
-    let isStorageAssigned: Bool
-    let onEditStorage: () -> Void
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            OriginTile(place: place, accentColor: accentColor)
-
-            StorageTile(
-                storagePath: storagePath,
-                accentColor: accentColor,
-                isAssigned: isStorageAssigned,
-                onEditStorage: onEditStorage
-            )
-        }
-    }
-}
-
-private struct OriginTile: View {
-    let place: Place?
-    let accentColor: Color
-
-    private var coordinate: CLLocationCoordinate2D? {
-        guard let latitude = place?.latitude, let longitude = place?.longitude else { return nil }
-        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ZStack(alignment: .bottomLeading) {
-                if let coordinate {
-                    Map(initialPosition: .region(
-                        MKCoordinateRegion(
-                            center: coordinate,
-                            span: MKCoordinateSpan(latitudeDelta: 4.8, longitudeDelta: 4.8)
-                        )
-                    ), interactionModes: []) {
-                        Marker("", coordinate: coordinate)
-                    }
-                    .mapStyle(.standard(elevation: .flat))
-                    .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
-                } else {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
-                            .fill(CatalogSemanticColors.groupedSurfaceElevated)
-                        Image(systemName: "mappin.slash")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                LinearGradient(
-                    colors: [
-                        CatalogMediaContrast.mapScrimTop,
-                        CatalogMediaContrast.mapScrimMiddle,
-                        CatalogMediaContrast.mapScrimBottom
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
-
-                VStack(alignment: .leading, spacing: CatalogSpacing.compact) {
-                    Label(String(localized: "bell.detail.origin"), systemImage: "mappin.and.ellipse")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-
-                    Text(place?.displayName ?? String(localized: "common.unassigned"))
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                }
-                .padding(CatalogSpacing.regular)
-            }
-            .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottomLeading)
-            .overlay(
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
-                    .stroke(accentColor.opacity(0.22), lineWidth: 1)
-            )
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-private struct StorageTile: View {
-    let storagePath: String
-    let accentColor: Color
-    let isAssigned: Bool
-    let onEditStorage: () -> Void
-
-    private var pathParts: [String] {
-        storagePath
-            .split(separator: "/")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-    }
-
-    var body: some View {
-        Button(action: onEditStorage) {
-            tileContent
-        }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var tileContent: some View {
-        Group {
-            if isAssigned {
-                assignedTileContent
-            } else {
-                placeholderTileContent
-            }
-        }
-    }
-
-    private var assignedTileContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(pathParts.enumerated()), id: \.offset) { index, part in
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(index == pathParts.count - 1 ? accentColor.opacity(0.80) : CatalogSemanticColors.tertiaryLabel)
-                            .frame(width: 7, height: 7)
-
-                        Text(part)
-                            .font(index == pathParts.count - 1 ? .subheadline.weight(.semibold) : .subheadline)
-                            .foregroundStyle(index == pathParts.count - 1 ? .primary : .secondary)
-
-                        Spacer()
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-            .padding(14)
-            .background(CatalogSemanticColors.groupedSurfaceElevated, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
-                    .stroke(accentColor.opacity(0.22), lineWidth: 1)
-            )
-        }
-    }
-
-    private var placeholderTileContent: some View {
-        VStack(spacing: 8) {
-            Spacer(minLength: 0)
-
-            Image(systemName: "square.stack.3d.up.slash")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(accentColor)
-
-            Text(String(localized: "bell.detail.storage.assign.action"))
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(accentColor)
-                .multilineTextAlignment(.center)
-
-            Text(String(localized: "bell.detail.storage.placeholder"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-        .padding(14)
-        .background(accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
-                .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [6, 6]))
-                .foregroundStyle(accentColor.opacity(0.38))
-        )
-    }
-}
-
-private struct DetailTagChip: View {
-    let tag: String
-    let accentColor: Color
-
-    var body: some View {
-        Text("#\(tag)")
-            .font(.subheadline.weight(.medium))
-            .catalogPillPadding(.regular)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(accentColor.opacity(0.16))
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(accentColor.opacity(0.34), lineWidth: 1)
-            )
-            .foregroundStyle(accentColor.opacity(0.95))
-    }
-}
-
-private struct DetailTagFlowLayout: Layout {
-    let spacing: CGFloat
-
-    init(spacing: CGFloat = 8) {
-        self.spacing = spacing
-    }
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-
-            if currentX > 0, currentX + size.width > maxWidth {
-                currentX = 0
-                currentY += rowHeight + spacing
-                rowHeight = 0
-            }
-
-            rowHeight = max(rowHeight, size.height)
-            currentX += size.width + spacing
-        }
-
-        return CGSize(width: maxWidth.isFinite ? maxWidth : currentX, height: currentY + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var currentX = bounds.minX
-        var currentY = bounds.minY
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-
-            if currentX > bounds.minX, currentX + size.width > bounds.maxX {
-                currentX = bounds.minX
-                currentY += rowHeight + spacing
-                rowHeight = 0
-            }
-
-            subview.place(
-                at: CGPoint(x: currentX, y: currentY),
-                proposal: ProposedViewSize(width: size.width, height: size.height)
-            )
-
-            currentX += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-    }
-}
-
-private struct BellDetailMediaTile: View {
-    let asset: MediaAsset
-    let onTap: () -> Void
-    private let mediaStore = LocalMediaFileStore.shared
-
-    var body: some View {
-        Button(action: onTap) {
-            thumbnail
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private var thumbnail: some View {
-        switch asset.kind {
-        case .photo:
-            if let image = previewImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 116, height: 116)
-                    .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous))
-            } else {
-                placeholder(systemImage: "photo")
-            }
-        case .document:
-            ZStack {
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous)
-                    .fill(CatalogSemanticColors.groupedSurfaceElevated)
-                VStack(spacing: 3) {
-                    Image(systemName: "doc.fill")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                    Text(documentExtension)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 116, height: 116)
-        case .model3D:
-            placeholder(systemImage: "cube.transparent")
-        }
-    }
-
-    private func placeholder(systemImage: String) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous)
-                .fill(CatalogSemanticColors.groupedSurfaceElevated)
-            Image(systemName: systemImage)
-                .font(.title3)
-                .foregroundStyle(.secondary)
-        }
-        .frame(width: 116, height: 116)
-    }
-
-    private var previewImage: UIImage? {
-        guard let url = mediaStore.fileURL(for: asset.localIdentifier),
-              let image = UIImage(contentsOfFile: url.path) else {
-            return nil
-        }
-
-        return image
-    }
-    private var documentExtension: String {
-        let ext = URL(fileURLWithPath: asset.localIdentifier).pathExtension.uppercased()
-        return ext.isEmpty ? "FILE" : ext
-    }
-}
-
-private struct MediaPreviewTarget: Identifiable {
-    let id = UUID()
-    let url: URL
-    let kind: MediaKind
-}
-
-private struct MediaPhotoPreviewScreen: View {
-    let url: URL
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-
-                if let image = UIImage(contentsOfFile: url.path) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black)
-                } else {
-                    ContentUnavailableView(
-                        String(localized: "bell.detail.preview.unavailable"),
-                        systemImage: "photo",
-                        description: Text(String(localized: "bell.detail.preview.load_error"))
-                    )
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "common.done")) {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct QuickLookPreview: UIViewControllerRepresentable {
-    let url: URL
-
-    func makeUIViewController(context: Context) -> QLPreviewController {
-        let controller = QLPreviewController()
-        controller.dataSource = context.coordinator
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {
-        context.coordinator.url = url
-        uiViewController.reloadData()
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(url: url)
-    }
-
-    final class Coordinator: NSObject, QLPreviewControllerDataSource {
-        var url: URL
-
-        init(url: URL) {
-            self.url = url
-        }
-
-        func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
-            1
-        }
-
-        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
-            url as NSURL
-        }
-    }
-}
-
-private struct DetailBadge: View {
-    let label: String
-    let systemImage: String
-    let tint: Color
-    var bright = false
-
-    var body: some View {
-        Label(label, systemImage: systemImage)
-            .font(.caption.weight(.medium))
-            .padding(.vertical, 8)
-            .padding(.horizontal, 10)
-            .background(backgroundColor, in: Capsule())
-            .foregroundStyle(foregroundColor)
-    }
-
-    private var backgroundColor: Color {
-        bright ? .white.opacity(0.18) : tint.opacity(0.12)
-    }
-
-    private var foregroundColor: Color {
-        bright ? .white : tint
     }
 }
 
