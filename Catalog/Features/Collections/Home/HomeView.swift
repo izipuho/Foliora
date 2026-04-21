@@ -1547,7 +1547,7 @@ private struct CollectionShellView: View {
     @State private var isPresentingEditCollection = false
     @State private var isPresentingMap = false
     @State private var selectedOrder: BellOrderMode = .newestFirst
-    @State private var selectedLayoutMode: BellGridLayoutMode = .compact
+    @State private var selectedLayoutMode: BellGridLayoutMode = .mini
     @State private var selectedSummaryFilter: BellSummaryFilter?
     private let mediaStore = LocalMediaFileStore.shared
 

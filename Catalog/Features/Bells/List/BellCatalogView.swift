@@ -198,7 +198,7 @@ struct BellCatalogView: View {
         collection: CollectionSummary,
         repository: any CatalogRepository,
         collaborators: [Collaborator],
-        layoutMode: Binding<BellGridLayoutMode> = .constant(.compact),
+        layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         summaryFilter: Binding<BellSummaryFilter?> = .constant(nil)
     ) {
