@@ -1,4 +1,5 @@
 import Foundation
+import MapKit
 import UIKit
 import Vision
 
@@ -20,6 +21,12 @@ struct RecognizedTextFeature: Hashable, Sendable {
 struct VisualKeyword: Hashable, Sendable {
     let value: String
     let confidence: Double
+}
+
+struct GeoPoint: Sendable {
+    let name: String
+    let latitude: Double
+    let longitude: Double
 }
 
 enum PhotoSemanticTag: String, CaseIterable, Hashable, Sendable {
@@ -48,12 +55,24 @@ struct NormalizedVisionTag: Hashable, Sendable {
 }
 
 struct PhotoAnalysisResult: Sendable {
+    let tags: [String]
+    let year: Int?
+    let geo: GeoPoint?
+
     let visionFeatures: [VisionFeature]
-    let tags: [NormalizedVisionTag]
+    let normalizedTags: [NormalizedVisionTag]
     let recognizedText: [RecognizedTextFeature]
     let visualKeywords: [VisualKeyword]
 
-    static let empty = PhotoAnalysisResult(visionFeatures: [], tags: [], recognizedText: [], visualKeywords: [])
+    static let empty = PhotoAnalysisResult(
+        tags: [],
+        year: nil,
+        geo: nil,
+        visionFeatures: [],
+        normalizedTags: [],
+        recognizedText: [],
+        visualKeywords: []
+    )
 }
 
 protocol VisionFeatureExtracting: Sendable {
@@ -70,22 +89,62 @@ protocol PhotoAnalysisService: Sendable {
 
 struct VisionFeatureExtractor: VisionFeatureExtracting {
     private let maxResults: Int
+    private let minimumConfidence: Double
 
-    init(maxResults: Int = 12) {
+    init(maxResults: Int = 16, minimumConfidence: Double = 0.18) {
         self.maxResults = maxResults
+        self.minimumConfidence = minimumConfidence
     }
 
     func extractFeatures(from image: UIImage) async throws -> [VisionFeature] {
         guard let cgImage = image.cgImage else { return [] }
 
-        let request = VNClassifyImageRequest()
+        var features: [VisionFeature] = []
+        let classifyRequest = VNClassifyImageRequest()
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
+        try handler.perform([classifyRequest])
 
-        let observations: [VNClassificationObservation] = request.results ?? []
-        return observations
+        let classifications: [VNClassificationObservation] = classifyRequest.results ?? []
+        features += classifications.map { VisionFeature(label: $0.identifier.lowercased(), confidence: Double($0.confidence)) }
+
+        if #available(iOS 26.0, *), let objectRequest = makeRecognizeObjectsRequest() {
+            try handler.perform([objectRequest])
+            let objects = (objectRequest as NSObject).value(forKey: "results") as? [VNRecognizedObjectObservation] ?? []
+            features += objects.flatMap { observation in
+                observation.labels.map { label in
+                    VisionFeature(label: label.identifier.lowercased(), confidence: Double(label.confidence))
+                }
+            }
+        }
+
+        return deduplicate(features)
+            .filter { $0.confidence >= minimumConfidence }
+            .sorted { lhs, rhs in
+                if lhs.confidence == rhs.confidence {
+                    return lhs.label.localizedCaseInsensitiveCompare(rhs.label) == .orderedAscending
+                }
+                return lhs.confidence > rhs.confidence
+            }
             .prefix(maxResults)
-            .map { VisionFeature(label: $0.identifier.lowercased(), confidence: Double($0.confidence)) }
+            .map { $0 }
+    }
+
+    private func deduplicate(_ features: [VisionFeature]) -> [VisionFeature] {
+        features.reduce(into: [String: VisionFeature]()) { partialResult, feature in
+            let key = feature.label.lowercased()
+            if partialResult[key] == nil || partialResult[key]!.confidence < feature.confidence {
+                partialResult[key] = feature
+            }
+        }
+        .values
+        .map { $0 }
+    }
+
+    private func makeRecognizeObjectsRequest() -> VNRequest? {
+        guard let requestClass = NSClassFromString("VNRecognizeObjectsRequest") as? NSObject.Type else {
+            return nil
+        }
+        return requestClass.init() as? VNRequest
     }
 }
 
@@ -93,7 +152,7 @@ struct VisionTextFeatureExtractor: TextFeatureExtracting {
     private let maxResults: Int
     private let minimumConfidence: Double
 
-    init(maxResults: Int = 8, minimumConfidence: Double = 0.55) {
+    init(maxResults: Int = 24, minimumConfidence: Double = 0.0) {
         self.maxResults = maxResults
         self.minimumConfidence = minimumConfidence
     }
@@ -117,7 +176,7 @@ struct VisionTextFeatureExtractor: TextFeatureExtracting {
                 guard confidence >= minimumConfidence else { return nil }
 
                 let text = normalizedText(candidate.string)
-                guard isUsefulRecognizedText(text) else { return nil }
+                guard !text.isEmpty else { return nil }
 
                 return RecognizedTextFeature(text: text, confidence: confidence)
             }
@@ -149,38 +208,131 @@ struct VisionTextFeatureExtractor: TextFeatureExtracting {
             .replacingOccurrences(of: "  ", with: " ")
     }
 
-    private func isUsefulRecognizedText(_ text: String) -> Bool {
-        guard !text.isEmpty else { return false }
-        guard text.count >= 2, text.count <= 28 else { return false }
+}
 
-        let words = text.split(whereSeparator: \.isWhitespace)
-        guard !words.isEmpty, words.count <= 4 else { return false }
+protocol GeoPointResolving: Sendable {
+    func resolveGeoPoint(from recognizedText: [RecognizedTextFeature]) async -> GeoPoint?
+}
 
-        let letters = text.unicodeScalars.filter(CharacterSet.letters.contains)
-        let digits = text.unicodeScalars.filter(CharacterSet.decimalDigits.contains)
-        guard letters.count >= 2 else { return false }
-        guard digits.count < text.count else { return false }
+struct OCRGeoPointResolver: GeoPointResolving {
+    func resolveGeoPoint(from recognizedText: [RecognizedTextFeature]) async -> GeoPoint? {
+        let candidates = geoCandidates(from: recognizedText.map(\.text))
 
-        let allowedSymbols = CharacterSet(charactersIn: " -./")
-        let allowedCharacters = CharacterSet.letters
-            .union(.decimalDigits)
-            .union(allowedSymbols)
-        guard text.unicodeScalars.allSatisfy(allowedCharacters.contains) else { return false }
+        for candidate in candidates {
+            guard let mapItem = try? await MKGeocodingRequest(addressString: candidate)?.mapItems.first else {
+                continue
+            }
 
-        return true
+            return GeoPoint(
+                name: canonicalName(for: mapItem, fallback: candidate),
+                latitude: mapItem.location.coordinate.latitude,
+                longitude: mapItem.location.coordinate.longitude
+            )
+        }
+
+        return nil
+    }
+
+    private func geoCandidates(from strings: [String]) -> [String] {
+        var candidates: [String] = []
+        let joinedText = strings.joined(separator: "\n")
+
+        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.address.rawValue) {
+            let range = NSRange(joinedText.startIndex..<joinedText.endIndex, in: joinedText)
+            let matches = detector.matches(in: joinedText, range: range)
+            candidates += matches.flatMap { match in
+                [
+                    match.addressComponents?[.city],
+                    match.addressComponents?[.country],
+                    match.addressComponents?[.state],
+                    match.addressComponents?[.street]
+                ].compactMap { $0 }
+            }
+        }
+
+        candidates += strings.compactMap(cleanGeoCandidate)
+
+        var seen = Set<String>()
+        return candidates.compactMap { rawCandidate in
+            let candidate = rawCandidate.trimmingCharacters(in: .whitespacesAndNewlines)
+            let key = candidate.lowercased()
+            guard !candidate.isEmpty, seen.insert(key).inserted else { return nil }
+            return candidate
+        }
+        .sorted { lhs, rhs in
+            let lhsWords = lhs.split(whereSeparator: \.isWhitespace).count
+            let rhsWords = rhs.split(whereSeparator: \.isWhitespace).count
+            if lhsWords != rhsWords { return lhsWords < rhsWords }
+            return lhs.count < rhs.count
+        }
+    }
+
+    private func cleanGeoCandidate(_ text: String) -> String? {
+        let withoutYear = text.replacingOccurrences(
+            of: #"(19|20)\d{2}"#,
+            with: "",
+            options: .regularExpression
+        )
+        let cleaned = withoutYear
+            .replacingOccurrences(of: #"https?://\S+"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\S+@\S+"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"[^[:alpha:]\s\-',.]"#, with: " ", options: .regularExpression)
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters))
+
+        guard cleaned.count >= 3, cleaned.count <= 48 else { return nil }
+        guard cleaned.unicodeScalars.contains(where: CharacterSet.letters.contains) else { return nil }
+        return cleaned
+    }
+
+    private func canonicalName(for mapItem: MKMapItem, fallback: String) -> String {
+        let city = mapItem.addressRepresentations?.cityName?.nilIfBlank
+        let region = mapItem.addressRepresentations?.cityWithContext(.short)
+            .flatMap { normalizedRegion(from: $0, city: city) }
+        let country = mapItem.addressRepresentations?.regionName?.nilIfBlank
+
+        if let city, let region, city.caseInsensitiveCompare(region) != ComparisonResult.orderedSame {
+            return deduplicatedGeoParts([city, region]).joined(separator: ", ")
+        }
+
+        return deduplicatedGeoParts([city, region, country, mapItem.name, fallback])
+            .first ?? fallback
+    }
+
+    private func normalizedRegion(from cityWithContext: String, city: String?) -> String? {
+        let parts = cityWithContext
+            .split(separator: ",")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard let city else { return parts.first?.nilIfBlank }
+        return parts.first { $0.caseInsensitiveCompare(city) != .orderedSame }?.nilIfBlank
+    }
+
+    private func deduplicatedGeoParts(_ parts: [String?]) -> [String] {
+        var seen = Set<String>()
+        return parts.compactMap { part in
+            guard let value = part?.nilIfBlank else { return nil }
+            let key = value.lowercased()
+            guard seen.insert(key).inserted else { return nil }
+            return value
+        }
     }
 }
 
 struct DefaultPhotoAnalysisService: PhotoAnalysisService {
     private let extractor: any VisionFeatureExtracting
     private let textExtractor: any TextFeatureExtracting
+    private let geoResolver: any GeoPointResolving
 
     init(
         extractor: any VisionFeatureExtracting = VisionFeatureExtractor(),
-        textExtractor: any TextFeatureExtracting = VisionTextFeatureExtractor()
+        textExtractor: any TextFeatureExtracting = VisionTextFeatureExtractor(),
+        geoResolver: any GeoPointResolving = OCRGeoPointResolver()
     ) {
         self.extractor = extractor
         self.textExtractor = textExtractor
+        self.geoResolver = geoResolver
     }
 
     func analyze(image: UIImage) async -> PhotoAnalysisResult {
@@ -189,14 +341,63 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
 
         let features = await extractedFeatures ?? []
         let recognizedText = await extractedText ?? []
-        let filteredFeatures = filteredVisionFeatures(features)
+        async let resolvedGeo = geoResolver.resolveGeoPoint(from: recognizedText)
+        let geo = await resolvedGeo
 
         return PhotoAnalysisResult(
-            visionFeatures: filteredFeatures,
-            tags: normalize(features: filteredFeatures),
+            tags: allTags(from: features, recognizedText: recognizedText, geo: geo),
+            year: extractYear(from: recognizedText),
+            geo: geo,
+            visionFeatures: features,
+            normalizedTags: normalize(features: features),
             recognizedText: recognizedText,
             visualKeywords: extractVisualKeywords(from: features)
         )
+    }
+
+    private func allTags(from features: [VisionFeature], recognizedText: [RecognizedTextFeature], geo: GeoPoint?) -> [String] {
+        var seen = Set<String>()
+        let excludedGeo = geo?.name.lowercased()
+
+        return (visionTags(from: features) + ocrTags(from: recognizedText, excludingGeo: excludedGeo)).compactMap { rawTag in
+            let tag = rawTag.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !tag.isEmpty, seen.insert(tag).inserted else { return nil }
+            return tag
+        }
+    }
+
+    private func visionTags(from features: [VisionFeature]) -> [String] {
+        var seen = Set<String>()
+        return features.compactMap { feature in
+            let tag = feature.label.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !tag.isEmpty, seen.insert(tag).inserted else { return nil }
+            return tag
+        }
+    }
+
+    private func ocrTags(from recognizedText: [RecognizedTextFeature], excludingGeo geoName: String?) -> [String] {
+        recognizedText
+            .flatMap { feature in
+                feature.text
+                    .components(separatedBy: CharacterSet(charactersIn: ",;|/\\()[]{}"))
+                    .flatMap { $0.split(whereSeparator: \.isWhitespace).map(String.init) + [$0] }
+            }
+            .compactMap { rawTag in
+                let tag = rawTag
+                    .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+                    .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters))
+                    .lowercased()
+                guard tag.count >= 2 else { return nil }
+                guard !isYearTag(tag) else { return nil }
+                guard geoName.map({ !$0.contains(tag) && !tag.contains($0) }) ?? true else { return nil }
+                guard tag.unicodeScalars.contains(where: CharacterSet.letters.contains) else { return nil }
+                return tag
+            }
+    }
+
+    private func isYearTag(_ tag: String) -> Bool {
+        guard let year = Int(tag), (1900...2100).contains(year) else { return false }
+        return true
     }
 
     private func normalize(features: [VisionFeature]) -> [NormalizedVisionTag] {
@@ -277,8 +478,18 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         return result
     }
 
-    private func filteredVisionFeatures(_ features: [VisionFeature]) -> [VisionFeature] {
-        features.filter { $0.confidence >= 0.18 }
+    private func extractYear(from recognizedText: [RecognizedTextFeature]) -> Int? {
+        let pattern = #"(19|20)\d{2}"#
+        for feature in recognizedText {
+            guard let range = feature.text.range(of: pattern, options: .regularExpression),
+                  let year = Int(feature.text[range]),
+                  (1900...2100).contains(year) else {
+                continue
+            }
+            return year
+        }
+
+        return nil
     }
 
     private func extractVisualKeywords(from features: [VisionFeature]) -> [VisualKeyword] {
@@ -311,5 +522,12 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
                 }
                 return lhs.confidence > rhs.confidence
             }
+    }
+}
+
+private extension String {
+    var nilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

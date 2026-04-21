@@ -302,6 +302,7 @@ struct TagFlowLayout: Layout {
 struct MediaSection: View {
     let itemID: UUID
     @Binding var mediaAssets: [MediaAsset]
+    var analysisHighlightedAssetID: UUID? = nil
     var onPhotoAdded: ((UIImage) -> Void)? = nil
     private let mediaStore = LocalMediaFileStore.shared
 
@@ -324,7 +325,8 @@ struct MediaSection: View {
                 ForEach(sortedAssets) { asset in
                     MediaAssetGridTileView(
                         asset: asset,
-                        isCover: asset.id == coverPhotoID
+                        isCover: asset.id == coverPhotoID,
+                        isAnalysisHighlighted: asset.id == analysisHighlightedAssetID
                     ) {
                         mediaStore.deleteFile(for: asset.localIdentifier)
                         mediaAssets.removeAll { $0.id == asset.id }
@@ -462,7 +464,9 @@ struct MediaSection: View {
 private struct MediaAssetGridTileView: View {
     let asset: MediaAsset
     let isCover: Bool
+    let isAnalysisHighlighted: Bool
     let onDelete: () -> Void
+    @State private var highlightPulse = false
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -495,6 +499,37 @@ private struct MediaAssetGridTileView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
             .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
+            .overlay {
+                if isAnalysisHighlighted {
+                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
+                        .stroke(
+                            AngularGradient(
+                                colors: [
+                                    .cyan,
+                                    .blue,
+                                    .purple,
+                                    .pink,
+                                    .cyan
+                                ],
+                                center: .center
+                            ),
+                            lineWidth: highlightPulse ? 4 : 2
+                        )
+                        .opacity(highlightPulse ? 1 : 0.45)
+                        .scaleEffect(highlightPulse ? 1.035 : 0.99)
+                        .animation(
+                            .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
+                            value: highlightPulse
+                        )
+                }
+            }
+            .onAppear {
+                guard isAnalysisHighlighted else { return }
+                highlightPulse = true
+            }
+            .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
+                highlightPulse = isHighlighted
+            }
 
             Button(action: onDelete) {
                 Image(systemName: "xmark.circle.fill")

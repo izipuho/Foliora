@@ -1,12 +1,9 @@
 import Foundation
 import Observation
 import UIKit
-#if canImport(FoundationModels)
-import FoundationModels
-#endif
 
 struct BellPhotoSuggestions: Sendable {
-    let tags: [NormalizedVisionTag]
+    let tags: [String]
     let recognizedText: [RecognizedTextFeature]
     let visualKeywords: [VisualKeyword]
     let title: SuggestedFieldValue<String>?
@@ -14,7 +11,10 @@ struct BellPhotoSuggestions: Sendable {
     let material: SuggestedFieldValue<BellMaterial>?
     let condition: SuggestedFieldValue<ItemCondition>?
     let customMaterialName: SuggestedFieldValue<String>?
+    let suggestedYear: SuggestedFieldValue<Int>?
+    let suggestedGeo: SuggestedFieldValue<GeoPoint>?
     let suggestedTags: [SuggestedFieldValue<String>]
+    let debugInfo: BellPhotoAnalysisDebugInfo?
 
     static let empty = BellPhotoSuggestions(
         tags: [],
@@ -25,11 +25,30 @@ struct BellPhotoSuggestions: Sendable {
         material: nil,
         condition: nil,
         customMaterialName: nil,
-        suggestedTags: []
+        suggestedYear: nil,
+        suggestedGeo: nil,
+        suggestedTags: [],
+        debugInfo: nil
     )
 
     var hasSuggestions: Bool {
-        !recognizedText.isEmpty || !visualKeywords.isEmpty || title != nil || notes != nil || material != nil || condition != nil || customMaterialName != nil || !suggestedTags.isEmpty
+        !recognizedText.isEmpty || !visualKeywords.isEmpty || title != nil || notes != nil || material != nil || condition != nil || customMaterialName != nil || suggestedYear != nil || suggestedGeo != nil || !suggestedTags.isEmpty
+    }
+}
+
+struct BellPhotoAnalysisDebugInfo: Sendable {
+    let prompt: String
+    let input: String
+    let output: String
+    let visionTags: String
+    let ocrText: String
+
+    init(prompt: String, input: String, output: String, visionTags: String = "", ocrText: String = "") {
+        self.prompt = prompt
+        self.input = input
+        self.output = output
+        self.visionTags = visionTags
+        self.ocrText = ocrText
     }
 }
 
@@ -44,51 +63,84 @@ protocol BellSemanticInferring: Sendable {
         recognizedText: [RecognizedTextFeature],
         visualKeywords: [VisualKeyword],
         language: BellAnalysisLanguage
-    ) async -> BellPhotoSemanticSummary?
+    ) async -> BellSemanticInferenceResult
+}
+
+struct BellSemanticInferenceResult: Sendable {
+    let summary: BellPhotoSemanticSummary?
+    let debugInfo: BellPhotoAnalysisDebugInfo?
 }
 
 struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
-    private let semanticInferer: any BellSemanticInferring
-    private let language: BellAnalysisLanguage
-
-    init(
-        semanticInferer: any BellSemanticInferring = FoundationModelBellSemanticInferer(),
-        language: BellAnalysisLanguage = .current
-    ) {
-        self.semanticInferer = semanticInferer
-        self.language = language
-    }
+    init() {}
 
     func map(analysis: PhotoAnalysisResult) async -> BellPhotoSuggestions {
-        let visionFeatures = analysis.visionFeatures
         let tags = analysis.tags
         let recognizedText = analysis.recognizedText
         let visualKeywords = analysis.visualKeywords
-        let semanticSummary = await semanticInferer.infer(
-            visionFeatures: visionFeatures,
-            tags: tags,
-            recognizedText: recognizedText,
-            visualKeywords: visualKeywords,
-            language: language
-        )
-        let titleSuggestion = makeTitleSuggestion(from: semanticSummary)
-        let notesSuggestion = makeNotesSuggestion(from: semanticSummary)
-        let materialSuggestion = makeMaterialSuggestion(from: semanticSummary)
-        let conditionSuggestion = makeConditionSuggestion(from: semanticSummary)
-        let customMaterialSuggestion = makeCustomMaterialSuggestion(from: semanticSummary, materialSuggestion: materialSuggestion)
-        let suggestedTags = makeSuggestedTags(from: semanticSummary)
 
         return BellPhotoSuggestions(
             tags: tags,
             recognizedText: recognizedText,
             visualKeywords: visualKeywords,
-            title: titleSuggestion,
-            notes: notesSuggestion,
-            material: materialSuggestion,
-            condition: conditionSuggestion,
-            customMaterialName: customMaterialSuggestion,
-            suggestedTags: suggestedTags
+            title: nil,
+            notes: nil,
+            material: nil,
+            condition: nil,
+            customMaterialName: nil,
+            suggestedYear: analysis.year.map { SuggestedFieldValue(value: $0, confidence: 0.86) },
+            suggestedGeo: analysis.geo.map { SuggestedFieldValue(value: $0, confidence: 0.78) },
+            suggestedTags: makeSuggestedTags(from: analysis),
+            debugInfo: makeDebugInfo(from: analysis)
         )
+    }
+
+    private func makeSuggestedTags(from analysis: PhotoAnalysisResult) -> [SuggestedFieldValue<String>] {
+        analysis.tags.map { SuggestedFieldValue(value: $0, confidence: 0.7) }
+    }
+
+    private func makeDebugInfo(from analysis: PhotoAnalysisResult) -> BellPhotoAnalysisDebugInfo {
+        let visionTags = """
+        Raw Vision labels:
+        \(debugLines(analysis.visionFeatures) { "\($0.label) — \(debugConfidence($0.confidence))" })
+
+        Normalized Vision tags:
+        \(debugLines(analysis.normalizedTags) { "\($0.tag.rawValue) — \(debugConfidence($0.confidence))" })
+
+        Visual keywords:
+        \(debugLines(analysis.visualKeywords) { "\($0.value) — \(debugConfidence($0.confidence))" })
+        """
+        let ocrText = debugLines(analysis.recognizedText) { "\"\($0.text)\" — \(debugConfidence($0.confidence))" }
+        let input = """
+        Tags:
+        \(debugLines(analysis.tags) { $0 })
+
+        OCR:
+        \(ocrText)
+        """
+        let output = """
+        year: \(analysis.year.map(String.init) ?? "nil")
+        geo: \(analysis.geo.map { "\($0.name) (\($0.latitude), \($0.longitude))" } ?? "nil")
+        """
+
+        return BellPhotoAnalysisDebugInfo(
+            prompt: "Vision + OCR + CLGeocoder pipeline. Foundation Models disabled.",
+            input: input,
+            output: output,
+            visionTags: visionTags,
+            ocrText: ocrText
+        )
+    }
+
+    private func debugLines<Element>(_ values: [Element], line: (Element) -> String) -> String {
+        guard !values.isEmpty else { return "none" }
+        return values
+            .map { "- \(line($0))" }
+            .joined(separator: "\n")
+    }
+
+    private func debugConfidence(_ confidence: Double) -> String {
+        confidence.formatted(.number.precision(.fractionLength(2)))
     }
 
     private func makeTitleSuggestion(from semanticSummary: BellPhotoSemanticSummary?) -> SuggestedFieldValue<String>? {
@@ -97,8 +149,18 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
     }
 
     private func makeNotesSuggestion(from semanticSummary: BellPhotoSemanticSummary?) -> SuggestedFieldValue<String>? {
-        guard let value = semanticSummary?.notes?.nilIfBlank else { return nil }
-        return SuggestedFieldValue(value: value, confidence: semanticSummary?.confidence ?? 0.78)
+        guard let semanticSummary else { return nil }
+        let value = [
+            semanticSummary.notes?.nilIfBlank,
+            semanticSummary.subject.map { String.localizedStringWithFormat(String(localized: "editor.photo_analysis.subject_format"), $0) },
+            semanticSummary.inferredOrigin.map { String.localizedStringWithFormat(String(localized: "editor.photo_analysis.origin_format"), $0) },
+            semanticSummary.styleEra.map { String.localizedStringWithFormat(String(localized: "editor.photo_analysis.style_format"), $0) }
+        ]
+            .compactMap { $0 }
+            .joined(separator: " ")
+            .nilIfBlank
+        guard let value else { return nil }
+        return SuggestedFieldValue(value: value, confidence: semanticSummary.confidence)
     }
 
     private func makeMaterialSuggestion(from semanticSummary: BellPhotoSemanticSummary?) -> SuggestedFieldValue<BellMaterial>? {
@@ -124,7 +186,14 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         guard let semanticSummary else { return [] }
 
         var seen = Set<String>()
-        return semanticSummary.tags.compactMap { rawTag in
+        let rawTags = semanticSummary.tags + [
+            semanticSummary.material,
+            semanticSummary.styleEra,
+            semanticSummary.subject,
+            semanticSummary.inferredOrigin
+        ].compactMap { $0 }
+
+        return rawTags.compactMap { rawTag in
             guard let value = rawTag.nilIfBlank else { return nil }
             let normalized = value.lowercased()
             guard seen.insert(normalized).inserted else { return nil }
@@ -161,6 +230,9 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
 struct BellPhotoSemanticSummary: Codable, Sendable {
     let title: String?
     let notes: String?
+    let subject: String?
+    let inferredOrigin: String?
+    let styleEra: String?
     let material: String?
     let customMaterialName: String?
     let condition: String?
@@ -170,6 +242,9 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
     init(
         title: String?,
         notes: String?,
+        subject: String?,
+        inferredOrigin: String?,
+        styleEra: String?,
         material: String?,
         customMaterialName: String?,
         condition: String?,
@@ -178,6 +253,9 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
     ) {
         self.title = title
         self.notes = notes
+        self.subject = subject
+        self.inferredOrigin = inferredOrigin
+        self.styleEra = styleEra
         self.material = material
         self.customMaterialName = customMaterialName
         self.condition = condition
@@ -188,6 +266,9 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case title
         case notes
+        case subject
+        case inferredOrigin
+        case styleEra
         case material
         case customMaterialName
         case condition
@@ -199,6 +280,9 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         title = try container.decodeIfPresent(String.self, forKey: .title)
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        subject = try container.decodeIfPresent(String.self, forKey: .subject)
+        inferredOrigin = try container.decodeIfPresent(String.self, forKey: .inferredOrigin)
+        styleEra = try container.decodeIfPresent(String.self, forKey: .styleEra)
         material = try container.decodeIfPresent(String.self, forKey: .material)
         customMaterialName = try container.decodeIfPresent(String.self, forKey: .customMaterialName)
         condition = try container.decodeIfPresent(String.self, forKey: .condition)
@@ -207,6 +291,7 @@ struct BellPhotoSemanticSummary: Codable, Sendable {
     }
 }
 
+#if false
 struct FoundationModelBellSemanticInferer: BellSemanticInferring {
     func infer(
         visionFeatures: [VisionFeature],
@@ -214,52 +299,145 @@ struct FoundationModelBellSemanticInferer: BellSemanticInferring {
         recognizedText: [RecognizedTextFeature],
         visualKeywords: [VisualKeyword],
         language: BellAnalysisLanguage
-    ) async -> BellPhotoSemanticSummary? {
+    ) async -> BellSemanticInferenceResult {
+        let input = debugInput(
+            visionFeatures: visionFeatures,
+            tags: tags,
+            recognizedText: recognizedText,
+            visualKeywords: visualKeywords
+        )
+        let visionTagsDebug = debugVisionTags(
+            visionFeatures: visionFeatures,
+            tags: tags,
+            visualKeywords: visualKeywords
+        )
+        let ocrTextDebug = debugOCRText(recognizedText)
+
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
-            let visionList = visionFeatures.map { "\($0.label):\($0.confidence)" }.joined(separator: ", ")
-            let tagList = tags.map { "\($0.tag.rawValue):\($0.confidence)" }.joined(separator: ", ")
-            let textList = recognizedText.map { "\($0.text):\($0.confidence)" }.joined(separator: ", ")
-            let keywordList = visualKeywords.map { "\($0.value):\($0.confidence)" }.joined(separator: ", ")
+            let prompt = """
+            You are an art historian specializing in campanology and collectible bells.
+            Analyze visual signals and OCR inscriptions to create a professional exhibit-card draft.
+
+            Output strictly valid JSON with keys:
+            title, subject, material, inferred_origin, style_era, condition, tags, suggested_notes, customMaterialName, confidence.
+
+            Constraints:
+            - title, subject, tags, and suggested_notes must be in \(language.outputLanguageName)
+            - do not use "Bell" or "Колокольчик" in title when a more specific name is possible
+            - if OCR text contains a city, place, or event, title should prefer: [city/event] + [form/character]
+            - if the item is figurative, identify the character or animal in subject, e.g. "Lady with basket", "Cat with bow", "Hedgehog figurine"
+            - material must be one of: brass, bronze, ceramic, porcelain, glass, wood, silver, other, or null
+            - if unsure between ceramic and porcelain, infer from glossy/smooth/fine visual signals; otherwise use lower confidence
+            - customMaterialName is only allowed when material is other; otherwise use null
+            - condition must be one of: mint, good, worn, damaged, needsRestoration, or null
+            - inferred_origin must only use OCR text evidence; never infer country/city/provenance from visual style alone
+            - style_era should be one of a concise user-facing style labels such as Vintage, Modern, Souvenir, Religious, Folk, or null
+            - tags must include useful material/style/subject/color tags when supported by signals
+            - suggested_notes must be one professional sentence about the item's visible appearance
+            - if data is weak, lower confidence and leave unsupported fields null; do not invent year, brand, country, city, or provenance
+            """
 
             let session = LanguageModelSession(
-                instructions: """
-                You infer structured semantic suggestions for a bell photo.
-                Output strictly valid JSON with keys:
-                title, notes, material, customMaterialName, condition, tags, confidence.
-                Constraints:
-                - title and notes must be in \(language.outputLanguageName)
-                - title must be specific, concise, and useful for a collector
-                - avoid generic outputs like "bell", "decorative bell", "figurine bell" unless no better specificity exists
-                - prefer concrete visible subject matter when supported by the signals
-                - material must be one of: brass, bronze, ceramic, porcelain, glass, wood, silver, other, or null
-                - customMaterialName is only allowed when material is other; otherwise use null
-                - condition must be one of: mint, good, worn, damaged, needsRestoration, or null
-                - tags must be short user-facing tags in \(language.outputLanguageName)
-                - do not invent country, city, year, brand, or provenance
-                - if certainty is low for a field, return null or omit specificity
-                """
+                instructions: prompt
             )
 
             do {
-                let response = try await session.respond(
-                    to: """
-                    Raw vision labels: \(visionList)
-                    Normalized tags: \(tagList)
-                    Recognized text: \(textList)
-                    Visual keywords: \(keywordList)
-                    Return only JSON.
-                    """
-                )
+                let response = try await session.respond(to: input)
+                let output = response.content
 
-                return parseSemanticSummary(from: response.content)
+                return BellSemanticInferenceResult(
+                    summary: parseSemanticSummary(from: output),
+                    debugInfo: BellPhotoAnalysisDebugInfo(
+                        prompt: prompt,
+                        input: input,
+                        output: output,
+                        visionTags: visionTagsDebug,
+                        ocrText: ocrTextDebug
+                    )
+                )
             } catch {
-                return nil
+                return BellSemanticInferenceResult(
+                    summary: nil,
+                    debugInfo: BellPhotoAnalysisDebugInfo(
+                        prompt: prompt,
+                        input: input,
+                        output: error.localizedDescription,
+                        visionTags: visionTagsDebug,
+                        ocrText: ocrTextDebug
+                    )
+                )
             }
         }
         #endif
 
-        return nil
+        return BellSemanticInferenceResult(
+            summary: nil,
+            debugInfo: BellPhotoAnalysisDebugInfo(
+                prompt: "Foundation Models unavailable",
+                input: input,
+                output: "No model response",
+                visionTags: visionTagsDebug,
+                ocrText: ocrTextDebug
+            )
+        )
+    }
+
+    private func debugVisionTags(
+        visionFeatures: [VisionFeature],
+        tags: [NormalizedVisionTag],
+        visualKeywords: [VisualKeyword]
+    ) -> String {
+        """
+        Raw Vision labels:
+        \(debugLines(visionFeatures) { "\($0.label) — \(debugConfidence($0.confidence))" })
+
+        Normalized Vision tags:
+        \(debugLines(tags) { "\($0.tag.rawValue) — \(debugConfidence($0.confidence))" })
+
+        Visual keywords:
+        \(debugLines(visualKeywords) { "\($0.value) — \(debugConfidence($0.confidence))" })
+        """
+    }
+
+    private func debugOCRText(_ recognizedText: [RecognizedTextFeature]) -> String {
+        debugLines(recognizedText) { "\"\($0.text)\" — \(debugConfidence($0.confidence))" }
+    }
+
+    private func debugInput(
+        visionFeatures: [VisionFeature],
+        tags: [NormalizedVisionTag],
+        recognizedText: [RecognizedTextFeature],
+        visualKeywords: [VisualKeyword]
+    ) -> String {
+        """
+        Raw vision labels (\(visionFeatures.count)):
+        \(debugLines(visionFeatures) { "\($0.label) — \(debugConfidence($0.confidence))" })
+
+        Normalized tags (\(tags.count)):
+        \(debugLines(tags) { "\($0.tag.rawValue) — \(debugConfidence($0.confidence))" })
+
+        Recognized text / OCR (\(recognizedText.count)):
+        \(debugLines(recognizedText) { "\"\($0.text)\" — \(debugConfidence($0.confidence))" })
+
+        Visual keywords (\(visualKeywords.count)):
+        \(debugLines(visualKeywords) { "\($0.value) — \(debugConfidence($0.confidence))" })
+
+        JSON field aliases accepted by parser:
+        suggested_notes may also be notes; inferred_origin may also be inferredOrigin; style_era may also be styleEra.
+        Return only JSON.
+        """
+    }
+
+    private func debugLines<Element>(_ values: [Element], line: (Element) -> String) -> String {
+        guard !values.isEmpty else { return "none" }
+        return values
+            .map { "- \(line($0))" }
+            .joined(separator: "\n")
+    }
+
+    private func debugConfidence(_ confidence: Double) -> String {
+        confidence.formatted(.number.precision(.fractionLength(2)))
     }
 
     private func extractJSONObject(from raw: String) -> String? {
@@ -279,7 +457,10 @@ struct FoundationModelBellSemanticInferer: BellSemanticInferring {
         }
 
         let title = stringValue(for: ["title", "name"], in: object)
-        let notes = stringValue(for: ["notes", "description", "summary"], in: object)
+        let notes = stringValue(for: ["suggested_notes", "suggestedNotes", "notes", "description", "summary"], in: object)
+        let subject = stringValue(for: ["subject", "shape", "character"], in: object)
+        let inferredOrigin = stringValue(for: ["inferred_origin", "inferredOrigin", "origin"], in: object)
+        let styleEra = stringValue(for: ["style_era", "styleEra", "style", "era"], in: object)
         let material = stringValue(for: ["material"], in: object)
         let customMaterialName = stringValue(for: ["customMaterialName", "custom_material_name"], in: object)
         let condition = stringValue(for: ["condition"], in: object)
@@ -289,6 +470,9 @@ struct FoundationModelBellSemanticInferer: BellSemanticInferring {
         let summary = BellPhotoSemanticSummary(
             title: title,
             notes: notes,
+            subject: subject,
+            inferredOrigin: inferredOrigin,
+            styleEra: styleEra,
             material: material,
             customMaterialName: customMaterialName,
             condition: condition,
@@ -296,7 +480,7 @@ struct FoundationModelBellSemanticInferer: BellSemanticInferring {
             confidence: confidence
         )
 
-        if title == nil, notes == nil, material == nil, customMaterialName == nil, condition == nil, tags.isEmpty {
+        if title == nil, notes == nil, subject == nil, inferredOrigin == nil, styleEra == nil, material == nil, customMaterialName == nil, condition == nil, tags.isEmpty {
             return nil
         }
 
@@ -345,6 +529,7 @@ struct FoundationModelBellSemanticInferer: BellSemanticInferring {
         return nil
     }
 }
+#endif
 
 enum BellAnalysisLanguage: Sendable {
     case english
@@ -379,6 +564,8 @@ final class BellPhotoAnalysisController {
         case material
         case condition
         case customMaterialName
+        case suggestedYear
+        case suggestedGeo
         case suggestedTags
     }
 
@@ -423,7 +610,10 @@ final class BellPhotoAnalysisController {
             material: field == .material ? nil : suggestions.material,
             condition: field == .condition ? nil : suggestions.condition,
             customMaterialName: field == .customMaterialName ? nil : suggestions.customMaterialName,
-            suggestedTags: field == .suggestedTags ? [] : suggestions.suggestedTags
+            suggestedYear: field == .suggestedYear ? nil : suggestions.suggestedYear,
+            suggestedGeo: field == .suggestedGeo ? nil : suggestions.suggestedGeo,
+            suggestedTags: field == .suggestedTags ? [] : suggestions.suggestedTags,
+            debugInfo: suggestions.debugInfo
         )
     }
 

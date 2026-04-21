@@ -77,6 +77,7 @@
 "bell_catalog.group.storage" = "Хранение";
 
 "common.add" = "Добавить";
+"common.apply" = "Применить";
 "common.back" = "Назад";
 "common.cancel" = "Отмена";
 "common.clear" = "Сбросить";
@@ -129,16 +130,19 @@
 "editor.media.model" = "Добавить 3D-модель";
 "editor.media.model.placeholder_title" = "3D-модели будут позже";
 "editor.media.model.placeholder_message" = "Импорт 3D-моделей пока работает как заглушка. Фото уже используют системные пикеры.";
-"editor.photo_analysis.accept" = "Применить";
 "editor.photo_analysis.analyzing" = "Анализирую фото…";
 "editor.photo_analysis.detected_text" = "Распознанный текст";
 "editor.photo_analysis.condition" = "Состояние";
+"editor.photo_analysis.geo" = "Происхождение";
 "editor.photo_analysis.material" = "Материал";
 "editor.photo_analysis.notes" = "Описание";
-"editor.photo_analysis.reject" = "Скрыть";
+"editor.photo_analysis.origin_format" = "Надпись/происхождение: %@.";
 "editor.photo_analysis.section" = "Подсказки по фото";
+"editor.photo_analysis.style_format" = "Стиль: %@.";
+"editor.photo_analysis.subject_format" = "Сюжет: %@.";
 "editor.photo_analysis.tags" = "Теги";
 "editor.photo_analysis.title" = "Название";
+"editor.photo_analysis.year" = "Год";
 
 "editor.origin.title" = "Происхождение";
 "editor.origin.search" = "Поиск мест";

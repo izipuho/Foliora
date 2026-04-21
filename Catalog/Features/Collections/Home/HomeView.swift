@@ -1544,6 +1544,7 @@ private struct CollectionShellView: View {
     @State private var shouldPresentEditorAfterCamera = false
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var draftMediaAssets: [MediaAsset] = []
+    @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
     @State private var isPresentingMap = false
     @State private var selectedOrder: BellOrderMode = .newestFirst
@@ -1649,11 +1650,13 @@ private struct CollectionShellView: View {
         }
         .sheet(isPresented: $isPresentingAddBell, onDismiss: {
             draftMediaAssets = []
+            draftAnalysisImage = nil
         }) {
             BellEditorView(
                 collection: collection,
                 repository: repository,
-                initialMediaAssets: draftMediaAssets
+                initialMediaAssets: draftMediaAssets,
+                initialAnalysisImage: draftAnalysisImage
             ) { newBell in
                 repository.saveBellRecord(newBell)
                 refreshContent()
@@ -1753,11 +1756,15 @@ private struct CollectionShellView: View {
         guard !items.isEmpty else { return }
 
         var newAssets: [MediaAsset] = []
+        var firstImage: UIImage?
 
         for item in items {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
             let fileExtension = item.supportedContentTypes.first?.preferredFilenameExtension
             guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: fileExtension) else { continue }
+            if firstImage == nil {
+                firstImage = UIImage(data: data)
+            }
 
             newAssets.append(
                 MediaAsset(
@@ -1775,6 +1782,7 @@ private struct CollectionShellView: View {
 
         guard !newAssets.isEmpty else { return }
         draftMediaAssets = newAssets
+        draftAnalysisImage = firstImage
         isPresentingAddBell = true
     }
 
@@ -1792,6 +1800,7 @@ private struct CollectionShellView: View {
                 sortOrder: 0
             )
         ]
+        draftAnalysisImage = image
         shouldPresentEditorAfterCamera = true
     }
 }

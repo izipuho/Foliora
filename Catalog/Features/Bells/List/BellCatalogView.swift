@@ -1065,6 +1065,7 @@ struct BellEditorView: View {
     let collection: CollectionSummary
     let repository: any CatalogRepository
     let startSection: StartSection?
+    let initialAnalysisImage: UIImage?
     let onSave: (BellRecord) -> Void
     @Query private var queriedLocations: [LocationEntity]
     @Query private var queriedBells: [BellEntity]
@@ -1086,6 +1087,7 @@ struct BellEditorView: View {
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
     @State private var photoAnalysis = BellPhotoAnalysisController()
+    @State private var didStartInitialAnalysis = false
     private let existingBellID: UUID?
     private let existingCreatedAt: Date?
     private let editorItemID: UUID
@@ -1143,12 +1145,14 @@ struct BellEditorView: View {
         repository: any CatalogRepository,
         bell: BellRecord? = nil,
         initialMediaAssets: [MediaAsset] = [],
+        initialAnalysisImage: UIImage? = nil,
         startSection: StartSection? = nil,
         onSave: @escaping (BellRecord) -> Void
     ) {
         self.collection = collection
         self.repository = repository
         self.startSection = startSection
+        self.initialAnalysisImage = initialAnalysisImage
         self.onSave = onSave
         self.existingBellID = bell?.id
         self.existingCreatedAt = bell?.createdAt
@@ -1187,7 +1191,8 @@ struct BellEditorView: View {
                     Section(String(localized: "editor.media")) {
                         MediaSection(
                             itemID: editorItemID,
-                            mediaAssets: $mediaAssets
+                            mediaAssets: $mediaAssets,
+                            analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
                         )
                     }
 
@@ -1200,10 +1205,6 @@ struct BellEditorView: View {
                                         .foregroundStyle(.secondary)
                                 }
                             } else {
-                                if !photoAnalysis.suggestions.tags.isEmpty {
-                                    PhotoAnalysisTagCloud(tags: photoAnalysis.suggestions.tags)
-                                }
-
                                 if !photoAnalysis.suggestions.recognizedText.isEmpty {
                                     PhotoRecognizedTextBlock(textFeatures: photoAnalysis.suggestions.recognizedText)
                                 }
@@ -1216,9 +1217,6 @@ struct BellEditorView: View {
                                         onAccept: {
                                             title = titleSuggestion.value
                                             photoAnalysis.dismiss(.title)
-                                        },
-                                        onReject: {
-                                            photoAnalysis.dismiss(.title)
                                         }
                                     )
                                 }
@@ -1230,9 +1228,6 @@ struct BellEditorView: View {
                                         confidence: notesSuggestion.confidence,
                                         onAccept: {
                                             notes = notesSuggestion.value
-                                            photoAnalysis.dismiss(.notes)
-                                        },
-                                        onReject: {
                                             photoAnalysis.dismiss(.notes)
                                         }
                                     )
@@ -1252,10 +1247,6 @@ struct BellEditorView: View {
                                                 customMaterialName = ""
                                             }
                                             photoAnalysis.dismiss(.material)
-                                        },
-                                        onReject: {
-                                            photoAnalysis.dismiss(.material)
-                                            photoAnalysis.dismiss(.customMaterialName)
                                         }
                                     )
                                 }
@@ -1268,9 +1259,30 @@ struct BellEditorView: View {
                                         onAccept: {
                                             condition = conditionSuggestion.value
                                             photoAnalysis.dismiss(.condition)
-                                        },
-                                        onReject: {
-                                            photoAnalysis.dismiss(.condition)
+                                        }
+                                    )
+                                }
+
+                                if let yearSuggestion = photoAnalysis.suggestions.suggestedYear {
+                                    PhotoSuggestionRow(
+                                        title: String(localized: "editor.photo_analysis.year"),
+                                        suggestedValue: String(yearSuggestion.value),
+                                        confidence: yearSuggestion.confidence,
+                                        onAccept: {
+                                            selectedAcquiredYearOption = String(yearSuggestion.value)
+                                            photoAnalysis.dismiss(.suggestedYear)
+                                        }
+                                    )
+                                }
+
+                                if let geoSuggestion = photoAnalysis.suggestions.suggestedGeo {
+                                    PhotoSuggestionRow(
+                                        title: String(localized: "editor.photo_analysis.geo"),
+                                        suggestedValue: geoSuggestion.value.name,
+                                        confidence: geoSuggestion.confidence,
+                                        onAccept: {
+                                            selectedOriginPlace = place(from: geoSuggestion.value)
+                                            photoAnalysis.dismiss(.suggestedGeo)
                                         }
                                     )
                                 }
@@ -1279,14 +1291,10 @@ struct BellEditorView: View {
                                     PhotoSuggestedTagsRow(
                                         title: String(localized: "editor.photo_analysis.tags"),
                                         suggestions: photoAnalysis.suggestions.suggestedTags,
-                                        onAcceptAll: {
-                                            let newValues = photoAnalysis.suggestions.suggestedTags.map(\.value)
+                                        onAccept: { newValues in
                                             for value in newValues where !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
                                                 tags.append(value)
                                             }
-                                            photoAnalysis.dismiss(.suggestedTags)
-                                        },
-                                        onReject: {
                                             photoAnalysis.dismiss(.suggestedTags)
                                         }
                                     )
@@ -1381,6 +1389,7 @@ struct BellEditorView: View {
                     }
                 }
                 .task {
+                    startInitialPhotoAnalysisIfNeeded()
                     guard let startSection else { return }
                     highlightedSection = startSection
                     try? await Task.sleep(for: .milliseconds(150))
@@ -1428,6 +1437,20 @@ struct BellEditorView: View {
         // Keep failures / empty results silent by default.
         // If the analysis flow is re-enabled and warning feedback is needed later,
         // emit `.warning` here in a more selective way.
+    }
+
+    private func startInitialPhotoAnalysisIfNeeded() {
+        guard !didStartInitialAnalysis, existingBellID == nil, let initialAnalysisImage else { return }
+        didStartInitialAnalysis = true
+        photoAnalysis.analyze(image: initialAnalysisImage)
+    }
+
+    private var firstPhotoAssetID: UUID? {
+        mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .first?
+            .id
     }
 
     private func saveBell() {
@@ -1483,6 +1506,19 @@ struct BellEditorView: View {
         selectedOriginPlace?.displayName ?? String(localized: "common.unassigned")
     }
 
+    private func place(from geoPoint: GeoPoint) -> Place {
+        Place(
+            id: UUID(),
+            displayName: geoPoint.name,
+            countryCode: "",
+            countryName: geoPoint.name,
+            regionName: nil,
+            cityName: nil,
+            latitude: geoPoint.latitude,
+            longitude: geoPoint.longitude
+        )
+    }
+
     private var selectedLocationLabel: String {
         guard let selectedLocationID, let path = locationPathByID[selectedLocationID] else {
             return String(localized: "common.unassigned")
@@ -1520,7 +1556,6 @@ private struct PhotoSuggestionRow: View {
     let suggestedValue: String
     let confidence: Double
     let onAccept: () -> Void
-    let onReject: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1536,16 +1571,15 @@ private struct PhotoSuggestionRow: View {
             Text(suggestedValue)
                 .foregroundStyle(.primary)
 
-            HStack(spacing: 10) {
-                Button(action: onAccept) {
-                    Label(String(localized: "editor.photo_analysis.accept"), systemImage: "checkmark.circle.fill")
-                }
-                .buttonStyle(.borderedProminent)
+            HStack {
+                Spacer()
 
-                Button(action: onReject) {
-                    Label(String(localized: "editor.photo_analysis.reject"), systemImage: "xmark.circle")
+                Button(action: onAccept) {
+                    Image(systemName: "checkmark")
                 }
                 .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .accessibilityLabel(String(localized: "common.apply"))
             }
         }
         .padding(.vertical, CatalogSpacing.micro)
@@ -1553,21 +1587,6 @@ private struct PhotoSuggestionRow: View {
 
     private var confidenceLabel: String {
         "\(Int((confidence * 100).rounded()))%"
-    }
-}
-
-private struct PhotoAnalysisTagCloud: View {
-    let tags: [NormalizedVisionTag]
-
-    var body: some View {
-        TagFlowLayout(spacing: 8) {
-            ForEach(tags, id: \.self) { tag in
-                Text(tag.tag.rawValue)
-                    .font(.caption.weight(.medium))
-                    .catalogPillPadding(.regular)
-                    .background(.thinMaterial, in: Capsule())
-            }
-        }
     }
 }
 
@@ -1595,8 +1614,20 @@ private struct PhotoRecognizedTextBlock: View {
 private struct PhotoSuggestedTagsRow: View {
     let title: String
     let suggestions: [SuggestedFieldValue<String>]
-    let onAcceptAll: () -> Void
-    let onReject: () -> Void
+    let onAccept: ([String]) -> Void
+
+    @State private var selectedValues: Set<String>
+
+    init(
+        title: String,
+        suggestions: [SuggestedFieldValue<String>],
+        onAccept: @escaping ([String]) -> Void
+    ) {
+        self.title = title
+        self.suggestions = suggestions
+        self.onAccept = onAccept
+        _selectedValues = State(initialValue: Set(suggestions.map(\.value)))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1607,27 +1638,54 @@ private struct PhotoSuggestedTagsRow: View {
             }
 
             TagFlowLayout(spacing: 8) {
-                ForEach(suggestions, id: \.value) { suggestion in
-                    Text(suggestion.value)
-                        .font(.caption.weight(.medium))
-                        .catalogPillPadding(.regular)
-                        .background(.thinMaterial, in: Capsule())
+                ForEach(selectedSuggestions, id: \.value) { suggestion in
+                    PhotoSuggestedTagChip(tag: suggestion.value) {
+                        selectedValues.remove(suggestion.value)
+                    }
                 }
             }
 
-            HStack(spacing: 10) {
-                Button(action: onAcceptAll) {
-                    Label(String(localized: "editor.photo_analysis.accept"), systemImage: "checkmark.circle.fill")
-                }
-                .buttonStyle(.borderedProminent)
+            HStack {
+                Spacer()
 
-                Button(action: onReject) {
-                    Label(String(localized: "editor.photo_analysis.reject"), systemImage: "xmark.circle")
+                Button {
+                    onAccept(suggestions.map(\.value).filter(selectedValues.contains))
+                } label: {
+                    Image(systemName: "checkmark")
                 }
                 .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .disabled(selectedValues.isEmpty)
+                .accessibilityLabel(String(localized: "common.apply"))
             }
         }
         .padding(.vertical, CatalogSpacing.micro)
+    }
+
+    private var selectedSuggestions: [SuggestedFieldValue<String>] {
+        suggestions.filter { selectedValues.contains($0.value) }
+    }
+}
+
+private struct PhotoSuggestedTagChip: View {
+    let tag: String
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: CatalogSpacing.compact) {
+            Text("#\(tag)")
+                .font(.subheadline.weight(.medium))
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "common.delete"))
+        }
+        .catalogPillPadding(.regular)
+        .background(.thinMaterial, in: Capsule())
     }
 }
 
