@@ -5,8 +5,7 @@ import UIKit
 import FoundationModels
 #endif
 
-struct BellPhotoAnalysisResult: Sendable {
-    let visionFeatures: [VisionFeature]
+struct BellPhotoSuggestions: Sendable {
     let tags: [NormalizedVisionTag]
     let recognizedText: [RecognizedTextFeature]
     let visualKeywords: [VisualKeyword]
@@ -17,8 +16,7 @@ struct BellPhotoAnalysisResult: Sendable {
     let customMaterialName: SuggestedFieldValue<String>?
     let suggestedTags: [SuggestedFieldValue<String>]
 
-    static let empty = BellPhotoAnalysisResult(
-        visionFeatures: [],
+    static let empty = BellPhotoSuggestions(
         tags: [],
         recognizedText: [],
         visualKeywords: [],
@@ -36,7 +34,7 @@ struct BellPhotoAnalysisResult: Sendable {
 }
 
 protocol BellPhotoSuggestionMapping: Sendable {
-    func map(analysis: PhotoAnalysisResult) async -> BellPhotoAnalysisResult
+    func map(analysis: PhotoAnalysisResult) async -> BellPhotoSuggestions
 }
 
 protocol BellSemanticInferring: Sendable {
@@ -61,7 +59,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         self.language = language
     }
 
-    func map(analysis: PhotoAnalysisResult) async -> BellPhotoAnalysisResult {
+    func map(analysis: PhotoAnalysisResult) async -> BellPhotoSuggestions {
         let visionFeatures = analysis.visionFeatures
         let tags = analysis.tags
         let recognizedText = analysis.recognizedText
@@ -80,8 +78,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         let customMaterialSuggestion = makeCustomMaterialSuggestion(from: semanticSummary, materialSuggestion: materialSuggestion)
         let suggestedTags = makeSuggestedTags(from: semanticSummary)
 
-        return BellPhotoAnalysisResult(
-            visionFeatures: visionFeatures,
+        return BellPhotoSuggestions(
             tags: tags,
             recognizedText: recognizedText,
             visualKeywords: visualKeywords,
@@ -386,7 +383,7 @@ final class BellPhotoAnalysisController {
     }
 
     private(set) var isAnalyzing = false
-    private(set) var result: BellPhotoAnalysisResult = .empty
+    private(set) var suggestions: BellPhotoSuggestions = .empty
 
     private let service: any PhotoAnalysisService
     private let mapper: any BellPhotoSuggestionMapping
@@ -400,7 +397,7 @@ final class BellPhotoAnalysisController {
     }
 
     var hasSuggestions: Bool {
-        isAnalyzing || result.hasSuggestions
+        isAnalyzing || suggestions.hasSuggestions
     }
 
     func analyze(image: UIImage) {
@@ -410,29 +407,28 @@ final class BellPhotoAnalysisController {
             let analysis = await service.analyze(image: image)
             let mapped = await mapper.map(analysis: analysis)
             await MainActor.run {
-                self.result = mapped
+                self.suggestions = mapped
                 self.isAnalyzing = false
             }
         }
     }
 
     func dismiss(_ field: Field) {
-        result = BellPhotoAnalysisResult(
-            visionFeatures: result.visionFeatures,
-            tags: result.tags,
-            recognizedText: result.recognizedText,
-            visualKeywords: result.visualKeywords,
-            title: field == .title ? nil : result.title,
-            notes: field == .notes ? nil : result.notes,
-            material: field == .material ? nil : result.material,
-            condition: field == .condition ? nil : result.condition,
-            customMaterialName: field == .customMaterialName ? nil : result.customMaterialName,
-            suggestedTags: field == .suggestedTags ? [] : result.suggestedTags
+        suggestions = BellPhotoSuggestions(
+            tags: suggestions.tags,
+            recognizedText: suggestions.recognizedText,
+            visualKeywords: suggestions.visualKeywords,
+            title: field == .title ? nil : suggestions.title,
+            notes: field == .notes ? nil : suggestions.notes,
+            material: field == .material ? nil : suggestions.material,
+            condition: field == .condition ? nil : suggestions.condition,
+            customMaterialName: field == .customMaterialName ? nil : suggestions.customMaterialName,
+            suggestedTags: field == .suggestedTags ? [] : suggestions.suggestedTags
         )
     }
 
     func clear() {
-        result = .empty
+        suggestions = .empty
         isAnalyzing = false
     }
 }

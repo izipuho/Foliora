@@ -30,12 +30,14 @@
 		C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000015 /* CloudKitCatalogRepository.swift */; };
 		C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000018 /* LocalMediaFileStore.swift */; };
 		C000000000000000000000B9 /* BellCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001F /* BellCardView.swift */; };
+		C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002E /* AsyncThumbnailLoader.swift */; };
 		C000000000000000000000BA /* CatalogEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000025 /* CatalogEntities.swift */; };
 		C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000026 /* CatalogSwiftDataStack.swift */; };
 		C000000000000000000000BC /* SwiftDataCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000027 /* SwiftDataCatalogRepository.swift */; };
 		C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000028 /* CatalogTransferBundle.swift */; };
 		C000000000000000000000BE /* CatalogJSONPort.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000029 /* CatalogJSONPort.swift */; };
 		C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002A /* CatalogTransferDocument.swift */; };
+		C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002F /* CatalogImportExportActor.swift */; };
 		C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
 		C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
 		C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002D /* BellCatalogViewModel.swift */; };
@@ -65,12 +67,14 @@
 		C00000000000000000000016 /* Catalog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catalog.entitlements; sourceTree = "<group>"; };
 		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
 		C0000000000000000000001F /* BellCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCardView.swift; sourceTree = "<group>"; };
+		C0000000000000000000002E /* AsyncThumbnailLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncThumbnailLoader.swift; sourceTree = "<group>"; };
 		C00000000000000000000025 /* CatalogEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEntities.swift; sourceTree = "<group>"; };
 		C00000000000000000000026 /* CatalogSwiftDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSwiftDataStack.swift; sourceTree = "<group>"; };
 		C00000000000000000000027 /* SwiftDataCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataCatalogRepository.swift; sourceTree = "<group>"; };
 		C00000000000000000000028 /* CatalogTransferBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferBundle.swift; sourceTree = "<group>"; };
 		C00000000000000000000029 /* CatalogJSONPort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogJSONPort.swift; sourceTree = "<group>"; };
 		C0000000000000000000002A /* CatalogTransferDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferDocument.swift; sourceTree = "<group>"; };
+		C0000000000000000000002F /* CatalogImportExportActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportActor.swift; sourceTree = "<group>"; };
 		C0000000000000000000002B /* PhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysis.swift; sourceTree = "<group>"; };
 		C0000000000000000000002C /* BellPhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellPhotoAnalysis.swift; sourceTree = "<group>"; };
 		C0000000000000000000002D /* BellCatalogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogViewModel.swift; sourceTree = "<group>"; };
@@ -192,6 +196,7 @@
 		C0000000000000000000003B /* SharedUI */ = {
 			isa = PBXGroup;
 			children = (
+				C0000000000000000000002E /* AsyncThumbnailLoader.swift */,
 				C0000000000000000000001F /* BellCardView.swift */,
 				C00000000000000000000004 /* CollectionCard.swift */,
 				C00000000000000000000013 /* EditorFields.swift */,
@@ -252,6 +257,7 @@
 				C00000000000000000000028 /* CatalogTransferBundle.swift */,
 				C00000000000000000000029 /* CatalogJSONPort.swift */,
 				C0000000000000000000002A /* CatalogTransferDocument.swift */,
+				C0000000000000000000002F /* CatalogImportExportActor.swift */,
 			);
 			path = ImportExport;
 			sourceTree = "<group>";
@@ -452,7 +458,9 @@
 				C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */,
 				C000000000000000000000BE /* CatalogJSONPort.swift in Sources */,
 				C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */,
+				C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */,
 				C000000000000000000000B9 /* BellCardView.swift in Sources */,
+				C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */,
 				C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */,
 				C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */,
 				C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */,

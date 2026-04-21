@@ -172,14 +172,38 @@ enum BellGridLayoutMode: Int, CaseIterable {
     }
 }
 
+protocol BellCardDisplayable {
+    var id: UUID { get }
+    var title: String { get }
+    var placeDisplayName: String { get }
+    var acquiredYear: Int? { get }
+    var coverPhotoIdentifier: String? { get }
+}
+
+extension BellEntity: BellCardDisplayable {
+    var coverPhotoIdentifier: String? {
+        coverPhotoAsset?.localIdentifier
+    }
+}
+
+extension BellRecord: BellCardDisplayable {
+    var coverPhotoIdentifier: String? {
+        mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .first?
+            .localIdentifier
+    }
+}
+
 struct BellCardView: View {
-    let bell: BellRecord
+    let bell: any BellCardDisplayable
     let layoutMode: BellGridLayoutMode
 
     private let style: BellCardStyle
     private let cornerRadius: CGFloat
 
-    init(bell: BellRecord, layoutMode: BellGridLayoutMode) {
+    init(bell: some BellCardDisplayable, layoutMode: BellGridLayoutMode) {
         self.bell = bell
         self.layoutMode = layoutMode
         self.style = BellCardStyle.style(for: layoutMode)
@@ -191,9 +215,9 @@ struct BellCardView: View {
             let cardSize = proxy.size
 
             ZStack(alignment: .topLeading) {
-                if let coverPhotoAsset {
+                if let coverPhotoIdentifier = bell.coverPhotoIdentifier {
                     BellCardCoverBackground(
-                        asset: coverPhotoAsset,
+                        identifier: coverPhotoIdentifier,
                         size: cardSize
                     )
                 }
@@ -259,15 +283,8 @@ struct BellCardView: View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
 
-    private var coverPhotoAsset: MediaAsset? {
-        bell.mediaAssets
-            .filter { $0.kind == .photo }
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .first
-    }
-
     private var hasCoverPhoto: Bool {
-        coverPhotoAsset != nil
+        bell.coverPhotoIdentifier != nil
     }
 
     private var primaryTextColor: Color {
@@ -390,7 +407,7 @@ private struct BellCardStyle {
 }
 
 private struct BellCardTitleBlock: View {
-    let bell: BellRecord
+    let bell: any BellCardDisplayable
     let style: BellCardStyle.TitleBlockStyle
     let primaryTextColor: Color
     let secondaryTextColor: Color
@@ -413,7 +430,7 @@ private struct BellCardTitleBlock: View {
 }
 
 private struct BellCardMetaBlock: View {
-    let bell: BellRecord
+    let bell: any BellCardDisplayable
     let style: BellCardStyle.MetaBlockStyle
     let bright: Bool
 
@@ -470,18 +487,18 @@ private struct BellCardMetaChip: View {
     }
 }
 
-struct BellCardStripView: View {
-    let bells: [BellRecord]
+struct BellCardStripView<Bell: BellCardDisplayable>: View {
+    let bells: [Bell]
     let layoutMode: BellGridLayoutMode
     let screenWidth: CGFloat
-    let onSelect: (BellRecord) -> Void
+    let onSelect: (Bell) -> Void
 
     var body: some View {
         let width = layoutMode.cardWidth(forScreenWidth: screenWidth)
 
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: layoutMode.spacing) {
-                ForEach(bells) { bell in
+                ForEach(bells, id: \.id) { bell in
                     Button {
                         onSelect(bell)
                     } label: {
@@ -497,7 +514,7 @@ struct BellCardStripView: View {
 }
 
 struct BellCardHeroView: View {
-    let bell: BellRecord
+    let bell: any BellCardDisplayable
 
     var body: some View {
         BellCardView(
@@ -511,9 +528,11 @@ struct BellCardHeroView: View {
 }
 
 struct BellCardCoverBackground: View {
-    let asset: MediaAsset
+    let identifier: String
     let size: CGSize
     private let mediaStore = LocalMediaFileStore.shared
+    private let thumbnailCache = ThumbnailImageCache.shared
+    @Environment(\.displayScale) private var displayScale
     @State private var image: UIImage?
 
     var body: some View {
@@ -536,15 +555,30 @@ struct BellCardCoverBackground: View {
                 .frame(width: size.width, height: size.height)
             }
         }
-        .task(id: asset.localIdentifier) {
-            loadImage()
+        .task(id: thumbnailTaskID) {
+            await loadImage()
+        }
+        .onChange(of: thumbnailTaskID) { _, _ in
+            image = nil
         }
     }
 
-    private func loadImage() {
+    private var thumbnailTaskID: String {
+        let pixelWidth = Int((size.width * displayScale).rounded(.up))
+        let pixelHeight = Int((size.height * displayScale).rounded(.up))
+        return "\(identifier)-\(pixelWidth)x\(pixelHeight)"
+    }
+
+    @MainActor
+    private func loadImage() async {
         guard image == nil,
-              let url = mediaStore.fileURL(for: asset.localIdentifier),
-              let loadedImage = UIImage(contentsOfFile: url.path) else {
+              let url = mediaStore.fileURL(for: identifier),
+              let loadedImage = await thumbnailCache.image(
+                identifier: identifier,
+                url: url,
+                targetSize: size,
+                scale: displayScale
+              ) else {
             return
         }
 

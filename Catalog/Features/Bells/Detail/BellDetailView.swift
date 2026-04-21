@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import QuickLook
 import MapKit
+import SwiftData
 
 struct BellDetailView: View {
     private enum DetailFeedback: Equatable {
@@ -22,6 +23,8 @@ struct BellDetailView: View {
 
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
+    @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
+    @Query(sort: \LocationEntity.name) private var locationEntities: [LocationEntity]
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
@@ -174,11 +177,13 @@ struct BellDetailView: View {
     }
 
     private var availableLocations: [Location] {
-        repository.fetchLocations(in: inferredCollection.homeID)
+        locationEntities
+            .filter { $0.home?.id == inferredCollection.homeID }
+            .map(\.locationSnapshot)
     }
 
     private var inferredCollection: CollectionSummary {
-        repository.fetchCollections().first(where: { $0.id == bell.item.collectionID }) ??
+        collectionEntities.first(where: { $0.id == bell.item.collectionID })?.summarySnapshot ??
             CollectionSummary(
                 id: bell.item.collectionID,
                 homeID: UUID(),
@@ -719,18 +724,33 @@ private struct DetailBadge: View {
 private struct BellDetailPreviewHost: View {
     let collectionID: UUID
     let repository: any CatalogRepository
-    @State private var bell: BellRecord
-
-    init(collectionID: UUID, repository: any CatalogRepository) {
-        self.collectionID = collectionID
-        self.repository = repository
-        _bell = State(initialValue: repository.fetchBellRecords(for: collectionID)[0])
-    }
+    @Query(sort: \BellEntity.createdAt, order: .reverse) private var bells: [BellEntity]
+    @State private var bell: BellRecord?
 
     var body: some View {
-        BellDetailView(
-            bell: $bell,
-            repository: repository
+        Group {
+            if let binding = bellBinding {
+                BellDetailView(
+                    bell: binding,
+                    repository: repository
+                )
+            } else {
+                ContentUnavailableView(String(localized: "home.not_found.title"), systemImage: "bell.slash")
+            }
+        }
+        .onAppear(perform: syncBellIfNeeded)
+    }
+
+    private var bellBinding: Binding<BellRecord>? {
+        guard bell != nil else { return nil }
+        return Binding(
+            get: { bell! },
+            set: { bell = $0 }
         )
+    }
+
+    private func syncBellIfNeeded() {
+        guard bell == nil else { return }
+        bell = bells.first(where: { $0.collection?.id == collectionID })?.recordSnapshot
     }
 }

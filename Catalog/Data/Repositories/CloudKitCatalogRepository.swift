@@ -1,5 +1,6 @@
 import CloudKit
 import Foundation
+import SwiftData
 
 @MainActor
 final class CloudKitCatalogRepository: CatalogRepository {
@@ -23,32 +24,8 @@ final class CloudKitCatalogRepository: CatalogRepository {
         "Shared-first CloudKit model with owner-managed reference data."
     }
 
-    func fetchHomes() -> [Home] {
-        []
-    }
-
-    func fetchLocations(in homeID: UUID) -> [Location] {
-        []
-    }
-
-    func fetchDomainCollections(in homeID: UUID) -> [Collection] {
-        []
-    }
-
-    func fetchMemberships(for collectionID: UUID) -> [Membership] {
-        []
-    }
-
-    func fetchCollections() -> [CollectionSummary] {
-        []
-    }
-
-    func fetchBellRecords(for collectionID: UUID) -> [BellRecord] {
-        []
-    }
-
-    func fetchCollaborators(for collectionID: UUID) -> [Collaborator] {
-        []
+    var modelContainer: ModelContainer {
+        fatalError("CloudKit repository does not expose a SwiftData container.")
     }
 
     func saveHome(_ home: Home) {

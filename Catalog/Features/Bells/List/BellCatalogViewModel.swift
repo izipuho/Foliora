@@ -4,7 +4,7 @@ import Observation
 @MainActor
 @Observable
 final class BellCatalogViewModel {
-    var bellRecords: [BellRecord]
+    var bellRecords: [BellEntity]
     var selectedCondition: ItemCondition?
     var orderMode: BellOrderMode
     var summaryFilter: BellSummaryFilter?
@@ -13,7 +13,7 @@ final class BellCatalogViewModel {
     var homeName: String
 
     init(
-        bellRecords: [BellRecord],
+        bellRecords: [BellEntity],
         orderMode: BellOrderMode,
         summaryFilter: BellSummaryFilter?,
         searchText: String,
@@ -30,11 +30,11 @@ final class BellCatalogViewModel {
         self.selectedCondition = selectedCondition
     }
 
-    var bells: [BellRecord] {
+    var bells: [BellEntity] {
         sorted(bellRecords)
     }
 
-    var filteredBells: [BellRecord] {
+    var filteredBells: [BellEntity] {
         sorted(
             bellRecords.filter { bell in
                 let matchesSearch =
@@ -42,7 +42,7 @@ final class BellCatalogViewModel {
                     bell.title.localizedCaseInsensitiveContains(searchText) ||
                     bell.countryName.localizedCaseInsensitiveContains(searchText) ||
                     bell.cityName.localizedCaseInsensitiveContains(searchText) ||
-                    bell.tags.joined(separator: " ").localizedCaseInsensitiveContains(searchText)
+                    bell.tagValues.joined(separator: " ").localizedCaseInsensitiveContains(searchText)
 
                 let matchesCondition = selectedCondition == nil || bell.condition == selectedCondition
                 let matchesSummaryFilter = matches(bell: bell, summaryFilter: summaryFilter)
@@ -51,7 +51,7 @@ final class BellCatalogViewModel {
         )
     }
 
-    var filteredItemsBells: [BellRecord] {
+    var filteredItemsBells: [BellEntity] {
         sorted(
             bellRecords.filter { bell in
                 matches(bell: bell, summaryFilter: summaryFilter)
@@ -59,7 +59,7 @@ final class BellCatalogViewModel {
         )
     }
 
-    var recentBells: [BellRecord] {
+    var recentBells: [BellEntity] {
         Array(
             bellRecords
                 .sorted { $0.createdAt > $1.createdAt }
@@ -88,7 +88,7 @@ final class BellCatalogViewModel {
     }
 
     var bellsWithStorageCount: Int {
-        bells.filter { $0.item.locationID != nil }.count
+        bells.filter { $0.location != nil }.count
     }
 
     var bellsWithNotesCount: Int {
@@ -96,7 +96,7 @@ final class BellCatalogViewModel {
     }
 
     var bellsWithTagsCount: Int {
-        bells.filter { !$0.tags.isEmpty }.count
+        bells.filter { !$0.tagValues.isEmpty }.count
     }
 
     var topCountries: [(String, Int)] {
@@ -124,7 +124,7 @@ final class BellCatalogViewModel {
     }
 
     var topTags: [(String, Int)] {
-        Dictionary(grouping: bells.flatMap(\.tags), by: { $0 })
+        Dictionary(grouping: bells.flatMap(\.tagValues), by: { $0 })
             .map { ($0.key, $0.value.count) }
             .sorted { lhs, rhs in
                 if lhs.1 == rhs.1 {
@@ -152,10 +152,6 @@ final class BellCatalogViewModel {
             .sorted { $0.title < $1.title }
     }
 
-    func refreshBellRecords(from repository: any CatalogRepository, collectionID: UUID) {
-        bellRecords = repository.fetchBellRecords(for: collectionID)
-    }
-
     func updateContext(
         orderMode: BellOrderMode,
         summaryFilter: BellSummaryFilter?,
@@ -170,7 +166,7 @@ final class BellCatalogViewModel {
         self.homeName = homeName
     }
 
-    func matches(bell: BellRecord, summaryFilter: BellSummaryFilter?) -> Bool {
+    func matches(bell: BellEntity, summaryFilter: BellSummaryFilter?) -> Bool {
         switch summaryFilter {
         case nil, .all:
             return true
@@ -185,17 +181,17 @@ final class BellCatalogViewModel {
         case .withCity:
             return !bell.cityName.isEmpty
         case .withStorage:
-            return bell.item.locationID != nil
+            return bell.location != nil
         case .missingStorage:
-            return bell.item.locationID == nil
+            return bell.location == nil
         case .withNotes:
             return !bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .missingNotes:
             return bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .withTags:
-            return !bell.tags.isEmpty
+            return !bell.tagValues.isEmpty
         case .missingTags:
-            return bell.tags.isEmpty
+            return bell.tagValues.isEmpty
         case .withMaterial:
             return !bell.materialDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .country(let country):
@@ -203,11 +199,11 @@ final class BellCatalogViewModel {
         case .material(let material):
             return bell.materialDisplayName.localizedCaseInsensitiveCompare(material) == .orderedSame
         case .tag(let tag):
-            return bell.tags.contains(where: { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame })
+            return bell.tagValues.contains(where: { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame })
         }
     }
 
-    func sorted(_ bells: [BellRecord]) -> [BellRecord] {
+    func sorted(_ bells: [BellEntity]) -> [BellEntity] {
         bells.sorted { lhs, rhs in
             switch orderMode {
             case .title:
@@ -259,7 +255,7 @@ final class BellCatalogViewModel {
         }
     }
 
-    func groupedSections(from bells: [BellRecord]) -> [BellGroupedSection] {
+    func groupedSections(from bells: [BellEntity]) -> [BellGroupedSection] {
         switch orderMode {
         case .title, .newestFirst, .oldestFirst:
             return []
@@ -348,26 +344,26 @@ final class BellCatalogViewModel {
         }
     }
 
-    private func normalizedCountry(for bell: BellRecord) -> String {
+    private func normalizedCountry(for bell: BellEntity) -> String {
         let country = bell.countryName.trimmingCharacters(in: .whitespacesAndNewlines)
         return country.isEmpty ? String(localized: "common.unknown") : country
     }
 
-    private func normalizedRegion(for bell: BellRecord) -> String {
+    private func normalizedRegion(for bell: BellEntity) -> String {
         let region = (bell.originPlace?.regionName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         return region.isEmpty ? String(localized: "common.unknown") : region
     }
 
-    private func normalizedCity(for bell: BellRecord) -> String {
+    private func normalizedCity(for bell: BellEntity) -> String {
         let city = bell.cityName.trimmingCharacters(in: .whitespacesAndNewlines)
         return city.isEmpty ? String(localized: "common.unknown") : city
     }
 
-    private func acquisitionYearGroupTitle(for bell: BellRecord) -> String {
+    private func acquisitionYearGroupTitle(for bell: BellEntity) -> String {
         bell.acquiredYear.map(String.init) ?? String(localized: "common.unknown")
     }
 
-    private func storageHeaderTitle(for bell: BellRecord) -> String {
+    private func storageHeaderTitle(for bell: BellEntity) -> String {
         let components = storageComponents(for: bell)
         if components.floor == String(localized: "common.unknown"), components.room == String(localized: "common.unknown") {
             return String(localized: "common.unknown")
@@ -376,12 +372,12 @@ final class BellCatalogViewModel {
         return "\(components.floor) · \(components.room)"
     }
 
-    private func storageCabinetTitle(for bell: BellRecord) -> String {
+    private func storageCabinetTitle(for bell: BellEntity) -> String {
         storageComponents(for: bell).cabinet
     }
 
-    private func storageComponents(for bell: BellRecord) -> (floor: String, room: String, cabinet: String) {
-        guard let locationID = bell.item.locationID else {
+    private func storageComponents(for bell: BellEntity) -> (floor: String, room: String, cabinet: String) {
+        guard let location = bell.location else {
             let unknown = String(localized: "common.unknown")
             return (unknown, unknown, unknown)
         }
@@ -389,9 +385,9 @@ final class BellCatalogViewModel {
         var floor = String(localized: "common.unknown")
         var room = String(localized: "common.unknown")
         var cabinet = String(localized: "common.unknown")
-        var currentID: UUID? = locationID
+        var current: LocationEntity? = location
 
-        while let id = currentID, let location = locationsByID[id] {
+        while let location = current {
             switch location.kind {
             case .floor:
                 floor = location.name
@@ -403,7 +399,7 @@ final class BellCatalogViewModel {
                 break
             }
 
-            currentID = location.parentLocationID
+            current = location.parent
         }
 
         return (floor, room, cabinet)
@@ -429,7 +425,7 @@ final class BellCatalogViewModel {
         return lhs.localizedCaseInsensitiveCompare(rhs)
     }
 
-    private func geographySort(_ lhs: BellRecord, _ rhs: BellRecord) -> Bool {
+    private func geographySort(_ lhs: BellEntity, _ rhs: BellEntity) -> Bool {
         let countryComparison = compareDisplayValues(normalizedCountry(for: lhs), normalizedCountry(for: rhs), unknown: String(localized: "common.unknown"))
         if countryComparison != .orderedSame {
             return countryComparison == .orderedAscending
@@ -454,14 +450,14 @@ struct BellGroupedSection: Identifiable {
     let title: String
     let jumpTitle: String
     let indexTitle: String?
-    let bells: [BellRecord]
+    let bells: [BellEntity]
     let cabinetGroups: [BellStorageCabinetGroup]
 }
 
 struct BellStorageCabinetGroup: Identifiable {
     let id: String
     let title: String
-    let bells: [BellRecord]
+    let bells: [BellEntity]
 }
 
 struct BellGeographyIndexEntry: Identifiable {

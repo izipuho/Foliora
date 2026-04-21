@@ -1,6 +1,7 @@
 import SwiftUI
 import MapKit
 import PhotosUI
+import SwiftData
 import UIKit
 
 enum RootTab: String, CaseIterable, Identifiable {
@@ -71,24 +72,16 @@ private struct ModernTabBarBehavior: ViewModifier {
 struct HomeView: View {
     let repository: any CatalogRepository
     let embedsNavigation: Bool
+    @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
+    @Query(sort: \LocationEntity.name) private var locationEntities: [LocationEntity]
+    @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @State private var path: [AppDestination] = []
-    @State private var homes: [Home]
-    @State private var locationsByHomeID: [UUID: [Location]]
     @State private var pendingDeleteHomeID: UUID?
     @State private var isPresentingDeleteConfirmation = false
 
     init(repository: any CatalogRepository, embedsNavigation: Bool = true) {
         self.repository = repository
         self.embedsNavigation = embedsNavigation
-        let initialHomes = repository.fetchHomes()
-        _homes = State(initialValue: initialHomes)
-        _locationsByHomeID = State(
-            initialValue: Dictionary(
-                uniqueKeysWithValues: initialHomes.map { home in
-                    (home.id, repository.fetchLocations(in: home.id))
-                }
-            )
-        )
     }
 
     var body: some View {
@@ -104,6 +97,22 @@ struct HomeView: View {
     }
 
     private var scrollContentBottomInset: CGFloat { 120 }
+
+    private var homes: [Home] {
+        homeEntities.map(\.homeSnapshot)
+    }
+
+    private var locationsByHomeID: [UUID: [Location]] {
+        Dictionary(grouping: locationEntities.compactMap { location -> (UUID, Location)? in
+            guard let homeID = location.home?.id else { return nil }
+            return (homeID, location.locationSnapshot)
+        }, by: \.0)
+        .mapValues { rows in
+            rows.map(\.1).sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+        }
+    }
 
     private var homeContent: some View {
         Group {
@@ -146,11 +155,7 @@ struct HomeView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), iconName: "house.fill", notes: "")
-                    homes.append(newHome)
-                    locationsByHomeID[newHome.id] = []
-                    repository.saveHome(newHome)
-                    repository.saveLocations([], in: newHome.id)
+                    let newHome = createHome()
                     if embedsNavigation {
                         path.append(.home(newHome.id))
                     }
@@ -183,15 +188,13 @@ struct HomeView: View {
                     HomeDetailView(
                         home: homeBinding,
                         locations: locationsBinding(for: homeID),
-                        collectionCount: repository.fetchDomainCollections(in: homeID).count,
+                        collectionCount: collectionCount(in: homeID),
                         onSave: { updatedHome, updatedLocations in
                             repository.saveHome(updatedHome)
                             repository.saveLocations(updatedLocations, in: updatedHome.id)
                         },
                         onDelete: {
                             repository.deleteHome(homeID: homeID)
-                            homes.removeAll { $0.id == homeID }
-                            locationsByHomeID[homeID] = nil
                             path.removeAll { destination in
                                 if case .home(let id) = destination { return id == homeID }
                                 return false
@@ -221,11 +224,7 @@ struct HomeView: View {
                 .padding(.top, 80)
 
                 Button {
-                    let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), iconName: "house.fill", notes: "")
-                    homes.append(newHome)
-                    locationsByHomeID[newHome.id] = []
-                    repository.saveHome(newHome)
-                    repository.saveLocations([], in: newHome.id)
+                    let newHome = createHome()
                     if embedsNavigation {
                         path.append(.home(newHome.id))
                     }
@@ -251,7 +250,7 @@ struct HomeView: View {
                     HomeListCard(
                         home: home,
                         locations: locationsByHomeID[home.id] ?? [],
-                        collectionCount: repository.fetchDomainCollections(in: home.id).count
+                        collectionCount: collectionCount(in: home.id)
                     )
                 }
                 .buttonStyle(.plain)
@@ -266,7 +265,7 @@ struct HomeView: View {
                     HomeDetailView(
                         home: homeBinding,
                         locations: locationsBinding(for: home.id),
-                        collectionCount: repository.fetchDomainCollections(in: home.id).count,
+                        collectionCount: collectionCount(in: home.id),
                         onSave: { updatedHome, updatedLocations in
                             repository.saveHome(updatedHome)
                             repository.saveLocations(updatedLocations, in: updatedHome.id)
@@ -279,7 +278,7 @@ struct HomeView: View {
                     HomeListCard(
                         home: home,
                         locations: locationsByHomeID[home.id] ?? [],
-                        collectionCount: repository.fetchDomainCollections(in: home.id).count
+                        collectionCount: collectionCount(in: home.id)
                     )
                 }
                 .buttonStyle(.plain)
@@ -293,7 +292,7 @@ struct HomeView: View {
                 HomeListCard(
                     home: home,
                     locations: locationsByHomeID[home.id] ?? [],
-                    collectionCount: repository.fetchDomainCollections(in: home.id).count
+                    collectionCount: collectionCount(in: home.id)
                 )
                 .listRowSeparator(.hidden)
                 .swipeActions {
@@ -306,15 +305,29 @@ struct HomeView: View {
     }
 
     private func binding(for homeID: UUID) -> Binding<Home>? {
-        guard let index = homes.firstIndex(where: { $0.id == homeID }) else { return nil }
-        return $homes[index]
+        guard homes.contains(where: { $0.id == homeID }) else { return nil }
+        return Binding(
+            get: { homeEntities.first(where: { $0.id == homeID })?.homeSnapshot ?? Home(id: homeID, name: "", notes: "") },
+            set: { repository.saveHome($0) }
+        )
     }
 
     private func locationsBinding(for homeID: UUID) -> Binding<[Location]> {
         Binding(
             get: { locationsByHomeID[homeID] ?? [] },
-            set: { locationsByHomeID[homeID] = $0 }
+            set: { repository.saveLocations($0, in: homeID) }
         )
+    }
+
+    private func collectionCount(in homeID: UUID) -> Int {
+        collectionEntities.filter { $0.home?.id == homeID }.count
+    }
+
+    private func createHome() -> Home {
+        let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), iconName: "house.fill", notes: "")
+        repository.saveHome(newHome)
+        repository.saveLocations([], in: newHome.id)
+        return newHome
     }
 
     private func requestDeleteHome(_ homeID: UUID) {
@@ -330,8 +343,6 @@ struct HomeView: View {
 
     private func deleteHome(_ homeID: UUID) {
         repository.deleteHome(homeID: homeID)
-        homes.removeAll { $0.id == homeID }
-        locationsByHomeID[homeID] = nil
         path.removeAll { destination in
             if case .home(let id) = destination { return id == homeID }
             return false
@@ -1193,14 +1204,23 @@ private extension LocationKind {
 
 struct CollectionsView: View {
     let repository: any CatalogRepository
-    @State private var collections: [CollectionSummary]
+    @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
+    @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
+    @Query private var membershipEntities: [MembershipEntity]
     @State private var path: [AppDestination] = []
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
 
     init(repository: any CatalogRepository) {
         self.repository = repository
-        _collections = State(initialValue: repository.fetchCollections())
+    }
+
+    private var collections: [CollectionSummary] {
+        collectionEntities.map(\.summarySnapshot)
+    }
+
+    private var homes: [Home] {
+        homeEntities.map(\.homeSnapshot)
     }
 
     var body: some View {
@@ -1218,7 +1238,6 @@ struct CollectionsView: View {
                     .ignoresSafeArea()
                 )
                 .onAppear {
-                    collections = repository.fetchCollections()
                     autoOpenSingleCollectionIfNeeded()
                 }
                 .onChange(of: collections.map(\.id)) { _, _ in
@@ -1228,8 +1247,8 @@ struct CollectionsView: View {
                 .navigationTitle(RootTab.collections.title)
                 .sheet(isPresented: $isPresentingAddCollectionEditor) {
                     CollectionEditorView(
-                        homes: repository.fetchHomes(),
-                        initialHomeID: repository.fetchHomes().first?.id
+                        homes: homes,
+                        initialHomeID: homes.first?.id
                     ) { title, notes, homeID, backgroundStyle in
                         addCollection(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
                     }
@@ -1318,11 +1337,24 @@ struct CollectionsView: View {
         )
 
         repository.saveCollection(collection)
-        collections = repository.fetchCollections()
-        if let createdCollection = collections.first(where: { $0.id == collection.id }) {
-            didAutoOpenSingleCollection = true
-            path.append(.collection(createdCollection))
-        }
+        didAutoOpenSingleCollection = true
+        path.append(
+            .collection(
+                CollectionSummary(
+                    id: collection.id,
+                    homeID: collection.homeID,
+                    kind: collection.kind,
+                    name: collection.title,
+                    subtitle: collection.notes,
+                    backgroundStyle: collection.backgroundStyle,
+                    itemCount: 0,
+                    collaboratorCount: 0,
+                    role: .owner,
+                    status: .active,
+                    sharingSummary: ""
+                )
+            )
+        )
     }
 
     private func autoOpenSingleCollectionIfNeeded() {
@@ -1500,6 +1532,9 @@ struct CollectionEditorView: View {
 private struct CollectionShellView: View {
     let repository: any CatalogRepository
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
+    @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
+    @Query private var membershipEntities: [MembershipEntity]
     @State private var collection: CollectionSummary
     @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
@@ -1521,11 +1556,28 @@ private struct CollectionShellView: View {
         _collection = State(initialValue: collection)
     }
 
+    private var homes: [Home] {
+        homeEntities.map(\.homeSnapshot)
+    }
+
+    private var collaborators: [Collaborator] {
+        membershipEntities
+            .filter { $0.collection?.id == collection.id && $0.status == .active }
+            .map { membership in
+                Collaborator(
+                    id: membership.id,
+                    displayName: membership.userID == "me" ? "Вы" : membership.userID,
+                    role: membership.role,
+                    isCurrentUser: membership.userID == "me"
+                )
+            }
+    }
+
     var body: some View {
         BellCatalogView(
             collection: collection,
             repository: repository,
-            collaborators: repository.fetchCollaborators(for: collection.id),
+            collaborators: collaborators,
             layoutMode: $selectedLayoutMode,
             orderMode: $selectedOrder,
             summaryFilter: $selectedSummaryFilter
@@ -1609,7 +1661,7 @@ private struct CollectionShellView: View {
         }
         .sheet(isPresented: $isPresentingEditCollection) {
             CollectionEditorView(
-                homes: repository.fetchHomes(),
+                homes: homes,
                 screenTitle: String(localized: "collection.editor.edit_title"),
                 initialTitle: collection.name,
                 initialNotes: collection.subtitle,
@@ -1640,6 +1692,9 @@ private struct CollectionShellView: View {
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+        .onChange(of: collectionEntities.map(\.id)) { _, _ in
+            refreshContent()
         }
     }
 
@@ -1673,21 +1728,13 @@ private struct CollectionShellView: View {
     }
 
     private func saveCollectionEdits(title: String, notes: String, backgroundStyle: CollectionBackgroundStyle) {
-        guard let domainCollection = repository
-            .fetchHomes()
-            .flatMap({ repository.fetchDomainCollections(in: $0.id) })
-            .first(where: { $0.id == collection.id })
-        else {
-            return
-        }
-
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let updatedCollection = Collection(
-            id: domainCollection.id,
-            homeID: domainCollection.homeID,
-            kind: domainCollection.kind,
-            title: trimmedTitle.isEmpty ? domainCollection.title : trimmedTitle,
+            id: collection.id,
+            homeID: collection.homeID,
+            kind: collection.kind,
+            title: trimmedTitle.isEmpty ? collection.name : trimmedTitle,
             notes: trimmedNotes,
             backgroundStyle: backgroundStyle
         )
@@ -1697,9 +1744,7 @@ private struct CollectionShellView: View {
     }
 
     private func refreshContent() {
-        if let refreshed = repository.fetchCollections().first(where: { $0.id == collection.id }) {
-            collection = refreshed
-        }
+        collection = collectionEntities.first(where: { $0.id == collection.id })?.summarySnapshot ?? collection
         refreshID = UUID()
     }
 
@@ -1798,6 +1843,7 @@ private struct SettingsView: View {
     @State private var exportDocument: CatalogTransferDocument?
     @State private var isExportingDocument = false
     @State private var isImportingDocument = false
+    @State private var isImportExportRunning = false
     @State private var importErrorMessage: String?
     @State private var exportErrorMessage: String?
 
@@ -1820,12 +1866,14 @@ private struct SettingsView: View {
                     } label: {
                         Label(String(localized: "settings.data.export"), systemImage: "square.and.arrow.up")
                     }
+                    .disabled(isImportExportRunning)
 
                     Button {
                         isImportingDocument = true
                     } label: {
                         Label(String(localized: "settings.data.import"), systemImage: "square.and.arrow.down")
                     }
+                    .disabled(isImportExportRunning)
                 } header: {
                     Text(String(localized: "settings.data.section_title"))
                 } footer: {
@@ -1878,12 +1926,22 @@ private struct SettingsView: View {
     }
 
     private func exportCurrentJSON() {
-        do {
-            let data = try CatalogJSONPort.exportData(from: repository)
-            exportDocument = CatalogTransferDocument(data: data)
-            isExportingDocument = true
-        } catch {
-            exportErrorMessage = error.localizedDescription
+        isImportExportRunning = true
+        Task {
+            do {
+                let actor = CatalogImportExportActor(modelContainer: repository.modelContainer)
+                let data = try await actor.exportData()
+                await MainActor.run {
+                    exportDocument = CatalogTransferDocument(data: data)
+                    isExportingDocument = true
+                    isImportExportRunning = false
+                }
+            } catch {
+                await MainActor.run {
+                    exportErrorMessage = error.localizedDescription
+                    isImportExportRunning = false
+                }
+            }
         }
     }
 
@@ -1899,11 +1957,24 @@ private struct SettingsView: View {
                 }
 
                 let data = try Data(contentsOf: url)
-                let container = try CatalogSwiftDataStack.makeContainer()
-                let swiftDataRepository = SwiftDataCatalogRepository(container: container)
-                try CatalogJSONPort.import(data: data, into: swiftDataRepository)
+                isImportExportRunning = true
+                Task {
+                    do {
+                        let actor = CatalogImportExportActor(modelContainer: repository.modelContainer)
+                        try await actor.importData(data)
+                        await MainActor.run {
+                            isImportExportRunning = false
+                        }
+                    } catch {
+                        await MainActor.run {
+                            importErrorMessage = error.localizedDescription
+                            isImportExportRunning = false
+                        }
+                    }
+                }
             } catch {
                 importErrorMessage = error.localizedDescription
+                isImportExportRunning = false
             }
         case .failure(let error):
             importErrorMessage = error.localizedDescription
@@ -1988,6 +2059,7 @@ private struct SearchTabView: View {
     }
 
     let repository: any CatalogRepository
+    @Query(sort: \BellEntity.createdAt, order: .reverse) private var allBells: [BellEntity]
     @AppStorage("search.tab.scope") private var selectedScopeRawValue = SearchScope.all.rawValue
     @State private var query = ""
     @State private var selectedTokens: [SearchToken] = []
@@ -1999,19 +2071,9 @@ private struct SearchTabView: View {
         nonmutating set { selectedScopeRawValue = newValue.rawValue }
     }
 
-    private var allBellCollections: [CollectionSummary] {
-        repository.fetchCollections().filter { $0.kind == .bells }
-    }
-
-    private var allBells: [BellRecord] {
-        allBellCollections.flatMap { collection in
-            repository.fetchBellRecords(for: collection.id)
-        }
-    }
-
     private var suggestedTokens: [SearchToken] {
         let materialTokens = topTokens(
-            from: allBells.map { SearchToken.material($0.details.material.displayName) },
+            from: allBells.map { SearchToken.material($0.materialDisplayName) },
             limit: 8
         )
 
@@ -2028,7 +2090,7 @@ private struct SearchTabView: View {
 
         let tagTokens = topTokens(
             from: allBells.flatMap { bell in
-                bell.tags.map { SearchToken.tag($0) }
+                bell.tagValues.map { SearchToken.tag($0) }
             },
             limit: 12
         )
@@ -2050,7 +2112,7 @@ private struct SearchTabView: View {
             .map(\.key)
     }
 
-    private var searchResults: [BellRecord] {
+    private var searchResults: [BellEntity] {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return allBells
@@ -2155,7 +2217,7 @@ private struct SearchTabView: View {
         )
     }
 
-    private func matchesSearchScope(for bell: BellRecord, query: String) -> Bool {
+    private func matchesSearchScope(for bell: BellEntity, query: String) -> Bool {
         if selectedScope == .incomplete {
             return matchesIncomplete(bell) && (query.isEmpty || searchableText(for: bell, scope: .all).localizedCaseInsensitiveContains(query))
         }
@@ -2164,7 +2226,7 @@ private struct SearchTabView: View {
         return searchableText(for: bell, scope: selectedScope).localizedCaseInsensitiveContains(query)
     }
 
-    private func searchableText(for bell: BellRecord, scope: SearchScope) -> String {
+    private func searchableText(for bell: BellEntity, scope: SearchScope) -> String {
         switch scope {
         case .all:
             return [
@@ -2174,9 +2236,9 @@ private struct SearchTabView: View {
                 bell.storageDisplayPath,
                 bell.condition.displayName,
                 bell.acquisitionMethod.displayName,
-                bell.details.material.displayName,
+                bell.materialDisplayName,
                 collectionName(for: bell),
-                bell.tags.joined(separator: " ")
+                bell.tagValues.joined(separator: " ")
             ]
             .joined(separator: "\n")
         case .title:
@@ -2187,7 +2249,7 @@ private struct SearchTabView: View {
             return [bell.placeDisplayName, bell.storageDisplayPath]
                 .joined(separator: "\n")
         case .tags:
-            return bell.tags.joined(separator: " ")
+            return bell.tagValues.joined(separator: " ")
         case .notes:
             return bell.notes
         case .incomplete:
@@ -2195,14 +2257,14 @@ private struct SearchTabView: View {
         }
     }
 
-    private func matchesIncomplete(_ bell: BellRecord) -> Bool {
+    private func matchesIncomplete(_ bell: BellEntity) -> Bool {
         bell.originPlace == nil ||
-        bell.item.locationID == nil ||
+        bell.location == nil ||
         bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-        bell.tags.isEmpty
+        bell.tagValues.isEmpty
     }
 
-    private func matchesSelectedTokens(for bell: BellRecord) -> Bool {
+    private func matchesSelectedTokens(for bell: BellEntity) -> Bool {
         let materialTokens = selectedTokens.compactMap { token -> String? in
             guard case .material(let material) = token else { return nil }
             return material
@@ -2220,7 +2282,7 @@ private struct SearchTabView: View {
 
         if !materialTokens.isEmpty {
             let matchesMaterial = materialTokens.contains { material in
-                bell.details.material.displayName.localizedCaseInsensitiveCompare(material) == .orderedSame
+                bell.materialDisplayName.localizedCaseInsensitiveCompare(material) == .orderedSame
             }
             guard matchesMaterial else { return false }
         }
@@ -2242,7 +2304,7 @@ private struct SearchTabView: View {
 
         if !tagTokens.isEmpty {
             let matchesTag = tagTokens.contains { tag in
-                bell.tags.contains { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame }
+                bell.tagValues.contains { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame }
             }
             guard matchesTag else { return false }
         }
@@ -2250,8 +2312,8 @@ private struct SearchTabView: View {
         return true
     }
 
-    private func collectionName(for bell: BellRecord) -> String {
-        allBellCollections.first(where: { $0.id == bell.item.collectionID })?.name ?? ""
+    private func collectionName(for bell: BellEntity) -> String {
+        bell.collection?.title ?? ""
     }
 }
 
@@ -2259,13 +2321,18 @@ private struct SearchBellDetailContainer: View {
     let repository: any CatalogRepository
     @State var bell: BellRecord
 
+    init(repository: any CatalogRepository, bell: BellEntity) {
+        self.repository = repository
+        _bell = State(initialValue: bell.recordSnapshot)
+    }
+
     var body: some View {
         BellDetailView(bell: $bell, repository: repository)
     }
 }
 
 private struct BellSearchResultCard: View {
-    let bell: BellRecord
+    let bell: BellEntity
     let collectionName: String
 
     var body: some View {
@@ -2483,16 +2550,25 @@ private struct CollectionPlaceholderView: View {
 private struct CollectionOriginMapView: View {
     let collection: CollectionSummary
     let repository: any CatalogRepository
+    @Query private var queriedBells: [BellEntity]
 
     @State private var position: MapCameraPosition = .automatic
     @State private var selectedGroupID: String?
 
-    private var bells: [BellRecord] {
-        repository.fetchBellRecords(for: collection.id)
+    init(collection: CollectionSummary, repository: any CatalogRepository) {
+        self.collection = collection
+        self.repository = repository
+        let collectionID = Optional(collection.id)
+        _queriedBells = Query(
+            filter: #Predicate<BellEntity> { bell in
+                bell.collection?.id == collectionID
+            },
+            sort: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
     }
 
     private var mappedGroups: [MapBellGroup] {
-        let grouped = Dictionary(grouping: bells.compactMap { bell -> (String, BellRecord, CLLocationCoordinate2D)? in
+        let grouped = Dictionary(grouping: queriedBells.compactMap { bell -> (String, BellEntity, CLLocationCoordinate2D)? in
             guard let place = bell.originPlace,
                   let latitude = place.latitude,
                   let longitude = place.longitude else {
@@ -2619,7 +2695,7 @@ private struct MapBellGroup: Identifiable {
     let id: String
     let coordinate: CLLocationCoordinate2D
 
-    let bells: [BellRecord]
+    let bells: [BellEntity]
 
     var title: String {
         bells.first?.title ?? ""
@@ -2627,7 +2703,7 @@ private struct MapBellGroup: Identifiable {
 }
 
 private struct MapBellAnnotationView: View {
-    let bells: [BellRecord]
+    let bells: [BellEntity]
     let isSelected: Bool
     let accentColor: Color
 
@@ -2659,8 +2735,8 @@ private struct MapBellAnnotationView: View {
 
     @ViewBuilder
     private var annotationImage: some View {
-        if let bell = bells.first, let coverAsset = coverPhotoAsset(for: bell) {
-            BellCardCoverBackground(asset: coverAsset, size: annotationSize)
+        if let identifier = bells.first?.coverPhotoIdentifier {
+            BellCardCoverBackground(identifier: identifier, size: annotationSize)
         } else {
             ZStack {
                 RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
@@ -2670,20 +2746,13 @@ private struct MapBellAnnotationView: View {
             }
         }
     }
-
-    private func coverPhotoAsset(for bell: BellRecord) -> MediaAsset? {
-        bell.mediaAssets
-            .filter { $0.kind == .photo }
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .first
-    }
 }
 
 private struct MapSelectionPanel: View {
-    let bells: [BellRecord]
+    let bells: [BellEntity]
     let repository: any CatalogRepository
 
-    @State private var presentedBell: BellRecord?
+    @State private var presentedBell: BellEntity?
 
     var body: some View {
         GeometryReader { proxy in
@@ -2709,7 +2778,7 @@ private struct MapSelectionPanel: View {
         }
         .frame(height: bells.count == 1 ? BellGridLayoutMode.wide.cardHeight : BellGridLayoutMode.mini.cardHeight)
         .sheet(item: $presentedBell) { bell in
-            BellDetailSheetContainer(bell: bell, repository: repository)
+            BellDetailSheetContainer(bell: bell.recordSnapshot, repository: repository)
                 .presentationDragIndicator(.visible)
         }
     }

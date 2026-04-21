@@ -20,6 +20,10 @@ final class HomeEntity {
         self.iconName = iconName
         self.notes = notes
     }
+
+    var homeSnapshot: Home {
+        Home(id: id, name: name, iconName: iconName ?? "house.fill", notes: notes)
+    }
 }
 
 @Model
@@ -61,6 +65,21 @@ final class LocationEntity {
 
         return parts.joined(separator: " / ")
     }
+
+    var kind: LocationKind {
+        LocationKind(rawValue: kindRaw) ?? .room
+    }
+
+    var locationSnapshot: Location {
+        Location(
+            id: id,
+            homeID: home?.id ?? UUID(),
+            parentLocationID: parent?.id,
+            kind: kind,
+            name: name,
+            notes: notes
+        )
+    }
 }
 
 @Model
@@ -92,6 +111,44 @@ final class CollectionEntity {
         self.notes = notes
         self.backgroundStyleRaw = backgroundStyleRaw
     }
+
+    var kind: CollectionKind {
+        CollectionKind(rawValue: kindRaw) ?? .bells
+    }
+
+    var backgroundStyle: CollectionBackgroundStyle {
+        CollectionBackgroundStyle(rawValue: backgroundStyleRaw) ?? .amber
+    }
+
+    var summarySnapshot: CollectionSummary {
+        let activeMemberships = memberships.filter { $0.status == .active }
+        let currentUserRole = activeMemberships.first(where: { $0.userID == "me" })?.role ?? .viewer
+
+        return CollectionSummary(
+            id: id,
+            homeID: home?.id ?? UUID(),
+            kind: kind,
+            name: title,
+            subtitle: notes,
+            backgroundStyle: backgroundStyle,
+            itemCount: kind == .bells ? bells.count : 0,
+            collaboratorCount: activeMemberships.count,
+            role: currentUserRole,
+            status: kind == .bells ? .active : .planned,
+            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+        )
+    }
+
+    var collectionSnapshot: Collection {
+        Collection(
+            id: id,
+            homeID: home?.id ?? UUID(),
+            kind: kind,
+            title: title,
+            notes: notes,
+            backgroundStyle: backgroundStyle
+        )
+    }
 }
 
 @Model
@@ -113,6 +170,24 @@ final class MembershipEntity {
         self.userID = userID
         self.roleRaw = roleRaw
         self.statusRaw = statusRaw
+    }
+
+    var role: CollectionRole {
+        CollectionRole(rawValue: roleRaw) ?? .viewer
+    }
+
+    var status: MembershipStatus {
+        MembershipStatus(rawValue: statusRaw) ?? .pending
+    }
+
+    var membershipSnapshot: Membership {
+        Membership(
+            id: id,
+            collectionID: collection?.id ?? UUID(),
+            userID: userID,
+            role: role,
+            status: status
+        )
     }
 }
 
@@ -148,6 +223,19 @@ final class PlaceEntity {
         self.cityName = cityName
         self.latitude = latitude
         self.longitude = longitude
+    }
+
+    var placeSnapshot: Place {
+        Place(
+            id: id,
+            displayName: displayName,
+            countryCode: countryCode,
+            countryName: countryName,
+            regionName: regionName,
+            cityName: cityName,
+            latitude: latitude,
+            longitude: longitude
+        )
     }
 }
 
@@ -209,6 +297,151 @@ final class BellEntity {
     var storagePath: String {
         location?.pathDisplayName ?? storageLocationName
     }
+
+    var storageDisplayPath: String {
+        storagePath.isEmpty ? storageLocationName : storagePath
+    }
+
+    var countryName: String {
+        originPlace?.countryName ?? ""
+    }
+
+    var cityName: String {
+        originPlace?.cityName ?? ""
+    }
+
+    var condition: ItemCondition {
+        ItemCondition(rawValue: conditionRaw) ?? .good
+    }
+
+    var acquisitionMethod: AcquisitionMethod {
+        AcquisitionMethod(rawValue: acquisitionMethodRaw) ?? .bought
+    }
+
+    var material: BellMaterial {
+        BellMaterial(rawValue: materialRaw) ?? .brass
+    }
+
+    var materialDisplayName: String {
+        if material == .other,
+           let customMaterialName,
+           !customMaterialName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return customMaterialName
+        }
+
+        return material.displayName
+    }
+
+    var sortedMediaAssets: [MediaAssetEntity] {
+        mediaAssets.sorted { lhs, rhs in
+            if lhs.sortOrder != rhs.sortOrder {
+                return lhs.sortOrder < rhs.sortOrder
+            }
+
+            return lhs.localIdentifier < rhs.localIdentifier
+        }
+    }
+
+    var sortedTags: [BellTagEntity] {
+        tags.sorted { lhs, rhs in
+            if lhs.sortOrder != rhs.sortOrder {
+                return lhs.sortOrder < rhs.sortOrder
+            }
+
+            return lhs.value.localizedCaseInsensitiveCompare(rhs.value) == .orderedAscending
+        }
+    }
+
+    var tagValues: [String] {
+        sortedTags.map(\.value)
+    }
+
+    var photoCount: Int {
+        sortedMediaAssets.filter { $0.kind == .photo }.count
+    }
+
+    var model3DCount: Int {
+        sortedMediaAssets.filter { $0.kind == .model3D }.count
+    }
+
+    var documentCount: Int {
+        sortedMediaAssets.filter { $0.kind == .document }.count
+    }
+
+    var coverPhotoAsset: MediaAssetEntity? {
+        sortedMediaAssets.first { $0.kind == .photo }
+    }
+
+    static func allDescriptor() -> FetchDescriptor<BellEntity> {
+        FetchDescriptor(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+    }
+
+    static func descriptor(collectionID: UUID) -> FetchDescriptor<BellEntity> {
+        let optionalCollectionID = Optional(collectionID)
+        return FetchDescriptor(
+            predicate: #Predicate<BellEntity> { bell in
+                bell.collection?.id == optionalCollectionID
+            },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+    }
+
+    var recordSnapshot: BellRecord {
+        BellRecord(
+            item: Item(
+                id: id,
+                collectionID: collection?.id ?? UUID(),
+                locationID: location?.id,
+                createdAt: createdAt,
+                title: title,
+                notes: notes,
+                acquiredYear: acquiredYear,
+                condition: condition,
+                acquisitionMethod: acquisitionMethod
+            ),
+            details: BellDetails(
+                itemID: id,
+                originPlaceID: originPlace?.id,
+                material: material,
+                customMaterialName: customMaterialName
+            ),
+            originPlace: originPlace.map {
+                Place(
+                    id: $0.id,
+                    displayName: $0.displayName,
+                    countryCode: $0.countryCode,
+                    countryName: $0.countryName,
+                    regionName: $0.regionName,
+                    cityName: $0.cityName,
+                    latitude: $0.latitude,
+                    longitude: $0.longitude
+                )
+            },
+            storageLocation: location.map {
+                Location(
+                    id: $0.id,
+                    homeID: $0.home?.id ?? UUID(),
+                    parentLocationID: $0.parent?.id,
+                    kind: $0.kind,
+                    name: $0.name,
+                    notes: $0.notes
+                )
+            },
+            storagePath: storagePath,
+            mediaAssets: sortedMediaAssets.map {
+                MediaAsset(
+                    id: $0.id,
+                    itemID: id,
+                    kind: $0.kind,
+                    localIdentifier: $0.localIdentifier,
+                    displayName: $0.displayName,
+                    sortOrder: $0.sortOrder
+                )
+            },
+            createdBy: createdBy,
+            tags: tagValues
+        )
+    }
 }
 
 @Model
@@ -248,5 +481,9 @@ final class MediaAssetEntity {
         self.localIdentifier = localIdentifier
         self.displayName = displayName
         self.sortOrder = sortOrder
+    }
+
+    var kind: MediaKind {
+        MediaKind(rawValue: kindRaw) ?? .photo
     }
 }
