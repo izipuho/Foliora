@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import UIKit
 
-private enum SummaryCountKind {
+private enum SummaryCountKind: String {
     case bells
     case materials
     case countries
@@ -10,18 +10,7 @@ private enum SummaryCountKind {
     case members
 
     var resource: LocalizedStringResource {
-        switch self {
-        case .bells:
-            return "collection.count.bells"
-        case .materials:
-            return "collection.count.materials"
-        case .countries:
-            return "collection.count.countries"
-        case .cities:
-            return "collection.count.cities"
-        case .members:
-            return "collection.count.members"
-        }
+        "collection.count.\(self.rawValue)"
     }
 }
 
@@ -82,12 +71,15 @@ private extension CGPoint {
 
 enum BellOrderMode: String, CaseIterable, Hashable {
     case title
-    case newestFirst
-    case oldestFirst
+    case newestFirst// = "newest_first"
+    case oldestFirst// = "oldest_first"
     case geography
-    case acquisitionYear
+    case acquisitionYear// = "acqusition_year"
     case storage
 
+    //var resource: LocalizedStringResource {
+    //    LocalizedStringResource(stringLiteral: "bell_catalog.sort.\(self.rawValue)")
+    //}
     var title: String {
         switch self {
         case .title:
@@ -232,9 +224,7 @@ struct BellCatalogView: View {
             bellRecords: queriedBells,
             orderMode: orderMode,
             summaryFilter: summaryFilter,
-            searchText: "",
-            locationsByID: [:],
-            homeName: queriedHomes.first(where: { $0.id == collection.homeID })?.name ?? String(localized: "common.unknown")
+            searchText: ""
         )
     }
 
@@ -563,7 +553,7 @@ struct BellCatalogView: View {
                 HStack(spacing: 10) {
                     dashboardMetricChip(
                         title: String(localized: "bell_catalog.dashboard.total"),
-                        value: "\(viewModel.bells.count)",
+                        value: "\(viewModel.bellRecords.count)",
                         systemImage: "bell.fill"
                     ) {
                         summaryFilter = nil
@@ -669,9 +659,9 @@ struct BellCatalogView: View {
     }
 
     private var dataHealthProgress: Double {
-        guard !viewModel.bells.isEmpty else { return 0 }
+        guard !viewModel.bellRecords.isEmpty else { return 0 }
         let completeFields = viewModel.bellsWithOriginCount + viewModel.bellsWithAcquiredYearCount + viewModel.bellsWithStorageCount + viewModel.bellsWithNotesCount + viewModel.bellsWithTagsCount
-        let totalFields = viewModel.bells.count * 5
+        let totalFields = viewModel.bellRecords.count * 5
         return min(max(Double(completeFields) / Double(totalFields), 0), 1)
     }
 
@@ -679,27 +669,27 @@ struct BellCatalogView: View {
         [
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_origin"),
-                countText: "\(viewModel.bellsWithOriginCount)/\(viewModel.bells.count)",
+                countText: "\(viewModel.bellsWithOriginCount)/\(viewModel.bellRecords.count)",
                 filter: .missingOrigin
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_year"),
-                countText: "\(viewModel.bellsWithAcquiredYearCount)/\(viewModel.bells.count)",
+                countText: "\(viewModel.bellsWithAcquiredYearCount)/\(viewModel.bellRecords.count)",
                 filter: .missingYear
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_storage"),
-                countText: "\(viewModel.bellsWithStorageCount)/\(viewModel.bells.count)",
+                countText: "\(viewModel.bellsWithStorageCount)/\(viewModel.bellRecords.count)",
                 filter: .missingStorage
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_notes"),
-                countText: "\(viewModel.bellsWithNotesCount)/\(viewModel.bells.count)",
+                countText: "\(viewModel.bellsWithNotesCount)/\(viewModel.bellRecords.count)",
                 filter: .missingNotes
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_tags"),
-                countText: "\(viewModel.bellsWithTagsCount)/\(viewModel.bells.count)",
+                countText: "\(viewModel.bellsWithTagsCount)/\(viewModel.bellRecords.count)",
                 filter: .missingTags
             )
         ]
@@ -707,7 +697,7 @@ struct BellCatalogView: View {
 
     private var topGeography: (name: String, flag: String, count: Int)? {
         guard let topCountry = viewModel.topCountries.first else { return nil }
-        let countryCode = viewModel.bells
+        let countryCode = viewModel.bellRecords
             .first(where: { $0.countryName.localizedCaseInsensitiveCompare(topCountry.0) == .orderedSame })?
             .originPlace?
             .countryCode ?? ""
@@ -721,7 +711,7 @@ struct BellCatalogView: View {
 
     private var topGeographyEntries: [TopGeographyEntry] {
         Array(viewModel.topCountries.prefix(5)).map { row in
-            let countryCode = viewModel.bells
+            let countryCode = viewModel.bellRecords
                 .first(where: { $0.countryName.localizedCaseInsensitiveCompare(row.0) == .orderedSame })?
                 .originPlace?
                 .countryCode ?? ""
@@ -964,9 +954,9 @@ struct BellCatalogView: View {
         return lines.joined(separator: "\n")
     }
 
-    private var homeName: String {
-        viewModel.homeName
-    }
+    //private var homeName: String {
+    //    viewModel.homeName
+    //}
 
 }
 

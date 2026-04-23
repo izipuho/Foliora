@@ -1,6 +1,50 @@
 import Foundation
 import Observation
 
+private let unknownTitle = String(localized: "common.unknown")
+
+private struct StorageGroupKey: Hashable {
+    let floor: String
+    let room: String
+}
+
+private extension BellEntity {
+
+    var storageFloor: String {
+        storageComponent(.floor)
+    }
+
+    var storageRoom: String {
+        storageComponent(.room)
+    }
+
+    var storageCabinet: String {
+        storageComponent(.cabinet)
+    }
+
+    var storageShelf: String {
+        storageComponent(.shelf)
+    }
+
+    var hasNotes: Bool {
+        !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func storageComponent(_ kind: LocationKind) -> String {
+        var current = location
+
+        while let location = current {
+            if location.kind == kind {
+                return location.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+
+            current = location.parent
+        }
+
+        return ""
+    }
+}
+
 @MainActor
 @Observable
 final class BellCatalogViewModel {
@@ -9,161 +53,106 @@ final class BellCatalogViewModel {
     var orderMode: BellOrderMode
     var summaryFilter: BellSummaryFilter?
     var searchText: String
-    var locationsByID: [UUID: Location]
-    var homeName: String
 
     init(
         bellRecords: [BellEntity],
         orderMode: BellOrderMode,
         summaryFilter: BellSummaryFilter?,
         searchText: String,
-        locationsByID: [UUID: Location],
-        homeName: String,
         selectedCondition: ItemCondition? = nil
     ) {
         self.bellRecords = bellRecords
         self.orderMode = orderMode
         self.summaryFilter = summaryFilter
         self.searchText = searchText
-        self.locationsByID = locationsByID
-        self.homeName = homeName
         self.selectedCondition = selectedCondition
     }
 
-    var bells: [BellEntity] {
-        sorted(bellRecords)
-    }
-
     var filteredBells: [BellEntity] {
-        sorted(
-            bellRecords.filter { bell in
-                let matchesSearch =
-                    searchText.isEmpty ||
-                    bell.title.localizedCaseInsensitiveContains(searchText) ||
-                    bell.countryName.localizedCaseInsensitiveContains(searchText) ||
-                    bell.cityName.localizedCaseInsensitiveContains(searchText) ||
-                    bell.tagValues.joined(separator: " ").localizedCaseInsensitiveContains(searchText)
-
-                let matchesCondition = selectedCondition == nil || bell.condition == selectedCondition
-                let matchesSummaryFilter = matches(bell: bell, summaryFilter: summaryFilter)
-                return matchesSearch && matchesCondition && matchesSummaryFilter
-            }
-        )
-    }
-
-    var filteredItemsBells: [BellEntity] {
-        sorted(
-            bellRecords.filter { bell in
-                matches(bell: bell, summaryFilter: summaryFilter)
-            }
-        )
-    }
-
-    var recentBells: [BellEntity] {
-        Array(
-            bellRecords
-                .sorted { $0.createdAt > $1.createdAt }
-                .prefix(5)
-        )
+        bellRecords.filter { bell in
+            matches(bell: bell, summaryFilter: summaryFilter)
+            && (selectedCondition == nil || bell.condition == selectedCondition)
+            && (
+                searchText.isEmpty
+                || bell.title.localizedCaseInsensitiveContains(searchText)
+                || bell.countryName.localizedCaseInsensitiveContains(searchText)
+                || bell.cityName.localizedCaseInsensitiveContains(searchText)
+                || bell.tagValues.contains { $0.localizedCaseInsensitiveContains(searchText) }
+            )
+        }
     }
 
     var countryCount: Int {
-        Set(bells.map(\.countryName).filter { !$0.isEmpty }).count
+        Set(bellRecords.map(\.countryName).filter { !$0.isEmpty }).count
     }
 
     var materialCount: Int {
-        Set(bells.map(\.materialDisplayName)).count
+        Set(bellRecords.map(\.materialDisplayName)).count
     }
 
     var cityCount: Int {
-        Set(bells.map(\.cityName).filter { !$0.isEmpty }).count
+        Set(bellRecords.map(\.cityName).filter { !$0.isEmpty }).count
     }
 
     var bellsWithOriginCount: Int {
-        bells.filter { $0.originPlace != nil }.count
+        bellRecords.filter { $0.originPlace != nil }.count
     }
 
     var bellsWithAcquiredYearCount: Int {
-        bells.filter { $0.acquiredYear != nil }.count
+        bellRecords.filter { $0.acquiredYear != nil }.count
     }
 
     var bellsWithStorageCount: Int {
-        bells.filter { $0.location != nil }.count
+        bellRecords.filter { $0.location != nil }.count
     }
 
     var bellsWithNotesCount: Int {
-        bells.filter { !$0.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.count
+        bellRecords.filter(\.hasNotes).count
     }
 
     var bellsWithTagsCount: Int {
-        bells.filter { !$0.tagValues.isEmpty }.count
+        bellRecords.filter { !$0.tagValues.isEmpty }.count
+    }
+
+    private func topValues(
+        from values: [String],
+        skipEmpty: Bool = false
+    ) -> [(String, Int)] {
+        Dictionary(grouping: skipEmpty ? values.filter { !$0.isEmpty } : values, by: { $0 })
+            .map { ($0.key, $0.value.count) }
+            .sorted { lhs, rhs in
+                if lhs.1 == rhs.1 {
+                    return lhs.0.localizedCaseInsensitiveCompare(rhs.0) == .orderedAscending
+                }
+
+                return lhs.1 > rhs.1
+            }
     }
 
     var topCountries: [(String, Int)] {
-        Dictionary(grouping: bells.map(\.countryName).filter { !$0.isEmpty }, by: { $0 })
-            .map { ($0.key, $0.value.count) }
-            .sorted { lhs, rhs in
-                if lhs.1 == rhs.1 {
-                    return lhs.0.localizedCaseInsensitiveCompare(rhs.0) == .orderedAscending
-                }
-
-                return lhs.1 > rhs.1
-            }
+        topValues(from: bellRecords.map(\.countryName), skipEmpty: true)
     }
 
     var topMaterials: [(String, Int)] {
-        Dictionary(grouping: bells.map(\.materialDisplayName), by: { $0 })
-            .map { ($0.key, $0.value.count) }
-            .sorted { lhs, rhs in
-                if lhs.1 == rhs.1 {
-                    return lhs.0.localizedCaseInsensitiveCompare(rhs.0) == .orderedAscending
-                }
-
-                return lhs.1 > rhs.1
-            }
+        topValues(from: bellRecords.map(\.materialDisplayName))
     }
 
     var topTags: [(String, Int)] {
-        Dictionary(grouping: bells.flatMap(\.tagValues), by: { $0 })
-            .map { ($0.key, $0.value.count) }
-            .sorted { lhs, rhs in
-                if lhs.1 == rhs.1 {
-                    return lhs.0.localizedCaseInsensitiveCompare(rhs.0) == .orderedAscending
-                }
-
-                return lhs.1 > rhs.1
-            }
+        topValues(from: bellRecords.flatMap(\.tagValues))
     }
 
     var usesGroupedSections: Bool {
         [.geography, .acquisitionYear, .storage].contains(orderMode)
     }
 
-    var groupedFilteredItemSections: [BellGroupedSection] {
-        groupedSections(from: filteredItemsBells)
-    }
-
-    var geographyIndexEntries: [BellGeographyIndexEntry] {
-        Dictionary(grouping: groupedFilteredItemSections, by: \.indexTitle)
-            .compactMap { key, value -> BellGeographyIndexEntry? in
-                guard let key, let section = value.first else { return nil }
-                return BellGeographyIndexEntry(id: key, title: key, targetSectionID: section.id)
-            }
-            .sorted { $0.title < $1.title }
-    }
-
     func updateContext(
         orderMode: BellOrderMode,
         summaryFilter: BellSummaryFilter?,
-        searchText: String,
-        locationsByID: [UUID: Location],
-        homeName: String
+        searchText: String
     ) {
         self.orderMode = orderMode
         self.summaryFilter = summaryFilter
         self.searchText = searchText
-        self.locationsByID = locationsByID
-        self.homeName = homeName
     }
 
     func matches(bell: BellEntity, summaryFilter: BellSummaryFilter?) -> Bool {
@@ -185,9 +174,9 @@ final class BellCatalogViewModel {
         case .missingStorage:
             return bell.location == nil
         case .withNotes:
-            return !bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return bell.hasNotes
         case .missingNotes:
-            return bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return !bell.hasNotes
         case .withTags:
             return !bell.tagValues.isEmpty
         case .missingTags:
@@ -203,67 +192,18 @@ final class BellCatalogViewModel {
         }
     }
 
-    func sorted(_ bells: [BellEntity]) -> [BellEntity] {
-        bells.sorted { lhs, rhs in
-            switch orderMode {
-            case .title:
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            case .newestFirst:
-                if lhs.createdAt != rhs.createdAt {
-                    return lhs.createdAt > rhs.createdAt
-                }
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            case .oldestFirst:
-                if lhs.createdAt != rhs.createdAt {
-                    return lhs.createdAt < rhs.createdAt
-                }
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            case .geography:
-                return geographySort(lhs, rhs)
-            case .acquisitionYear:
-                if lhs.acquiredYear != rhs.acquiredYear {
-                    switch (lhs.acquiredYear, rhs.acquiredYear) {
-                    case let (left?, right?):
-                        return left > right
-                    case (_?, nil):
-                        return true
-                    case (nil, _?):
-                        return false
-                    default:
-                        break
-                    }
-                }
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            case .storage:
-                let left = storageComponents(for: lhs)
-                let right = storageComponents(for: rhs)
-
-                if left.floor != right.floor {
-                    return compareDisplayValues(left.floor, right.floor, unknown: String(localized: "common.unknown")) == .orderedAscending
-                }
-
-                if left.room != right.room {
-                    return compareDisplayValues(left.room, right.room, unknown: String(localized: "common.unknown")) == .orderedAscending
-                }
-
-                if left.cabinet != right.cabinet {
-                    return compareDisplayValues(left.cabinet, right.cabinet, unknown: String(localized: "common.unknown")) == .orderedAscending
-                }
-
-                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-            }
-        }
+    func sorted(_ bellRecords: [BellEntity]) -> [BellEntity] {
+        bellRecords.sorted(using: sortComparators)
     }
 
-    func groupedSections(from bells: [BellEntity]) -> [BellGroupedSection] {
+    func groupedSections(from bellRecords: [BellEntity]) -> [BellGroupedSection] {
         switch orderMode {
         case .title, .newestFirst, .oldestFirst:
             return []
         case .geography:
-            let unknown = String(localized: "common.unknown")
-            let grouped = Dictionary(grouping: bells, by: { normalizedCountry(for: $0) })
+            let grouped = Dictionary(grouping: bellRecords, by: { geographyDisplayValue($0.countryName, unknown: unknownTitle) })
             let orderedCountries = grouped.keys.sorted {
-                compareDisplayValues($0, $1, unknown: unknown) == .orderedAscending
+                compareDisplayValues($0, $1, unknown: unknownTitle) == .orderedAscending
             }
 
             return orderedCountries.map { country in
@@ -272,13 +212,12 @@ final class BellCatalogViewModel {
                     title: country,
                     jumpTitle: country,
                     indexTitle: String(country.prefix(1)).uppercased(),
-                    bells: grouped[country, default: []].sorted(by: geographySort),
+                    bells: grouped[country, default: []].sorted(using: geographyComparators),
                     cabinetGroups: []
                 )
             }
         case .acquisitionYear:
-            let unknown = String(localized: "common.unknown")
-            let grouped = Dictionary(grouping: bells, by: { acquisitionYearGroupTitle(for: $0) })
+            let grouped = Dictionary(grouping: bellRecords, by: { acquisitionYearGroupTitle(for: $0) })
             let orderedTitles = grouped.keys.sorted { lhs, rhs in
                 switch (Int(lhs), Int(rhs)) {
                 case let (left?, right?):
@@ -288,7 +227,7 @@ final class BellCatalogViewModel {
                 case (nil, _?):
                     return false
                 default:
-                    return compareDisplayValues(lhs, rhs, unknown: unknown) == .orderedAscending
+                    return compareDisplayValues(lhs, rhs, unknown: unknownTitle) == .orderedAscending
                 }
             }
 
@@ -298,38 +237,36 @@ final class BellCatalogViewModel {
                     title: title,
                     jumpTitle: title,
                     indexTitle: nil,
-                    bells: grouped[title, default: []].sorted {
-                        $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
-                    },
+                    bells: grouped[title, default: []].sorted(using: titleComparators),
                     cabinetGroups: []
                 )
             }
         case .storage:
-            let grouped = Dictionary(grouping: bells, by: storageHeaderTitle(for:))
-            let orderedHeaders = grouped.keys.sorted { lhs, rhs in
-                let left = storageSortComponents(from: lhs)
-                let right = storageSortComponents(from: rhs)
-
-                if left.floor != right.floor {
-                    return compareDisplayValues(left.floor, right.floor, unknown: String(localized: "common.unknown")) == .orderedAscending
+            let grouped = Dictionary(grouping: bellRecords) { bell in
+                let components = storageComponents(for: bell)
+                return StorageGroupKey(floor: components.floor, room: components.room)
+            }
+            let orderedKeys = grouped.keys.sorted { lhs, rhs in
+                let floorComparison = compareDisplayValues(lhs.floor, rhs.floor, unknown: unknownTitle)
+                if floorComparison != .orderedSame {
+                    return floorComparison == .orderedAscending
                 }
 
-                return compareDisplayValues(left.room, right.room, unknown: String(localized: "common.unknown")) == .orderedAscending
+                return compareDisplayValues(lhs.room, rhs.room, unknown: unknownTitle) == .orderedAscending
             }
 
-            return orderedHeaders.map { header in
-                let cabinetGroups = Dictionary(grouping: grouped[header, default: []], by: storageCabinetTitle(for:))
+            return orderedKeys.map { key in
+                let header = storageHeaderTitle(for: key)
+                let cabinetGroups = Dictionary(grouping: grouped[key, default: []], by: storageCabinetTitle(for:))
                     .map { key, value in
                         BellStorageCabinetGroup(
                             id: "\(header)-\(key)",
                             title: key,
-                            bells: value.sorted {
-                                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
-                            }
+                            bells: value.sorted(using: titleComparators)
                         )
                     }
                     .sorted {
-                        compareDisplayValues($0.title, $1.title, unknown: String(localized: "common.unknown")) == .orderedAscending
+                        compareDisplayValues($0.title, $1.title, unknown: unknownTitle) == .orderedAscending
                     }
 
                 return BellGroupedSection(
@@ -344,32 +281,12 @@ final class BellCatalogViewModel {
         }
     }
 
-    private func normalizedCountry(for bell: BellEntity) -> String {
-        let country = bell.countryName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return country.isEmpty ? String(localized: "common.unknown") : country
-    }
-
-    private func normalizedRegion(for bell: BellEntity) -> String {
-        let region = (bell.originPlace?.regionName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        return region.isEmpty ? String(localized: "common.unknown") : region
-    }
-
-    private func normalizedCity(for bell: BellEntity) -> String {
-        let city = bell.cityName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return city.isEmpty ? String(localized: "common.unknown") : city
-    }
-
     private func acquisitionYearGroupTitle(for bell: BellEntity) -> String {
-        bell.acquiredYear.map(String.init) ?? String(localized: "common.unknown")
+        bell.acquiredYear.map(String.init) ?? unknownTitle
     }
 
-    private func storageHeaderTitle(for bell: BellEntity) -> String {
-        let components = storageComponents(for: bell)
-        if components.floor == String(localized: "common.unknown"), components.room == String(localized: "common.unknown") {
-            return String(localized: "common.unknown")
-        }
-
-        return "\(components.floor) · \(components.room)"
+    private func storageHeaderTitle(for key: StorageGroupKey) -> String {
+        "\(key.floor) · \(key.room)"
     }
 
     private func storageCabinetTitle(for bell: BellEntity) -> String {
@@ -378,13 +295,12 @@ final class BellCatalogViewModel {
 
     private func storageComponents(for bell: BellEntity) -> (floor: String, room: String, cabinet: String) {
         guard let location = bell.location else {
-            let unknown = String(localized: "common.unknown")
-            return (unknown, unknown, unknown)
+            return (unknownTitle, unknownTitle, unknownTitle)
         }
 
-        var floor = String(localized: "common.unknown")
-        var room = String(localized: "common.unknown")
-        var cabinet = String(localized: "common.unknown")
+        var floor = unknownTitle
+        var room = unknownTitle
+        var cabinet = unknownTitle
         var current: LocationEntity? = location
 
         while let location = current {
@@ -405,15 +321,6 @@ final class BellCatalogViewModel {
         return (floor, room, cabinet)
     }
 
-    private func storageSortComponents(from header: String) -> (floor: String, room: String) {
-        let parts = header.components(separatedBy: " · ")
-        if parts.count == 2 {
-            return (parts[0], parts[1])
-        }
-
-        return (header, header)
-    }
-
     private func compareDisplayValues(_ lhs: String, _ rhs: String, unknown: String) -> ComparisonResult {
         let leftIsUnknown = lhs == unknown
         let rightIsUnknown = rhs == unknown
@@ -425,23 +332,57 @@ final class BellCatalogViewModel {
         return lhs.localizedCaseInsensitiveCompare(rhs)
     }
 
-    private func geographySort(_ lhs: BellEntity, _ rhs: BellEntity) -> Bool {
-        let countryComparison = compareDisplayValues(normalizedCountry(for: lhs), normalizedCountry(for: rhs), unknown: String(localized: "common.unknown"))
-        if countryComparison != .orderedSame {
-            return countryComparison == .orderedAscending
-        }
+    private func geographyDisplayValue(_ value: String, unknown: String) -> String {
+        value.isEmpty ? unknown : value
+    }
 
-        let regionComparison = compareDisplayValues(normalizedRegion(for: lhs), normalizedRegion(for: rhs), unknown: String(localized: "common.unknown"))
-        if regionComparison != .orderedSame {
-            return regionComparison == .orderedAscending
+    private var sortComparators: [KeyPathComparator<BellEntity>] {
+        switch orderMode {
+        case .title:
+            return titleComparators
+        case .newestFirst:
+            return [
+                KeyPathComparator(\.createdAt, order: .reverse),
+                titleComparator
+            ]
+        case .oldestFirst:
+            return [
+                KeyPathComparator(\.createdAt),
+                titleComparator
+            ]
+        case .geography:
+            return geographyComparators
+        case .acquisitionYear:
+            return [
+                KeyPathComparator(\.acquiredYear, order: .reverse),
+                titleComparator
+            ]
+        case .storage:
+            return [
+                KeyPathComparator(\.storageFloor, comparator: .localizedStandard),
+                KeyPathComparator(\.storageRoom, comparator: .localizedStandard),
+                KeyPathComparator(\.storageCabinet, comparator: .localizedStandard),
+                KeyPathComparator(\.storageShelf, comparator: .localizedStandard),
+                titleComparator
+            ]
         }
+    }
 
-        let cityComparison = compareDisplayValues(normalizedCity(for: lhs), normalizedCity(for: rhs), unknown: String(localized: "common.unknown"))
-        if cityComparison != .orderedSame {
-            return cityComparison == .orderedAscending
-        }
+    private var geographyComparators: [KeyPathComparator<BellEntity>] {
+        [
+            KeyPathComparator(\.countryName, comparator: .localizedStandard),
+            KeyPathComparator(\.originPlace?.regionName, comparator: .localizedStandard),
+            KeyPathComparator(\.cityName, comparator: .localizedStandard),
+            titleComparator
+        ]
+    }
 
-        return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+    private var titleComparators: [KeyPathComparator<BellEntity>] {
+        [titleComparator]
+    }
+
+    private var titleComparator: KeyPathComparator<BellEntity> {
+        KeyPathComparator(\.title, comparator: .localizedStandard)
     }
 }
 
