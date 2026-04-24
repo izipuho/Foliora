@@ -70,33 +70,17 @@ private extension CGPoint {
 }
 
 enum BellOrderMode: String, CaseIterable, Hashable {
-    case title
-    case newestFirst// = "newest_first"
-    case oldestFirst// = "oldest_first"
-    case geography
-    case acquisitionYear// = "acqusition_year"
-    case storage
+        case title = "title"
+        case newestFirst = "newest_first"
+        case oldestFirst = "oldest_first"
+        case geography = "geography"
+        case acquisitionYear = "acquisition_year"
+        case storage = "storage"
 
-    //var resource: LocalizedStringResource {
-    //    LocalizedStringResource(stringLiteral: "bell_catalog.sort.\(self.rawValue)")
-    //}
-    var title: String {
-        switch self {
-        case .title:
-            return String(localized: "bell_catalog.sort.title")
-        case .newestFirst:
-            return String(localized: "bell_catalog.sort.newest_first")
-        case .oldestFirst:
-            return String(localized: "bell_catalog.sort.oldest_first")
-        case .geography:
-            return String(localized: "bell_catalog.group.geography")
-        case .acquisitionYear:
-            return String(localized: "bell_catalog.group.acquisition_year")
-        case .storage:
-            return String(localized: "bell_catalog.group.storage")
+        var title: String {
+            String(localized: "bell_catalog.sort.\(rawValue)")
         }
     }
-}
 
 enum BellSummaryFilter: Hashable {
     case all

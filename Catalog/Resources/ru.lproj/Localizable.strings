@@ -70,11 +70,10 @@
 "bell_catalog.sort.newest_first" = "Сначала новые";
 "bell_catalog.sort.oldest_first" = "Сначала старые";
 "bell_catalog.order.menu" = "Упорядочить";
-"bell_catalog.group.menu" = "Группировка";
-"bell_catalog.group.none" = "Нет";
-"bell_catalog.group.geography" = "География";
-"bell_catalog.group.acquisition_year" = "Год получения";
-"bell_catalog.group.storage" = "Хранение";
+"bell_catalog.sort.none" = "Нет";
+"bell_catalog.sort.geography" = "География";
+"bell_catalog.sort.acquisition_year" = "Год получения";
+"bell_catalog.sort.storage" = "Хранение";
 
 "common.add" = "Добавить";
 "common.apply" = "Применить";
