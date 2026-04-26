@@ -51,26 +51,26 @@ final class BellCatalogViewModel {
     var bellRecords: [BellEntity]
     var selectedCondition: ItemCondition?
     var orderMode: BellOrderMode
-    var summaryFilter: BellSummaryFilter?
+    var filters: BellFilters
     var searchText: String
 
     init(
         bellRecords: [BellEntity],
         orderMode: BellOrderMode,
-        summaryFilter: BellSummaryFilter?,
+        filters: BellFilters,
         searchText: String,
         selectedCondition: ItemCondition? = nil
     ) {
         self.bellRecords = bellRecords
         self.orderMode = orderMode
-        self.summaryFilter = summaryFilter
+        self.filters = filters
         self.searchText = searchText
         self.selectedCondition = selectedCondition
     }
 
     var filteredBells: [BellEntity] {
         bellRecords.filter { bell in
-            matches(bell: bell, summaryFilter: summaryFilter)
+            matches(bell: bell, filters: filters)
             && (selectedCondition == nil || bell.condition == selectedCondition)
             && (
                 searchText.isEmpty
@@ -147,48 +147,52 @@ final class BellCatalogViewModel {
 
     func updateContext(
         orderMode: BellOrderMode,
-        summaryFilter: BellSummaryFilter?,
+        filters: BellFilters,
         searchText: String
     ) {
         self.orderMode = orderMode
-        self.summaryFilter = summaryFilter
+        self.filters = filters
         self.searchText = searchText
     }
 
-    func matches(bell: BellEntity, summaryFilter: BellSummaryFilter?) -> Bool {
-        switch summaryFilter {
-        case nil, .all:
-            return true
-        case .withOrigin:
-            return bell.originPlace != nil
-        case .missingOrigin:
-            return bell.originPlace == nil
-        case .withYear:
-            return bell.acquiredYear != nil
-        case .missingYear:
-            return bell.acquiredYear == nil
-        case .withCity:
-            return !bell.cityName.isEmpty
-        case .withStorage:
-            return bell.location != nil
-        case .missingStorage:
-            return bell.location == nil
-        case .withNotes:
-            return bell.hasNotes
-        case .missingNotes:
-            return !bell.hasNotes
-        case .withTags:
-            return !bell.tagValues.isEmpty
-        case .missingTags:
-            return bell.tagValues.isEmpty
-        case .withMaterial:
-            return !bell.materialDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        case .country(let country):
-            return bell.countryName.localizedCaseInsensitiveCompare(country) == .orderedSame
-        case .material(let material):
-            return bell.materialDisplayName.localizedCaseInsensitiveCompare(material) == .orderedSame
-        case .tag(let tag):
-            return bell.tagValues.contains(where: { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame })
+    func matches(bell: BellEntity, filters: BellFilters) -> Bool {
+        filters.presence.allSatisfy { filter in
+            switch filter {
+            case .withOrigin:
+                return bell.originPlace != nil
+            case .missingOrigin:
+                return bell.originPlace == nil
+            case .withYear:
+                return bell.acquiredYear != nil
+            case .missingYear:
+                return bell.acquiredYear == nil
+            case .withCity:
+                return !bell.cityName.isEmpty
+            case .withStorage:
+                return bell.location != nil
+            case .missingStorage:
+                return bell.location == nil
+            case .withNotes:
+                return bell.hasNotes
+            case .missingNotes:
+                return !bell.hasNotes
+            case .withTags:
+                return !bell.tagValues.isEmpty
+            case .missingTags:
+                return bell.tagValues.isEmpty
+            case .withMaterial:
+                return !bell.materialDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+        }
+        && filters.attributes.allSatisfy { filter in
+            switch filter {
+            case .country(let country):
+                return bell.countryName.localizedCaseInsensitiveCompare(country) == .orderedSame
+            case .material(let material):
+                return bell.materialDisplayName.localizedCaseInsensitiveCompare(material) == .orderedSame
+            case .tag(let tag):
+                return bell.tagValues.contains(where: { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame })
+            }
         }
     }
 

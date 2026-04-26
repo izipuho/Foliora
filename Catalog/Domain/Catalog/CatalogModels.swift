@@ -38,8 +38,7 @@ enum BellOrderMode: String, CaseIterable, Hashable {
     }
 }
 
-enum BellSummaryFilter: Hashable {
-    case all
+enum BellPresenceFilter: Hashable {
     case withOrigin
     case missingOrigin
     case withYear
@@ -52,40 +51,19 @@ enum BellSummaryFilter: Hashable {
     case withTags
     case missingTags
     case withMaterial
+}
+
+enum BellAttributeFilter: Hashable {
     case country(String)
     case material(String)
     case tag(String)
+}
 
-    var title: String {
-        switch self {
-        case .all:
-            return String(localized: "bell_catalog.filter_summary.all")
-        case .withOrigin:
-            return String(localized: "bell_catalog.summary.with_origin")
-        case .missingOrigin:
-            return String(localized: "bell_catalog.filter_summary.missing_origin")
-        case .withYear:
-            return String(localized: "bell_catalog.summary.with_year")
-        case .missingYear:
-            return String(localized: "bell_catalog.filter_summary.missing_year")
-        case .withCity:
-            return String(localized: "bell_catalog.filter_summary.with_city")
-        case .withStorage:
-            return String(localized: "bell_catalog.summary.with_storage")
-        case .missingStorage:
-            return String(localized: "bell_catalog.filter_summary.missing_storage")
-        case .withNotes:
-            return String(localized: "bell_catalog.summary.with_notes")
-        case .missingNotes:
-            return String(localized: "bell_catalog.filter_summary.missing_notes")
-        case .withTags:
-            return String(localized: "bell_catalog.summary.with_tags")
-        case .missingTags:
-            return String(localized: "bell_catalog.filter_summary.missing_tags")
-        case .withMaterial:
-            return String(localized: "bell_catalog.filter_summary.with_material")
-        case .country(let value), .material(let value), .tag(let value):
-            return value
-        }
+struct BellFilters: Hashable {
+    var presence: Set<BellPresenceFilter> = []
+    var attributes: Set<BellAttributeFilter> = []
+
+    var isEmpty: Bool {
+        presence.isEmpty && attributes.isEmpty
     }
 }

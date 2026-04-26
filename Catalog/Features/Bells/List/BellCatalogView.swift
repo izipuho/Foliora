@@ -58,6 +58,62 @@ private extension CGPoint {
     }
 }
 
+private extension BellPresenceFilter {
+    var title: String {
+        switch self {
+        case .withOrigin:
+            return String(localized: "bell_catalog.summary.with_origin")
+        case .missingOrigin:
+            return String(localized: "bell_catalog.filter_summary.missing_origin")
+        case .withYear:
+            return String(localized: "bell_catalog.summary.with_year")
+        case .missingYear:
+            return String(localized: "bell_catalog.filter_summary.missing_year")
+        case .withCity:
+            return String(localized: "bell_catalog.filter_summary.with_city")
+        case .withStorage:
+            return String(localized: "bell_catalog.summary.with_storage")
+        case .missingStorage:
+            return String(localized: "bell_catalog.filter_summary.missing_storage")
+        case .withNotes:
+            return String(localized: "bell_catalog.summary.with_notes")
+        case .missingNotes:
+            return String(localized: "bell_catalog.filter_summary.missing_notes")
+        case .withTags:
+            return String(localized: "bell_catalog.summary.with_tags")
+        case .missingTags:
+            return String(localized: "bell_catalog.filter_summary.missing_tags")
+        case .withMaterial:
+            return String(localized: "bell_catalog.filter_summary.with_material")
+        }
+    }
+}
+
+private extension BellAttributeFilter {
+    var title: String {
+        switch self {
+        case .country(let value), .material(let value), .tag(let value):
+            return value
+        }
+    }
+}
+
+private extension BellFilters {
+    var activeTagFilter: BellAttributeFilter? {
+        attributes.first {
+            if case .tag = $0 {
+                return true
+            }
+
+            return false
+        }
+    }
+
+    var title: String? {
+        presence.first?.title ?? attributes.first?.title
+    }
+}
+
 
 
 struct BellCatalogView: View {
@@ -72,7 +128,7 @@ struct BellCatalogView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
-    @Binding var summaryFilter: BellSummaryFilter?
+    @Binding var filters: BellFilters
     @Query private var queriedBells: [BellEntity]
     @Query private var queriedLocations: [LocationEntity]
     @Query private var queriedHomes: [HomeEntity]
@@ -102,14 +158,14 @@ struct BellCatalogView: View {
         collaborators: [Collaborator],
         layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
-        summaryFilter: Binding<BellSummaryFilter?> = .constant(nil)
+        filters: Binding<BellFilters> = .constant(BellFilters())
     ) {
         self.repository = repository
         self.collaborators = collaborators
         self.collection = collection
         self._layoutMode = layoutMode
         self._orderMode = orderMode
-        self._summaryFilter = summaryFilter
+        self._filters = filters
         let collectionID = Optional(collection.id)
         _queriedBells = Query(
             filter: #Predicate<BellEntity> { bell in
@@ -129,9 +185,21 @@ struct BellCatalogView: View {
         BellCatalogViewModel(
             bellRecords: queriedBells,
             orderMode: orderMode,
-            summaryFilter: summaryFilter,
+            filters: filters,
             searchText: ""
         )
+    }
+
+    private var hasActiveFilter: Bool {
+        !filters.isEmpty
+    }
+
+    private func setFilter(_ filter: BellPresenceFilter) {
+        filters = BellFilters(presence: [filter])
+    }
+
+    private func setFilter(_ filter: BellAttributeFilter) {
+        filters = BellFilters(attributes: [filter])
     }
 
     private var locationsByID: [UUID: LocationEntity] {
@@ -331,7 +399,7 @@ struct BellCatalogView: View {
             visualScale = 1
             pinchOriginBellID = nil
         }
-        .onChange(of: summaryFilter) { _, _ in
+        .onChange(of: filters) { _, _ in
             accumulatedMagnificationDelta = 0
             lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
@@ -357,7 +425,7 @@ struct BellCatalogView: View {
 
                     dashboardHeader(screenHeight: screenHeight)
 
-                    if let summaryFilter, summaryFilter != .all {
+                    if hasActiveFilter {
                         activeSummaryFilterSection
                     }
 
@@ -414,8 +482,8 @@ struct BellCatalogView: View {
                     scrollProxy.scrollTo(targetID, anchor: .top)
                 }
             }
-            .onChange(of: summaryFilter) { _, _ in
-                if case .some(.tag(_)) = summaryFilter {
+            .onChange(of: filters) { _, newFilters in
+                if newFilters.activeTagFilter != nil {
                     withAnimation(.snappy(duration: 0.24)) {
                         scrollProxy.scrollTo("bell-grid-top", anchor: .top)
                     }
@@ -439,13 +507,13 @@ struct BellCatalogView: View {
             Image(systemName: "tag.fill")
                 .foregroundStyle(collection.backgroundStyle.accentColor)
 
-            Text(String.localizedStringWithFormat(String(localized: "bell_catalog.items.filtered_by_tag"), summaryFilter?.title ?? ""))
+            Text(String.localizedStringWithFormat(String(localized: "bell_catalog.items.filtered_by_tag"), filters.title ?? ""))
                 .font(.subheadline.weight(.semibold))
 
             Spacer()
 
             Button(String(localized: "common.clear")) {
-                summaryFilter = nil
+                filters = BellFilters()
             }
             .font(.footnote.weight(.semibold))
             .foregroundStyle(collection.backgroundStyle.accentColor)
@@ -466,7 +534,7 @@ struct BellCatalogView: View {
                         value: "\(viewModel.bellRecords.count)",
                         systemImage: "bell.fill"
                     ) {
-                        summaryFilter = nil
+                        filters = BellFilters()
                     }
 
                     dashboardMetricChip(
@@ -474,7 +542,7 @@ struct BellCatalogView: View {
                         value: "\(viewModel.countryCount)",
                         systemImage: "globe.europe.africa.fill"
                     ) {
-                        summaryFilter = .withOrigin
+                        setFilter(.withOrigin)
                     }
 
                     dashboardMetricChip(
@@ -482,7 +550,7 @@ struct BellCatalogView: View {
                         value: "\(viewModel.cityCount)",
                         systemImage: "building.2.fill"
                     ) {
-                        summaryFilter = .withCity
+                        setFilter(.withCity)
                     }
                 }
             }
@@ -521,7 +589,7 @@ struct BellCatalogView: View {
                             entries: dataHealthEntries,
                             onSelect: { filter in
                                 isPresentingDataHealthPopover = false
-                                summaryFilter = filter
+                                setFilter(filter)
                             }
                         )
                     }

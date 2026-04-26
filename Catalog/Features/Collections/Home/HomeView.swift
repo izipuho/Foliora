@@ -1549,7 +1549,7 @@ private struct CollectionShellView: View {
     @State private var isPresentingMap = false
     @State private var selectedOrder: BellOrderMode = .newestFirst
     @State private var selectedLayoutMode: BellGridLayoutMode = .mini
-    @State private var selectedSummaryFilter: BellSummaryFilter?
+    @State private var selectedSummaryFilter = BellFilters()
     private let mediaStore = LocalMediaFileStore.shared
 
     init(collection: CollectionSummary, repository: any CatalogRepository) {
@@ -1581,7 +1581,7 @@ private struct CollectionShellView: View {
             collaborators: collaborators,
             layoutMode: $selectedLayoutMode,
             orderMode: $selectedOrder,
-            summaryFilter: $selectedSummaryFilter
+            filters: $selectedSummaryFilter
         )
         .id("collection-\(refreshID.uuidString)")
         .navigationTitle(collection.name)

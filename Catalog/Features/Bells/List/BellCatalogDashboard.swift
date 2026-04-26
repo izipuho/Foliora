@@ -126,14 +126,14 @@ struct TopGeographyPopover: View {
 struct DataHealthEntry: Identifiable {
     let title: String
     let countText: String
-    let filter: BellSummaryFilter
+    let filter: BellPresenceFilter
 
     var id: String { title }
 }
 
 struct DataHealthPopover: View {
     let entries: [DataHealthEntry]
-    let onSelect: (BellSummaryFilter) -> Void
+    let onSelect: (BellPresenceFilter) -> Void
 
     var body: some View {
         NavigationStack {
