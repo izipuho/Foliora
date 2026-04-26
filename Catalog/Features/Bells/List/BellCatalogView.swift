@@ -181,13 +181,14 @@ struct BellCatalogView: View {
         collection.backgroundStyle.screenColors
     }
 
-    private var viewModel: BellCatalogViewModel {
+    private var displayModel: BellCatalogDisplayModel {
         BellCatalogViewModel(
             bellRecords: queriedBells,
             orderMode: orderMode,
             filters: filters,
             searchText: ""
         )
+        .makeDisplayModel()
     }
 
     private var hasActiveFilter: Bool {
@@ -309,7 +310,7 @@ struct BellCatalogView: View {
     }
 
     private func displayedItemsBell(withID bellID: UUID) -> BellEntity? {
-        viewModel.filteredBells.first(where: { $0.id == bellID })
+        displayModel.filteredBells.first(where: { $0.id == bellID })
     }
 
     private var canZoomIn: Bool {
@@ -345,7 +346,7 @@ struct BellCatalogView: View {
     var body: some View {
         GeometryReader { proxy in
             unifiedFeedContent(
-                bells: viewModel.filteredBells,
+                displayModel: displayModel,
                 screenWidth: proxy.size.width,
                 screenHeight: proxy.size.height
             )
@@ -409,41 +410,38 @@ struct BellCatalogView: View {
     }
 
     private func unifiedFeedContent(
-        bells: [BellEntity],
+        displayModel: BellCatalogDisplayModel,
         screenWidth: CGFloat,
         screenHeight: CGFloat
     ) -> some View {
-        let viewModel = self.viewModel
-        let usesGroupedSections = viewModel.usesGroupedSections
-
         return ScrollViewReader { scrollProxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: usesGroupedSections ? [.sectionHeaders] : []) {
+                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.usesGroupedSections ? [.sectionHeaders] : []) {
                     Color.clear
                         .frame(height: 0)
                         .id("bell-grid-top")
 
-                    dashboardHeader(screenHeight: screenHeight)
+                    dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
 
                     if hasActiveFilter {
                         activeSummaryFilterSection
                     }
 
-                    if bells.isEmpty {
+                    if displayModel.filteredBells.isEmpty {
                         emptyBellsGridState(
                             title: LocalizedStringKey(String(localized: "bell_catalog.empty.title")),
                             description: LocalizedStringKey(String(localized: "bell_catalog.empty.description"))
                         )
-                    } else if usesGroupedSections {
+                    } else if displayModel.usesGroupedSections {
                         groupedBellSectionsContent(
-                            sections: viewModel.groupedSections(from: bells),
+                            sections: displayModel.groupedSections,
                             screenWidth: screenWidth,
                             scrollProxy: scrollProxy
                         )
                         .scaleEffect(visualScale, anchor: .center)
                     } else {
                         LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
-                            ForEach(bells) { bell in
+                            ForEach(displayModel.filteredBells) { bell in
                                 bellCardButton(bell)
                             }
                         }
@@ -522,16 +520,15 @@ struct BellCatalogView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
     }
 
-    private func dashboardHeader(screenHeight: CGFloat) -> some View {
+    private func dashboardHeader(displayModel: BellCatalogDisplayModel, screenHeight: CGFloat) -> some View {
         let headerHeight = min(max(screenHeight * 0.36, 220), 320)
-        let viewModel = self.viewModel
 
         return VStack(alignment: .leading, spacing: 14) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     dashboardMetricChip(
                         title: String(localized: "bell_catalog.dashboard.total"),
-                        value: "\(viewModel.bellRecords.count)",
+                        value: "\(displayModel.bellRecords.count)",
                         systemImage: "bell.fill"
                     ) {
                         filters = BellFilters()
@@ -539,7 +536,7 @@ struct BellCatalogView: View {
 
                     dashboardMetricChip(
                         title: String(localized: "bell_catalog.dashboard.countries"),
-                        value: "\(viewModel.countryCount)",
+                        value: "\(displayModel.countryCount)",
                         systemImage: "globe.europe.africa.fill"
                     ) {
                         setFilter(.withOrigin)
@@ -547,7 +544,7 @@ struct BellCatalogView: View {
 
                     dashboardMetricChip(
                         title: String(localized: "bell_catalog.dashboard.cities"),
-                        value: "\(viewModel.cityCount)",
+                        value: "\(displayModel.cityCount)",
                         systemImage: "building.2.fill"
                     ) {
                         setFilter(.withCity)
@@ -559,18 +556,18 @@ struct BellCatalogView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     DashboardTopGeographyCard(
-                        countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                        flag: topGeography?.flag ?? "🌍",
-                        countText: topGeographyCountText,
+                        countryName: topGeography(in: displayModel)?.name ?? String(localized: "common.unknown"),
+                        flag: topGeography(in: displayModel)?.flag ?? "🌍",
+                        countText: topGeographyCountText(in: displayModel),
                         tint: collection.backgroundStyle.accentColor,
                         action: {
-                            guard !topGeographyEntries.isEmpty else { return }
+                            guard !topGeographyEntries(in: displayModel).isEmpty else { return }
                             isPresentingTopGeographyPopover = true
                         }
                     )
                     .popover(isPresented: $isPresentingTopGeographyPopover) {
                         TopGeographyPopover(
-                            entries: topGeographyEntries,
+                            entries: topGeographyEntries(in: displayModel),
                             onSelect: { country in
                                 isPresentingTopGeographyPopover = false
                                 focusGeography(country: country)
@@ -579,14 +576,14 @@ struct BellCatalogView: View {
                     }
 
                     DashboardDataHealthCard(
-                        progress: dataHealthProgress,
+                        progress: dataHealthProgress(in: displayModel),
                         tint: collection.backgroundStyle.accentColor
                     ) {
                         isPresentingDataHealthPopover = true
                     }
                     .popover(isPresented: $isPresentingDataHealthPopover) {
                         DataHealthPopover(
-                            entries: dataHealthEntries,
+                            entries: dataHealthEntries(in: displayModel),
                             onSelect: { filter in
                                 isPresentingDataHealthPopover = false
                                 setFilter(filter)
@@ -636,90 +633,75 @@ struct BellCatalogView: View {
         .buttonStyle(.plain)
     }
 
-    private var dataHealthProgress: Double {
-        let viewModel = self.viewModel
-        guard !viewModel.bellRecords.isEmpty else { return 0 }
-        let completeFields = viewModel.bellsWithOriginCount
-            + viewModel.bellsWithAcquiredYearCount
-            + viewModel.bellsWithStorageCount
-            + viewModel.bellsWithNotesCount
-            + viewModel.bellsWithTagsCount
-        let totalFields = viewModel.bellRecords.count * 5
+    private func dataHealthProgress(in displayModel: BellCatalogDisplayModel) -> Double {
+        guard !displayModel.bellRecords.isEmpty else { return 0 }
+        let completeFields = displayModel.bellsWithOriginCount
+            + displayModel.bellsWithAcquiredYearCount
+            + displayModel.bellsWithStorageCount
+            + displayModel.bellsWithNotesCount
+            + displayModel.bellsWithTagsCount
+        let totalFields = displayModel.bellRecords.count * 5
         return min(max(Double(completeFields) / Double(totalFields), 0), 1)
     }
 
-    private var dataHealthEntries: [DataHealthEntry] {
-        let viewModel = self.viewModel
-        let total = viewModel.bellRecords.count
+    private func dataHealthEntries(in displayModel: BellCatalogDisplayModel) -> [DataHealthEntry] {
+        let total = displayModel.bellRecords.count
 
         return [
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_origin"),
-                countText: "\(viewModel.bellsWithOriginCount)/\(total)",
+                countText: "\(displayModel.bellsWithOriginCount)/\(total)",
                 filter: .missingOrigin
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_year"),
-                countText: "\(viewModel.bellsWithAcquiredYearCount)/\(total)",
+                countText: "\(displayModel.bellsWithAcquiredYearCount)/\(total)",
                 filter: .missingYear
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_storage"),
-                countText: "\(viewModel.bellsWithStorageCount)/\(total)",
+                countText: "\(displayModel.bellsWithStorageCount)/\(total)",
                 filter: .missingStorage
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_notes"),
-                countText: "\(viewModel.bellsWithNotesCount)/\(total)",
+                countText: "\(displayModel.bellsWithNotesCount)/\(total)",
                 filter: .missingNotes
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_tags"),
-                countText: "\(viewModel.bellsWithTagsCount)/\(total)",
+                countText: "\(displayModel.bellsWithTagsCount)/\(total)",
                 filter: .missingTags
             )
         ]
     }
 
-    private var topGeography: (name: String, flag: String, count: Int)? {
-        let viewModel = self.viewModel
-        guard let topCountry = viewModel.topCountries.first else { return nil }
-        let countryCode = viewModel.bellRecords
-            .first(where: { $0.countryName.localizedCaseInsensitiveCompare(topCountry.0) == .orderedSame })?
-            .originPlace?
-            .countryCode ?? ""
-
+    private func topGeography(in displayModel: BellCatalogDisplayModel) -> (name: String, flag: String, count: Int)? {
+        guard let topCountry = displayModel.topCountries.first else { return nil }
         return (
-            name: topCountry.0,
-            flag: flagEmoji(for: countryCode),
-            count: topCountry.1
+            name: topCountry.country,
+            flag: flagEmoji(for: topCountry.countryCode),
+            count: topCountry.count
         )
     }
 
-    private var topGeographyEntries: [TopGeographyEntry] {
-        let viewModel = self.viewModel
-
-        return Array(viewModel.topCountries.prefix(5)).map { row in
-            let countryCode = viewModel.bellRecords
-                .first(where: { $0.countryName.localizedCaseInsensitiveCompare(row.0) == .orderedSame })?
-                .originPlace?
-                .countryCode ?? ""
-
+    private func topGeographyEntries(in displayModel: BellCatalogDisplayModel) -> [TopGeographyEntry] {
+        Array(displayModel.topCountries.prefix(5)).map { row in
             return TopGeographyEntry(
-                country: row.0,
-                flag: flagEmoji(for: countryCode),
-                countText: localizedCount(row.1, kind: .bells)
+                country: row.country,
+                flag: flagEmoji(for: row.countryCode),
+                countText: localizedCount(row.count, kind: .bells)
             )
         }
     }
 
-    private var topGeographyCountText: String {
-        guard let topGeography else { return String(localized: "bell_catalog.summary.no_origin_data") }
+    private func topGeographyCountText(in displayModel: BellCatalogDisplayModel) -> String {
+        guard let topGeography = topGeography(in: displayModel) else { return String(localized: "bell_catalog.summary.no_origin_data") }
         return localizedCount(topGeography.count, kind: .bells)
     }
 
     private func focusTopGeography() {
-        guard let topCountry = topGeography?.name else { return }
+        guard let topCountry = topGeography(in: displayModel)?.name else { return }
         focusGeography(country: topCountry)
     }
 

@@ -3,6 +3,29 @@ import Observation
 
 private let unknownTitle = String(localized: "common.unknown")
 
+struct BellCatalogDisplayModel {
+    struct TopCountry: Identifiable {
+        let country: String
+        let countryCode: String
+        let count: Int
+
+        var id: String { country }
+    }
+
+    let bellRecords: [BellEntity]
+    let filteredBells: [BellEntity]
+    let groupedSections: [BellGroupedSection]
+    let usesGroupedSections: Bool
+    let countryCount: Int
+    let cityCount: Int
+    let topCountries: [TopCountry]
+    let bellsWithOriginCount: Int
+    let bellsWithAcquiredYearCount: Int
+    let bellsWithStorageCount: Int
+    let bellsWithNotesCount: Int
+    let bellsWithTagsCount: Int
+}
+
 private struct StorageGroupKey: Hashable {
     let floor: String
     let room: String
@@ -68,7 +91,27 @@ final class BellCatalogViewModel {
         self.selectedCondition = selectedCondition
     }
 
-    var filteredBells: [BellEntity] {
+    func makeDisplayModel() -> BellCatalogDisplayModel {
+        let filteredBells = filteredBells
+        let usesGroupedSections = usesGroupedSections
+
+        return BellCatalogDisplayModel(
+            bellRecords: bellRecords,
+            filteredBells: filteredBells,
+            groupedSections: usesGroupedSections ? groupedSections(fromFilteredBells: filteredBells) : [],
+            usesGroupedSections: usesGroupedSections,
+            countryCount: countryCount,
+            cityCount: cityCount,
+            topCountries: topCountries,
+            bellsWithOriginCount: bellsWithOriginCount,
+            bellsWithAcquiredYearCount: bellsWithAcquiredYearCount,
+            bellsWithStorageCount: bellsWithStorageCount,
+            bellsWithNotesCount: bellsWithNotesCount,
+            bellsWithTagsCount: bellsWithTagsCount
+        )
+    }
+
+    private var filteredBells: [BellEntity] {
         bellRecords.filter { bell in
             matches(bell: bell, filters: filters)
             && (selectedCondition == nil || bell.condition == selectedCondition)
@@ -82,7 +125,7 @@ final class BellCatalogViewModel {
         }
     }
 
-    var countryCount: Int {
+    private var countryCount: Int {
         Set(bellRecords.map(\.countryName).filter { !$0.isEmpty }).count
     }
 
@@ -90,27 +133,27 @@ final class BellCatalogViewModel {
         Set(bellRecords.map(\.materialDisplayName)).count
     }
 
-    var cityCount: Int {
+    private var cityCount: Int {
         Set(bellRecords.map(\.cityName).filter { !$0.isEmpty }).count
     }
 
-    var bellsWithOriginCount: Int {
+    private var bellsWithOriginCount: Int {
         bellRecords.filter { $0.originPlace != nil }.count
     }
 
-    var bellsWithAcquiredYearCount: Int {
+    private var bellsWithAcquiredYearCount: Int {
         bellRecords.filter { $0.acquiredYear != nil }.count
     }
 
-    var bellsWithStorageCount: Int {
+    private var bellsWithStorageCount: Int {
         bellRecords.filter { $0.location != nil }.count
     }
 
-    var bellsWithNotesCount: Int {
+    private var bellsWithNotesCount: Int {
         bellRecords.filter(\.hasNotes).count
     }
 
-    var bellsWithTagsCount: Int {
+    private var bellsWithTagsCount: Int {
         bellRecords.filter { !$0.tagValues.isEmpty }.count
     }
 
@@ -129,8 +172,19 @@ final class BellCatalogViewModel {
             }
     }
 
-    var topCountries: [(String, Int)] {
-        topValues(from: bellRecords.map(\.countryName), skipEmpty: true)
+    private var topCountries: [BellCatalogDisplayModel.TopCountry] {
+        topValues(from: bellRecords.map(\.countryName), skipEmpty: true).map { country, count in
+            let countryCode = bellRecords
+                .first(where: { $0.countryName.localizedCaseInsensitiveCompare(country) == .orderedSame })?
+                .originPlace?
+                .countryCode ?? ""
+
+            return BellCatalogDisplayModel.TopCountry(
+                country: country,
+                countryCode: countryCode,
+                count: count
+            )
+        }
     }
 
     var topMaterials: [(String, Int)] {
@@ -141,7 +195,7 @@ final class BellCatalogViewModel {
         topValues(from: bellRecords.flatMap(\.tagValues))
     }
 
-    var usesGroupedSections: Bool {
+    private var usesGroupedSections: Bool {
         [.geography, .acquisitionYear, .storage].contains(orderMode)
     }
 
@@ -200,7 +254,7 @@ final class BellCatalogViewModel {
         bellRecords.sorted(using: sortComparators)
     }
 
-    func groupedSections(from bellRecords: [BellEntity]) -> [BellGroupedSection] {
+    private func groupedSections(fromFilteredBells bellRecords: [BellEntity]) -> [BellGroupedSection] {
         switch orderMode {
         case .title, .newestFirst, .oldestFirst:
             return []
