@@ -1,3 +1,5 @@
+import SwiftUI
+
 enum SummaryCountKind: String {
     case bells
     case materials

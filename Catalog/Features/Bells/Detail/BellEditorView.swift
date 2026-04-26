@@ -1,0 +1,654 @@
+import SwiftUI
+import SwiftData
+
+struct BellEditorView: View {
+    enum StartSection: Hashable {
+        case storage
+    }
+
+    private enum AnalysisFeedback: Equatable {
+        case success
+        case warning
+
+        var sensoryFeedback: SensoryFeedback {
+            switch self {
+            case .success:
+                return .impact(weight: .light)
+            case .warning:
+                return .warning
+            }
+        }
+    }
+
+    private struct AnalysisFeedbackEvent: Equatable {
+        let kind: AnalysisFeedback
+        let token: Int
+    }
+
+    let collection: CollectionSummary
+    let repository: any CatalogRepository
+    let startSection: StartSection?
+    let initialAnalysisImage: UIImage?
+    let onSave: (BellRecord) -> Void
+    @Query private var queriedLocations: [LocationEntity]
+    @Query private var queriedBells: [BellEntity]
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var title = ""
+    @State private var notes = ""
+    @State private var condition: ItemCondition = .good
+    @State private var acquisitionMethod: AcquisitionMethod = .bought
+    @State private var material: BellMaterial = .brass
+    @State private var customMaterialName = ""
+    @State private var selectedOriginPlace: Place?
+    @State private var selectedLocationID: UUID?
+    @State private var tagInput = ""
+    @State private var tags: [String] = []
+    @State private var mediaAssets: [MediaAsset] = []
+    @State private var selectedAcquiredYearOption = String(localized: "editor.acquired_year.none")
+    @State private var highlightedSection: StartSection?
+    @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
+    @State private var analysisFeedbackToken = 0
+    @State private var photoAnalysis = BellPhotoAnalysisController()
+    @State private var didStartInitialAnalysis = false
+    private let existingBellID: UUID?
+    private let existingCreatedAt: Date?
+    private let editorItemID: UUID
+
+    private let acquiredYearOptions = [String(localized: "editor.acquired_year.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
+
+    private var availableLocations: [Location] {
+        queriedLocations.map { entity in
+            Location(
+                id: entity.id,
+                homeID: entity.home?.id ?? collection.homeID,
+                parentLocationID: entity.parent?.id,
+                kind: entity.kind,
+                name: entity.name,
+                notes: entity.notes
+            )
+        }
+    }
+
+    private var availablePlaces: [Place] {
+        let places = queriedBells
+            .compactMap { bell -> Place? in
+                guard let place = bell.originPlace else { return nil }
+                return Place(
+                    id: place.id,
+                    displayName: place.displayName,
+                    countryCode: place.countryCode,
+                    countryName: place.countryName,
+                    regionName: place.regionName,
+                    cityName: place.cityName,
+                    latitude: place.latitude,
+                    longitude: place.longitude
+                )
+            }
+
+        return Array(Set(places)).sorted { lhs, rhs in
+            lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName) == .orderedAscending
+        }
+    }
+
+    private var locationPathByID: [UUID: String] {
+        Dictionary(
+            uniqueKeysWithValues: availableLocations.map { location in
+                (location.id, locationPath(for: location))
+            }
+        )
+    }
+
+    private var canSave: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    init(
+        collection: CollectionSummary,
+        repository: any CatalogRepository,
+        bell: BellRecord? = nil,
+        initialMediaAssets: [MediaAsset] = [],
+        initialAnalysisImage: UIImage? = nil,
+        startSection: StartSection? = nil,
+        onSave: @escaping (BellRecord) -> Void
+    ) {
+        self.collection = collection
+        self.repository = repository
+        self.startSection = startSection
+        self.initialAnalysisImage = initialAnalysisImage
+        self.onSave = onSave
+        self.existingBellID = bell?.id
+        self.existingCreatedAt = bell?.createdAt
+        self.editorItemID = bell?.id ?? UUID()
+        let homeID = Optional(collection.homeID)
+        let collectionID = Optional(collection.id)
+        _queriedLocations = Query(
+            filter: #Predicate<LocationEntity> { location in
+                location.home?.id == homeID
+            },
+            sort: [SortDescriptor(\.name)]
+        )
+        _queriedBells = Query(
+            filter: #Predicate<BellEntity> { bell in
+                bell.collection?.id == collectionID
+            },
+            sort: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        _title = State(initialValue: bell?.title ?? "")
+        _notes = State(initialValue: bell?.notes ?? "")
+        _condition = State(initialValue: bell?.condition ?? .good)
+        _acquisitionMethod = State(initialValue: bell?.acquisitionMethod ?? .bought)
+        _material = State(initialValue: bell?.details.material ?? .brass)
+        _customMaterialName = State(initialValue: bell?.details.customMaterialName ?? "")
+        _selectedOriginPlace = State(initialValue: bell?.originPlace)
+        _selectedLocationID = State(initialValue: bell?.item.locationID)
+        _tags = State(initialValue: bell?.tags ?? [])
+        _mediaAssets = State(initialValue: bell?.mediaAssets ?? initialMediaAssets)
+        _selectedAcquiredYearOption = State(initialValue: bell?.acquiredYear.map(String.init) ?? String(localized: "editor.acquired_year.none"))
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollViewReader { scrollProxy in
+                Form {
+                    Section(String(localized: "editor.media")) {
+                        MediaSection(
+                            itemID: editorItemID,
+                            mediaAssets: $mediaAssets,
+                            analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
+                        )
+                    }
+
+                    if photoAnalysis.hasSuggestions {
+                        Section(String(localized: "editor.photo_analysis.section")) {
+                            if photoAnalysis.isAnalyzing {
+                                HStack(spacing: 10) {
+                                    ProgressView()
+                                    Text(String(localized: "editor.photo_analysis.analyzing"))
+                                        .foregroundStyle(.secondary)
+                                }
+                            } else {
+                                if !photoAnalysis.suggestions.recognizedText.isEmpty {
+                                    PhotoRecognizedTextBlock(textFeatures: photoAnalysis.suggestions.recognizedText)
+                                }
+
+                                if let titleSuggestion = photoAnalysis.suggestions.title {
+                                    PhotoSuggestionRow(
+                                        title: String(localized: "editor.photo_analysis.title"),
+                                        suggestedValue: titleSuggestion.value,
+                                        confidence: titleSuggestion.confidence,
+                                        onAccept: {
+                                            title = titleSuggestion.value
+                                            photoAnalysis.dismiss(.title)
+                                        }
+                                    )
+                                }
+
+                                if let notesSuggestion = photoAnalysis.suggestions.notes {
+                                    PhotoSuggestionRow(
+                                        title: String(localized: "editor.photo_analysis.notes"),
+                                        suggestedValue: notesSuggestion.value,
+                                        confidence: notesSuggestion.confidence,
+                                        onAccept: {
+                                            notes = notesSuggestion.value
+                                            photoAnalysis.dismiss(.notes)
+                                        }
+                                    )
+                                }
+
+                                if let materialSuggestion = photoAnalysis.suggestions.material {
+                                    PhotoSuggestionRow(
+                                        title: String(localized: "editor.photo_analysis.material"),
+                                        suggestedValue: materialSuggestionLabel(materialSuggestion),
+                                        confidence: materialSuggestion.confidence,
+                                        onAccept: {
+                                            material = materialSuggestion.value
+                                            if materialSuggestion.value == .other {
+                                                customMaterialName = photoAnalysis.suggestions.customMaterialName?.value ?? ""
+                                                photoAnalysis.dismiss(.customMaterialName)
+                                            } else {
+                                                customMaterialName = ""
+                                            }
+                                            photoAnalysis.dismiss(.material)
+                                        }
+                                    )
+                                }
+
+                                if let conditionSuggestion = photoAnalysis.suggestions.condition {
+                                    PhotoSuggestionRow(
+                                        title: String(localized: "editor.photo_analysis.condition"),
+                                        suggestedValue: conditionSuggestion.value.displayName,
+                                        confidence: conditionSuggestion.confidence,
+                                        onAccept: {
+                                            condition = conditionSuggestion.value
+                                            photoAnalysis.dismiss(.condition)
+                                        }
+                                    )
+                                }
+
+                                if let yearSuggestion = photoAnalysis.suggestions.suggestedYear {
+                                    PhotoSuggestionRow(
+                                        title: String(localized: "editor.photo_analysis.year"),
+                                        suggestedValue: String(yearSuggestion.value),
+                                        confidence: yearSuggestion.confidence,
+                                        onAccept: {
+                                            selectedAcquiredYearOption = String(yearSuggestion.value)
+                                            photoAnalysis.dismiss(.suggestedYear)
+                                        }
+                                    )
+                                }
+
+                                if let geoSuggestion = photoAnalysis.suggestions.suggestedGeo {
+                                    PhotoSuggestionRow(
+                                        title: String(localized: "editor.photo_analysis.geo"),
+                                        suggestedValue: geoSuggestion.value.name,
+                                        confidence: geoSuggestion.confidence,
+                                        onAccept: {
+                                            selectedOriginPlace = place(from: geoSuggestion.value)
+                                            photoAnalysis.dismiss(.suggestedGeo)
+                                        }
+                                    )
+                                }
+
+                                if !photoAnalysis.suggestions.suggestedTags.isEmpty {
+                                    PhotoSuggestedTagsRow(
+                                        title: String(localized: "editor.photo_analysis.tags"),
+                                        suggestions: photoAnalysis.suggestions.suggestedTags,
+                                        onAccept: { newValues in
+                                            for value in newValues where !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
+                                                tags.append(value)
+                                            }
+                                            photoAnalysis.dismiss(.suggestedTags)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Section(String(localized: "editor.description")) {
+                        TextField(String(localized: "editor.short_description"), text: $title)
+                        TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
+                            .lineLimit(4, reservesSpace: true)
+                    }
+
+                    Section(String(localized: "editor.acquisition_details")) {
+                        YearPickerField(
+                            title: String(localized: "editor.acquired_year"),
+                            selection: $selectedAcquiredYearOption,
+                            options: acquiredYearOptions
+                        )
+
+                        EnumSelectionRow(
+                            title: String(localized: "editor.acquisition"),
+                            selectedLabel: acquisitionMethod.displayName,
+                            options: AcquisitionMethod.allCases,
+                            selection: $acquisitionMethod,
+                            optionTitle: \.displayName
+                        )
+                    }
+
+                    Section(String(localized: "editor.attributes")) {
+                        EnumSelectionRow(
+                            title: String(localized: "editor.condition"),
+                            selectedLabel: condition.displayName,
+                            options: ItemCondition.allCases,
+                            selection: $condition,
+                            optionTitle: \.displayName
+                        )
+
+                        EnumSelectionRow(
+                            title: String(localized: "editor.material"),
+                            selectedLabel: material.displayName,
+                            options: BellMaterial.allCases,
+                            selection: $material,
+                            optionTitle: \.displayName
+                        )
+
+                        if material == .other {
+                            TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
+                        }
+                    }
+
+                    Section(String(localized: "editor.storage")) {
+                        LocationPickerField(
+                            title: String(localized: "editor.location"),
+                            selectedLabel: selectedLocationLabel,
+                            locations: availableLocations,
+                            selectedLocationID: $selectedLocationID
+                        )
+                    }
+                    .id(StartSection.storage)
+                    .listRowBackground(sectionBackground(for: .storage))
+
+                    Section(String(localized: "editor.additional_details")) {
+                        PlacePickerField(
+                            title: String(localized: "editor.origin"),
+                            selectedLabel: selectedOriginLabel,
+                            places: availablePlaces,
+                            selectedPlace: $selectedOriginPlace
+                        )
+                    }
+
+                    Section(String(localized: "editor.tags")) {
+                        TagEditorSection(
+                            tagInput: $tagInput,
+                            tags: $tags
+                        )
+                    }
+                }
+                .navigationTitle(existingBellID == nil ? String(localized: "editor.bell.add") : String(localized: "editor.bell.edit"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { dismiss() } label: { Image(systemName: "xmark") }
+                        .accessibilityLabel(String(localized: "common.cancel"))
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { saveBell() } label: { Image(systemName: "checkmark") }
+                        .disabled(!canSave)
+                        .accessibilityLabel(String(localized: "common.save"))
+                    }
+                }
+                .task {
+                    startInitialPhotoAnalysisIfNeeded()
+                    guard let startSection else { return }
+                    highlightedSection = startSection
+                    try? await Task.sleep(for: .milliseconds(150))
+                    withAnimation(.snappy(duration: 0.28)) {
+                        scrollProxy.scrollTo(startSection, anchor: .top)
+                    }
+                    try? await Task.sleep(for: .seconds(1.2))
+                    if highlightedSection == startSection {
+                        withAnimation(.easeOut(duration: 0.35)) {
+                            highlightedSection = nil
+                        }
+                    }
+                }
+                .sensoryFeedback(trigger: analysisFeedbackEvent) { _, newValue in
+                    newValue?.kind.sensoryFeedback
+                }
+                .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
+                    guard wasAnalyzing, !isAnalyzing else { return }
+                    handlePhotoAnalysisCompletion()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func sectionBackground(for section: StartSection) -> some View {
+        if highlightedSection == section {
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous)
+                .fill(collection.backgroundStyle.accentColor.opacity(0.10))
+        } else {
+            Color.clear
+        }
+    }
+
+    private func emitAnalysisFeedback(_ kind: AnalysisFeedback) {
+        analysisFeedbackToken += 1
+        analysisFeedbackEvent = AnalysisFeedbackEvent(kind: kind, token: analysisFeedbackToken)
+    }
+
+    private func handlePhotoAnalysisCompletion() {
+        if photoAnalysis.suggestions.hasSuggestions {
+            emitAnalysisFeedback(.success)
+        }
+
+        // Keep failures / empty results silent by default.
+        // If the analysis flow is re-enabled and warning feedback is needed later,
+        // emit `.warning` here in a more selective way.
+    }
+
+    private func startInitialPhotoAnalysisIfNeeded() {
+        guard !didStartInitialAnalysis, existingBellID == nil, let initialAnalysisImage else { return }
+        didStartInitialAnalysis = true
+        photoAnalysis.analyze(image: initialAnalysisImage)
+    }
+
+    private var firstPhotoAssetID: UUID? {
+        mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .first?
+            .id
+    }
+
+    private func saveBell() {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCustomMaterial = customMaterialName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let itemID = editorItemID
+        let location = availableLocations.first(where: { $0.id == selectedLocationID })
+        let originPlace = selectedOriginPlace
+        let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
+            MediaAsset(
+                id: asset.id,
+                itemID: itemID,
+                kind: asset.kind,
+                localIdentifier: asset.localIdentifier,
+                displayName: asset.displayName,
+                sortOrder: index
+            )
+        }
+
+        let newBell = BellRecord(
+            item: Item(
+                id: itemID,
+                collectionID: collection.id,
+                locationID: selectedLocationID,
+                createdAt: existingCreatedAt ?? .now,
+                title: trimmedTitle,
+                notes: trimmedNotes,
+                acquiredYear: selectedAcquiredYearOption == String(localized: "editor.acquired_year.none") ? nil : Int(selectedAcquiredYearOption),
+                condition: condition,
+                acquisitionMethod: acquisitionMethod
+            ),
+            details: BellDetails(
+                itemID: itemID,
+                originPlaceID: selectedOriginPlace?.id,
+                material: material,
+                customMaterialName: material == .other ? trimmedCustomMaterial : nil
+            ),
+            originPlace: originPlace,
+            storageLocation: location,
+            storagePath: location.map(locationPath(for:)) ?? String(localized: "common.unassigned"),
+            mediaAssets: normalizedMediaAssets,
+            createdBy: "You",
+            tags: tags
+        )
+
+        onSave(newBell)
+        dismiss()
+    }
+
+    private var selectedOriginLabel: String {
+        selectedOriginPlace?.displayName ?? String(localized: "common.unassigned")
+    }
+
+    private func place(from geoPoint: GeoPoint) -> Place {
+        Place(
+            id: UUID(),
+            displayName: geoPoint.name,
+            countryCode: "",
+            countryName: geoPoint.name,
+            regionName: nil,
+            cityName: nil,
+            latitude: geoPoint.latitude,
+            longitude: geoPoint.longitude
+        )
+    }
+
+    private var selectedLocationLabel: String {
+        guard let selectedLocationID, let path = locationPathByID[selectedLocationID] else {
+            return String(localized: "common.unassigned")
+        }
+
+        return path
+    }
+
+    private func locationPath(for location: Location) -> String {
+        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
+        var parts = [location.name]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            parts.insert(parent.name, at: 0)
+            currentParentID = parent.parentLocationID
+        }
+
+        return parts.joined(separator: " / ")
+    }
+
+    private func materialSuggestionLabel(_ suggestion: SuggestedFieldValue<BellMaterial>) -> String {
+        if suggestion.value == .other,
+           let customMaterial = photoAnalysis.suggestions.customMaterialName?.value,
+           !customMaterial.isEmpty {
+            return customMaterial
+        }
+
+        return suggestion.value.displayName
+    }
+}
+
+
+private struct PhotoSuggestionRow: View {
+    let title: String
+    let suggestedValue: String
+    let confidence: Double
+    let onAccept: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(confidenceLabel)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(suggestedValue)
+                .foregroundStyle(.primary)
+
+            HStack {
+                Spacer()
+
+                Button(action: onAccept) {
+                    Image(systemName: "checkmark")
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .accessibilityLabel(String(localized: "common.apply"))
+            }
+        }
+        .padding(.vertical, CatalogSpacing.micro)
+    }
+
+    private var confidenceLabel: String {
+        "\(Int((confidence * 100).rounded()))%"
+    }
+}
+
+private struct PhotoRecognizedTextBlock: View {
+    let textFeatures: [RecognizedTextFeature]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(String(localized: "editor.photo_analysis.detected_text"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            TagFlowLayout(spacing: 8) {
+                ForEach(textFeatures, id: \.self) { feature in
+                    Text(feature.text)
+                        .font(.caption.weight(.medium))
+                        .catalogPillPadding(.regular)
+                        .background(.thinMaterial, in: Capsule())
+                }
+            }
+        }
+    }
+}
+
+private struct PhotoSuggestedTagsRow: View {
+    let title: String
+    let suggestions: [SuggestedFieldValue<String>]
+    let onAccept: ([String]) -> Void
+
+    @State private var selectedValues: Set<String>
+
+    init(
+        title: String,
+        suggestions: [SuggestedFieldValue<String>],
+        onAccept: @escaping ([String]) -> Void
+    ) {
+        self.title = title
+        self.suggestions = suggestions
+        self.onAccept = onAccept
+        _selectedValues = State(initialValue: Set(suggestions.map(\.value)))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+
+            TagFlowLayout(spacing: 8) {
+                ForEach(selectedSuggestions, id: \.value) { suggestion in
+                    PhotoSuggestedTagChip(tag: suggestion.value) {
+                        selectedValues.remove(suggestion.value)
+                    }
+                }
+            }
+
+            HStack {
+                Spacer()
+
+                Button {
+                    onAccept(suggestions.map(\.value).filter(selectedValues.contains))
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .disabled(selectedValues.isEmpty)
+                .accessibilityLabel(String(localized: "common.apply"))
+            }
+        }
+        .padding(.vertical, CatalogSpacing.micro)
+    }
+
+    private var selectedSuggestions: [SuggestedFieldValue<String>] {
+        suggestions.filter { selectedValues.contains($0.value) }
+    }
+}
+
+private struct PhotoSuggestedTagChip: View {
+    let tag: String
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: CatalogSpacing.compact) {
+            Text("#\(tag)")
+                .font(.subheadline.weight(.medium))
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "common.delete"))
+        }
+        .catalogPillPadding(.regular)
+        .background(.thinMaterial, in: Capsule())
+    }
+}

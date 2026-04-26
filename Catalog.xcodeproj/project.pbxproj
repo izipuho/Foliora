@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */; };
+		24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */; };
+		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
 		C000000000000000000000A1 /* CatalogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000001 /* CatalogApp.swift */; };
 		C000000000000000000000A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
 		C000000000000000000000A3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* AppRouter.swift */; };
@@ -21,31 +24,34 @@
 		C000000000000000000000AD /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000D /* HomeView.swift */; };
 		C000000000000000000000AE /* BellCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000E /* BellCatalogView.swift */; };
 		C000000000000000000000AF /* BellDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000F /* BellDetailView.swift */; };
-		D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* BellDetailView+Subviews.swift */; };
 		C000000000000000000000B0 /* BookLibraryPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000010 /* BookLibraryPlaceholderView.swift */; };
 		C000000000000000000000B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Assets.xcassets */; };
-		C000000000000000000000B7 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000019 /* Localizable.stringsdict */; };
-		C000000000000000000000B8 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001C /* Localizable.strings */; };
 		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
 		C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000014 /* CloudKitConfiguration.swift */; };
 		C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000015 /* CloudKitCatalogRepository.swift */; };
 		C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000018 /* LocalMediaFileStore.swift */; };
+		C000000000000000000000B7 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000019 /* Localizable.stringsdict */; };
+		C000000000000000000000B8 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001C /* Localizable.strings */; };
 		C000000000000000000000B9 /* BellCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001F /* BellCardView.swift */; };
-		C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002E /* AsyncThumbnailLoader.swift */; };
-		C000000000000000000000C5 /* CatalogLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000030 /* CatalogLayouts.swift */; };
 		C000000000000000000000BA /* CatalogEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000025 /* CatalogEntities.swift */; };
 		C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000026 /* CatalogSwiftDataStack.swift */; };
 		C000000000000000000000BC /* SwiftDataCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000027 /* SwiftDataCatalogRepository.swift */; };
 		C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000028 /* CatalogTransferBundle.swift */; };
 		C000000000000000000000BE /* CatalogJSONPort.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000029 /* CatalogJSONPort.swift */; };
 		C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002A /* CatalogTransferDocument.swift */; };
-		C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002F /* CatalogImportExportActor.swift */; };
 		C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
 		C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
 		C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002D /* BellCatalogViewModel.swift */; };
+		C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002E /* AsyncThumbnailLoader.swift */; };
+		C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002F /* CatalogImportExportActor.swift */; };
+		C000000000000000000000C5 /* CatalogLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000030 /* CatalogLayouts.swift */; };
+		D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* BellDetailView+Subviews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellEditorView.swift; sourceTree = "<group>"; };
+		24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogModels.swift; sourceTree = "<group>"; };
+		24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogDashboard.swift; sourceTree = "<group>"; };
 		C00000000000000000000001 /* CatalogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogApp.swift; sourceTree = "<group>"; };
 		C00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
 		C00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
@@ -60,7 +66,6 @@
 		C0000000000000000000000D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C0000000000000000000000E /* BellCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogView.swift; sourceTree = "<group>"; };
 		C0000000000000000000000F /* BellDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellDetailView.swift; sourceTree = "<group>"; };
-		D00000000000000000000031 /* BellDetailView+Subviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BellDetailView+Subviews.swift"; sourceTree = "<group>"; };
 		C00000000000000000000010 /* BookLibraryPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookLibraryPlaceholderView.swift; sourceTree = "<group>"; };
 		C00000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Catalog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Catalog.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -69,23 +74,24 @@
 		C00000000000000000000015 /* CloudKitCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCatalogRepository.swift; sourceTree = "<group>"; };
 		C00000000000000000000016 /* Catalog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catalog.entitlements; sourceTree = "<group>"; };
 		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
+		C0000000000000000000001A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		C0000000000000000000001B /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ru; path = ru.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		C0000000000000000000001D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		C0000000000000000000001E /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
 		C0000000000000000000001F /* BellCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCardView.swift; sourceTree = "<group>"; };
-		C0000000000000000000002E /* AsyncThumbnailLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncThumbnailLoader.swift; sourceTree = "<group>"; };
-		C00000000000000000000030 /* CatalogLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLayouts.swift; sourceTree = "<group>"; };
 		C00000000000000000000025 /* CatalogEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEntities.swift; sourceTree = "<group>"; };
 		C00000000000000000000026 /* CatalogSwiftDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSwiftDataStack.swift; sourceTree = "<group>"; };
 		C00000000000000000000027 /* SwiftDataCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataCatalogRepository.swift; sourceTree = "<group>"; };
 		C00000000000000000000028 /* CatalogTransferBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferBundle.swift; sourceTree = "<group>"; };
 		C00000000000000000000029 /* CatalogJSONPort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogJSONPort.swift; sourceTree = "<group>"; };
 		C0000000000000000000002A /* CatalogTransferDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferDocument.swift; sourceTree = "<group>"; };
-		C0000000000000000000002F /* CatalogImportExportActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportActor.swift; sourceTree = "<group>"; };
 		C0000000000000000000002B /* PhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysis.swift; sourceTree = "<group>"; };
 		C0000000000000000000002C /* BellPhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellPhotoAnalysis.swift; sourceTree = "<group>"; };
 		C0000000000000000000002D /* BellCatalogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogViewModel.swift; sourceTree = "<group>"; };
-		C0000000000000000000001A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		C0000000000000000000001B /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ru; path = ru.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		C0000000000000000000001D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
-		C0000000000000000000001E /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
+		C0000000000000000000002E /* AsyncThumbnailLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncThumbnailLoader.swift; sourceTree = "<group>"; };
+		C0000000000000000000002F /* CatalogImportExportActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportActor.swift; sourceTree = "<group>"; };
+		C00000000000000000000030 /* CatalogLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLayouts.swift; sourceTree = "<group>"; };
+		D00000000000000000000031 /* BellDetailView+Subviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BellDetailView+Subviews.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +105,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		24BFE4E82F9CF57C00421A40 /* Catalog */ = {
+			isa = PBXGroup;
+			children = (
+				24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */,
+			);
+			path = Catalog;
+			sourceTree = "<group>";
+		};
 		C00000000000000000000031 = {
 			isa = PBXGroup;
 			children = (
@@ -152,6 +166,7 @@
 		C00000000000000000000036 /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				24BFE4E82F9CF57C00421A40 /* Catalog */,
 				C0000000000000000000003C /* Collections */,
 				C0000000000000000000003D /* Items */,
 				C0000000000000000000003E /* Sharing */,
@@ -246,49 +261,12 @@
 			path = Repositories;
 			sourceTree = "<group>";
 		};
-		C00000000000000000000048 /* SwiftData */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000025 /* CatalogEntities.swift */,
-				C00000000000000000000026 /* CatalogSwiftDataStack.swift */,
-				C00000000000000000000027 /* SwiftDataCatalogRepository.swift */,
-			);
-			path = SwiftData;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000049 /* ImportExport */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000028 /* CatalogTransferBundle.swift */,
-				C00000000000000000000029 /* CatalogJSONPort.swift */,
-				C0000000000000000000002A /* CatalogTransferDocument.swift */,
-				C0000000000000000000002F /* CatalogImportExportActor.swift */,
-			);
-			path = ImportExport;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000004A /* PhotoAnalysis */ = {
-			isa = PBXGroup;
-			children = (
-				C0000000000000000000002B /* PhotoAnalysis.swift */,
-			);
-			path = PhotoAnalysis;
-			sourceTree = "<group>";
-		};
 		C00000000000000000000041 /* Collections */ = {
 			isa = PBXGroup;
 			children = (
 				C00000000000000000000044 /* Home */,
 			);
 			path = Collections;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000004B /* Analysis */ = {
-			isa = PBXGroup;
-			children = (
-				C0000000000000000000002C /* BellPhotoAnalysis.swift */,
-			);
-			path = Analysis;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000042 /* Bells */ = {
@@ -320,6 +298,7 @@
 		C00000000000000000000045 /* List */ = {
 			isa = PBXGroup;
 			children = (
+				24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */,
 				C0000000000000000000000E /* BellCatalogView.swift */,
 				C0000000000000000000002D /* BellCatalogViewModel.swift */,
 			);
@@ -329,6 +308,7 @@
 		C00000000000000000000046 /* Detail */ = {
 			isa = PBXGroup;
 			children = (
+				24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */,
 				C0000000000000000000000F /* BellDetailView.swift */,
 				D00000000000000000000031 /* BellDetailView+Subviews.swift */,
 			);
@@ -343,28 +323,44 @@
 			path = Library;
 			sourceTree = "<group>";
 		};
+		C00000000000000000000048 /* SwiftData */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000025 /* CatalogEntities.swift */,
+				C00000000000000000000026 /* CatalogSwiftDataStack.swift */,
+				C00000000000000000000027 /* SwiftDataCatalogRepository.swift */,
+			);
+			path = SwiftData;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000049 /* ImportExport */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000028 /* CatalogTransferBundle.swift */,
+				C00000000000000000000029 /* CatalogJSONPort.swift */,
+				C0000000000000000000002A /* CatalogTransferDocument.swift */,
+				C0000000000000000000002F /* CatalogImportExportActor.swift */,
+			);
+			path = ImportExport;
+			sourceTree = "<group>";
+		};
+		C0000000000000000000004A /* PhotoAnalysis */ = {
+			isa = PBXGroup;
+			children = (
+				C0000000000000000000002B /* PhotoAnalysis.swift */,
+			);
+			path = PhotoAnalysis;
+			sourceTree = "<group>";
+		};
+		C0000000000000000000004B /* Analysis */ = {
+			isa = PBXGroup;
+			children = (
+				C0000000000000000000002C /* BellPhotoAnalysis.swift */,
+			);
+			path = Analysis;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
-
-/* Begin PBXVariantGroup section */
-		C00000000000000000000019 /* Localizable.stringsdict */ = {
-			isa = PBXVariantGroup;
-			children = (
-				C0000000000000000000001A /* en */,
-				C0000000000000000000001B /* ru */,
-			);
-			name = Localizable.stringsdict;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000001C /* Localizable.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				C0000000000000000000001D /* en */,
-				C0000000000000000000001E /* ru */,
-			);
-			name = Localizable.strings;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin PBXNativeTarget section */
 		C00000000000000000000051 /* Catalog */ = {
@@ -454,6 +450,8 @@
 				C000000000000000000000AE /* BellCatalogView.swift in Sources */,
 				C000000000000000000000AF /* BellDetailView.swift in Sources */,
 				D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */,
+				24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */,
+				24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */,
 				C000000000000000000000B0 /* BookLibraryPlaceholderView.swift in Sources */,
 				C000000000000000000000B2 /* EditorFields.swift in Sources */,
 				C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */,
@@ -467,6 +465,7 @@
 				C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */,
 				C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */,
 				C000000000000000000000B9 /* BellCardView.swift in Sources */,
+				24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */,
 				C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */,
 				C000000000000000000000C5 /* CatalogLayouts.swift in Sources */,
 				C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */,
@@ -476,6 +475,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		C00000000000000000000019 /* Localizable.stringsdict */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C0000000000000000000001A /* en */,
+				C0000000000000000000001B /* ru */,
+			);
+			name = Localizable.stringsdict;
+			sourceTree = "<group>";
+		};
+		C0000000000000000000001C /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C0000000000000000000001D /* en */,
+				C0000000000000000000001E /* ru */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		C00000000000000000000071 /* Debug */ = {
