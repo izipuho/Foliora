@@ -64,27 +64,27 @@ private extension BellPresenceFilter {
         case .withOrigin:
             return String(localized: "bell_catalog.summary.with_origin")
         case .missingOrigin:
-            return String(localized: "bell_catalog.filter_summary.missing_origin")
+            return String(localized: "bell_catalog.summary.missing_origin")
         case .withYear:
             return String(localized: "bell_catalog.summary.with_year")
         case .missingYear:
-            return String(localized: "bell_catalog.filter_summary.missing_year")
+            return String(localized: "bell_catalog.summary.missing_year")
         case .withCity:
-            return String(localized: "bell_catalog.filter_summary.with_city")
+            return String(localized: "bell_catalog.summary.with_city")
         case .withStorage:
             return String(localized: "bell_catalog.summary.with_storage")
         case .missingStorage:
-            return String(localized: "bell_catalog.filter_summary.missing_storage")
+            return String(localized: "bell_catalog.summary.missing_storage")
         case .withNotes:
             return String(localized: "bell_catalog.summary.with_notes")
         case .missingNotes:
-            return String(localized: "bell_catalog.filter_summary.missing_notes")
+            return String(localized: "bell_catalog.summary.missing_notes")
         case .withTags:
             return String(localized: "bell_catalog.summary.with_tags")
         case .missingTags:
-            return String(localized: "bell_catalog.filter_summary.missing_tags")
+            return String(localized: "bell_catalog.summary.missing_tags")
         case .withMaterial:
-            return String(localized: "bell_catalog.filter_summary.with_material")
+            return String(localized: "bell_catalog.summary.with_material")
         }
     }
 }

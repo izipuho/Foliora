@@ -70,6 +70,34 @@ final class LocationEntity {
         LocationKind(rawValue: kindRaw) ?? .room
     }
 
+    var storagePath: StoragePath {
+        var componentsByKind: [LocationKind: StoragePath.Component] = [:]
+        var current: LocationEntity? = self
+
+        while let currentLocation = current {
+            let trimmedName = currentLocation.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedName.isEmpty, componentsByKind[currentLocation.kind] == nil {
+                componentsByKind[currentLocation.kind] = StoragePath.Component(
+                    kind: currentLocation.kind,
+                    name: trimmedName
+                )
+            }
+
+            if componentsByKind[.floor] != nil,
+               componentsByKind[.room] != nil,
+               componentsByKind[.cabinet] != nil,
+               componentsByKind[.shelf] != nil {
+                break
+            }
+
+            current = currentLocation.parent
+        }
+
+        let orderedKinds: [LocationKind] = [.floor, .room, .cabinet, .shelf]
+        let components = orderedKinds.compactMap { componentsByKind[$0] }
+        return StoragePath(components: components)
+    }
+
     var locationSnapshot: Location {
         Location(
             id: id,

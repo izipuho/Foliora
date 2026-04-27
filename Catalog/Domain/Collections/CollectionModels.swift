@@ -44,6 +44,35 @@ struct Location: Identifiable, Hashable, Codable {
     var notes: String
 }
 
+struct StoragePath: Hashable, Codable {
+    struct Component: Hashable, Codable {
+        let kind: LocationKind
+        let name: String
+    }
+
+    let components: [Component]
+
+    var floor: String? {
+        componentName(for: .floor)
+    }
+
+    var room: String? {
+        componentName(for: .room)
+    }
+
+    var cabinet: String? {
+        componentName(for: .cabinet)
+    }
+
+    var shelf: String? {
+        componentName(for: .shelf)
+    }
+
+    private func componentName(for kind: LocationKind) -> String? {
+        components.first(where: { $0.kind == kind })?.name
+    }
+}
+
 struct Collection: Identifiable, Hashable, Codable {
     let id: UUID
     let homeID: UUID

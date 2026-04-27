@@ -34,37 +34,23 @@ private struct StorageGroupKey: Hashable {
 private extension BellEntity {
 
     var storageFloor: String {
-        storageComponent(.floor)
+        location?.storagePath.floor ?? ""
     }
 
     var storageRoom: String {
-        storageComponent(.room)
+        location?.storagePath.room ?? ""
     }
 
     var storageCabinet: String {
-        storageComponent(.cabinet)
+        location?.storagePath.cabinet ?? ""
     }
 
     var storageShelf: String {
-        storageComponent(.shelf)
+        location?.storagePath.shelf ?? ""
     }
 
     var hasNotes: Bool {
         !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private func storageComponent(_ kind: LocationKind) -> String {
-        var current = location
-
-        while let location = current {
-            if location.kind == kind {
-                return location.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-
-            current = location.parent
-        }
-
-        return ""
     }
 }
 
@@ -301,8 +287,11 @@ final class BellCatalogViewModel {
             }
         case .storage:
             let grouped = Dictionary(grouping: bellRecords) { bell in
-                let components = storageComponents(for: bell)
-                return StorageGroupKey(floor: components.floor, room: components.room)
+                let path = bell.location?.storagePath
+                return StorageGroupKey(
+                    floor: path?.floor ?? unknownTitle,
+                    room: path?.room ?? unknownTitle
+                )
             }
             let orderedKeys = grouped.keys.sorted { lhs, rhs in
                 let floorComparison = compareDisplayValues(lhs.floor, rhs.floor, unknown: unknownTitle)
@@ -348,35 +337,7 @@ final class BellCatalogViewModel {
     }
 
     private func storageCabinetTitle(for bell: BellEntity) -> String {
-        storageComponents(for: bell).cabinet
-    }
-
-    private func storageComponents(for bell: BellEntity) -> (floor: String, room: String, cabinet: String) {
-        guard let location = bell.location else {
-            return (unknownTitle, unknownTitle, unknownTitle)
-        }
-
-        var floor = unknownTitle
-        var room = unknownTitle
-        var cabinet = unknownTitle
-        var current: LocationEntity? = location
-
-        while let location = current {
-            switch location.kind {
-            case .floor:
-                floor = location.name
-            case .room:
-                room = location.name
-            case .cabinet:
-                cabinet = location.name
-            case .shelf:
-                break
-            }
-
-            current = location.parent
-        }
-
-        return (floor, room, cabinet)
+        bell.location?.storagePath.cabinet ?? unknownTitle
     }
 
     private func compareDisplayValues(_ lhs: String, _ rhs: String, unknown: String) -> ComparisonResult {
