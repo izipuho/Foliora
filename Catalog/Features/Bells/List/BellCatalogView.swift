@@ -149,6 +149,7 @@ struct BellCatalogView: View {
     @State private var visualScale: CGFloat = 1
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
     @State private var feedbackToken = 0
+    @State private var searchText: String = ""
     @State private var activeLayoutThresholdDirection: LayoutThresholdDirection?
     @State private var accumulatedMagnificationDelta: CGFloat = 0
     @State private var lastGestureMagnification: CGFloat?
@@ -398,6 +399,7 @@ struct BellCatalogView: View {
         .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
             newValue?.kind.sensoryFeedback
         }
+        .searchable(text: $searchText)
         .coordinateSpace(name: BellCatalogCoordinateSpace.pinchGrid)
         .onPreferenceChange(BellCardFramePreferenceKey.self) { frames in
             bellCardFrames = frames
@@ -406,19 +408,19 @@ struct BellCatalogView: View {
             viewModel.updateContext(bellRecords: queriedBells)
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
-            viewModel.updateContext(searchText: "")
+            viewModel.updateContext(searchText: searchText)
         }
         .onChange(of: queriedBells) { _, newValue in
             viewModel.updateContext(bellRecords: newValue)
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
-            viewModel.updateContext(searchText: "")
+            viewModel.updateContext(searchText: searchText)
         }
         .onChange(of: orderMode) { _, newValue in
             viewModel.updateContext(bellRecords: queriedBells)
             viewModel.updateContext(orderMode: newValue)
             viewModel.updateContext(filters: filters)
-            viewModel.updateContext(searchText: "")
+            viewModel.updateContext(searchText: searchText)
             accumulatedMagnificationDelta = 0
             lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
@@ -429,12 +431,15 @@ struct BellCatalogView: View {
             viewModel.updateContext(bellRecords: queriedBells)
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: newValue)
-            viewModel.updateContext(searchText: "")
+            viewModel.updateContext(searchText: searchText)
             accumulatedMagnificationDelta = 0
             lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
             visualScale = 1
             pinchOriginBellID = nil
+        }
+        .onChange(of: searchText) { _, newValue in
+            viewModel.updateContext(searchText: newValue)
         }
     }
 
