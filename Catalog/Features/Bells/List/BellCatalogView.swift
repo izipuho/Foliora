@@ -403,28 +403,22 @@ struct BellCatalogView: View {
             bellCardFrames = frames
         }
         .onAppear {
-            viewModel.updateContext(
-                bellRecords: queriedBells,
-                orderMode: orderMode,
-                filters: filters,
-                searchText: ""
-            )
+            viewModel.updateContext(bellRecords: queriedBells)
+            viewModel.updateContext(orderMode: orderMode)
+            viewModel.updateContext(filters: filters)
+            viewModel.updateContext(searchText: "")
         }
         .onChange(of: queriedBells) { _, newValue in
-            viewModel.updateContext(
-                bellRecords: newValue,
-                orderMode: orderMode,
-                filters: filters,
-                searchText: ""
-            )
+            viewModel.updateContext(bellRecords: newValue)
+            viewModel.updateContext(orderMode: orderMode)
+            viewModel.updateContext(filters: filters)
+            viewModel.updateContext(searchText: "")
         }
         .onChange(of: orderMode) { _, newValue in
-            viewModel.updateContext(
-                bellRecords: queriedBells,
-                orderMode: newValue,
-                filters: filters,
-                searchText: ""
-            )
+            viewModel.updateContext(bellRecords: queriedBells)
+            viewModel.updateContext(orderMode: newValue)
+            viewModel.updateContext(filters: filters)
+            viewModel.updateContext(searchText: "")
             accumulatedMagnificationDelta = 0
             lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
@@ -432,12 +426,10 @@ struct BellCatalogView: View {
             pinchOriginBellID = nil
         }
         .onChange(of: filters) { _, newValue in
-            viewModel.updateContext(
-                bellRecords: queriedBells,
-                orderMode: orderMode,
-                filters: newValue,
-                searchText: ""
-            )
+            viewModel.updateContext(bellRecords: queriedBells)
+            viewModel.updateContext(orderMode: orderMode)
+            viewModel.updateContext(filters: newValue)
+            viewModel.updateContext(searchText: "")
             accumulatedMagnificationDelta = 0
             lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
