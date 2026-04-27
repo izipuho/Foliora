@@ -350,7 +350,6 @@ struct CollectionsView: View {
     @Query private var membershipEntities: [MembershipEntity]
     @State private var path: [AppDestination] = []
     @State private var isPresentingAddCollectionEditor = false
-    @State private var didAutoOpenSingleCollection = false
 
     init(repository: any CatalogRepository) {
         self.repository = repository
@@ -382,7 +381,6 @@ struct CollectionsView: View {
                     autoOpenSingleCollectionIfNeeded()
                 }
                 .onChange(of: collections.map(\.id)) { _, _ in
-                    didAutoOpenSingleCollection = false
                     autoOpenSingleCollectionIfNeeded()
                 }
                 .navigationTitle(RootTab.collections.title)
@@ -478,7 +476,6 @@ struct CollectionsView: View {
         )
 
         repository.saveCollection(collection)
-        didAutoOpenSingleCollection = true
         path.append(
             .collection(
                 CollectionSummary(
@@ -499,11 +496,10 @@ struct CollectionsView: View {
     }
 
     private func autoOpenSingleCollectionIfNeeded() {
+        guard path.isEmpty else { return }
         guard collections.count == 1 else { return }
-        guard !didAutoOpenSingleCollection else { return }
         guard let collection = collections.first else { return }
 
-        didAutoOpenSingleCollection = true
         path.append(.collection(collection))
     }
 }
