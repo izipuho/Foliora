@@ -17,25 +17,29 @@ enum BellCatalogLayout {
 }
 
 struct BellCatalogDisplayModel {
-    struct TopCountry: Identifiable {
-        let country: String
-        let countryCode: String
-        let count: Int
-
-        var id: String { country }
-    }
-
-    let bellRecords: [BellEntity]
     let filteredBells: [BellEntity]
     let layout: BellCatalogLayout
+    let stats: BellCatalogStats
+}
+
+struct CountryCount: Identifiable {
+    let country: String
+    let countryCode: String
+    let count: Int
+
+    var id: String { country }
+}
+
+struct BellCatalogStats {
+    let totalCount: Int
     let countryCount: Int
     let cityCount: Int
-    let topCountries: [TopCountry]
-    let bellsWithOriginCount: Int
-    let bellsWithAcquiredYearCount: Int
-    let bellsWithStorageCount: Int
-    let bellsWithNotesCount: Int
-    let bellsWithTagsCount: Int
+    let topCountries: [CountryCount]
+    let filledOriginCount: Int
+    let filledYearCount: Int
+    let filledStorageCount: Int
+    let filledNotesCount: Int
+    let filledTagsCount: Int
 }
 
 private struct StorageGroupKey: Hashable {
@@ -86,17 +90,19 @@ final class BellCatalogViewModel {
         self.filters = filters
         self.searchText = searchText
         self.displayModel = BellCatalogDisplayModel(
-            bellRecords: bellRecords,
             filteredBells: [],
             layout: .empty,
-            countryCount: 0,
-            cityCount: 0,
-            topCountries: [],
-            bellsWithOriginCount: 0,
-            bellsWithAcquiredYearCount: 0,
-            bellsWithStorageCount: 0,
-            bellsWithNotesCount: 0,
-            bellsWithTagsCount: 0
+            stats: BellCatalogStats(
+                totalCount: 0,
+                countryCount: 0,
+                cityCount: 0,
+                topCountries: [],
+                filledOriginCount: 0,
+                filledYearCount: 0,
+                filledStorageCount: 0,
+                filledNotesCount: 0,
+                filledTagsCount: 0
+            )
         )
         rebuildDisplayModel()
     }
@@ -114,18 +120,22 @@ final class BellCatalogViewModel {
             layout = .flat(filteredBells)
         }
 
-        displayModel = BellCatalogDisplayModel(
-            bellRecords: bellRecords,
-            filteredBells: filteredBells,
-            layout: layout,
+        let stats = BellCatalogStats(
+            totalCount: filteredBells.count,
             countryCount: countryCount,
             cityCount: cityCount,
             topCountries: topCountries,
-            bellsWithOriginCount: bellsWithOriginCount,
-            bellsWithAcquiredYearCount: bellsWithAcquiredYearCount,
-            bellsWithStorageCount: bellsWithStorageCount,
-            bellsWithNotesCount: bellsWithNotesCount,
-            bellsWithTagsCount: bellsWithTagsCount
+            filledOriginCount: bellsWithOriginCount,
+            filledYearCount: bellsWithAcquiredYearCount,
+            filledStorageCount: bellsWithStorageCount,
+            filledNotesCount: bellsWithNotesCount,
+            filledTagsCount: bellsWithTagsCount
+        )
+
+        displayModel = BellCatalogDisplayModel(
+            filteredBells: filteredBells,
+            layout: layout,
+            stats: stats
         )
     }
 
@@ -189,14 +199,14 @@ final class BellCatalogViewModel {
             }
     }
 
-    private var topCountries: [BellCatalogDisplayModel.TopCountry] {
+    private var topCountries: [CountryCount] {
         topValues(from: bellRecords.map(\.countryName), skipEmpty: true).map { country, count in
             let countryCode = bellRecords
                 .first(where: { $0.countryName.localizedCaseInsensitiveCompare(country) == .orderedSame })?
                 .originPlace?
                 .countryCode ?? ""
 
-            return BellCatalogDisplayModel.TopCountry(
+            return CountryCount(
                 country: country,
                 countryCode: countryCode,
                 count: count

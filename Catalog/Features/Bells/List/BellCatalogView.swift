@@ -558,7 +558,7 @@ struct BellCatalogView: View {
                 HStack(spacing: 10) {
                     dashboardMetricChip(
                         title: String(localized: "bell_catalog.dashboard.total"),
-                        value: "\(displayModel.bellRecords.count)",
+                        value: "\(displayModel.stats.totalCount)",
                         systemImage: "bell.fill"
                     ) {
                         filters = BellFilters()
@@ -566,7 +566,7 @@ struct BellCatalogView: View {
 
                     dashboardMetricChip(
                         title: String(localized: "bell_catalog.dashboard.countries"),
-                        value: "\(displayModel.countryCount)",
+                        value: "\(displayModel.stats.countryCount)",
                         systemImage: "globe.europe.africa.fill"
                     ) {
                         setFilter(.withOrigin)
@@ -574,7 +574,7 @@ struct BellCatalogView: View {
 
                     dashboardMetricChip(
                         title: String(localized: "bell_catalog.dashboard.cities"),
-                        value: "\(displayModel.cityCount)",
+                        value: "\(displayModel.stats.cityCount)",
                         systemImage: "building.2.fill"
                     ) {
                         setFilter(.withCity)
@@ -664,50 +664,50 @@ struct BellCatalogView: View {
     }
 
     private func dataHealthProgress(in displayModel: BellCatalogDisplayModel) -> Double {
-        guard !displayModel.bellRecords.isEmpty else { return 0 }
-        let completeFields = displayModel.bellsWithOriginCount
-            + displayModel.bellsWithAcquiredYearCount
-            + displayModel.bellsWithStorageCount
-            + displayModel.bellsWithNotesCount
-            + displayModel.bellsWithTagsCount
-        let totalFields = displayModel.bellRecords.count * 5
+        guard displayModel.stats.totalCount > 0 else { return 0 }
+        let completeFields = displayModel.stats.filledOriginCount
+            + displayModel.stats.filledYearCount
+            + displayModel.stats.filledStorageCount
+            + displayModel.stats.filledNotesCount
+            + displayModel.stats.filledTagsCount
+        let totalFields = displayModel.stats.totalCount * 5
         return min(max(Double(completeFields) / Double(totalFields), 0), 1)
     }
 
     private func dataHealthEntries(in displayModel: BellCatalogDisplayModel) -> [DataHealthEntry] {
-        let total = displayModel.bellRecords.count
+        let total = displayModel.stats.totalCount
 
         return [
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_origin"),
-                countText: "\(displayModel.bellsWithOriginCount)/\(total)",
+                countText: "\(displayModel.stats.filledOriginCount)/\(total)",
                 filter: .missingOrigin
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_year"),
-                countText: "\(displayModel.bellsWithAcquiredYearCount)/\(total)",
+                countText: "\(displayModel.stats.filledYearCount)/\(total)",
                 filter: .missingYear
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_storage"),
-                countText: "\(displayModel.bellsWithStorageCount)/\(total)",
+                countText: "\(displayModel.stats.filledStorageCount)/\(total)",
                 filter: .missingStorage
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_notes"),
-                countText: "\(displayModel.bellsWithNotesCount)/\(total)",
+                countText: "\(displayModel.stats.filledNotesCount)/\(total)",
                 filter: .missingNotes
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.with_tags"),
-                countText: "\(displayModel.bellsWithTagsCount)/\(total)",
+                countText: "\(displayModel.stats.filledTagsCount)/\(total)",
                 filter: .missingTags
             )
         ]
     }
 
     private func topGeography(in displayModel: BellCatalogDisplayModel) -> (name: String, flag: String, count: Int)? {
-        guard let topCountry = displayModel.topCountries.first else { return nil }
+        guard let topCountry = displayModel.stats.topCountries.first else { return nil }
         return (
             name: topCountry.country,
             flag: flagEmoji(for: topCountry.countryCode),
@@ -716,7 +716,7 @@ struct BellCatalogView: View {
     }
 
     private func topGeographyEntries(in displayModel: BellCatalogDisplayModel) -> [TopGeographyEntry] {
-        Array(displayModel.topCountries.prefix(5)).map { row in
+        Array(displayModel.stats.topCountries.prefix(5)).map { row in
             return TopGeographyEntry(
                 country: row.country,
                 flag: flagEmoji(for: row.countryCode),
