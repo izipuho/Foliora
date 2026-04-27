@@ -23,7 +23,7 @@ private struct CollectionShellView: View {
     @State private var selectedOrder: BellOrderMode = .newestFirst
     @State private var selectedLayoutMode: BellGridLayoutMode = .mini
     @State private var selectedSummaryFilter = BellFilters()
-    private let mediaStore = LocalMediaFileStore.shared
+    private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
     init(collection: CollectionSummary, repository: any CatalogRepository) {
         self.repository = repository
@@ -135,12 +135,11 @@ private struct CollectionShellView: View {
                 .foregroundStyle(.primary)
                 .padding(20)
                 .background(.bar, in: Circle())
-                //.background(.ultraThinMaterial, in: Circle())
                 .shadow(color: .black.opacity(0.05), radius: 8)
         }
         .buttonStyle(.plain)
         .padding(.trailing, CatalogLayoutInsets.screen)
-        .padding(.bottom, 16) //68
+        .padding(.bottom, 16)
     }
 
     private var addBellSheet: some View {
@@ -192,8 +191,10 @@ private struct CollectionShellView: View {
     }
 
     private var cameraPicker: some View {
-        CollectionAddBellCameraPicker { image in
-            addCapturedPhotoAndPresentEditor(image)
+        CameraPicker { image in
+            Task {
+                await addCapturedPhotoAndPresentEditor(image)
+            }
         }
     }
 
@@ -262,19 +263,20 @@ private struct CollectionShellView: View {
 
         for item in items {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
-            let fileExtension = item.supportedContentTypes.first?.preferredFilenameExtension
-            guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: fileExtension) else { continue }
+            guard let image = UIImage(data: data) else { continue }
+            guard let media = try? await imageMediaBuilder.build(from: image) else { continue }
+
             if firstImage == nil {
-                firstImage = UIImage(data: data)
+                firstImage = media.uiImage
             }
 
             newAssets.append(
                 MediaAsset(
-                    id: UUID(),
-                    itemID: UUID(),
-                    kind: .photo,
-                    localIdentifier: identifier,
-                    displayName: nil,
+                    id: media.asset.id,
+                    itemID: media.asset.itemID,
+                    kind: media.asset.kind,
+                    localIdentifier: media.asset.localIdentifier,
+                    displayName: media.asset.displayName,
                     sortOrder: newAssets.count
                 )
             )
@@ -288,21 +290,21 @@ private struct CollectionShellView: View {
         isPresentingAddBell = true
     }
 
-    private func addCapturedPhotoAndPresentEditor(_ image: UIImage) {
-        guard let data = image.jpegData(compressionQuality: 0.92) else { return }
-        guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: "jpg") else { return }
+    @MainActor
+    private func addCapturedPhotoAndPresentEditor(_ image: UIImage) async {
+        guard let media = try? await imageMediaBuilder.build(from: image) else { return }
 
         draftMediaAssets = [
             MediaAsset(
-                id: UUID(),
-                itemID: UUID(),
-                kind: .photo,
-                localIdentifier: identifier,
-                displayName: nil,
+                id: media.asset.id,
+                itemID: media.asset.itemID,
+                kind: media.asset.kind,
+                localIdentifier: media.asset.localIdentifier,
+                displayName: media.asset.displayName,
                 sortOrder: 0
             )
         ]
-        draftAnalysisImage = image
+        draftAnalysisImage = media.uiImage
         shouldPresentEditorAfterCamera = true
     }
 }
@@ -469,234 +471,5 @@ struct CollectionsView: View {
 
         didAutoOpenSingleCollection = true
         path.append(.collection(collection))
-    }
-}
-
-private struct CollectionPlaceholderView: View {
-    let title: String
-    let systemImage: String
-    let description: String
-    let backgroundStyle: CollectionBackgroundStyle
-
-    var body: some View {
-        ContentUnavailableView(
-            title,
-            systemImage: systemImage,
-            description: Text(description)
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            LinearGradient(
-                colors: backgroundStyle.screenColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-struct CollectionEditorView: View {
-    let homes: [Home]
-    let allowsHomeSelection: Bool
-    let onSave: (String, String, UUID, CollectionBackgroundStyle) -> Void
-    let onDelete: (() -> Void)?
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var title = ""
-    @State private var notes = ""
-    @State private var selectedHomeID: UUID?
-    @State private var backgroundStyle: CollectionBackgroundStyle = .amber
-    @State private var isPresentingDeleteConfirmation = false
-    private let screenTitle: String
-    private let allowsDeletion: Bool
-
-    init(
-        homes: [Home],
-        screenTitle: String = "",
-        initialTitle: String = "",
-        initialNotes: String = "",
-        initialHomeID: UUID? = nil,
-        initialBackgroundStyle: CollectionBackgroundStyle = .amber,
-        allowsHomeSelection: Bool = true,
-        allowsDeletion: Bool = false,
-        onSave: @escaping (String, String, UUID, CollectionBackgroundStyle) -> Void,
-        onDelete: (() -> Void)? = nil
-    ) {
-        self.homes = homes
-        self.allowsHomeSelection = allowsHomeSelection
-        self.screenTitle = screenTitle
-        self.allowsDeletion = allowsDeletion
-        self.onSave = onSave
-        self.onDelete = onDelete
-        _title = State(initialValue: initialTitle)
-        _notes = State(initialValue: initialNotes)
-        _selectedHomeID = State(initialValue: initialHomeID ?? homes.first?.id)
-        _backgroundStyle = State(initialValue: initialBackgroundStyle)
-    }
-
-    private var canSave: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedHomeID != nil
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section(String(localized: "collection.editor.section_type")) {
-                    HStack {
-                        Label(String(localized: "collection.editor.type_name_localized"), systemImage: "bell.fill")
-                        Spacer()
-                        Text(String(localized: "collection.editor.type_name_english"))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Section(String(localized: "collection.editor.section_collection")) {
-                    TextField(String(localized: "common.name"), text: $title)
-                    TextField(String(localized: "common.notes"), text: $notes, axis: .vertical)
-                        .lineLimit(3, reservesSpace: true)
-                }
-
-                Section(String(localized: "collection.editor.section_home")) {
-                    if homes.isEmpty {
-                        Text(String(localized: "collection.editor.no_home"))
-                            .foregroundStyle(.secondary)
-                    } else if allowsHomeSelection {
-                        Picker(String(localized: "home.screen.title"), selection: $selectedHomeID) {
-                            ForEach(homes) { home in
-                                Text(home.name).tag(Optional(home.id))
-                            }
-                        }
-                    } else {
-                        HStack {
-                            Text(String(localized: "home.screen.title"))
-                            Spacer()
-                            Text(homes.first(where: { $0.id == selectedHomeID })?.name ?? String(localized: "common.unknown"))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-
-                Section(String(localized: "collection.editor.section_background")) {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 74, maximum: 110), spacing: 12)], spacing: 12) {
-                        ForEach(CollectionBackgroundStyle.allCases) { style in
-                            Button {
-                                backgroundStyle = style
-                            } label: {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: style.colors,
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .frame(height: 64)
-                                        .overlay(alignment: .topTrailing) {
-                                            if backgroundStyle == style {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .font(.title3)
-                                                    .symbolRenderingMode(.palette)
-                                                    .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowSoft)
-                                                    .padding(CatalogSpacing.compact)
-                                            }
-                                        }
-
-                                    Text(style.title)
-                                        .font(.caption)
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(1)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-
-                if allowsDeletion {
-                    Section {
-                        Button(role: .destructive) {
-                            isPresentingDeleteConfirmation = true
-                        } label: {
-                            Label(String(localized: "common.delete"), systemImage: "trash")
-                        }
-                    }
-                }
-            }
-            .navigationTitle(screenTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { dismiss() } label: { Image(systemName: "xmark") }
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        guard let selectedHomeID else { return }
-                        onSave(title, notes, selectedHomeID, backgroundStyle)
-                        dismiss()
-                    } label: { Image(systemName: "checkmark") }
-                    .disabled(!canSave)
-                }
-            }
-            .confirmationDialog(
-                String(localized: "collection.delete.title"),
-                isPresented: $isPresentingDeleteConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button(String(localized: "collection.delete.confirm"), role: .destructive) {
-                    onDelete?()
-                    dismiss()
-                }
-
-                Button(String(localized: "common.cancel"), role: .cancel) {}
-            } message: {
-                Text(String(localized: "collection.delete.message"))
-            }
-        }
-    }
-}
-
-private struct CollectionAddBellCameraPicker: UIViewControllerRepresentable {
-    let onImagePicked: (UIImage) -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.allowsEditing = false
-        picker.delegate = context.coordinator
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        private let parent: CollectionAddBellCameraPicker
-
-        init(parent: CollectionAddBellCameraPicker) {
-            self.parent = parent
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.dismiss()
-        }
-
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-        ) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.onImagePicked(image)
-            }
-            parent.dismiss()
-        }
     }
 }
