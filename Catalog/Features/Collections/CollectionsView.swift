@@ -49,8 +49,31 @@ private struct CollectionShellView: View {
 
     var body: some View {
         content
-            .toolbar { collectionToolbar }
-            .overlay(alignment: .bottomTrailing) { mapButton }
+            .toolbar {
+                CollectionShellToolbar(
+                    selectedOrder: $selectedOrder,
+                    isPresentingAddBellOptions: $isPresentingAddBellOptions,
+                    onEdit: {
+                        isPresentingEditCollection = true
+                    },
+                    onOpenMap: {
+                        isPresentingMap = true
+                    },
+                    onLibrary: {
+                        isPresentingPhotoPicker = true
+                    },
+                    onCamera: {
+                        isPresentingCamera = true
+                    }
+                )
+            }
+            .overlay(alignment: .bottomTrailing) {
+                CollectionMapButton {
+                    isPresentingMap = true
+                }
+                .padding(.trailing, CatalogLayoutInsets.screen)
+                .padding(.bottom, 16)
+            }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
                 selection: $selectedPhotoItems,
@@ -99,47 +122,6 @@ private struct CollectionShellView: View {
         .navigationTitle(collection.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-    }
-
-    @ToolbarContentBuilder
-    private var collectionToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                isPresentingEditCollection = true
-            } label: {
-                floatingToolbarIcon(systemName: "square.and.pencil")
-            }
-        }
-
-        ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Picker(String(localized: "bell_catalog.order.menu"), selection: $selectedOrder) {
-                    ForEach(BellOrderMode.allCases, id: \.self) { option in
-                        Text(option.title).tag(option)
-                    }
-                }
-            } label: {
-                floatingToolbarIcon(systemName: "line.3.horizontal.decrease")
-            }
-        }
-
-        addBellToolbarItem
-    }
-
-    private var mapButton: some View {
-        Button {
-            isPresentingMap = true
-        } label: {
-            Image(systemName: "map.fill")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.primary)
-                .padding(20)
-                .background(.bar, in: Circle())
-                .shadow(color: .black.opacity(0.05), radius: 8)
-        }
-        .buttonStyle(.plain)
-        .padding(.trailing, CatalogLayoutInsets.screen)
-        .padding(.bottom, 16)
     }
 
     private var addBellSheet: some View {
@@ -196,36 +178,6 @@ private struct CollectionShellView: View {
                 await addCapturedPhotoAndPresentEditor(image)
             }
         }
-    }
-
-    @ToolbarContentBuilder
-    private var addBellToolbarItem: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                isPresentingAddBellOptions = true
-            } label: {
-                floatingToolbarIcon(systemName: "plus")
-            }
-            .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresentingAddBellOptions, titleVisibility: .visible) {
-                Button(String(localized: "editor.media.photo_library")) {
-                    isPresentingPhotoPicker = true
-                }
-
-                if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    Button(String(localized: "editor.media.camera")) {
-                        isPresentingCamera = true
-                    }
-                }
-
-                Button(String(localized: "common.cancel"), role: .cancel) {}
-            }
-        }
-    }
-
-    private func floatingToolbarIcon(systemName: String) -> some View {
-        Image(systemName: systemName)
-            .font(.system(size: 17, weight: .semibold))
-            .frame(width: 30, height: 30)
     }
 
     private func clearDraftBell() {
@@ -307,6 +259,88 @@ private struct CollectionShellView: View {
         draftAnalysisImage = media.uiImage
         shouldPresentEditorAfterCamera = true
     }
+}
+
+private struct CollectionShellToolbar: ToolbarContent {
+    @Binding var selectedOrder: BellOrderMode
+    @Binding var isPresentingAddBellOptions: Bool
+    let onEdit: () -> Void
+    let onOpenMap: () -> Void
+    let onLibrary: () -> Void
+    let onCamera: () -> Void
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button(action: onEdit) {
+                floatingToolbarIcon(systemName: "square.and.pencil")
+            }
+        }
+
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Picker(String(localized: "bell_catalog.order.menu"), selection: $selectedOrder) {
+                    ForEach(BellOrderMode.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+            } label: {
+                floatingToolbarIcon(systemName: "line.3.horizontal.decrease")
+            }
+        }
+
+        ToolbarItem(placement: .topBarTrailing) {
+            AddBellMenu(
+                isPresented: $isPresentingAddBellOptions,
+                onCamera: onCamera,
+                onLibrary: onLibrary
+            )
+        }
+    }
+}
+
+private struct CollectionMapButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "map.fill")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.primary)
+                .padding(20)
+                .background(.bar, in: Circle())
+                .shadow(color: .black.opacity(0.05), radius: 8)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct AddBellMenu: View {
+    @Binding var isPresented: Bool
+    let onCamera: () -> Void
+    let onLibrary: () -> Void
+
+    var body: some View {
+        Button {
+            isPresented = true
+        } label: {
+            floatingToolbarIcon(systemName: "plus")
+        }
+        .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresented, titleVisibility: .visible) {
+            Button(String(localized: "editor.media.photo_library"), action: onLibrary)
+
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button(String(localized: "editor.media.camera"), action: onCamera)
+            }
+
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        }
+    }
+}
+
+private func floatingToolbarIcon(systemName: String) -> some View {
+    Image(systemName: systemName)
+        .font(.system(size: 17, weight: .semibold))
+        .frame(width: 30, height: 30)
 }
 
 struct CollectionsView: View {
