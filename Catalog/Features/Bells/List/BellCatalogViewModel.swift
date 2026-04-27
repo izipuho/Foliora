@@ -118,8 +118,17 @@ final class BellCatalogViewModel {
             layout = .flat(filteredBells)
         }
 
-        let stats = BellCatalogStats(
-            totalCount: filteredBells.count,
+        let stats = buildStats(from: filteredBells)
+
+        displayModel = BellCatalogDisplayModel(
+            layout: layout,
+            stats: stats
+        )
+    }
+
+    private func buildStats(from bells: [BellEntity]) -> BellCatalogStats {
+        BellCatalogStats(
+            totalCount: bells.count,
             countryCount: countryCount,
             cityCount: cityCount,
             topCountries: topCountries,
@@ -128,11 +137,6 @@ final class BellCatalogViewModel {
             filledStorageCount: bellsWithStorageCount,
             filledNotesCount: bellsWithNotesCount,
             filledTagsCount: bellsWithTagsCount
-        )
-
-        displayModel = BellCatalogDisplayModel(
-            layout: layout,
-            stats: stats
         )
     }
 
