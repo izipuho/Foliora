@@ -135,7 +135,7 @@ struct BellCatalogView: View {
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
     @Binding var filters: BellFilters
-    @Query private var queriedBells: [BellEntity]
+    @Query private var bells: [BellEntity]
     @Query private var queriedLocations: [LocationEntity]
     @Query private var queriedHomes: [HomeEntity]
     @State private var presentedBell: BellEntity?
@@ -156,7 +156,7 @@ struct BellCatalogView: View {
     @State private var pinchOriginBellID: UUID?
     @State private var pinchNavigatedBell: BellEntity?
     @State private var bellCardFrames: [UUID: CGRect] = [:]
-    @State private var viewModel: BellCatalogViewModel
+    @StateObject private var viewModel: BellCatalogViewModel
     @Namespace private var bellGridTransitionNamespace
     @Namespace private var bellDetailZoomNamespace
 
@@ -175,7 +175,7 @@ struct BellCatalogView: View {
         self._orderMode = orderMode
         self._filters = filters
         let collectionID = Optional(collection.id)
-        _queriedBells = Query(
+        _bells = Query(
             filter: #Predicate<BellEntity> { bell in
                 bell.collection?.id == collectionID
             },
@@ -183,9 +183,8 @@ struct BellCatalogView: View {
         )
         _queriedLocations = Query()
         _queriedHomes = Query()
-        _viewModel = State(
-            initialValue: BellCatalogViewModel(
-                bellRecords: [],
+        _viewModel = StateObject(
+            wrappedValue: BellCatalogViewModel(
                 orderMode: orderMode.wrappedValue,
                 filters: filters.wrappedValue,
                 searchText: ""
@@ -405,22 +404,17 @@ struct BellCatalogView: View {
             bellCardFrames = frames
         }
         .onAppear {
-            viewModel.updateContext(bellRecords: queriedBells)
+            viewModel.updateSource(bells: bells)
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
             viewModel.updateContext(searchText: searchText)
         }
-        .onChange(of: queriedBells) { _, newValue in
-            viewModel.updateContext(bellRecords: newValue)
-            viewModel.updateContext(orderMode: orderMode)
-            viewModel.updateContext(filters: filters)
-            viewModel.updateContext(searchText: searchText)
+        .onChange(of: bells) { newValue in
+            viewModel.updateSource(bells: newValue)
         }
         .onChange(of: orderMode) { _, newValue in
-            viewModel.updateContext(bellRecords: queriedBells)
             viewModel.updateContext(orderMode: newValue)
-            viewModel.updateContext(filters: filters)
-            viewModel.updateContext(searchText: searchText)
+            viewModel.updateSource(bells: bells)
             accumulatedMagnificationDelta = 0
             lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
@@ -428,10 +422,8 @@ struct BellCatalogView: View {
             pinchOriginBellID = nil
         }
         .onChange(of: filters) { _, newValue in
-            viewModel.updateContext(bellRecords: queriedBells)
-            viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: newValue)
-            viewModel.updateContext(searchText: searchText)
+            viewModel.updateSource(bells: bells)
             accumulatedMagnificationDelta = 0
             lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
@@ -440,6 +432,7 @@ struct BellCatalogView: View {
         }
         .onChange(of: searchText) { _, newValue in
             viewModel.updateContext(searchText: newValue)
+            viewModel.updateSource(bells: bells)
         }
     }
 
@@ -824,7 +817,7 @@ struct BellCatalogView: View {
     }
 
     private func deleteBell(_ bellID: UUID) {
-        guard let bell = queriedBells.first(where: { $0.id == bellID }) else { return }
+        guard let bell = bells.first(where: { $0.id == bellID }) else { return }
         modelContext.delete(bell)
         try? modelContext.save()
     }
