@@ -57,6 +57,8 @@ enum BellAttributeFilter: Hashable {
     case country(String)
     case material(String)
     case tag(String)
+    case condition(ItemCondition)
+    case acquisitionMethod(AcquisitionMethod)
 }
 
 struct BellFilters: Hashable {

@@ -97,7 +97,6 @@ final class BellCatalogViewModel {
     }
 
     var bellRecords: [BellEntity]
-    var selectedCondition: ItemCondition?
     var orderMode: BellOrderMode
     var filters: BellFilters
     var searchText: String
@@ -108,14 +107,12 @@ final class BellCatalogViewModel {
         bellRecords: [BellEntity],
         orderMode: BellOrderMode,
         filters: BellFilters,
-        searchText: String,
-        selectedCondition: ItemCondition? = nil
+        searchText: String
     ) {
         self.bellRecords = bellRecords
         self.orderMode = orderMode
         self.filters = filters
         self.searchText = searchText
-        self.selectedCondition = selectedCondition
         self.displayModel = BellCatalogDisplayModel(
             bellRecords: bellRecords,
             filteredBells: [],
@@ -203,7 +200,6 @@ final class BellCatalogViewModel {
     private var filteredBells: [BellEntity] {
         bellRecords.filter { bell in
             matches(bell: bell, filters: filters)
-            && (selectedCondition == nil || bell.condition == selectedCondition)
             && (
                 searchText.isEmpty
                 || bell.title.localizedCaseInsensitiveContains(searchText)
@@ -345,6 +341,10 @@ final class BellCatalogViewModel {
                 return bell.materialDisplayName.localizedCaseInsensitiveCompare(material) == .orderedSame
             case .tag(let tag):
                 return bell.tagValues.contains(where: { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame })
+            case .condition(let condition):
+                return bell.condition == condition
+            case .acquisitionMethod(let method):
+                return bell.acquisitionMethod == method
             }
         }
     }

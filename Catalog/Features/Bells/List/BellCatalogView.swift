@@ -94,6 +94,12 @@ private extension BellAttributeFilter {
         switch self {
         case .country(let value), .material(let value), .tag(let value):
             return value
+        //case .condition(let value), .acquisitionMethod(let value):
+        //    return value.displayName
+        case .condition(let condition):
+            return condition.displayName
+        case .acquisitionMethod(let method):
+            return method.displayName
         }
     }
 }
