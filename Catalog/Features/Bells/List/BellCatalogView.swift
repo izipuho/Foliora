@@ -117,6 +117,33 @@ private extension BellFilters {
 
 
 struct BellCatalogView: View {
+    private struct ViewModelContext: Hashable {
+        struct BellSnapshot: Hashable {
+            let id: UUID
+            let title: String
+            let notes: String
+            let acquiredYear: Int?
+            let createdAt: Date
+            let conditionRaw: String
+            let countryName: String
+            let countryCode: String
+            let regionName: String
+            let cityName: String
+            let materialDisplayName: String
+            let tagValues: [String]
+            let storageFloor: String
+            let storageRoom: String
+            let storageCabinet: String
+            let storageShelf: String
+            let hasLocation: Bool
+        }
+
+        let bellRecords: [BellSnapshot]
+        let orderMode: BellOrderMode
+        let filters: BellFilters
+        let searchText: String
+    }
+
     private enum LayoutThresholdDirection {
         case zoomIn
         case zoomOut
@@ -149,6 +176,7 @@ struct BellCatalogView: View {
     @State private var pinchOriginBellID: UUID?
     @State private var pinchNavigatedBell: BellEntity?
     @State private var bellCardFrames: [UUID: CGRect] = [:]
+    @State private var viewModel: BellCatalogViewModel
     @Namespace private var bellGridTransitionNamespace
     @Namespace private var bellDetailZoomNamespace
 
@@ -175,6 +203,14 @@ struct BellCatalogView: View {
         )
         _queriedLocations = Query()
         _queriedHomes = Query()
+        _viewModel = State(
+            initialValue: BellCatalogViewModel(
+                bellRecords: [],
+                orderMode: orderMode.wrappedValue,
+                filters: filters.wrappedValue,
+                searchText: ""
+            )
+        )
     }
 
     private var themeColors: [Color] {
@@ -182,13 +218,36 @@ struct BellCatalogView: View {
     }
 
     private var displayModel: BellCatalogDisplayModel {
-        BellCatalogViewModel(
-            bellRecords: queriedBells,
+        viewModel.displayModel
+    }
+
+    private var viewModelContext: ViewModelContext {
+        ViewModelContext(
+            bellRecords: queriedBells.map {
+                ViewModelContext.BellSnapshot(
+                    id: $0.id,
+                    title: $0.title,
+                    notes: $0.notes,
+                    acquiredYear: $0.acquiredYear,
+                    createdAt: $0.createdAt,
+                    conditionRaw: $0.conditionRaw,
+                    countryName: $0.countryName,
+                    countryCode: $0.originPlace?.countryCode ?? "",
+                    regionName: $0.originPlace?.regionName ?? "",
+                    cityName: $0.cityName,
+                    materialDisplayName: $0.materialDisplayName,
+                    tagValues: $0.tagValues,
+                    storageFloor: $0.location?.storagePath.floor ?? "",
+                    storageRoom: $0.location?.storagePath.room ?? "",
+                    storageCabinet: $0.location?.storagePath.cabinet ?? "",
+                    storageShelf: $0.location?.storagePath.shelf ?? "",
+                    hasLocation: $0.location != nil
+                )
+            },
             orderMode: orderMode,
             filters: filters,
             searchText: ""
         )
-        .makeDisplayModel()
     }
 
     private var hasActiveFilter: Bool {
@@ -393,6 +452,22 @@ struct BellCatalogView: View {
         .onPreferenceChange(BellCardFramePreferenceKey.self) { frames in
             bellCardFrames = frames
         }
+        .onAppear {
+            viewModel.updateContext(
+                bellRecords: queriedBells,
+                orderMode: orderMode,
+                filters: filters,
+                searchText: ""
+            )
+        }
+        .onChange(of: viewModelContext) { _, _ in
+            viewModel.updateContext(
+                bellRecords: queriedBells,
+                orderMode: orderMode,
+                filters: filters,
+                searchText: ""
+            )
+        }
         .onChange(of: orderMode) { _, _ in
             accumulatedMagnificationDelta = 0
             lastGestureMagnification = nil
@@ -416,7 +491,6 @@ struct BellCatalogView: View {
     ) -> some View {
         return ScrollViewReader { scrollProxy in
             ScrollView {
-                // LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.usesGroupedSections ? [.sectionHeaders] : []) {
                 LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.groupedSections.isEmpty ? [] : [.sectionHeaders]) {
                     Color.clear
                         .frame(height: 0)
@@ -433,7 +507,6 @@ struct BellCatalogView: View {
                             title: LocalizedStringKey(String(localized: "bell_catalog.empty.title")),
                             description: LocalizedStringKey(String(localized: "bell_catalog.empty.description"))
                         )
-                    // } else if displayModel.usesGroupedSections {
                     } else if !displayModel.groupedSections.isEmpty {
                         groupedBellSectionsContent(
                             sections: displayModel.groupedSections,

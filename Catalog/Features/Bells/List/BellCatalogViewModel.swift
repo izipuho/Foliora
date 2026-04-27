@@ -56,11 +56,40 @@ private extension BellEntity {
 @MainActor
 @Observable
 final class BellCatalogViewModel {
+    private struct ContextSignature: Hashable {
+        struct BellSnapshot: Hashable {
+            let id: UUID
+            let title: String
+            let notes: String
+            let acquiredYear: Int?
+            let createdAt: Date
+            let condition: ItemCondition
+            let countryName: String
+            let countryCode: String
+            let regionName: String
+            let cityName: String
+            let materialDisplayName: String
+            let tagValues: [String]
+            let storageFloor: String
+            let storageRoom: String
+            let storageCabinet: String
+            let storageShelf: String
+            let hasLocation: Bool
+        }
+
+        let bellRecords: [BellSnapshot]
+        let orderMode: BellOrderMode
+        let filters: BellFilters
+        let searchText: String
+    }
+
     var bellRecords: [BellEntity]
     var selectedCondition: ItemCondition?
     var orderMode: BellOrderMode
     var filters: BellFilters
     var searchText: String
+    private(set) var displayModel: BellCatalogDisplayModel
+    private var contextSignature: ContextSignature
 
     init(
         bellRecords: [BellEntity],
@@ -74,13 +103,33 @@ final class BellCatalogViewModel {
         self.filters = filters
         self.searchText = searchText
         self.selectedCondition = selectedCondition
+        self.displayModel = BellCatalogDisplayModel(
+            bellRecords: bellRecords,
+            filteredBells: [],
+            groupedSections: [],
+            countryCount: 0,
+            cityCount: 0,
+            topCountries: [],
+            bellsWithOriginCount: 0,
+            bellsWithAcquiredYearCount: 0,
+            bellsWithStorageCount: 0,
+            bellsWithNotesCount: 0,
+            bellsWithTagsCount: 0
+        )
+        self.contextSignature = Self.makeContextSignature(
+            bellRecords: bellRecords,
+            orderMode: orderMode,
+            filters: filters,
+            searchText: searchText
+        )
+        rebuildDisplayModel()
     }
 
-    func makeDisplayModel() -> BellCatalogDisplayModel {
+    private func rebuildDisplayModel() {
         let filteredBells = filteredBells
         let groupedSections = groupedSections(fromFilteredBells: filteredBells)
 
-        return BellCatalogDisplayModel(
+        displayModel = BellCatalogDisplayModel(
             bellRecords: bellRecords,
             filteredBells: filteredBells,
             groupedSections: groupedSections,
@@ -92,6 +141,40 @@ final class BellCatalogViewModel {
             bellsWithStorageCount: bellsWithStorageCount,
             bellsWithNotesCount: bellsWithNotesCount,
             bellsWithTagsCount: bellsWithTagsCount
+        )
+    }
+
+    private static func makeContextSignature(
+        bellRecords: [BellEntity],
+        orderMode: BellOrderMode,
+        filters: BellFilters,
+        searchText: String
+    ) -> ContextSignature {
+        ContextSignature(
+            bellRecords: bellRecords.map {
+                ContextSignature.BellSnapshot(
+                    id: $0.id,
+                    title: $0.title,
+                    notes: $0.notes,
+                    acquiredYear: $0.acquiredYear,
+                    createdAt: $0.createdAt,
+                    condition: $0.condition,
+                    countryName: $0.countryName,
+                    countryCode: $0.originPlace?.countryCode ?? "",
+                    regionName: $0.originPlace?.regionName ?? "",
+                    cityName: $0.cityName,
+                    materialDisplayName: $0.materialDisplayName,
+                    tagValues: $0.tagValues,
+                    storageFloor: $0.storageFloor,
+                    storageRoom: $0.storageRoom,
+                    storageCabinet: $0.storageCabinet,
+                    storageShelf: $0.storageShelf,
+                    hasLocation: $0.location != nil
+                )
+            },
+            orderMode: orderMode,
+            filters: filters,
+            searchText: searchText
         )
     }
 
@@ -180,13 +263,27 @@ final class BellCatalogViewModel {
     }
 
     func updateContext(
+        bellRecords: [BellEntity],
         orderMode: BellOrderMode,
         filters: BellFilters,
         searchText: String
     ) {
+        let newContextSignature = Self.makeContextSignature(
+            bellRecords: bellRecords,
+            orderMode: orderMode,
+            filters: filters,
+            searchText: searchText
+        )
+        guard newContextSignature != contextSignature else {
+            return
+        }
+
+        self.bellRecords = bellRecords
         self.orderMode = orderMode
         self.filters = filters
         self.searchText = searchText
+        contextSignature = newContextSignature
+        rebuildDisplayModel()
     }
 
     func matches(bell: BellEntity, filters: BellFilters) -> Bool {
