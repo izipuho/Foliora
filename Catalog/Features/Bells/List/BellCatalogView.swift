@@ -117,33 +117,6 @@ private extension BellFilters {
 
 
 struct BellCatalogView: View {
-    private struct ViewModelContext: Hashable {
-        struct BellSnapshot: Hashable {
-            let id: UUID
-            let title: String
-            let notes: String
-            let acquiredYear: Int?
-            let createdAt: Date
-            let conditionRaw: String
-            let countryName: String
-            let countryCode: String
-            let regionName: String
-            let cityName: String
-            let materialDisplayName: String
-            let tagValues: [String]
-            let storageFloor: String
-            let storageRoom: String
-            let storageCabinet: String
-            let storageShelf: String
-            let hasLocation: Bool
-        }
-
-        let bellRecords: [BellSnapshot]
-        let orderMode: BellOrderMode
-        let filters: BellFilters
-        let searchText: String
-    }
-
     private enum LayoutThresholdDirection {
         case zoomIn
         case zoomOut
@@ -219,35 +192,6 @@ struct BellCatalogView: View {
 
     private var displayModel: BellCatalogDisplayModel {
         viewModel.displayModel
-    }
-
-    private var viewModelContext: ViewModelContext {
-        ViewModelContext(
-            bellRecords: queriedBells.map {
-                ViewModelContext.BellSnapshot(
-                    id: $0.id,
-                    title: $0.title,
-                    notes: $0.notes,
-                    acquiredYear: $0.acquiredYear,
-                    createdAt: $0.createdAt,
-                    conditionRaw: $0.conditionRaw,
-                    countryName: $0.countryName,
-                    countryCode: $0.originPlace?.countryCode ?? "",
-                    regionName: $0.originPlace?.regionName ?? "",
-                    cityName: $0.cityName,
-                    materialDisplayName: $0.materialDisplayName,
-                    tagValues: $0.tagValues,
-                    storageFloor: $0.location?.storagePath.floor ?? "",
-                    storageRoom: $0.location?.storagePath.room ?? "",
-                    storageCabinet: $0.location?.storagePath.cabinet ?? "",
-                    storageShelf: $0.location?.storagePath.shelf ?? "",
-                    hasLocation: $0.location != nil
-                )
-            },
-            orderMode: orderMode,
-            filters: filters,
-            searchText: ""
-        )
     }
 
     private var hasActiveFilter: Bool {
@@ -460,22 +404,34 @@ struct BellCatalogView: View {
                 searchText: ""
             )
         }
-        .onChange(of: viewModelContext) { _, _ in
+        .onChange(of: queriedBells) { _, newValue in
             viewModel.updateContext(
-                bellRecords: queriedBells,
+                bellRecords: newValue,
                 orderMode: orderMode,
                 filters: filters,
                 searchText: ""
             )
         }
-        .onChange(of: orderMode) { _, _ in
+        .onChange(of: orderMode) { _, newValue in
+            viewModel.updateContext(
+                bellRecords: queriedBells,
+                orderMode: newValue,
+                filters: filters,
+                searchText: ""
+            )
             accumulatedMagnificationDelta = 0
             lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
             visualScale = 1
             pinchOriginBellID = nil
         }
-        .onChange(of: filters) { _, _ in
+        .onChange(of: filters) { _, newValue in
+            viewModel.updateContext(
+                bellRecords: queriedBells,
+                orderMode: orderMode,
+                filters: newValue,
+                searchText: ""
+            )
             accumulatedMagnificationDelta = 0
             lastGestureMagnification = nil
             activeLayoutThresholdDirection = nil
