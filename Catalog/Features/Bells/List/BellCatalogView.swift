@@ -319,7 +319,7 @@ struct BellCatalogView: View {
     }
 
     private func displayedItemsBell(withID bellID: UUID) -> BellEntity? {
-        displayModel.filteredBells.first(where: { $0.id == bellID })
+        viewModel.bell(withID: bellID)
     }
 
     private var canZoomIn: Bool {

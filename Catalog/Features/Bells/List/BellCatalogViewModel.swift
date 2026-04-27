@@ -17,7 +17,6 @@ enum BellCatalogLayout {
 }
 
 struct BellCatalogDisplayModel {
-    let filteredBells: [BellEntity]
     let layout: BellCatalogLayout
     let stats: BellCatalogStats
 }
@@ -90,7 +89,6 @@ final class BellCatalogViewModel {
         self.filters = filters
         self.searchText = searchText
         self.displayModel = BellCatalogDisplayModel(
-            filteredBells: [],
             layout: .empty,
             stats: BellCatalogStats(
                 totalCount: 0,
@@ -133,10 +131,13 @@ final class BellCatalogViewModel {
         )
 
         displayModel = BellCatalogDisplayModel(
-            filteredBells: filteredBells,
             layout: layout,
             stats: stats
         )
+    }
+
+    func bell(withID id: UUID) -> BellEntity? {
+        filteredBells.first { $0.id == id }
     }
 
     private var filteredBells: [BellEntity] {
