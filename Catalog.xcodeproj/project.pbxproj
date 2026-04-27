@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED12F9F8F5100C63AB6 /* HomeDetailView.swift */; };
+		2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */; };
+		2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED52F9F912300C63AB6 /* StorageMapCard.swift */; };
+		2403CED82F9F939600C63AB6 /* CollectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED72F9F939600C63AB6 /* CollectionsView.swift */; };
+		2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED92F9F945700C63AB6 /* SearchTabView.swift */; };
+		2403CEDC2F9F954D00C63AB6 /* CollectionOriginMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */; };
 		24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */; };
 		24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */; };
 		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
@@ -49,6 +55,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2403CED12F9F8F5100C63AB6 /* HomeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDetailView.swift; sourceTree = "<group>"; };
+		2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeEditorView.swift; sourceTree = "<group>"; };
+		2403CED52F9F912300C63AB6 /* StorageMapCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageMapCard.swift; sourceTree = "<group>"; };
+		2403CED72F9F939600C63AB6 /* CollectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionsView.swift; sourceTree = "<group>"; };
+		2403CED92F9F945700C63AB6 /* SearchTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchTabView.swift; sourceTree = "<group>"; };
+		2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionOriginMapView.swift; sourceTree = "<group>"; };
 		24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellEditorView.swift; sourceTree = "<group>"; };
 		24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogModels.swift; sourceTree = "<group>"; };
 		24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogDashboard.swift; sourceTree = "<group>"; };
@@ -290,6 +302,12 @@
 		C00000000000000000000044 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */,
+				2403CED92F9F945700C63AB6 /* SearchTabView.swift */,
+				2403CED72F9F939600C63AB6 /* CollectionsView.swift */,
+				2403CED52F9F912300C63AB6 /* StorageMapCard.swift */,
+				2403CED12F9F8F5100C63AB6 /* HomeDetailView.swift */,
+				2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */,
 				C0000000000000000000000D /* HomeView.swift */,
 			);
 			path = Home;
@@ -437,12 +455,14 @@
 			files = (
 				C000000000000000000000A1 /* CatalogApp.swift in Sources */,
 				C000000000000000000000A2 /* AppContainer.swift in Sources */,
+				2403CED82F9F939600C63AB6 /* CollectionsView.swift in Sources */,
 				C000000000000000000000A3 /* AppRouter.swift in Sources */,
 				C000000000000000000000A4 /* CollectionCard.swift in Sources */,
 				C000000000000000000000A5 /* CollectionModels.swift in Sources */,
 				C000000000000000000000A6 /* ItemModels.swift in Sources */,
 				C000000000000000000000A7 /* BellItem.swift in Sources */,
 				C000000000000000000000A8 /* Place.swift in Sources */,
+				2403CEDC2F9F954D00C63AB6 /* CollectionOriginMapView.swift in Sources */,
 				C000000000000000000000A9 /* MediaAsset.swift in Sources */,
 				C000000000000000000000AA /* SharingModels.swift in Sources */,
 				C000000000000000000000AB /* CatalogRepository.swift in Sources */,
@@ -453,12 +473,16 @@
 				24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */,
 				24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */,
 				C000000000000000000000B0 /* BookLibraryPlaceholderView.swift in Sources */,
+				2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */,
 				C000000000000000000000B2 /* EditorFields.swift in Sources */,
 				C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */,
 				C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */,
 				C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */,
+				2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */,
+				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
 				C000000000000000000000BA /* CatalogEntities.swift in Sources */,
 				C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */,
+				2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */,
 				C000000000000000000000BC /* SwiftDataCatalogRepository.swift in Sources */,
 				C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */,
 				C000000000000000000000BE /* CatalogJSONPort.swift in Sources */,
