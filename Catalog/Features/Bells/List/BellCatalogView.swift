@@ -416,7 +416,8 @@ struct BellCatalogView: View {
     ) -> some View {
         return ScrollViewReader { scrollProxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.usesGroupedSections ? [.sectionHeaders] : []) {
+                // LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.usesGroupedSections ? [.sectionHeaders] : []) {
+                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.groupedSections.isEmpty ? [] : [.sectionHeaders]) {
                     Color.clear
                         .frame(height: 0)
                         .id("bell-grid-top")
@@ -432,7 +433,8 @@ struct BellCatalogView: View {
                             title: LocalizedStringKey(String(localized: "bell_catalog.empty.title")),
                             description: LocalizedStringKey(String(localized: "bell_catalog.empty.description"))
                         )
-                    } else if displayModel.usesGroupedSections {
+                    // } else if displayModel.usesGroupedSections {
+                    } else if !displayModel.groupedSections.isEmpty {
                         groupedBellSectionsContent(
                             sections: displayModel.groupedSections,
                             screenWidth: screenWidth,

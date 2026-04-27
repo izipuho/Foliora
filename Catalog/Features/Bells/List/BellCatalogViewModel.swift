@@ -15,7 +15,6 @@ struct BellCatalogDisplayModel {
     let bellRecords: [BellEntity]
     let filteredBells: [BellEntity]
     let groupedSections: [BellGroupedSection]
-    let usesGroupedSections: Bool
     let countryCount: Int
     let cityCount: Int
     let topCountries: [TopCountry]
@@ -79,13 +78,12 @@ final class BellCatalogViewModel {
 
     func makeDisplayModel() -> BellCatalogDisplayModel {
         let filteredBells = filteredBells
-        let usesGroupedSections = usesGroupedSections
+        let groupedSections = groupedSections(fromFilteredBells: filteredBells)
 
         return BellCatalogDisplayModel(
             bellRecords: bellRecords,
             filteredBells: filteredBells,
-            groupedSections: usesGroupedSections ? groupedSections(fromFilteredBells: filteredBells) : [],
-            usesGroupedSections: usesGroupedSections,
+            groupedSections: groupedSections,
             countryCount: countryCount,
             cityCount: cityCount,
             topCountries: topCountries,
@@ -179,10 +177,6 @@ final class BellCatalogViewModel {
 
     var topTags: [(String, Int)] {
         topValues(from: bellRecords.flatMap(\.tagValues))
-    }
-
-    private var usesGroupedSections: Bool {
-        [.geography, .acquisitionYear, .storage].contains(orderMode)
     }
 
     func updateContext(
