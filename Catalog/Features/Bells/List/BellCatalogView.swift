@@ -447,7 +447,7 @@ struct BellCatalogView: View {
     ) -> some View {
         return ScrollViewReader { scrollProxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.groupedSections.isEmpty ? [] : [.sectionHeaders]) {
+                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []) {
                     Color.clear
                         .frame(height: 0)
                         .id("bell-grid-top")
@@ -458,21 +458,22 @@ struct BellCatalogView: View {
                         activeSummaryFilterSection
                     }
 
-                    if displayModel.filteredBells.isEmpty {
+                    switch displayModel.layout {
+                    case .empty:
                         emptyBellsGridState(
                             title: LocalizedStringKey(String(localized: "bell_catalog.empty.title")),
                             description: LocalizedStringKey(String(localized: "bell_catalog.empty.description"))
                         )
-                    } else if !displayModel.groupedSections.isEmpty {
+                    case .grouped(let sections):
                         groupedBellSectionsContent(
-                            sections: displayModel.groupedSections,
+                            sections: sections,
                             screenWidth: screenWidth,
                             scrollProxy: scrollProxy
                         )
                         .scaleEffect(visualScale, anchor: .center)
-                    } else {
+                    case .flat(let bells):
                         LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
-                            ForEach(displayModel.filteredBells) { bell in
+                            ForEach(bells) { bell in
                                 bellCardButton(bell)
                             }
                         }

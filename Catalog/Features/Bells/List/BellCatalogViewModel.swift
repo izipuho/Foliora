@@ -3,6 +3,19 @@ import Observation
 
 private let unknownTitle = String(localized: "common.unknown")
 
+enum BellCatalogLayout {
+    case empty
+    case flat([BellEntity])
+    case grouped([BellGroupedSection])
+
+    var isGrouped: Bool {
+        if case .grouped = self {
+            return true
+        }
+        return false
+    }
+}
+
 struct BellCatalogDisplayModel {
     struct TopCountry: Identifiable {
         let country: String
@@ -14,7 +27,7 @@ struct BellCatalogDisplayModel {
 
     let bellRecords: [BellEntity]
     let filteredBells: [BellEntity]
-    let groupedSections: [BellGroupedSection]
+    let layout: BellCatalogLayout
     let countryCount: Int
     let cityCount: Int
     let topCountries: [TopCountry]
@@ -106,7 +119,7 @@ final class BellCatalogViewModel {
         self.displayModel = BellCatalogDisplayModel(
             bellRecords: bellRecords,
             filteredBells: [],
-            groupedSections: [],
+            layout: .empty,
             countryCount: 0,
             cityCount: 0,
             topCountries: [],
@@ -128,11 +141,20 @@ final class BellCatalogViewModel {
     private func rebuildDisplayModel() {
         let filteredBells = filteredBells
         let groupedSections = groupedSections(fromFilteredBells: filteredBells)
+        let layout: BellCatalogLayout
+
+        if filteredBells.isEmpty {
+            layout = .empty
+        } else if !groupedSections.isEmpty {
+            layout = .grouped(groupedSections)
+        } else {
+            layout = .flat(filteredBells)
+        }
 
         displayModel = BellCatalogDisplayModel(
             bellRecords: bellRecords,
             filteredBells: filteredBells,
-            groupedSections: groupedSections,
+            layout: layout,
             countryCount: countryCount,
             cityCount: cityCount,
             topCountries: topCountries,
