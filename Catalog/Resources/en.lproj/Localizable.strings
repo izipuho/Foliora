@@ -197,6 +197,7 @@
 "common.unknown_origin" = "Unknown origin";
 
 "home.screen.title" = "Homes";
+"home.screen.single_title" = "Home";
 "home.new.default_name" = "New Home";
 "home.not_found.title" = "Home Not Found";
 "home.not_found.description" = "This home is no longer available.";
@@ -255,7 +256,9 @@
 "collection.editor.section_collection" = "Collection";
 "collection.editor.section_home" = "Home";
 "collection.editor.section_background" = "Card Background";
-"collection.editor.no_home" = "Create a home before adding a collection.";
+"collection.home_change.title" = "Change Home?";
+"collection.home_change.confirm" = "Change Home";
+"collection.home_change.message" = "Changing the home will remove placed items from this collection.";
 "collection.delete.title" = "Delete Collection?";
 "collection.delete.confirm" = "Delete Collection";
 "collection.delete.message" = "This will remove the collection and all items inside it.";

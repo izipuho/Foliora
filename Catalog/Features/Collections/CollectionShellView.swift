@@ -47,6 +47,13 @@ struct CollectionShellView: View {
             }
     }
 
+    private var hasPlacedItems: Bool {
+        collectionEntities
+            .first { $0.id == collection.id }?
+            .bells
+            .contains { $0.location != nil } ?? false
+    }
+
     var body: some View {
         content
             .toolbar {
@@ -144,10 +151,10 @@ struct CollectionShellView: View {
             initialNotes: collection.subtitle,
             initialHomeID: collection.homeID,
             initialBackgroundStyle: collection.backgroundStyle,
-            allowsHomeSelection: false,
+            hasPlacedItems: hasPlacedItems,
             allowsDeletion: true
-        ) { title, notes, _, backgroundStyle in
-            saveCollectionEdits(title: title, notes: notes, backgroundStyle: backgroundStyle)
+        ) { title, notes, homeID, backgroundStyle in
+            saveCollectionEdits(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
         } onDelete: {
             repository.deleteCollection(collectionID: collection.id)
             dismiss()
@@ -185,12 +192,12 @@ struct CollectionShellView: View {
         draftAnalysisImage = nil
     }
 
-    private func saveCollectionEdits(title: String, notes: String, backgroundStyle: CollectionBackgroundStyle) {
+    private func saveCollectionEdits(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let updatedCollection = Collection(
             id: collection.id,
-            homeID: collection.homeID,
+            homeID: homeID,
             kind: collection.kind,
             title: trimmedTitle.isEmpty ? collection.name : trimmedTitle,
             notes: trimmedNotes,

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct CollectionEditorView: View {
     let homes: [Home]
-    let allowsHomeSelection: Bool
     let onSave: (String, String, UUID, CollectionBackgroundStyle) -> Void
     let onDelete: (() -> Void)?
 
@@ -10,9 +9,12 @@ struct CollectionEditorView: View {
     @State private var title = ""
     @State private var notes = ""
     @State private var selectedHomeID: UUID?
+    @State private var pendingHomeID: UUID?
     @State private var backgroundStyle: CollectionBackgroundStyle = .amber
     @State private var isPresentingDeleteConfirmation = false
+    @State private var isPresentingHomeChangeConfirmation = false
     private let screenTitle: String
+    private let hasPlacedItems: Bool
     private let allowsDeletion: Bool
 
     init(
@@ -22,14 +24,14 @@ struct CollectionEditorView: View {
         initialNotes: String = "",
         initialHomeID: UUID? = nil,
         initialBackgroundStyle: CollectionBackgroundStyle = .amber,
-        allowsHomeSelection: Bool = true,
+        hasPlacedItems: Bool = false,
         allowsDeletion: Bool = false,
         onSave: @escaping (String, String, UUID, CollectionBackgroundStyle) -> Void,
         onDelete: (() -> Void)? = nil
     ) {
         self.homes = homes
-        self.allowsHomeSelection = allowsHomeSelection
         self.screenTitle = screenTitle
+        self.hasPlacedItems = hasPlacedItems
         self.allowsDeletion = allowsDeletion
         self.onSave = onSave
         self.onDelete = onDelete
@@ -47,40 +49,34 @@ struct CollectionEditorView: View {
         [GridItem(.adaptive(minimum: 74, maximum: 110), spacing: 12)]
     }
 
+    private var homeSelection: Binding<UUID?> {
+        Binding {
+            selectedHomeID
+        } set: { newHomeID in
+            guard newHomeID != selectedHomeID else { return }
+
+            if hasPlacedItems {
+                pendingHomeID = newHomeID
+                isPresentingHomeChangeConfirmation = true
+            } else {
+                selectedHomeID = newHomeID
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section(String(localized: "collection.editor.section_type")) {
-                    HStack {
-                        Label(String(localized: "collection.editor.type_name_localized"), systemImage: "bell.fill")
-                        Spacer()
-                        Text(String(localized: "collection.editor.type_name_english"))
-                            .foregroundStyle(.secondary)
-                    }
-                }
 
                 Section(String(localized: "collection.editor.section_collection")) {
                     TextField(String(localized: "common.name"), text: $title)
                     TextField(String(localized: "common.notes"), text: $notes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
-                }
-
-                Section(String(localized: "collection.editor.section_home")) {
-                    if homes.isEmpty {
-                        Text(String(localized: "collection.editor.no_home"))
-                            .foregroundStyle(.secondary)
-                    } else if allowsHomeSelection {
-                        Picker(String(localized: "home.screen.title"), selection: $selectedHomeID) {
+                    if homes.count > 1 {
+                        Picker(String(localized: "home.screen.single_title"), selection: homeSelection) {
                             ForEach(homes) { home in
                                 Text(home.name).tag(Optional(home.id))
                             }
-                        }
-                    } else {
-                        HStack {
-                            Text(String(localized: "home.screen.title"))
-                            Spacer()
-                            Text(homes.first(where: { $0.id == selectedHomeID })?.name ?? String(localized: "common.unknown"))
-                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -123,6 +119,22 @@ struct CollectionEditorView: View {
                     } label: { Image(systemName: "checkmark") }
                     .disabled(!canSave)
                 }
+            }
+            .confirmationDialog(
+                String(localized: "collection.home_change.title"),
+                isPresented: $isPresentingHomeChangeConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "collection.home_change.confirm"), role: .destructive) {
+                    selectedHomeID = pendingHomeID
+                    pendingHomeID = nil
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {
+                    pendingHomeID = nil
+                }
+            } message: {
+                Text(String(localized: "collection.home_change.message"))
             }
             .confirmationDialog(
                 String(localized: "collection.delete.title"),

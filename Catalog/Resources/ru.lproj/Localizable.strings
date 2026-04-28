@@ -197,6 +197,7 @@
 "common.unknown_origin" = "Происхождение неизвестно";
 
 "home.screen.title" = "Дома";
+"home.screen.single_title" = "Дом";
 "home.new.default_name" = "Новый дом";
 "home.not_found.title" = "Дом не найден";
 "home.not_found.description" = "Этот дом больше недоступен.";
@@ -255,7 +256,9 @@
 "collection.editor.section_collection" = "Коллекция";
 "collection.editor.section_home" = "Дом";
 "collection.editor.section_background" = "Фон карточки";
-"collection.editor.no_home" = "Сначала создай дом, а потом коллекцию.";
+"collection.home_change.title" = "Сменить дом?";
+"collection.home_change.confirm" = "Сменить дом";
+"collection.home_change.message" = "При смене дома размещение предметов в этой коллекции будет удалено.";
 "collection.delete.title" = "Удалить коллекцию?";
 "collection.delete.confirm" = "Удалить коллекцию";
 "collection.delete.message" = "Коллекция и все предметы внутри неё будут удалены.";
