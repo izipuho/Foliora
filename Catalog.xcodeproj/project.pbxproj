@@ -217,6 +217,7 @@
 			children = (
 				C00000000000000000000041 /* Collections */,
 				C00000000000000000000042 /* Bells */,
+				C00000000000000000000044 /* Home */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -294,7 +295,9 @@
 				2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */,
 				2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */,
 				2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */,
-				C00000000000000000000044 /* Home */,
+				2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */,
+				2403CED92F9F945700C63AB6 /* SearchTabView.swift */,
+				2403CED52F9F912300C63AB6 /* StorageMapCard.swift */,
 			);
 			path = Collections;
 			sourceTree = "<group>";
@@ -312,9 +315,6 @@
 		C00000000000000000000044 /* Home */ = {
 			isa = PBXGroup;
 			children = (
-				2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */,
-				2403CED92F9F945700C63AB6 /* SearchTabView.swift */,
-				2403CED52F9F912300C63AB6 /* StorageMapCard.swift */,
 				2403CED12F9F8F5100C63AB6 /* HomeDetailView.swift */,
 				2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */,
 				C0000000000000000000000D /* HomeView.swift */,
