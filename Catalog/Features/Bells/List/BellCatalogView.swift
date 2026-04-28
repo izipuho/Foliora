@@ -409,7 +409,7 @@ struct BellCatalogView: View {
             viewModel.updateContext(filters: filters)
             viewModel.updateContext(searchText: searchText)
         }
-        .onChange(of: bells) { newValue in
+        .onChange(of: bells) { _, newValue in
             viewModel.updateSource(bells: newValue)
         }
         .onChange(of: orderMode) { _, newValue in
