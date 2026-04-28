@@ -1,4 +1,4 @@
-iЪport SwiftUI
+import SwiftUI
 
 struct StorageMapCard: View {
     let locations: [Location]

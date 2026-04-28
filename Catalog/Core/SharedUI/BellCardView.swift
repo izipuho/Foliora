@@ -543,6 +543,7 @@ struct BellCardCoverBackground: View {
                     .scaledToFill()
                     .frame(width: size.width, height: size.height)
                     .clipped()
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
             } else {
                 LinearGradient(
                     colors: [
@@ -555,6 +556,7 @@ struct BellCardCoverBackground: View {
                 .frame(width: size.width, height: size.height)
             }
         }
+        .animation(.easeOut(duration: 0.2), value: image != nil)
         .task(id: thumbnailTaskID) {
             await loadImage()
         }

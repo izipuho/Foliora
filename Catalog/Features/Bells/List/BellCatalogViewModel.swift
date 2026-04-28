@@ -73,17 +73,20 @@ private extension BellEntity {
 final class BellCatalogViewModel: ObservableObject {
     var orderMode: BellOrderMode
     var filters: BellFilters
-    var searchText: String
+    var searchState: BellCatalogSearchState
+    var forcesFlatLayout: Bool
     @Published private(set) var displayModel: BellCatalogDisplayModel
 
     init(
         orderMode: BellOrderMode,
         filters: BellFilters,
-        searchText: String
+        searchState: BellCatalogSearchState,
+        forcesFlatLayout: Bool = false
     ) {
         self.orderMode = orderMode
         self.filters = filters
-        self.searchText = searchText
+        self.searchState = searchState
+        self.forcesFlatLayout = forcesFlatLayout
         self.displayModel = BellCatalogDisplayModel(
             layout: .empty,
             stats: BellCatalogStats(
@@ -102,7 +105,8 @@ final class BellCatalogViewModel: ObservableObject {
 
     func updateSource(bells: [BellEntity]) {
         let filteredBells = filteredBells(from: bells)
-        let groupedSections = groupedSections(fromFilteredBells: filteredBells)
+        let shouldUseFlatLayout = forcesFlatLayout || hasActiveSearchCriteria(searchState)
+        let groupedSections = shouldUseFlatLayout ? [] : groupedSections(fromFilteredBells: filteredBells)
         let layout: BellCatalogLayout
 
         if filteredBells.isEmpty {
@@ -161,13 +165,7 @@ final class BellCatalogViewModel: ObservableObject {
     private func filteredBells(from bells: [BellEntity]) -> [BellEntity] {
         bells.filter { bell in
             matches(bell: bell, filters: filters)
-            && (
-                searchText.isEmpty
-                || bell.title.localizedCaseInsensitiveContains(searchText)
-                || bell.countryName.localizedCaseInsensitiveContains(searchText)
-                || bell.cityName.localizedCaseInsensitiveContains(searchText)
-                || bell.tagValues.contains { $0.localizedCaseInsensitiveContains(searchText) }
-            )
+            && matches(bell: bell, searchState: searchState)
         }
     }
 
@@ -239,9 +237,106 @@ final class BellCatalogViewModel: ObservableObject {
         self.filters = filters
     }
 
-    func updateContext(searchText: String) {
-        guard self.searchText != searchText else { return }
-        self.searchText = searchText
+    func updateContext(searchState: BellCatalogSearchState, forcesFlatLayout: Bool? = nil) {
+        let newForcesFlatLayout = forcesFlatLayout ?? self.forcesFlatLayout
+        guard self.searchState != searchState || self.forcesFlatLayout != newForcesFlatLayout else { return }
+        self.searchState = searchState
+        self.forcesFlatLayout = newForcesFlatLayout
+    }
+
+    private func hasActiveSearchCriteria(_ searchState: BellCatalogSearchState) -> Bool {
+        !searchState.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        || !searchState.tokens.isEmpty
+    }
+
+    private func matches(bell: BellEntity, searchState: BellCatalogSearchState) -> Bool {
+        matchesQuery(searchState.query, in: bell, scope: searchState.scope)
+        && searchState.tokens.allSatisfy { matches(token: $0, in: bell) }
+    }
+
+    private func matchesQuery(
+        _ query: String,
+        in bell: BellEntity,
+        scope: BellCatalogSearchState.Scope
+    ) -> Bool {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else { return matchesScope(scope, in: bell) }
+
+        switch scope {
+        case .all:
+            return searchableValues(for: bell).contains { $0.localizedCaseInsensitiveContains(trimmedQuery) }
+        case .title:
+            return bell.title.localizedCaseInsensitiveContains(trimmedQuery)
+        case .collection:
+            return bell.collection?.title.localizedCaseInsensitiveContains(trimmedQuery) == true
+        case .origin:
+            return originValues(for: bell).contains { $0.localizedCaseInsensitiveContains(trimmedQuery) }
+        case .tags:
+            return bell.tagValues.contains { $0.localizedCaseInsensitiveContains(trimmedQuery) }
+        case .notes:
+            return bell.notes.localizedCaseInsensitiveContains(trimmedQuery)
+        case .incomplete:
+            return matchesScope(.incomplete, in: bell)
+            && searchableValues(for: bell).contains { $0.localizedCaseInsensitiveContains(trimmedQuery) }
+        }
+    }
+
+    private func matchesScope(_ scope: BellCatalogSearchState.Scope, in bell: BellEntity) -> Bool {
+        switch scope {
+        case .all, .title, .collection, .origin, .tags, .notes:
+            return true
+        case .incomplete:
+            return bell.originPlace == nil
+            || bell.acquiredYear == nil
+            || bell.location == nil
+            || !bell.hasNotes
+            || bell.tagValues.isEmpty
+        }
+    }
+
+    private func matches(token: SearchToken, in bell: BellEntity) -> Bool {
+        switch token {
+        case .collection(let collectionID):
+            return bell.collection?.id == collectionID
+        case .country(let country):
+            return bell.countryName.localizedCaseInsensitiveCompare(country) == .orderedSame
+        case .material(let material):
+            return bell.materialDisplayName.localizedCaseInsensitiveCompare(material) == .orderedSame
+        case .tag(let tag):
+            return bell.tagValues.contains { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame }
+        case .condition(let condition):
+            return bell.condition == condition
+        case .acquisitionMethod(let method):
+            return bell.acquisitionMethod == method
+        }
+    }
+
+    private func searchableValues(for bell: BellEntity) -> [String] {
+        [
+            bell.title,
+            bell.notes,
+            bell.materialDisplayName,
+            bell.collection?.title ?? ""
+        ] + originValues(for: bell) + storageValues(for: bell) + bell.tagValues
+    }
+
+    private func originValues(for bell: BellEntity) -> [String] {
+        [
+            bell.countryName,
+            bell.cityName,
+            bell.originPlace?.displayName ?? "",
+            bell.originPlace?.regionName ?? ""
+        ]
+    }
+
+    private func storageValues(for bell: BellEntity) -> [String] {
+        [
+            bell.storageDisplayPath,
+            bell.storageFloor,
+            bell.storageRoom,
+            bell.storageCabinet,
+            bell.storageShelf
+        ]
     }
 
     func matches(bell: BellEntity, filters: BellFilters) -> Bool {

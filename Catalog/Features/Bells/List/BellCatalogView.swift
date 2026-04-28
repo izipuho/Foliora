@@ -129,6 +129,11 @@ private extension BellFilters {
 
 
 struct BellCatalogView: View {
+    enum DisplayMode {
+        case normal
+        case search
+    }
+
     private enum LayoutThresholdDirection {
         case zoomIn
         case zoomOut
@@ -137,13 +142,17 @@ struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
     let collection: CollectionSummary?
+    let displayMode: DisplayMode
+    let startsSearchFocused: Bool
     @Environment(\.modelContext) private var modelContext
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
     @Binding var filters: BellFilters
+    @Binding var searchState: BellCatalogSearchState
     @Query private var bells: [BellEntity]
     @Query private var queriedLocations: [LocationEntity]
     @Query private var queriedHomes: [HomeEntity]
+    @Query(sort: \CollectionEntity.title) private var queriedCollections: [CollectionEntity]
     @State private var presentedBell: BellEntity?
     @State private var bellPendingMove: BellEntity?
     @State private var bellPendingDeletion: BellEntity?
@@ -157,13 +166,14 @@ struct BellCatalogView: View {
     @State private var visualScale: CGFloat = 1
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
     @State private var feedbackToken = 0
-    @State private var searchText: String = ""
     @State private var activeLayoutThresholdDirection: LayoutThresholdDirection?
     @State private var accumulatedMagnificationDelta: CGFloat = 0
     @State private var lastGestureMagnification: CGFloat?
     @State private var pinchOriginBellID: UUID?
     @State private var pinchNavigatedBell: BellEntity?
     @State private var bellCardFrames: [UUID: CGRect] = [:]
+    @State private var suggestedTokens: [SearchToken] = []
+    @FocusState private var isSearchFocused: Bool
     @StateObject private var viewModel: BellCatalogViewModel
     @Namespace private var bellGridTransitionNamespace
     @Namespace private var bellDetailZoomNamespace
@@ -172,16 +182,22 @@ struct BellCatalogView: View {
         collection: CollectionSummary?,
         repository: any CatalogRepository,
         collaborators: [Collaborator],
+        displayMode: DisplayMode = .normal,
         layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
-        filters: Binding<BellFilters> = .constant(BellFilters())
+        filters: Binding<BellFilters> = .constant(BellFilters()),
+        searchState: Binding<BellCatalogSearchState> = .constant(BellCatalogSearchState()),
+        startsSearchFocused: Bool = false
     ) {
         self.repository = repository
         self.collaborators = collaborators
         self.collection = collection
+        self.displayMode = displayMode
+        self.startsSearchFocused = startsSearchFocused
         self._layoutMode = layoutMode
         self._orderMode = orderMode
         self._filters = filters
+        self._searchState = searchState
         if let collection {
             let collectionID = Optional(collection.id)
             _bells = Query(
@@ -199,7 +215,13 @@ struct BellCatalogView: View {
             wrappedValue: BellCatalogViewModel(
                 orderMode: orderMode.wrappedValue,
                 filters: filters.wrappedValue,
-                searchText: ""
+                searchState: searchState.wrappedValue,
+                forcesFlatLayout: Self.usesFlatSearchLayout(
+                    displayMode: displayMode,
+                    collection: collection,
+                    searchState: searchState.wrappedValue,
+                    startsSearchFocused: startsSearchFocused
+                )
             )
         )
     }
@@ -214,6 +236,33 @@ struct BellCatalogView: View {
 
     private var displayModel: BellCatalogDisplayModel {
         viewModel.displayModel
+    }
+
+    private var usesFlatSearchLayout: Bool {
+        Self.usesFlatSearchLayout(
+            displayMode: displayMode,
+            collection: collection,
+            searchState: searchState,
+            startsSearchFocused: startsSearchFocused
+        )
+    }
+
+    private static func usesFlatSearchLayout(
+        displayMode: DisplayMode,
+        collection: CollectionSummary?,
+        searchState: BellCatalogSearchState,
+        startsSearchFocused: Bool
+    ) -> Bool {
+        if displayMode == .search {
+            return true
+        }
+
+        return collection == nil
+        && (
+            startsSearchFocused
+            || !searchState.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !searchState.tokens.isEmpty
+        )
     }
 
     private var hasActiveFilter: Bool {
@@ -233,6 +282,15 @@ struct BellCatalogView: View {
     }
 
     private var scrollContentBottomInset: CGFloat { 120 }
+
+    private var bottomSafeAreaInset: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow }?
+            .safeAreaInsets
+            .bottom ?? 0
+    }
 
     private var orderedLayoutModes: [BellGridLayoutMode] {
         [.covers, .mini, .compact, .wide, .showcase]
@@ -338,6 +396,54 @@ struct BellCatalogView: View {
         viewModel.bell(withID: bellID)
     }
 
+    private var availableSearchCollections: [CollectionEntity] {
+        guard let collection else { return queriedCollections }
+        return queriedCollections.filter { $0.home?.id == collection.homeID }
+    }
+
+    private func updateSuggestedTokens() {
+        guard !usesFlatSearchLayout else {
+            suggestedTokens = []
+            return
+        }
+
+        let selectedTokens = Set(searchState.tokens)
+        suggestedTokens = availableSearchCollections
+            .map { SearchToken.collection($0.id) }
+            .filter { !selectedTokens.contains($0) }
+    }
+
+    private func searchTokenTitle(_ token: SearchToken) -> String {
+        switch token {
+        case .collection(let collectionID):
+            return queriedCollections.first(where: { $0.id == collectionID })?.title
+                ?? String(localized: "search.scope.collection")
+        case .country(let value), .material(let value), .tag(let value):
+            return value
+        case .condition(let condition):
+            return condition.displayName
+        case .acquisitionMethod(let method):
+            return method.displayName
+        }
+    }
+
+    private func searchTokenSystemImage(_ token: SearchToken) -> String {
+        switch token {
+        case .collection:
+            return "rectangle.stack"
+        case .country:
+            return "globe.europe.africa"
+        case .material:
+            return "shippingbox"
+        case .tag:
+            return "tag"
+        case .condition:
+            return "checkmark.seal"
+        case .acquisitionMethod:
+            return "tray.and.arrow.down"
+        }
+    }
+
     private var canZoomIn: Bool {
         guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode) else { return false }
         return currentIndex > 0
@@ -421,7 +527,14 @@ struct BellCatalogView: View {
         .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
             newValue?.kind.sensoryFeedback
         }
-        .searchable(text: $searchText)
+        .searchable(
+            text: $searchState.query,
+            tokens: $searchState.tokens,
+            suggestedTokens: $suggestedTokens
+        ) { token in
+            Label(searchTokenTitle(token), systemImage: searchTokenSystemImage(token))
+        }
+        .searchFocused($isSearchFocused)
         .toolbar(isSelectionModeEnabled ? .hidden : .visible, for: .tabBar)
         .preference(key: BellCatalogSelectionModePreferenceKey.self, value: isSelectionModeEnabled)
         .toolbar {
@@ -441,10 +554,14 @@ struct BellCatalogView: View {
             bellCardFrames = frames
         }
         .onAppear {
-            viewModel.updateSource(bells: bells)
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
-            viewModel.updateContext(searchText: searchText)
+            viewModel.updateContext(searchState: searchState, forcesFlatLayout: usesFlatSearchLayout)
+            viewModel.updateSource(bells: bells)
+            updateSuggestedTokens()
+            if startsSearchFocused {
+                isSearchFocused = true
+            }
         }
         .onChange(of: bells) { _, newValue in
             viewModel.updateSource(bells: newValue)
@@ -467,9 +584,13 @@ struct BellCatalogView: View {
             visualScale = 1
             pinchOriginBellID = nil
         }
-        .onChange(of: searchText) { _, newValue in
-            viewModel.updateContext(searchText: newValue)
+        .onChange(of: searchState) { _, newValue in
+            viewModel.updateContext(searchState: newValue, forcesFlatLayout: usesFlatSearchLayout)
             viewModel.updateSource(bells: bells)
+            updateSuggestedTokens()
+        }
+        .onChange(of: queriedCollections) { _, _ in
+            updateSuggestedTokens()
         }
     }
 
@@ -485,11 +606,11 @@ struct BellCatalogView: View {
                         .frame(height: 0)
                         .id("bell-grid-top")
 
-                    if !isSelectionModeEnabled {
+                    if !isSelectionModeEnabled && displayMode == .normal {
                         dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
                     }
 
-                    if hasActiveFilter {
+                    if hasActiveFilter && displayMode == .normal {
                         activeSummaryFilterSection
                     }
 
@@ -972,7 +1093,7 @@ struct BellCatalogView: View {
             }
             .padding(.horizontal, CatalogLayoutInsets.screen)
             .padding(.bottom, 12)
-            .padding(.bottom, UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0)
+            .padding(.bottom, bottomSafeAreaInset)
         }
         .frame(maxWidth: .infinity)
         .ignoresSafeArea(edges: .bottom)
