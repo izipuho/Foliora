@@ -656,7 +656,7 @@ struct BellCatalogView: View {
             .padding(.vertical, 10)
             .padding(.horizontal, 14)
             .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-            .shadow(color: .black.opacity(0.05), radius: 8)
+)
         }
         .buttonStyle(.plain)
     }
@@ -869,18 +869,20 @@ struct BellCatalogView: View {
             Label(String(localized: "bell.context.move"), systemImage: "folder")
         }
 
-        Button {
-            duplicateBell(bell)
-        } label: {
-            Label(String(localized: "common.duplicate"), systemImage: "plus.square.on.square")
-        }
+        // TODO re-enable duplication when we have a better way to handle it in the UI, as it can be destructive if used unintentionally
+        //Button {
+        //    duplicateBell(bell)
+        //} label: {
+        //    Label(String(localized: "common.duplicate"), systemImage: "plus.square.on.square")
+        //}
 
-        ShareLink(
-            item: bellShareText(for: bell),
-            preview: SharePreview(bell.title)
-        ) {
-            Label(String(localized: "common.share"), systemImage: "square.and.arrow.up")
-        }
+        // TODO add share link generation and handling
+        //ShareLink(
+        //    item: bellShareText(for: bell),
+        //    preview: SharePreview(bell.title)
+        //) {
+        //    Label(String(localized: "common.share"), systemImage: "square.and.arrow.up")
+        //}
 
         Button(role: .destructive) {
             bellPendingDeletion = bell
