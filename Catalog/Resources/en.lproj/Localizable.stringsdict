@@ -18,6 +18,22 @@
 			<string>%d bells</string>
 		</dict>
 	</dict>
+	<key>bell_catalog.selection.selected_count</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Selected %#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d photo</string>
+			<key>other</key>
+			<string>%d photos</string>
+		</dict>
+	</dict>
 	<key>collection.count.books</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>

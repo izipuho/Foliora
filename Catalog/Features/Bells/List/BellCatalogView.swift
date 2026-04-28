@@ -44,6 +44,14 @@ private struct BellCardFramePreferenceKey: PreferenceKey {
     }
 }
 
+struct BellCatalogSelectionModePreferenceKey: PreferenceKey {
+    static let defaultValue = false
+
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
 private extension CGRect {
     var center: CGPoint {
         CGPoint(x: midX, y: midY)
@@ -94,8 +102,6 @@ private extension BellAttributeFilter {
         switch self {
         case .country(let value), .material(let value), .tag(let value):
             return value
-        //case .condition(let value), .acquisitionMethod(let value):
-        //    return value.displayName
         case .condition(let condition):
             return condition.displayName
         case .acquisitionMethod(let method):
@@ -401,6 +407,20 @@ struct BellCatalogView: View {
             newValue?.kind.sensoryFeedback
         }
         .searchable(text: $searchText)
+        .toolbar(isSelectionModeEnabled ? .hidden : .visible, for: .tabBar)
+        .preference(key: BellCatalogSelectionModePreferenceKey.self, value: isSelectionModeEnabled)
+        .toolbar {
+            if isSelectionModeEnabled {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        cancelSelectionMode()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
         .coordinateSpace(name: BellCatalogCoordinateSpace.pinchGrid)
         .onPreferenceChange(BellCardFramePreferenceKey.self) { frames in
             bellCardFrames = frames
@@ -450,7 +470,9 @@ struct BellCatalogView: View {
                         .frame(height: 0)
                         .id("bell-grid-top")
 
-                    dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
+                    if !isSelectionModeEnabled {
+                        dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
+                    }
 
                     if hasActiveFilter {
                         activeSummaryFilterSection
@@ -517,11 +539,16 @@ struct BellCatalogView: View {
                     }
                 }
             }
-            .safeAreaInset(edge: .bottom) {
-                if isSelectionModeEnabled {
+            .overlay(alignment: .bottom) {
+                if isSelectionModeEnabled && !selectedBellIDs.isEmpty {
                     selectionBottomPanel
+                        .frame(height: 112, alignment: .bottom)
+                        .ignoresSafeArea(edges: .bottom)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+            .animation(.easeInOut(duration: 0.22), value: isSelectionModeEnabled)
+            .animation(.easeInOut(duration: 0.22), value: selectedBellIDs.isEmpty)
         }
     }
 
@@ -865,27 +892,82 @@ struct BellCatalogView: View {
     }
 
     private var selectionBottomPanel: some View {
-        HStack(spacing: CatalogSpacing.regular) {
-            Button(String(localized: "common.cancel")) {
-                cancelSelectionMode()
-            }
-            .font(.subheadline.weight(.semibold))
-
-            Spacer()
-
-            Text("\(selectedBellIDs.count) selected")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, CatalogLayoutInsets.screen)
-        .padding(.vertical, CatalogSpacing.compact)
-        .frame(maxWidth: .infinity)
-        .background(.regularMaterial)
-        .overlay(alignment: .top) {
+        ZStack(alignment: .bottom) {
             Rectangle()
-                .fill(CatalogSemanticColors.separator)
-                .frame(height: 0.5)
+                .fill(.ultraThinMaterial)
+                .mask(
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.72), .black],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.34), .black.opacity(0.56)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            HStack(alignment: .center, spacing: 18) {
+                Button {
+                    // Batch move is intentionally not implemented yet.
+                } label: {
+                    Image(systemName: "folder")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(collection.backgroundStyle.accentColor)
+                        .frame(width: 48, height: 48)
+                        .background {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .overlay {
+                                    Circle()
+                                        .fill(collection.backgroundStyle.accentColor.opacity(0.12))
+                                }
+                        }
+                }
+                .buttonStyle(.plain)
+
+                Text(selectedBellCountText)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .frame(minWidth: 150)
+
+                Button(role: .destructive) {
+                    // Batch delete is intentionally not implemented yet.
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.red)
+                        .frame(width: 48, height: 48)
+                        .background {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .overlay {
+                                    Circle()
+                                        .fill(Color.red.opacity(0.10))
+                                }
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, CatalogLayoutInsets.screen)
+            .padding(.bottom, 12)
+            .padding(.bottom, UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0)
         }
+        .frame(maxWidth: .infinity)
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    private var selectedBellCountText: String {
+        String.localizedStringWithFormat(
+            String(localized: "bell_catalog.selection.selected_count"),
+            selectedBellIDs.count
+        )
     }
 
     private func bellCardButton(_ bell: BellEntity) -> some View {

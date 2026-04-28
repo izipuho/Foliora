@@ -23,6 +23,7 @@ struct CollectionShellView: View {
     @State private var selectedOrder: BellOrderMode = .newestFirst
     @State private var selectedLayoutMode: BellGridLayoutMode = .mini
     @State private var selectedSummaryFilter = BellFilters()
+    @State private var isBellCatalogSelectionMode = false
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
     init(collection: CollectionSummary, repository: any CatalogRepository) {
@@ -57,29 +58,36 @@ struct CollectionShellView: View {
     var body: some View {
         content
             .toolbar {
-                CollectionShellToolbar(
-                    selectedOrder: $selectedOrder,
-                    isPresentingAddBellOptions: $isPresentingAddBellOptions,
-                    onEdit: {
-                        isPresentingEditCollection = true
-                    },
-                    onOpenMap: {
-                        isPresentingMap = true
-                    },
-                    onLibrary: {
-                        isPresentingPhotoPicker = true
-                    },
-                    onCamera: {
-                        isPresentingCamera = true
-                    }
-                )
+                if !isBellCatalogSelectionMode {
+                    CollectionShellToolbar(
+                        selectedOrder: $selectedOrder,
+                        isPresentingAddBellOptions: $isPresentingAddBellOptions,
+                        onEdit: {
+                            isPresentingEditCollection = true
+                        },
+                        onOpenMap: {
+                            isPresentingMap = true
+                        },
+                        onLibrary: {
+                            isPresentingPhotoPicker = true
+                        },
+                        onCamera: {
+                            isPresentingCamera = true
+                        }
+                    )
+                }
+            }
+            .onPreferenceChange(BellCatalogSelectionModePreferenceKey.self) { isSelectionMode in
+                isBellCatalogSelectionMode = isSelectionMode
             }
             .overlay(alignment: .bottomTrailing) {
-                CollectionMapButton {
-                    isPresentingMap = true
+                if !isBellCatalogSelectionMode {
+                    CollectionMapButton {
+                        isPresentingMap = true
+                    }
+                    .padding(.trailing, CatalogLayoutInsets.screen)
+                    .padding(.bottom, 16)
                 }
-                .padding(.trailing, CatalogLayoutInsets.screen)
-                .padding(.bottom, 16)
             }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
