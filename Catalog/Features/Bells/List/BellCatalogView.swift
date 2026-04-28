@@ -378,7 +378,11 @@ struct BellCatalogView: View {
                 locations: availableLocations,
                 locationPathByID: locationPathByID
             ) { locationID in
-                moveBell(bell, to: locationID)
+                let bells = isSelectionModeEnabled ? selectedBells : [bell]
+                moveBells(bells, to: locationID)
+                if isSelectionModeEnabled {
+                    cancelSelectionMode()
+                }
             }
         }
         .navigationDestination(item: $pinchNavigatedBell) { bell in
@@ -392,8 +396,11 @@ struct BellCatalogView: View {
             presenting: bellPendingDeletion
         ) { bell in
             Button(String(localized: "bell.context.delete.confirm"), role: .destructive) {
-                deleteBell(bell.id)
-                emitFeedback(.warning)
+                let bells = isSelectionModeEnabled ? selectedBells : [bell]
+                deleteBells(bells)
+                if isSelectionModeEnabled {
+                    cancelSelectionMode()
+                }
                 bellPendingDeletion = nil
             }
 
@@ -849,12 +856,6 @@ struct BellCatalogView: View {
         }
     }
 
-    private func deleteBell(_ bellID: UUID) {
-        guard let bell = bells.first(where: { $0.id == bellID }) else { return }
-        modelContext.delete(bell)
-        try? modelContext.save()
-    }
-
     private var availableLocations: [LocationEntity] {
         queriedLocations.filter { $0.home?.id == collection.homeID }
     }
@@ -865,6 +866,10 @@ struct BellCatalogView: View {
                 (location.id, location.pathDisplayName)
             }
         )
+    }
+
+    private var selectedBells: [BellEntity] {
+        bells.filter { selectedBellIDs.contains($0.id) }
     }
 
     private func enterSelectionMode(with bellID: UUID) {
@@ -911,7 +916,7 @@ struct BellCatalogView: View {
 
             HStack(alignment: .center, spacing: 18) {
                 Button {
-                    // Batch move is intentionally not implemented yet.
+                    bellPendingMove = selectedBells.first
                 } label: {
                     Image(systemName: "folder")
                         .font(.title3.weight(.semibold))
@@ -938,7 +943,8 @@ struct BellCatalogView: View {
                     .frame(minWidth: 150)
 
                 Button(role: .destructive) {
-                    // Batch delete is intentionally not implemented yet.
+                    bellPendingDeletion = selectedBells.first
+                    isPresentingDeleteConfirmation = bellPendingDeletion != nil
                 } label: {
                     Image(systemName: "trash")
                         .font(.title3.weight(.semibold))
@@ -1103,10 +1109,23 @@ struct BellCatalogView: View {
         emitFeedback(.success)
     }
 
-    private func moveBell(_ bell: BellEntity, to locationID: UUID?) {
-        bell.location = locationID.flatMap { locationsByID[$0] }
+    private func moveBells(_ bells: [BellEntity], to locationID: UUID?) {
+        let location = locationID.flatMap { locationsByID[$0] }
+        for bell in bells {
+            bell.location = location
+        }
+
         try? modelContext.save()
         emitFeedback(.success)
+    }
+
+    private func deleteBells(_ bells: [BellEntity]) {
+        for bell in bells {
+            modelContext.delete(bell)
+        }
+
+        try? modelContext.save()
+        emitFeedback(.warning)
     }
 
     private func bellShareText(for bell: BellEntity) -> String {
