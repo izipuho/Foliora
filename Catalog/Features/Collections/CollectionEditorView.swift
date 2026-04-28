@@ -43,6 +43,10 @@ struct CollectionEditorView: View {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedHomeID != nil
     }
 
+    private var backgroundColumns: [GridItem] {
+        [GridItem(.adaptive(minimum: 74, maximum: 110), spacing: 12)]
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -82,38 +86,14 @@ struct CollectionEditorView: View {
                 }
 
                 Section(String(localized: "collection.editor.section_background")) {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 74, maximum: 110), spacing: 12)], spacing: 12) {
+                    LazyVGrid(columns: backgroundColumns, spacing: 12) {
                         ForEach(CollectionBackgroundStyle.allCases) { style in
-                            Button {
+                            CollectionBackgroundButton(
+                                style: style,
+                                isSelected: backgroundStyle == style
+                            ) {
                                 backgroundStyle = style
-                            } label: {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: style.colors,
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .frame(height: 64)
-                                        .overlay(alignment: .topTrailing) {
-                                            if backgroundStyle == style {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .font(.title3)
-                                                    .symbolRenderingMode(.palette)
-                                                    .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowSoft)
-                                                    .padding(CatalogSpacing.compact)
-                                            }
-                                        }
-
-                                    Text(style.title)
-                                        .font(.caption)
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(1)
-                                }
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -159,5 +139,42 @@ struct CollectionEditorView: View {
                 Text(String(localized: "collection.delete.message"))
             }
         }
+    }
+}
+
+private struct CollectionBackgroundButton: View {
+    let style: CollectionBackgroundStyle
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: style.colors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(height: 64)
+                    .overlay(alignment: .topTrailing) {
+                        if isSelected {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.title3)
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowSoft)
+                                .padding(CatalogSpacing.compact)
+                        }
+                    }
+
+                Text(style.title)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
