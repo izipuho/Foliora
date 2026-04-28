@@ -10,6 +10,7 @@ struct HomeEditorView: View {
     @State private var isPresentingAddLocationSheet = false
     @State private var editingLocationID: UUID?
     @State private var addingChildContext: AddChildContext?
+    @State private var collapsedLocationIDs: Set<UUID> = []
 
     private var flattenedLocations: [EditableLocationNode] {
         let roots = locations
@@ -57,7 +58,12 @@ struct HomeEditorView: View {
                                 EditableLocationRow(
                                     location: node.location,
                                     depth: node.depth,
+                                    hasChildren: !children(of: node.location).isEmpty,
+                                    isCollapsed: collapsedLocationIDs.contains(node.location.id),
                                     showsAddChildAction: defaultChildKind(for: node.location) != nil,
+                                    onToggleCollapsed: {
+                                        toggleCollapsed(node.location.id)
+                                    },
                                     onAddChild: {
                                         if let childKind = defaultChildKind(for: node.location) {
                                             addingChildContext = AddChildContext(
@@ -198,6 +204,7 @@ struct HomeEditorView: View {
 
     private func deleteLocation(_ locationID: UUID) {
         let removedIDs = Set([locationID])
+        collapsedLocationIDs.subtract(removedIDs)
         locations.removeAll { removedIDs.contains($0.id) }
         locations = locations.map { location in
             guard removedIDs.contains(location.parentLocationID ?? UUID()) else {
@@ -259,8 +266,23 @@ struct HomeEditorView: View {
     }
 
     private func flatten(location: Location, depth: Int) -> [EditableLocationNode] {
-        [EditableLocationNode(location: location, depth: depth)] +
-        children(of: location).flatMap { flatten(location: $0, depth: depth + 1) }
+        //[EditableLocationNode(location: location, depth: depth)] +
+        //children(of: location).flatMap { flatten(location: $0, depth: depth + 1) }
+        let node = EditableLocationNode(location: location, depth: depth)
+
+        guard !collapsedLocationIDs.contains(location.id) else {
+            return [node]
+        }
+
+        return [node] + children(of: location).flatMap { flatten(location: $0, depth: depth + 1) }
+    }
+
+    private func toggleCollapsed(_ locationID: UUID) {
+        if collapsedLocationIDs.contains(locationID) {
+            collapsedLocationIDs.remove(locationID)
+        } else {
+            collapsedLocationIDs.insert(locationID)
+        }
     }
 
     private func children(of location: Location) -> [Location] {
@@ -487,11 +509,26 @@ private struct AddChildContext: Identifiable {
 private struct EditableLocationRow: View {
     let location: Location
     let depth: Int
+    let hasChildren: Bool
+    let isCollapsed: Bool
     let showsAddChildAction: Bool
+    let onToggleCollapsed: () -> Void
     let onAddChild: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
+            if hasChildren {
+                Button(action: onToggleCollapsed) {
+                    Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Color.clear
+                    .frame(width: 20, height: 20)
+            }
             Circle()
                 .fill(kindColor(location.kind))
                 .frame(width: 8, height: 8)
