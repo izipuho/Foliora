@@ -42,7 +42,19 @@ struct CollectionEditorView: View {
     }
 
     private var canSave: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedHomeID != nil
+        !trimmedTitle.isEmpty && selectedHomeID != nil
+    }
+
+    private var shouldShowHomePicker: Bool {
+        homes.count > 1
+    }
+
+    private var trimmedTitle: String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedNotes: String {
+        notes.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var backgroundColumns: [GridItem] {
@@ -64,45 +76,55 @@ struct CollectionEditorView: View {
         }
     }
 
+    private var collectionSection: some View {
+        Section(String(localized: "collection.editor.section_collection")) {
+            TextField(String(localized: "common.name"), text: $title)
+            TextField(String(localized: "common.notes"), text: $notes, axis: .vertical)
+                .lineLimit(3, reservesSpace: true)
+            if shouldShowHomePicker {
+                Picker(String(localized: "home.screen.single_title"), selection: homeSelection) {
+                    ForEach(homes) { home in
+                        Text(home.name).tag(Optional(home.id))
+                    }
+                }
+            }
+        }
+    }
+
+    private var backgroundSection: some View {
+        Section(String(localized: "collection.editor.section_background")) {
+            LazyVGrid(columns: backgroundColumns, spacing: 12) {
+                ForEach(CollectionBackgroundStyle.allCases) { style in
+                    CollectionBackgroundStyleButton(
+                        style: style,
+                        isSelected: backgroundStyle == style
+                    ) {
+                        backgroundStyle = style
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var deleteSection: some View {
+        if allowsDeletion {
+            Section {
+                Button(role: .destructive) {
+                    isPresentingDeleteConfirmation = true
+                } label: {
+                    Label(String(localized: "common.delete"), systemImage: "trash")
+                }
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-
-                Section(String(localized: "collection.editor.section_collection")) {
-                    TextField(String(localized: "common.name"), text: $title)
-                    TextField(String(localized: "common.notes"), text: $notes, axis: .vertical)
-                        .lineLimit(3, reservesSpace: true)
-                    if homes.count > 1 {
-                        Picker(String(localized: "home.screen.single_title"), selection: homeSelection) {
-                            ForEach(homes) { home in
-                                Text(home.name).tag(Optional(home.id))
-                            }
-                        }
-                    }
-                }
-
-                Section(String(localized: "collection.editor.section_background")) {
-                    LazyVGrid(columns: backgroundColumns, spacing: 12) {
-                        ForEach(CollectionBackgroundStyle.allCases) { style in
-                            CollectionBackgroundButton(
-                                style: style,
-                                isSelected: backgroundStyle == style
-                            ) {
-                                backgroundStyle = style
-                            }
-                        }
-                    }
-                }
-
-                if allowsDeletion {
-                    Section {
-                        Button(role: .destructive) {
-                            isPresentingDeleteConfirmation = true
-                        } label: {
-                            Label(String(localized: "common.delete"), systemImage: "trash")
-                        }
-                    }
-                }
+                collectionSection
+                backgroundSection
+                deleteSection
             }
             .navigationTitle(screenTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -114,7 +136,7 @@ struct CollectionEditorView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         guard let selectedHomeID else { return }
-                        onSave(title, notes, selectedHomeID, backgroundStyle)
+                        onSave(trimmedTitle, trimmedNotes, selectedHomeID, backgroundStyle)
                         dismiss()
                     } label: { Image(systemName: "checkmark") }
                     .disabled(!canSave)
@@ -154,7 +176,7 @@ struct CollectionEditorView: View {
     }
 }
 
-private struct CollectionBackgroundButton: View {
+private struct CollectionBackgroundStyleButton: View {
     let style: CollectionBackgroundStyle
     let isSelected: Bool
     let action: () -> Void
