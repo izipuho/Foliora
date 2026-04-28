@@ -146,6 +146,8 @@ struct BellCatalogView: View {
     @State private var isPresentingDataHealthPopover = false
     @State private var isPresentingTopGeographyPopover = false
     @State private var pendingScrollTargetID: String?
+    @State private var isSelectionModeEnabled = false
+    @State private var selectedBellIDs: Set<UUID> = []
     @State private var visualScale: CGFloat = 1
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
     @State private var feedbackToken = 0
@@ -515,6 +517,11 @@ struct BellCatalogView: View {
                     }
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                if isSelectionModeEnabled {
+                    selectionBottomPanel
+                }
+            }
         }
     }
 
@@ -656,7 +663,6 @@ struct BellCatalogView: View {
             .padding(.vertical, 10)
             .padding(.horizontal, 14)
             .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-)
         }
         .buttonStyle(.plain)
     }
@@ -834,16 +840,91 @@ struct BellCatalogView: View {
         )
     }
 
+    private func enterSelectionMode(with bellID: UUID) {
+        withAnimation(.snappy(duration: 0.2)) {
+            isSelectionModeEnabled = true
+            selectedBellIDs.insert(bellID)
+        }
+    }
+
+    private func toggleBellSelection(_ bellID: UUID) {
+        withAnimation(.snappy(duration: 0.2)) {
+            if selectedBellIDs.contains(bellID) {
+                selectedBellIDs.remove(bellID)
+            } else {
+                selectedBellIDs.insert(bellID)
+            }
+        }
+    }
+
+    private func cancelSelectionMode() {
+        withAnimation(.snappy(duration: 0.2)) {
+            isSelectionModeEnabled = false
+            selectedBellIDs.removeAll()
+        }
+    }
+
+    private var selectionBottomPanel: some View {
+        HStack(spacing: CatalogSpacing.regular) {
+            Button(String(localized: "common.cancel")) {
+                cancelSelectionMode()
+            }
+            .font(.subheadline.weight(.semibold))
+
+            Spacer()
+
+            Text("\(selectedBellIDs.count) selected")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, CatalogLayoutInsets.screen)
+        .padding(.vertical, CatalogSpacing.compact)
+        .frame(maxWidth: .infinity)
+        .background(.regularMaterial)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(CatalogSemanticColors.separator)
+                .frame(height: 0.5)
+        }
+    }
+
     private func bellCardButton(_ bell: BellEntity) -> some View {
         Button {
-            presentedBell = bell
+            if isSelectionModeEnabled {
+                toggleBellSelection(bell.id)
+            } else {
+                presentedBell = bell
+            }
         } label: {
+            let isSelected = selectedBellIDs.contains(bell.id)
+
             BellCardView(
                 bell: bell,
                 layoutMode: layoutMode
             )
             .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
             .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
+            .overlay {
+                if isSelectionModeEnabled && isSelected {
+                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
+                        .fill(.black.opacity(0.22))
+                        .allowsHitTesting(false)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if isSelectionModeEnabled && isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 20, height: 20)
+                        .background(Color.blue, in: Circle())
+                        .overlay {
+                            Circle()
+                                .stroke(.white, lineWidth: 2)
+                        }
+                        .padding(8)
+                }
+            }
             .background {
                 GeometryReader { proxy in
                     Color.clear.preference(
@@ -863,6 +944,12 @@ struct BellCatalogView: View {
 
     @ViewBuilder
     private func bellCardContextMenu(for bell: BellEntity) -> some View {
+        Button {
+            enterSelectionMode(with: bell.id)
+        } label: {
+            Label(String(localized: "bell.context.select"), systemImage: "checkmark.circle")
+        }
+
         Button {
             bellPendingMove = bell
         } label: {

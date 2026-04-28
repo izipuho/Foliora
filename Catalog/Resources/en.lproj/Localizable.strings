@@ -307,6 +307,7 @@
 "bell.detail.unsaved_changes.message" = "Save note and tag changes before leaving, or discard them.";
 "bell.detail.unsaved_changes.discard" = "Discard Changes";
 "bell.context.move" = "Move to...";
+"bell.context.select" = "Select";
 "bell.context.delete.title" = "Delete Bell?";
 "bell.context.delete.confirm" = "Delete Bell";
 "bell.context.delete.message" = "This bell will be removed from the collection.";

@@ -307,6 +307,7 @@
 "bell.detail.unsaved_changes.message" = "Сохранить изменения заметок и тегов перед выходом или сбросить их?";
 "bell.detail.unsaved_changes.discard" = "Сбросить изменения";
 "bell.context.move" = "Переместить в...";
+"bell.context.select" = "Выбрать";
 "bell.context.delete.title" = "Удалить колокольчик?";
 "bell.context.delete.confirm" = "Удалить колокольчик";
 "bell.context.delete.message" = "Колокольчик будет удален из коллекции.";
