@@ -158,6 +158,7 @@
 				C00000000000000000000038 /* Features */,
 				C00000000000000000000039 /* Resources */,
 				C00000000000000000000016 /* Catalog.entitlements */,
+				2403CEE22F9FA83A00C63AB6 /* Shared */,
 			);
 			path = Catalog;
 			sourceTree = "<group>";
@@ -214,7 +215,6 @@
 		C00000000000000000000038 /* Features */ = {
 			isa = PBXGroup;
 			children = (
-				2403CEE22F9FA83A00C63AB6 /* Shared */,
 				C00000000000000000000041 /* Collections */,
 				C00000000000000000000042 /* Bells */,
 				C00000000000000000000043 /* Books */,
