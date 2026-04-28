@@ -136,7 +136,7 @@ struct BellCatalogView: View {
 
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
-    let collection: CollectionSummary
+    let collection: CollectionSummary?
     @Environment(\.modelContext) private var modelContext
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
@@ -169,7 +169,7 @@ struct BellCatalogView: View {
     @Namespace private var bellDetailZoomNamespace
 
     init(
-        collection: CollectionSummary,
+        collection: CollectionSummary?,
         repository: any CatalogRepository,
         collaborators: [Collaborator],
         layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
@@ -182,13 +182,17 @@ struct BellCatalogView: View {
         self._layoutMode = layoutMode
         self._orderMode = orderMode
         self._filters = filters
-        let collectionID = Optional(collection.id)
-        _bells = Query(
-            filter: #Predicate<BellEntity> { bell in
-                bell.collection?.id == collectionID
-            },
-            sort: [SortDescriptor(\.createdAt, order: .reverse)]
-        )
+        if let collection {
+            let collectionID = Optional(collection.id)
+            _bells = Query(
+                filter: #Predicate<BellEntity> { bell in
+                    bell.collection?.id == collectionID
+                },
+                sort: [SortDescriptor(\.createdAt, order: .reverse)]
+            )
+        } else {
+            _bells = Query(sort: [SortDescriptor(\.createdAt, order: .reverse)])
+        }
         _queriedLocations = Query()
         _queriedHomes = Query()
         _viewModel = StateObject(
@@ -200,8 +204,12 @@ struct BellCatalogView: View {
         )
     }
 
+    private var catalogStyle: CollectionBackgroundStyle {
+        collection?.backgroundStyle ?? .slate
+    }
+
     private var themeColors: [Color] {
-        collection.backgroundStyle.screenColors
+        catalogStyle.screenColors
     }
 
     private var displayModel: BellCatalogDisplayModel {
@@ -572,7 +580,7 @@ struct BellCatalogView: View {
     private var activeSummaryFilterSection: some View {
         HStack(spacing: 10) {
             Image(systemName: "tag.fill")
-                .foregroundStyle(collection.backgroundStyle.accentColor)
+                .foregroundStyle(catalogStyle.accentColor)
 
             Text(String.localizedStringWithFormat(String(localized: "bell_catalog.items.filtered_by_tag"), filters.title ?? ""))
                 .font(.subheadline.weight(.semibold))
@@ -583,7 +591,7 @@ struct BellCatalogView: View {
                 filters = BellFilters()
             }
             .font(.footnote.weight(.semibold))
-            .foregroundStyle(collection.backgroundStyle.accentColor)
+            .foregroundStyle(catalogStyle.accentColor)
         }
         .padding(14)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
@@ -628,7 +636,7 @@ struct BellCatalogView: View {
                         countryName: topGeography(in: displayModel)?.name ?? String(localized: "common.unknown"),
                         flag: topGeography(in: displayModel)?.flag ?? "🌍",
                         countText: topGeographyCountText(in: displayModel),
-                        tint: collection.backgroundStyle.accentColor,
+                        tint: catalogStyle.accentColor,
                         action: {
                             guard !topGeographyEntries(in: displayModel).isEmpty else { return }
                             isPresentingTopGeographyPopover = true
@@ -646,7 +654,7 @@ struct BellCatalogView: View {
 
                     DashboardDataHealthCard(
                         progress: dataHealthProgress(in: displayModel),
-                        tint: collection.backgroundStyle.accentColor
+                        tint: catalogStyle.accentColor
                     ) {
                         isPresentingDataHealthPopover = true
                     }
@@ -685,7 +693,7 @@ struct BellCatalogView: View {
             HStack(spacing: 8) {
                 Image(systemName: systemImage)
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(collection.backgroundStyle.accentColor)
+                    .foregroundStyle(catalogStyle.accentColor)
 
                 Text(title)
                     .font(.subheadline.weight(.semibold))
@@ -824,7 +832,7 @@ struct BellCatalogView: View {
             } header: {
                 BellGroupedSectionHeader(
                     title: section.title,
-                    tint: collection.backgroundStyle.accentColor,
+                    tint: catalogStyle.accentColor,
                     isJumpButton: orderMode == .acquisitionYear || orderMode == .storage,
                     action: {
                         activeJumpPopoverSectionID = section.id
@@ -857,7 +865,8 @@ struct BellCatalogView: View {
     }
 
     private var availableLocations: [LocationEntity] {
-        queriedLocations.filter { $0.home?.id == collection.homeID }
+        guard let collection else { return queriedLocations }
+        return queriedLocations.filter { $0.home?.id == collection.homeID }
     }
 
     private var locationPathByID: [UUID: String] {
@@ -920,14 +929,14 @@ struct BellCatalogView: View {
                 } label: {
                     Image(systemName: "folder")
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(collection.backgroundStyle.accentColor)
+                        .foregroundStyle(catalogStyle.accentColor)
                         .frame(width: 48, height: 48)
                         .background {
                             Circle()
                                 .fill(.ultraThinMaterial)
                                 .overlay {
                                     Circle()
-                                        .fill(collection.backgroundStyle.accentColor.opacity(0.12))
+                                        .fill(catalogStyle.accentColor.opacity(0.12))
                                 }
                         }
                 }
