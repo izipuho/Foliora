@@ -169,7 +169,10 @@ struct BellCatalogView: View {
     @State private var activeLayoutThresholdDirection: LayoutThresholdDirection?
     @State private var accumulatedMagnificationDelta: CGFloat = 0
     @State private var lastGestureMagnification: CGFloat?
+    @State private var isPinching: Bool = false
+    @State private var didEndActivePinchGesture = false
     @State private var pinchOriginBellID: UUID?
+    @State private var didAttemptCapture = false
     @State private var pinchNavigatedBell: BellEntity?
     @State private var bellCardFrames: [UUID: CGRect] = [:]
     @State private var suggestedTokens: [SearchToken] = []
@@ -306,24 +309,28 @@ struct BellCatalogView: View {
     private var layoutMagnifyGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                capturePinchOriginBellIfNeeded(at: value.startLocation)
+                if !isPinching { isPinching = true }
+                if !didAttemptCapture {
+                    capturePinchOriginBellIfNeeded(at: value.startLocation)
+                }
                 updateAccumulatedMagnification(with: value.magnification)
-                updateLayoutThresholdFeedback(for: value)
                 visualScale = clampedVisualScale(for: value.magnification)
             }
             .onEnded { value in
+                didEndActivePinchGesture = abs(value.velocity) > 0.5
                 let effectiveThreshold = zoomThreshold(forVelocity: value.velocity)
                 let finalAccumulatedDelta = accumulatedMagnificationDelta
                 let shouldOpenDetailFromPinch = layoutMode == .showcase && !canZoomOut && finalAccumulatedDelta >= effectiveThreshold
+                let pinchOriginBell = pinchOriginBellID.flatMap { displayedItemsBell(withID: $0) }
 
-                withAnimation(.interactiveSpring(response: 0.28, dampingFraction: 0.84, blendDuration: 0.12)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     activeLayoutThresholdDirection = nil
                     visualScale = 1
+                }
 
-                    if shouldOpenDetailFromPinch,
-                       let pinchOriginBellID,
-                       let bell = displayedItemsBell(withID: pinchOriginBellID) {
-                        pinchNavigatedBell = bell
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(16)) {
+                    if shouldOpenDetailFromPinch, let pinchOriginBell {
+                        pinchNavigatedBell = pinchOriginBell
                     } else if finalAccumulatedDelta >= effectiveThreshold {
                         zoomOutLayout()
                     } else if finalAccumulatedDelta <= -effectiveThreshold {
@@ -334,6 +341,12 @@ struct BellCatalogView: View {
                 accumulatedMagnificationDelta = 0
                 lastGestureMagnification = nil
                 pinchOriginBellID = nil
+                didAttemptCapture = false
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isPinching = false
+                    didEndActivePinchGesture = false
+                }
             }
     }
 
@@ -381,6 +394,9 @@ struct BellCatalogView: View {
 
     private func capturePinchOriginBellIfNeeded(at location: CGPoint) {
         guard pinchOriginBellID == nil else { return }
+        guard !didAttemptCapture else { return }
+
+        didAttemptCapture = true
 
         if let exactMatch = bellCardFrames.first(where: { $0.value.contains(location) }) {
             pinchOriginBellID = exactMatch.key
@@ -551,7 +567,15 @@ struct BellCatalogView: View {
         }
         .coordinateSpace(name: BellCatalogCoordinateSpace.pinchGrid)
         .onPreferenceChange(BellCardFramePreferenceKey.self) { frames in
-            bellCardFrames = frames
+            guard !isPinching else { return }
+
+            DispatchQueue.main.async {
+                guard !self.isPinching else { return }
+
+                if self.bellCardFrames != frames {
+                    self.bellCardFrames = frames
+                }
+            }
         }
         .onAppear {
             viewModel.updateContext(orderMode: orderMode)
@@ -626,18 +650,19 @@ struct BellCatalogView: View {
                             screenWidth: screenWidth,
                             scrollProxy: scrollProxy
                         )
-                        .scaleEffect(visualScale, anchor: .center)
+                        .scaleEffect(visualScale)
+                        .drawingGroup()
                     case .flat(let bells):
                         LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                             ForEach(bells) { bell in
                                 bellCardButton(bell)
                             }
                         }
-                        .scaleEffect(visualScale, anchor: .center)
+                        .scaleEffect(visualScale)
+                        .drawingGroup()
                     }
                 }
                 .animation(.snappy(duration: 0.24), value: layoutMode)
-                .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.86, blendDuration: 0.12), value: visualScale)
                 .animation(.snappy(duration: 0.24), value: orderMode)
             }
             .contentMargins(.horizontal, nil, for: .scrollContent)
@@ -1108,6 +1133,9 @@ struct BellCatalogView: View {
 
     private func bellCardButton(_ bell: BellEntity) -> some View {
         Button {
+            guard !isPinching else { return }
+            guard !didEndActivePinchGesture && abs(accumulatedMagnificationDelta) < 0.01 else { return }
+
             if isSelectionModeEnabled {
                 toggleBellSelection(bell.id)
             } else {
@@ -1116,42 +1144,59 @@ struct BellCatalogView: View {
         } label: {
             let isSelected = selectedBellIDs.contains(bell.id)
 
-            BellCardView(
-                bell: bell,
-                layoutMode: layoutMode
-            )
-            .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
-            .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
-            .overlay {
-                if isSelectionModeEnabled && isSelected {
-                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
-                        .fill(.black.opacity(0.22))
-                        .allowsHitTesting(false)
+            let card = Group {
+                BellCardView(
+                    bell: bell,
+                    layoutMode: layoutMode
+                )
+                .compositingGroup()
+                .overlay {
+                    if isSelectionModeEnabled && isSelected {
+                        RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
+                            .fill(.black.opacity(0.22))
+                            .allowsHitTesting(false)
+                    }
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    if isSelectionModeEnabled && isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 20, height: 20)
+                            .background(Color.blue, in: Circle())
+                            .overlay {
+                                Circle()
+                                    .stroke(.white, lineWidth: 2)
+                            }
+                            .padding(8)
+                    }
                 }
             }
-            .overlay(alignment: .bottomTrailing) {
-                if isSelectionModeEnabled && isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 20, height: 20)
-                        .background(Color.blue, in: Circle())
-                        .overlay {
-                            Circle()
-                                .stroke(.white, lineWidth: 2)
-                        }
-                        .padding(8)
+            .opacity(isPinching ? 0.99 : 1.0)
+
+            Group {
+                if isPinching {
+                    card
+                } else {
+                    card
+                        .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
+                        .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
                 }
             }
             .background {
-                GeometryReader { proxy in
-                    Color.clear.preference(
-                        key: BellCardFramePreferenceKey.self,
-                        value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
-                    )
+                if !isPinching {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: BellCardFramePreferenceKey.self,
+                            value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
+                        )
+                    }
                 }
             }
         }
+        .id(bell.id)
+        .disabled(isPinching || didEndActivePinchGesture)
+        .allowsHitTesting(!isPinching)
         .buttonStyle(.plain)
         .contextMenu {
             bellCardContextMenu(for: bell)
