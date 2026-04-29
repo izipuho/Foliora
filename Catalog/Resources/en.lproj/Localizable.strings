@@ -270,11 +270,16 @@
 "settings.storage.title" = "Storage";
 "settings.storage.subtitle" = "Homes, locations, items, and media are already represented in the domain model.";
 "settings.data.section_title" = "Data";
-"settings.data.export" = "Export JSON";
-"settings.data.import" = "Import JSON";
-"settings.data.footer" = "Import and export the current app JSON format.";
+"settings.data.export" = "Export Backup";
+"settings.data.import" = "Import Backup";
+"settings.data.footer" = "Export and import a ZIP backup with catalog data and media.";
 "settings.export.error_title" = "Export Failed";
 "settings.import.error_title" = "Import Failed";
+"settings.import.warning_title" = "Import Completed";
+"settings.import.warning.missing_media" = "Some media files were not found in the backup. Catalog data was imported.";
+"settings.import.error.corrupt_archive" = "The backup archive is damaged or cannot be read.";
+"settings.import.error.missing_catalog_json" = "The backup does not contain catalog.json.";
+"settings.import.error.unsupported_archive" = "This ZIP archive uses an unsupported compression method.";
 
 "bell.detail.title" = "Card";
 "bell.detail.section.item" = "Item";

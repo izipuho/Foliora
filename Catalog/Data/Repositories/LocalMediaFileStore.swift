@@ -54,6 +54,25 @@ struct LocalMediaFileStore: Sendable {
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
+    func exportFileURL(for identifier: String) -> URL? {
+        fileURL(for: identifier)
+    }
+
+    func restoreFile(from sourceURL: URL, identifier: String) throws {
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed == URL(fileURLWithPath: trimmed).lastPathComponent else {
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
+
+        try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
+
+        let destinationURL = baseURL.appendingPathComponent(trimmed)
+        if FileManager.default.fileExists(atPath: destinationURL.path) {
+            try FileManager.default.removeItem(at: destinationURL)
+        }
+        try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+    }
+
     func deleteFile(for identifier: String) {
         guard let url = fileURL(for: identifier) else { return }
         try? FileManager.default.removeItem(at: url)

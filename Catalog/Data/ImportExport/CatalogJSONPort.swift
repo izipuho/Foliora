@@ -2,13 +2,13 @@ import Foundation
 import SwiftData
 
 enum CatalogJSONPort {
-    static func exportData(from modelContainer: ModelContainer) async throws -> Data {
+    static func exportArchiveData(from modelContainer: ModelContainer) async throws -> Data {
         let actor = CatalogImportExportActor(modelContainer: modelContainer)
-        return try await actor.exportData()
+        return try await actor.exportArchiveData()
     }
 
-    static func `import`(data: Data, into modelContainer: ModelContainer) async throws {
+    static func importArchive(from url: URL, into modelContainer: ModelContainer) async throws -> CatalogImportExportActor.ImportResult {
         let actor = CatalogImportExportActor(modelContainer: modelContainer)
-        try await actor.importData(data)
+        return try await actor.importArchive(from: url)
     }
 }

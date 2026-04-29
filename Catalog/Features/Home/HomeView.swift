@@ -358,6 +358,7 @@ private struct SettingsView: View {
     @State private var isImportingDocument = false
     @State private var isImportExportRunning = false
     @State private var importErrorMessage: String?
+    @State private var importWarningMessage: String?
     @State private var exportErrorMessage: String?
 
     var body: some View {
@@ -375,7 +376,7 @@ private struct SettingsView: View {
 
                 Section {
                     Button {
-                        exportCurrentJSON()
+                        exportCurrentBackup()
                     } label: {
                         Label(String(localized: "settings.data.export"), systemImage: "square.and.arrow.up")
                     }
@@ -398,7 +399,7 @@ private struct SettingsView: View {
             .fileExporter(
                 isPresented: $isExportingDocument,
                 document: exportDocument,
-                contentType: .json,
+                contentType: .zip,
                 defaultFilename: "catalog-export"
             ) { result in
                 if case .failure(let error) = result {
@@ -407,7 +408,7 @@ private struct SettingsView: View {
             }
             .fileImporter(
                 isPresented: $isImportingDocument,
-                allowedContentTypes: [.json]
+                allowedContentTypes: [.zip]
             ) { result in
                 handleImport(result)
             }
@@ -435,15 +436,27 @@ private struct SettingsView: View {
             } message: {
                 Text(importErrorMessage ?? "")
             }
+            .alert(String(localized: "settings.import.warning_title"), isPresented: Binding(
+                get: { importWarningMessage != nil },
+                set: { newValue in
+                    if !newValue {
+                        importWarningMessage = nil
+                    }
+                }
+            )) {
+                Button(String(localized: "common.ok"), role: .cancel) {}
+            } message: {
+                Text(importWarningMessage ?? "")
+            }
         }
     }
 
-    private func exportCurrentJSON() {
+    private func exportCurrentBackup() {
         isImportExportRunning = true
         Task {
             do {
                 let actor = CatalogImportExportActor(modelContainer: repository.modelContainer)
-                let data = try await actor.exportData()
+                let data = try await actor.exportArchiveData()
                 await MainActor.run {
                     exportDocument = CatalogTransferDocument(data: data)
                     isExportingDocument = true
@@ -461,7 +474,8 @@ private struct SettingsView: View {
     private func handleImport(_ result: Result<URL, Error>) {
         switch result {
         case .success(let url):
-            do {
+            isImportExportRunning = true
+            Task {
                 let accessed = url.startAccessingSecurityScopedResource()
                 defer {
                     if accessed {
@@ -469,31 +483,25 @@ private struct SettingsView: View {
                     }
                 }
 
-                let data = try Data(contentsOf: url)
-                isImportExportRunning = true
-                Task {
-                    do {
-                        let actor = CatalogImportExportActor(modelContainer: repository.modelContainer)
-                        try await actor.importData(data)
-                        await MainActor.run {
-                            isImportExportRunning = false
+                do {
+                    let actor = CatalogImportExportActor(modelContainer: repository.modelContainer)
+                    let importResult = try await actor.importArchive(from: url)
+
+                    await MainActor.run {
+                        if !importResult.missingMediaIdentifiers.isEmpty {
+                            importWarningMessage = String(localized: "settings.import.warning.missing_media")
                         }
-                    } catch {
-                        await MainActor.run {
-                            importErrorMessage = error.localizedDescription
-                            isImportExportRunning = false
-                        }
+                        isImportExportRunning = false
+                    }
+                } catch {
+                    await MainActor.run {
+                        importErrorMessage = error.localizedDescription
+                        isImportExportRunning = false
                     }
                 }
-            } catch {
-                importErrorMessage = error.localizedDescription
-                isImportExportRunning = false
             }
         case .failure(let error):
             importErrorMessage = error.localizedDescription
         }
     }
 }
-
-
-

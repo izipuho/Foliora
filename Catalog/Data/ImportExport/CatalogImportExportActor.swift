@@ -3,16 +3,72 @@ import SwiftData
 
 @ModelActor
 actor CatalogImportExportActor {
-    func exportData() throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return try encoder.encode(exportBundle())
+    struct ImportResult: Sendable {
+        var missingMediaIdentifiers: [String] = []
     }
 
-    func importData(_ data: Data) throws {
+    func exportArchiveData() throws -> Data {
+        let fileManager = FileManager.default
+        let workDirectory = fileManager.temporaryDirectory
+            .appendingPathComponent("catalog-export-\(UUID().uuidString)", isDirectory: true)
+        defer { try? fileManager.removeItem(at: workDirectory) }
+
+        let mediaDirectory = workDirectory.appendingPathComponent("Media", isDirectory: true)
+        try fileManager.createDirectory(at: mediaDirectory, withIntermediateDirectories: true)
+
+        let bundle = try exportBundle()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        try encoder.encode(bundle).write(to: workDirectory.appendingPathComponent("catalog.json"), options: .atomic)
+
+        let mediaStore = LocalMediaFileStore.shared
+        for identifier in mediaIdentifiers(in: bundle) {
+            guard let sourceURL = mediaStore.exportFileURL(for: identifier) else { continue }
+            try fileManager.copyItem(
+                at: sourceURL,
+                to: mediaDirectory.appendingPathComponent(identifier)
+            )
+        }
+
+        let archiveURL = fileManager.temporaryDirectory
+            .appendingPathComponent("catalog-export-\(UUID().uuidString).zip")
+        defer { try? fileManager.removeItem(at: archiveURL) }
+
+        try CatalogArchiveService().createArchive(from: workDirectory, to: archiveURL)
+        return try Data(contentsOf: archiveURL)
+    }
+
+    @discardableResult
+    func importArchive(from archiveURL: URL) throws -> ImportResult {
+        let fileManager = FileManager.default
+        let workDirectory = fileManager.temporaryDirectory
+            .appendingPathComponent("catalog-import-\(UUID().uuidString)", isDirectory: true)
+        defer { try? fileManager.removeItem(at: workDirectory) }
+
+        try CatalogArchiveService().extractArchive(at: archiveURL, to: workDirectory)
+
+        let catalogURL = workDirectory.appendingPathComponent("catalog.json")
+        guard fileManager.fileExists(atPath: catalogURL.path) else {
+            throw CatalogArchiveService.ArchiveError.missingCatalogJSON
+        }
+
+        let data = try Data(contentsOf: catalogURL)
         let decoder = JSONDecoder()
         let bundle = try decoder.decode(CatalogTransferBundle.self, from: data)
         try replaceAllData(with: bundle)
+
+        let mediaStore = LocalMediaFileStore.shared
+        let mediaDirectory = workDirectory.appendingPathComponent("Media", isDirectory: true)
+        for identifier in mediaIdentifiers(in: bundle) {
+            let sourceURL = mediaDirectory.appendingPathComponent(identifier)
+            guard fileManager.fileExists(atPath: sourceURL.path) else { continue }
+            try mediaStore.restoreFile(from: sourceURL, identifier: identifier)
+        }
+
+        let missing = mediaIdentifiers(in: bundle).filter {
+            mediaStore.fileURL(for: $0) == nil
+        }
+        return ImportResult(missingMediaIdentifiers: missing)
     }
 
     private func exportBundle() throws -> CatalogTransferBundle {
@@ -155,6 +211,15 @@ actor CatalogImportExportActor {
         }
 
         try modelContext.save()
+    }
+
+    private func mediaIdentifiers(in bundle: CatalogTransferBundle) -> [String] {
+        let identifiers = bundle.bellItems
+            .flatMap(\.mediaAssets)
+            .map(\.localIdentifier)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return Array(Set(identifiers)).sorted()
     }
 
     private func deleteExistingData() throws {

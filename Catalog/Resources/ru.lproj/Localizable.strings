@@ -270,11 +270,16 @@
 "settings.storage.title" = "Хранение";
 "settings.storage.subtitle" = "Дома, расположения, предметы и медиа уже представлены в доменной модели.";
 "settings.data.section_title" = "Данные";
-"settings.data.export" = "Экспорт JSON";
-"settings.data.import" = "Импорт JSON";
-"settings.data.footer" = "Импорт и экспорт текущего JSON-формата приложения.";
+"settings.data.export" = "Экспорт резервной копии";
+"settings.data.import" = "Импорт резервной копии";
+"settings.data.footer" = "Экспорт и импорт ZIP-копии с каталогом и медиа.";
 "settings.export.error_title" = "Ошибка экспорта";
 "settings.import.error_title" = "Ошибка импорта";
+"settings.import.warning_title" = "Импорт завершён";
+"settings.import.warning.missing_media" = "Часть media-файлов не найдена в резервной копии. Данные каталога импортированы.";
+"settings.import.error.corrupt_archive" = "Архив резервной копии повреждён или не читается.";
+"settings.import.error.missing_catalog_json" = "В резервной копии нет catalog.json.";
+"settings.import.error.unsupported_archive" = "Этот ZIP-архив использует неподдерживаемый метод сжатия.";
 
 "bell.detail.title" = "Карточка";
 "bell.detail.section.item" = "О предмете";

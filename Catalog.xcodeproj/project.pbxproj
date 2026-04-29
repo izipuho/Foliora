@@ -54,6 +54,7 @@
 		C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002E /* AsyncThumbnailLoader.swift */; };
 		C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002F /* CatalogImportExportActor.swift */; };
 		C000000000000000000000C5 /* CatalogLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000030 /* CatalogLayouts.swift */; };
+		C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000040 /* CatalogArchiveService.swift */; };
 		D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* BellDetailView+Subviews.swift */; };
 /* End PBXBuildFile section */
 
@@ -109,6 +110,7 @@
 		C0000000000000000000002E /* AsyncThumbnailLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncThumbnailLoader.swift; sourceTree = "<group>"; };
 		C0000000000000000000002F /* CatalogImportExportActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportActor.swift; sourceTree = "<group>"; };
 		C00000000000000000000030 /* CatalogLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLayouts.swift; sourceTree = "<group>"; };
+		C00000000000000000000040 /* CatalogArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogArchiveService.swift; sourceTree = "<group>"; };
 		D00000000000000000000031 /* BellDetailView+Subviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BellDetailView+Subviews.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -359,6 +361,7 @@
 				C00000000000000000000029 /* CatalogJSONPort.swift */,
 				C0000000000000000000002A /* CatalogTransferDocument.swift */,
 				C0000000000000000000002F /* CatalogImportExportActor.swift */,
+				C00000000000000000000040 /* CatalogArchiveService.swift */,
 			);
 			path = ImportExport;
 			sourceTree = "<group>";
@@ -488,6 +491,7 @@
 				C000000000000000000000BE /* CatalogJSONPort.swift in Sources */,
 				C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */,
 				C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */,
+				C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */,
 				2403CEDF2F9FA3A900C63AB6 /* CollectionEditorView.swift in Sources */,
 				2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */,
 				2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */,
