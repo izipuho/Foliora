@@ -10,10 +10,6 @@ private func localizedCount(_ count: Int, kind: SummaryCountKind) -> String {
     )
 }
 
-private enum BellCatalogCoordinateSpace {
-    static let pinchGrid = "bellCatalogPinchGrid"
-}
-
 private enum BellCatalogFeedback: Equatable {
     case success
     case warning
@@ -36,33 +32,11 @@ private struct BellCatalogFeedbackEvent: Equatable {
     let token: Int
 }
 
-private struct BellCardFramePreferenceKey: PreferenceKey {
-    static let defaultValue: [UUID: CGRect] = [:]
-
-    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
-        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
-    }
-}
-
 struct BellCatalogSelectionModePreferenceKey: PreferenceKey {
     static let defaultValue = false
 
     static func reduce(value: inout Bool, nextValue: () -> Bool) {
         value = value || nextValue()
-    }
-}
-
-private extension CGRect {
-    var center: CGPoint {
-        CGPoint(x: midX, y: midY)
-    }
-}
-
-private extension CGPoint {
-    func distanceSquared(to point: CGPoint) -> CGFloat {
-        let dx = x - point.x
-        let dy = y - point.y
-        return (dx * dx) + (dy * dy)
     }
 }
 
@@ -171,13 +145,10 @@ struct BellCatalogView: View {
     @State private var lastGestureMagnification: CGFloat?
     @State private var isPinching: Bool = false
     @State private var isPreparingForPinch = false
-    @State private var pendingPinchStartLocation: CGPoint?
-    @State private var needsPinchFrameRefresh = false
     @State private var didEndActivePinchGesture = false
     @State private var pinchOriginBellID: UUID?
     @State private var didAttemptCapture = false
     @State private var pinchNavigatedBell: BellEntity?
-    @State private var bellCardFrames: [UUID: CGRect] = [:]
     @State private var suggestedTokens: [SearchToken] = []
     @FocusState private var isSearchFocused: Bool
     @StateObject private var viewModel: BellCatalogViewModel
@@ -242,6 +213,17 @@ struct BellCatalogView: View {
 
     private var displayModel: BellCatalogDisplayModel {
         viewModel.displayModel
+    }
+
+    private func visibleBellsInDisplayOrder() -> [BellEntity] {
+        switch displayModel.layout {
+        case .empty:
+            return []
+        case .flat(let bells):
+            return bells
+        case .grouped(let sections):
+            return sections.flatMap(\.bells)
+        }
     }
 
     private var usesFlatSearchLayout: Bool {
@@ -309,17 +291,49 @@ struct BellCatalogView: View {
         )
     }
 
-    private var layoutMagnifyGesture: some Gesture {
+    private func bellIndex(
+        at location: CGPoint,
+        in bells: [BellEntity],
+        screenWidth: CGFloat
+    ) -> Int? {
+        guard !bells.isEmpty, screenWidth > 0 else { return nil }
+
+        let columnCount = max(layoutMode.columnCount, 1)
+        let cardWidth = layoutMode.cardWidth(forScreenWidth: screenWidth)
+        let cardHeight = layoutMode.cardHeight
+        let horizontalStep = cardWidth + layoutMode.spacing
+        let verticalStep = cardHeight + layoutMode.spacing
+        guard horizontalStep > 0, verticalStep > 0 else { return nil }
+
+        let totalGridWidth = (cardWidth * CGFloat(columnCount)) + (layoutMode.spacing * CGFloat(max(columnCount - 1, 0)))
+        let gridLeadingInset = max((screenWidth - totalGridWidth) / 2, 0)
+        let localX = location.x - gridLeadingInset
+
+        let rawColumn = ((localX - (cardWidth / 2)) / horizontalStep).rounded()
+        let rawRow = ((location.y - (cardHeight / 2)) / verticalStep).rounded()
+        let column = min(max(Int(rawColumn), 0), columnCount - 1)
+        let row = max(Int(rawRow), 0)
+        let index = (row * columnCount) + column
+
+        return min(index, bells.count - 1)
+    }
+
+    private func layoutMagnifyGesture(
+        bells: [BellEntity],
+        screenWidth: CGFloat
+    ) -> some Gesture {
         MagnifyGesture()
             .onChanged { value in
                 if !isPinching {
                     isPreparingForPinch = true
                     isPinching = true
-                    pendingPinchStartLocation = value.startLocation
-                    needsPinchFrameRefresh = true
                 }
-                if !needsPinchFrameRefresh && !didAttemptCapture {
-                    capturePinchOriginBellIfNeeded(at: value.startLocation)
+                if !didAttemptCapture {
+                    capturePinchOriginBellIfNeeded(
+                        at: value.startLocation,
+                        in: bells,
+                        screenWidth: screenWidth
+                    )
                 }
                 updateAccumulatedMagnification(with: value.magnification)
                 visualScale = clampedVisualScale(for: value.magnification)
@@ -350,8 +364,6 @@ struct BellCatalogView: View {
                 lastGestureMagnification = nil
                 pinchOriginBellID = nil
                 didAttemptCapture = false
-                pendingPinchStartLocation = nil
-                needsPinchFrameRefresh = false
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     isPinching = false
@@ -403,20 +415,17 @@ struct BellCatalogView: View {
         feedbackEvent = BellCatalogFeedbackEvent(kind: kind, token: feedbackToken)
     }
 
-    private func capturePinchOriginBellIfNeeded(at location: CGPoint) {
+    private func capturePinchOriginBellIfNeeded(
+        at location: CGPoint,
+        in bells: [BellEntity],
+        screenWidth: CGFloat
+    ) {
         guard pinchOriginBellID == nil else { return }
         guard !didAttemptCapture else { return }
 
         didAttemptCapture = true
-
-        if let exactMatch = bellCardFrames.first(where: { $0.value.contains(location) }) {
-            pinchOriginBellID = exactMatch.key
-            return
-        }
-
-        pinchOriginBellID = bellCardFrames.min { lhs, rhs in
-            lhs.value.center.distanceSquared(to: location) < rhs.value.center.distanceSquared(to: location)
-        }?.key
+        guard let index = bellIndex(at: location, in: bells, screenWidth: screenWidth) else { return }
+        pinchOriginBellID = bells[index].id
     }
 
     private func displayedItemsBell(withID bellID: UUID) -> BellEntity? {
@@ -576,24 +585,6 @@ struct BellCatalogView: View {
                 }
             }
         }
-        .coordinateSpace(name: BellCatalogCoordinateSpace.pinchGrid)
-        .onPreferenceChange(BellCardFramePreferenceKey.self) { frames in
-            guard isPreparingForPinch || isPinching else { return }
-
-            DispatchQueue.main.async {
-                guard self.isPreparingForPinch || self.isPinching else { return }
-                guard !frames.isEmpty else { return }
-
-                if self.bellCardFrames != frames {
-                    self.bellCardFrames = frames
-                }
-                self.needsPinchFrameRefresh = false
-
-                if let location = self.pendingPinchStartLocation, !self.didAttemptCapture {
-                    self.capturePinchOriginBellIfNeeded(at: location)
-                }
-            }
-        }
         .onAppear {
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
@@ -675,6 +666,12 @@ struct BellCatalogView: View {
                             }
                         }
                         .scaleEffect(visualScale)
+                        .simultaneousGesture(
+                            layoutMagnifyGesture(
+                                bells: bells,
+                                screenWidth: screenWidth
+                            )
+                        )
                     }
                 }
                 .animation(.snappy(duration: 0.24), value: layoutMode)
@@ -691,7 +688,6 @@ struct BellCatalogView: View {
                 )
                 .ignoresSafeArea()
             )
-            .simultaneousGesture(layoutMagnifyGesture)
             .onChange(of: orderMode) { _, _ in
                 activeJumpPopoverSectionID = nil
                 let targetID = pendingScrollTargetID ?? "bell-grid-top"
@@ -980,6 +976,12 @@ struct BellCatalogView: View {
                                         bellCardButton(bell)
                                     }
                                 }
+                                .simultaneousGesture(
+                                    layoutMagnifyGesture(
+                                        bells: cabinetGroup.bells,
+                                        screenWidth: screenWidth
+                                    )
+                                )
                             }
                         }
                     }
@@ -989,6 +991,12 @@ struct BellCatalogView: View {
                             bellCardButton(bell)
                         }
                     }
+                    .simultaneousGesture(
+                        layoutMagnifyGesture(
+                            bells: section.bells,
+                            screenWidth: screenWidth
+                        )
+                    )
                 }
             } header: {
                 BellGroupedSectionHeader(
@@ -1196,16 +1204,6 @@ struct BellCatalogView: View {
                     card
                         .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
                         .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
-                }
-            }
-            .background {
-                if isPreparingForPinch || isPinching {
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: BellCardFramePreferenceKey.self,
-                            value: [bell.id: proxy.frame(in: .named(BellCatalogCoordinateSpace.pinchGrid))]
-                        )
-                    }
                 }
             }
         }
