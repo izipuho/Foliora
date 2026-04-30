@@ -651,7 +651,6 @@ struct BellCatalogView: View {
                             scrollProxy: scrollProxy
                         )
                         .scaleEffect(visualScale)
-                        .drawingGroup()
                     case .flat(let bells):
                         LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                             ForEach(bells) { bell in
