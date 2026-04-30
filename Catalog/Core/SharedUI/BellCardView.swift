@@ -573,7 +573,7 @@ struct BellCardCoverBackground: View {
 
     @MainActor
     private func loadImage() async {
-        guard let url = mediaStore.fileURL(for: identifier),
+        guard let url = mediaStore.thumbnailFileURL(for: identifier) ?? mediaStore.fileURL(for: identifier),
               let loadedImage = await thumbnailCache.image(
                 identifier: identifier,
                 url: url,

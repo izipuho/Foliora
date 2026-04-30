@@ -1,9 +1,16 @@
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 struct LocalMediaFileStore: Sendable {
     static let shared = LocalMediaFileStore()
 
+    private static let photoThumbnailMaxPixelSize = 1_400
+
     private let baseURL: URL
+    private var thumbnailsURL: URL {
+        baseURL.appendingPathComponent("Thumbnails", isDirectory: true)
+    }
 
     init(baseURL: URL? = nil) {
         self.baseURL = baseURL ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -18,6 +25,7 @@ struct LocalMediaFileStore: Sendable {
         let fileName = "photo-\(UUID().uuidString).\(fileExtension)"
         let fileURL = baseURL.appendingPathComponent(fileName)
         try data.write(to: fileURL, options: .atomic)
+        try? createPhotoThumbnail(from: fileURL, identifier: fileName)
         return fileName
     }
 
@@ -54,6 +62,14 @@ struct LocalMediaFileStore: Sendable {
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
+    func thumbnailFileURL(for identifier: String) -> URL? {
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let url = thumbnailsURL.appendingPathComponent(thumbnailFileName(for: trimmed))
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
     func exportFileURL(for identifier: String) -> URL? {
         fileURL(for: identifier)
     }
@@ -71,11 +87,65 @@ struct LocalMediaFileStore: Sendable {
             try FileManager.default.removeItem(at: destinationURL)
         }
         try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+        try? createPhotoThumbnail(from: destinationURL, identifier: trimmed)
     }
 
     func deleteFile(for identifier: String) {
-        guard let url = fileURL(for: identifier) else { return }
-        try? FileManager.default.removeItem(at: url)
+        if let url = fileURL(for: identifier) {
+            try? FileManager.default.removeItem(at: url)
+        }
+        if let thumbnailURL = thumbnailFileURL(for: identifier) {
+            try? FileManager.default.removeItem(at: thumbnailURL)
+        }
+    }
+
+    private func createPhotoThumbnail(from sourceURL: URL, identifier: String) throws {
+        let sourceOptions = [
+            kCGImageSourceShouldCache: false
+        ] as CFDictionary
+
+        guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, sourceOptions) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        let thumbnailOptions = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: Self.photoThumbnailMaxPixelSize
+        ] as CFDictionary
+
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        try FileManager.default.createDirectory(at: thumbnailsURL, withIntermediateDirectories: true)
+
+        let destinationURL = thumbnailsURL.appendingPathComponent(thumbnailFileName(for: identifier))
+        if FileManager.default.fileExists(atPath: destinationURL.path) {
+            try FileManager.default.removeItem(at: destinationURL)
+        }
+
+        guard let destination = CGImageDestinationCreateWithURL(
+            destinationURL as CFURL,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+
+        CGImageDestinationAddImage(destination, cgImage, [
+            kCGImageDestinationLossyCompressionQuality: 0.82
+        ] as CFDictionary)
+
+        guard CGImageDestinationFinalize(destination) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+    }
+
+    private func thumbnailFileName(for identifier: String) -> String {
+        "\(identifier).jpg"
     }
 
     private func sanitizedFileExtension(_ value: String?) -> String? {
