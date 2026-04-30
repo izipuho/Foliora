@@ -170,6 +170,9 @@ struct BellCatalogView: View {
     @State private var accumulatedMagnificationDelta: CGFloat = 0
     @State private var lastGestureMagnification: CGFloat?
     @State private var isPinching: Bool = false
+    @State private var isPreparingForPinch = false
+    @State private var pendingPinchStartLocation: CGPoint?
+    @State private var needsPinchFrameRefresh = false
     @State private var didEndActivePinchGesture = false
     @State private var pinchOriginBellID: UUID?
     @State private var didAttemptCapture = false
@@ -309,8 +312,13 @@ struct BellCatalogView: View {
     private var layoutMagnifyGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                if !isPinching { isPinching = true }
-                if !didAttemptCapture {
+                if !isPinching {
+                    isPreparingForPinch = true
+                    isPinching = true
+                    pendingPinchStartLocation = value.startLocation
+                    needsPinchFrameRefresh = true
+                }
+                if !needsPinchFrameRefresh && !didAttemptCapture {
                     capturePinchOriginBellIfNeeded(at: value.startLocation)
                 }
                 updateAccumulatedMagnification(with: value.magnification)
@@ -342,9 +350,12 @@ struct BellCatalogView: View {
                 lastGestureMagnification = nil
                 pinchOriginBellID = nil
                 didAttemptCapture = false
+                pendingPinchStartLocation = nil
+                needsPinchFrameRefresh = false
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     isPinching = false
+                    isPreparingForPinch = false
                     didEndActivePinchGesture = false
                 }
             }
@@ -567,13 +578,19 @@ struct BellCatalogView: View {
         }
         .coordinateSpace(name: BellCatalogCoordinateSpace.pinchGrid)
         .onPreferenceChange(BellCardFramePreferenceKey.self) { frames in
-            guard !isPinching else { return }
+            guard isPreparingForPinch || isPinching else { return }
 
             DispatchQueue.main.async {
-                guard !self.isPinching else { return }
+                guard self.isPreparingForPinch || self.isPinching else { return }
+                guard !frames.isEmpty else { return }
 
                 if self.bellCardFrames != frames {
                     self.bellCardFrames = frames
+                }
+                self.needsPinchFrameRefresh = false
+
+                if let location = self.pendingPinchStartLocation, !self.didAttemptCapture {
+                    self.capturePinchOriginBellIfNeeded(at: location)
                 }
             }
         }
@@ -658,7 +675,6 @@ struct BellCatalogView: View {
                             }
                         }
                         .scaleEffect(visualScale)
-                        .drawingGroup()
                     }
                 }
                 .animation(.snappy(duration: 0.24), value: layoutMode)
@@ -1183,7 +1199,7 @@ struct BellCatalogView: View {
                 }
             }
             .background {
-                if !isPinching {
+                if isPreparingForPinch || isPinching {
                     GeometryReader { proxy in
                         Color.clear.preference(
                             key: BellCardFramePreferenceKey.self,
