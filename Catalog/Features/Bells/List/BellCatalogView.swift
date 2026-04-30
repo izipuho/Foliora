@@ -660,9 +660,11 @@ struct BellCatalogView: View {
                         )
                         .scaleEffect(visualScale)
                     case .flat(let bells):
+                        let cardWidth = layoutMode.cardWidth(forScreenWidth: screenWidth)
+
                         LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                             ForEach(bells) { bell in
-                                bellCardButton(bell)
+                                bellCardButton(bell, cardWidth: cardWidth)
                             }
                         }
                         .scaleEffect(visualScale)
@@ -960,6 +962,8 @@ struct BellCatalogView: View {
         screenWidth: CGFloat,
         scrollProxy: ScrollViewProxy
     ) -> some View {
+        let cardWidth = layoutMode.cardWidth(forScreenWidth: screenWidth)
+
         ForEach(sections) { section in
             Section {
                 if orderMode == .storage {
@@ -973,7 +977,7 @@ struct BellCatalogView: View {
 
                                 LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                                     ForEach(cabinetGroup.bells) { bell in
-                                        bellCardButton(bell)
+                                        bellCardButton(bell, cardWidth: cardWidth)
                                     }
                                 }
                                 .simultaneousGesture(
@@ -988,7 +992,7 @@ struct BellCatalogView: View {
                 } else {
                     LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
                         ForEach(section.bells) { bell in
-                            bellCardButton(bell)
+                            bellCardButton(bell, cardWidth: cardWidth)
                         }
                     }
                     .simultaneousGesture(
@@ -1154,7 +1158,7 @@ struct BellCatalogView: View {
         )
     }
 
-    private func bellCardButton(_ bell: BellEntity) -> some View {
+    private func bellCardButton(_ bell: BellEntity, cardWidth: CGFloat) -> some View {
         Button {
             guard !isPinching else { return }
             guard !didEndActivePinchGesture && abs(accumulatedMagnificationDelta) < 0.01 else { return }
@@ -1170,7 +1174,8 @@ struct BellCatalogView: View {
             let card = Group {
                 BellCardView(
                     bell: bell,
-                    layoutMode: layoutMode
+                    layoutMode: layoutMode,
+                    cardSize: CGSize(width: cardWidth, height: layoutMode.cardHeight)
                 )
                 .compositingGroup()
                 .overlay {

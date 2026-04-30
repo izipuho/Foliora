@@ -199,42 +199,37 @@ extension BellRecord: BellCardDisplayable {
 struct BellCardView: View {
     let bell: any BellCardDisplayable
     let layoutMode: BellGridLayoutMode
+    let cardSize: CGSize
 
     private let style: BellCardStyle
     private let cornerRadius: CGFloat
 
-    init(bell: some BellCardDisplayable, layoutMode: BellGridLayoutMode) {
+    init(bell: some BellCardDisplayable, layoutMode: BellGridLayoutMode, cardSize: CGSize) {
         self.bell = bell
         self.layoutMode = layoutMode
+        self.cardSize = cardSize
         self.style = BellCardStyle.style(for: layoutMode)
         self.cornerRadius = BellCardStyle.cornerRadius(for: layoutMode)
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            let cardSize = proxy.size
-
-            ZStack(alignment: .topLeading) {
-                if let coverPhotoIdentifier = bell.coverPhotoIdentifier {
-                    BellCardCoverBackground(
-                        identifier: coverPhotoIdentifier,
-                        size: cardSize
-                    )
-                }
-
-                coverScrim
-                    .frame(width: cardSize.width, height: cardSize.height)
+        ZStack(alignment: .topLeading) {
+            if let coverPhotoIdentifier = bell.coverPhotoIdentifier {
+                BellCardCoverBackground(
+                    identifier: coverPhotoIdentifier,
+                    size: cardSize
+                )
             }
-            .frame(width: cardSize.width, height: cardSize.height)
-            .overlay(alignment: .topLeading) {
-                cardContent(in: cardSize)
-            }
-            .clipShape(cardShape)
-            .contentShape(cardShape)
-            .catalogShadow(CatalogElevation.card)
+
+            coverScrim
+                .frame(width: cardSize.width, height: cardSize.height)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: layoutMode.cardHeight)
+        .frame(width: cardSize.width, height: cardSize.height)
+        .overlay(alignment: .topLeading) {
+            cardContent(in: cardSize)
+        }
+        .clipShape(cardShape)
+        .contentShape(cardShape)
     }
 
     @ViewBuilder
@@ -495,6 +490,7 @@ struct BellCardStripView<Bell: BellCardDisplayable>: View {
 
     var body: some View {
         let width = layoutMode.cardWidth(forScreenWidth: screenWidth)
+        let cardSize = CGSize(width: width, height: layoutMode.cardHeight)
 
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: layoutMode.spacing) {
@@ -502,8 +498,11 @@ struct BellCardStripView<Bell: BellCardDisplayable>: View {
                     Button {
                         onSelect(bell)
                     } label: {
-                        BellCardView(bell: bell, layoutMode: layoutMode)
-                            .frame(width: width)
+                        BellCardView(
+                            bell: bell,
+                            layoutMode: layoutMode,
+                            cardSize: cardSize
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -517,10 +516,13 @@ struct BellCardHeroView: View {
     let bell: any BellCardDisplayable
 
     var body: some View {
-        BellCardView(
-            bell: bell,
-            layoutMode: .wide
-        )
+        GeometryReader { proxy in
+            BellCardView(
+                bell: bell,
+                layoutMode: .wide,
+                cardSize: CGSize(width: proxy.size.width, height: 210)
+            )
+        }
         .frame(height: 210)
         .padding(.horizontal, CatalogLayoutInsets.screen)
         .padding(.top, CatalogSpacing.regular)
