@@ -117,8 +117,6 @@ struct CatalogArchiveService: Sendable {
             cursor = fileNameEnd + extraLength + commentLength
 
             guard !path.hasSuffix("/") else { continue }
-            guard compressionMethod == 0 else { throw ArchiveError.unsupportedCompression }
-            guard compressedSize == uncompressedSize else { throw ArchiveError.corruptArchive }
             guard try archiveData.uint32(at: localHeaderOffset) == 0x04034b50 else {
                 throw ArchiveError.corruptArchive
             }
@@ -129,15 +127,26 @@ struct CatalogArchiveService: Sendable {
             let fileDataEnd = fileDataStart + compressedSize
             guard fileDataEnd <= archiveData.count else { throw ArchiveError.corruptArchive }
 
-            let fileData = archiveData[fileDataStart..<fileDataEnd]
-            guard CRC32.checksum(Data(fileData)) == expectedCRC else { throw ArchiveError.corruptArchive }
+            let compressedData = Data(archiveData[fileDataStart..<fileDataEnd])
+            let fileData: Data
+            switch compressionMethod {
+            case 0:
+                guard compressedSize == uncompressedSize else { throw ArchiveError.corruptArchive }
+                fileData = compressedData
+            case 8:
+                fileData = try RawDeflate.inflate(compressedData, uncompressedSize: uncompressedSize)
+            default:
+                throw ArchiveError.unsupportedCompression
+            }
+
+            guard CRC32.checksum(fileData) == expectedCRC else { throw ArchiveError.corruptArchive }
 
             let destinationURL = try safeDestinationURL(for: path, in: destinationDirectory)
             try FileManager.default.createDirectory(
                 at: destinationURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
-            try Data(fileData).write(to: destinationURL, options: .atomic)
+            try fileData.write(to: destinationURL, options: .atomic)
         }
     }
 
@@ -180,6 +189,86 @@ struct CatalogArchiveService: Sendable {
         }
     }
 }
+
+private enum RawDeflate {
+    static func inflate(_ data: Data, uncompressedSize: Int) throws -> Data {
+        guard uncompressedSize >= 0 else { throw CatalogArchiveService.ArchiveError.corruptArchive }
+        guard !data.isEmpty || uncompressedSize == 0 else {
+            throw CatalogArchiveService.ArchiveError.corruptArchive
+        }
+        guard uncompressedSize > 0 else { return Data() }
+
+        var stream = ZStream()
+        let initResult = zlib_inflateInit2_(
+            &stream,
+            -15,
+            zlibVersion(),
+            Int32(MemoryLayout<ZStream>.size)
+        )
+        guard initResult == Z_OK else { throw CatalogArchiveService.ArchiveError.corruptArchive }
+        defer { _ = zlib_inflateEnd(&stream) }
+
+        var output = Data(count: uncompressedSize)
+        let result = data.withUnsafeBytes { inputBuffer in
+            output.withUnsafeMutableBytes { outputBuffer in
+                stream.next_in = UnsafeMutablePointer(mutating: inputBuffer.bindMemory(to: UInt8.self).baseAddress)
+                stream.avail_in = UInt32(data.count)
+                stream.next_out = outputBuffer.bindMemory(to: UInt8.self).baseAddress
+                stream.avail_out = UInt32(uncompressedSize)
+                return zlib_inflate(&stream, Z_FINISH)
+            }
+        }
+
+        guard result == Z_STREAM_END,
+              stream.total_out == UInt(uncompressedSize)
+        else {
+            throw CatalogArchiveService.ArchiveError.corruptArchive
+        }
+
+        return output
+    }
+}
+
+private let Z_OK: Int32 = 0
+private let Z_STREAM_END: Int32 = 1
+private let Z_FINISH: Int32 = 4
+
+private typealias ZAlloc = @convention(c) (UnsafeMutableRawPointer?, UInt32, UInt32) -> UnsafeMutableRawPointer?
+private typealias ZFree = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void
+
+private struct ZStream {
+    var next_in: UnsafeMutablePointer<UInt8>?
+    var avail_in: UInt32 = 0
+    var total_in: UInt = 0
+    var next_out: UnsafeMutablePointer<UInt8>?
+    var avail_out: UInt32 = 0
+    var total_out: UInt = 0
+    var msg: UnsafeMutablePointer<CChar>?
+    var state: UnsafeMutableRawPointer?
+    var zalloc: ZAlloc?
+    var zfree: ZFree?
+    var opaque: UnsafeMutableRawPointer?
+    var data_type: Int32 = 0
+    var adler: UInt = 0
+    var reserved: UInt = 0
+}
+
+@_silgen_name("zlibVersion")
+private func zlibVersion() -> UnsafePointer<CChar>
+
+@_silgen_name("inflateInit2_")
+private func zlib_inflateInit2_(
+    _ stream: UnsafeMutablePointer<ZStream>,
+    _ windowBits: Int32,
+    _ version: UnsafePointer<CChar>,
+    _ streamSize: Int32
+) -> Int32
+
+@_silgen_name("inflate")
+private func zlib_inflate(_ stream: UnsafeMutablePointer<ZStream>, _ flush: Int32) -> Int32
+
+@_silgen_name("inflateEnd")
+private func zlib_inflateEnd(_ stream: UnsafeMutablePointer<ZStream>) -> Int32
 
 private enum CRC32 {
     private static let table: [UInt32] = (0...255).map { value in

@@ -75,7 +75,6 @@ actor CatalogImportExportActor {
         let homeEntities = try modelContext.fetch(FetchDescriptor<HomeEntity>(sortBy: [SortDescriptor(\.name)]))
         let locationEntities = try modelContext.fetch(FetchDescriptor<LocationEntity>(sortBy: [SortDescriptor(\.name)]))
         let collectionEntities = try modelContext.fetch(FetchDescriptor<CollectionEntity>(sortBy: [SortDescriptor(\.title)]))
-        let membershipEntities = try modelContext.fetch(FetchDescriptor<MembershipEntity>())
         let placeEntities = try modelContext.fetch(FetchDescriptor<PlaceEntity>(sortBy: [SortDescriptor(\.displayName)]))
         let bellEntities = try modelContext.fetch(BellEntity.allDescriptor())
 
@@ -94,10 +93,8 @@ actor CatalogImportExportActor {
             homes: homeEntities.map(\.homeSnapshot),
             locations: locationEntities.map(\.locationSnapshot),
             collections: collectionEntities.map(\.collectionSnapshot),
-            memberships: membershipEntities.map(\.membershipSnapshot),
             places: placeEntities.map(\.placeSnapshot),
-            bellItems: bellItems,
-            userDirectory: defaultUserDirectory
+            bellItems: bellItems
         )
     }
 
@@ -143,17 +140,6 @@ actor CatalogImportExportActor {
             entity.home = homeEntities[collection.homeID]
             modelContext.insert(entity)
             collectionEntities[collection.id] = entity
-        }
-
-        for membership in bundle.memberships {
-            let entity = MembershipEntity(
-                id: membership.id,
-                userID: membership.userID,
-                roleRaw: membership.role.rawValue,
-                statusRaw: membership.status.rawValue
-            )
-            entity.collection = collectionEntities[membership.collectionID]
-            modelContext.insert(entity)
         }
 
         for place in bundle.places {
@@ -232,14 +218,5 @@ actor CatalogImportExportActor {
         try modelContext.fetch(FetchDescriptor<PlaceEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<HomeEntity>()).forEach(modelContext.delete)
         try modelContext.save()
-    }
-
-    private var defaultUserDirectory: [String: String] {
-        [
-            "me": "Вы",
-            "marina": "Марина",
-            "alexey": "Алексей",
-            "nina": "Нина"
-        ]
     }
 }

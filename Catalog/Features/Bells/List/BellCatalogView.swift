@@ -1355,7 +1355,7 @@ private struct BellGroupedSectionHeader: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 14)
-        .background(.regularMaterial)
+        .background(.ultraThinMaterial)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(CatalogSemanticColors.separator)
