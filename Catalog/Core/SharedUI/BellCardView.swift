@@ -161,9 +161,9 @@ enum BellGridLayoutMode: Int, CaseIterable {
     var cardPadding: CGFloat { metrics.cardPadding }
     var spacing: CGFloat { metrics.spacing }
 
-    func cardWidth(forScreenWidth screenWidth: CGFloat) -> CGFloat {
+    func cardWidth(forContainerWidth containerWidth: CGFloat) -> CGFloat {
         let totalSpacing = spacing * CGFloat(max(columnCount - 1, 0))
-        let usableWidth = max(screenWidth - (BellGridLayoutMode.screenHorizontalPadding * 2) - totalSpacing, 0)
+        let usableWidth = max(containerWidth - (BellGridLayoutMode.screenHorizontalPadding * 2) - totalSpacing, 0)
         return floor(usableWidth / CGFloat(columnCount))
     }
 
@@ -489,7 +489,7 @@ struct BellCardStripView<Bell: BellCardDisplayable>: View {
     let onSelect: (Bell) -> Void
 
     var body: some View {
-        let width = layoutMode.cardWidth(forScreenWidth: screenWidth)
+        let width = layoutMode.cardWidth(forContainerWidth: screenWidth)
         let cardSize = CGSize(width: width, height: layoutMode.cardHeight)
 
         ScrollView(.horizontal, showsIndicators: false) {
@@ -545,7 +545,6 @@ struct BellCardCoverBackground: View {
                     .scaledToFill()
                     .frame(width: size.width, height: size.height)
                     .clipped()
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
             } else {
                 LinearGradient(
                     colors: [
@@ -558,11 +557,10 @@ struct BellCardCoverBackground: View {
                 .frame(width: size.width, height: size.height)
             }
         }
-        .animation(.easeOut(duration: 0.2), value: image != nil)
         .task(id: thumbnailTaskID) {
             await loadImage()
         }
-        .onChange(of: thumbnailTaskID) { _, _ in
+        .onChange(of: identifier) { _, _ in
             image = nil
         }
     }
@@ -575,8 +573,7 @@ struct BellCardCoverBackground: View {
 
     @MainActor
     private func loadImage() async {
-        guard image == nil,
-              let url = mediaStore.fileURL(for: identifier),
+        guard let url = mediaStore.fileURL(for: identifier),
               let loadedImage = await thumbnailCache.image(
                 identifier: identifier,
                 url: url,

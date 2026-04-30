@@ -284,9 +284,9 @@ struct BellCatalogView: View {
         [.covers, .mini, .compact, .wide, .showcase]
     }
 
-    private func gridColumns(forScreenWidth screenWidth: CGFloat) -> [GridItem] {
+    private func gridColumns(cardWidth: CGFloat) -> [GridItem] {
         Array(
-            repeating: GridItem(.fixed(layoutMode.cardWidth(forScreenWidth: screenWidth)), spacing: layoutMode.spacing, alignment: .top),
+            repeating: GridItem(.fixed(cardWidth), spacing: layoutMode.spacing, alignment: .top),
             count: layoutMode.columnCount
         )
     }
@@ -299,7 +299,7 @@ struct BellCatalogView: View {
         guard !bells.isEmpty, screenWidth > 0 else { return nil }
 
         let columnCount = max(layoutMode.columnCount, 1)
-        let cardWidth = layoutMode.cardWidth(forScreenWidth: screenWidth)
+        let cardWidth = layoutMode.cardWidth(forContainerWidth: screenWidth)
         let cardHeight = layoutMode.cardHeight
         let horizontalStep = cardWidth + layoutMode.spacing
         let verticalStep = cardHeight + layoutMode.spacing
@@ -632,6 +632,9 @@ struct BellCatalogView: View {
         screenHeight: CGFloat
     ) -> some View {
         return ScrollViewReader { scrollProxy in
+            let cardWidth = layoutMode.cardWidth(forContainerWidth: screenWidth)
+            let cardSize = CGSize(width: cardWidth, height: layoutMode.cardHeight)
+
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []) {
                     Color.clear
@@ -656,15 +659,14 @@ struct BellCatalogView: View {
                         groupedBellSectionsContent(
                             sections: sections,
                             screenWidth: screenWidth,
+                            cardSize: cardSize,
                             scrollProxy: scrollProxy
                         )
                         .scaleEffect(visualScale)
                     case .flat(let bells):
-                        let cardWidth = layoutMode.cardWidth(forScreenWidth: screenWidth)
-
-                        LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
+                        LazyVGrid(columns: gridColumns(cardWidth: cardWidth), spacing: layoutMode.spacing) {
                             ForEach(bells) { bell in
-                                bellCardButton(bell, cardWidth: cardWidth)
+                                bellCardButton(bell, cardSize: cardSize)
                             }
                         }
                         .scaleEffect(visualScale)
@@ -960,10 +962,9 @@ struct BellCatalogView: View {
     private func groupedBellSectionsContent(
         sections: [BellGroupedSection],
         screenWidth: CGFloat,
+        cardSize: CGSize,
         scrollProxy: ScrollViewProxy
     ) -> some View {
-        let cardWidth = layoutMode.cardWidth(forScreenWidth: screenWidth)
-
         ForEach(sections) { section in
             Section {
                 if orderMode == .storage {
@@ -975,9 +976,9 @@ struct BellCatalogView: View {
                                     .foregroundStyle(.secondary)
                                     .padding(.horizontal, CatalogSpacing.micro)
 
-                                LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
+                                LazyVGrid(columns: gridColumns(cardWidth: cardSize.width), spacing: layoutMode.spacing) {
                                     ForEach(cabinetGroup.bells) { bell in
-                                        bellCardButton(bell, cardWidth: cardWidth)
+                                        bellCardButton(bell, cardSize: cardSize)
                                     }
                                 }
                                 .simultaneousGesture(
@@ -990,9 +991,9 @@ struct BellCatalogView: View {
                         }
                     }
                 } else {
-                    LazyVGrid(columns: gridColumns(forScreenWidth: screenWidth), spacing: layoutMode.spacing) {
+                    LazyVGrid(columns: gridColumns(cardWidth: cardSize.width), spacing: layoutMode.spacing) {
                         ForEach(section.bells) { bell in
-                            bellCardButton(bell, cardWidth: cardWidth)
+                            bellCardButton(bell, cardSize: cardSize)
                         }
                     }
                     .simultaneousGesture(
@@ -1158,7 +1159,7 @@ struct BellCatalogView: View {
         )
     }
 
-    private func bellCardButton(_ bell: BellEntity, cardWidth: CGFloat) -> some View {
+    private func bellCardButton(_ bell: BellEntity, cardSize: CGSize) -> some View {
         Button {
             guard !isPinching else { return }
             guard !didEndActivePinchGesture && abs(accumulatedMagnificationDelta) < 0.01 else { return }
@@ -1175,7 +1176,7 @@ struct BellCatalogView: View {
                 BellCardView(
                     bell: bell,
                     layoutMode: layoutMode,
-                    cardSize: CGSize(width: cardWidth, height: layoutMode.cardHeight)
+                    cardSize: cardSize
                 )
                 .compositingGroup()
                 .overlay {
