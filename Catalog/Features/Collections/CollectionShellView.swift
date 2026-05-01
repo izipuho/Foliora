@@ -20,8 +20,8 @@ struct CollectionShellView: View {
     @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
     @State private var isPresentingMap = false
-    @State private var selectedOrder: BellOrderMode = .newestFirst
-    @State private var selectedLayoutMode: BellGridLayoutMode = .mini
+    @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
+    @AppStorage("bellCatalog.layoutMode") private var selectedLayoutModeRawValue = BellGridLayoutMode.mini.rawValue
     @State private var selectedSummaryFilter = BellFilters()
     @State private var isBellCatalogSelectionMode = false
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
@@ -55,12 +55,45 @@ struct CollectionShellView: View {
             .contains { $0.location != nil } ?? false
     }
 
+    private var selectedOrder: BellOrderMode {
+        get {
+            BellOrderMode(rawValue: selectedOrderRawValue) ?? .newestFirst
+        }
+        nonmutating set {
+            selectedOrderRawValue = newValue.rawValue
+        }
+    }
+
+    private var selectedLayoutMode: BellGridLayoutMode {
+        get {
+            BellGridLayoutMode(rawValue: selectedLayoutModeRawValue) ?? .mini
+        }
+        nonmutating set {
+            selectedLayoutModeRawValue = newValue.rawValue
+        }
+    }
+
+    private var selectedOrderBinding: Binding<BellOrderMode> {
+        Binding(
+            get: { selectedOrder },
+            set: { selectedOrder = $0 }
+        )
+    }
+
+    private var selectedLayoutModeBinding: Binding<BellGridLayoutMode> {
+        Binding(
+            get: { selectedLayoutMode },
+            set: { selectedLayoutMode = $0 }
+        )
+    }
+
     var body: some View {
         content
             .toolbar {
                 if !isBellCatalogSelectionMode {
                     CollectionShellToolbar(
-                        selectedOrder: $selectedOrder,
+                        selectedOrder: selectedOrderBinding,
+                        selectedLayoutMode: selectedLayoutModeBinding,
                         isPresentingAddBellOptions: $isPresentingAddBellOptions,
                         onEdit: {
                             isPresentingEditCollection = true
@@ -129,8 +162,8 @@ struct CollectionShellView: View {
             collection: collection,
             repository: repository,
             collaborators: collaborators,
-            layoutMode: $selectedLayoutMode,
-            orderMode: $selectedOrder,
+            layoutMode: selectedLayoutModeBinding,
+            orderMode: selectedOrderBinding,
             filters: $selectedSummaryFilter
         )
         .id("collection-\(refreshID.uuidString)")
@@ -278,6 +311,7 @@ struct CollectionShellView: View {
 
 private struct CollectionShellToolbar: ToolbarContent {
     @Binding var selectedOrder: BellOrderMode
+    @Binding var selectedLayoutMode: BellGridLayoutMode
     @Binding var isPresentingAddBellOptions: Bool
     let onEdit: () -> Void
     let onOpenMap: () -> Void
@@ -293,10 +327,51 @@ private struct CollectionShellToolbar: ToolbarContent {
 
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
-                Picker(String(localized: "bell_catalog.order.menu"), selection: $selectedOrder) {
-                    ForEach(BellOrderMode.allCases, id: \.self) { option in
-                        Text(option.title).tag(option)
+                Section(String(localized: "bell_catalog.sort.menu")) {
+                    Button {
+                        selectedOrder = .newestFirst
+                    } label: {
+                        if selectedOrder == .newestFirst {
+                            Label(String(localized: "bell_catalog.sort.recently_added"), systemImage: "checkmark")
+                        } else {
+                            Text(String(localized: "bell_catalog.sort.recently_added"))
+                        }
                     }
+
+                    ForEach(listedOrderModes, id: \.self) { option in
+                        Button {
+                            selectedOrder = option
+                        } label: {
+                            if selectedOrder == option {
+                                Label(String(localized: option.title), systemImage: "checkmark")
+                            } else {
+                                Text(String(localized: option.title))
+                            }
+                        }
+                    }
+                }
+
+                Section(String(localized: "bell_catalog.layout.menu")) {
+                    ControlGroup {
+                        Button {
+                            zoomOutLayout()
+                        } label: {
+                            Image(systemName: "minus")
+                        }
+                        .disabled(!canZoomOut)
+
+                        Text(String(localized: selectedLayoutMode.title))
+
+                        Button {
+                            zoomInLayout()
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .disabled(!canZoomIn)
+                    } label: {
+                        Label(String(localized: "bell_catalog.layout.menu"), systemImage: "square.grid.2x2")
+                    }
+                    .menuActionDismissBehavior(.disabled)
                 }
             } label: {
                 floatingToolbarIcon(systemName: "line.3.horizontal.decrease")
@@ -309,6 +384,57 @@ private struct CollectionShellToolbar: ToolbarContent {
                 onCamera: onCamera,
                 onLibrary: onLibrary
             )
+        }
+    }
+
+    private var orderedLayoutModes: [BellGridLayoutMode] {
+        [.covers, .mini, .compact, .wide, .showcase]
+    }
+
+    private var listedOrderModes: [BellOrderMode] {
+        [.title, .geography, .acquisitionYear, .storage]
+    }
+
+    private var canZoomOut: Bool {
+        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode) else { return false }
+        return currentIndex > 0
+    }
+
+    private var canZoomIn: Bool {
+        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode) else { return false }
+        return currentIndex < orderedLayoutModes.count - 1
+    }
+
+    private func zoomOutLayout() {
+        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode), currentIndex > 0 else {
+            return
+        }
+
+        selectedLayoutMode = orderedLayoutModes[currentIndex - 1]
+    }
+
+    private func zoomInLayout() {
+        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode), currentIndex < orderedLayoutModes.count - 1 else {
+            return
+        }
+
+        selectedLayoutMode = orderedLayoutModes[currentIndex + 1]
+    }
+}
+
+private extension BellGridLayoutMode {
+    var title: LocalizedStringResource {
+        switch self {
+        case .covers:
+            return "bell_catalog.layout.covers"
+        case .mini:
+            return "bell_catalog.layout.mini"
+        case .compact:
+            return "bell_catalog.layout.compact"
+        case .wide:
+            return "bell_catalog.layout.wide"
+        case .showcase:
+            return "bell_catalog.layout.showcase"
         }
     }
 }

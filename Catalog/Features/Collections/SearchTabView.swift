@@ -49,10 +49,42 @@ struct SearchTabView: View {
     let repository: any CatalogRepository
     @Query(sort: \CollectionEntity.title) private var collections: [CollectionEntity]
     @Query(sort: \BellEntity.title) private var bells: [BellEntity]
-    @State private var layoutMode: BellGridLayoutMode = .mini
-    @State private var orderMode: BellOrderMode = .newestFirst
+    @AppStorage("bellCatalog.orderMode") private var orderModeRawValue = BellOrderMode.newestFirst.rawValue
+    @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
     @State private var filters = BellFilters()
     @State private var searchState = BellCatalogSearchState()
+
+    private var layoutMode: BellGridLayoutMode {
+        get {
+            BellGridLayoutMode(rawValue: layoutModeRawValue) ?? .mini
+        }
+        nonmutating set {
+            layoutModeRawValue = newValue.rawValue
+        }
+    }
+
+    private var orderMode: BellOrderMode {
+        get {
+            BellOrderMode(rawValue: orderModeRawValue) ?? .newestFirst
+        }
+        nonmutating set {
+            orderModeRawValue = newValue.rawValue
+        }
+    }
+
+    private var layoutModeBinding: Binding<BellGridLayoutMode> {
+        Binding(
+            get: { layoutMode },
+            set: { layoutMode = $0 }
+        )
+    }
+
+    private var orderModeBinding: Binding<BellOrderMode> {
+        Binding(
+            get: { orderMode },
+            set: { orderMode = $0 }
+        )
+    }
 
     private var suggestedTokenGroups: [SearchTokenGroup] {
         let selectedTokens = Set(searchState.tokens)
@@ -117,8 +149,8 @@ struct SearchTabView: View {
                     repository: repository,
                     collaborators: [],
                     displayMode: .search,
-                    layoutMode: $layoutMode,
-                    orderMode: $orderMode,
+                    layoutMode: layoutModeBinding,
+                    orderMode: orderModeBinding,
                     filters: $filters,
                     searchState: $searchState,
                     startsSearchFocused: true
