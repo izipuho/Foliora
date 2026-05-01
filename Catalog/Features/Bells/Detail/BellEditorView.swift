@@ -108,6 +108,17 @@ struct BellEditorView: View {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var shouldShowPhotoAnalysisSection: Bool {
+        photoAnalysis.isAnalyzing
+        || photoAnalysis.suggestions.title != nil
+        || photoAnalysis.suggestions.notes != nil
+        || photoAnalysis.suggestions.material != nil
+        || photoAnalysis.suggestions.condition != nil
+        || photoAnalysis.suggestions.suggestedYear != nil
+        || photoAnalysis.suggestions.suggestedGeo != nil
+        || !photoAnalysis.suggestions.suggestedTags.isEmpty
+    }
+
     init(
         collection: CollectionSummary,
         repository: any CatalogRepository,
@@ -164,7 +175,7 @@ struct BellEditorView: View {
                         )
                     }
 
-                    if photoAnalysis.hasSuggestions {
+                    if shouldShowPhotoAnalysisSection {
                         Section(String(localized: "editor.photo_analysis.section")) {
                             if photoAnalysis.isAnalyzing {
                                 HStack(spacing: 10) {
@@ -628,7 +639,7 @@ private struct PhotoSuggestedTagsRow: View {
         self.title = title
         self.suggestions = suggestions
         self.onAccept = onAccept
-        _selectedValues = State(initialValue: Set(suggestions.map(\.value)))
+        _selectedValues = State(initialValue: [])
     }
 
     var body: some View {
@@ -640,9 +651,16 @@ private struct PhotoSuggestedTagsRow: View {
             }
 
             TagFlowLayout(spacing: 8) {
-                ForEach(selectedSuggestions, id: \.value) { suggestion in
-                    PhotoSuggestedTagChip(tag: suggestion.value) {
-                        selectedValues.remove(suggestion.value)
+                ForEach(suggestions, id: \.value) { suggestion in
+                    PhotoSuggestedTagChip(
+                        tag: suggestion.value,
+                        isSelected: selectedValues.contains(suggestion.value)
+                    ) {
+                        if selectedValues.contains(suggestion.value) {
+                            selectedValues.remove(suggestion.value)
+                        } else {
+                            selectedValues.insert(suggestion.value)
+                        }
                     }
                 }
             }
@@ -663,30 +681,25 @@ private struct PhotoSuggestedTagsRow: View {
         }
         .padding(.vertical, CatalogSpacing.micro)
     }
-
-    private var selectedSuggestions: [SuggestedFieldValue<String>] {
-        suggestions.filter { selectedValues.contains($0.value) }
-    }
 }
 
 private struct PhotoSuggestedTagChip: View {
     let tag: String
-    let onRemove: () -> Void
+    let isSelected: Bool
+    let onTap: () -> Void
 
     var body: some View {
-        HStack(spacing: CatalogSpacing.compact) {
+        Button(action: onTap) {
             Text("#\(tag)")
                 .font(.subheadline.weight(.medium))
-
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(String(localized: "common.delete"))
+                .catalogPillPadding(.regular)
+                .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.25), lineWidth: isSelected ? 1.5 : 1)
+                }
+                .shadow(color: isSelected ? Color.accentColor.opacity(0.18) : .clear, radius: 4, y: 1)
         }
-        .catalogPillPadding(.regular)
-        .background(.thinMaterial, in: Capsule())
+        .buttonStyle(.plain)
     }
 }
