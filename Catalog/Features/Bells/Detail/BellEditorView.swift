@@ -449,6 +449,7 @@ struct BellEditorView: View {
             return
         }
 
+        emitAnalysisFeedback(.success)
         saveBell()
     }
 
