@@ -563,14 +563,16 @@ struct BellCatalogView: View {
         .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
             newValue?.kind.sensoryFeedback
         }
-        .searchable(
-            text: $searchState.query,
-            tokens: $searchState.tokens,
-            suggestedTokens: $suggestedTokens
-        ) { token in
-            Label(searchTokenTitle(token), systemImage: searchTokenSystemImage(token))
+        .searchableIf(displayMode == .search) { view in
+            view.searchable(
+                text: $searchState.query,
+                tokens: $searchState.tokens,
+                suggestedTokens: $suggestedTokens
+            ) { token in
+                Label(searchTokenTitle(token), systemImage: searchTokenSystemImage(token))
+            }
+            .searchFocused($isSearchFocused)
         }
-        .searchFocused($isSearchFocused)
         .toolbar(isSelectionModeEnabled ? .hidden : .visible, for: .tabBar)
         .preference(key: BellCatalogSelectionModePreferenceKey.self, value: isSelectionModeEnabled)
         .toolbar {
@@ -1496,6 +1498,15 @@ private struct SummaryGlassCardModifier: ViewModifier {
 }
 
 private extension View {
+    @ViewBuilder
+    func searchableIf<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+
     func summaryGlassCard() -> some View {
         modifier(SummaryGlassCardModifier())
     }
