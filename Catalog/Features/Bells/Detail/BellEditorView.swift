@@ -25,6 +25,10 @@ struct BellEditorView: View {
         let token: Int
     }
 
+    private enum FocusedField: Hashable {
+        case title
+    }
+
     let collection: CollectionSummary
     let repository: any CatalogRepository
     let startSection: StartSection?
@@ -34,6 +38,7 @@ struct BellEditorView: View {
     @Query private var queriedBells: [BellEntity]
 
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var focusedField: FocusedField?
     @State private var title = ""
     @State private var notes = ""
     @State private var condition: ItemCondition = .good
@@ -268,6 +273,25 @@ struct BellEditorView: View {
 
                     Section(String(localized: "editor.description")) {
                         TextField(String(localized: "editor.short_description"), text: $title)
+                            .focused($focusedField, equals: .title)
+
+                        if !canSave {
+                            Button {
+                                focusTitleValidation()
+                            } label: {
+                                Label {
+                                    Text(String(localized: "editor.title.required"))
+                                        .font(.footnote)
+                                } icon: {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .font(.footnote)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.red)
+                            .accessibilityHint(String(localized: "editor.title.focus"))
+                        }
+
                         TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
                             .lineLimit(4, reservesSpace: true)
                     }
@@ -346,8 +370,8 @@ struct BellEditorView: View {
                     }
 
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button { saveBell() } label: { Image(systemName: "checkmark") }
-                        .disabled(!canSave)
+                        Button { requestSave() } label: { Image(systemName: "checkmark") }
+                        .opacity(canSave ? 1 : 0.35)
                         .accessibilityLabel(String(localized: "common.save"))
                     }
                 }
@@ -406,6 +430,20 @@ struct BellEditorView: View {
         guard !didStartInitialAnalysis, existingBellID == nil, let initialAnalysisImage else { return }
         didStartInitialAnalysis = true
         photoAnalysis.analyze(image: initialAnalysisImage)
+    }
+
+    private func requestSave() {
+        guard canSave else {
+            focusTitleValidation()
+            return
+        }
+
+        saveBell()
+    }
+
+    private func focusTitleValidation() {
+        emitAnalysisFeedback(.warning)
+        focusedField = .title
     }
 
     private var firstPhotoAssetID: UUID? {

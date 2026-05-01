@@ -101,6 +101,8 @@
 "editor.additional_details" = "Дополнительно";
 "editor.tags" = "Теги";
 "editor.title" = "Название";
+"editor.title.required" = "Для сохранения нужно название";
+"editor.title.focus" = "Ввести название";
 "editor.notes" = "Заметки";
 "editor.short_description" = "Краткое описание";
 "editor.note_history" = "Заметка или история";

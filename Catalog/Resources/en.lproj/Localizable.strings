@@ -101,6 +101,8 @@
 "editor.additional_details" = "Additional Details";
 "editor.tags" = "Tags";
 "editor.title" = "Title";
+"editor.title.required" = "Name is required to save";
+"editor.title.focus" = "Enter name";
 "editor.notes" = "Notes";
 "editor.short_description" = "Short Description";
 "editor.note_history" = "Note or Story";
