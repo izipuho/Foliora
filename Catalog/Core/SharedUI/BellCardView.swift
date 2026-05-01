@@ -144,7 +144,7 @@ enum BellGridLayoutMode: Int, CaseIterable {
     var metrics: Metrics {
         switch self {
         case .covers:
-            return Metrics(columnCount: 4, cardHeight: 92, cardPadding: 0, spacing: 8)
+            return Metrics(columnCount: 4, cardHeight: 108, cardPadding: 8, spacing: 8)
         case .mini:
             return Metrics(columnCount: 3, cardHeight: 144, cardPadding: 10, spacing: 10)
         case .compact:
@@ -259,8 +259,12 @@ struct BellCardView: View {
                 )
             }
         }
-        .frame(width: contentWidth, height: contentHeight, alignment: .topLeading)
+        .frame(width: contentWidth, height: contentHeight, alignment: contentAlignment)
         .padding(layoutMode.cardPadding)
+    }
+
+    private var contentAlignment: Alignment {
+        layoutMode == .covers ? .bottomLeading : .topLeading
     }
 
     private var coverScrim: some View {
@@ -315,7 +319,14 @@ private struct BellCardStyle {
     let contentSpacing: CGFloat
 
     static let covers = BellCardStyle(
-        title: nil,
+        title: TitleBlockStyle(
+            titleFont: .caption.weight(.semibold),
+            titleLineLimit: 2,
+            showsSubtitle: false,
+            subtitleFont: .caption2,
+            subtitleLineLimit: 1,
+            spacing: 2
+        ),
         meta: nil,
         contentSpacing: 4
     )
