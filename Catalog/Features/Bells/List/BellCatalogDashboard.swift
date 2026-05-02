@@ -54,6 +54,22 @@ struct BellCatalogDashboardView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
+                    DashboardDataHealthCard(
+                        progress: dataHealthProgress,
+                        tint: accentColor
+                    ) {
+                        isPresentingDataHealthPopover = true
+                    }
+                    .popover(isPresented: $isPresentingDataHealthPopover) {
+                        DataHealthPopover(
+                            entries: dataHealthEntries,
+                            onSelect: { filter in
+                                isPresentingDataHealthPopover = false
+                                onFilterApply(filter)
+                            }
+                        )
+                    }
+
                     DashboardTopGeographyCard(
                         countryName: topGeography?.name ?? String(localized: "common.unknown"),
                         flag: topGeography?.flag ?? "🌍",
@@ -70,22 +86,6 @@ struct BellCatalogDashboardView: View {
                             onSelect: { country in
                                 isPresentingTopGeographyPopover = false
                                 onGeographyFocus(country)
-                            }
-                        )
-                    }
-
-                    DashboardDataHealthCard(
-                        progress: dataHealthProgress,
-                        tint: accentColor
-                    ) {
-                        isPresentingDataHealthPopover = true
-                    }
-                    .popover(isPresented: $isPresentingDataHealthPopover) {
-                        DataHealthPopover(
-                            entries: dataHealthEntries,
-                            onSelect: { filter in
-                                isPresentingDataHealthPopover = false
-                                onFilterApply(filter)
                             }
                         )
                     }
@@ -118,30 +118,35 @@ struct BellCatalogDashboardView: View {
     private var dataHealthEntries: [DataHealthEntry] {
         let total = stats.totalCount
 
+        func missingCount(filled: Int) -> String{
+            let missingCount = total - filled
+            return "\(missingCount)/\(total)"
+        }
+
         return [
             DataHealthEntry(
-                title: String(localized: "bell_catalog.summary.with_origin"),
-                countText: "\(stats.filledOriginCount)/\(total)",
+                title: String(localized: "bell_catalog.summary.missing_origin"),
+                countText: missingCount(filled: stats.filledOriginCount),
                 filter: .missingOrigin
             ),
             DataHealthEntry(
-                title: String(localized: "bell_catalog.summary.with_year"),
-                countText: "\(stats.filledYearCount)/\(total)",
+                title: String(localized: "bell_catalog.summary.missing_year"),
+                countText: missingCount(filled: stats.filledYearCount),
                 filter: .missingYear
             ),
             DataHealthEntry(
-                title: String(localized: "bell_catalog.summary.with_storage"),
-                countText: "\(stats.filledStorageCount)/\(total)",
+                title: String(localized: "bell_catalog.summary.missing_storage"),
+                countText: missingCount(filled: stats.filledStorageCount),
                 filter: .missingStorage
             ),
             DataHealthEntry(
-                title: String(localized: "bell_catalog.summary.with_notes"),
-                countText: "\(stats.filledNotesCount)/\(total)",
+                title: String(localized: "bell_catalog.summary.missing_notes"),
+                countText: missingCount(filled: stats.filledNotesCount),
                 filter: .missingNotes
             ),
             DataHealthEntry(
-                title: String(localized: "bell_catalog.summary.with_tags"),
-                countText: "\(stats.filledTagsCount)/\(total)",
+                title: String(localized: "bell_catalog.summary.missing_tags"),
+                countText: missingCount(filled: stats.filledTagsCount),
                 filter: .missingTags
             )
         ]
