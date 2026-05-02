@@ -90,7 +90,7 @@ struct CollectionOriginMapView: View {
                         bells: selectedGroup.bells,
                         repository: repository
                     )
-                        .padding(.horizontal, CatalogLayoutInsets.overlay)
+                        //.padding(.horizontal, CatalogLayoutInsets.overlay)
                         .padding(.bottom, CatalogSpacing.section)
                 }
             }

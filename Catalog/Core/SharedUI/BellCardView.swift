@@ -11,8 +11,8 @@ enum CatalogCornerRadii {
 }
 
 enum CatalogLayoutInsets {
-    static let screen: CGFloat = 20
-    static let overlay: CGFloat = 16
+    static let screen: CGFloat = 8 
+    static let overlay: CGFloat = 8 
 }
 
 enum CatalogSpacing {
@@ -144,15 +144,15 @@ enum BellGridLayoutMode: Int, CaseIterable {
     var metrics: Metrics {
         switch self {
         case .covers:
-            return Metrics(columnCount: 4, cardHeight: 108, cardPadding: 8, spacing: 8)
+            return Metrics(columnCount: 4, cardHeight: 108, cardPadding: 8, spacing: CatalogSpacing.micro)
         case .mini:
-            return Metrics(columnCount: 3, cardHeight: 144, cardPadding: 10, spacing: 10)
+            return Metrics(columnCount: 3, cardHeight: 144, cardPadding: 10, spacing: CatalogSpacing.micro)
         case .compact:
-            return Metrics(columnCount: 2, cardHeight: 220, cardPadding: 14, spacing: 12)
+            return Metrics(columnCount: 2, cardHeight: 220, cardPadding: 14, spacing: CatalogSpacing.compact)
         case .wide:
-            return Metrics(columnCount: 1, cardHeight: 220, cardPadding: 18, spacing: 14)
+            return Metrics(columnCount: 1, cardHeight: 220, cardPadding: 18, spacing: CatalogSpacing.compact)
         case .showcase:
-            return Metrics(columnCount: 1, cardHeight: 460, cardPadding: 22, spacing: 18)
+            return Metrics(columnCount: 1, cardHeight: 460, cardPadding: 22, spacing: CatalogSpacing.regular)
         }
     }
 
@@ -518,6 +518,7 @@ struct BellCardStripView<Bell: BellCardDisplayable>: View {
                     .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal, CatalogSpacing.compact)
         }
         .frame(height: layoutMode.cardHeight)
     }
