@@ -2,14 +2,6 @@ import SwiftUI
 import SwiftData
 import UIKit
 
-
-private func localizedCount(_ count: Int, kind: SummaryCountKind) -> String {
-    String.localizedStringWithFormat(
-        String(localized: kind.resource),
-        count
-    )
-}
-
 private enum BellCatalogFeedback: Equatable {
     case success
     case warning
@@ -132,8 +124,6 @@ struct BellCatalogView: View {
     @State private var bellPendingDeletion: BellEntity?
     @State private var isPresentingDeleteConfirmation = false
     @State private var activeJumpPopoverSectionID: String?
-    @State private var isPresentingDataHealthPopover = false
-    @State private var isPresentingTopGeographyPopover = false
     @State private var pendingScrollTargetID: String?
     @State private var isSelectionModeEnabled = false
     @State private var selectedBellIDs: Set<UUID> = []
@@ -773,118 +763,11 @@ struct BellCatalogView: View {
         .frame(maxHeight: min(max(screenHeight * 0.36, 220), 320), alignment: .top)
     }
 
-    private func dashboardMetricChip(
-        title: String,
-        value: String,
-        systemImage: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: systemImage)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(catalogStyle.accentColor)
-
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-
-                Text(value)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 14)
-            .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func dataHealthProgress(in displayModel: BellCatalogDisplayModel) -> Double {
-        guard displayModel.stats.totalCount > 0 else { return 0 }
-        let completeFields = displayModel.stats.filledOriginCount
-            + displayModel.stats.filledYearCount
-            + displayModel.stats.filledStorageCount
-            + displayModel.stats.filledNotesCount
-            + displayModel.stats.filledTagsCount
-        let totalFields = displayModel.stats.totalCount * 5
-        return min(max(Double(completeFields) / Double(totalFields), 0), 1)
-    }
-
-    private func dataHealthEntries(in displayModel: BellCatalogDisplayModel) -> [DataHealthEntry] {
-        let total = displayModel.stats.totalCount
-
-        return [
-            DataHealthEntry(
-                title: String(localized: "bell_catalog.summary.with_origin"),
-                countText: "\(displayModel.stats.filledOriginCount)/\(total)",
-                filter: .missingOrigin
-            ),
-            DataHealthEntry(
-                title: String(localized: "bell_catalog.summary.with_year"),
-                countText: "\(displayModel.stats.filledYearCount)/\(total)",
-                filter: .missingYear
-            ),
-            DataHealthEntry(
-                title: String(localized: "bell_catalog.summary.with_storage"),
-                countText: "\(displayModel.stats.filledStorageCount)/\(total)",
-                filter: .missingStorage
-            ),
-            DataHealthEntry(
-                title: String(localized: "bell_catalog.summary.with_notes"),
-                countText: "\(displayModel.stats.filledNotesCount)/\(total)",
-                filter: .missingNotes
-            ),
-            DataHealthEntry(
-                title: String(localized: "bell_catalog.summary.with_tags"),
-                countText: "\(displayModel.stats.filledTagsCount)/\(total)",
-                filter: .missingTags
-            )
-        ]
-    }
-
-    private func topGeography(in displayModel: BellCatalogDisplayModel) -> (name: String, flag: String, count: Int)? {
-        guard let topCountry = displayModel.stats.topCountries.first else { return nil }
-        return (
-            name: topCountry.country,
-            flag: flagEmoji(for: topCountry.countryCode),
-            count: topCountry.count
-        )
-    }
-
-    private func topGeographyEntries(in displayModel: BellCatalogDisplayModel) -> [TopGeographyEntry] {
-        Array(displayModel.stats.topCountries.prefix(5)).map { row in
-            return TopGeographyEntry(
-                country: row.country,
-                flag: flagEmoji(for: row.countryCode),
-                countText: localizedCount(row.count, kind: .bells)
-            )
-        }
-    }
-
-    private func topGeographyCountText(in displayModel: BellCatalogDisplayModel) -> String {
-        guard let topGeography = topGeography(in: displayModel) else { return String(localized: "bell_catalog.summary.no_origin_data") }
-        return localizedCount(topGeography.count, kind: .bells)
-    }
-
-    private func focusTopGeography() {
-        guard let topCountry = topGeography(in: displayModel)?.name else { return }
-        focusGeography(country: topCountry)
-    }
-
     private func focusGeography(country: String) {
         pendingScrollTargetID = "geography-\(country)"
         if orderMode != .geography {
             orderMode = .geography
         }
-    }
-
-    private func flagEmoji(for countryCode: String) -> String {
-        let normalizedCode = countryCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        guard normalizedCode.count == 2 else { return "🌍" }
-
-        let base: UInt32 = 127397
-        let scalars = normalizedCode.unicodeScalars.compactMap { UnicodeScalar(base + $0.value) }
-        return scalars.count == 2 ? String(String.UnicodeScalarView(scalars)) : "🌍"
     }
 
     @ViewBuilder
