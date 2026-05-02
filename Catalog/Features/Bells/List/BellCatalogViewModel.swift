@@ -33,6 +33,8 @@ struct BellCatalogStats {
     let totalCount: Int
     let countryCount: Int
     let cityCount: Int
+    let materialCount: Int
+    let tagCount: Int
     let topCountries: [CountryCount]
     let filledOriginCount: Int
     let filledYearCount: Int
@@ -93,6 +95,8 @@ final class BellCatalogViewModel: ObservableObject {
                 totalCount: 0,
                 countryCount: 0,
                 cityCount: 0,
+                materialCount: 0,
+                tagCount: 0,
                 topCountries: [],
                 filledOriginCount: 0,
                 filledYearCount: 0,
@@ -130,6 +134,8 @@ final class BellCatalogViewModel: ObservableObject {
             totalCount: bells.count,
             countryCount: countryCount(in: sourceBells),
             cityCount: cityCount(in: sourceBells),
+            materialCount: materialCount(in: sourceBells),
+            tagCount: tagCount(in: sourceBells),
             topCountries: topCountries(in: sourceBells),
             filledOriginCount: bellsWithOriginCount(in: sourceBells),
             filledYearCount: bellsWithAcquiredYearCount(in: sourceBells),
@@ -175,6 +181,14 @@ final class BellCatalogViewModel: ObservableObject {
 
     private func cityCount(in bells: [BellEntity]) -> Int {
         Set(bells.map(\.cityName).filter { !$0.isEmpty }).count
+    }
+
+    private func materialCount(in bells: [BellEntity]) -> Int {
+        Set(bells.map(\.materialDisplayName).filter { !$0.isEmpty }).count
+    }
+
+    private func tagCount(in bells: [BellEntity]) -> Int {
+        Set(bells.flatMap(\.tagValues)).count
     }
 
     private func bellsWithOriginCount(in bells: [BellEntity]) -> Int {

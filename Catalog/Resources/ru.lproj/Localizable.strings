@@ -30,6 +30,7 @@
 "bell_catalog.summary.items" = "Колокольчики";
 "bell_catalog.summary.countries" = "Страны";
 "bell_catalog.summary.materials" = "Материалы";
+"bell_catalog.summary.tags" = "Тэги";
 "bell_catalog.summary.with_origin" = "С происхождением";
 "bell_catalog.summary.with_year" = "С годом";
 "bell_catalog.summary.with_storage" = "С местом хранения";

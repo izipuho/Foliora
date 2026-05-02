@@ -19,7 +19,6 @@ struct BellCatalogDashboardView: View {
                         value: "\(stats.totalCount)",
                         systemImage: "bell.fill",
                         tint: accentColor,
-                        action: onResetFilters
                     )
 
                     MetricPill(
@@ -27,18 +26,28 @@ struct BellCatalogDashboardView: View {
                         value: "\(stats.countryCount)",
                         systemImage: "globe.europe.africa.fill",
                         tint: accentColor
-                    ) {
-                        onFilterApply(.withOrigin)
-                    }
+                    )
 
                     MetricPill(
                         title: String(localized: "bell_catalog.dashboard.cities"),
                         value: "\(stats.cityCount)",
                         systemImage: "building.2.fill",
                         tint: accentColor
-                    ) {
-                        onFilterApply(.withCity)
-                    }
+                    )
+
+                    MetricPill(
+                        title: String(localized: "bell_catalog.summary.materials"),
+                        value: "\(stats.materialCount)",
+                        systemImage: "cube.fill",
+                        tint: accentColor
+                    )
+
+                    MetricPill(
+                        title: String(localized: "bell_catalog.summary.tags"),
+                        value: "\(stats.tagCount)",
+                        systemImage: "tag.fill",
+                        tint: accentColor
+                    )
                 }
             }
             .scrollClipDisabled()

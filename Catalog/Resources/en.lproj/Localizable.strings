@@ -30,6 +30,7 @@
 "bell_catalog.summary.items" = "Bells";
 "bell_catalog.summary.countries" = "Countries";
 "bell_catalog.summary.materials" = "Materials";
+"bell_catalog.summary.tags" = "Tags";
 "bell_catalog.summary.with_origin" = "With origin";
 "bell_catalog.summary.with_year" = "With year";
 "bell_catalog.summary.with_storage" = "With storage";
