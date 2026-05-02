@@ -10,23 +10,34 @@ struct BellDetails: Identifiable, Hashable, Codable {
 }
 
 enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
+    case unknown
+    case metall
     case brass
     case bronze
+    case silver
+    case gold
     case ceramic
     case porcelain
     case glass
     case wood
-    case silver
     case other
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
+        case .unknown:
+            return String(localized: "common.unknown")
+        case .metall:
+            return String(localized: "enum.bell_material.metall")
         case .brass:
             return String(localized: "enum.bell_material.brass")
         case .bronze:
             return String(localized: "enum.bell_material.bronze")
+        case .silver:
+            return String(localized: "enum.bell_material.silver")
+        case .gold:
+            return String(localized: "enum.bell_material.gold")
         case .ceramic:
             return String(localized: "enum.bell_material.ceramic")
         case .porcelain:
@@ -35,8 +46,6 @@ enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
             return String(localized: "enum.bell_material.glass")
         case .wood:
             return String(localized: "enum.bell_material.wood")
-        case .silver:
-            return String(localized: "enum.bell_material.silver")
         case .other:
             return String(localized: "enum.bell_material.other")
         }

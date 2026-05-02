@@ -116,6 +116,7 @@
 "editor.condition" = "Состояние";
 "editor.acquisition" = "Получение";
 "editor.material" = "Материал";
+"editor.material_required" = "Для сохранения нужно выбрать материал";
 "editor.material.custom" = "Свой материал";
 "editor.location" = "Расположение";
 "editor.bell.add" = "Добавить колокольчик";
@@ -171,13 +172,15 @@
 "enum.acquisition.found" = "Найдено";
 "enum.acquisition.other" = "Другое";
 
+"enum.bell_material.metall" = "Металл";
 "enum.bell_material.brass" = "Латунь";
 "enum.bell_material.bronze" = "Бронза";
+"enum.bell_material.silver" = "Серебро";
+"enum.bell_material.gold" = "Золото";
 "enum.bell_material.ceramic" = "Керамика";
 "enum.bell_material.porcelain" = "Фарфор";
 "enum.bell_material.glass" = "Стекло";
 "enum.bell_material.wood" = "Дерево";
-"enum.bell_material.silver" = "Серебро";
 "enum.bell_material.other" = "Другое";
 
 "enum.media_kind.photo" = "Фото";

@@ -116,6 +116,7 @@
 "editor.condition" = "Condition";
 "editor.acquisition" = "Acquisition";
 "editor.material" = "Material";
+"editor.material_required" = "Material is required to save";
 "editor.material.custom" = "Custom material";
 "editor.location" = "Location";
 "editor.bell.add" = "Add Bell";
@@ -171,13 +172,15 @@
 "enum.acquisition.found" = "Found";
 "enum.acquisition.other" = "Other";
 
+"enum.bell_material.metall" = "Metall";
 "enum.bell_material.brass" = "Brass";
 "enum.bell_material.bronze" = "Bronze";
+"enum.bell_material.silver" = "Silver";
+"enum.bell_material.gold" = "Gold";
 "enum.bell_material.ceramic" = "Ceramic";
 "enum.bell_material.porcelain" = "Porcelain";
 "enum.bell_material.glass" = "Glass";
 "enum.bell_material.wood" = "Wood";
-"enum.bell_material.silver" = "Silver";
 "enum.bell_material.other" = "Other";
 
 "enum.media_kind.photo" = "Photo";

@@ -43,7 +43,7 @@ struct BellEditorView: View {
     @State private var notes = ""
     @State private var condition: ItemCondition = .good
     @State private var acquisitionMethod: AcquisitionMethod = .bought
-    @State private var material: BellMaterial = .brass
+    @State private var material: BellMaterial = .unknown
     @State private var customMaterialName = ""
     @State private var selectedOriginPlace: Place?
     @State private var selectedLocationID: UUID?
@@ -105,7 +105,15 @@ struct BellEditorView: View {
     }
 
     private var canSave: Bool {
+        isTitleValid && isMaterialValid
+    }
+
+    private var isTitleValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var isMaterialValid: Bool {
+        existingBellID != nil || material != .unknown
     }
 
     private var shouldShowPhotoAnalysisSection: Bool {
@@ -154,7 +162,7 @@ struct BellEditorView: View {
         _notes = State(initialValue: bell?.notes ?? "")
         _condition = State(initialValue: bell?.condition ?? .good)
         _acquisitionMethod = State(initialValue: bell?.acquisitionMethod ?? .bought)
-        _material = State(initialValue: bell?.details.material ?? .brass)
+        _material = State(initialValue: bell?.details.material ?? .unknown)
         _customMaterialName = State(initialValue: bell?.details.customMaterialName ?? "")
         _selectedOriginPlace = State(initialValue: bell?.originPlace)
         _selectedLocationID = State(initialValue: bell?.item.locationID)
@@ -286,7 +294,7 @@ struct BellEditorView: View {
                         TextField(String(localized: "editor.short_description"), text: $title)
                             .focused($focusedField, equals: .title)
 
-                        if !canSave {
+                        if !isTitleValid {
                             Button {
                                 focusTitleValidation()
                             } label: {
@@ -342,6 +350,22 @@ struct BellEditorView: View {
 
                         if material == .other {
                             TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
+                        }
+
+                        if !isMaterialValid {
+                            Button {
+                                emitAnalysisFeedback(.warning)
+                            } label: {
+                                Label {
+                                    Text(String(localized: "editor.material.required"))
+                                        .font(.footnote)
+                                } icon: {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .font(.footnote)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.red)
                         }
                     }
 
@@ -445,7 +469,11 @@ struct BellEditorView: View {
 
     private func requestSave() {
         guard canSave else {
-            focusTitleValidation()
+            if !isTitleValid {
+                focusTitleValidation()
+            } else {
+                emitAnalysisFeedback(.warning)
+            }
             return
         }
 
