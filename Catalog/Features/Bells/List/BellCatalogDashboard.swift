@@ -118,40 +118,51 @@ struct BellCatalogDashboardView: View {
     private var dataHealthEntries: [DataHealthEntry] {
         let total = stats.totalCount
 
-        func missingCount(filled: Int) -> String{
+        func missingCount(filled: Int) -> String {
             let missingCount = total - filled
             return "\(missingCount)/\(total)"
+        }
+
+        func missingProgress(filled: Int) -> Double {
+            guard total > 0 else { return 0 }
+            return min(max(Double(total - filled) / Double(total), 0), 1)
         }
 
         return [
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.missing_origin"),
                 countText: missingCount(filled: stats.filledOriginCount),
+                missingProgress: missingProgress(filled: stats.filledOriginCount),
                 filter: .missingOrigin
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.missing_year"),
                 countText: missingCount(filled: stats.filledYearCount),
+                missingProgress: missingProgress(filled: stats.filledYearCount),
                 filter: .missingYear
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.missing_storage"),
                 countText: missingCount(filled: stats.filledStorageCount),
+                missingProgress: missingProgress(filled: stats.filledStorageCount),
                 filter: .missingStorage
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.missing_material"),
                 countText: missingCount(filled: stats.filledMaterialCount),
+                missingProgress: missingProgress(filled: stats.filledMaterialCount),
                 filter: .missingMaterial
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.missing_notes"),
                 countText: missingCount(filled: stats.filledNotesCount),
+                missingProgress: missingProgress(filled: stats.filledNotesCount),
                 filter: .missingNotes
             ),
             DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.missing_tags"),
                 countText: missingCount(filled: stats.filledTagsCount),
+                missingProgress: missingProgress(filled: stats.filledTagsCount),
                 filter: .missingTags
             )
         ]
@@ -362,6 +373,7 @@ struct TopGeographyPopover: View {
 struct DataHealthEntry: Identifiable {
     let title: String
     let countText: String
+    let missingProgress: Double
     let filter: BellPresenceFilter
 
     var id: String { title }
@@ -383,12 +395,21 @@ struct DataHealthPopover: View {
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.primary)
 
-                            Text(entry.countText)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                            GeometryReader { proxy in
+                                HStack(spacing: 8) {
+                                    Text(entry.countText)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
 
-                        Spacer()
+                                    Spacer(minLength: 0)
+
+                                    DataHealthMissingProgressBar(progress: entry.missingProgress)
+                                        .frame(width: proxy.size.width / 2)
+                                }
+                            }
+                            .frame(height: 14)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
@@ -399,6 +420,24 @@ struct DataHealthPopover: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.medium])
+    }
+}
+
+private struct DataHealthMissingProgressBar: View {
+    let progress: Double
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.green.opacity(0.35))
+
+                Capsule()
+                    .fill(.red.opacity(0.8))
+                    .frame(width: proxy.size.width * min(max(progress, 0), 1))
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 6, maxHeight: 6)
     }
 }
 
