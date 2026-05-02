@@ -59,6 +59,8 @@ private extension BellPresenceFilter {
             return String(localized: "bell_catalog.summary.missing_tags")
         case .withMaterial:
             return String(localized: "bell_catalog.summary.with_material")
+        case .missingMaterial:
+            return String(localized: "bell_catalog.summary.missing_material")
         }
     }
 }

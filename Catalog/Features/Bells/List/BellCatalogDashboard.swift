@@ -140,6 +140,11 @@ struct BellCatalogDashboardView: View {
                 filter: .missingStorage
             ),
             DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.missing_material"),
+                countText: missingCount(filled: stats.filledMaterialCount),
+                filter: .missingMaterial
+            ),
+            DataHealthEntry(
                 title: String(localized: "bell_catalog.summary.missing_notes"),
                 countText: missingCount(filled: stats.filledNotesCount),
                 filter: .missingNotes

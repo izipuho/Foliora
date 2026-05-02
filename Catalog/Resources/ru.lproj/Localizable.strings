@@ -41,6 +41,7 @@
 "bell_catalog.summary.all" = "Все колокольчики";
 "bell_catalog.summary.missing_origin" = "Без происхождения";
 "bell_catalog.summary.missing_year" = "Без года";
+"bell_catalog.summary.missing_material" = "Неизвестный материал";
 "bell_catalog.summary.missing_storage" = "Без места хранения";
 "bell_catalog.summary.missing_notes" = "Без заметок";
 "bell_catalog.summary.missing_tags" = "Без тэгов";

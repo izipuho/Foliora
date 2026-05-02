@@ -51,6 +51,7 @@ enum BellPresenceFilter: Hashable {
     case withTags
     case missingTags
     case withMaterial
+    case missingMaterial
 }
 
 enum BellAttributeFilter: Hashable {

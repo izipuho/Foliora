@@ -41,6 +41,7 @@
 "bell_catalog.summary.all" = "All bells";
 "bell_catalog.summary.missing_origin" = "Without origin";
 "bell_catalog.summary.missing_year" = "Without year";
+"bell_catalog.summary.missing_material" = "Unknown material";
 "bell_catalog.summary.missing_storage" = "Without storage";
 "bell_catalog.summary.missing_notes" = "Without notes";
 "bell_catalog.summary.missing_tags" = "Without tags";

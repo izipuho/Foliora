@@ -38,6 +38,7 @@ struct BellCatalogStats {
     let topCountries: [CountryCount]
     let filledOriginCount: Int
     let filledYearCount: Int
+    let filledMaterialCount: Int
     let filledStorageCount: Int
     let filledNotesCount: Int
     let filledTagsCount: Int
@@ -100,6 +101,7 @@ final class BellCatalogViewModel: ObservableObject {
                 topCountries: [],
                 filledOriginCount: 0,
                 filledYearCount: 0,
+                filledMaterialCount: 0,
                 filledStorageCount: 0,
                 filledNotesCount: 0,
                 filledTagsCount: 0
@@ -139,6 +141,7 @@ final class BellCatalogViewModel: ObservableObject {
             topCountries: topCountries(in: sourceBells),
             filledOriginCount: bellsWithOriginCount(in: sourceBells),
             filledYearCount: bellsWithAcquiredYearCount(in: sourceBells),
+            filledMaterialCount: bellsWithMaterialCount(in: sourceBells),
             filledStorageCount: bellsWithStorageCount(in: sourceBells),
             filledNotesCount: bellsWithNotesCount(in: sourceBells),
             filledTagsCount: bellsWithTagsCount(in: sourceBells)
@@ -197,6 +200,10 @@ final class BellCatalogViewModel: ObservableObject {
 
     private func bellsWithAcquiredYearCount(in bells: [BellEntity]) -> Int {
         bells.filter { $0.acquiredYear != nil }.count
+    }
+
+    private func bellsWithMaterialCount(in bells: [BellEntity]) -> Int {
+        bells.filter { $0.material != .unknown }.count
     }
 
     private func bellsWithStorageCount(in bells: [BellEntity]) -> Int {
@@ -379,7 +386,9 @@ final class BellCatalogViewModel: ObservableObject {
             case .missingTags:
                 return bell.tagValues.isEmpty
             case .withMaterial:
-                return !bell.materialDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                return bell.material != .unknown
+            case .missingMaterial:
+                return bell.material == .unknown
             }
         }
         && filters.attributes.allSatisfy { filter in
