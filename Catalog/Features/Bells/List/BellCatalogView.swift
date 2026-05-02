@@ -761,89 +761,16 @@ struct BellCatalogView: View {
     }
 
     private func dashboardHeader(displayModel: BellCatalogDisplayModel, screenHeight: CGFloat) -> some View {
-        let headerHeight = min(max(screenHeight * 0.36, 220), 320)
-
-        return VStack(alignment: .leading, spacing: 14) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    dashboardMetricChip(
-                        title: String(localized: "bell_catalog.dashboard.total"),
-                        value: "\(displayModel.stats.totalCount)",
-                        systemImage: "bell.fill"
-                    ) {
-                        filters = BellFilters()
-                    }
-
-                    dashboardMetricChip(
-                        title: String(localized: "bell_catalog.dashboard.countries"),
-                        value: "\(displayModel.stats.countryCount)",
-                        systemImage: "globe.europe.africa.fill"
-                    ) {
-                        setFilter(.withOrigin)
-                    }
-
-                    dashboardMetricChip(
-                        title: String(localized: "bell_catalog.dashboard.cities"),
-                        value: "\(displayModel.stats.cityCount)",
-                        systemImage: "building.2.fill"
-                    ) {
-                        setFilter(.withCity)
-                    }
-                }
+        BellCatalogDashboardView(
+            stats: displayModel.stats,
+            accentColor: catalogStyle.accentColor,
+            onFilterApply: setFilter,
+            onGeographyFocus: focusGeography,
+            onResetFilters: {
+                filters = BellFilters()
             }
-            .scrollClipDisabled()
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    DashboardTopGeographyCard(
-                        countryName: topGeography(in: displayModel)?.name ?? String(localized: "common.unknown"),
-                        flag: topGeography(in: displayModel)?.flag ?? "🌍",
-                        countText: topGeographyCountText(in: displayModel),
-                        tint: catalogStyle.accentColor,
-                        action: {
-                            guard !topGeographyEntries(in: displayModel).isEmpty else { return }
-                            isPresentingTopGeographyPopover = true
-                        }
-                    )
-                    .popover(isPresented: $isPresentingTopGeographyPopover) {
-                        TopGeographyPopover(
-                            entries: topGeographyEntries(in: displayModel),
-                            onSelect: { country in
-                                isPresentingTopGeographyPopover = false
-                                focusGeography(country: country)
-                            }
-                        )
-                    }
-
-                    DashboardDataHealthCard(
-                        progress: dataHealthProgress(in: displayModel),
-                        tint: catalogStyle.accentColor
-                    ) {
-                        isPresentingDataHealthPopover = true
-                    }
-                    .popover(isPresented: $isPresentingDataHealthPopover) {
-                        DataHealthPopover(
-                            entries: dataHealthEntries(in: displayModel),
-                            onSelect: { filter in
-                                isPresentingDataHealthPopover = false
-                                setFilter(filter)
-                            }
-                        )
-                    }
-                }
-            }
-            .scrollClipDisabled()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(maxHeight: headerHeight, alignment: .top)
-        .padding(.horizontal, CatalogLayoutInsets.screen)
-        .padding(.top, CatalogSpacing.compact)
-        .padding(.vertical, 4)
-        .scrollTransition(axis: .vertical) { content, phase in
-            content
-                .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
-                .opacity(phase.isIdentity ? 1 : 0.82)
-        }
+        )
+        .frame(maxHeight: min(max(screenHeight * 0.36, 220), 320), alignment: .top)
     }
 
     private func dashboardMetricChip(

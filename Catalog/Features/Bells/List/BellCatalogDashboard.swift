@@ -1,5 +1,222 @@
 import SwiftUI
 
+struct BellCatalogDashboardView: View {
+    let stats: BellCatalogStats
+    let accentColor: Color
+    let onFilterApply: (BellPresenceFilter) -> Void
+    let onGeographyFocus: (String) -> Void
+    let onResetFilters: () -> Void
+
+    @State private var isPresentingTopGeographyPopover = false
+    @State private var isPresentingDataHealthPopover = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    MetricPill(
+                        title: String(localized: "bell_catalog.dashboard.total"),
+                        value: "\(stats.totalCount)",
+                        systemImage: "bell.fill",
+                        tint: accentColor,
+                        action: onResetFilters
+                    )
+
+                    MetricPill(
+                        title: String(localized: "bell_catalog.dashboard.countries"),
+                        value: "\(stats.countryCount)",
+                        systemImage: "globe.europe.africa.fill",
+                        tint: accentColor
+                    ) {
+                        onFilterApply(.withOrigin)
+                    }
+
+                    MetricPill(
+                        title: String(localized: "bell_catalog.dashboard.cities"),
+                        value: "\(stats.cityCount)",
+                        systemImage: "building.2.fill",
+                        tint: accentColor
+                    ) {
+                        onFilterApply(.withCity)
+                    }
+                }
+            }
+            .scrollClipDisabled()
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    DashboardTopGeographyCard(
+                        countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                        flag: topGeography?.flag ?? "🌍",
+                        countText: topGeographyCountText,
+                        tint: accentColor,
+                        action: {
+                            guard !topGeographyEntries.isEmpty else { return }
+                            isPresentingTopGeographyPopover = true
+                        }
+                    )
+                    .popover(isPresented: $isPresentingTopGeographyPopover) {
+                        TopGeographyPopover(
+                            entries: topGeographyEntries,
+                            onSelect: { country in
+                                isPresentingTopGeographyPopover = false
+                                onGeographyFocus(country)
+                            }
+                        )
+                    }
+
+                    DashboardDataHealthCard(
+                        progress: dataHealthProgress,
+                        tint: accentColor
+                    ) {
+                        isPresentingDataHealthPopover = true
+                    }
+                    .popover(isPresented: $isPresentingDataHealthPopover) {
+                        DataHealthPopover(
+                            entries: dataHealthEntries,
+                            onSelect: { filter in
+                                isPresentingDataHealthPopover = false
+                                onFilterApply(filter)
+                            }
+                        )
+                    }
+                }
+            }
+            .scrollClipDisabled()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, CatalogLayoutInsets.screen)
+        .padding(.top, CatalogSpacing.compact)
+        .padding(.vertical, 4)
+        .scrollTransition(axis: .vertical) { content, phase in
+            content
+                .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
+                .opacity(phase.isIdentity ? 1 : 0.82)
+        }
+    }
+
+    private var dataHealthProgress: Double {
+        guard stats.totalCount > 0 else { return 0 }
+        let completeFields = stats.filledOriginCount
+            + stats.filledYearCount
+            + stats.filledStorageCount
+            + stats.filledNotesCount
+            + stats.filledTagsCount
+        let totalFields = stats.totalCount * 5
+        return min(max(Double(completeFields) / Double(totalFields), 0), 1)
+    }
+
+    private var dataHealthEntries: [DataHealthEntry] {
+        let total = stats.totalCount
+
+        return [
+            DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.with_origin"),
+                countText: "\(stats.filledOriginCount)/\(total)",
+                filter: .missingOrigin
+            ),
+            DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.with_year"),
+                countText: "\(stats.filledYearCount)/\(total)",
+                filter: .missingYear
+            ),
+            DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.with_storage"),
+                countText: "\(stats.filledStorageCount)/\(total)",
+                filter: .missingStorage
+            ),
+            DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.with_notes"),
+                countText: "\(stats.filledNotesCount)/\(total)",
+                filter: .missingNotes
+            ),
+            DataHealthEntry(
+                title: String(localized: "bell_catalog.summary.with_tags"),
+                countText: "\(stats.filledTagsCount)/\(total)",
+                filter: .missingTags
+            )
+        ]
+    }
+
+    private var topGeography: (name: String, flag: String, count: Int)? {
+        guard let topCountry = stats.topCountries.first else { return nil }
+        return (
+            name: topCountry.country,
+            flag: flagEmoji(for: topCountry.countryCode),
+            count: topCountry.count
+        )
+    }
+
+    private var topGeographyEntries: [TopGeographyEntry] {
+        Array(stats.topCountries.prefix(5)).map { row in
+            TopGeographyEntry(
+                country: row.country,
+                flag: flagEmoji(for: row.countryCode),
+                countText: localizedCount(row.count, kind: .bells)
+            )
+        }
+    }
+
+    private var topGeographyCountText: String {
+        guard let topGeography else { return String(localized: "bell_catalog.summary.no_origin_data") }
+        return localizedCount(topGeography.count, kind: .bells)
+    }
+
+    private func localizedCount(_ count: Int, kind: SummaryCountKind) -> String {
+        String.localizedStringWithFormat(
+            String(localized: kind.resource),
+            count
+        )
+    }
+
+    private func flagEmoji(for countryCode: String) -> String {
+        let normalizedCode = countryCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard normalizedCode.count == 2 else { return "🌍" }
+
+        let base: UInt32 = 127397
+        let scalars = normalizedCode.unicodeScalars.compactMap { UnicodeScalar(base + $0.value) }
+        return scalars.count == 2 ? String(String.UnicodeScalarView(scalars)) : "🌍"
+    }
+}
+
+private struct MetricPill: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let tint: Color
+    var isInteractive = true
+    var action: (() -> Void)?
+
+    var body: some View {
+        if isInteractive, let action {
+            Button(action: action) {
+                content
+            }
+            .buttonStyle(.plain)
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(tint)
+
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+
+            Text(value)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+    }
+}
+
 struct DashboardDataHealthCard: View {
     let progress: Double
     let tint: Color
