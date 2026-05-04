@@ -18,6 +18,10 @@
 		2403CEE52F9FCD9F00C63AB6 /* ImageMediaBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE42F9FCD9F00C63AB6 /* ImageMediaBuilder.swift */; };
 		2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */; };
 		246FD63C2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */; };
+		246FD6772FA8BF6300B8859A /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
+		246FD67B2FA8BF8600B8859A /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
+		246FD6812FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */; };
+		246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */; };
 		24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */; };
 		24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */; };
 		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
@@ -71,6 +75,8 @@
 		2403CEE42F9FCD9F00C63AB6 /* ImageMediaBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageMediaBuilder.swift; sourceTree = "<group>"; };
 		2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionShellView.swift; sourceTree = "<group>"; };
 		246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogSelectionBottomPanel.swift; sourceTree = "<group>"; };
+		246FD65F2FA8BB2900B8859A /* BellRecognition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognition.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedFieldValue.swift; sourceTree = "<group>"; };
 		24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellEditorView.swift; sourceTree = "<group>"; };
 		24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogModels.swift; sourceTree = "<group>"; };
 		24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogDashboard.swift; sourceTree = "<group>"; };
@@ -116,7 +122,22 @@
 		D00000000000000000000031 /* BellDetailView+Subviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BellDetailView+Subviews.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		246FD6602FA8BB2900B8859A /* BellRecognition */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BellRecognition;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		246FD65C2FA8BB2900B8859A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C00000000000000000000021 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -148,6 +169,7 @@
 			isa = PBXGroup;
 			children = (
 				C00000000000000000000032 /* Catalog */,
+				246FD6602FA8BB2900B8859A /* BellRecognition */,
 				C00000000000000000000033 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -171,6 +193,7 @@
 			isa = PBXGroup;
 			children = (
 				C00000000000000000000012 /* Catalog.app */,
+				246FD65F2FA8BB2900B8859A /* BellRecognition.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -380,6 +403,7 @@
 		C0000000000000000000004B /* Analysis */ = {
 			isa = PBXGroup;
 			children = (
+				246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */,
 				C0000000000000000000002C /* BellPhotoAnalysis.swift */,
 			);
 			path = Analysis;
@@ -388,6 +412,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		246FD65E2FA8BB2900B8859A /* BellRecognition */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 246FD6672FA8BB2A00B8859A /* Build configuration list for PBXNativeTarget "BellRecognition" */;
+			buildPhases = (
+				246FD65B2FA8BB2900B8859A /* Sources */,
+				246FD65C2FA8BB2900B8859A /* Frameworks */,
+				246FD65D2FA8BB2900B8859A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				246FD6602FA8BB2900B8859A /* BellRecognition */,
+			);
+			name = BellRecognition;
+			packageProductDependencies = (
+			);
+			productName = BellRecognition;
+			productReference = 246FD65F2FA8BB2900B8859A /* BellRecognition.app */;
+			productType = "com.apple.product-type.application";
+		};
 		C00000000000000000000051 /* Catalog */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C00000000000000000000061 /* Build configuration list for PBXNativeTarget "Catalog" */;
@@ -417,6 +463,9 @@
 				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
+					246FD65E2FA8BB2900B8859A = {
+						CreatedOnToolsVersion = 26.3;
+					};
 					C00000000000000000000051 = {
 						CreatedOnToolsVersion = 26.3;
 					};
@@ -438,11 +487,19 @@
 			projectRoot = "";
 			targets = (
 				C00000000000000000000051 /* Catalog */,
+				246FD65E2FA8BB2900B8859A /* BellRecognition */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		246FD65D2FA8BB2900B8859A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C00000000000000000000023 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -456,10 +513,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		246FD65B2FA8BB2900B8859A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				246FD67B2FA8BF8600B8859A /* BellPhotoAnalysis.swift in Sources */,
+				246FD6772FA8BF6300B8859A /* PhotoAnalysis.swift in Sources */,
+				246FD6812FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C00000000000000000000022 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
 				C000000000000000000000A1 /* CatalogApp.swift in Sources */,
 				C000000000000000000000A2 /* AppContainer.swift in Sources */,
 				C000000000000000000000A3 /* AppRouter.swift in Sources */,
@@ -534,6 +602,157 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		246FD6682FA8BB2A00B8859A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8S22FH7RU6;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iz.BellRecognition;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		246FD6692FA8BB2A00B8859A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8S22FH7RU6;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iz.BellRecognition;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		C00000000000000000000071 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -645,6 +864,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		246FD6672FA8BB2A00B8859A /* Build configuration list for PBXNativeTarget "BellRecognition" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				246FD6682FA8BB2A00B8859A /* Debug */,
+				246FD6692FA8BB2A00B8859A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C00000000000000000000061 /* Build configuration list for PBXNativeTarget "Catalog" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
