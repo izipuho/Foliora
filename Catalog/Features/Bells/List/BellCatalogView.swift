@@ -460,10 +460,10 @@ struct BellCatalogView: View {
             }
         }
         .onAppear {
+            viewModel.updateSource(bells: bells)
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
             viewModel.updateContext(searchState: searchState, forcesFlatLayout: usesFlatSearchLayout)
-            viewModel.updateSource(bells: bells)
             updateSuggestedTokens()
             if startsSearchFocused {
                 isSearchFocused = true
@@ -476,7 +476,6 @@ struct BellCatalogView: View {
         .onChange(of: orderMode) { _, newValue in
             activeJumpPopoverSectionID = nil
             viewModel.updateContext(orderMode: newValue)
-            viewModel.updateSource(bells: bells)
             if let pendingScrollTargetID {
                 requestScroll(to: pendingScrollTargetID)
             } else {
@@ -486,7 +485,6 @@ struct BellCatalogView: View {
         }
         .onChange(of: filters) { _, newValue in
             viewModel.updateContext(filters: newValue)
-            viewModel.updateSource(bells: bells)
             pruneSelectionToVisibleBells()
             if newValue.activeTagFilter != nil {
                 requestScroll(to: "bell-grid-top")
@@ -495,7 +493,6 @@ struct BellCatalogView: View {
         }
         .onChange(of: searchState) { _, newValue in
             viewModel.updateContext(searchState: newValue, forcesFlatLayout: usesFlatSearchLayout)
-            viewModel.updateSource(bells: bells)
             pruneSelectionToVisibleBells()
             updateSuggestedTokens()
         }
@@ -660,8 +657,11 @@ struct BellCatalogView: View {
         scrollProxy: ScrollViewProxy
     ) -> some View {
         ForEach(sections) { section in
+            let usesCabinetGroups = !section.cabinetGroups.isEmpty
+            let usesJumpPopover = section.indexTitle == nil
+
             Section {
-                if orderMode == .storage {
+                if usesCabinetGroups {
                     VStack(alignment: .leading, spacing: 14) {
                         ForEach(section.cabinetGroups) { cabinetGroup in
                             VStack(alignment: .leading, spacing: 10) {
@@ -695,7 +695,7 @@ struct BellCatalogView: View {
                 BellGroupedSectionHeader(
                     title: section.title,
                     tint: catalogStyle.accentColor,
-                    isJumpButton: orderMode == .acquisitionYear || orderMode == .storage,
+                    isJumpButton: usesJumpPopover,
                     action: {
                         activeJumpPopoverSectionID = section.id
                     }
@@ -703,7 +703,7 @@ struct BellCatalogView: View {
                 .id(section.id)
                 .popover(
                     isPresented: Binding(
-                        get: { activeJumpPopoverSectionID == section.id && (orderMode == .acquisitionYear || orderMode == .storage) },
+                        get: { activeJumpPopoverSectionID == section.id && usesJumpPopover },
                         set: { isPresented in
                             if !isPresented {
                                 activeJumpPopoverSectionID = nil
@@ -739,15 +739,19 @@ struct BellCatalogView: View {
         )
     }
 
-    private var visibleBellIDs: Set<UUID> {
+    private var visibleBells: [BellEntity] {
         switch displayModel.layout {
         case .empty:
             return []
         case .flat(let bells):
-            return Set(bells.map(\.id))
+            return bells
         case .grouped(let sections):
-            return Set(sections.flatMap(\.bells).map(\.id))
+            return sections.flatMap(\.allBells)
         }
+    }
+
+    private var visibleBellIDs: Set<UUID> {
+        Set(visibleBells.map(\.id))
     }
 
     private var selectedVisibleBellIDs: Set<UUID> {
@@ -756,7 +760,7 @@ struct BellCatalogView: View {
 
     private var selectedBells: [BellEntity] {
         let selectedVisibleBellIDs = selectedVisibleBellIDs
-        return bells.filter { selectedVisibleBellIDs.contains($0.id) }
+        return visibleBells.filter { selectedVisibleBellIDs.contains($0.id) }
     }
 
     private func enterSelectionMode(with bellID: UUID) {

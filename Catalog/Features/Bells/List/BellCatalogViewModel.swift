@@ -79,6 +79,7 @@ final class BellCatalogViewModel: ObservableObject {
     var searchState: BellCatalogSearchState
     var forcesFlatLayout: Bool
     @Published private(set) var displayModel: BellCatalogDisplayModel
+    private var sourceBells: [BellEntity]?
 
     init(
         orderMode: BellOrderMode,
@@ -110,17 +111,19 @@ final class BellCatalogViewModel: ObservableObject {
     }
 
     func updateSource(bells: [BellEntity]) {
+        sourceBells = bells
         let filteredBells = filteredBells(from: bells)
+        let sortedBells = sorted(filteredBells)
         let shouldUseFlatLayout = forcesFlatLayout || hasActiveSearchCriteria(searchState)
-        let groupedSections = shouldUseFlatLayout ? [] : groupedSections(fromFilteredBells: filteredBells)
+        let groupedSections = shouldUseFlatLayout ? [] : groupedSections(fromFilteredBells: sortedBells)
         let layout: BellCatalogLayout
 
-        if filteredBells.isEmpty {
+        if sortedBells.isEmpty {
             layout = .empty
         } else if !groupedSections.isEmpty {
             layout = .grouped(groupedSections)
         } else {
-            layout = .flat(filteredBells)
+            layout = .flat(sortedBells)
         }
 
         let stats = buildStats(from: filteredBells, sourceBells: bells)
@@ -156,14 +159,8 @@ final class BellCatalogViewModel: ObservableObject {
             return bells.first { $0.id == id }
         case .grouped(let sections):
             for section in sections {
-                if let bell = section.bells.first(where: { $0.id == id }) {
+                if let bell = section.allBells.first(where: { $0.id == id }) {
                     return bell
-                }
-
-                for group in section.cabinetGroups {
-                    if let bell = group.bells.first(where: { $0.id == id }) {
-                        return bell
-                    }
                 }
             }
 
@@ -251,11 +248,13 @@ final class BellCatalogViewModel: ObservableObject {
     func updateContext(orderMode: BellOrderMode) {
         guard self.orderMode != orderMode else { return }
         self.orderMode = orderMode
+        refreshSource()
     }
 
     func updateContext(filters: BellFilters) {
         guard self.filters != filters else { return }
         self.filters = filters
+        refreshSource()
     }
 
     func updateContext(searchState: BellCatalogSearchState, forcesFlatLayout: Bool? = nil) {
@@ -263,6 +262,12 @@ final class BellCatalogViewModel: ObservableObject {
         guard self.searchState != searchState || self.forcesFlatLayout != newForcesFlatLayout else { return }
         self.searchState = searchState
         self.forcesFlatLayout = newForcesFlatLayout
+        refreshSource()
+    }
+
+    private func refreshSource() {
+        guard let sourceBells else { return }
+        updateSource(bells: sourceBells)
     }
 
     private func hasActiveSearchCriteria(_ searchState: BellCatalogSearchState) -> Bool {
@@ -427,7 +432,7 @@ final class BellCatalogViewModel: ObservableObject {
                     title: country,
                     jumpTitle: country,
                     indexTitle: String(country.prefix(1)).uppercased(),
-                    bells: grouped[country, default: []].sorted(using: geographyComparators),
+                    bells: grouped[country, default: []],
                     cabinetGroups: []
                 )
             }
@@ -452,7 +457,7 @@ final class BellCatalogViewModel: ObservableObject {
                     title: title,
                     jumpTitle: title,
                     indexTitle: nil,
-                    bells: grouped[title, default: []].sorted(using: titleComparators),
+                    bells: grouped[title, default: []],
                     cabinetGroups: []
                 )
             }
@@ -480,7 +485,7 @@ final class BellCatalogViewModel: ObservableObject {
                         BellStorageCabinetGroup(
                             id: "\(header)-\(key)",
                             title: key,
-                            bells: value.sorted(using: titleComparators)
+                            bells: value
                         )
                     }
                     .sorted {
@@ -583,6 +588,10 @@ struct BellGroupedSection: Identifiable {
     let indexTitle: String?
     let bells: [BellEntity]
     let cabinetGroups: [BellStorageCabinetGroup]
+
+    var allBells: [BellEntity] {
+        bells + cabinetGroups.flatMap(\.bells)
+    }
 }
 
 struct BellStorageCabinetGroup: Identifiable {

@@ -13,13 +13,13 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>one</key>
-			<string>%d фото</string>
+			<string>%d колокольчик</string>
 			<key>few</key>
-			<string>%d фото</string>
+			<string>%d колокольчика</string>
 			<key>many</key>
-			<string>%d фото</string>
+			<string>%d колокольчиков</string>
 			<key>other</key>
-			<string>%d фото</string>
+			<string>%d колокольчика</string>
 		</dict>
 	</dict>
 	<key>bell_catalog.selection.selected_count</key>

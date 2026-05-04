@@ -29,9 +29,9 @@
 			<key>NSStringFormatValueTypeKey</key>
 			<string>d</string>
 			<key>one</key>
-			<string>%d photo</string>
+			<string>%d bell</string>
 			<key>other</key>
-			<string>%d photos</string>
+			<string>%d bells</string>
 		</dict>
 	</dict>
 	<key>collection.count.books</key>
