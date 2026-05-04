@@ -475,13 +475,15 @@ struct BellCatalogView: View {
         }
         .onChange(of: orderMode) { _, newValue in
             activeJumpPopoverSectionID = nil
-            viewModel.updateContext(orderMode: newValue)
-            if let pendingScrollTargetID {
-                requestScroll(to: pendingScrollTargetID)
-            } else {
-                requestScroll(to: "bell-grid-top")
+            DispatchQueue.main.async {
+                viewModel.updateContext(orderMode: newValue)
+                if let pendingScrollTargetID {
+                    requestScroll(to: pendingScrollTargetID)
+                } else {
+                    requestScroll(to: "bell-grid-top")
+                }
+                resetPinchState()
             }
-            resetPinchState()
         }
         .onChange(of: filters) { _, newValue in
             viewModel.updateContext(filters: newValue)
@@ -551,7 +553,6 @@ struct BellCatalogView: View {
                     }
                 }
                 .animation(.snappy(duration: 0.24), value: layoutMode)
-                .animation(.snappy(duration: 0.24), value: orderMode)
             }
             .contentMargins(.horizontal, nil, for: .scrollContent)
             .contentMargins(.top, nil, for: .scrollContent)
