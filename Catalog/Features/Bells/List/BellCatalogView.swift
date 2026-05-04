@@ -372,7 +372,8 @@ struct BellCatalogView: View {
             unifiedFeedContent(
                 displayModel: displayModel,
                 screenWidth: proxy.size.width,
-                screenHeight: proxy.size.height
+                screenHeight: proxy.size.height,
+                bottomSafeAreaInset: proxy.safeAreaInsets.bottom
             )
         }
         .sheet(item: $presentedBell) { bell in
@@ -506,7 +507,8 @@ struct BellCatalogView: View {
     private func unifiedFeedContent(
         displayModel: BellCatalogDisplayModel,
         screenWidth: CGFloat,
-        screenHeight: CGFloat
+        screenHeight: CGFloat,
+        bottomSafeAreaInset: CGFloat
     ) -> some View {
         return ScrollViewReader { scrollProxy in
             let cardWidth = layoutMode.cardWidth(forContainerWidth: screenWidth)
@@ -576,7 +578,20 @@ struct BellCatalogView: View {
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if isSelectionModeEnabled && !selectedVisibleBellIDs.isEmpty {
-                    selectionBottomPanel
+                    BellCatalogSelectionBottomPanel(
+                        selectedCount: selectedVisibleBellIDs.count,
+                        accentColor: catalogStyle.accentColor,
+                        bottomSafeAreaInset: bottomSafeAreaInset,
+                        onMove: {
+                            bellPendingMove = selectedBells.first
+                        },
+                        onDelete: {
+                            bellPendingDeletion = selectedBells.first
+                            isPresentingDeleteConfirmation = bellPendingDeletion != nil
+                        }
+                    )
+                        .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 112, alignment: .bottom)
+                        .ignoresSafeArea(edges: .bottom)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -774,86 +789,6 @@ struct BellCatalogView: View {
             isSelectionModeEnabled = false
             selectedBellIDs.removeAll()
         }
-    }
-
-    private var selectionBottomPanel: some View {
-        ZStack(alignment: .bottom) {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .mask(
-                    LinearGradient(
-                        colors: [.clear, .black.opacity(0.72), .black],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.34), .black.opacity(0.56)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            HStack(alignment: .center, spacing: 18) {
-                Button {
-                    bellPendingMove = selectedBells.first
-                } label: {
-                    Image(systemName: "folder")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(catalogStyle.accentColor)
-                        .frame(width: 48, height: 48)
-                        .background {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .overlay {
-                                    Circle()
-                                        .fill(catalogStyle.accentColor.opacity(0.12))
-                                }
-                        }
-                }
-                .buttonStyle(.plain)
-
-                Text(selectedBellCountText)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .frame(minWidth: 150)
-
-                Button(role: .destructive) {
-                    bellPendingDeletion = selectedBells.first
-                    isPresentingDeleteConfirmation = bellPendingDeletion != nil
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.red)
-                        .frame(width: 48, height: 48)
-                        .background {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .overlay {
-                                    Circle()
-                                        .fill(Color.red.opacity(0.10))
-                                }
-                        }
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, CatalogLayoutInsets.screen)
-            .padding(.top, 24)
-            .padding(.bottom, 12)
-        }
-        .frame(maxWidth: .infinity, minHeight: 112, alignment: .bottom)
-        .ignoresSafeArea(edges: .bottom)
-    }
-
-    private var selectedBellCountText: String {
-        String.localizedStringWithFormat(
-            String(localized: "bell_catalog.selection.selected_count"),
-            selectedVisibleBellIDs.count
-        )
     }
 
     private func bellCardButton(_ bell: BellEntity, cardSize: CGSize) -> some View {
