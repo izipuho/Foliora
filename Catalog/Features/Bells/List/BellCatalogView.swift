@@ -5,7 +5,6 @@ import UIKit
 private enum BellCatalogFeedback: Equatable {
     case success
     case warning
-    case selection
 
     var sensoryFeedback: SensoryFeedback {
         switch self {
@@ -13,8 +12,6 @@ private enum BellCatalogFeedback: Equatable {
             return .success
         case .warning:
             return .warning
-        case .selection:
-            return .selection
         }
     }
 }
@@ -102,11 +99,6 @@ struct BellCatalogView: View {
         case search
     }
 
-    private enum LayoutThresholdDirection {
-        case zoomIn
-        case zoomOut
-    }
-
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
     let collection: CollectionSummary?
@@ -132,20 +124,12 @@ struct BellCatalogView: View {
     @State private var visualScale: CGFloat = 1
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
     @State private var feedbackToken = 0
-    @State private var activeLayoutThresholdDirection: LayoutThresholdDirection?
-    @State private var accumulatedMagnificationDelta: CGFloat = 0
-    @State private var lastGestureMagnification: CGFloat?
     @State private var isPinching: Bool = false
-    @State private var isPreparingForPinch = false
     @State private var didEndActivePinchGesture = false
-    @State private var pinchOriginBellID: UUID?
-    @State private var didAttemptCapture = false
-    @State private var pinchNavigatedBell: BellEntity?
     @State private var suggestedTokens: [SearchToken] = []
     @FocusState private var isSearchFocused: Bool
     @StateObject private var viewModel: BellCatalogViewModel
     @Namespace private var bellGridTransitionNamespace
-    @Namespace private var bellDetailZoomNamespace
 
     init(
         collection: CollectionSummary?,
@@ -283,96 +267,33 @@ struct BellCatalogView: View {
         )
     }
 
-    private func bellIndex(
-        at location: CGPoint,
-        in bells: [BellEntity],
-        screenWidth: CGFloat
-    ) -> Int? {
-        guard !bells.isEmpty, screenWidth > 0 else { return nil }
-
-        let columnCount = max(layoutMode.columnCount, 1)
-        let cardWidth = layoutMode.cardWidth(forContainerWidth: screenWidth)
-        let cardHeight = layoutMode.cardHeight
-        let horizontalStep = cardWidth + layoutMode.spacing
-        let verticalStep = cardHeight + layoutMode.spacing
-        guard horizontalStep > 0, verticalStep > 0 else { return nil }
-
-        let totalGridWidth = (cardWidth * CGFloat(columnCount)) + (layoutMode.spacing * CGFloat(max(columnCount - 1, 0)))
-        let gridLeadingInset = max((screenWidth - totalGridWidth) / 2, 0)
-        let localX = location.x - gridLeadingInset
-
-        let rawColumn = ((localX - (cardWidth / 2)) / horizontalStep).rounded()
-        let rawRow = ((location.y - (cardHeight / 2)) / verticalStep).rounded()
-        let column = min(max(Int(rawColumn), 0), columnCount - 1)
-        let row = max(Int(rawRow), 0)
-        let index = (row * columnCount) + column
-
-        return min(index, bells.count - 1)
-    }
-
-    private func layoutMagnifyGesture(
-        bells: [BellEntity],
-        screenWidth: CGFloat
-    ) -> some Gesture {
+    private func layoutMagnifyGesture() -> some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                if !isPinching {
-                    isPreparingForPinch = true
-                    isPinching = true
-                }
-                if !didAttemptCapture {
-                    capturePinchOriginBellIfNeeded(
-                        at: value.startLocation,
-                        in: bells,
-                        screenWidth: screenWidth
-                    )
-                }
-                updateAccumulatedMagnification(with: value.magnification)
+                isPinching = true
                 visualScale = clampedVisualScale(for: value.magnification)
             }
             .onEnded { value in
-                didEndActivePinchGesture = abs(value.velocity) > 0.5
-                let effectiveThreshold = zoomThreshold(forVelocity: value.velocity)
-                let finalAccumulatedDelta = accumulatedMagnificationDelta
-                let shouldOpenDetailFromPinch = layoutMode == .showcase && !canZoomOut && finalAccumulatedDelta >= effectiveThreshold
-                let pinchOriginBell = pinchOriginBellID.flatMap { displayedItemsBell(withID: $0) }
+                let delta = value.magnification - 1
+                let threshold = zoomThreshold(forVelocity: value.velocity)
 
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    activeLayoutThresholdDirection = nil
                     visualScale = 1
                 }
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(16)) {
-                    if shouldOpenDetailFromPinch, let pinchOriginBell {
-                        pinchNavigatedBell = pinchOriginBell
-                    } else if finalAccumulatedDelta >= effectiveThreshold {
-                        zoomOutLayout()
-                    } else if finalAccumulatedDelta <= -effectiveThreshold {
-                        zoomInLayout()
-                    }
+                if delta >= threshold {
+                    zoomOutLayout()
+                } else if delta <= -threshold {
+                    zoomInLayout()
                 }
 
-                accumulatedMagnificationDelta = 0
-                lastGestureMagnification = nil
-                pinchOriginBellID = nil
-                didAttemptCapture = false
-
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    isPinching = false
-                    isPreparingForPinch = false
-                    didEndActivePinchGesture = false
-                }
+                didEndActivePinchGesture = true
+                isPinching = false
             }
     }
 
     private func clampedVisualScale(for magnification: CGFloat) -> CGFloat {
         min(max(magnification, 0.88), 1.16)
-    }
-
-    private func updateAccumulatedMagnification(with magnification: CGFloat) {
-        let previousMagnification = lastGestureMagnification ?? 1
-        accumulatedMagnificationDelta += magnification - previousMagnification
-        lastGestureMagnification = magnification
     }
 
     private func zoomThreshold(forVelocity velocity: CGFloat) -> CGFloat {
@@ -381,47 +302,15 @@ struct BellCatalogView: View {
         return max(0.05, baseThreshold - velocityReduction)
     }
 
-    private func updateLayoutThresholdFeedback(for value: MagnifyGesture.Value) {
-        let threshold = zoomThreshold(forVelocity: value.velocity)
-        let newDirection: LayoutThresholdDirection?
-
-        if accumulatedMagnificationDelta >= threshold, canZoomOut {
-            newDirection = .zoomOut
-        } else if accumulatedMagnificationDelta <= -threshold, canZoomIn {
-            newDirection = .zoomIn
-        } else {
-            newDirection = nil
-        }
-
-        guard newDirection != activeLayoutThresholdDirection else { return }
-
-        activeLayoutThresholdDirection = newDirection
-
-        if newDirection != nil {
-            emitFeedback(.selection)
-        }
-    }
-
     private func emitFeedback(_ kind: BellCatalogFeedback) {
         feedbackToken += 1
         feedbackEvent = BellCatalogFeedbackEvent(kind: kind, token: feedbackToken)
     }
 
-    private func capturePinchOriginBellIfNeeded(
-        at location: CGPoint,
-        in bells: [BellEntity],
-        screenWidth: CGFloat
-    ) {
-        guard pinchOriginBellID == nil else { return }
-        guard !didAttemptCapture else { return }
-
-        didAttemptCapture = true
-        guard let index = bellIndex(at: location, in: bells, screenWidth: screenWidth) else { return }
-        pinchOriginBellID = bells[index].id
-    }
-
-    private func displayedItemsBell(withID bellID: UUID) -> BellEntity? {
-        viewModel.bell(withID: bellID)
+    private func resetPinchState() {
+        isPinching = false
+        visualScale = 1
+        didEndActivePinchGesture = false
     }
 
     private var availableSearchCollections: [CollectionEntity] {
@@ -527,10 +416,6 @@ struct BellCatalogView: View {
                 }
             }
         }
-        .navigationDestination(item: $pinchNavigatedBell) { bell in
-            BellGridDetailNavigationContainer(bell: bell, repository: repository)
-                .navigationTransition(.zoom(sourceID: bell.id, in: bellDetailZoomNamespace))
-        }
         .confirmationDialog(
             String(localized: "bell.context.delete.title"),
             isPresented: $isPresentingDeleteConfirmation,
@@ -595,20 +480,12 @@ struct BellCatalogView: View {
         .onChange(of: orderMode) { _, newValue in
             viewModel.updateContext(orderMode: newValue)
             viewModel.updateSource(bells: bells)
-            accumulatedMagnificationDelta = 0
-            lastGestureMagnification = nil
-            activeLayoutThresholdDirection = nil
-            visualScale = 1
-            pinchOriginBellID = nil
+            resetPinchState()
         }
         .onChange(of: filters) { _, newValue in
             viewModel.updateContext(filters: newValue)
             viewModel.updateSource(bells: bells)
-            accumulatedMagnificationDelta = 0
-            lastGestureMagnification = nil
-            activeLayoutThresholdDirection = nil
-            visualScale = 1
-            pinchOriginBellID = nil
+            resetPinchState()
         }
         .onChange(of: searchState) { _, newValue in
             viewModel.updateContext(searchState: newValue, forcesFlatLayout: usesFlatSearchLayout)
@@ -665,10 +542,7 @@ struct BellCatalogView: View {
                         }
                         .scaleEffect(visualScale)
                         .simultaneousGesture(
-                            layoutMagnifyGesture(
-                                bells: bells,
-                                screenWidth: screenWidth
-                            )
+                            layoutMagnifyGesture()
                         )
                     }
                 }
@@ -796,10 +670,7 @@ struct BellCatalogView: View {
                                     }
                                 }
                                 .simultaneousGesture(
-                                    layoutMagnifyGesture(
-                                        bells: cabinetGroup.bells,
-                                        screenWidth: screenWidth
-                                    )
+                                    layoutMagnifyGesture()
                                 )
                             }
                         }
@@ -811,10 +682,7 @@ struct BellCatalogView: View {
                         }
                     }
                     .simultaneousGesture(
-                        layoutMagnifyGesture(
-                            bells: section.bells,
-                            screenWidth: screenWidth
-                        )
+                        layoutMagnifyGesture()
                     )
                 }
             } header: {
@@ -976,7 +844,10 @@ struct BellCatalogView: View {
     private func bellCardButton(_ bell: BellEntity, cardSize: CGSize) -> some View {
         Button {
             guard !isPinching else { return }
-            guard !didEndActivePinchGesture && abs(accumulatedMagnificationDelta) < 0.01 else { return }
+            if didEndActivePinchGesture {
+                didEndActivePinchGesture = false
+                return
+            }
 
             if isSelectionModeEnabled {
                 toggleBellSelection(bell.id)
@@ -1023,12 +894,11 @@ struct BellCatalogView: View {
                 } else {
                     card
                         .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
-                        .matchedTransitionSource(id: bell.id, in: bellDetailZoomNamespace)
                 }
             }
         }
         .id(bell.id)
-        .disabled(isPinching || didEndActivePinchGesture)
+        .disabled(isPinching)
         .allowsHitTesting(!isPinching)
         .buttonStyle(.plain)
         .contextMenu {
@@ -1338,20 +1208,6 @@ private struct BellGridDetailSheetContainer: View {
             BellDetailView(bell: $bell, repository: repository)
         }
         .presentationBackground(.clear)
-    }
-}
-
-private struct BellGridDetailNavigationContainer: View {
-    @State private var bell: BellRecord
-    let repository: any CatalogRepository
-
-    init(bell: BellEntity, repository: any CatalogRepository) {
-        _bell = State(initialValue: bell.recordSnapshot)
-        self.repository = repository
-    }
-
-    var body: some View {
-        BellDetailView(bell: $bell, repository: repository)
     }
 }
 
