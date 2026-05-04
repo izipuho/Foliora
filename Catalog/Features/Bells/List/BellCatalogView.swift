@@ -792,69 +792,77 @@ struct BellCatalogView: View {
     }
 
     private func bellCardButton(_ bell: BellEntity, cardSize: CGSize) -> some View {
-        Button {
-            guard !isPinching else { return }
-            if didEndActivePinchGesture {
-                didEndActivePinchGesture = false
-                return
-            }
+        let isSelected = selectedVisibleBellIDs.contains(bell.id)
+        let isInteractionSuppressed = isPinching
+        let shouldShowSelectionOverlay = isSelectionModeEnabled && isSelected
 
-            if isSelectionModeEnabled {
-                toggleBellSelection(bell.id)
-            } else {
-                presentedBell = bell
+        @ViewBuilder
+        func cardContent() -> some View {
+            BellCardView(
+                bell: bell,
+                layoutMode: layoutMode,
+                cardSize: cardSize
+            )
+            .compositingGroup()
+            .overlay {
+                if shouldShowSelectionOverlay {
+                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
+                        .fill(.black.opacity(0.22))
+                        .allowsHitTesting(false)
+                }
             }
+            .overlay(alignment: .bottomTrailing) {
+                if shouldShowSelectionOverlay {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 20, height: 20)
+                        .background(Color.blue, in: Circle())
+                        .overlay {
+                            Circle()
+                                .stroke(.white, lineWidth: 2)
+                        }
+                        .padding(8)
+                }
+            }
+            .opacity(isInteractionSuppressed ? 0.99 : 1.0)
+        }
+
+        return Button {
+            handleBellCardTap(bell)
         } label: {
-            let isSelected = selectedVisibleBellIDs.contains(bell.id)
-
-            let card = Group {
-                BellCardView(
-                    bell: bell,
-                    layoutMode: layoutMode,
-                    cardSize: cardSize
-                )
-                .compositingGroup()
-                .overlay {
-                    if isSelectionModeEnabled && isSelected {
-                        RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
-                            .fill(.black.opacity(0.22))
-                            .allowsHitTesting(false)
-                    }
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    if isSelectionModeEnabled && isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
-                            .background(Color.blue, in: Circle())
-                            .overlay {
-                                Circle()
-                                    .stroke(.white, lineWidth: 2)
-                            }
-                            .padding(8)
-                    }
-                }
-            }
-            .opacity(isPinching ? 0.99 : 1.0)
-
-            Group {
-                if isPinching {
-                    card
-                } else {
-                    card
-                        .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
-                }
+            if isInteractionSuppressed {
+                cardContent()
+            } else {
+                cardContent()
+                    .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
             }
         }
         .id(bell.id)
-        .disabled(isPinching)
-        .allowsHitTesting(!isPinching)
+        .disabled(isInteractionSuppressed)
+        .allowsHitTesting(!isInteractionSuppressed)
         .buttonStyle(.plain)
         .contextMenu {
             bellCardContextMenu(for: bell)
         } preview: {
             BellCardContextPreview(bell: bell, repository: repository)
+        }
+    }
+
+    private func handleBellCardTap(_ bell: BellEntity) {
+        if isPinching {
+            return
+        }
+
+        if didEndActivePinchGesture {
+            didEndActivePinchGesture = false
+            return
+        }
+
+        if isSelectionModeEnabled {
+            toggleBellSelection(bell.id)
+        } else {
+            presentedBell = bell
         }
     }
 
