@@ -153,7 +153,8 @@ enum BellGridLayoutMode: Int, CaseIterable {
                 cardHeight: 108,
                 cardPadding: 8,
                 contentSpacing: 4,
-                contentAlignment: .bottomLeading,
+                //contentAlignment: .bottomLeading,
+                contentAlignment: .topLeading,
                 cornerRadius: CatalogCornerRadii.tile,
                 imagePreviewHeight: 210,
                 spacing: CatalogSpacing.micro
