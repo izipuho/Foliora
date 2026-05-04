@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import UIKit
 
 private enum BellCatalogFeedback: Equatable {
     case success
@@ -117,6 +116,7 @@ struct BellCatalogView: View {
     @State private var bellPendingMove: BellEntity?
     @State private var bellPendingDeletion: BellEntity?
     @State private var isPresentingDeleteConfirmation = false
+    @State private var persistenceError: Error?
     @State private var activeJumpPopoverSectionID: String?
     @State private var pendingScrollTargetID: String?
     @State private var isSelectionModeEnabled = false
@@ -124,6 +124,7 @@ struct BellCatalogView: View {
     @State private var visualScale: CGFloat = 1
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
     @State private var feedbackToken = 0
+    @State private var scrollRequestToken = 0
     @State private var isPinching: Bool = false
     @State private var didEndActivePinchGesture = false
     @State private var suggestedTokens: [SearchToken] = []
@@ -191,17 +192,6 @@ struct BellCatalogView: View {
         viewModel.displayModel
     }
 
-    private func visibleBellsInDisplayOrder() -> [BellEntity] {
-        switch displayModel.layout {
-        case .empty:
-            return []
-        case .flat(let bells):
-            return bells
-        case .grouped(let sections):
-            return sections.flatMap(\.bells)
-        }
-    }
-
     private var usesFlatSearchLayout: Bool {
         Self.usesFlatSearchLayout(
             displayMode: displayMode,
@@ -246,15 +236,6 @@ struct BellCatalogView: View {
     }
 
     private var scrollContentBottomInset: CGFloat { 120 }
-
-    private var bottomSafeAreaInset: CGFloat {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first { $0.isKeyWindow }?
-            .safeAreaInsets
-            .bottom ?? 0
-    }
 
     private var orderedLayoutModes: [BellGridLayoutMode] {
         [.covers, .mini, .compact, .wide, .showcase]
@@ -313,6 +294,11 @@ struct BellCatalogView: View {
         didEndActivePinchGesture = false
     }
 
+    private func requestScroll(to targetID: String) {
+        pendingScrollTargetID = targetID
+        scrollRequestToken += 1
+    }
+
     private var availableSearchCollections: [CollectionEntity] {
         guard let collection else { return queriedCollections }
         return queriedCollections.filter { $0.home?.id == collection.homeID }
@@ -359,16 +345,6 @@ struct BellCatalogView: View {
         case .acquisitionMethod:
             return "tray.and.arrow.down"
         }
-    }
-
-    private var canZoomIn: Bool {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode) else { return false }
-        return currentIndex > 0
-    }
-
-    private var canZoomOut: Bool {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode) else { return false }
-        return currentIndex < orderedLayoutModes.count - 1
     }
 
     private func zoomInLayout() {
@@ -437,6 +413,24 @@ struct BellCatalogView: View {
         } message: { _ in
             Text(String(localized: "bell.context.delete.message"))
         }
+        .alert(
+            "Error",
+            isPresented: Binding(
+                get: { persistenceError != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        persistenceError = nil
+                    }
+                }
+            ),
+            presenting: persistenceError
+        ) { _ in
+            Button("OK") {
+                persistenceError = nil
+            }
+        } message: { error in
+            Text(error.localizedDescription)
+        }
         .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
             newValue?.kind.sensoryFeedback
         }
@@ -476,20 +470,32 @@ struct BellCatalogView: View {
         }
         .onChange(of: bells) { _, newValue in
             viewModel.updateSource(bells: newValue)
+            pruneSelectionToVisibleBells()
         }
         .onChange(of: orderMode) { _, newValue in
+            activeJumpPopoverSectionID = nil
             viewModel.updateContext(orderMode: newValue)
             viewModel.updateSource(bells: bells)
+            if let pendingScrollTargetID {
+                requestScroll(to: pendingScrollTargetID)
+            } else {
+                requestScroll(to: "bell-grid-top")
+            }
             resetPinchState()
         }
         .onChange(of: filters) { _, newValue in
             viewModel.updateContext(filters: newValue)
             viewModel.updateSource(bells: bells)
+            pruneSelectionToVisibleBells()
+            if newValue.activeTagFilter != nil {
+                requestScroll(to: "bell-grid-top")
+            }
             resetPinchState()
         }
         .onChange(of: searchState) { _, newValue in
             viewModel.updateContext(searchState: newValue, forcesFlatLayout: usesFlatSearchLayout)
             viewModel.updateSource(bells: bells)
+            pruneSelectionToVisibleBells()
             updateSuggestedTokens()
         }
         .onChange(of: queriedCollections) { _, _ in
@@ -529,7 +535,6 @@ struct BellCatalogView: View {
                     case .grouped(let sections):
                         groupedBellSectionsContent(
                             sections: sections,
-                            screenWidth: screenWidth,
                             cardSize: cardSize,
                             scrollProxy: scrollProxy
                         )
@@ -560,39 +565,23 @@ struct BellCatalogView: View {
                 )
                 .ignoresSafeArea()
             )
-            .onChange(of: orderMode) { _, _ in
-                activeJumpPopoverSectionID = nil
-                let targetID = pendingScrollTargetID ?? "bell-grid-top"
-                DispatchQueue.main.async {
-                    withAnimation(.snappy(duration: 0.24)) {
-                        scrollProxy.scrollTo(targetID, anchor: .top)
-                    }
-                    pendingScrollTargetID = nil
-                }
-            }
-            .onChange(of: pendingScrollTargetID) { _, targetID in
-                guard let targetID else { return }
+            .onChange(of: scrollRequestToken) { _, _ in
+                guard let targetID = pendingScrollTargetID else { return }
+
                 withAnimation(.snappy(duration: 0.24)) {
                     scrollProxy.scrollTo(targetID, anchor: .top)
                 }
+
+                pendingScrollTargetID = nil
             }
-            .onChange(of: filters) { _, newFilters in
-                if newFilters.activeTagFilter != nil {
-                    withAnimation(.snappy(duration: 0.24)) {
-                        scrollProxy.scrollTo("bell-grid-top", anchor: .top)
-                    }
-                }
-            }
-            .overlay(alignment: .bottom) {
-                if isSelectionModeEnabled && !selectedBellIDs.isEmpty {
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if isSelectionModeEnabled && !selectedVisibleBellIDs.isEmpty {
                     selectionBottomPanel
-                        .frame(height: 112, alignment: .bottom)
-                        .ignoresSafeArea(edges: .bottom)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .animation(.easeInOut(duration: 0.22), value: isSelectionModeEnabled)
-            .animation(.easeInOut(duration: 0.22), value: selectedBellIDs.isEmpty)
+            .animation(.easeInOut(duration: 0.22), value: selectedVisibleBellIDs.isEmpty)
         }
     }
 
@@ -640,16 +629,18 @@ struct BellCatalogView: View {
     }
 
     private func focusGeography(country: String) {
-        pendingScrollTargetID = "geography-\(country)"
+        let targetID = "geography-\(country)"
         if orderMode != .geography {
+            pendingScrollTargetID = targetID
             orderMode = .geography
+        } else {
+            requestScroll(to: targetID)
         }
     }
 
     @ViewBuilder
     private func groupedBellSectionsContent(
         sections: [BellGroupedSection],
-        screenWidth: CGFloat,
         cardSize: CGSize,
         scrollProxy: ScrollViewProxy
     ) -> some View {
@@ -733,8 +724,24 @@ struct BellCatalogView: View {
         )
     }
 
+    private var visibleBellIDs: Set<UUID> {
+        switch displayModel.layout {
+        case .empty:
+            return []
+        case .flat(let bells):
+            return Set(bells.map(\.id))
+        case .grouped(let sections):
+            return Set(sections.flatMap(\.bells).map(\.id))
+        }
+    }
+
+    private var selectedVisibleBellIDs: Set<UUID> {
+        selectedBellIDs.intersection(visibleBellIDs)
+    }
+
     private var selectedBells: [BellEntity] {
-        bells.filter { selectedBellIDs.contains($0.id) }
+        let selectedVisibleBellIDs = selectedVisibleBellIDs
+        return bells.filter { selectedVisibleBellIDs.contains($0.id) }
     }
 
     private func enterSelectionMode(with bellID: UUID) {
@@ -751,6 +758,14 @@ struct BellCatalogView: View {
             } else {
                 selectedBellIDs.insert(bellID)
             }
+        }
+    }
+
+    private func pruneSelectionToVisibleBells() {
+        selectedBellIDs.formIntersection(visibleBellIDs)
+
+        if selectedBellIDs.isEmpty {
+            isSelectionModeEnabled = false
         }
     }
 
@@ -827,17 +842,17 @@ struct BellCatalogView: View {
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, CatalogLayoutInsets.screen)
+            .padding(.top, 24)
             .padding(.bottom, 12)
-            .padding(.bottom, bottomSafeAreaInset)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, minHeight: 112, alignment: .bottom)
         .ignoresSafeArea(edges: .bottom)
     }
 
     private var selectedBellCountText: String {
         String.localizedStringWithFormat(
             String(localized: "bell_catalog.selection.selected_count"),
-            selectedBellIDs.count
+            selectedVisibleBellIDs.count
         )
     }
 
@@ -855,7 +870,7 @@ struct BellCatalogView: View {
                 presentedBell = bell
             }
         } label: {
-            let isSelected = selectedBellIDs.contains(bell.id)
+            let isSelected = selectedVisibleBellIDs.contains(bell.id)
 
             let card = Group {
                 BellCardView(
@@ -922,21 +937,6 @@ struct BellCatalogView: View {
             Label(String(localized: "bell.context.move"), systemImage: "folder")
         }
 
-        // TODO re-enable duplication when we have a better way to handle it in the UI, as it can be destructive if used unintentionally
-        //Button {
-        //    duplicateBell(bell)
-        //} label: {
-        //    Label(String(localized: "common.duplicate"), systemImage: "plus.square.on.square")
-        //}
-
-        // TODO add share link generation and handling
-        //ShareLink(
-        //    item: bellShareText(for: bell),
-        //    preview: SharePreview(bell.title)
-        //) {
-        //    Label(String(localized: "common.share"), systemImage: "square.and.arrow.up")
-        //}
-
         Button(role: .destructive) {
             bellPendingDeletion = bell
             isPresentingDeleteConfirmation = true
@@ -983,8 +983,9 @@ struct BellCatalogView: View {
             return copy
         }
 
-        try? modelContext.save()
-        emitFeedback(.success)
+        if saveModelContext() {
+            emitFeedback(.success)
+        }
     }
 
     private func moveBells(_ bells: [BellEntity], to locationID: UUID?) {
@@ -993,8 +994,9 @@ struct BellCatalogView: View {
             bell.location = location
         }
 
-        try? modelContext.save()
-        emitFeedback(.success)
+        if saveModelContext() {
+            emitFeedback(.success)
+        }
     }
 
     private func deleteBells(_ bells: [BellEntity]) {
@@ -1002,8 +1004,21 @@ struct BellCatalogView: View {
             modelContext.delete(bell)
         }
 
-        try? modelContext.save()
-        emitFeedback(.warning)
+        if saveModelContext() {
+            emitFeedback(.warning)
+        }
+    }
+
+    private func saveModelContext() -> Bool {
+        do {
+            try modelContext.save()
+            return true
+        } catch {
+            modelContext.rollback()
+            persistenceError = error
+            assertionFailure("modelContext.save failed: \(error)")
+            return false
+        }
     }
 
     private func bellShareText(for bell: BellEntity) -> String {
