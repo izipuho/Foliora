@@ -544,7 +544,7 @@ struct BellCatalogView: View {
                     case .flat(let bells):
                         LazyVGrid(columns: gridColumns(cardWidth: cardWidth), spacing: layoutMode.spacing) {
                             ForEach(bells) { bell in
-                                bellCardButton(bell, cardSize: cardSize)
+                                bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
                             }
                         }
                         .scaleEffect(visualScale)
@@ -672,7 +672,7 @@ struct BellCatalogView: View {
 
                                 LazyVGrid(columns: gridColumns(cardWidth: cardSize.width), spacing: layoutMode.spacing) {
                                     ForEach(cabinetGroup.bells) { bell in
-                                        bellCardButton(bell, cardSize: cardSize)
+                                        bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
                                     }
                                 }
                                 .simultaneousGesture(
@@ -684,7 +684,7 @@ struct BellCatalogView: View {
                 } else {
                     LazyVGrid(columns: gridColumns(cardWidth: cardSize.width), spacing: layoutMode.spacing) {
                         ForEach(section.bells) { bell in
-                            bellCardButton(bell, cardSize: cardSize)
+                            bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
                         }
                     }
                     .simultaneousGesture(
@@ -791,8 +791,8 @@ struct BellCatalogView: View {
         }
     }
 
-    private func bellCardButton(_ bell: BellEntity, cardSize: CGSize) -> some View {
-        let isSelected = selectedVisibleBellIDs.contains(bell.id)
+    private func bellCardButton(_ bell: BellEntity, cardSize: CGSize, selectedBellIDs: Set<UUID>) -> some View {
+        let isSelected = selectedBellIDs.contains(bell.id)
         let isInteractionSuppressed = isPinching
         let shouldShowSelectionOverlay = isSelectionModeEnabled && isSelected
 
@@ -803,7 +803,6 @@ struct BellCatalogView: View {
                 layoutMode: layoutMode,
                 cardSize: cardSize
             )
-            .compositingGroup()
             .overlay {
                 if shouldShowSelectionOverlay {
                     RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
@@ -825,7 +824,6 @@ struct BellCatalogView: View {
                         .padding(8)
                 }
             }
-            .opacity(isInteractionSuppressed ? 0.99 : 1.0)
         }
 
         return Button {
@@ -835,10 +833,8 @@ struct BellCatalogView: View {
                 cardContent()
             } else {
                 cardContent()
-                    .matchedGeometryEffect(id: bell.id, in: bellGridTransitionNamespace)
             }
         }
-        .id(bell.id)
         .disabled(isInteractionSuppressed)
         .allowsHitTesting(!isInteractionSuppressed)
         .buttonStyle(.plain)
