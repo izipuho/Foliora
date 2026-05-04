@@ -242,9 +242,11 @@ struct BellCatalogView: View {
     }
 
     private func gridColumns(cardWidth: CGFloat) -> [GridItem] {
-        Array(
-            repeating: GridItem(.fixed(cardWidth), spacing: layoutMode.spacing, alignment: .top),
-            count: layoutMode.columnCount
+        let metrics = layoutMode.metrics
+
+        return Array(
+            repeating: GridItem(.fixed(cardWidth), spacing: metrics.spacing, alignment: .top),
+            count: metrics.columnCount
         )
     }
 
@@ -510,8 +512,9 @@ struct BellCatalogView: View {
         bottomSafeAreaInset: CGFloat
     ) -> some View {
         return ScrollViewReader { scrollProxy in
+            let metrics = layoutMode.metrics
             let cardWidth = layoutMode.cardWidth(forContainerWidth: screenWidth)
-            let cardSize = CGSize(width: cardWidth, height: layoutMode.cardHeight)
+            let cardSize = CGSize(width: cardWidth, height: metrics.cardHeight)
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []) {
@@ -541,7 +544,7 @@ struct BellCatalogView: View {
                         )
                         .scaleEffect(visualScale)
                     case .flat(let bells):
-                        LazyVGrid(columns: gridColumns(cardWidth: cardWidth), spacing: layoutMode.spacing) {
+                        LazyVGrid(columns: gridColumns(cardWidth: cardWidth), spacing: metrics.spacing) {
                             ForEach(bells) { bell in
                                 bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
                             }
@@ -671,7 +674,7 @@ struct BellCatalogView: View {
                                     .foregroundStyle(.secondary)
                                     .padding(.horizontal, CatalogSpacing.micro)
 
-                                LazyVGrid(columns: gridColumns(cardWidth: cardSize.width), spacing: layoutMode.spacing) {
+                                LazyVGrid(columns: gridColumns(cardWidth: cardSize.width), spacing: layoutMode.metrics.spacing) {
                                     ForEach(cabinetGroup.bells) { bell in
                                         bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
                                     }
@@ -683,7 +686,7 @@ struct BellCatalogView: View {
                         }
                     }
                 } else {
-                    LazyVGrid(columns: gridColumns(cardWidth: cardSize.width), spacing: layoutMode.spacing) {
+                    LazyVGrid(columns: gridColumns(cardWidth: cardSize.width), spacing: layoutMode.metrics.spacing) {
                         ForEach(section.bells) { bell in
                             bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
                         }

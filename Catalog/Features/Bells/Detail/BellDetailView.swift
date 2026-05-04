@@ -209,7 +209,7 @@ struct BellDetailView: View {
     }
 
     private var heroHeader: some View {
-        BellCardHeroView(bell: bell)
+        BellCardImagePreviewView(bell: bell)
     }
 
     private var availableLocations: [Location] {

@@ -136,6 +136,10 @@ enum BellGridLayoutMode: Int, CaseIterable {
         let columnCount: Int
         let cardHeight: CGFloat
         let cardPadding: CGFloat
+        let contentSpacing: CGFloat
+        let contentAlignment: Alignment
+        let cornerRadius: CGFloat
+        let imagePreviewHeight: CGFloat
         let spacing: CGFloat
     }
 
@@ -144,31 +148,68 @@ enum BellGridLayoutMode: Int, CaseIterable {
     var metrics: Metrics {
         switch self {
         case .covers:
-            return Metrics(columnCount: 4, cardHeight: 108, cardPadding: 8, spacing: CatalogSpacing.micro)
+            return Metrics(
+                columnCount: 4,
+                cardHeight: 108,
+                cardPadding: 8,
+                contentSpacing: 4,
+                contentAlignment: .bottomLeading,
+                cornerRadius: CatalogCornerRadii.tile,
+                imagePreviewHeight: 210,
+                spacing: CatalogSpacing.micro
+            )
         case .mini:
-            return Metrics(columnCount: 3, cardHeight: 144, cardPadding: 10, spacing: CatalogSpacing.micro)
+            return Metrics(
+                columnCount: 3,
+                cardHeight: 144,
+                cardPadding: 10,
+                contentSpacing: 4,
+                contentAlignment: .topLeading,
+                cornerRadius: CatalogCornerRadii.tile,
+                imagePreviewHeight: 210,
+                spacing: CatalogSpacing.micro
+            )
         case .compact:
-            return Metrics(columnCount: 2, cardHeight: 220, cardPadding: 14, spacing: CatalogSpacing.compact)
+            return Metrics(
+                columnCount: 2,
+                cardHeight: 220,
+                cardPadding: 14,
+                contentSpacing: 8,
+                contentAlignment: .topLeading,
+                cornerRadius: CatalogCornerRadii.tile,
+                imagePreviewHeight: 210,
+                spacing: CatalogSpacing.compact
+            )
         case .wide:
-            return Metrics(columnCount: 1, cardHeight: 220, cardPadding: 18, spacing: CatalogSpacing.compact)
+            return Metrics(
+                columnCount: 1,
+                cardHeight: 220,
+                cardPadding: 18,
+                contentSpacing: 8,
+                contentAlignment: .topLeading,
+                cornerRadius: CatalogCornerRadii.tile,
+                imagePreviewHeight: 210,
+                spacing: CatalogSpacing.compact
+            )
         case .showcase:
-            return Metrics(columnCount: 1, cardHeight: 460, cardPadding: 22, spacing: CatalogSpacing.regular)
+            return Metrics(
+                columnCount: 1,
+                cardHeight: 460,
+                cardPadding: 22,
+                contentSpacing: 12,
+                contentAlignment: .topLeading,
+                cornerRadius: CatalogCornerRadii.hero,
+                imagePreviewHeight: 210,
+                spacing: CatalogSpacing.regular
+            )
         }
     }
 
-    var columnCount: Int { metrics.columnCount }
-    var cardHeight: CGFloat { metrics.cardHeight }
-    var cardPadding: CGFloat { metrics.cardPadding }
-    var spacing: CGFloat { metrics.spacing }
-
     func cardWidth(forContainerWidth containerWidth: CGFloat) -> CGFloat {
-        let totalSpacing = spacing * CGFloat(max(columnCount - 1, 0))
+        let currentMetrics = metrics
+        let totalSpacing = currentMetrics.spacing * CGFloat(max(currentMetrics.columnCount - 1, 0))
         let usableWidth = max(containerWidth - (BellGridLayoutMode.screenHorizontalPadding * 2) - totalSpacing, 0)
-        return floor(usableWidth / CGFloat(columnCount))
-    }
-
-    var stripHeight: CGFloat {
-        cardHeight + spacing
+        return floor(usableWidth / CGFloat(currentMetrics.columnCount))
     }
 }
 
@@ -202,14 +243,12 @@ struct BellCardView: View {
     let cardSize: CGSize
 
     private let style: BellCardStyle
-    private let cornerRadius: CGFloat
 
     init(bell: some BellCardDisplayable, layoutMode: BellGridLayoutMode, cardSize: CGSize) {
         self.bell = bell
         self.layoutMode = layoutMode
         self.cardSize = cardSize
         self.style = BellCardStyle.style(for: layoutMode)
-        self.cornerRadius = BellCardStyle.cornerRadius(for: layoutMode)
     }
 
     var body: some View {
@@ -234,10 +273,11 @@ struct BellCardView: View {
 
     @ViewBuilder
     private func cardContent(in size: CGSize) -> some View {
-        let contentWidth = max(size.width - (layoutMode.cardPadding * 2), 0)
-        let contentHeight = max(size.height - (layoutMode.cardPadding * 2), 0)
+        let metrics = layoutMode.metrics
+        let contentWidth = max(size.width - (metrics.cardPadding * 2), 0)
+        let contentHeight = max(size.height - (metrics.cardPadding * 2), 0)
 
-        VStack(alignment: .leading, spacing: style.contentSpacing) {
+        VStack(alignment: .leading, spacing: metrics.contentSpacing) {
             if let titleStyle = style.title {
                 BellCardTitleBlock(
                     bell: bell,
@@ -259,12 +299,8 @@ struct BellCardView: View {
                 )
             }
         }
-        .frame(width: contentWidth, height: contentHeight, alignment: contentAlignment)
-        .padding(layoutMode.cardPadding)
-    }
-
-    private var contentAlignment: Alignment {
-        layoutMode == .covers ? .bottomLeading : .topLeading
+        .frame(width: contentWidth, height: contentHeight, alignment: metrics.contentAlignment)
+        .padding(metrics.cardPadding)
     }
 
     private var coverScrim: some View {
@@ -279,7 +315,7 @@ struct BellCardView: View {
     }
 
     private var cardShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        RoundedRectangle(cornerRadius: layoutMode.metrics.cornerRadius, style: .continuous)
     }
 
     private var hasCoverPhoto: Bool {
@@ -316,7 +352,6 @@ private struct BellCardStyle {
 
     let title: TitleBlockStyle?
     let meta: MetaBlockStyle?
-    let contentSpacing: CGFloat
 
     static let covers = BellCardStyle(
         title: TitleBlockStyle(
@@ -327,8 +362,7 @@ private struct BellCardStyle {
             subtitleLineLimit: 1,
             spacing: 2
         ),
-        meta: nil,
-        contentSpacing: 4
+        meta: nil
     )
 
     static let mini = BellCardStyle(
@@ -343,8 +377,7 @@ private struct BellCardStyle {
         meta: MetaBlockStyle(
             fields: [.year],
             chipSpacing: 8
-        ),
-        contentSpacing: 4
+        )
     )
 
     static let compact = BellCardStyle(
@@ -359,8 +392,7 @@ private struct BellCardStyle {
         meta: MetaBlockStyle(
             fields: [.year],
             chipSpacing: 8
-        ),
-        contentSpacing: 8
+        )
     )
 
     static let wide = BellCardStyle(
@@ -375,8 +407,7 @@ private struct BellCardStyle {
         meta: MetaBlockStyle(
             fields: [.year],
             chipSpacing: 8
-        ),
-        contentSpacing: 8
+        )
     )
 
     static let showcase = BellCardStyle(
@@ -391,8 +422,7 @@ private struct BellCardStyle {
         meta: MetaBlockStyle(
             fields: [.year],
             chipSpacing: 8
-        ),
-        contentSpacing: 12
+        )
     )
 
     private static let registry: [BellGridLayoutMode: BellCardStyle] = [
@@ -405,10 +435,6 @@ private struct BellCardStyle {
 
     static func style(for layoutMode: BellGridLayoutMode) -> BellCardStyle {
         registry[layoutMode] ?? .compact
-    }
-
-    static func cornerRadius(for layoutMode: BellGridLayoutMode) -> CGFloat {
-        layoutMode == .showcase ? CatalogCornerRadii.hero : CatalogCornerRadii.tile
     }
 }
 
@@ -500,11 +526,12 @@ struct BellCardStripView<Bell: BellCardDisplayable>: View {
     let onSelect: (Bell) -> Void
 
     var body: some View {
+        let metrics = layoutMode.metrics
         let width = layoutMode.cardWidth(forContainerWidth: screenWidth)
-        let cardSize = CGSize(width: width, height: layoutMode.cardHeight)
+        let cardSize = CGSize(width: width, height: metrics.cardHeight)
 
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: layoutMode.spacing) {
+            HStack(alignment: .top, spacing: metrics.spacing) {
                 ForEach(bells, id: \.id) { bell in
                     Button {
                         onSelect(bell)
@@ -520,22 +547,23 @@ struct BellCardStripView<Bell: BellCardDisplayable>: View {
             }
             .padding(.horizontal, CatalogSpacing.compact)
         }
-        .frame(height: layoutMode.cardHeight)
+        .frame(height: metrics.cardHeight)
     }
 }
 
-struct BellCardHeroView: View {
+struct BellCardImagePreviewView: View {
     let bell: any BellCardDisplayable
+    private let metrics = BellGridLayoutMode.wide.metrics
 
     var body: some View {
         GeometryReader { proxy in
             BellCardView(
                 bell: bell,
                 layoutMode: .wide,
-                cardSize: CGSize(width: proxy.size.width, height: 210)
+                cardSize: CGSize(width: proxy.size.width, height: metrics.imagePreviewHeight)
             )
         }
-        .frame(height: 210)
+        .frame(height: metrics.imagePreviewHeight)
         .padding(.horizontal, CatalogLayoutInsets.screen)
         .padding(.top, CatalogSpacing.regular)
     }
