@@ -74,15 +74,10 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
     init() {}
 
     func map(analysis: PhotoAnalysisResult) async -> BellPhotoSuggestions {
-        let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
-        let analysisTags = analysis.main.allTags + analysis.background.allTags
+        let recognizedText = analysis.main.recognizedText
+        let analysisTags = makeAnalysisTags(from: analysis)
         let visualKeywords = makeVisualKeywords(from: analysisTags)
-        let year = extractYear(from: recognizedText)
-        let tags = makeTags(
-            analysisTags: analysisTags,
-            recognizedText: recognizedText,
-            year: year
-        )
+        let tags = makeTags(analysisTags: analysisTags)
 
         return BellPhotoSuggestions(
             tags: tags,
@@ -93,16 +88,42 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             material: nil,
             condition: nil,
             customMaterialName: nil,
-            suggestedYear: year.map { SuggestedFieldValue(value: $0, confidence: 0.86) },
+            suggestedYear: nil,
             suggestedGeo: nil,
             suggestedTags: tags.map { SuggestedFieldValue(value: $0, confidence: 0.7) },
             debugInfo: makeDebugInfo(
                 analysis: analysis,
                 tags: tags,
                 visualKeywords: visualKeywords,
-                year: year
+                year: nil
             )
         )
+    }
+
+
+    private func makeAnalysisTags(from analysis: PhotoAnalysisResult) -> [PhotoTag] {
+        deduplicateTags(analysis.main.allTags)
+            .sorted { lhs, rhs in
+                lhs.confidence > rhs.confidence
+            }
+    }
+
+    private func deduplicateTags(_ tags: [PhotoTag]) -> [PhotoTag] {
+        var bestByLabel: [String: PhotoTag] = [:]
+
+        for tag in tags {
+            let label = tag.label.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !label.isEmpty else { continue }
+
+            let key = label.lowercased()
+            if let existing = bestByLabel[key], existing.confidence >= tag.confidence {
+                continue
+            }
+
+            bestByLabel[key] = PhotoTag(label: label, confidence: tag.confidence)
+        }
+
+        return Array(bestByLabel.values)
     }
 
     private func makeVisualKeywords(from analysisTags: [PhotoTag]) -> [VisualKeyword] {
@@ -111,54 +132,12 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             .map { VisualKeyword(value: $0.label, confidence: $0.confidence) }
     }
 
-    private func makeTags(
-        analysisTags: [PhotoTag],
-        recognizedText: [RecognizedTextFeature],
-        year: Int?
-    ) -> [String] {
+    private func makeTags(analysisTags: [PhotoTag]) -> [String] {
         let visionTags = analysisTags
             .filter { $0.confidence >= 0.28 }
             .map(\.label)
 
-        let ocrTags = recognizedText.flatMap { feature in
-            tags(fromRecognizedText: feature.text, excludingYear: year)
-        }
-
-        return deduplicate(visionTags + ocrTags)
-    }
-
-    private func tags(fromRecognizedText text: String, excludingYear year: Int?) -> [String] {
-        text
-            .split { !$0.isLetter && !$0.isNumber }
-            .map(String.init)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { $0.count >= 3 }
-            .filter { token in
-                guard let parsed = Int(token) else { return true }
-                return parsed != year
-            }
-    }
-
-    private func extractYear(from recognizedText: [RecognizedTextFeature]) -> Int? {
-        let text = recognizedText
-            .map(\.text)
-            .joined(separator: " ")
-
-        guard let regex = try? NSRegularExpression(pattern: #"\b(18\d{2}|19\d{2}|20\d{2})\b"#) else {
-            return nil
-        }
-
-        let range = NSRange(text.startIndex..<text.endIndex, in: text)
-        let matches = regex.matches(in: text, range: range)
-
-        return matches
-            .compactMap { match -> Int? in
-                guard let range = Range(match.range(at: 1), in: text) else { return nil }
-                return Int(text[range])
-            }
-            .filter { (1800...2099).contains($0) }
-            .sorted()
-            .first
+        return deduplicate(visionTags)
     }
 
     private func deduplicate(_ values: [String]) -> [String] {
@@ -180,8 +159,8 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         visualKeywords: [VisualKeyword],
         year: Int?
     ) -> BellPhotoAnalysisDebugInfo {
-        let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
-        let analysisTags = analysis.main.allTags + analysis.background.allTags
+        let recognizedText = analysis.main.recognizedText
+        let analysisTags = makeAnalysisTags(from: analysis)
         let visionTags = """
         Analysis tags:
         \(debugLines(analysisTags) { "\($0.label) — \(debugConfidence($0.confidence))" })
@@ -191,6 +170,8 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         """
         let ocrText = debugLines(recognizedText) { "\"\($0.text)\" — \(debugConfidence($0.confidence))" }
         let input = """
+        mainObjectImage: \(analysis.mainObjectImage == nil ? "nil" : "present")
+
         Analysis tags:
         \(debugLines(analysisTags) { "\($0.label) — \(debugConfidence($0.confidence))" })
 
@@ -204,7 +185,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         """
 
         return BellPhotoAnalysisDebugInfo(
-            prompt: "Deterministic mapper from raw Vision + OCR. No model prompt.",
+            prompt: "Deterministic mapper from PhotoAnalysisResult. No model prompt.",
             input: input,
             output: output,
             visionTags: visionTags,
@@ -221,13 +202,6 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
 
     private func debugConfidence(_ confidence: Double) -> String {
         confidence.formatted(.number.precision(.fractionLength(2)))
-    }
-}
-
-private extension String {
-    var nilIfBlank: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
