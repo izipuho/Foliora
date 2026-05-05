@@ -66,10 +66,6 @@ struct VisionDebugView: View {
             .map { "\($0.label) (\($0.confidence))" }
             .joined(separator: "\n")
 
-        let backgroundVision = analysis.background.visionFeatures
-            .map { "\($0.label) (\($0.confidence))" }
-            .joined(separator: "\n")
-
         let filteredVision = analysis.main.allTags
             .filter { $0.confidence > 0.5 }
             .map { "\($0.label) (\($0.confidence))" }

@@ -191,6 +191,7 @@ private struct VisionAnalyzer: Sendable {
                 key: \.label,
                 confidence: \.confidence
             )
+            .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.label))
             .prefix(maxResults)
             .map { $0 }
     }
@@ -345,8 +346,7 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         let animalHints = await extractedAnimalHints ?? []
 
         let mainObject = detectMainObject(
-            saliencyRegions: saliencyRegions,
-            detectedRectangles: detectedRectangles
+            saliencyRegions: saliencyRegions
         )
         let mainObjectImage = mainObject.flatMap {
             crop(image: image, to: $0.insetBy(dx: -0.04, dy: -0.04))
@@ -363,14 +363,16 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             textFeatures: splitRecognizedText.main,
             rectangles: detectedRectangles,
             animalHints: animalHints,
-            excludedLabels: []
+            excludedLabels: [],
+            isMain: true
         )
         let backgroundScope = makeScope(
             visionFeatures: visionFeatures,
             textFeatures: splitRecognizedText.background,
-            rectangles: detectedRectangles,
+            rectangles: [],
             animalHints: [],
-            excludedLabels: Set(mainScope.allTags.map(\.label))
+            excludedLabels: Set(mainScope.visionFeatures.map(\.label)),
+            isMain: false
         )
 
         return PhotoAnalysisResult(
@@ -387,11 +389,9 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
     }
 
     private func detectMainObject(
-        saliencyRegions: [ImageRegionFeature],
-        detectedRectangles: [DetectedRectangleFeature]
+        saliencyRegions: [ImageRegionFeature]
     ) -> CGRect? {
         saliencyRegions.first?.boundingBox
-            ?? detectedRectangles.first?.boundingBox
     }
 
     private func splitText(
@@ -421,7 +421,8 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         textFeatures: [RecognizedTextFeature],
         rectangles: [DetectedRectangleFeature],
         animalHints: [PhotoAnimalHint],
-        excludedLabels: Set<String>
+        excludedLabels: Set<String>,
+        isMain: Bool
     ) -> PhotoAnalysisFeatureScope {
         let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
         let labels = visionFeatures.compactMap { feature -> VisionFeature? in
@@ -456,7 +457,7 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             recognizedText: textLines,
             visionFeatures: labels,
             animalHints: animalLabels,
-            rectangles: rectangles,
+            rectangles: isMain ? rectangles : [],
             excludedLabels: excludedLabels
         )
 
