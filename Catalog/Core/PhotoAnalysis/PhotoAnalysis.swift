@@ -130,7 +130,6 @@ private enum PhotoAnalysisTagBuilder {
         recognizedText: [RecognizedTextFeature],
         visionFeatures: [VisionFeature],
         animalHints: [PhotoAnimalHint],
-        rectangles: [DetectedRectangleFeature],
         excludedLabels: Set<String>
     ) -> [PhotoTag] {
         let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
@@ -140,11 +139,6 @@ private enum PhotoAnalysisTagBuilder {
             PhotoTag(label: $0.label, confidence: $0.confidence)
         } + animalHints.map {
             PhotoTag(label: $0.label, confidence: Double($0.confidence))
-        } + rectangles.map {
-            PhotoTag(
-                label: "rectangle",
-                confidence: PhotoAnalysisNormalization.normalizedConfidence($0.confidence)
-            )
         }
 
         return PhotoAnalysisNormalization.deduplicatedByBestConfidence(
@@ -320,6 +314,7 @@ private struct VisionAnalyzer: Sendable {
 
         return PhotoAnalysisNormalization
             .deduplicatedByBestConfidence(hints, key: \.label, confidence: \.confidence)
+            .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.label))
             .prefix(maxResults)
             .map { $0 }
     }
@@ -361,18 +356,14 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         let mainScope = makeScope(
             visionFeatures: mainVisionFeatures,
             textFeatures: splitRecognizedText.main,
-            rectangles: detectedRectangles,
             animalHints: animalHints,
-            excludedLabels: [],
-            isMain: true
+            excludedLabels: []
         )
         let backgroundScope = makeScope(
             visionFeatures: visionFeatures,
             textFeatures: splitRecognizedText.background,
-            rectangles: [],
             animalHints: [],
-            excludedLabels: Set(mainScope.visionFeatures.map(\.label)),
-            isMain: false
+            excludedLabels: Set(mainScope.visionFeatures.map(\.label))
         )
 
         return PhotoAnalysisResult(
@@ -419,10 +410,8 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
     private func makeScope(
         visionFeatures: [VisionFeature],
         textFeatures: [RecognizedTextFeature],
-        rectangles: [DetectedRectangleFeature],
         animalHints: [PhotoAnimalHint],
-        excludedLabels: Set<String>,
-        isMain: Bool
+        excludedLabels: Set<String>
     ) -> PhotoAnalysisFeatureScope {
         let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
         let labels = visionFeatures.compactMap { feature -> VisionFeature? in
@@ -457,7 +446,6 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             recognizedText: textLines,
             visionFeatures: labels,
             animalHints: animalLabels,
-            rectangles: isMain ? rectangles : [],
             excludedLabels: excludedLabels
         )
 
