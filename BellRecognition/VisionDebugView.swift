@@ -58,11 +58,19 @@ struct VisionDebugView: View {
             .map { "\($0.label) (\($0.confidence))" }
             .joined(separator: "\n")
 
+        let mainAnimals = analysis.main.animalHints
+            .map { "\($0.label) (\($0.confidence))" }
+            .joined(separator: "\n")
+
+        let allMainTags = analysis.main.allTags
+            .map { "\($0.label) (\($0.confidence))" }
+            .joined(separator: "\n")
+
         let backgroundVision = analysis.background.visionFeatures
             .map { "\($0.label) (\($0.confidence))" }
             .joined(separator: "\n")
 
-        let filteredVision = analysis.main.visionFeatures
+        let filteredVision = analysis.main.allTags
             .filter { $0.confidence > 0.5 }
             .map { "\($0.label) (\($0.confidence))" }
             .joined(separator: "\n")
@@ -79,8 +87,9 @@ struct VisionDebugView: View {
         let suggestedGeo = suggestions.suggestedGeo?.value.name ?? "-"
 
         resultBlocks = [
+            DebugResultBlock(title: "Main tags", text: allMainTags),
             DebugResultBlock(title: "Main visionFeatures", text: mainVision),
-            DebugResultBlock(title: "Background visionFeatures", text: backgroundVision),
+            DebugResultBlock(title: "Animals", text: mainAnimals),
             DebugResultBlock(title: "Filtered features", text: filteredVision),
             DebugResultBlock(title: "OCR", text: ocrText),
             DebugResultBlock(title: "SUGGESTED TAGS", text: suggestedTags),
