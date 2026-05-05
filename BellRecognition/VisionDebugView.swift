@@ -54,14 +54,6 @@ struct VisionDebugView: View {
         let suggestions: BellPhotoSuggestions = await mapper.map(analysis: analysis)
         mainObjectImage = analysis.mainObjectImage
 
-        let mainVision = analysis.main.visionFeatures
-            .map { "\($0.label) (\($0.confidence))" }
-            .joined(separator: "\n")
-
-        let mainAnimals = analysis.main.animalHints
-            .map { "\($0.label) (\($0.confidence))" }
-            .joined(separator: "\n")
-
         let allMainTags = analysis.main.allTags
             .map { "\($0.label) (\($0.confidence))" }
             .joined(separator: "\n")
@@ -77,15 +69,13 @@ struct VisionDebugView: View {
 
         let suggestedTags = suggestions.suggestedTags
             .map { $0.value }
-            .joined(separator: ", ")
+            .joined(separator: "\n")
 
         let suggestedYear = suggestions.suggestedYear.map { String($0.value) } ?? "-"
         let suggestedGeo = suggestions.suggestedGeo?.value.name ?? "-"
 
         resultBlocks = [
             DebugResultBlock(title: "Main tags", text: allMainTags),
-            DebugResultBlock(title: "Main visionFeatures", text: mainVision),
-            DebugResultBlock(title: "Animals", text: mainAnimals),
             DebugResultBlock(title: "Filtered features", text: filteredVision),
             DebugResultBlock(title: "OCR", text: ocrText),
             DebugResultBlock(title: "SUGGESTED TAGS", text: suggestedTags),

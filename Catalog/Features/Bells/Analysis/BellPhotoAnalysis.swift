@@ -74,17 +74,19 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
     init() {}
 
     func map(analysis: PhotoAnalysisResult) async -> BellPhotoSuggestions {
-        let visualKeywords = makeVisualKeywords(from: analysis.visionFeatures)
-        let year = extractYear(from: analysis.recognizedText)
+        let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
+        let analysisTags = analysis.main.allTags + analysis.background.allTags
+        let visualKeywords = makeVisualKeywords(from: analysisTags)
+        let year = extractYear(from: recognizedText)
         let tags = makeTags(
-            visionFeatures: analysis.visionFeatures,
-            recognizedText: analysis.recognizedText,
+            analysisTags: analysisTags,
+            recognizedText: recognizedText,
             year: year
         )
 
         return BellPhotoSuggestions(
             tags: tags,
-            recognizedText: analysis.recognizedText,
+            recognizedText: recognizedText,
             visualKeywords: visualKeywords,
             title: nil,
             notes: nil,
@@ -103,18 +105,18 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         )
     }
 
-    private func makeVisualKeywords(from visionFeatures: [VisionFeature]) -> [VisualKeyword] {
-        visionFeatures
+    private func makeVisualKeywords(from analysisTags: [PhotoTag]) -> [VisualKeyword] {
+        analysisTags
             .filter { $0.confidence >= 0.28 }
             .map { VisualKeyword(value: $0.label, confidence: $0.confidence) }
     }
 
     private func makeTags(
-        visionFeatures: [VisionFeature],
+        analysisTags: [PhotoTag],
         recognizedText: [RecognizedTextFeature],
         year: Int?
     ) -> [String] {
-        let visionTags = visionFeatures
+        let visionTags = analysisTags
             .filter { $0.confidence >= 0.28 }
             .map(\.label)
 
@@ -178,17 +180,19 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         visualKeywords: [VisualKeyword],
         year: Int?
     ) -> BellPhotoAnalysisDebugInfo {
+        let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
+        let analysisTags = analysis.main.allTags + analysis.background.allTags
         let visionTags = """
-        Raw Vision labels:
-        \(debugLines(analysis.visionFeatures) { "\($0.label) — \(debugConfidence($0.confidence))" })
+        Analysis tags:
+        \(debugLines(analysisTags) { "\($0.label) — \(debugConfidence($0.confidence))" })
 
         Visual keywords:
         \(debugLines(visualKeywords) { "\($0.value) — \(debugConfidence($0.confidence))" })
         """
-        let ocrText = debugLines(analysis.recognizedText) { "\"\($0.text)\" — \(debugConfidence($0.confidence))" }
+        let ocrText = debugLines(recognizedText) { "\"\($0.text)\" — \(debugConfidence($0.confidence))" }
         let input = """
-        Raw Vision labels:
-        \(debugLines(analysis.visionFeatures) { "\($0.label) — \(debugConfidence($0.confidence))" })
+        Analysis tags:
+        \(debugLines(analysisTags) { "\($0.label) — \(debugConfidence($0.confidence))" })
 
         OCR:
         \(ocrText)

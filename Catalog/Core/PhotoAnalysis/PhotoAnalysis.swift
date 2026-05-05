@@ -5,39 +5,23 @@ import UIKit
 import Vision
 
 struct PhotoAnalysisResult: Sendable {
-    let recognizedText: [RecognizedTextFeature]
     let mainObjectImage: UIImage?
     let main: PhotoAnalysisFeatureScope
     let background: PhotoAnalysisFeatureScope
-    let saliencyRegions: [ImageRegionFeature]
-    let detectedRectangles: [DetectedRectangleFeature]
-    let imageSize: CGSize
-    let imageOrientation: CGImagePropertyOrientation
-    let visionFeatures: [VisionFeature]
 
     static let empty = PhotoAnalysisResult(
-        recognizedText: [],
         mainObjectImage: nil,
         main: .empty,
-        background: .empty,
-        saliencyRegions: [],
-        detectedRectangles: [],
-        imageSize: .zero,
-        imageOrientation: .up,
-        visionFeatures: []
+        background: .empty
     )
 }
 
 struct PhotoAnalysisFeatureScope: Sendable {
     let recognizedText: [RecognizedTextFeature]
-    let visionFeatures: [VisionFeature]
-    let animalHints: [PhotoAnimalHint]
     let allTags: [PhotoTag]
 
     static let empty = PhotoAnalysisFeatureScope(
         recognizedText: [],
-        visionFeatures: [],
-        animalHints: [],
         allTags: []
     )
 }
@@ -64,11 +48,6 @@ struct RecognizedTextFeature: Hashable, Sendable {
 }
 
 struct ImageRegionFeature: Hashable, Sendable {
-    let boundingBox: CGRect
-    let confidence: Double
-}
-
-struct DetectedRectangleFeature: Hashable, Sendable {
     let boundingBox: CGRect
     let confidence: Double
 }
@@ -256,32 +235,6 @@ private struct VisionAnalyzer: Sendable {
             .map { $0 }
     }
 
-    func detectRectangles(image: UIImage) async throws -> [DetectedRectangleFeature] {
-        let maxResults = 8
-        guard let cgImage = image.cgImage else { return [] }
-
-        let request = VNDetectRectanglesRequest()
-        request.maximumObservations = maxResults
-
-        let handler = VNImageRequestHandler(
-            cgImage: cgImage,
-            orientation: image.cgImagePropertyOrientation,
-            options: [:]
-        )
-        try handler.perform([request])
-
-        return (request.results ?? [])
-            .map {
-                DetectedRectangleFeature(
-                    boundingBox: $0.boundingBox,
-                    confidence: Double($0.confidence)
-                )
-            }
-            .sorted { $0.confidence > $1.confidence }
-            .prefix(maxResults)
-            .map { $0 }
-    }
-
     func recognizeAnimals(image: UIImage) async throws -> [PhotoAnimalHint] {
         let maxResults = 8
         guard let cgImage = image.cgImage else { return [] }
@@ -327,17 +280,11 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         async let extractedFeatures = try? vision.classify(image: image)
         async let extractedText = try? vision.recognizeText(image: image)
         async let extractedSaliencyRegions = try? vision.detectSaliency(image: image)
-        async let extractedRectangles = try? vision.detectRectangles(image: image)
         async let extractedAnimalHints = try? vision.recognizeAnimals(image: image)
 
-        let imageSize = image.cgImage.map {
-            CGSize(width: $0.width, height: $0.height)
-        } ?? .zero
-
-        let recognizedText = await extractedText ?? []
+        let textFeatures = await extractedText ?? []
         let saliencyRegions = await extractedSaliencyRegions ?? []
-        let detectedRectangles = await extractedRectangles ?? []
-        let visionFeatures = await extractedFeatures ?? []
+        let backgroundVisionFeatures = await extractedFeatures ?? []
         let animalHints = await extractedAnimalHints ?? []
 
         let mainObject = detectMainObject(
@@ -346,7 +293,7 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         let mainObjectImage = mainObject.flatMap {
             crop(image: image, to: $0.insetBy(dx: -0.04, dy: -0.04))
         }
-        let splitRecognizedText = splitText(recognizedText, mainObject: mainObject)
+        let splitRecognizedText = splitText(textFeatures, mainObject: mainObject)
         let mainVisionFeatures: [VisionFeature]
         if let mainObjectImage {
             mainVisionFeatures = (try? await vision.classify(image: mainObjectImage)) ?? []
@@ -360,22 +307,16 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             excludedLabels: []
         )
         let backgroundScope = makeScope(
-            visionFeatures: visionFeatures,
+            visionFeatures: backgroundVisionFeatures,
             textFeatures: splitRecognizedText.background,
             animalHints: [],
-            excludedLabels: Set(mainScope.visionFeatures.map(\.label))
+            excludedLabels: Set(mainVisionFeatures.map(\.label))
         )
 
         return PhotoAnalysisResult(
-            recognizedText: recognizedText,
             mainObjectImage: mainObjectImage,
             main: mainScope,
-            background: backgroundScope,
-            saliencyRegions: saliencyRegions,
-            detectedRectangles: detectedRectangles,
-            imageSize: imageSize,
-            imageOrientation: image.cgImagePropertyOrientation,
-            visionFeatures: visionFeatures
+            background: backgroundScope
         )
     }
 
@@ -451,8 +392,6 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
 
         return PhotoAnalysisFeatureScope(
             recognizedText: textLines,
-            visionFeatures: labels,
-            animalHints: animalLabels,
             allTags: allTags
         )
     }
