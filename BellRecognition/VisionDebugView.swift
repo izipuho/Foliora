@@ -1,31 +1,34 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 struct VisionDebugView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var image: UIImage?
-    @State private var resultText: String = ""
+    @State private var mainObjectImage: UIImage?
+    @State private var resultBlocks: [DebugResultBlock] = []
 
     var body: some View {
         VStack(spacing: 20) {
             PhotosPicker("Pick Photo", selection: $selectedItem, matching: .images)
+                .buttonStyle(.borderedProminent)
 
             if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 200)
-            }
+                HStack(alignment: .top, spacing: 12) {
+                    DebugImagePreview(title: "before", image: image)
 
-            Button("Analyze") {
-                Task {
-                    await analyze()
+                    if let mainObjectImage {
+                        DebugImagePreview(title: "after", image: mainObjectImage)
+                    }
                 }
             }
 
             ScrollView {
-                Text(resultText)
-                    .font(.system(.footnote, design: .monospaced))
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(resultBlocks) { block in
+                        DebugResultBlockView(block: block)
+                    }
+                }
             }
         }
         .padding()
@@ -34,6 +37,8 @@ struct VisionDebugView: View {
                 if let data = try? await selectedItem?.loadTransferable(type: Data.self),
                    let uiImage = UIImage(data: data) {
                     image = uiImage
+                    mainObjectImage = nil
+                    await analyze()
                 }
             }
         }
@@ -47,18 +52,24 @@ struct VisionDebugView: View {
 
         let analysis: PhotoAnalysisResult = await service.analyze(image: image)
         let suggestions: BellPhotoSuggestions = await mapper.map(analysis: analysis)
+        mainObjectImage = analysis.mainObjectImage
 
-        //let rawTags = analysis.tags.joined(separator: ", ")
-        let vision = analysis.visionFeatures
+        let mainVision = analysis.main.visionFeatures
             .map { "\($0.label) (\($0.confidence))" }
             .joined(separator: "\n")
 
-        let ocrText = analysis.recognizedText
-            .map { $0.text }
+        let backgroundVision = analysis.background.visionFeatures
+            .map { "\($0.label) (\($0.confidence))" }
             .joined(separator: "\n")
 
-        //let year = analysis.year.map { String($0) } ?? "-"
-        //let geo = analysis.geo?.name ?? "-"
+        let filteredVision = analysis.main.visionFeatures
+            .filter { $0.confidence > 0.5 }
+            .map { "\($0.label) (\($0.confidence))" }
+            .joined(separator: "\n")
+        
+        let ocrText = analysis.main.recognizedText
+            .map { $0.text }
+            .joined(separator: "\n")
 
         let suggestedTags = suggestions.suggestedTags
             .map { $0.value }
@@ -67,23 +78,67 @@ struct VisionDebugView: View {
         let suggestedYear = suggestions.suggestedYear.map { String($0.value) } ?? "-"
         let suggestedGeo = suggestions.suggestedGeo?.value.name ?? "-"
 
-        resultText = """
-        VISION FEATURES:
-        \(vision)
+        resultBlocks = [
+            DebugResultBlock(title: "Main visionFeatures", text: mainVision),
+            DebugResultBlock(title: "Background visionFeatures", text: backgroundVision),
+            DebugResultBlock(title: "Filtered features", text: filteredVision),
+            DebugResultBlock(title: "OCR", text: ocrText),
+            DebugResultBlock(title: "SUGGESTED TAGS", text: suggestedTags),
+            DebugResultBlock(title: "SUGGESTED YEAR", text: suggestedYear),
+            DebugResultBlock(title: "SUGGESTED GEO", text: suggestedGeo)
+        ]
+    }
+}
 
-        OCR:
-        \(ocrText)
+private struct DebugResultBlock: Identifiable {
+    let id = UUID()
+    let title: String
+    let text: String
+}
 
-        -----
+private struct DebugImagePreview: View {
+    let title: String
+    let image: UIImage
 
-        SUGGESTED TAGS:
-        \(suggestedTags)
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
-        SUGGESTED YEAR:
-        \(suggestedYear)
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 200)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
 
-        SUGGESTED GEO:
-        \(suggestedGeo)
-        """
+private struct DebugResultBlockView: View {
+    let block: DebugResultBlock
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(block.title)
+                .font(.headline)
+
+            ZStack(alignment: .topTrailing) {
+                Text(block.text)
+                    .font(.system(.footnote, design: .monospaced))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+
+                Button {
+                    UIPasteboard.general.string = block.text
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                }
+                .buttonStyle(.bordered)
+                .padding(8)
+            }
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
     }
 }
