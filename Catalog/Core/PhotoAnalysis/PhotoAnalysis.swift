@@ -73,18 +73,22 @@ struct DetectedRectangleFeature: Hashable, Sendable {
     let confidence: Double
 }
 
-private enum PhotoAnalysisFeatureHelpers {
-    static func normalizedText(_ raw: String) -> String {
+private enum PhotoAnalysisNormalization {
+    nonisolated static func normalizedText(_ raw: String) -> String {
         raw
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
     }
 
-    static func normalizedLabel(_ raw: String) -> String {
+    nonisolated static func normalizedLabel(_ raw: String) -> String {
         normalizedText(raw).lowercased()
     }
 
-    static func deduplicatedByBestConfidence<T, Confidence: Comparable>(
+    nonisolated static func normalizedConfidence(_ confidence: Double) -> Double {
+        min(max(confidence, 0), 1)
+    }
+
+    nonisolated static func deduplicatedByBestConfidence<T, Confidence: Comparable>(
         _ values: [T],
         key: (T) -> String,
         confidence: (T) -> Confidence
@@ -106,7 +110,7 @@ private enum PhotoAnalysisFeatureHelpers {
         return order.compactMap { deduplicated[$0] }
     }
 
-    static func confidenceSort<T, Confidence: Comparable>(
+    nonisolated static func confidenceSort<T, Confidence: Comparable>(
         _ confidence: @escaping (T) -> Confidence,
         _ tieBreaker: @escaping (T) -> String
     ) -> (T, T) -> Bool {
@@ -119,66 +123,50 @@ private enum PhotoAnalysisFeatureHelpers {
             return tieBreaker(lhs).localizedCaseInsensitiveCompare(tieBreaker(rhs)) == .orderedAscending
         }
     }
+}
 
-    static func allTags(
+private enum PhotoAnalysisTagBuilder {
+    nonisolated static func allTags(
         recognizedText: [RecognizedTextFeature],
         visionFeatures: [VisionFeature],
-        animalHints: [PhotoAnimalHint]
+        animalHints: [PhotoAnimalHint],
+        rectangles: [DetectedRectangleFeature],
+        excludedLabels: Set<String>
     ) -> [PhotoTag] {
+        let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
         let tags = recognizedText.map {
             PhotoTag(label: $0.text, confidence: $0.confidence)
         } + visionFeatures.map {
             PhotoTag(label: $0.label, confidence: $0.confidence)
         } + animalHints.map {
             PhotoTag(label: $0.label, confidence: Double($0.confidence))
+        } + rectangles.map {
+            PhotoTag(
+                label: "rectangle",
+                confidence: PhotoAnalysisNormalization.normalizedConfidence($0.confidence)
+            )
         }
 
-        return deduplicatedByBestConfidence(
+        return PhotoAnalysisNormalization.deduplicatedByBestConfidence(
             tags.compactMap { tag in
-                guard !tag.label.isEmpty else { return nil }
+                let label = PhotoAnalysisNormalization.normalizedLabel(tag.label)
+                guard !label.isEmpty, !excludedLabels.contains(label) else { return nil }
                 return tag
             },
-            key: \.label,
+            key: { PhotoAnalysisNormalization.normalizedLabel($0.label) },
             confidence: \.confidence
         )
-        .sorted(by: confidenceSort(\.confidence, \.label))
+        .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.label))
     }
-}
-
-protocol VisionFeatureExtracting: Sendable {
-    func extractFeatures(from image: UIImage) async throws -> [VisionFeature]
-}
-
-protocol TextFeatureExtracting: Sendable {
-    func extractText(from image: UIImage) async throws -> [RecognizedTextFeature]
-}
-
-protocol SaliencyRegionExtracting: Sendable {
-    func extractSaliencyRegions(from image: UIImage) async throws -> [ImageRegionFeature]
-}
-
-protocol RectangleFeatureExtracting: Sendable {
-    func extractRectangles(from image: UIImage) async throws -> [DetectedRectangleFeature]
-}
-
-protocol AnimalHintExtracting: Sendable {
-    func extractAnimalHints(from image: UIImage) async throws -> [PhotoAnimalHint]
 }
 
 protocol PhotoAnalysisService: Sendable {
     func analyze(image: UIImage) async -> PhotoAnalysisResult
 }
 
-struct VisionFeatureExtractor: VisionFeatureExtracting {
-    private let maxResults: Int
-    private let minimumConfidence: Double
-
-    init(maxResults: Int = 16, minimumConfidence: Double = 0.0) {
-        self.maxResults = maxResults
-        self.minimumConfidence = minimumConfidence
-    }
-
-    func extractFeatures(from image: UIImage) async throws -> [VisionFeature] {
+private struct VisionAnalyzer: Sendable {
+    func classify(image: UIImage) async throws -> [VisionFeature] {
+        let maxResults = 16
         guard let cgImage = image.cgImage else { return [] }
 
         let request = VNClassifyImageRequest()
@@ -190,14 +178,14 @@ struct VisionFeatureExtractor: VisionFeatureExtracting {
         try handler.perform([request])
 
         let features = (request.results ?? []).compactMap { observation -> VisionFeature? in
-            let label = PhotoAnalysisFeatureHelpers.normalizedLabel(observation.identifier)
+            let label = PhotoAnalysisNormalization.normalizedLabel(observation.identifier)
             let confidence = Double(observation.confidence)
-            guard !label.isEmpty, confidence >= minimumConfidence else { return nil }
+            guard !label.isEmpty else { return nil }
 
             return VisionFeature(label: label, confidence: confidence)
         }
 
-        return PhotoAnalysisFeatureHelpers
+        return PhotoAnalysisNormalization
             .deduplicatedByBestConfidence(
                 features,
                 key: \.label,
@@ -206,18 +194,9 @@ struct VisionFeatureExtractor: VisionFeatureExtracting {
             .prefix(maxResults)
             .map { $0 }
     }
-}
 
-struct VisionTextFeatureExtractor: TextFeatureExtracting {
-    private let maxResults: Int
-    private let minimumConfidence: Double
-
-    init(maxResults: Int = 32, minimumConfidence: Double = 0.0) {
-        self.maxResults = maxResults
-        self.minimumConfidence = minimumConfidence
-    }
-
-    func extractText(from image: UIImage) async throws -> [RecognizedTextFeature] {
+    func recognizeText(image: UIImage) async throws -> [RecognizedTextFeature] {
+        let maxResults = 32
         guard let cgImage = image.cgImage else { return [] }
 
         let request = VNRecognizeTextRequest()
@@ -235,7 +214,7 @@ struct VisionTextFeatureExtractor: TextFeatureExtracting {
         let features = observations.compactMap { observation -> RecognizedTextFeature? in
             guard let candidate = observation.topCandidates(1).first else { return nil }
 
-            let text = PhotoAnalysisFeatureHelpers.normalizedText(candidate.string)
+            let text = PhotoAnalysisNormalization.normalizedText(candidate.string)
             guard !text.isEmpty else { return nil }
 
             return RecognizedTextFeature(
@@ -245,27 +224,19 @@ struct VisionTextFeatureExtractor: TextFeatureExtracting {
             )
         }
 
-        return PhotoAnalysisFeatureHelpers
+        return PhotoAnalysisNormalization
             .deduplicatedByBestConfidence(
                 features,
                 key: { $0.text.lowercased() },
                 confidence: \.confidence
             )
-            .filter { $0.confidence >= minimumConfidence }
-            .sorted(by: PhotoAnalysisFeatureHelpers.confidenceSort(\.confidence, \.text))
+            .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.text))
             .prefix(maxResults)
             .map { $0 }
     }
-}
 
-struct VisionSaliencyRegionExtractor: SaliencyRegionExtracting {
-    private let maxResults: Int
-
-    init(maxResults: Int = 8) {
-        self.maxResults = maxResults
-    }
-
-    func extractSaliencyRegions(from image: UIImage) async throws -> [ImageRegionFeature] {
+    func detectSaliency(image: UIImage) async throws -> [ImageRegionFeature] {
+        let maxResults = 8
         guard let cgImage = image.cgImage else { return [] }
 
         let request = VNGenerateAttentionBasedSaliencyImageRequest()
@@ -289,18 +260,9 @@ struct VisionSaliencyRegionExtractor: SaliencyRegionExtracting {
             .prefix(maxResults)
             .map { $0 }
     }
-}
 
-struct VisionRectangleFeatureExtractor: RectangleFeatureExtracting {
-    private let maxResults: Int
-    private let minimumConfidence: Double
-
-    init(maxResults: Int = 8, minimumConfidence: Double = 0.0) {
-        self.maxResults = maxResults
-        self.minimumConfidence = minimumConfidence
-    }
-
-    func extractRectangles(from image: UIImage) async throws -> [DetectedRectangleFeature] {
+    func detectRectangles(image: UIImage) async throws -> [DetectedRectangleFeature] {
+        let maxResults = 8
         guard let cgImage = image.cgImage else { return [] }
 
         let request = VNDetectRectanglesRequest()
@@ -320,23 +282,13 @@ struct VisionRectangleFeatureExtractor: RectangleFeatureExtracting {
                     confidence: Double($0.confidence)
                 )
             }
-            .filter { $0.confidence >= minimumConfidence }
             .sorted { $0.confidence > $1.confidence }
             .prefix(maxResults)
             .map { $0 }
     }
-}
 
-struct VisionAnimalHintExtractor: AnimalHintExtracting {
-    private let maxResults: Int
-    private let minimumConfidence: Float
-
-    init(maxResults: Int = 8, minimumConfidence: Float = 0.0) {
-        self.maxResults = maxResults
-        self.minimumConfidence = minimumConfidence
-    }
-
-    func extractAnimalHints(from image: UIImage) async throws -> [PhotoAnimalHint] {
+    func recognizeAnimals(image: UIImage) async throws -> [PhotoAnimalHint] {
+        let maxResults = 8
         guard let cgImage = image.cgImage else { return [] }
 
         var requestError: Error?
@@ -359,13 +311,13 @@ struct VisionAnimalHintExtractor: AnimalHintExtracting {
         }
 
         let hints = classifications.compactMap { observation -> PhotoAnimalHint? in
-            let label = PhotoAnalysisFeatureHelpers.normalizedLabel(observation.identifier)
-            guard !label.isEmpty, observation.confidence >= minimumConfidence else { return nil }
+            let label = PhotoAnalysisNormalization.normalizedLabel(observation.identifier)
+            guard !label.isEmpty else { return nil }
 
             return PhotoAnimalHint(label: label, confidence: observation.confidence)
         }
 
-        return PhotoAnalysisFeatureHelpers
+        return PhotoAnalysisNormalization
             .deduplicatedByBestConfidence(hints, key: \.label, confidence: \.confidence)
             .prefix(maxResults)
             .map { $0 }
@@ -373,32 +325,14 @@ struct VisionAnimalHintExtractor: AnimalHintExtracting {
 }
 
 struct DefaultPhotoAnalysisService: PhotoAnalysisService {
-    private let featureExtractor: any VisionFeatureExtracting
-    private let textExtractor: any TextFeatureExtracting
-    private let saliencyExtractor: any SaliencyRegionExtracting
-    private let rectangleExtractor: any RectangleFeatureExtracting
-    private let animalHintExtractor: any AnimalHintExtracting
-
-    init(
-        featureExtractor: any VisionFeatureExtracting = VisionFeatureExtractor(),
-        textExtractor: any TextFeatureExtracting = VisionTextFeatureExtractor(),
-        saliencyExtractor: any SaliencyRegionExtracting = VisionSaliencyRegionExtractor(),
-        rectangleExtractor: any RectangleFeatureExtracting = VisionRectangleFeatureExtractor(),
-        animalHintExtractor: any AnimalHintExtracting = VisionAnimalHintExtractor()
-    ) {
-        self.featureExtractor = featureExtractor
-        self.textExtractor = textExtractor
-        self.saliencyExtractor = saliencyExtractor
-        self.rectangleExtractor = rectangleExtractor
-        self.animalHintExtractor = animalHintExtractor
-    }
+    private let vision = VisionAnalyzer()
 
     func analyze(image: UIImage) async -> PhotoAnalysisResult {
-        async let extractedFeatures = try? featureExtractor.extractFeatures(from: image)
-        async let extractedText = try? textExtractor.extractText(from: image)
-        async let extractedSaliencyRegions = try? saliencyExtractor.extractSaliencyRegions(from: image)
-        async let extractedRectangles = try? rectangleExtractor.extractRectangles(from: image)
-        async let extractedAnimalHints = try? animalHintExtractor.extractAnimalHints(from: image)
+        async let extractedFeatures = try? vision.classify(image: image)
+        async let extractedText = try? vision.recognizeText(image: image)
+        async let extractedSaliencyRegions = try? vision.detectSaliency(image: image)
+        async let extractedRectangles = try? vision.detectRectangles(image: image)
+        async let extractedAnimalHints = try? vision.recognizeAnimals(image: image)
 
         let imageSize = image.cgImage.map {
             CGSize(width: $0.width, height: $0.height)
@@ -410,76 +344,127 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         let visionFeatures = await extractedFeatures ?? []
         let animalHints = await extractedAnimalHints ?? []
 
-        let mainObjectBoundingBox = saliencyRegions.first?.boundingBox
-            ?? detectedRectangles.first?.boundingBox
-        let mainObjectImage = mainObjectBoundingBox.flatMap {
+        let mainObject = detectMainObject(
+            saliencyRegions: saliencyRegions,
+            detectedRectangles: detectedRectangles
+        )
+        let mainObjectImage = mainObject.flatMap {
             crop(image: image, to: $0.insetBy(dx: -0.04, dy: -0.04))
         }
-        let backgroundImage = mainObjectBoundingBox.flatMap {
-            mask(image: image, normalizedRect: $0)
-        }
-
+        let splitRecognizedText = splitText(recognizedText, mainObject: mainObject)
         let mainVisionFeatures: [VisionFeature]
         if let mainObjectImage {
-            mainVisionFeatures = (try? await featureExtractor.extractFeatures(from: mainObjectImage)) ?? []
+            mainVisionFeatures = (try? await vision.classify(image: mainObjectImage)) ?? []
         } else {
             mainVisionFeatures = []
         }
-
-        let backgroundVisionFeatures: [VisionFeature]
-        if let backgroundImage {
-            backgroundVisionFeatures = (try? await featureExtractor.extractFeatures(from: backgroundImage)) ?? []
-        } else {
-            backgroundVisionFeatures = visionFeatures
-        }
-
-        let mainRecognizedText: [RecognizedTextFeature]
-        let backgroundRecognizedText: [RecognizedTextFeature]
-        if let mainObjectBoundingBox {
-            mainRecognizedText = recognizedText.filter {
-                intersectionRatio($0.boundingBox, mainObjectBoundingBox) >= 0.15
-            }
-            backgroundRecognizedText = recognizedText.filter {
-                intersectionRatio($0.boundingBox, mainObjectBoundingBox) < 0.15
-            }
-        } else {
-            mainRecognizedText = []
-            backgroundRecognizedText = recognizedText
-        }
-
-        let mainAnimalHints = animalHints
-        let backgroundAnimalHints = animalHints
-        let mainAllTags = PhotoAnalysisFeatureHelpers.allTags(
-            recognizedText: mainRecognizedText,
+        let mainScope = makeScope(
             visionFeatures: mainVisionFeatures,
-            animalHints: mainAnimalHints
+            textFeatures: splitRecognizedText.main,
+            rectangles: detectedRectangles,
+            animalHints: animalHints,
+            excludedLabels: []
         )
-        let backgroundAllTags = PhotoAnalysisFeatureHelpers.allTags(
-            recognizedText: backgroundRecognizedText,
-            visionFeatures: backgroundVisionFeatures,
-            animalHints: backgroundAnimalHints
+        let backgroundScope = makeScope(
+            visionFeatures: visionFeatures,
+            textFeatures: splitRecognizedText.background,
+            rectangles: detectedRectangles,
+            animalHints: [],
+            excludedLabels: Set(mainScope.allTags.map(\.label))
         )
 
-        return await PhotoAnalysisResult(
+        return PhotoAnalysisResult(
             recognizedText: recognizedText,
             mainObjectImage: mainObjectImage,
-            main: PhotoAnalysisFeatureScope(
-                recognizedText: mainRecognizedText,
-                visionFeatures: mainVisionFeatures,
-                animalHints: mainAnimalHints,
-                allTags: mainAllTags
-            ),
-            background: PhotoAnalysisFeatureScope(
-                recognizedText: backgroundRecognizedText,
-                visionFeatures: backgroundVisionFeatures,
-                animalHints: backgroundAnimalHints,
-                allTags: backgroundAllTags
-            ),
+            main: mainScope,
+            background: backgroundScope,
             saliencyRegions: saliencyRegions,
             detectedRectangles: detectedRectangles,
             imageSize: imageSize,
             imageOrientation: image.cgImagePropertyOrientation,
             visionFeatures: visionFeatures
+        )
+    }
+
+    private func detectMainObject(
+        saliencyRegions: [ImageRegionFeature],
+        detectedRectangles: [DetectedRectangleFeature]
+    ) -> CGRect? {
+        saliencyRegions.first?.boundingBox
+            ?? detectedRectangles.first?.boundingBox
+    }
+
+    private func splitText(
+        _ recognizedText: [RecognizedTextFeature],
+        mainObject: CGRect?
+    ) -> (main: [RecognizedTextFeature], background: [RecognizedTextFeature]) {
+        guard let mainObject else {
+            return (main: [], background: recognizedText)
+        }
+
+        var main: [RecognizedTextFeature] = []
+        var background: [RecognizedTextFeature] = []
+
+        for text in recognizedText {
+            if intersectionRatio(text.boundingBox, mainObject) >= 0.15 {
+                main.append(text)
+            } else {
+                background.append(text)
+            }
+        }
+
+        return (main: main, background: background)
+    }
+
+    private func makeScope(
+        visionFeatures: [VisionFeature],
+        textFeatures: [RecognizedTextFeature],
+        rectangles: [DetectedRectangleFeature],
+        animalHints: [PhotoAnimalHint],
+        excludedLabels: Set<String>
+    ) -> PhotoAnalysisFeatureScope {
+        let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
+        let labels = visionFeatures.compactMap { feature -> VisionFeature? in
+            let label = PhotoAnalysisNormalization.normalizedLabel(feature.label)
+            guard !label.isEmpty, !excludedLabels.contains(label) else { return nil }
+
+            return VisionFeature(
+                label: label,
+                confidence: PhotoAnalysisNormalization.normalizedConfidence(feature.confidence)
+            )
+        }
+        let textLines = textFeatures.compactMap { feature -> RecognizedTextFeature? in
+            let text = PhotoAnalysisNormalization.normalizedText(feature.text)
+            guard !text.isEmpty else { return nil }
+
+            return RecognizedTextFeature(
+                text: text,
+                confidence: PhotoAnalysisNormalization.normalizedConfidence(feature.confidence),
+                boundingBox: feature.boundingBox
+            )
+        }
+        let animalLabels = animalHints.compactMap { hint -> PhotoAnimalHint? in
+            let label = PhotoAnalysisNormalization.normalizedLabel(hint.label)
+            guard !label.isEmpty, !excludedLabels.contains(label) else { return nil }
+
+            return PhotoAnimalHint(
+                label: label,
+                confidence: Float(PhotoAnalysisNormalization.normalizedConfidence(Double(hint.confidence)))
+            )
+        }
+        let allTags = PhotoAnalysisTagBuilder.allTags(
+            recognizedText: textLines,
+            visionFeatures: labels,
+            animalHints: animalLabels,
+            rectangles: rectangles,
+            excludedLabels: excludedLabels
+        )
+
+        return PhotoAnalysisFeatureScope(
+            recognizedText: textLines,
+            visionFeatures: labels,
+            animalHints: animalLabels,
+            allTags: allTags
         )
     }
 
@@ -500,21 +485,6 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
                     height: image.size.height
                 )
             )
-        }
-    }
-
-    private func mask(image: UIImage, normalizedRect: CGRect) -> UIImage? {
-        guard image.size.width > 0, image.size.height > 0 else { return nil }
-
-        let targetRect = imageRect(from: normalizedRect, in: image.size)
-        let format = UIGraphicsImageRendererFormat.default()
-        format.scale = image.scale
-        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
-
-        return renderer.image { context in
-            image.draw(in: CGRect(origin: .zero, size: image.size))
-            UIColor.white.setFill()
-            context.fill(targetRect)
         }
     }
 
