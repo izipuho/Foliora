@@ -77,7 +77,8 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         let recognizedText = analysis.main.recognizedText
         let analysisTags = makeAnalysisTags(from: analysis)
         let visualKeywords = makeVisualKeywords(from: analysisTags)
-        let tags = makeTags(analysisTags: analysisTags)
+        let suggestedTags = analysisTags.map { SuggestedFieldValue(value: $0.label, confidence: $0.confidence) }
+        let tags = suggestedTags.map(\.value)
 
         return BellPhotoSuggestions(
             tags: tags,
@@ -90,13 +91,8 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             customMaterialName: nil,
             suggestedYear: nil,
             suggestedGeo: nil,
-            suggestedTags: tags.map { SuggestedFieldValue(value: $0, confidence: 0.7) },
-            debugInfo: makeDebugInfo(
-                analysis: analysis,
-                tags: tags,
-                visualKeywords: visualKeywords,
-                year: nil
-            )
+            suggestedTags: suggestedTags,
+            debugInfo: nil
         )
     }
 
@@ -131,78 +127,6 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             .filter { $0.confidence >= 0.28 }
             .map { VisualKeyword(value: $0.label, confidence: $0.confidence) }
     }
-
-    private func makeTags(analysisTags: [PhotoTag]) -> [String] {
-        let visionTags = analysisTags
-            .filter { $0.confidence >= 0.28 }
-            .map(\.label)
-
-        return deduplicate(visionTags)
-    }
-
-    private func deduplicate(_ values: [String]) -> [String] {
-        var seen = Set<String>()
-        return values.compactMap { value in
-            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return nil }
-
-            let key = trimmed.lowercased()
-            guard seen.insert(key).inserted else { return nil }
-
-            return trimmed
-        }
-    }
-
-    private func makeDebugInfo(
-        analysis: PhotoAnalysisResult,
-        tags: [String],
-        visualKeywords: [VisualKeyword],
-        year: Int?
-    ) -> BellPhotoAnalysisDebugInfo {
-        let recognizedText = analysis.main.recognizedText
-        let analysisTags = makeAnalysisTags(from: analysis)
-        let visionTags = """
-        Analysis tags:
-        \(debugLines(analysisTags) { "\($0.label) — \(debugConfidence($0.confidence))" })
-
-        Visual keywords:
-        \(debugLines(visualKeywords) { "\($0.value) — \(debugConfidence($0.confidence))" })
-        """
-        let ocrText = debugLines(recognizedText) { "\"\($0.text)\" — \(debugConfidence($0.confidence))" }
-        let input = """
-        mainObjectImage: \(analysis.mainObjectImage == nil ? "nil" : "present")
-
-        Analysis tags:
-        \(debugLines(analysisTags) { "\($0.label) — \(debugConfidence($0.confidence))" })
-
-        OCR:
-        \(ocrText)
-        """
-        let output = """
-        tags: \(tags.joined(separator: ", "))
-        year: \(year.map(String.init) ?? "nil")
-        geo: nil
-        """
-
-        return BellPhotoAnalysisDebugInfo(
-            prompt: "Deterministic mapper from PhotoAnalysisResult. No model prompt.",
-            input: input,
-            output: output,
-            visionTags: visionTags,
-            ocrText: ocrText
-        )
-    }
-
-    private func debugLines<Element>(_ values: [Element], line: (Element) -> String) -> String {
-        guard !values.isEmpty else { return "none" }
-        return values
-            .map { "- \(line($0))" }
-            .joined(separator: "\n")
-    }
-
-    private func debugConfidence(_ confidence: Double) -> String {
-        confidence.formatted(.number.precision(.fractionLength(2)))
-    }
 }
 
 @MainActor
@@ -225,10 +149,12 @@ final class BellPhotoAnalysisController {
     private let service: any PhotoAnalysisService
     private let mapper: any BellPhotoSuggestionMapping
 
-    init(
-        service: any PhotoAnalysisService = DefaultPhotoAnalysisService(),
-        mapper: any BellPhotoSuggestionMapping = DefaultBellPhotoSuggestionMapper()
-    ) {
+    init() {
+        self.service = DefaultPhotoAnalysisService()
+        self.mapper = DefaultBellPhotoSuggestionMapper()
+    }
+
+    init(service: any PhotoAnalysisService, mapper: any BellPhotoSuggestionMapping) {
         self.service = service
         self.mapper = mapper
     }

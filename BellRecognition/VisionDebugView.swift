@@ -48,9 +48,11 @@ struct VisionDebugView: View {
         guard let image else { return }
 
         let service = DefaultPhotoAnalysisService()
+        let semanticExtractor = SemanticPhotoFeatureExtractor()
         let mapper = DefaultBellPhotoSuggestionMapper()
 
         let analysis: PhotoAnalysisResult = await service.analyze(image: image)
+        let semantic: SemanticPhotoFeatures = await semanticExtractor.extractFeatures(from: analysis)
         let suggestions: BellPhotoSuggestions = await mapper.map(analysis: analysis)
         mainObjectImage = analysis.mainObjectImage
 
@@ -61,6 +63,22 @@ struct VisionDebugView: View {
         let filteredVision = analysis.main.allTags
             .filter { $0.confidence > 0.5 }
             .map { "\($0.label) (\($0.confidence))" }
+            .joined(separator: "\n")
+
+        let subjects = semantic.subjects
+            .map {"\($0.label) (\($0.confidence))"}
+            .joined(separator: "\n")
+        
+        let materialHints = semantic.materialHints
+            .map {"\($0.label) (\($0.confidence))"}
+            .joined(separator: "\n")
+        
+        let conditionHints = semantic.conditionHints
+            .map {"\($0.label) (\($0.confidence))"}
+            .joined(separator: "\n")
+        
+        let placeHints = semantic.placeHints
+            .map {"\($0.label) (\($0.confidence))"}
             .joined(separator: "\n")
         
         let ocrText = analysis.main.recognizedText
@@ -77,6 +95,10 @@ struct VisionDebugView: View {
         resultBlocks = [
             DebugResultBlock(title: "Main tags", text: allMainTags),
             DebugResultBlock(title: "Filtered features", text: filteredVision),
+            DebugResultBlock(title: "Subjects", text: subjects),
+            DebugResultBlock(title: "Material Hints", text: materialHints),
+            DebugResultBlock(title: "Condition Hints", text: conditionHints),
+            DebugResultBlock(title: "Place Hints", text: placeHints),
             DebugResultBlock(title: "OCR", text: ocrText),
             DebugResultBlock(title: "SUGGESTED TAGS", text: suggestedTags),
             DebugResultBlock(title: "SUGGESTED YEAR", text: suggestedYear),
