@@ -2,6 +2,7 @@
 .build/
 DerivedData/
 .DerivedData/
+Example photos/
 *.xcuserstate
 *.pbxuser
 *.mode1v3
