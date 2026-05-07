@@ -164,10 +164,15 @@ final class BellPhotoAnalysisController {
     }
 
     func analyze(image: UIImage) {
+        guard let cgImage = image.cgImage else {
+            isAnalyzing = false
+            return
+        }
+
         isAnalyzing = true
 
         Task {
-            let analysis = await service.analyze(image: image)
+            let analysis = await service.analyze(image: cgImage)
             let mapped = await mapper.map(analysis: analysis)
             await MainActor.run {
                 self.suggestions = mapped

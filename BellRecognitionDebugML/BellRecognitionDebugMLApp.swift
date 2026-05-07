@@ -11,7 +11,7 @@ import SwiftUI
 struct BellRecognitionDebugMLApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            DataSetPreparationView()
         }
     }
 }

@@ -1,11 +1,9 @@
 import CoreGraphics
 import Foundation
-import ImageIO
-import UIKit
 import Vision
 
 struct PhotoAnalysisResult: Sendable {
-    let mainObjectImage: UIImage?
+    let mainObjectImage: CGImage?
     let main: PhotoAnalysisFeatureScope
     let background: PhotoAnalysisFeatureScope
 
@@ -134,20 +132,20 @@ private enum PhotoAnalysisTagBuilder {
 }
 
 protocol PhotoAnalysisService: Sendable {
-    func analyze(image: UIImage) async -> PhotoAnalysisResult
+    func analyze(image: CGImage) async -> PhotoAnalysisResult
 }
 
 private struct VisionAnalyzer: Sendable {
-    func classify(image: UIImage) async throws -> [VisionFeature] {
+    private func makeHandler(for image: CGImage) -> VNImageRequestHandler {
+        // Orientation is intentionally not part of this contract; CGImage pixels are analyzed as-is.
+        VNImageRequestHandler(cgImage: image, options: [:])
+    }
+
+    func classify(image: CGImage) async throws -> [VisionFeature] {
         let maxResults = 16
-        guard let cgImage = image.cgImage else { return [] }
 
         let request = VNClassifyImageRequest()
-        let handler = VNImageRequestHandler(
-            cgImage: cgImage,
-            orientation: image.cgImagePropertyOrientation,
-            options: [:]
-        )
+        let handler = makeHandler(for: image)
         try handler.perform([request])
 
         let features = (request.results ?? []).compactMap { observation -> VisionFeature? in
@@ -169,19 +167,14 @@ private struct VisionAnalyzer: Sendable {
             .map { $0 }
     }
 
-    func recognizeText(image: UIImage) async throws -> [RecognizedTextFeature] {
+    func recognizeText(image: CGImage) async throws -> [RecognizedTextFeature] {
         let maxResults = 32
-        guard let cgImage = image.cgImage else { return [] }
 
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
 
-        let handler = VNImageRequestHandler(
-            cgImage: cgImage,
-            orientation: image.cgImagePropertyOrientation,
-            options: [:]
-        )
+        let handler = makeHandler(for: image)
         try handler.perform([request])
 
         let observations = request.results ?? []
@@ -209,16 +202,11 @@ private struct VisionAnalyzer: Sendable {
             .map { $0 }
     }
 
-    func detectSaliency(image: UIImage) async throws -> [ImageRegionFeature] {
+    func detectSaliency(image: CGImage) async throws -> [ImageRegionFeature] {
         let maxResults = 8
-        guard let cgImage = image.cgImage else { return [] }
 
         let request = VNGenerateAttentionBasedSaliencyImageRequest()
-        let handler = VNImageRequestHandler(
-            cgImage: cgImage,
-            orientation: image.cgImagePropertyOrientation,
-            options: [:]
-        )
+        let handler = makeHandler(for: image)
         try handler.perform([request])
 
         return (request.results ?? [])
@@ -235,9 +223,8 @@ private struct VisionAnalyzer: Sendable {
             .map { $0 }
     }
 
-    func recognizeAnimals(image: UIImage) async throws -> [PhotoAnimalHint] {
+    func recognizeAnimals(image: CGImage) async throws -> [PhotoAnimalHint] {
         let maxResults = 8
-        guard let cgImage = image.cgImage else { return [] }
 
         var requestError: Error?
         var classifications: [VNClassificationObservation] = []
@@ -247,11 +234,7 @@ private struct VisionAnalyzer: Sendable {
             classifications = observations.flatMap(\.labels)
         }
 
-        let handler = VNImageRequestHandler(
-            cgImage: cgImage,
-            orientation: image.cgImagePropertyOrientation,
-            options: [:]
-        )
+        let handler = makeHandler(for: image)
         try handler.perform([request])
 
         if let requestError {
@@ -276,7 +259,7 @@ private struct VisionAnalyzer: Sendable {
 struct DefaultPhotoAnalysisService: PhotoAnalysisService {
     private let vision = VisionAnalyzer()
 
-    func analyze(image: UIImage) async -> PhotoAnalysisResult {
+    func analyze(image: CGImage) async -> PhotoAnalysisResult {
         async let extractedFeatures = try? vision.classify(image: image)
         async let extractedText = try? vision.recognizeText(image: image)
         async let extractedSaliencyRegions = try? vision.detectSaliency(image: image)
@@ -396,24 +379,14 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         )
     }
 
-    private func crop(image: UIImage, to normalizedRect: CGRect) -> UIImage? {
-        let targetRect = imageRect(from: normalizedRect, in: image.size)
+    private func crop(image: CGImage, to normalizedRect: CGRect) -> CGImage? {
+        let targetRect = imageRect(
+            from: normalizedRect,
+            in: CGSize(width: image.width, height: image.height)
+        )
         guard targetRect.width > 0, targetRect.height > 0 else { return nil }
 
-        let format = UIGraphicsImageRendererFormat.default()
-        format.scale = image.scale
-        let renderer = UIGraphicsImageRenderer(size: targetRect.size, format: format)
-
-        return renderer.image { _ in
-            image.draw(
-                in: CGRect(
-                    x: -targetRect.minX,
-                    y: -targetRect.minY,
-                    width: image.size.width,
-                    height: image.size.height
-                )
-            )
-        }
+        return image.cropping(to: targetRect)
     }
 
     private func imageRect(from normalizedRect: CGRect, in imageSize: CGSize) -> CGRect {
@@ -432,30 +405,5 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         guard !intersection.isNull, lhs.width > 0, lhs.height > 0 else { return 0 }
 
         return (intersection.width * intersection.height) / (lhs.width * lhs.height)
-    }
-}
-
-private extension UIImage {
-    var cgImagePropertyOrientation: CGImagePropertyOrientation {
-        switch imageOrientation {
-        case .up:
-            return .up
-        case .upMirrored:
-            return .upMirrored
-        case .down:
-            return .down
-        case .downMirrored:
-            return .downMirrored
-        case .left:
-            return .left
-        case .leftMirrored:
-            return .leftMirrored
-        case .right:
-            return .right
-        case .rightMirrored:
-            return .rightMirrored
-        @unknown default:
-            return .up
-        }
     }
 }

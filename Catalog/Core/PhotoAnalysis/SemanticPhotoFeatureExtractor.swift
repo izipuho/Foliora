@@ -1,5 +1,5 @@
+import CoreGraphics
 import Foundation
-import UIKit
 
 struct SemanticPhotoFeatures: Sendable {
     let subjects: [SemanticPhotoFeature]
@@ -36,7 +36,7 @@ enum SemanticPhotoFeatureSource: Hashable, Sendable {
 }
 
 struct SemanticPhotoVLMInput: Sendable {
-    let mainObjectImage: UIImage?
+    let mainObjectImage: CGImage?
     let allTags: [PhotoTag]
     let recognizedText: [RecognizedTextFeature]
 }

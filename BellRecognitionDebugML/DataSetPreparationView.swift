@@ -1,11 +1,11 @@
 import SwiftUI
 import PhotosUI
-import UIKit
+import AppKit
 
-struct VisionDebugView: View {
+struct DataSetPreparationView: View {
     @State private var selectedItem: PhotosPickerItem?
-    @State private var image: UIImage?
-    @State private var mainObjectImage: UIImage?
+    @State private var image: NSImage?
+    @State private var mainObjectImage: NSImage?
     @State private var resultBlocks: [DebugResultBlock] = []
 
     var body: some View {
@@ -35,8 +35,8 @@ struct VisionDebugView: View {
         .onChange(of: selectedItem) {
             Task {
                 if let data = try? await selectedItem?.loadTransferable(type: Data.self),
-                   let uiImage = UIImage(data: data) {
-                    image = uiImage
+                   let nsImage = NSImage(data: data) {
+                    image = nsImage
                     mainObjectImage = nil
                     await analyze()
                 }
@@ -46,16 +46,15 @@ struct VisionDebugView: View {
 
     private func analyze() async {
         guard let image else { return }
-        guard let cgImage = image.cgImage else { return }
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
 
         let service = DefaultPhotoAnalysisService()
         let semanticExtractor = SemanticPhotoFeatureExtractor()
-        let mapper = DefaultBellPhotoSuggestionMapper()
 
         let analysis: PhotoAnalysisResult = await service.analyze(image: cgImage)
-        let semantic: SemanticPhotoFeatures = await semanticExtractor.extractFeatures(from: analysis)
-        let suggestions: BellPhotoSuggestions = await mapper.map(analysis: analysis)
-        mainObjectImage = analysis.mainObjectImage.map { UIImage(cgImage: $0) }
+        mainObjectImage = analysis.mainObjectImage.map {
+            NSImage(cgImage: $0, size: NSSize(width: $0.width, height: $0.height))
+        }
 
         let allMainTags = analysis.main.allTags
             .map { "\($0.label) (\($0.confidence))" }
@@ -65,45 +64,10 @@ struct VisionDebugView: View {
             .filter { $0.confidence > 0.5 }
             .map { "\($0.label) (\($0.confidence))" }
             .joined(separator: "\n")
-
-        let subjects = semantic.subjects
-            .map {"\($0.label) (\($0.confidence))"}
-            .joined(separator: "\n")
         
-        let materialHints = semantic.materialHints
-            .map {"\($0.label) (\($0.confidence))"}
-            .joined(separator: "\n")
-        
-        let conditionHints = semantic.conditionHints
-            .map {"\($0.label) (\($0.confidence))"}
-            .joined(separator: "\n")
-        
-        let placeHints = semantic.placeHints
-            .map {"\($0.label) (\($0.confidence))"}
-            .joined(separator: "\n")
-        
-        let ocrText = analysis.main.recognizedText
-            .map { $0.text }
-            .joined(separator: "\n")
-
-        let suggestedTags = suggestions.suggestedTags
-            .map { $0.value }
-            .joined(separator: "\n")
-
-        let suggestedYear = suggestions.suggestedYear.map { String($0.value) } ?? "-"
-        let suggestedGeo = suggestions.suggestedGeo?.value.name ?? "-"
-
         resultBlocks = [
             DebugResultBlock(title: "Main tags", text: allMainTags),
             DebugResultBlock(title: "Filtered features", text: filteredVision),
-            DebugResultBlock(title: "Subjects", text: subjects),
-            DebugResultBlock(title: "Material Hints", text: materialHints),
-            DebugResultBlock(title: "Condition Hints", text: conditionHints),
-            DebugResultBlock(title: "Place Hints", text: placeHints),
-            DebugResultBlock(title: "OCR", text: ocrText),
-            DebugResultBlock(title: "SUGGESTED TAGS", text: suggestedTags),
-            DebugResultBlock(title: "SUGGESTED YEAR", text: suggestedYear),
-            DebugResultBlock(title: "SUGGESTED GEO", text: suggestedGeo)
         ]
     }
 }
@@ -116,7 +80,7 @@ private struct DebugResultBlock: Identifiable {
 
 private struct DebugImagePreview: View {
     let title: String
-    let image: UIImage
+    let image: NSImage
 
     var body: some View {
         VStack(spacing: 6) {
@@ -124,7 +88,7 @@ private struct DebugImagePreview: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Image(uiImage: image)
+            Image(nsImage: image)
                 .resizable()
                 .scaledToFit()
                 .frame(height: 200)
@@ -148,14 +112,15 @@ private struct DebugResultBlockView: View {
                     .padding()
 
                 Button {
-                    UIPasteboard.general.string = block.text
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(block.text, forType: .string)
                 } label: {
                     Image(systemName: "doc.on.doc")
                 }
                 .buttonStyle(.bordered)
                 .padding(8)
             }
-            .background(Color(.secondarySystemBackground))
+            .background(Color(nsColor: .controlBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }

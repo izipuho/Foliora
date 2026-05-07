@@ -19,6 +19,8 @@
 		2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */; };
 		24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
+		2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
+		2434A00C2FAC7FDA005383FB /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
 		246FD63C2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */; };
 		246FD6772FA8BF6300B8859A /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
 		246FD67B2FA8BF8600B8859A /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
@@ -569,6 +571,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2434A00C2FAC7FDA005383FB /* PhotoAnalysis.swift in Sources */,
+				2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
