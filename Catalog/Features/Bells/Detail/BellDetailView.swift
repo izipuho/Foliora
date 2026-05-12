@@ -48,68 +48,20 @@ struct BellDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .top) {
                 heroHeader
-
-                VStack(alignment: .leading, spacing: 18) {
-                    detailSection(String(localized: "bell.detail.section.collection_info")) {
-                        detailRow(String(localized: "bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
-                        detailRow(String(localized: "bell.detail.condition"), value: bell.condition.displayName)
-                    }
-
-                    detailSection(String(localized: "bell.detail.section.location")) {
-                        OriginStorageSection(
-                            place: bell.originPlace,
-                            storagePath: bell.storageDisplayPath,
-                            accentColor: detailAccentColor,
-                            isStorageAssigned: bell.item.locationID != nil,
-                            onEditStorage: {
-                                isPresentingLocationPicker = true
-                            }
-                        )
-                    }
-
-                    detailSection(String(localized: "bell.detail.section.media")) {
-                        MediaSection(
-                            itemID: bell.id,
-                            mediaAssets: mediaAssetsBinding,
-                            allowsDeletion: false
-                        )
-                    }
-
-                    detailSection(
-                        String(localized: "bell.detail.section.notes"),
-                        isHighlighted: isNotesOrTagsDirty,
-                        tint: detailAccentColor
-                    ) {
-                        TextField(String(localized: "editor.note_history"), text: $draftNotes, axis: .vertical)
-                            .lineLimit(6, reservesSpace: true)
-                            .textFieldStyle(.plain)
-
-                        TagEditorSection(
-                            tagInput: $tagInput,
-                            tags: $draftTags
-                        )
-                    }
-                }
-                .padding(.horizontal, CatalogLayoutInsets.screen)
-                .padding(.top, CatalogSpacing.section)
-                .padding(.bottom, CatalogSpacing.section)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(uiColor: .systemBackground))
+                detailContent
             }
         }
+        .ignoresSafeArea(edges: .top)
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-        .background(
-            Color(uiColor: .systemBackground)
-                .ignoresSafeArea()
-        )
         .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
             newValue?.kind.sensoryFeedback
         }
         .interactiveDismissDisabled(isNotesOrTagsDirty)
-        .navigationTitle("")
+        .navigationTitle(bell.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             if isNotesOrTagsDirty {
                 ToolbarItem(placement: .topBarLeading) {
@@ -174,6 +126,70 @@ struct BellDetailView: View {
         }
     }
 
+    private var detailContent: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            detailSection(String(localized: "bell.detail.section.collection_info")) {
+                if let acquiredYear = bell.acquiredYear {
+                    detailRow(String(localized: "bell.detail.acquired_year"), value: String(acquiredYear))
+                }
+
+                detailRow(String(localized: "bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
+                detailRow(String(localized: "bell.detail.condition"), value: bell.condition.displayName)
+            }
+
+            detailSection(String(localized: "bell.detail.section.location")) {
+                OriginStorageSection(
+                    place: bell.originPlace,
+                    storagePath: bell.storageDisplayPath,
+                    accentColor: detailAccentColor,
+                    isStorageAssigned: bell.item.locationID != nil,
+                    onEditStorage: {
+                        isPresentingLocationPicker = true
+                    }
+                )
+            }
+
+            detailSection(String(localized: "bell.detail.section.media")) {
+                MediaSection(
+                    itemID: bell.id,
+                    mediaAssets: mediaAssetsBinding,
+                    allowsDeletion: false
+                )
+            }
+
+            detailSection(
+                String(localized: "bell.detail.section.notes"),
+                isHighlighted: isNotesOrTagsDirty,
+                tint: detailAccentColor
+            ) {
+                TextField(String(localized: "editor.note_history"), text: $draftNotes, axis: .vertical)
+                    .lineLimit(6, reservesSpace: true)
+                    .textFieldStyle(.plain)
+
+                TagEditorSection(
+                    tagInput: $tagInput,
+                    tags: $draftTags
+                )
+            }
+        }
+        .padding(.horizontal, CatalogLayoutInsets.screen)
+        .padding(.top, CatalogSpacing.section)
+        .padding(.bottom, CatalogSpacing.section)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0.0),
+                    .init(color: Color(uiColor: .systemBackground).opacity(0.88), location: 0.08),
+                    .init(color: Color(uiColor: .systemBackground), location: 0.18)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .padding(.top, 240)
+    }
+
     private func detailSection<Content: View>(
         _ title: String,
         isHighlighted: Bool = false,
@@ -209,7 +225,40 @@ struct BellDetailView: View {
     }
 
     private var heroHeader: some View {
-        BellCardImagePreviewView(bell: bell)
+        GeometryReader { proxy in
+            ZStack {
+                if let coverPhotoIdentifier = bell.coverPhotoIdentifier {
+                    BellCardCoverBackground(
+                        identifier: coverPhotoIdentifier,
+                        size: CGSize(width: proxy.size.width, height: 320)
+                    )
+                } else {
+                    LinearGradient(
+                        colors: [
+                            CatalogMediaContrast.previewGradientStart,
+                            CatalogMediaContrast.previewGradientEnd
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+            }
+            .frame(width: proxy.size.width, height: 320)
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.0),
+                        .init(color: Color(uiColor: .systemBackground).opacity(0.22), location: 0.72),
+                        .init(color: Color(uiColor: .systemBackground).opacity(0.55), location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 120)
+            }
+        }
+        .frame(height: 320)
+        .ignoresSafeArea(edges: .top)
     }
 
     private var availableLocations: [Location] {
