@@ -9,7 +9,6 @@ struct CollectionsView: View {
     @EnvironmentObject private var externalRouteRouter: AppExternalRouteRouter
     @State private var path: [AppDestination] = []
     @State private var isPresentingAddCollectionEditor = false
-    @State private var nfcService = NFCService()
     @State private var routeErrorMessage: String?
 
     init(repository: any CatalogRepository) {
@@ -104,14 +103,6 @@ struct CollectionsView: View {
             .contentMargins(.bottom, 120, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        scanNFCTag()
-                    } label: {
-                        Image(systemName: "wave.3.right.circle")
-                    }
-                }
-
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isPresentingAddCollectionEditor = true
@@ -188,24 +179,6 @@ struct CollectionsView: View {
         guard let collection = collections.first else { return }
 
         path.append(.collection(collection, BellFilters()))
-    }
-
-    private func scanNFCTag() {
-        nfcService.scan { result in
-            switch result {
-            case .success(let url):
-                do {
-                    let routeKey = try TagPayloadParser().parse(url: url)
-                    openExternalRouteKey(routeKey)
-                } catch {
-                    routeErrorMessage = "Unknown tag"
-                }
-            case .failure(let error):
-                if error != .userCanceled {
-                    routeErrorMessage = "Unknown tag"
-                }
-            }
-        }
     }
 
     private func openExternalRouteKey(_ routeKey: ExternalRouteKey) {

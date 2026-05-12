@@ -7,6 +7,7 @@ struct CollectionShellView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
+    @Query(sort: \LocationEntity.name) private var locationEntities: [LocationEntity]
     @Query private var membershipEntities: [MembershipEntity]
     @State private var collection: CollectionSummary
     @State private var refreshID = UUID()
@@ -24,6 +25,8 @@ struct CollectionShellView: View {
     @AppStorage("bellCatalog.layoutMode") private var selectedLayoutModeRawValue = BellGridLayoutMode.mini.rawValue
     @State private var selectedSummaryFilter = BellFilters()
     @State private var isBellCatalogSelectionMode = false
+    @State private var nfcService = NFCService()
+    @State private var routeErrorMessage: String?
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
     init(collection: CollectionSummary, repository: any CatalogRepository, initialFilters: BellFilters = BellFilters()) {
@@ -116,8 +119,14 @@ struct CollectionShellView: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 if !isBellCatalogSelectionMode {
-                    CollectionMapButton {
-                        isPresentingMap = true
+                    VStack(spacing: 12) {
+                        CollectionFloatingButton(systemImage: "wave.3.right.circle") {
+                            scanNFCTag()
+                        }
+
+                        CollectionFloatingButton(systemImage: "map.fill") {
+                            isPresentingMap = true
+                        }
                     }
                     .padding(.trailing, CatalogLayoutInsets.screen)
                     .padding(.bottom, 16)
@@ -155,6 +164,18 @@ struct CollectionShellView: View {
             }
             .onChange(of: collectionEntities.map(\.id)) { _, _ in
                 refreshContent()
+            }
+            .alert("NFC", isPresented: Binding(
+                get: { routeErrorMessage != nil },
+                set: { newValue in
+                    if !newValue {
+                        routeErrorMessage = nil
+                    }
+                }
+            )) {
+                Button(String(localized: "common.ok"), role: .cancel) {}
+            } message: {
+                Text(routeErrorMessage ?? "")
             }
     }
 
@@ -253,6 +274,46 @@ struct CollectionShellView: View {
     private func refreshContent() {
         collection = collectionEntities.first(where: { $0.id == collection.id })?.summarySnapshot ?? collection
         refreshID = UUID()
+    }
+
+    private func scanNFCTag() {
+        nfcService.scan { result in
+            switch result {
+            case .success(let url):
+                do {
+                    let routeKey = try TagPayloadParser().parse(url: url)
+                    openExternalRouteKey(routeKey)
+                } catch {
+                    routeErrorMessage = "Unknown tag"
+                }
+            case .failure(let error):
+                if error != .userCanceled {
+                    routeErrorMessage = "Unknown tag"
+                }
+            }
+        }
+    }
+
+    private func openExternalRouteKey(_ routeKey: ExternalRouteKey) {
+        do {
+            let resolvedRoute: ResolvedExternalRoute
+            switch routeKey {
+            case .storageLocation(let locationID):
+                resolvedRoute = try AppRouteResolver().resolveStorageLocation(
+                    locationID,
+                    locations: locationEntities,
+                    collections: collectionEntities
+                )
+            }
+
+            collection = resolvedRoute.collection
+            selectedSummaryFilter = resolvedRoute.filters
+            refreshID = UUID()
+        } catch ExternalRouteResolutionError.locationNotFound {
+            routeErrorMessage = "Location not found"
+        } catch {
+            routeErrorMessage = "Unknown tag"
+        }
     }
 
     @MainActor
@@ -440,12 +501,13 @@ private extension BellGridLayoutMode {
     }
 }
 
-private struct CollectionMapButton: View {
+private struct CollectionFloatingButton: View {
+    let systemImage: String
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "map.fill")
+            Image(systemName: systemImage)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.primary)
                 .padding(20)
