@@ -121,11 +121,9 @@ struct BellCatalogView: View {
     @State private var pendingScrollTargetID: String?
     @State private var isSelectionModeEnabled = false
     @State private var selectedBellIDs: Set<UUID> = []
-    @State private var visualScale: CGFloat = 1
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
     @State private var feedbackToken = 0
     @State private var scrollRequestToken = 0
-    @State private var isPinching: Bool = false
     @State private var didEndActivePinchGesture = false
     @State private var suggestedTokens: [SearchToken] = []
     @FocusState private var isSearchFocused: Bool
@@ -252,17 +250,9 @@ struct BellCatalogView: View {
 
     private func layoutMagnifyGesture() -> some Gesture {
         MagnifyGesture()
-            .onChanged { value in
-                isPinching = true
-                visualScale = clampedVisualScale(for: value.magnification)
-            }
             .onEnded { value in
                 let delta = value.magnification - 1
                 let threshold = zoomThreshold(forVelocity: value.velocity)
-
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    visualScale = 1
-                }
 
                 if delta >= threshold {
                     zoomOutLayout()
@@ -271,12 +261,7 @@ struct BellCatalogView: View {
                 }
 
                 didEndActivePinchGesture = true
-                isPinching = false
             }
-    }
-
-    private func clampedVisualScale(for magnification: CGFloat) -> CGFloat {
-        min(max(magnification, 0.88), 1.16)
     }
 
     private func zoomThreshold(forVelocity velocity: CGFloat) -> CGFloat {
@@ -291,8 +276,6 @@ struct BellCatalogView: View {
     }
 
     private func resetPinchState() {
-        isPinching = false
-        visualScale = 1
         didEndActivePinchGesture = false
     }
 
@@ -542,19 +525,17 @@ struct BellCatalogView: View {
                             cardSize: cardSize,
                             scrollProxy: scrollProxy
                         )
-                        .scaleEffect(visualScale)
                     case .flat(let bells):
                         LazyVGrid(columns: gridColumns(cardWidth: cardWidth), spacing: metrics.spacing) {
                             ForEach(bells) { bell in
                                 bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
                             }
                         }
-                        .scaleEffect(visualScale)
-                        .simultaneousGesture(
-                            layoutMagnifyGesture()
-                        )
                     }
                 }
+                .simultaneousGesture(
+                    layoutMagnifyGesture()
+                )
                 .animation(.snappy(duration: 0.24), value: layoutMode)
             }
             .contentMargins(.horizontal, nil, for: .scrollContent)
@@ -679,9 +660,6 @@ struct BellCatalogView: View {
                                         bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
                                     }
                                 }
-                                .simultaneousGesture(
-                                    layoutMagnifyGesture()
-                                )
                             }
                         }
                     }
@@ -691,9 +669,6 @@ struct BellCatalogView: View {
                             bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
                         }
                     }
-                    .simultaneousGesture(
-                        layoutMagnifyGesture()
-                    )
                 }
             } header: {
                 BellGroupedSectionHeader(
@@ -801,7 +776,6 @@ struct BellCatalogView: View {
 
     private func bellCardButton(_ bell: BellEntity, cardSize: CGSize, selectedBellIDs: Set<UUID>) -> some View {
         let isSelected = selectedBellIDs.contains(bell.id)
-        let isInteractionSuppressed = isPinching
         let shouldShowSelectionOverlay = isSelectionModeEnabled && isSelected
 
         @ViewBuilder
@@ -837,14 +811,8 @@ struct BellCatalogView: View {
         return Button {
             handleBellCardTap(bell)
         } label: {
-            if isInteractionSuppressed {
-                cardContent()
-            } else {
-                cardContent()
-            }
+            cardContent()
         }
-        .disabled(isInteractionSuppressed)
-        .allowsHitTesting(!isInteractionSuppressed)
         .buttonStyle(.plain)
         .contextMenu {
             bellCardContextMenu(for: bell)
@@ -854,10 +822,6 @@ struct BellCatalogView: View {
     }
 
     private func handleBellCardTap(_ bell: BellEntity) {
-        if isPinching {
-            return
-        }
-
         if didEndActivePinchGesture {
             didEndActivePinchGesture = false
             return
