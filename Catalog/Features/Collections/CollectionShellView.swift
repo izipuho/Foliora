@@ -117,7 +117,7 @@ struct CollectionShellView: View {
             .onPreferenceChange(BellCatalogSelectionModePreferenceKey.self) { isSelectionMode in
                 isBellCatalogSelectionMode = isSelectionMode
             }
-            .overlay(alignment: .bottomTrailing) {
+            .overlay(alignment: .trailing) {
                 if !isBellCatalogSelectionMode {
                     VStack(spacing: 12) {
                         CollectionFloatingButton(systemImage: "wave.3.right.circle") {
@@ -129,7 +129,6 @@ struct CollectionShellView: View {
                         }
                     }
                     .padding(.trailing, CatalogLayoutInsets.screen)
-                    .padding(.bottom, 16)
                 }
             }
             .photosPicker(
@@ -508,9 +507,9 @@ private struct CollectionFloatingButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.title3.weight(.semibold))
+                .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(.primary)
-                .padding(20)
+                .frame(width: 56, height: 56)
                 .background(.bar, in: Circle())
                 .shadow(color: .black.opacity(0.05), radius: 8)
         }
