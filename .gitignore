@@ -12,3 +12,4 @@ xcuserdata/
 *.xccheckout
 *.moved-aside
 TODO.local.md
+.venv-ml/
