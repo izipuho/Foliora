@@ -555,8 +555,8 @@ struct BellEditorView: View {
             countryName: geoPoint.name,
             regionName: nil,
             cityName: nil,
-            latitude: geoPoint.latitude,
-            longitude: geoPoint.longitude
+            latitude: geoPoint.coordinate?.latitude,
+            longitude: geoPoint.coordinate?.longitude
         )
     }
 
