@@ -2,6 +2,7 @@
 .build/
 DerivedData/
 .DerivedData/
+Example photos/
 *.xcuserstate
 *.pbxuser
 *.mode1v3
@@ -11,3 +12,4 @@ xcuserdata/
 *.xccheckout
 *.moved-aside
 TODO.local.md
+.venv-ml/

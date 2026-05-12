@@ -1,14 +1,40 @@
+import CoreGraphics
 import Foundation
-import MapKit
-import UIKit
 import Vision
 
-struct SuggestedFieldValue<Value: Sendable>: Sendable {
-    let value: Value
+struct PhotoAnalysisResult: Sendable {
+    let mainObjectImage: CGImage?
+    let main: PhotoAnalysisFeatureScope
+    let background: PhotoAnalysisFeatureScope
+
+    static let empty = PhotoAnalysisResult(
+        mainObjectImage: nil,
+        main: .empty,
+        background: .empty
+    )
+}
+
+struct PhotoAnalysisFeatureScope: Sendable {
+    let recognizedText: [RecognizedTextFeature]
+    let allTags: [PhotoTag]
+
+    static let empty = PhotoAnalysisFeatureScope(
+        recognizedText: [],
+        allTags: []
+    )
+}
+
+struct VisionFeature: Hashable, Sendable {
+    let label: String
     let confidence: Double
 }
 
-struct VisionFeature: Sendable {
+struct PhotoAnimalHint: Hashable, Sendable {
+    let label: String
+    let confidence: Float
+}
+
+struct PhotoTag: Hashable, Sendable {
     let label: String
     let confidence: Double
 }
@@ -16,518 +42,368 @@ struct VisionFeature: Sendable {
 struct RecognizedTextFeature: Hashable, Sendable {
     let text: String
     let confidence: Double
+    let boundingBox: CGRect
 }
 
-struct VisualKeyword: Hashable, Sendable {
-    let value: String
+struct ImageRegionFeature: Hashable, Sendable {
+    let boundingBox: CGRect
     let confidence: Double
 }
 
-struct GeoPoint: Sendable {
-    let name: String
-    let latitude: Double
-    let longitude: Double
+private enum PhotoAnalysisNormalization {
+    nonisolated static func normalizedText(_ raw: String) -> String {
+        raw
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+    }
+
+    nonisolated static func normalizedLabel(_ raw: String) -> String {
+        normalizedText(raw).lowercased()
+    }
+
+    nonisolated static func normalizedConfidence(_ confidence: Double) -> Double {
+        min(max(confidence, 0), 1)
+    }
+
+    nonisolated static func deduplicatedByBestConfidence<T, Confidence: Comparable>(
+        _ values: [T],
+        key: (T) -> String,
+        confidence: (T) -> Confidence
+    ) -> [T] {
+        var order: [String] = []
+        var deduplicated: [String: T] = [:]
+
+        for value in values {
+            let key = key(value)
+            if deduplicated[key] == nil {
+                order.append(key)
+            }
+            if let current = deduplicated[key], confidence(current) >= confidence(value) {
+                continue
+            }
+            deduplicated[key] = value
+        }
+
+        return order.compactMap { deduplicated[$0] }
+    }
+
+    nonisolated static func confidenceSort<T, Confidence: Comparable>(
+        _ confidence: @escaping (T) -> Confidence,
+        _ tieBreaker: @escaping (T) -> String
+    ) -> (T, T) -> Bool {
+        { lhs, rhs in
+            let lhsConfidence = confidence(lhs)
+            let rhsConfidence = confidence(rhs)
+            if lhsConfidence != rhsConfidence {
+                return lhsConfidence > rhsConfidence
+            }
+            return tieBreaker(lhs).localizedCaseInsensitiveCompare(tieBreaker(rhs)) == .orderedAscending
+        }
+    }
 }
 
-enum PhotoSemanticTag: String, CaseIterable, Hashable, Sendable {
-    case bell
-    case metal
-    case brass
-    case bronze
-    case ceramic
-    case porcelain
-    case glass
-    case wood
-    case silver
-    case stone
-    case plastic
-    case decorative
-    case antique
-    case vintage
-    case shiny
-    case worn
-    case damaged
-}
+private enum PhotoAnalysisTagBuilder {
+    nonisolated static func allTags(
+        recognizedText: [RecognizedTextFeature],
+        visionFeatures: [VisionFeature],
+        animalHints: [PhotoAnimalHint],
+        excludedLabels: Set<String>
+    ) -> [PhotoTag] {
+        let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
+        let tags = recognizedText.map {
+            PhotoTag(label: $0.text, confidence: $0.confidence)
+        } + visionFeatures.map {
+            PhotoTag(label: $0.label, confidence: $0.confidence)
+        } + animalHints.map {
+            PhotoTag(label: $0.label, confidence: Double($0.confidence))
+        }
 
-struct NormalizedVisionTag: Hashable, Sendable {
-    let tag: PhotoSemanticTag
-    let confidence: Double
-}
-
-struct PhotoAnalysisResult: Sendable {
-    let tags: [String]
-    let year: Int?
-    let geo: GeoPoint?
-
-    let visionFeatures: [VisionFeature]
-    let normalizedTags: [NormalizedVisionTag]
-    let recognizedText: [RecognizedTextFeature]
-    let visualKeywords: [VisualKeyword]
-
-    static let empty = PhotoAnalysisResult(
-        tags: [],
-        year: nil,
-        geo: nil,
-        visionFeatures: [],
-        normalizedTags: [],
-        recognizedText: [],
-        visualKeywords: []
-    )
-}
-
-protocol VisionFeatureExtracting: Sendable {
-    func extractFeatures(from image: UIImage) async throws -> [VisionFeature]
-}
-
-protocol TextFeatureExtracting: Sendable {
-    func extractText(from image: UIImage) async throws -> [RecognizedTextFeature]
+        return PhotoAnalysisNormalization.deduplicatedByBestConfidence(
+            tags.compactMap { tag in
+                let label = PhotoAnalysisNormalization.normalizedLabel(tag.label)
+                guard !label.isEmpty, !excludedLabels.contains(label) else { return nil }
+                return tag
+            },
+            key: { PhotoAnalysisNormalization.normalizedLabel($0.label) },
+            confidence: \.confidence
+        )
+        .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.label))
+    }
 }
 
 protocol PhotoAnalysisService: Sendable {
-    func analyze(image: UIImage) async -> PhotoAnalysisResult
+    func analyze(image: CGImage) async -> PhotoAnalysisResult
 }
 
-struct VisionFeatureExtractor: VisionFeatureExtracting {
-    private let maxResults: Int
-    private let minimumConfidence: Double
-
-    init(maxResults: Int = 16, minimumConfidence: Double = 0.18) {
-        self.maxResults = maxResults
-        self.minimumConfidence = minimumConfidence
+private struct VisionAnalyzer: Sendable {
+    private func makeHandler(for image: CGImage) -> VNImageRequestHandler {
+        // Orientation is intentionally not part of this contract; CGImage pixels are analyzed as-is.
+        VNImageRequestHandler(cgImage: image, options: [:])
     }
 
-    func extractFeatures(from image: UIImage) async throws -> [VisionFeature] {
-        guard let cgImage = image.cgImage else { return [] }
+    func classify(image: CGImage) async throws -> [VisionFeature] {
+        let maxResults = 16
 
-        var features: [VisionFeature] = []
-        let classifyRequest = VNClassifyImageRequest()
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([classifyRequest])
+        let request = VNClassifyImageRequest()
+        let handler = makeHandler(for: image)
+        try handler.perform([request])
 
-        let classifications: [VNClassificationObservation] = classifyRequest.results ?? []
-        features += classifications.map { VisionFeature(label: $0.identifier.lowercased(), confidence: Double($0.confidence)) }
+        let features = (request.results ?? []).compactMap { observation -> VisionFeature? in
+            let label = PhotoAnalysisNormalization.normalizedLabel(observation.identifier)
+            let confidence = Double(observation.confidence)
+            guard !label.isEmpty else { return nil }
 
-        if #available(iOS 26.0, *), let objectRequest = makeRecognizeObjectsRequest() {
-            try handler.perform([objectRequest])
-            let objects = (objectRequest as NSObject).value(forKey: "results") as? [VNRecognizedObjectObservation] ?? []
-            features += objects.flatMap { observation in
-                observation.labels.map { label in
-                    VisionFeature(label: label.identifier.lowercased(), confidence: Double(label.confidence))
-                }
-            }
+            return VisionFeature(label: label, confidence: confidence)
         }
 
-        return deduplicate(features)
-            .filter { $0.confidence >= minimumConfidence }
-            .sorted { lhs, rhs in
-                if lhs.confidence == rhs.confidence {
-                    return lhs.label.localizedCaseInsensitiveCompare(rhs.label) == .orderedAscending
-                }
-                return lhs.confidence > rhs.confidence
-            }
+        return PhotoAnalysisNormalization
+            .deduplicatedByBestConfidence(
+                features,
+                key: \.label,
+                confidence: \.confidence
+            )
+            .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.label))
             .prefix(maxResults)
             .map { $0 }
     }
 
-    private func deduplicate(_ features: [VisionFeature]) -> [VisionFeature] {
-        features.reduce(into: [String: VisionFeature]()) { partialResult, feature in
-            let key = feature.label.lowercased()
-            if partialResult[key] == nil || partialResult[key]!.confidence < feature.confidence {
-                partialResult[key] = feature
-            }
-        }
-        .values
-        .map { $0 }
-    }
-
-    private func makeRecognizeObjectsRequest() -> VNRequest? {
-        guard let requestClass = NSClassFromString("VNRecognizeObjectsRequest") as? NSObject.Type else {
-            return nil
-        }
-        return requestClass.init() as? VNRequest
-    }
-}
-
-struct VisionTextFeatureExtractor: TextFeatureExtracting {
-    private let maxResults: Int
-    private let minimumConfidence: Double
-
-    init(maxResults: Int = 24, minimumConfidence: Double = 0.0) {
-        self.maxResults = maxResults
-        self.minimumConfidence = minimumConfidence
-    }
-
-    func extractText(from image: UIImage) async throws -> [RecognizedTextFeature] {
-        guard let cgImage = image.cgImage else { return [] }
+    func recognizeText(image: CGImage) async throws -> [RecognizedTextFeature] {
+        let maxResults = 32
 
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
-        request.minimumTextHeight = 0.02
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        let handler = makeHandler(for: image)
         try handler.perform([request])
 
-        let observations: [VNRecognizedTextObservation] = request.results ?? []
+        let observations = request.results ?? []
+        let features = observations.compactMap { observation -> RecognizedTextFeature? in
+            guard let candidate = observation.topCandidates(1).first else { return nil }
 
-        let textFeatures: [RecognizedTextFeature] = observations.compactMap { observation in
-                guard let candidate = observation.topCandidates(1).first else { return nil }
-                let confidence = Double(candidate.confidence)
-                guard confidence >= minimumConfidence else { return nil }
+            let text = PhotoAnalysisNormalization.normalizedText(candidate.string)
+            guard !text.isEmpty else { return nil }
 
-                let text = normalizedText(candidate.string)
-                guard !text.isEmpty else { return nil }
+            return RecognizedTextFeature(
+                text: text,
+                confidence: Double(candidate.confidence),
+                boundingBox: observation.boundingBox
+            )
+        }
 
-                return RecognizedTextFeature(text: text, confidence: confidence)
-            }
-
-        let bestByNormalizedText = textFeatures.reduce(into: [String: RecognizedTextFeature]()) {
-            (partialResult: inout [String: RecognizedTextFeature], feature: RecognizedTextFeature) in
-                let normalized = feature.text.lowercased()
-                let current = partialResult[normalized]
-                if current == nil || current!.confidence < feature.confidence {
-                    partialResult[normalized] = feature
-                }
-            }
-
-        return bestByNormalizedText.values
-            .sorted { lhs, rhs in
-                if lhs.confidence == rhs.confidence {
-                    return lhs.text.localizedCaseInsensitiveCompare(rhs.text) == .orderedAscending
-                }
-                return lhs.confidence > rhs.confidence
-            }
+        return PhotoAnalysisNormalization
+            .deduplicatedByBestConfidence(
+                features,
+                key: { $0.text.lowercased() },
+                confidence: \.confidence
+            )
+            .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.text))
             .prefix(maxResults)
             .map { $0 }
     }
 
-    private func normalizedText(_ raw: String) -> String {
-        raw
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "\n", with: " ")
-            .replacingOccurrences(of: "  ", with: " ")
-    }
+    func detectSaliency(image: CGImage) async throws -> [ImageRegionFeature] {
+        let maxResults = 8
 
-}
+        let request = VNGenerateAttentionBasedSaliencyImageRequest()
+        let handler = makeHandler(for: image)
+        try handler.perform([request])
 
-protocol GeoPointResolving: Sendable {
-    func resolveGeoPoint(from recognizedText: [RecognizedTextFeature]) async -> GeoPoint?
-}
-
-struct OCRGeoPointResolver: GeoPointResolving {
-    func resolveGeoPoint(from recognizedText: [RecognizedTextFeature]) async -> GeoPoint? {
-        let candidates = geoCandidates(from: recognizedText.map(\.text))
-
-        for candidate in candidates {
-            guard let mapItem = try? await MKGeocodingRequest(addressString: candidate)?.mapItems.first else {
-                continue
+        return (request.results ?? [])
+            .flatMap { observation in
+                observation.salientObjects?.map {
+                    ImageRegionFeature(
+                        boundingBox: $0.boundingBox,
+                        confidence: Double($0.confidence)
+                    )
+                } ?? []
             }
-
-            return GeoPoint(
-                name: canonicalName(for: mapItem, fallback: candidate),
-                latitude: mapItem.location.coordinate.latitude,
-                longitude: mapItem.location.coordinate.longitude
-            )
-        }
-
-        return nil
+            .sorted { $0.confidence > $1.confidence }
+            .prefix(maxResults)
+            .map { $0 }
     }
 
-    private func geoCandidates(from strings: [String]) -> [String] {
-        var candidates: [String] = []
-        let joinedText = strings.joined(separator: "\n")
+    func recognizeAnimals(image: CGImage) async throws -> [PhotoAnimalHint] {
+        let maxResults = 8
 
-        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.address.rawValue) {
-            let range = NSRange(joinedText.startIndex..<joinedText.endIndex, in: joinedText)
-            let matches = detector.matches(in: joinedText, range: range)
-            candidates += matches.flatMap { match in
-                [
-                    match.addressComponents?[.city],
-                    match.addressComponents?[.country],
-                    match.addressComponents?[.state],
-                    match.addressComponents?[.street]
-                ].compactMap { $0 }
-            }
+        var requestError: Error?
+        var classifications: [VNClassificationObservation] = []
+        let request = VNRecognizeAnimalsRequest { request, error in
+            requestError = error
+            let observations = request.results as? [VNRecognizedObjectObservation] ?? []
+            classifications = observations.flatMap(\.labels)
         }
 
-        candidates += strings.compactMap(cleanGeoCandidate)
+        let handler = makeHandler(for: image)
+        try handler.perform([request])
 
-        var seen = Set<String>()
-        return candidates.compactMap { rawCandidate in
-            let candidate = rawCandidate.trimmingCharacters(in: .whitespacesAndNewlines)
-            let key = candidate.lowercased()
-            guard !candidate.isEmpty, seen.insert(key).inserted else { return nil }
-            return candidate
-        }
-        .sorted { lhs, rhs in
-            let lhsWords = lhs.split(whereSeparator: \.isWhitespace).count
-            let rhsWords = rhs.split(whereSeparator: \.isWhitespace).count
-            if lhsWords != rhsWords { return lhsWords < rhsWords }
-            return lhs.count < rhs.count
-        }
-    }
-
-    private func cleanGeoCandidate(_ text: String) -> String? {
-        let withoutYear = text.replacingOccurrences(
-            of: #"(19|20)\d{2}"#,
-            with: "",
-            options: .regularExpression
-        )
-        let cleaned = withoutYear
-            .replacingOccurrences(of: #"https?://\S+"#, with: "", options: .regularExpression)
-            .replacingOccurrences(of: #"\S+@\S+"#, with: "", options: .regularExpression)
-            .replacingOccurrences(of: #"[^[:alpha:]\s\-',.]"#, with: " ", options: .regularExpression)
-            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters))
-
-        guard cleaned.count >= 3, cleaned.count <= 48 else { return nil }
-        guard cleaned.unicodeScalars.contains(where: CharacterSet.letters.contains) else { return nil }
-        return cleaned
-    }
-
-    private func canonicalName(for mapItem: MKMapItem, fallback: String) -> String {
-        let city = mapItem.addressRepresentations?.cityName?.nilIfBlank
-        let region = mapItem.addressRepresentations?.cityWithContext(.short)
-            .flatMap { normalizedRegion(from: $0, city: city) }
-        let country = mapItem.addressRepresentations?.regionName?.nilIfBlank
-
-        if let city, let region, city.caseInsensitiveCompare(region) != ComparisonResult.orderedSame {
-            return deduplicatedGeoParts([city, region]).joined(separator: ", ")
+        if let requestError {
+            throw requestError
         }
 
-        return deduplicatedGeoParts([city, region, country, mapItem.name, fallback])
-            .first ?? fallback
-    }
+        let hints = classifications.compactMap { observation -> PhotoAnimalHint? in
+            let label = PhotoAnalysisNormalization.normalizedLabel(observation.identifier)
+            guard !label.isEmpty else { return nil }
 
-    private func normalizedRegion(from cityWithContext: String, city: String?) -> String? {
-        let parts = cityWithContext
-            .split(separator: ",")
-            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-
-        guard let city else { return parts.first?.nilIfBlank }
-        return parts.first { $0.caseInsensitiveCompare(city) != .orderedSame }?.nilIfBlank
-    }
-
-    private func deduplicatedGeoParts(_ parts: [String?]) -> [String] {
-        var seen = Set<String>()
-        return parts.compactMap { part in
-            guard let value = part?.nilIfBlank else { return nil }
-            let key = value.lowercased()
-            guard seen.insert(key).inserted else { return nil }
-            return value
+            return PhotoAnimalHint(label: label, confidence: observation.confidence)
         }
+
+        return PhotoAnalysisNormalization
+            .deduplicatedByBestConfidence(hints, key: \.label, confidence: \.confidence)
+            .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.label))
+            .prefix(maxResults)
+            .map { $0 }
     }
 }
 
 struct DefaultPhotoAnalysisService: PhotoAnalysisService {
-    private let extractor: any VisionFeatureExtracting
-    private let textExtractor: any TextFeatureExtracting
-    private let geoResolver: any GeoPointResolving
+    private let vision = VisionAnalyzer()
 
-    init(
-        extractor: any VisionFeatureExtracting = VisionFeatureExtractor(),
-        textExtractor: any TextFeatureExtracting = VisionTextFeatureExtractor(),
-        geoResolver: any GeoPointResolving = OCRGeoPointResolver()
-    ) {
-        self.extractor = extractor
-        self.textExtractor = textExtractor
-        self.geoResolver = geoResolver
-    }
+    func analyze(image: CGImage) async -> PhotoAnalysisResult {
+        async let extractedFeatures = try? vision.classify(image: image)
+        async let extractedText = try? vision.recognizeText(image: image)
+        async let extractedSaliencyRegions = try? vision.detectSaliency(image: image)
+        async let extractedAnimalHints = try? vision.recognizeAnimals(image: image)
 
-    func analyze(image: UIImage) async -> PhotoAnalysisResult {
-        async let extractedFeatures = try? extractor.extractFeatures(from: image)
-        async let extractedText = try? textExtractor.extractText(from: image)
+        let textFeatures = await extractedText ?? []
+        let saliencyRegions = await extractedSaliencyRegions ?? []
+        let backgroundVisionFeatures = await extractedFeatures ?? []
+        let animalHints = await extractedAnimalHints ?? []
 
-        let features = await extractedFeatures ?? []
-        let recognizedText = await extractedText ?? []
-        async let resolvedGeo = geoResolver.resolveGeoPoint(from: recognizedText)
-        let geo = await resolvedGeo
+        let mainObject = detectMainObject(
+            saliencyRegions: saliencyRegions
+        )
+        let mainObjectImage = mainObject.flatMap {
+            crop(image: image, to: $0.insetBy(dx: -0.04, dy: -0.04))
+        }
+        let splitRecognizedText = splitText(textFeatures, mainObject: mainObject)
+        let mainVisionFeatures: [VisionFeature]
+        if let mainObjectImage {
+            mainVisionFeatures = (try? await vision.classify(image: mainObjectImage)) ?? []
+        } else {
+            mainVisionFeatures = []
+        }
+        let mainScope = makeScope(
+            visionFeatures: mainVisionFeatures,
+            textFeatures: splitRecognizedText.main,
+            animalHints: animalHints,
+            excludedLabels: []
+        )
+        let backgroundScope = makeScope(
+            visionFeatures: backgroundVisionFeatures,
+            textFeatures: splitRecognizedText.background,
+            animalHints: [],
+            excludedLabels: Set(mainVisionFeatures.map(\.label))
+        )
 
         return PhotoAnalysisResult(
-            tags: allTags(from: features, recognizedText: recognizedText, geo: geo),
-            year: extractYear(from: recognizedText),
-            geo: geo,
-            visionFeatures: features,
-            normalizedTags: normalize(features: features),
-            recognizedText: recognizedText,
-            visualKeywords: extractVisualKeywords(from: features)
+            mainObjectImage: mainObjectImage,
+            main: mainScope,
+            background: backgroundScope
         )
     }
 
-    private func allTags(from features: [VisionFeature], recognizedText: [RecognizedTextFeature], geo: GeoPoint?) -> [String] {
-        var seen = Set<String>()
-        let excludedGeo = geo?.name.lowercased()
+    private func detectMainObject(
+        saliencyRegions: [ImageRegionFeature]
+    ) -> CGRect? {
+        saliencyRegions.first?.boundingBox
+    }
 
-        return (visionTags(from: features) + ocrTags(from: recognizedText, excludingGeo: excludedGeo)).compactMap { rawTag in
-            let tag = rawTag.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !tag.isEmpty, seen.insert(tag).inserted else { return nil }
-            return tag
+    private func splitText(
+        _ recognizedText: [RecognizedTextFeature],
+        mainObject: CGRect?
+    ) -> (main: [RecognizedTextFeature], background: [RecognizedTextFeature]) {
+        guard let mainObject else {
+            return (main: [], background: recognizedText)
         }
-    }
 
-    private func visionTags(from features: [VisionFeature]) -> [String] {
-        var seen = Set<String>()
-        return features.compactMap { feature in
-            let tag = feature.label.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !tag.isEmpty, seen.insert(tag).inserted else { return nil }
-            return tag
-        }
-    }
+        var main: [RecognizedTextFeature] = []
+        var background: [RecognizedTextFeature] = []
 
-    private func ocrTags(from recognizedText: [RecognizedTextFeature], excludingGeo geoName: String?) -> [String] {
-        recognizedText
-            .flatMap { feature in
-                feature.text
-                    .components(separatedBy: CharacterSet(charactersIn: ",;|/\\()[]{}"))
-                    .flatMap { $0.split(whereSeparator: \.isWhitespace).map(String.init) + [$0] }
-            }
-            .compactMap { rawTag in
-                let tag = rawTag
-                    .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-                    .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters))
-                    .lowercased()
-                guard tag.count >= 2 else { return nil }
-                guard !isYearTag(tag) else { return nil }
-                guard geoName.map({ !$0.contains(tag) && !tag.contains($0) }) ?? true else { return nil }
-                guard tag.unicodeScalars.contains(where: CharacterSet.letters.contains) else { return nil }
-                return tag
-            }
-    }
-
-    private func isYearTag(_ tag: String) -> Bool {
-        guard let year = Int(tag), (1900...2100).contains(year) else { return false }
-        return true
-    }
-
-    private func normalize(features: [VisionFeature]) -> [NormalizedVisionTag] {
-        var bestConfidenceByTag: [PhotoSemanticTag: Double] = [:]
-
-        for feature in features {
-            for tag in tags(for: feature.label) {
-                bestConfidenceByTag[tag] = max(bestConfidenceByTag[tag] ?? 0, feature.confidence)
+        for text in recognizedText {
+            if intersectionRatio(text.boundingBox, mainObject) >= 0.15 {
+                main.append(text)
+            } else {
+                background.append(text)
             }
         }
 
-        return bestConfidenceByTag
-            .map { NormalizedVisionTag(tag: $0.key, confidence: $0.value) }
-            .sorted { lhs, rhs in
-                if lhs.confidence == rhs.confidence {
-                    return lhs.tag.rawValue < rhs.tag.rawValue
-                }
-                return lhs.confidence > rhs.confidence
-            }
+        return (main: main, background: background)
     }
 
-    private func tags(for label: String) -> Set<PhotoSemanticTag> {
-        var result: Set<PhotoSemanticTag> = []
-        let normalized = label.lowercased()
+    private func makeScope(
+        visionFeatures: [VisionFeature],
+        textFeatures: [RecognizedTextFeature],
+        animalHints: [PhotoAnimalHint],
+        excludedLabels: Set<String>
+    ) -> PhotoAnalysisFeatureScope {
+        let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
+        let labels = visionFeatures.compactMap { feature -> VisionFeature? in
+            let label = PhotoAnalysisNormalization.normalizedLabel(feature.label)
+            guard !label.isEmpty, !excludedLabels.contains(label) else { return nil }
 
-        if normalized.contains("bell") || normalized.contains("handbell") || normalized.contains("cowbell") {
-            result.insert(.bell)
+            return VisionFeature(
+                label: label,
+                confidence: PhotoAnalysisNormalization.normalizedConfidence(feature.confidence)
+            )
         }
-        if normalized.contains("metal") || normalized.contains("brass") || normalized.contains("bronze") || normalized.contains("copper") {
-            result.insert(.metal)
-        }
-        if normalized.contains("brass") {
-            result.insert(.brass)
-            result.insert(.shiny)
-        }
-        if normalized.contains("bronze") || normalized.contains("copper") {
-            result.insert(.bronze)
-        }
-        if normalized.contains("ceramic") || normalized.contains("pottery") {
-            result.insert(.ceramic)
-        }
-        if normalized.contains("porcelain") {
-            result.insert(.porcelain)
-        }
-        if normalized.contains("glass") || normalized.contains("crystal") {
-            result.insert(.glass)
-            result.insert(.shiny)
-        }
-        if normalized.contains("wood") || normalized.contains("timber") {
-            result.insert(.wood)
-        }
-        if normalized.contains("silver") || normalized.contains("chrome") || normalized.contains("steel") {
-            result.insert(.silver)
-            result.insert(.shiny)
-        }
-        if normalized.contains("stone") || normalized.contains("rock") || normalized.contains("marble") {
-            result.insert(.stone)
-        }
-        if normalized.contains("plastic") || normalized.contains("polymer") || normalized.contains("resin") {
-            result.insert(.plastic)
-        }
-        if normalized.contains("ornament") || normalized.contains("decor") || normalized.contains("decoration") {
-            result.insert(.decorative)
-        }
-        if normalized.contains("antique") || normalized.contains("ancient") {
-            result.insert(.antique)
-        }
-        if normalized.contains("vintage") || normalized.contains("retro") {
-            result.insert(.vintage)
-        }
-        if normalized.contains("rust") || normalized.contains("weathered") || normalized.contains("aged") || normalized.contains("worn") {
-            result.insert(.worn)
-        }
-        if normalized.contains("broken") || normalized.contains("damaged") || normalized.contains("crack") {
-            result.insert(.damaged)
-        }
+        let textLines = textFeatures.compactMap { feature -> RecognizedTextFeature? in
+            let text = PhotoAnalysisNormalization.normalizedText(feature.text)
+            guard !text.isEmpty else { return nil }
 
-        return result
+            return RecognizedTextFeature(
+                text: text,
+                confidence: PhotoAnalysisNormalization.normalizedConfidence(feature.confidence),
+                boundingBox: feature.boundingBox
+            )
+        }
+        let animalLabels = animalHints.compactMap { hint -> PhotoAnimalHint? in
+            let label = PhotoAnalysisNormalization.normalizedLabel(hint.label)
+            guard !label.isEmpty, !excludedLabels.contains(label) else { return nil }
+
+            return PhotoAnimalHint(
+                label: label,
+                confidence: Float(PhotoAnalysisNormalization.normalizedConfidence(Double(hint.confidence)))
+            )
+        }
+        let allTags = PhotoAnalysisTagBuilder.allTags(
+            recognizedText: textLines,
+            visionFeatures: labels,
+            animalHints: animalLabels,
+            excludedLabels: excludedLabels
+        )
+
+        return PhotoAnalysisFeatureScope(
+            recognizedText: textLines,
+            allTags: allTags
+        )
     }
 
-    private func extractYear(from recognizedText: [RecognizedTextFeature]) -> Int? {
-        let pattern = #"(19|20)\d{2}"#
-        for feature in recognizedText {
-            guard let range = feature.text.range(of: pattern, options: .regularExpression),
-                  let year = Int(feature.text[range]),
-                  (1900...2100).contains(year) else {
-                continue
-            }
-            return year
-        }
+    private func crop(image: CGImage, to normalizedRect: CGRect) -> CGImage? {
+        let targetRect = imageRect(
+            from: normalizedRect,
+            in: CGSize(width: image.width, height: image.height)
+        )
+        guard targetRect.width > 0, targetRect.height > 0 else { return nil }
 
-        return nil
+        return image.cropping(to: targetRect)
     }
 
-    private func extractVisualKeywords(from features: [VisionFeature]) -> [VisualKeyword] {
-        let keywordMap: [(needles: [String], keyword: String)] = [
-            (["hedgehog", "porcupine"], "hedgehog"),
-            (["owl"], "owl"),
-            (["bird"], "bird"),
-            (["cat", "kitten", "feline"], "cat"),
-            (["dog", "puppy", "canine"], "dog"),
-            (["animal", "creature"], "animal"),
-            (["figurine", "statuette", "statue", "sculpture"], "figurine"),
-            (["ornament", "decor", "decoration"], "decorative"),
-            (["toy", "doll"], "toy")
-        ]
+    private func imageRect(from normalizedRect: CGRect, in imageSize: CGSize) -> CGRect {
+        let clamped = normalizedRect.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
 
-        var bestByKeyword: [String: Double] = [:]
-
-        for feature in features where feature.confidence >= 0.22 {
-            let label = feature.label.lowercased()
-            for mapping in keywordMap where mapping.needles.contains(where: label.contains) {
-                bestByKeyword[mapping.keyword] = max(bestByKeyword[mapping.keyword] ?? 0, feature.confidence)
-            }
-        }
-
-        return bestByKeyword
-            .map { VisualKeyword(value: $0.key, confidence: $0.value) }
-            .sorted { lhs, rhs in
-                if lhs.confidence == rhs.confidence {
-                    return lhs.value < rhs.value
-                }
-                return lhs.confidence > rhs.confidence
-            }
+        return CGRect(
+            x: clamped.minX * imageSize.width,
+            y: (1 - clamped.maxY) * imageSize.height,
+            width: clamped.width * imageSize.width,
+            height: clamped.height * imageSize.height
+        ).integral
     }
-}
 
-private extension String {
-    var nilIfBlank: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+    private func intersectionRatio(_ lhs: CGRect, _ rhs: CGRect) -> CGFloat {
+        let intersection = lhs.intersection(rhs)
+        guard !intersection.isNull, lhs.width > 0, lhs.height > 0 else { return 0 }
+
+        return (intersection.width * intersection.height) / (lhs.width * lhs.height)
     }
 }
