@@ -342,3 +342,20 @@
 "bell_catalog.layout.showcase" = "Showcase";
 "common.duplicate" = "Duplicate";
 "common.share" = "Share";
+"common.cancelled" = "Canceled";
+
+"nfc.title" = "NFC";
+"nfc.write.action" = "Write NFC Tag";
+"nfc.write.success" = "NFC tag written.";
+"nfc.session.scan" = "Hold near an NFC tag.";
+"nfc.session.write" = "Hold near the NFC tag to write.";
+"nfc.overwrite.title" = "Overwrite NFC binding?";
+"nfc.overwrite.confirm" = "Overwrite";
+"nfc.overwrite.tag_bound_to_location" = "This tag is already bound to %@.";
+"nfc.overwrite.location_bound_to_tag" = "This location is already bound to another tag.";
+"nfc.error.unavailable" = "NFC is not available on this device.";
+"nfc.error.invalid_tag" = "Invalid tag";
+"nfc.error.non_writable" = "Tag is not writable";
+"nfc.error.unknown_tag" = "Unknown tag";
+"nfc.error.location_not_found" = "Location not found";
+"nfc.error.write_failed" = "Failed to write NFC tag";

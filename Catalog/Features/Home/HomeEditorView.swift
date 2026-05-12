@@ -637,7 +637,7 @@ private struct EditLocationSheet: View {
                     Button {
                         prepareNFCWrite()
                     } label: {
-                        Label("Write NFC Tag", systemImage: "wave.3.right.circle")
+                        Label(String(localized: "nfc.write.action"), systemImage: "wave.3.right.circle")
                     }
                 }
 
@@ -675,11 +675,11 @@ private struct EditLocationSheet: View {
                 Text(String(localized: "home.location.delete.message"))
             }
             .confirmationDialog(
-                "Overwrite NFC binding?",
+                String(localized: "nfc.overwrite.title"),
                 isPresented: $isPresentingNFCOverwriteConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Overwrite", role: .destructive) {
+                Button(String(localized: "nfc.overwrite.confirm"), role: .destructive) {
                     confirmNFCWrite()
                 }
 
@@ -689,7 +689,7 @@ private struct EditLocationSheet: View {
             } message: {
                 Text(bindingConflictMessage)
             }
-            .alert("NFC", isPresented: Binding(
+            .alert(String(localized: "nfc.title"), isPresented: Binding(
                 get: { nfcMessage != nil },
                 set: { newValue in
                     if !newValue {
@@ -708,9 +708,12 @@ private struct EditLocationSheet: View {
         bindingConflicts.map { conflict in
             switch conflict.kind {
             case .tagBoundToAnotherLocation(let existingLocation):
-                return "This tag is already bound to \(existingLocation.name)."
+                return String.localizedStringWithFormat(
+                    String(localized: "nfc.overwrite.tag_bound_to_location"),
+                    existingLocation.name
+                )
             case .locationBoundToAnotherTag:
-                return "This location is already bound to another tag."
+                return String(localized: "nfc.overwrite.location_bound_to_tag")
             }
         }
         .joined(separator: "\n")
@@ -746,7 +749,7 @@ private struct EditLocationSheet: View {
                     bindingStore.saveBinding(locationID: location.id, url: pendingBindingURL)
                 }
                 clearPendingNFCWrite()
-                nfcMessage = "NFC tag written."
+                nfcMessage = String(localized: "nfc.write.success")
             case .failure(let error):
                 clearPendingNFCWrite()
                 handleNFCWriteError(error)
@@ -772,11 +775,11 @@ private struct EditLocationSheet: View {
     private func handleNFCWriteError(_ error: NFCServiceError) {
         switch error {
         case .userCanceled:
-            nfcMessage = "Canceled"
+            nfcMessage = String(localized: "common.cancelled")
         case .nonWritableTag:
-            nfcMessage = "Tag is not writable"
+            nfcMessage = String(localized: "nfc.error.non_writable")
         case .invalidTag:
-            nfcMessage = "Invalid tag"
+            nfcMessage = String(localized: "nfc.error.invalid_tag")
         default:
             nfcMessage = error.localizedDescription
         }

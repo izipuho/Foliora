@@ -342,3 +342,20 @@
 "bell_catalog.layout.showcase" = "Витрина";
 "common.duplicate" = "Дублировать";
 "common.share" = "Поделиться";
+"common.cancelled" = "Отменено";
+
+"nfc.title" = "NFC";
+"nfc.write.action" = "Записать NFC-метку";
+"nfc.write.success" = "NFC-метка записана.";
+"nfc.session.scan" = "Поднесите устройство к NFC-метке.";
+"nfc.session.write" = "Поднесите устройство к NFC-метке для записи.";
+"nfc.overwrite.title" = "Перезаписать NFC-привязку?";
+"nfc.overwrite.confirm" = "Перезаписать";
+"nfc.overwrite.tag_bound_to_location" = "Эта метка уже привязана к «%@».";
+"nfc.overwrite.location_bound_to_tag" = "Это место уже привязано к другой метке.";
+"nfc.error.unavailable" = "NFC недоступен на этом устройстве.";
+"nfc.error.invalid_tag" = "Некорректная метка";
+"nfc.error.non_writable" = "Метка недоступна для записи";
+"nfc.error.unknown_tag" = "Неизвестная метка";
+"nfc.error.location_not_found" = "Место не найдено";
+"nfc.error.write_failed" = "Не удалось записать NFC-метку";

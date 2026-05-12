@@ -165,7 +165,7 @@ struct CollectionShellView: View {
             .onChange(of: collectionEntities.map(\.id)) { _, _ in
                 refreshContent()
             }
-            .alert("NFC", isPresented: Binding(
+            .alert(String(localized: "nfc.title"), isPresented: Binding(
                 get: { routeErrorMessage != nil },
                 set: { newValue in
                     if !newValue {
@@ -284,11 +284,11 @@ struct CollectionShellView: View {
                     let routeKey = try TagPayloadParser().parse(url: url)
                     openExternalRouteKey(routeKey)
                 } catch {
-                    routeErrorMessage = "Unknown tag"
+                    routeErrorMessage = String(localized: "nfc.error.unknown_tag")
                 }
             case .failure(let error):
                 if error != .userCanceled {
-                    routeErrorMessage = "Unknown tag"
+                    routeErrorMessage = String(localized: "nfc.error.unknown_tag")
                 }
             }
         }
@@ -310,9 +310,9 @@ struct CollectionShellView: View {
             selectedSummaryFilter = resolvedRoute.filters
             refreshID = UUID()
         } catch ExternalRouteResolutionError.locationNotFound {
-            routeErrorMessage = "Location not found"
+            routeErrorMessage = String(localized: "nfc.error.location_not_found")
         } catch {
-            routeErrorMessage = "Unknown tag"
+            routeErrorMessage = String(localized: "nfc.error.unknown_tag")
         }
     }
 

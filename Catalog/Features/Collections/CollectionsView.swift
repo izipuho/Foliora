@@ -65,7 +65,7 @@ struct CollectionsView: View {
                         EmptyView()
                     }
                 }
-                .alert("NFC", isPresented: Binding(
+                .alert(String(localized: "nfc.title"), isPresented: Binding(
                     get: { routeErrorMessage != nil },
                     set: { newValue in
                         if !newValue {
@@ -195,9 +195,9 @@ struct CollectionsView: View {
 
             path = [.collection(resolvedRoute.collection, resolvedRoute.filters)]
         } catch ExternalRouteResolutionError.locationNotFound {
-            routeErrorMessage = "Location not found"
+            routeErrorMessage = String(localized: "nfc.error.location_not_found")
         } catch {
-            routeErrorMessage = "Unknown tag"
+            routeErrorMessage = String(localized: "nfc.error.unknown_tag")
         }
     }
 }

@@ -16,17 +16,17 @@ enum NFCServiceError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .unavailable:
-            return "NFC is not available on this device."
+            return String(localized: "nfc.error.unavailable")
         case .userCanceled:
-            return "Canceled"
+            return String(localized: "common.cancelled")
         case .invalidTag:
-            return "Invalid tag"
+            return String(localized: "nfc.error.invalid_tag")
         case .nonWritableTag:
-            return "Tag is not writable"
+            return String(localized: "nfc.error.non_writable")
         case .unknownTag:
-            return "Unknown tag"
+            return String(localized: "nfc.error.unknown_tag")
         case .writeFailed:
-            return "Failed to write NFC tag"
+            return String(localized: "nfc.error.write_failed")
         }
     }
 }
@@ -66,7 +66,7 @@ final class NFCService: NSObject, @unchecked Sendable {
 
         mode = .read(completion)
         let session = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: true)
-        session.alertMessage = "Hold near an NFC tag."
+        session.alertMessage = String(localized: "nfc.session.scan")
         self.session = session
         session.begin()
     }
@@ -83,7 +83,7 @@ final class NFCService: NSObject, @unchecked Sendable {
 
         mode = .write(url: url, preparation, completion)
         let session = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: false)
-        session.alertMessage = "Hold near the NFC tag to write."
+        session.alertMessage = String(localized: "nfc.session.write")
         self.session = session
         session.begin()
     }
@@ -175,7 +175,7 @@ extension NFCService: NFCNDEFReaderSessionDelegate {
                         write: {
                             sendableTag.value.writeNDEF(message) { error in
                                 if error == nil {
-                                    session.alertMessage = "NFC tag written."
+                                    session.alertMessage = String(localized: "nfc.write.success")
                                     session.invalidate()
                                     service.completeWrite(.success(()))
                                 } else {
