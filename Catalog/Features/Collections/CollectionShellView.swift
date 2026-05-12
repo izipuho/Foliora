@@ -26,9 +26,10 @@ struct CollectionShellView: View {
     @State private var isBellCatalogSelectionMode = false
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
-    init(collection: CollectionSummary, repository: any CatalogRepository) {
+    init(collection: CollectionSummary, repository: any CatalogRepository, initialFilters: BellFilters = BellFilters()) {
         self.repository = repository
         _collection = State(initialValue: collection)
+        _selectedSummaryFilter = State(initialValue: initialFilters)
     }
 
     private var homes: [Home] {

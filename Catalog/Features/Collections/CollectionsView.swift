@@ -5,8 +5,12 @@ struct CollectionsView: View {
     let repository: any CatalogRepository
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
+    @Query(sort: \LocationEntity.name) private var locationEntities: [LocationEntity]
+    @EnvironmentObject private var externalRouteRouter: AppExternalRouteRouter
     @State private var path: [AppDestination] = []
     @State private var isPresentingAddCollectionEditor = false
+    @State private var nfcService = NFCService()
+    @State private var routeErrorMessage: String?
 
     init(repository: any CatalogRepository) {
         self.repository = repository
@@ -40,6 +44,11 @@ struct CollectionsView: View {
                 .onChange(of: collections.map(\.id)) { _, _ in
                     autoOpenSingleCollectionIfNeeded()
                 }
+                .onChange(of: externalRouteRouter.pendingRouteKey) { _, routeKey in
+                    guard let routeKey else { return }
+                    openExternalRouteKey(routeKey)
+                    externalRouteRouter.pendingRouteKey = nil
+                }
                 .navigationTitle(RootTab.collections.title)
                 .sheet(isPresented: $isPresentingAddCollectionEditor) {
                     CollectionEditorView(
@@ -51,11 +60,23 @@ struct CollectionsView: View {
                 }
                 .navigationDestination(for: AppDestination.self) { destination in
                     switch destination {
-                    case .collection(let collection):
-                        CollectionShellView(collection: collection, repository: repository)
+                    case .collection(let collection, let filters):
+                        CollectionShellView(collection: collection, repository: repository, initialFilters: filters)
                     case .home:
                         EmptyView()
                     }
+                }
+                .alert("NFC", isPresented: Binding(
+                    get: { routeErrorMessage != nil },
+                    set: { newValue in
+                        if !newValue {
+                            routeErrorMessage = nil
+                        }
+                    }
+                )) {
+                    Button(String(localized: "common.ok"), role: .cancel) {}
+                } message: {
+                    Text(routeErrorMessage ?? "")
                 }
         }
     }
@@ -69,7 +90,7 @@ struct CollectionsView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(collections) { collection in
                         Button {
-                            path.append(.collection(collection))
+                            path.append(.collection(collection, BellFilters()))
                         } label: {
                             CollectionCard(collection: collection)
                         }
@@ -83,6 +104,14 @@ struct CollectionsView: View {
             .contentMargins(.bottom, 120, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        scanNFCTag()
+                    } label: {
+                        Image(systemName: "wave.3.right.circle")
+                    }
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isPresentingAddCollectionEditor = true
@@ -147,7 +176,8 @@ struct CollectionsView: View {
                     role: .owner,
                     status: .active,
                     sharingSummary: ""
-                )
+                ),
+                BellFilters()
             )
         )
     }
@@ -157,6 +187,44 @@ struct CollectionsView: View {
         guard collections.count == 1 else { return }
         guard let collection = collections.first else { return }
 
-        path.append(.collection(collection))
+        path.append(.collection(collection, BellFilters()))
+    }
+
+    private func scanNFCTag() {
+        nfcService.scan { result in
+            switch result {
+            case .success(let url):
+                do {
+                    let routeKey = try TagPayloadParser().parse(url: url)
+                    openExternalRouteKey(routeKey)
+                } catch {
+                    routeErrorMessage = "Unknown tag"
+                }
+            case .failure(let error):
+                if error != .userCanceled {
+                    routeErrorMessage = "Unknown tag"
+                }
+            }
+        }
+    }
+
+    private func openExternalRouteKey(_ routeKey: ExternalRouteKey) {
+        do {
+            let resolvedRoute: ResolvedExternalRoute
+            switch routeKey {
+            case .storageLocation(let locationID):
+                resolvedRoute = try AppRouteResolver().resolveStorageLocation(
+                    locationID,
+                    locations: locationEntities,
+                    collections: collectionEntities
+                )
+            }
+
+            path = [.collection(resolvedRoute.collection, resolvedRoute.filters)]
+        } catch ExternalRouteResolutionError.locationNotFound {
+            routeErrorMessage = "Location not found"
+        } catch {
+            routeErrorMessage = "Unknown tag"
+        }
     }
 }

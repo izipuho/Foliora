@@ -408,6 +408,8 @@ final class BellCatalogViewModel: ObservableObject {
                 return bell.condition == condition
             case .acquisitionMethod(let method):
                 return bell.acquisitionMethod == method
+            case .storageLocation(let locationID):
+                return bell.location?.id == locationID
             }
         }
     }

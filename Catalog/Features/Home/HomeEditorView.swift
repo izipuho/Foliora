@@ -594,6 +594,13 @@ private struct EditLocationSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var isPresentingDeleteConfirmation = false
+    @State private var nfcService = NFCService()
+    @State private var bindingStore = NFCTagBindingStore()
+    @State private var nfcMessage: String?
+    @State private var pendingWritePreparation: NFCWritePreparation?
+    @State private var pendingBindingURL: URL?
+    @State private var bindingConflicts: [NFCTagBindingConflict] = []
+    @State private var isPresentingNFCOverwriteConfirmation = false
 
     private var parentCandidates: [Location] {
         allLocations
@@ -624,6 +631,14 @@ private struct EditLocationSheet: View {
 
                     TextField(String(localized: "common.notes"), text: $location.notes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
+                }
+
+                Section {
+                    Button {
+                        prepareNFCWrite()
+                    } label: {
+                        Label("Write NFC Tag", systemImage: "wave.3.right.circle")
+                    }
                 }
 
                 Section {
@@ -659,6 +674,111 @@ private struct EditLocationSheet: View {
             } message: {
                 Text(String(localized: "home.location.delete.message"))
             }
+            .confirmationDialog(
+                "Overwrite NFC binding?",
+                isPresented: $isPresentingNFCOverwriteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Overwrite", role: .destructive) {
+                    confirmNFCWrite()
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {
+                    cancelPendingNFCWrite()
+                }
+            } message: {
+                Text(bindingConflictMessage)
+            }
+            .alert("NFC", isPresented: Binding(
+                get: { nfcMessage != nil },
+                set: { newValue in
+                    if !newValue {
+                        nfcMessage = nil
+                    }
+                }
+            )) {
+                Button(String(localized: "common.ok"), role: .cancel) {}
+            } message: {
+                Text(nfcMessage ?? "")
+            }
+        }
+    }
+
+    private var bindingConflictMessage: String {
+        bindingConflicts.map { conflict in
+            switch conflict.kind {
+            case .tagBoundToAnotherLocation(let existingLocation):
+                return "This tag is already bound to \(existingLocation.name)."
+            case .locationBoundToAnotherTag:
+                return "This location is already bound to another tag."
+            }
+        }
+        .joined(separator: "\n")
+    }
+
+    private func prepareNFCWrite() {
+        let url = TagURLFormat.shared.url(for: .storageLocation(location.id))
+        pendingBindingURL = url
+        nfcService.prepareWrite(url: url) { result in
+            switch result {
+            case .success(let preparation):
+                let conflicts = bindingStore.conflicts(
+                    currentTagURL: preparation.currentTagURL,
+                    newTagURL: url,
+                    location: location,
+                    allLocations: allLocations
+                )
+                pendingWritePreparation = preparation
+                bindingConflicts = conflicts
+
+                if conflicts.isEmpty {
+                    confirmNFCWrite()
+                } else {
+                    isPresentingNFCOverwriteConfirmation = true
+                }
+            case .failure(let error):
+                handleNFCWriteError(error)
+            }
+        } completion: { result in
+            switch result {
+            case .success:
+                if let pendingBindingURL {
+                    bindingStore.saveBinding(locationID: location.id, url: pendingBindingURL)
+                }
+                clearPendingNFCWrite()
+                nfcMessage = "NFC tag written."
+            case .failure(let error):
+                clearPendingNFCWrite()
+                handleNFCWriteError(error)
+            }
+        }
+    }
+
+    private func confirmNFCWrite() {
+        pendingWritePreparation?.write()
+    }
+
+    private func cancelPendingNFCWrite() {
+        pendingWritePreparation?.cancel()
+        clearPendingNFCWrite()
+    }
+
+    private func clearPendingNFCWrite() {
+        pendingWritePreparation = nil
+        pendingBindingURL = nil
+        bindingConflicts = []
+    }
+
+    private func handleNFCWriteError(_ error: NFCServiceError) {
+        switch error {
+        case .userCanceled:
+            nfcMessage = "Canceled"
+        case .nonWritableTag:
+            nfcMessage = "Tag is not writable"
+        case .invalidTag:
+            nfcMessage = "Invalid tag"
+        default:
+            nfcMessage = error.localizedDescription
         }
     }
 

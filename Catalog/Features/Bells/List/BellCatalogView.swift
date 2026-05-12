@@ -70,6 +70,8 @@ private extension BellAttributeFilter {
             return condition.displayName
         case .acquisitionMethod(let method):
             return method.displayName
+        case .storageLocation:
+            return String(localized: "editor.location")
         }
     }
 }

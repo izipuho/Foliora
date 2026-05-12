@@ -60,6 +60,7 @@ enum BellAttributeFilter: Hashable {
     case tag(String)
     case condition(ItemCondition)
     case acquisitionMethod(AcquisitionMethod)
+    case storageLocation(UUID)
 }
 
 struct BellFilters: Hashable {

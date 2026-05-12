@@ -36,31 +36,42 @@ enum RootTab: String, CaseIterable, Identifiable {
 
 struct AppShellView: View {
     let repository: any CatalogRepository
+    @StateObject private var externalRouteRouter = AppExternalRouteRouter()
 
     var body: some View {
         RootShellView(repository: repository)
+            .environmentObject(externalRouteRouter)
     }
 }
 
 private struct RootShellView: View {
     let repository: any CatalogRepository
+    @EnvironmentObject private var externalRouteRouter: AppExternalRouteRouter
+    @State private var selectedTab = RootTab.collections
 
     var body: some View {
-        TabView {
-            Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage) {
+        TabView(selection: $selectedTab) {
+            Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage, value: RootTab.collections) {
                 CollectionsView(repository: repository)
             }
 
-            Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage) {
+            Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage, value: RootTab.settings) {
                 SettingsView(repository: repository)
             }
 
-            Tab(role: .search) {
+            Tab(value: RootTab.search, role: .search) {
                 SearchTabView(repository: repository)
             }
         }
         .modifier(ModernTabBarBehavior())
         .tabViewSearchActivation(.searchTabSelection)
+        .onOpenURL { url in
+            // Paid-account Universal Links can enter here later; downstream routing already uses ExternalRouteKey.
+            if let routeKey = try? TagPayloadParser().parse(url: url) {
+                selectedTab = .collections
+                externalRouteRouter.open(routeKey)
+            }
+        }
     }
 }
 private struct ModernTabBarBehavior: ViewModifier {

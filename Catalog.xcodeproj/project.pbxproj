@@ -64,6 +64,9 @@
 		C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002F /* CatalogImportExportActor.swift */; };
 		C000000000000000000000C5 /* CatalogLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000030 /* CatalogLayouts.swift */; };
 		C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000040 /* CatalogArchiveService.swift */; };
+		C000000000000000000000C8 /* NFCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000050 /* NFCService.swift */; };
+		C000000000000000000000C9 /* TagPayloadParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000051 /* TagPayloadParser.swift */; };
+		C000000000000000000000CA /* NFCTagBindingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000052 /* NFCTagBindingStore.swift */; };
 		D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* BellDetailView+Subviews.swift */; };
 /* End PBXBuildFile section */
 
@@ -125,6 +128,9 @@
 		C0000000000000000000002F /* CatalogImportExportActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportActor.swift; sourceTree = "<group>"; };
 		C00000000000000000000030 /* CatalogLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLayouts.swift; sourceTree = "<group>"; };
 		C00000000000000000000040 /* CatalogArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogArchiveService.swift; sourceTree = "<group>"; };
+		E00000000000000000000050 /* NFCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCService.swift; sourceTree = "<group>"; };
+		E00000000000000000000051 /* TagPayloadParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagPayloadParser.swift; sourceTree = "<group>"; };
+		E00000000000000000000052 /* NFCTagBindingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCTagBindingStore.swift; sourceTree = "<group>"; };
 		D00000000000000000000031 /* BellDetailView+Subviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BellDetailView+Subviews.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -232,6 +238,7 @@
 			isa = PBXGroup;
 			children = (
 				C0000000000000000000003A /* Navigation */,
+				C0000000000000000000004C /* NFC */,
 				C0000000000000000000004A /* PhotoAnalysis */,
 				C0000000000000000000003B /* SharedUI */,
 			);
@@ -430,6 +437,16 @@
 			path = Analysis;
 			sourceTree = "<group>";
 		};
+		C0000000000000000000004C /* NFC */ = {
+			isa = PBXGroup;
+			children = (
+				E00000000000000000000050 /* NFCService.swift */,
+				E00000000000000000000051 /* TagPayloadParser.swift */,
+				E00000000000000000000052 /* NFCTagBindingStore.swift */,
+			);
+			path = NFC;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -595,6 +612,8 @@
 				C000000000000000000000A1 /* CatalogApp.swift in Sources */,
 				C000000000000000000000A2 /* AppContainer.swift in Sources */,
 				C000000000000000000000A3 /* AppRouter.swift in Sources */,
+				C000000000000000000000C8 /* NFCService.swift in Sources */,
+				C000000000000000000000C9 /* TagPayloadParser.swift in Sources */,
 				C000000000000000000000A4 /* CollectionCard.swift in Sources */,
 				C000000000000000000000A5 /* CollectionModels.swift in Sources */,
 				C000000000000000000000A6 /* ItemModels.swift in Sources */,
@@ -619,6 +638,7 @@
 				C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */,
 				2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */,
 				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
+				C000000000000000000000CA /* NFCTagBindingStore.swift in Sources */,
 				C000000000000000000000BA /* CatalogEntities.swift in Sources */,
 				C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */,
 				2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */,
@@ -1040,6 +1060,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = Catalog/Catalog.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
@@ -1048,6 +1069,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Catalog;
 				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Use the camera to add photos of collection items.";
+				INFOPLIST_KEY_NFCReaderUsageDescription = "Scan NFC tags to open storage locations and write location tags.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -1076,6 +1098,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = Catalog/Catalog.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
@@ -1084,6 +1107,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Catalog;
 				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Use the camera to add photos of collection items.";
+				INFOPLIST_KEY_NFCReaderUsageDescription = "Scan NFC tags to open storage locations and write location tags.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
