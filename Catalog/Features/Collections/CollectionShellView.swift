@@ -286,7 +286,9 @@ struct CollectionShellView: View {
                     routeErrorMessage = String(localized: "nfc.error.unknown_tag")
                 }
             case .failure(let error):
-                if error != .userCanceled {
+                if error == .unavailable {
+                    routeErrorMessage = error.localizedDescription
+                } else if error != .userCanceled {
                     routeErrorMessage = String(localized: "nfc.error.unknown_tag")
                 }
             }
