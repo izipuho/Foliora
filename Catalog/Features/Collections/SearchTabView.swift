@@ -138,6 +138,7 @@ struct SearchTabView: View {
                 select: selectToken,
                 remove: removeToken
             )
+            .fixedSize(horizontal: false, vertical: true)
             .background(.regularMaterial)
 
             GeometryReader { proxy in
