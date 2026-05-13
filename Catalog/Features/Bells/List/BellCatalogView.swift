@@ -103,6 +103,7 @@ struct BellCatalogView: View {
     let collection: CollectionSummary?
     let displayMode: DisplayMode
     let startsSearchFocused: Bool
+    let onBellSelected: ((BellEntity) -> Void)?
     @Environment(\.modelContext) private var modelContext
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
@@ -139,13 +140,15 @@ struct BellCatalogView: View {
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
         searchState: Binding<BellCatalogSearchState> = .constant(BellCatalogSearchState()),
-        startsSearchFocused: Bool = false
+        startsSearchFocused: Bool = false,
+        onBellSelected: ((BellEntity) -> Void)? = nil
     ) {
         self.repository = repository
         self.collaborators = collaborators
         self.collection = collection
         self.displayMode = displayMode
         self.startsSearchFocused = startsSearchFocused
+        self.onBellSelected = onBellSelected
         self._layoutMode = layoutMode
         self._orderMode = orderMode
         self._filters = filters
@@ -829,6 +832,8 @@ struct BellCatalogView: View {
 
         if isSelectionModeEnabled {
             toggleBellSelection(bell.id)
+        } else if let onBellSelected {
+            onBellSelected(bell)
         } else {
             presentedBell = bell
         }
