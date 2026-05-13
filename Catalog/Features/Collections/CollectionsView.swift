@@ -3,13 +3,21 @@ import SwiftData
 
 struct CollectionsView: View {
     let repository: any CatalogRepository
+    let onCollectionSelected: ((CollectionEntity) -> Void)?
+    let onBellSelected: ((BellEntity) -> Void)?
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
     @State private var path: [AppDestination] = []
     @State private var isPresentingAddCollectionEditor = false
 
-    init(repository: any CatalogRepository) {
+    init(
+        repository: any CatalogRepository,
+        onCollectionSelected: ((CollectionEntity) -> Void)? = nil,
+        onBellSelected: ((BellEntity) -> Void)? = nil
+    ) {
         self.repository = repository
+        self.onCollectionSelected = onCollectionSelected
+        self.onBellSelected = onBellSelected
     }
 
     private var collections: [CollectionSummary] {
@@ -52,7 +60,11 @@ struct CollectionsView: View {
                 .navigationDestination(for: AppDestination.self) { destination in
                     switch destination {
                     case .collection(let collection):
-                        CollectionShellView(collection: collection, repository: repository)
+                        CollectionShellView(
+                            collection: collection,
+                            repository: repository,
+                            onBellSelected: onBellSelected
+                        )
                     case .home:
                         EmptyView()
                     }
@@ -69,7 +81,7 @@ struct CollectionsView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     ForEach(collections) { collection in
                         Button {
-                            path.append(.collection(collection))
+                            selectCollection(collection)
                         } label: {
                             CollectionCard(collection: collection)
                         }
@@ -152,7 +164,19 @@ struct CollectionsView: View {
         )
     }
 
+    private func selectCollection(_ collection: CollectionSummary) {
+        if let onCollectionSelected {
+            if let collectionEntity = collectionEntities.first(where: { $0.id == collection.id }) {
+                onCollectionSelected(collectionEntity)
+            }
+            return
+        }
+
+        path.append(.collection(collection))
+    }
+
     private func autoOpenSingleCollectionIfNeeded() {
+        guard onCollectionSelected == nil else { return }
         guard path.isEmpty else { return }
         guard collections.count == 1 else { return }
         guard let collection = collections.first else { return }

@@ -47,6 +47,7 @@ struct BellCatalogSearchState: Equatable {
 
 struct SearchTabView: View {
     let repository: any CatalogRepository
+    let onBellSelected: ((BellEntity) -> Void)? = nil
     @Query(sort: \CollectionEntity.title) private var collections: [CollectionEntity]
     @Query(sort: \BellEntity.title) private var bells: [BellEntity]
     @AppStorage("bellCatalog.orderMode") private var orderModeRawValue = BellOrderMode.newestFirst.rawValue
@@ -153,7 +154,8 @@ struct SearchTabView: View {
                     orderMode: orderModeBinding,
                     filters: $filters,
                     searchState: $searchState,
-                    startsSearchFocused: true
+                    startsSearchFocused: true,
+                    onBellSelected: onBellSelected
                 )
             }
             .toolbar(.hidden, for: .navigationBar)
