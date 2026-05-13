@@ -50,10 +50,10 @@ struct SearchTabView: View {
     let onBellSelected: ((BellEntity) -> Void)?
     @Query(sort: \CollectionEntity.title) private var collections: [CollectionEntity]
     @Query(sort: \BellEntity.title) private var bells: [BellEntity]
-    @AppStorage("bellCatalog.orderMode") private var orderModeRawValue = BellOrderMode.newestFirst.rawValue
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
-    @State private var filters = BellFilters()
+    @State private var presentedBell: BellEntity?
     @State private var searchState = BellCatalogSearchState()
+    @FocusState private var isSearchFocused: Bool
 
     private var layoutMode: BellGridLayoutMode {
         get {
@@ -62,29 +62,6 @@ struct SearchTabView: View {
         nonmutating set {
             layoutModeRawValue = newValue.rawValue
         }
-    }
-
-    private var orderMode: BellOrderMode {
-        get {
-            BellOrderMode(rawValue: orderModeRawValue) ?? .newestFirst
-        }
-        nonmutating set {
-            orderModeRawValue = newValue.rawValue
-        }
-    }
-
-    private var layoutModeBinding: Binding<BellGridLayoutMode> {
-        Binding(
-            get: { layoutMode },
-            set: { layoutMode = $0 }
-        )
-    }
-
-    private var orderModeBinding: Binding<BellOrderMode> {
-        Binding(
-            get: { orderMode },
-            set: { orderMode = $0 }
-        )
     }
 
     init(
@@ -140,6 +117,18 @@ struct SearchTabView: View {
         .filter { !$0.tokens.isEmpty }
     }
 
+    private var filteredBells: [BellEntity] {
+        bells
+            .filter { matches(bell: $0, searchState: searchState) }
+            .sorted {
+                if $0.createdAt == $1.createdAt {
+                    return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+                }
+
+                return $0.createdAt > $1.createdAt
+            }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             SearchTokenBar(
@@ -149,23 +138,61 @@ struct SearchTabView: View {
                 select: selectToken,
                 remove: removeToken
             )
-            .padding(.vertical, 8)
             .background(.regularMaterial)
 
-            BellCatalogView(
-                collection: nil,
-                repository: repository,
-                collaborators: [],
-                displayMode: .search,
-                layoutMode: layoutModeBinding,
-                orderMode: orderModeBinding,
-                filters: $filters,
-                searchState: $searchState,
-                startsSearchFocused: true,
-                onBellSelected: onBellSelected
-            )
+            GeometryReader { proxy in
+                let cardWidth = layoutMode.cardWidth(forContainerWidth: proxy.size.width)
+                let cardSize = CGSize(width: cardWidth, height: layoutMode.metrics.cardHeight)
+
+                ScrollView {
+                    if filteredBells.isEmpty {
+                        ContentUnavailableView.search
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                    } else {
+                        BellGridView(
+                            bells: filteredBells,
+                            layoutMode: layoutMode,
+                            cardSize: cardSize,
+                            selectedBellIDs: [],
+                            isSelectionModeEnabled: false,
+                            onTap: openBell,
+                            onSelect: nil,
+                            contextMenu: { _ in
+                                EmptyView()
+                            },
+                            preview: { bell in
+                                SearchBellCardPreview(bell: bell, repository: repository)
+                            }
+                        )
+                    }
+                }
+                .contentMargins(.horizontal, nil, for: .scrollContent)
+                .contentMargins(.top, nil, for: .scrollContent)
+            }
         }
-        .toolbar(.hidden, for: .navigationBar)
+        .searchable(
+            text: $searchState.query,
+            tokens: $searchState.tokens
+        ) { token in
+            Label(searchTokenTitle(token), systemImage: searchTokenSystemImage(token))
+        }
+        .searchFocused($isSearchFocused)
+        .onAppear {
+            isSearchFocused = true
+        }
+        .sheet(item: $presentedBell) { bell in
+            SearchBellDetailSheetContainer(bell: bell, repository: repository)
+                .presentationDragIndicator(.visible)
+        }
+    }
+
+    private func openBell(_ bell: BellEntity) {
+        if let onBellSelected {
+            onBellSelected(bell)
+        } else {
+            presentedBell = bell
+        }
     }
 
     private func searchTokenTitle(_ token: SearchToken) -> String {
@@ -179,6 +206,23 @@ struct SearchTabView: View {
             return condition.displayName
         case .acquisitionMethod(let method):
             return method.displayName
+        }
+    }
+
+    private func searchTokenSystemImage(_ token: SearchToken) -> String {
+        switch token {
+        case .collection:
+            return "rectangle.stack"
+        case .country:
+            return "globe.europe.africa"
+        case .material:
+            return "shippingbox"
+        case .tag:
+            return "tag"
+        case .condition:
+            return "checkmark.seal"
+        case .acquisitionMethod:
+            return "tray.and.arrow.down"
         }
     }
 
@@ -212,6 +256,134 @@ struct SearchTabView: View {
         AcquisitionMethod.allCases.filter { method in
             bells.contains { $0.acquisitionMethod == method }
         }
+    }
+
+    private func matches(bell: BellEntity, searchState: BellCatalogSearchState) -> Bool {
+        matchesQuery(searchState.query, in: bell, scope: searchState.scope)
+        && searchState.tokens.allSatisfy { matches(token: $0, in: bell) }
+    }
+
+    private func matchesQuery(
+        _ query: String,
+        in bell: BellEntity,
+        scope: BellCatalogSearchState.Scope
+    ) -> Bool {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else { return matchesScope(scope, in: bell) }
+
+        switch scope {
+        case .all:
+            return searchableValues(for: bell).contains { $0.localizedCaseInsensitiveContains(trimmedQuery) }
+        case .title:
+            return bell.title.localizedCaseInsensitiveContains(trimmedQuery)
+        case .collection:
+            return bell.collection?.title.localizedCaseInsensitiveContains(trimmedQuery) == true
+        case .origin:
+            return originValues(for: bell).contains { $0.localizedCaseInsensitiveContains(trimmedQuery) }
+        case .tags:
+            return bell.tagValues.contains { $0.localizedCaseInsensitiveContains(trimmedQuery) }
+        case .notes:
+            return bell.notes.localizedCaseInsensitiveContains(trimmedQuery)
+        case .incomplete:
+            return matchesScope(.incomplete, in: bell)
+            && searchableValues(for: bell).contains { $0.localizedCaseInsensitiveContains(trimmedQuery) }
+        }
+    }
+
+    private func matchesScope(_ scope: BellCatalogSearchState.Scope, in bell: BellEntity) -> Bool {
+        switch scope {
+        case .all, .title, .collection, .origin, .tags, .notes:
+            return true
+        case .incomplete:
+            return bell.originPlace == nil
+            || bell.acquiredYear == nil
+            || bell.location == nil
+            || !bell.hasNotes
+            || bell.tagValues.isEmpty
+        }
+    }
+
+    private func matches(token: SearchToken, in bell: BellEntity) -> Bool {
+        switch token {
+        case .collection(let collectionID):
+            return bell.collection?.id == collectionID
+        case .country(let country):
+            return bell.countryName.localizedCaseInsensitiveCompare(country) == .orderedSame
+        case .material(let material):
+            return bell.materialDisplayName.localizedCaseInsensitiveCompare(material) == .orderedSame
+        case .tag(let tag):
+            return bell.tagValues.contains { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame }
+        case .condition(let condition):
+            return bell.condition == condition
+        case .acquisitionMethod(let method):
+            return bell.acquisitionMethod == method
+        }
+    }
+
+    private func searchableValues(for bell: BellEntity) -> [String] {
+        [
+            bell.title,
+            bell.notes,
+            bell.materialDisplayName,
+            bell.collection?.title ?? ""
+        ] + originValues(for: bell) + storageValues(for: bell) + bell.tagValues
+    }
+
+    private func originValues(for bell: BellEntity) -> [String] {
+        [
+            bell.countryName,
+            bell.cityName,
+            bell.originPlace?.displayName ?? "",
+            bell.originPlace?.regionName ?? ""
+        ]
+    }
+
+    private func storageValues(for bell: BellEntity) -> [String] {
+        [
+            bell.storageDisplayPath,
+            bell.location?.name ?? "",
+            bell.location?.home?.name ?? ""
+        ]
+    }
+}
+
+private extension BellEntity {
+    var hasNotes: Bool {
+        !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
+private struct SearchBellDetailSheetContainer: View {
+    @State private var bell: BellRecord
+    let repository: any CatalogRepository
+
+    init(bell: BellEntity, repository: any CatalogRepository) {
+        _bell = State(initialValue: bell.recordSnapshot)
+        self.repository = repository
+    }
+
+    var body: some View {
+        NavigationStack {
+            BellDetailView(bell: $bell, repository: repository)
+        }
+        .presentationBackground(.clear)
+    }
+}
+
+private struct SearchBellCardPreview: View {
+    @State private var bell: BellRecord
+    let repository: any CatalogRepository
+
+    init(bell: BellEntity, repository: any CatalogRepository) {
+        _bell = State(initialValue: bell.recordSnapshot)
+        self.repository = repository
+    }
+
+    var body: some View {
+        NavigationStack {
+            BellDetailView(bell: $bell, repository: repository)
+        }
+        .allowsHitTesting(false)
     }
 }
 

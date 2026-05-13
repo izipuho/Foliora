@@ -7,7 +7,7 @@ struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview
     let selectedBellIDs: Set<UUID>
     let isSelectionModeEnabled: Bool
     let onTap: (Bell) -> Void
-    let onSelect: (Bell) -> Void
+    let onSelect: ((Bell) -> Void)?
     @ViewBuilder let contextMenu: (Bell) -> ContextMenuContent
     @ViewBuilder let preview: (Bell) -> Preview
 
@@ -64,10 +64,12 @@ struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button {
-                onSelect(bell)
-            } label: {
-                Label(String(localized: "bell.context.select"), systemImage: "checkmark.circle")
+            if let onSelect {
+                Button {
+                    onSelect(bell)
+                } label: {
+                    Label(String(localized: "bell.context.select"), systemImage: "checkmark.circle")
+                }
             }
 
             contextMenu(bell)

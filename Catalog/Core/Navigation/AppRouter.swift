@@ -152,11 +152,12 @@ private struct RootShellView<Destination: View>: View {
             }
 
             Tab(role: .search) {
-                SearchTabView(repository: repository)
+                NavigationStack {
+                    SearchTabView(repository: repository)
+                }
             }
         }
         .modifier(ModernTabBarBehavior())
-        .tabViewSearchActivation(.searchTabSelection)
     }
 }
 private struct ModernTabBarBehavior: ViewModifier {
