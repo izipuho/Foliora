@@ -103,6 +103,7 @@ struct BellCatalogView: View {
     let collection: CollectionSummary?
     let displayMode: DisplayMode
     let startsSearchFocused: Bool
+    let onBellSelected: ((BellEntity) -> Void)?
     @Environment(\.modelContext) private var modelContext
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
@@ -139,13 +140,15 @@ struct BellCatalogView: View {
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
         searchState: Binding<BellCatalogSearchState> = .constant(BellCatalogSearchState()),
-        startsSearchFocused: Bool = false
+        startsSearchFocused: Bool = false,
+        onBellSelected: ((BellEntity) -> Void)? = nil
     ) {
         self.repository = repository
         self.collaborators = collaborators
         self.collection = collection
         self.displayMode = displayMode
         self.startsSearchFocused = startsSearchFocused
+        self.onBellSelected = onBellSelected
         self._layoutMode = layoutMode
         self._orderMode = orderMode
         self._filters = filters
@@ -237,15 +240,6 @@ struct BellCatalogView: View {
 
     private var orderedLayoutModes: [BellGridLayoutMode] {
         [.covers, .mini, .compact, .wide, .showcase]
-    }
-
-    private func gridColumns(cardWidth: CGFloat) -> [GridItem] {
-        let metrics = layoutMode.metrics
-
-        return Array(
-            repeating: GridItem(.fixed(cardWidth), spacing: metrics.spacing, alignment: .top),
-            count: metrics.columnCount
-        )
     }
 
     private func layoutMagnifyGesture() -> some Gesture {
@@ -526,11 +520,7 @@ struct BellCatalogView: View {
                             scrollProxy: scrollProxy
                         )
                     case .flat(let bells):
-                        LazyVGrid(columns: gridColumns(cardWidth: cardWidth), spacing: metrics.spacing) {
-                            ForEach(bells) { bell in
-                                bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
-                            }
-                        }
+                        bellGridView(bells: bells, cardSize: cardSize)
                     }
                 }
                 .simultaneousGesture(
@@ -655,20 +645,12 @@ struct BellCatalogView: View {
                                     .foregroundStyle(.secondary)
                                     .padding(.horizontal, CatalogSpacing.micro)
 
-                                LazyVGrid(columns: gridColumns(cardWidth: cardSize.width), spacing: layoutMode.metrics.spacing) {
-                                    ForEach(cabinetGroup.bells) { bell in
-                                        bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
-                                    }
-                                }
+                                bellGridView(bells: cabinetGroup.bells, cardSize: cardSize)
                             }
                         }
                     }
                 } else {
-                    LazyVGrid(columns: gridColumns(cardWidth: cardSize.width), spacing: layoutMode.metrics.spacing) {
-                        ForEach(section.bells) { bell in
-                            bellCardButton(bell, cardSize: cardSize, selectedBellIDs: selectedBellIDs)
-                        }
-                    }
+                    bellGridView(bells: section.bells, cardSize: cardSize)
                 }
             } header: {
                 BellGroupedSectionHeader(
@@ -774,51 +756,24 @@ struct BellCatalogView: View {
         }
     }
 
-    private func bellCardButton(_ bell: BellEntity, cardSize: CGSize, selectedBellIDs: Set<UUID>) -> some View {
-        let isSelected = selectedBellIDs.contains(bell.id)
-        let shouldShowSelectionOverlay = isSelectionModeEnabled && isSelected
-
-        @ViewBuilder
-        func cardContent() -> some View {
-            BellCardView(
-                bell: bell,
-                layoutMode: layoutMode,
-                cardSize: cardSize
-            )
-            .overlay {
-                if shouldShowSelectionOverlay {
-                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
-                        .fill(.black.opacity(0.22))
-                        .allowsHitTesting(false)
-                }
+    private func bellGridView(bells: [BellEntity], cardSize: CGSize) -> some View {
+        BellGridView(
+            bells: bells,
+            layoutMode: layoutMode,
+            cardSize: cardSize,
+            selectedBellIDs: selectedBellIDs,
+            isSelectionModeEnabled: isSelectionModeEnabled,
+            onTap: handleBellCardTap,
+            onSelect: { bell in
+                enterSelectionMode(with: bell.id)
+            },
+            contextMenu: { bell in
+                bellCardContextMenu(for: bell)
+            },
+            preview: { bell in
+                BellCardContextPreview(bell: bell, repository: repository)
             }
-            .overlay(alignment: .bottomTrailing) {
-                if shouldShowSelectionOverlay {
-                    Image(systemName: "checkmark")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 20, height: 20)
-                        .background(Color.blue, in: Circle())
-                        .overlay {
-                            Circle()
-                                .stroke(.white, lineWidth: 2)
-                        }
-                        .padding(8)
-                }
-            }
-        }
-
-        return Button {
-            handleBellCardTap(bell)
-        } label: {
-            cardContent()
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            bellCardContextMenu(for: bell)
-        } preview: {
-            BellCardContextPreview(bell: bell, repository: repository)
-        }
+        )
     }
 
     private func handleBellCardTap(_ bell: BellEntity) {
@@ -829,6 +784,8 @@ struct BellCatalogView: View {
 
         if isSelectionModeEnabled {
             toggleBellSelection(bell.id)
+        } else if let onBellSelected {
+            onBellSelected(bell)
         } else {
             presentedBell = bell
         }
@@ -836,12 +793,6 @@ struct BellCatalogView: View {
 
     @ViewBuilder
     private func bellCardContextMenu(for bell: BellEntity) -> some View {
-        Button {
-            enterSelectionMode(with: bell.id)
-        } label: {
-            Label(String(localized: "bell.context.select"), systemImage: "checkmark.circle")
-        }
-
         Button {
             bellPendingMove = bell
         } label: {

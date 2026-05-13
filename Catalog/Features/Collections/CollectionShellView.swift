@@ -4,6 +4,7 @@ import PhotosUI
 
 struct CollectionShellView: View {
     let repository: any CatalogRepository
+    private let onBellSelected: ((BellEntity) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
@@ -26,8 +27,13 @@ struct CollectionShellView: View {
     @State private var isBellCatalogSelectionMode = false
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
-    init(collection: CollectionSummary, repository: any CatalogRepository) {
+    init(
+        collection: CollectionSummary,
+        repository: any CatalogRepository,
+        onBellSelected: ((BellEntity) -> Void)? = nil
+    ) {
         self.repository = repository
+        self.onBellSelected = onBellSelected
         _collection = State(initialValue: collection)
     }
 
@@ -164,7 +170,8 @@ struct CollectionShellView: View {
             collaborators: collaborators,
             layoutMode: selectedLayoutModeBinding,
             orderMode: selectedOrderBinding,
-            filters: $selectedSummaryFilter
+            filters: $selectedSummaryFilter,
+            onBellSelected: onBellSelected
         )
         .id("collection-\(refreshID.uuidString)")
         .navigationTitle(collection.name)
