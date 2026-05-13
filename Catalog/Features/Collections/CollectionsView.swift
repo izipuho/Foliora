@@ -5,19 +5,22 @@ struct CollectionsView: View {
     let repository: any CatalogRepository
     let onCollectionSelected: ((CollectionEntity) -> Void)?
     let onBellSelected: ((BellEntity) -> Void)?
+    let navigate: ((AppDestination) -> Void)?
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
-    @State private var path: [AppDestination] = []
     @State private var isPresentingAddCollectionEditor = false
+    @State private var didAutoOpenSingleCollection = false
 
     init(
         repository: any CatalogRepository,
         onCollectionSelected: ((CollectionEntity) -> Void)? = nil,
-        onBellSelected: ((BellEntity) -> Void)? = nil
+        onBellSelected: ((BellEntity) -> Void)? = nil,
+        navigate: ((AppDestination) -> Void)? = nil
     ) {
         self.repository = repository
         self.onCollectionSelected = onCollectionSelected
         self.onBellSelected = onBellSelected
+        self.navigate = navigate
     }
 
     private var collections: [CollectionSummary] {
@@ -29,47 +32,33 @@ struct CollectionsView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
-            collectionsRoot
-                .background(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.99, green: 0.97, blue: 0.93),
-                            Color(red: 0.94, green: 0.92, blue: 0.86)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .ignoresSafeArea()
+        collectionsRoot
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.99, green: 0.97, blue: 0.93),
+                        Color(red: 0.94, green: 0.92, blue: 0.86)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
-                .onAppear {
-                    autoOpenSingleCollectionIfNeeded()
+                .ignoresSafeArea()
+            )
+            .onAppear {
+                autoOpenSingleCollectionIfNeeded()
+            }
+            .onChange(of: collections.map(\.id)) { _, _ in
+                autoOpenSingleCollectionIfNeeded()
+            }
+            .navigationTitle(RootTab.collections.title)
+            .sheet(isPresented: $isPresentingAddCollectionEditor) {
+                CollectionEditorView(
+                    homes: homes,
+                    initialHomeID: homes.first?.id
+                ) { title, notes, homeID, backgroundStyle in
+                    addCollection(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
                 }
-                .onChange(of: collections.map(\.id)) { _, _ in
-                    autoOpenSingleCollectionIfNeeded()
-                }
-                .navigationTitle(RootTab.collections.title)
-                .sheet(isPresented: $isPresentingAddCollectionEditor) {
-                    CollectionEditorView(
-                        homes: homes,
-                        initialHomeID: homes.first?.id
-                    ) { title, notes, homeID, backgroundStyle in
-                        addCollection(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
-                    }
-                }
-                .navigationDestination(for: AppDestination.self) { destination in
-                    switch destination {
-                    case .collection(let collection):
-                        CollectionShellView(
-                            collection: collection,
-                            repository: repository,
-                            onBellSelected: onBellSelected
-                        )
-                    case .home:
-                        EmptyView()
-                    }
-                }
-        }
+            }
     }
 
     @ViewBuilder
@@ -145,7 +134,7 @@ struct CollectionsView: View {
         )
 
         repository.saveCollection(collection)
-        path.append(
+        navigate?(
             .collection(
                 CollectionSummary(
                     id: collection.id,
@@ -172,15 +161,16 @@ struct CollectionsView: View {
             return
         }
 
-        path.append(.collection(collection))
+        navigate?(.collection(collection))
     }
 
     private func autoOpenSingleCollectionIfNeeded() {
         guard onCollectionSelected == nil else { return }
-        guard path.isEmpty else { return }
+        guard !didAutoOpenSingleCollection else { return }
         guard collections.count == 1 else { return }
         guard let collection = collections.first else { return }
 
-        path.append(.collection(collection))
+        didAutoOpenSingleCollection = true
+        navigate?(.collection(collection))
     }
 }

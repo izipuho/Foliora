@@ -141,33 +141,31 @@ struct SearchTabView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                SearchTokenBar(
-                    tokens: searchState.tokens,
-                    suggestedTokenGroups: suggestedTokenGroups,
-                    title: searchTokenTitle,
-                    select: selectToken,
-                    remove: removeToken
-                )
-                .padding(.vertical, 8)
-                .background(.regularMaterial)
+        VStack(spacing: 0) {
+            SearchTokenBar(
+                tokens: searchState.tokens,
+                suggestedTokenGroups: suggestedTokenGroups,
+                title: searchTokenTitle,
+                select: selectToken,
+                remove: removeToken
+            )
+            .padding(.vertical, 8)
+            .background(.regularMaterial)
 
-                BellCatalogView(
-                    collection: nil,
-                    repository: repository,
-                    collaborators: [],
-                    displayMode: .search,
-                    layoutMode: layoutModeBinding,
-                    orderMode: orderModeBinding,
-                    filters: $filters,
-                    searchState: $searchState,
-                    startsSearchFocused: true,
-                    onBellSelected: onBellSelected
-                )
-            }
-            .toolbar(.hidden, for: .navigationBar)
+            BellCatalogView(
+                collection: nil,
+                repository: repository,
+                collaborators: [],
+                displayMode: .search,
+                layoutMode: layoutModeBinding,
+                orderMode: orderModeBinding,
+                filters: $filters,
+                searchState: $searchState,
+                startsSearchFocused: true,
+                onBellSelected: onBellSelected
+            )
         }
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     private func searchTokenTitle(_ token: SearchToken) -> String {

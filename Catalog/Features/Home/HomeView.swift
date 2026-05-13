@@ -8,28 +8,25 @@ import UIKit
 struct HomeView: View {
     let repository: any CatalogRepository
     let embedsNavigation: Bool
+    let navigate: ((AppDestination) -> Void)?
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
     @Query(sort: \LocationEntity.name) private var locationEntities: [LocationEntity]
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
-    @State private var path: [AppDestination] = []
     @State private var pendingDeleteHomeID: UUID?
     @State private var isPresentingDeleteConfirmation = false
 
-    init(repository: any CatalogRepository, embedsNavigation: Bool = true) {
+    init(
+        repository: any CatalogRepository,
+        embedsNavigation: Bool = true,
+        navigate: ((AppDestination) -> Void)? = nil
+    ) {
         self.repository = repository
         self.embedsNavigation = embedsNavigation
+        self.navigate = navigate
     }
 
     var body: some View {
-        Group {
-            if embedsNavigation {
-                NavigationStack(path: $path) {
-                    homeContent
-                }
-            } else {
-                homeContent
-            }
-        }
+        homeContent
     }
 
     private var scrollContentBottomInset: CGFloat { 120 }
@@ -92,9 +89,7 @@ struct HomeView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     let newHome = createHome()
-                    if embedsNavigation {
-                        path.append(.home(newHome.id))
-                    }
+                    navigate?(.home(newHome.id))
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -115,37 +110,6 @@ struct HomeView: View {
         } message: {
             Text(String(localized: "home.delete.message"))
         }
-        .navigationDestination(for: AppDestination.self) { destination in
-            switch destination {
-            case .collection:
-                EmptyView()
-            case .home(let homeID):
-                if let homeBinding = binding(for: homeID) {
-                    HomeDetailView(
-                        home: homeBinding,
-                        locations: locationsBinding(for: homeID),
-                        collectionCount: collectionCount(in: homeID),
-                        onSave: { updatedHome, updatedLocations in
-                            repository.saveHome(updatedHome)
-                            repository.saveLocations(updatedLocations, in: updatedHome.id)
-                        },
-                        onDelete: {
-                            repository.deleteHome(homeID: homeID)
-                            path.removeAll { destination in
-                                if case .home(let id) = destination { return id == homeID }
-                                return false
-                            }
-                        }
-                    )
-                } else {
-                    ContentUnavailableView(
-                        String(localized: "home.not_found.title"),
-                        systemImage: "house.slash",
-                        description: Text(String(localized: "home.not_found.description"))
-                    )
-                }
-            }
-        }
     }
 
     private var homesSection: some View {
@@ -161,9 +125,7 @@ struct HomeView: View {
 
                 Button {
                     let newHome = createHome()
-                    if embedsNavigation {
-                        path.append(.home(newHome.id))
-                    }
+                    navigate?(.home(newHome.id))
                 } label: {
                     Label(String(localized: "home.add"), systemImage: "plus.circle.fill")
                         .font(.headline)
@@ -181,7 +143,7 @@ struct HomeView: View {
         ForEach(homes) { home in
             if embedsNavigation {
                 Button {
-                    path.append(.home(home.id))
+                    navigate?(.home(home.id))
                 } label: {
                     HomeListCard(
                         home: home,
@@ -196,20 +158,9 @@ struct HomeView: View {
                         requestDeleteHome(home.id)
                     }
                 }
-            } else if let homeBinding = binding(for: home.id) {
-                NavigationLink {
-                    HomeDetailView(
-                        home: homeBinding,
-                        locations: locationsBinding(for: home.id),
-                        collectionCount: collectionCount(in: home.id),
-                        onSave: { updatedHome, updatedLocations in
-                            repository.saveHome(updatedHome)
-                            repository.saveLocations(updatedLocations, in: updatedHome.id)
-                        },
-                        onDelete: {
-                            deleteHome(home.id)
-                        }
-                    )
+            } else if binding(for: home.id) != nil {
+                Button {
+                    navigate?(.home(home.id))
                 } label: {
                     HomeListCard(
                         home: home,
@@ -279,9 +230,5 @@ struct HomeView: View {
 
     private func deleteHome(_ homeID: UUID) {
         repository.deleteHome(homeID: homeID)
-        path.removeAll { destination in
-            if case .home(let id) = destination { return id == homeID }
-            return false
-        }
     }
 }

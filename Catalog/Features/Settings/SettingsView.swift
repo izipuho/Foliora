@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     let repository: any CatalogRepository
+    let navigate: (AppDestination) -> Void
 
     @State private var exportDocument: CatalogTransferDocument?
     @State private var isExportingDocument = false
@@ -12,92 +13,94 @@ struct SettingsView: View {
     @State private var exportErrorMessage: String?
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    NavigationLink {
-                        HomeView(repository: repository, embedsNavigation: false)
-                    } label: {
-                        Label(String(localized: "root_tab.homes"), systemImage: "house")
-                    }
-                } footer: {
-                    Text(String(localized: "settings.storage.subtitle"))
+        List {
+            Section {
+                NavigationLink {
+                    HomeView(
+                        repository: repository,
+                        embedsNavigation: false,
+                        navigate: navigate
+                    )
+                } label: {
+                    Label(String(localized: "root_tab.homes"), systemImage: "house")
                 }
+            } footer: {
+                Text(String(localized: "settings.storage.subtitle"))
+            }
 
-                Section {
-                    Button {
-                        exportCurrentBackup()
-                    } label: {
-                        Label(String(localized: "settings.data.export"), systemImage: "square.and.arrow.up")
-                    }
-                    .disabled(isImportExportRunning)
+            Section {
+                Button {
+                    exportCurrentBackup()
+                } label: {
+                    Label(String(localized: "settings.data.export"), systemImage: "square.and.arrow.up")
+                }
+                .disabled(isImportExportRunning)
 
-                    Button {
-                        isImportingDocument = true
-                    } label: {
-                        Label(String(localized: "settings.data.import"), systemImage: "square.and.arrow.down")
-                    }
-                    .disabled(isImportExportRunning)
-                } header: {
-                    Text(String(localized: "settings.data.section_title"))
-                } footer: {
-                    Text(String(localized: "settings.data.footer"))
+                Button {
+                    isImportingDocument = true
+                } label: {
+                    Label(String(localized: "settings.data.import"), systemImage: "square.and.arrow.down")
+                }
+                .disabled(isImportExportRunning)
+            } header: {
+                Text(String(localized: "settings.data.section_title"))
+            } footer: {
+                Text(String(localized: "settings.data.footer"))
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(RootTab.settings.title)
+        .fileExporter(
+            isPresented: $isExportingDocument,
+            document: exportDocument,
+            contentType: .zip,
+            defaultFilename: "catalog-export"
+        ) { result in
+            if case .failure(let error) = result {
+                exportErrorMessage = error.localizedDescription
+            }
+        }
+        .fileImporter(
+            isPresented: $isImportingDocument,
+            allowedContentTypes: [.zip]
+        ) { result in
+            handleImport(result)
+        }
+        .alert(String(localized: "settings.export.error_title"), isPresented: Binding(
+            get: { exportErrorMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    exportErrorMessage = nil
                 }
             }
-            .listStyle(.insetGrouped)
-            .navigationTitle(RootTab.settings.title)
-            .fileExporter(
-                isPresented: $isExportingDocument,
-                document: exportDocument,
-                contentType: .zip,
-                defaultFilename: "catalog-export"
-            ) { result in
-                if case .failure(let error) = result {
-                    exportErrorMessage = error.localizedDescription
+        )) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
+        } message: {
+            Text(exportErrorMessage ?? "")
+        }
+        .alert(String(localized: "settings.import.error_title"), isPresented: Binding(
+            get: { importErrorMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    importErrorMessage = nil
                 }
             }
-            .fileImporter(
-                isPresented: $isImportingDocument,
-                allowedContentTypes: [.zip]
-            ) { result in
-                handleImport(result)
-            }
-            .alert(String(localized: "settings.export.error_title"), isPresented: Binding(
-                get: { exportErrorMessage != nil },
-                set: { newValue in
-                    if !newValue {
-                        exportErrorMessage = nil
-                    }
+        )) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
+        } message: {
+            Text(importErrorMessage ?? "")
+        }
+        .alert(String(localized: "settings.import.warning_title"), isPresented: Binding(
+            get: { importWarningMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    importWarningMessage = nil
                 }
-            )) {
-                Button(String(localized: "common.ok"), role: .cancel) {}
-            } message: {
-                Text(exportErrorMessage ?? "")
             }
-            .alert(String(localized: "settings.import.error_title"), isPresented: Binding(
-                get: { importErrorMessage != nil },
-                set: { newValue in
-                    if !newValue {
-                        importErrorMessage = nil
-                    }
-                }
-            )) {
-                Button(String(localized: "common.ok"), role: .cancel) {}
-            } message: {
-                Text(importErrorMessage ?? "")
-            }
-            .alert(String(localized: "settings.import.warning_title"), isPresented: Binding(
-                get: { importWarningMessage != nil },
-                set: { newValue in
-                    if !newValue {
-                        importWarningMessage = nil
-                    }
-                }
-            )) {
-                Button(String(localized: "common.ok"), role: .cancel) {}
-            } message: {
-                Text(importWarningMessage ?? "")
-            }
+        )) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
+        } message: {
+            Text(importWarningMessage ?? "")
         }
     }
 
