@@ -6,7 +6,7 @@ enum AppDestination: Hashable {
     case home(UUID)
 }
 
-enum RootTab: String, CaseIterable, Identifiable {
+enum RootTab: String, CaseIterable, Identifiable, Hashable {
     case collections
     case settings
     case search
@@ -134,7 +134,9 @@ private struct RootShellView<Destination: View>: View {
     @Binding var path: NavigationPath
     let navigate: (AppDestination) -> Void
     let destination: (AppDestination, Binding<BellGridLayoutMode>) -> Destination
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
+    @State private var selectedRootTab: RootTab = .collections
 
     private var layoutMode: BellGridLayoutMode {
         get {
@@ -153,6 +155,14 @@ private struct RootShellView<Destination: View>: View {
     }
 
     var body: some View {
+        if horizontalSizeClass == .regular {
+            iPadRootContainer
+        } else {
+            iPhoneRootContainer
+        }
+    }
+
+    private var iPhoneRootContainer: some View {
         TabView {
             Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage) {
                 NavigationStack(path: $path) {
@@ -185,6 +195,60 @@ private struct RootShellView<Destination: View>: View {
             }
         }
         .modifier(ModernTabBarBehavior())
+    }
+
+    private var iPadRootContainer: some View {
+        NavigationSplitView {
+            List {
+                ForEach([RootTab.collections, .search, .settings]) { tab in
+                    Button {
+                        selectedRootTab = tab
+                    } label: {
+                        Label(tab.title, systemImage: tab.systemImage)
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(selectedRootTab == tab ? Color.accentColor.opacity(0.14) : nil)
+                }
+            }
+            .navigationTitle(RootTab.collections.title)
+        } content: {
+            iPadContent(for: selectedRootTab)
+        } detail: {
+            ContentUnavailableView(
+                selectedRootTab.title,
+                systemImage: "sidebar.right"
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func iPadContent(for tab: RootTab) -> some View {
+        switch tab {
+        case .collections:
+            NavigationStack(path: $path) {
+                CollectionsView(
+                    repository: repository,
+                    navigate: navigate
+                )
+                .navigationDestination(for: AppDestination.self) { destination in
+                    self.destination(destination, layoutModeBinding)
+                }
+            }
+        case .search:
+            NavigationStack {
+                SearchTabView(repository: repository, layoutMode: layoutModeBinding)
+            }
+        case .settings:
+            NavigationStack(path: $path) {
+                SettingsView(
+                    repository: repository,
+                    navigate: navigate
+                )
+                .navigationDestination(for: AppDestination.self) { destination in
+                    self.destination(destination, layoutModeBinding)
+                }
+            }
+        }
     }
 }
 private struct ModernTabBarBehavior: ViewModifier {
