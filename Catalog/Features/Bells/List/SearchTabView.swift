@@ -77,32 +77,32 @@ struct SearchTabView: View {
 
         return [
             SearchTokenGroup(
-                title: "Коллекции",
+                title: String(localized: "root_tab.collections"),
                 systemImage: "rectangle.stack",
                 tokens: collections.map { SearchToken.collection($0.id) }
             ),
             SearchTokenGroup(
-                title: "Страны",
+                title: String(localized: "bell_catalog.summary.countries"),
                 systemImage: "globe.europe.africa",
                 tokens: uniqueValues(bells.map(\.countryName)).map(SearchToken.country)
             ),
             SearchTokenGroup(
-                title: "Материалы",
+                title: String(localized: "bell_catalog.summary.materials"),
                 systemImage: "shippingbox",
                 tokens: uniqueValues(bells.map(\.materialDisplayName)).map(SearchToken.material)
             ),
             SearchTokenGroup(
-                title: "Теги",
+                title: String(localized: "bell_catalog.summary.tags"),
                 systemImage: "tag",
                 tokens: uniqueValues(bells.flatMap(\.tagValues)).map(SearchToken.tag)
             ),
             SearchTokenGroup(
-                title: "Состояние",
+                title: String(localized: "editor.condition"),
                 systemImage: "checkmark.seal",
                 tokens: uniqueConditions.map(SearchToken.condition)
             ),
             SearchTokenGroup(
-                title: "Получение",
+                title: String(localized: "editor.acquisition"),
                 systemImage: "tray.and.arrow.down",
                 tokens: uniqueAcquisitionMethods.map(SearchToken.acquisitionMethod)
             )
