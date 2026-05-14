@@ -48,8 +48,12 @@ struct AppShellView: View {
             repository: repository,
             path: $path,
             navigate: { path.append($0) },
-            destination: { destination, layoutMode in
-                destinationView(for: destination, layoutMode: layoutMode)
+            destination: { destination, layoutMode, onBellSelected in
+                destinationView(
+                    for: destination,
+                    layoutMode: layoutMode,
+                    onBellSelected: onBellSelected
+                )
             }
         )
     }
@@ -57,14 +61,16 @@ struct AppShellView: View {
     @ViewBuilder
     private func destinationView(
         for destination: AppDestination,
-        layoutMode: Binding<BellGridLayoutMode>
+        layoutMode: Binding<BellGridLayoutMode>,
+        onBellSelected: ((BellEntity) -> Void)?
     ) -> some View {
         switch destination {
         case .collection(let collection):
             CollectionShellView(
                 collection: collection,
                 repository: repository,
-                layoutMode: layoutMode
+                layoutMode: layoutMode,
+                onBellSelected: onBellSelected
             )
         case .home(let homeID):
             if let homeBinding = binding(for: homeID) {
@@ -133,10 +139,11 @@ private struct RootShellView<Destination: View>: View {
     let repository: any CatalogRepository
     @Binding var path: NavigationPath
     let navigate: (AppDestination) -> Void
-    let destination: (AppDestination, Binding<BellGridLayoutMode>) -> Destination
+    let destination: (AppDestination, Binding<BellGridLayoutMode>, ((BellEntity) -> Void)?) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
     @State private var selectedRootTab: RootTab = .collections
+    @State private var selectedBell: BellEntity?
 
     private var layoutMode: BellGridLayoutMode {
         get {
@@ -151,6 +158,17 @@ private struct RootShellView<Destination: View>: View {
         Binding(
             get: { layoutMode },
             set: { layoutMode = $0 }
+        )
+    }
+
+    private var isBellInspectorPresented: Binding<Bool> {
+        Binding(
+            get: { selectedBell != nil },
+            set: { isPresented in
+                if !isPresented {
+                    selectedBell = nil
+                }
+            }
         )
     }
 
@@ -171,7 +189,7 @@ private struct RootShellView<Destination: View>: View {
                         navigate: navigate
                     )
                     .navigationDestination(for: AppDestination.self) { destination in
-                        self.destination(destination, layoutModeBinding)
+                        self.destination(destination, layoutModeBinding, nil)
                     }
                 }
             }
@@ -183,7 +201,7 @@ private struct RootShellView<Destination: View>: View {
                         navigate: navigate
                     )
                     .navigationDestination(for: AppDestination.self) { destination in
-                        self.destination(destination, layoutModeBinding)
+                        self.destination(destination, layoutModeBinding, nil)
                     }
                 }
             }
@@ -198,10 +216,27 @@ private struct RootShellView<Destination: View>: View {
     }
 
     private var iPadRootContainer: some View {
+        iPadSplitView
+            .navigationSplitViewStyle(.balanced)
+            .inspector(isPresented: isBellInspectorPresented) {
+                if let selectedBell {
+                    BellDetailInspectorView(
+                        bell: selectedBell,
+                        repository: repository,
+                        onClose: closeBellInspector
+                    )
+                } else {
+                    EmptyView()
+                }
+            }
+    }
+
+    private var iPadSplitView: some View {
         NavigationSplitView {
             List {
                 ForEach(RootTab.allCases) { tab in
                     Button {
+                        closeBellInspector()
                         selectedRootTab = tab
                     } label: {
                         Label(tab.title, systemImage: tab.systemImage)
@@ -211,13 +246,8 @@ private struct RootShellView<Destination: View>: View {
                 }
             }
             .navigationTitle(RootTab.collections.title)
-        } content: {
-            iPadContent(for: selectedRootTab)
         } detail: {
-            ContentUnavailableView(
-                selectedRootTab.title,
-                systemImage: "sidebar.right"
-            )
+            iPadContent(for: selectedRootTab)
         }
     }
 
@@ -231,12 +261,16 @@ private struct RootShellView<Destination: View>: View {
                     navigate: navigate
                 )
                 .navigationDestination(for: AppDestination.self) { destination in
-                    self.destination(destination, layoutModeBinding)
+                    self.destination(destination, layoutModeBinding, openBellInspector)
                 }
             }
         case .search:
             NavigationStack {
-                SearchTabView(repository: repository, layoutMode: layoutModeBinding)
+                SearchTabView(
+                    repository: repository,
+                    layoutMode: layoutModeBinding,
+                    onBellSelected: openBellInspector
+                )
             }
         case .settings:
             NavigationStack(path: $path) {
@@ -245,12 +279,50 @@ private struct RootShellView<Destination: View>: View {
                     navigate: navigate
                 )
                 .navigationDestination(for: AppDestination.self) { destination in
-                    self.destination(destination, layoutModeBinding)
+                    self.destination(destination, layoutModeBinding, openBellInspector)
                 }
             }
         }
     }
+
+    private func openBellInspector(_ bell: BellEntity) {
+        selectedBell = bell
+    }
+
+    private func closeBellInspector() {
+        selectedBell = nil
+    }
 }
+
+private struct BellDetailInspectorView: View {
+    @State private var bell: BellRecord
+    let repository: any CatalogRepository
+    let onClose: () -> Void
+
+    init(
+        bell: BellEntity,
+        repository: any CatalogRepository,
+        onClose: @escaping () -> Void
+    ) {
+        _bell = State(initialValue: bell.recordSnapshot)
+        self.repository = repository
+        self.onClose = onClose
+    }
+
+    var body: some View {
+        NavigationStack {
+            BellDetailView(bell: $bell, repository: repository)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: onClose) {
+                            Image(systemName: "xmark")
+                        }
+                    }
+                }
+        }
+    }
+}
+
 private struct ModernTabBarBehavior: ViewModifier {
     func body(content: Content) -> some View {
         content.tabBarMinimizeBehavior(.onScrollDown)
