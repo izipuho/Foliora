@@ -340,37 +340,59 @@ struct TopGeographyPopover: View {
     let onSelect: (String) -> Void
 
     var body: some View {
+        DashboardPopoverContainer(
+            title: "bell_catalog.dashboard.top_geography",
+            entries: entries,
+            onSelect: { onSelect($0.country) }
+        ) { entry in
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.country)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+
+                    Text(entry.countText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+        }
+    }
+}
+
+private struct DashboardPopoverContainer<Entry, Content: View>: View {
+    let title: LocalizedStringKey
+    let entries: [Entry]
+    let onSelect: (Entry) -> Void
+    let content: (Entry) -> Content
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "bell_catalog.dashboard.top_geography"))
+            Text(title)
                 .font(.headline)
+                .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            Divider()
 
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(entries) { entry in
+                    ForEach(entries.indices, id: \.self) { index in
+                        let entry = entries[index]
+
                         Button {
-                            onSelect(entry.country)
+                            onSelect(entry)
                         } label: {
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(entry.country)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.primary)
-
-                                    Text(entry.countText)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Spacer()
-                            }
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+                            content(entry)
+                                .padding(.vertical, 10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
 
-                        if entry.id != entries.last?.id {
+                        if index < entries.count - 1 {
                             Divider()
                         }
                     }
@@ -397,55 +419,34 @@ struct DataHealthPopover: View {
     let onSelect: (BellPresenceFilter) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "bell_catalog.dashboard.health"))
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        DashboardPopoverContainer(
+            title: "bell_catalog.dashboard.health",
+            entries: entries,
+            onSelect: { onSelect($0.filter) }
+        ) { entry in
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
 
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(entries) { entry in
-                        Button {
-                            onSelect(entry.filter)
-                        } label: {
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(entry.title)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.primary)
+                    GeometryReader { proxy in
+                        HStack(spacing: 8) {
+                            Text(entry.countText)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
-                                    GeometryReader { proxy in
-                                        HStack(spacing: 8) {
-                                            Text(entry.countText)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
+                            Spacer(minLength: 0)
 
-                                            Spacer(minLength: 0)
-
-                                            DataHealthMissingProgressBar(progress: entry.missingProgress)
-                                                .frame(width: proxy.size.width / 2)
-                                        }
-                                    }
-                                    .frame(height: 14)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-
-                        if entry.id != entries.last?.id {
-                            Divider()
+                            DataHealthMissingProgressBar(progress: entry.missingProgress)
+                                .frame(width: proxy.size.width / 2)
                         }
                     }
+                    .frame(height: 14)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding()
-        .presentationDetents([.medium])
     }
 }
 
