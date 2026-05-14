@@ -93,26 +93,17 @@ private extension BellFilters {
 
 
 struct BellCatalogView: View {
-    enum DisplayMode {
-        case normal
-        case search
-    }
-
     let repository: any CatalogRepository
     let collaborators: [Collaborator]
     let collection: CollectionSummary?
-    let displayMode: DisplayMode
-    let startsSearchFocused: Bool
     let onBellSelected: ((BellEntity) -> Void)?
     @Environment(\.modelContext) private var modelContext
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
     @Binding var filters: BellFilters
-    @Binding var searchState: BellCatalogSearchState
     @Query private var bells: [BellEntity]
     @Query private var queriedLocations: [LocationEntity]
     @Query private var queriedHomes: [HomeEntity]
-    @Query(sort: \CollectionEntity.title) private var queriedCollections: [CollectionEntity]
     @State private var presentedBell: BellEntity?
     @State private var bellPendingMove: BellEntity?
     @State private var bellPendingDeletion: BellEntity?
@@ -126,8 +117,6 @@ struct BellCatalogView: View {
     @State private var feedbackToken = 0
     @State private var scrollRequestToken = 0
     @State private var didEndActivePinchGesture = false
-    @State private var suggestedTokens: [SearchToken] = []
-    @FocusState private var isSearchFocused: Bool
     @StateObject private var viewModel: BellCatalogViewModel
     @Namespace private var bellGridTransitionNamespace
 
@@ -135,24 +124,18 @@ struct BellCatalogView: View {
         collection: CollectionSummary?,
         repository: any CatalogRepository,
         collaborators: [Collaborator],
-        displayMode: DisplayMode = .normal,
         layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
-        searchState: Binding<BellCatalogSearchState> = .constant(BellCatalogSearchState()),
-        startsSearchFocused: Bool = false,
         onBellSelected: ((BellEntity) -> Void)? = nil
     ) {
         self.repository = repository
         self.collaborators = collaborators
         self.collection = collection
-        self.displayMode = displayMode
-        self.startsSearchFocused = startsSearchFocused
         self.onBellSelected = onBellSelected
         self._layoutMode = layoutMode
         self._orderMode = orderMode
         self._filters = filters
-        self._searchState = searchState
         if let collection {
             let collectionID = Optional(collection.id)
             _bells = Query(
@@ -169,14 +152,7 @@ struct BellCatalogView: View {
         _viewModel = StateObject(
             wrappedValue: BellCatalogViewModel(
                 orderMode: orderMode.wrappedValue,
-                filters: filters.wrappedValue,
-                searchState: searchState.wrappedValue,
-                forcesFlatLayout: Self.usesFlatSearchLayout(
-                    displayMode: displayMode,
-                    collection: collection,
-                    searchState: searchState.wrappedValue,
-                    startsSearchFocused: startsSearchFocused
-                )
+                filters: filters.wrappedValue
             )
         )
     }
@@ -191,33 +167,6 @@ struct BellCatalogView: View {
 
     private var displayModel: BellCatalogDisplayModel {
         viewModel.displayModel
-    }
-
-    private var usesFlatSearchLayout: Bool {
-        Self.usesFlatSearchLayout(
-            displayMode: displayMode,
-            collection: collection,
-            searchState: searchState,
-            startsSearchFocused: startsSearchFocused
-        )
-    }
-
-    private static func usesFlatSearchLayout(
-        displayMode: DisplayMode,
-        collection: CollectionSummary?,
-        searchState: BellCatalogSearchState,
-        startsSearchFocused: Bool
-    ) -> Bool {
-        if displayMode == .search {
-            return true
-        }
-
-        return collection == nil
-        && (
-            startsSearchFocused
-            || !searchState.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || !searchState.tokens.isEmpty
-        )
     }
 
     private var hasActiveFilter: Bool {
@@ -276,54 +225,6 @@ struct BellCatalogView: View {
     private func requestScroll(to targetID: String) {
         pendingScrollTargetID = targetID
         scrollRequestToken += 1
-    }
-
-    private var availableSearchCollections: [CollectionEntity] {
-        guard let collection else { return queriedCollections }
-        return queriedCollections.filter { $0.home?.id == collection.homeID }
-    }
-
-    private func updateSuggestedTokens() {
-        guard !usesFlatSearchLayout else {
-            suggestedTokens = []
-            return
-        }
-
-        let selectedTokens = Set(searchState.tokens)
-        suggestedTokens = availableSearchCollections
-            .map { SearchToken.collection($0.id) }
-            .filter { !selectedTokens.contains($0) }
-    }
-
-    private func searchTokenTitle(_ token: SearchToken) -> String {
-        switch token {
-        case .collection(let collectionID):
-            return queriedCollections.first(where: { $0.id == collectionID })?.title
-                ?? String(localized: "search.scope.collection")
-        case .country(let value), .material(let value), .tag(let value):
-            return value
-        case .condition(let condition):
-            return condition.displayName
-        case .acquisitionMethod(let method):
-            return method.displayName
-        }
-    }
-
-    private func searchTokenSystemImage(_ token: SearchToken) -> String {
-        switch token {
-        case .collection:
-            return "rectangle.stack"
-        case .country:
-            return "globe.europe.africa"
-        case .material:
-            return "shippingbox"
-        case .tag:
-            return "tag"
-        case .condition:
-            return "checkmark.seal"
-        case .acquisitionMethod:
-            return "tray.and.arrow.down"
-        }
     }
 
     private func zoomInLayout() {
@@ -414,16 +315,6 @@ struct BellCatalogView: View {
         .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
             newValue?.kind.sensoryFeedback
         }
-        .searchableIf(displayMode == .search) { view in
-            view.searchable(
-                text: $searchState.query,
-                tokens: $searchState.tokens,
-                suggestedTokens: $suggestedTokens
-            ) { token in
-                Label(searchTokenTitle(token), systemImage: searchTokenSystemImage(token))
-            }
-            .searchFocused($isSearchFocused)
-        }
         .toolbar(isSelectionModeEnabled ? .hidden : .visible, for: .tabBar)
         .preference(key: BellCatalogSelectionModePreferenceKey.self, value: isSelectionModeEnabled)
         .toolbar {
@@ -442,11 +333,6 @@ struct BellCatalogView: View {
             viewModel.updateSource(bells: bells)
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
-            viewModel.updateContext(searchState: searchState, forcesFlatLayout: usesFlatSearchLayout)
-            updateSuggestedTokens()
-            if startsSearchFocused {
-                isSearchFocused = true
-            }
         }
         .onChange(of: bells) { _, newValue in
             viewModel.updateSource(bells: newValue)
@@ -472,14 +358,6 @@ struct BellCatalogView: View {
             }
             resetPinchState()
         }
-        .onChange(of: searchState) { _, newValue in
-            viewModel.updateContext(searchState: newValue, forcesFlatLayout: usesFlatSearchLayout)
-            pruneSelectionToVisibleBells()
-            updateSuggestedTokens()
-        }
-        .onChange(of: queriedCollections) { _, _ in
-            updateSuggestedTokens()
-        }
     }
 
     private func unifiedFeedContent(
@@ -499,11 +377,11 @@ struct BellCatalogView: View {
                         .frame(height: 0)
                         .id("bell-grid-top")
 
-                    if !isSelectionModeEnabled && displayMode == .normal {
+                    if !isSelectionModeEnabled {
                         dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
                     }
 
-                    if hasActiveFilter && displayMode == .normal {
+                    if hasActiveFilter {
                         activeSummaryFilterSection
                     }
 
@@ -1057,15 +935,6 @@ private struct SummaryGlassCardModifier: ViewModifier {
 }
 
 private extension View {
-    @ViewBuilder
-    func searchableIf<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
-        if condition {
-            transform(self)
-        } else {
-            self
-        }
-    }
-
     func summaryGlassCard() -> some View {
         modifier(SummaryGlassCardModifier())
     }
