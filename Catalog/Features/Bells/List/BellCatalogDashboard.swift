@@ -345,20 +345,35 @@ struct TopGeographyPopover: View {
             entries: entries,
             onSelect: { onSelect($0.country) }
         ) { entry in
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.country)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-
-                    Text(entry.countText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-            }
+            DashboardPopoverButtonRow(
+                title: entry.country,
+                subtitle: entry.countText
+            )
         }
+    }
+}
+
+private struct DashboardPopoverButtonRow: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }
 
@@ -398,6 +413,7 @@ private struct DashboardPopoverContainer<Entry, Content: View>: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
         .padding()
@@ -446,6 +462,7 @@ struct DataHealthPopover: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .padding(12)
         }
     }
 }
