@@ -340,32 +340,81 @@ struct TopGeographyPopover: View {
     let onSelect: (String) -> Void
 
     var body: some View {
-        NavigationStack {
-            List(entries) { entry in
-                Button {
-                    onSelect(entry.country)
-                } label: {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.country)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.primary)
-
-                            Text(entry.countText)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-            .navigationTitle(String(localized: "bell_catalog.dashboard.top_geography"))
-            .navigationBarTitleDisplayMode(.inline)
+        DashboardPopoverContainer(
+            title: "bell_catalog.dashboard.top_geography",
+            entries: entries,
+            onSelect: { onSelect($0.country) }
+        ) { entry in
+            DashboardPopoverButtonRow(
+                title: entry.country,
+                subtitle: entry.countText
+            )
         }
+    }
+}
+
+private struct DashboardPopoverButtonRow: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct DashboardPopoverContainer<Entry, Content: View>: View {
+    let title: LocalizedStringKey
+    let entries: [Entry]
+    let onSelect: (Entry) -> Void
+    let content: (Entry) -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.title2.bold())
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(entries.indices, id: \.self) { index in
+                        let entry = entries[index]
+
+                        Button {
+                            onSelect(entry)
+                        } label: {
+                            content(entry)
+                                //.padding(.vertical, 5)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        if index < entries.count - 1 {
+                            Divider()
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+        }
+        .padding()
         .presentationDetents([.medium])
     }
 }
@@ -384,42 +433,35 @@ struct DataHealthPopover: View {
     let onSelect: (BellPresenceFilter) -> Void
 
     var body: some View {
-        NavigationStack {
-            List(entries) { entry in
-                Button {
-                    onSelect(entry.filter)
-                } label: {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.primary)
+        DashboardPopoverContainer(
+            title: "bell_catalog.dashboard.health",
+            entries: entries,
+            onSelect: { onSelect($0.filter) }
+        ) { entry in
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
 
-                            GeometryReader { proxy in
-                                HStack(spacing: 8) {
-                                    Text(entry.countText)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                    GeometryReader { proxy in
+                        HStack(spacing: 8) {
+                            Text(entry.countText)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
-                                    Spacer(minLength: 0)
+                            Spacer(minLength: 0)
 
-                                    DataHealthMissingProgressBar(progress: entry.missingProgress)
-                                        .frame(width: proxy.size.width / 2)
-                                }
-                            }
-                            .frame(height: 14)
+                            DataHealthMissingProgressBar(progress: entry.missingProgress)
+                                .frame(width: proxy.size.width / 2)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
+                    .frame(height: 14)
                 }
-                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .navigationTitle(String(localized: "bell_catalog.dashboard.health"))
-            .navigationBarTitleDisplayMode(.inline)
+            .padding(12)
         }
-        .presentationDetents([.medium])
     }
 }
 
