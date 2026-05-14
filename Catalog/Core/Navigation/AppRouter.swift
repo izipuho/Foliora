@@ -200,7 +200,7 @@ private struct RootShellView<Destination: View>: View {
     private var iPadRootContainer: some View {
         NavigationSplitView {
             List {
-                ForEach([RootTab.collections, .search, .settings]) { tab in
+                ForEach(RootTab.allCases) { tab in
                     Button {
                         selectedRootTab = tab
                     } label: {
