@@ -386,11 +386,9 @@ private struct DashboardPopoverContainer<Entry, Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.headline)
+                .font(.title2.bold())
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-            Divider()
 
             ScrollView {
                 LazyVStack(spacing: 0) {
@@ -401,7 +399,7 @@ private struct DashboardPopoverContainer<Entry, Content: View>: View {
                             onSelect(entry)
                         } label: {
                             content(entry)
-                                .padding(.vertical, 10)
+                                //.padding(.vertical, 5)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .contentShape(Rectangle())
                         }
