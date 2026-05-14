@@ -51,7 +51,7 @@ struct SearchTabView: View {
     @Binding var layoutMode: BellGridLayoutMode
     @Query(sort: \CollectionEntity.title) private var collections: [CollectionEntity]
     @Query(sort: \BellEntity.title) private var bells: [BellEntity]
-    @State private var presentedBell: BellEntity?
+    @State private var selectedBell: BellEntity?
     @State private var searchState = BellCatalogSearchState()
     @FocusState private var isSearchFocused: Bool
 
@@ -167,8 +167,8 @@ struct SearchTabView: View {
         .onAppear {
             isSearchFocused = true
         }
-        .sheet(item: $presentedBell) { bell in
-            SearchBellDetailSheetContainer(bell: bell, repository: repository)
+        .sheet(item: $selectedBell) { bell in
+            BellEntityDetailSheetContainer(bell: bell, repository: repository)
                 .presentationDragIndicator(.visible)
         }
     }
@@ -177,7 +177,7 @@ struct SearchTabView: View {
         if let onBellSelected {
             onBellSelected(bell)
         } else {
-            presentedBell = bell
+            selectedBell = bell
         }
     }
 
@@ -336,23 +336,6 @@ struct SearchTabView: View {
 private extension BellEntity {
     var hasNotes: Bool {
         !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-}
-
-private struct SearchBellDetailSheetContainer: View {
-    @State private var bell: BellRecord
-    let repository: any CatalogRepository
-
-    init(bell: BellEntity, repository: any CatalogRepository) {
-        _bell = State(initialValue: bell.recordSnapshot)
-        self.repository = repository
-    }
-
-    var body: some View {
-        NavigationStack {
-            BellDetailView(bell: $bell, repository: repository)
-        }
-        .presentationBackground(.clear)
     }
 }
 

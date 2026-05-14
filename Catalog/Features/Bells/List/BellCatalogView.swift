@@ -104,7 +104,6 @@ struct BellCatalogView: View {
     @Query private var bells: [BellEntity]
     @Query private var queriedLocations: [LocationEntity]
     @Query private var queriedHomes: [HomeEntity]
-    @State private var presentedBell: BellEntity?
     @State private var bellPendingMove: BellEntity?
     @State private var bellPendingDeletion: BellEntity?
     @State private var isPresentingDeleteConfirmation = false
@@ -254,10 +253,6 @@ struct BellCatalogView: View {
                 screenHeight: proxy.size.height,
                 bottomSafeAreaInset: proxy.safeAreaInsets.bottom
             )
-        }
-        .sheet(item: $presentedBell) { bell in
-            BellGridDetailSheetContainer(bell: bell, repository: repository)
-                .presentationDragIndicator(.visible)
         }
         .sheet(item: $bellPendingMove) { bell in
             BellQuickMoveSheet(
@@ -655,8 +650,6 @@ struct BellCatalogView: View {
             toggleBellSelection(bell.id)
         } else if let onBellSelected {
             onBellSelected(bell)
-        } else {
-            presentedBell = bell
         }
     }
 
@@ -931,7 +924,7 @@ private extension View {
     }
 }
 
-private struct BellGridDetailSheetContainer: View {
+struct BellEntityDetailSheetContainer: View {
     @State private var bell: BellRecord
     let repository: any CatalogRepository
 

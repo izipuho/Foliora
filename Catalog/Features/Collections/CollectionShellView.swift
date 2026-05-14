@@ -21,6 +21,7 @@ struct CollectionShellView: View {
     @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
     @State private var isPresentingMap = false
+    @State private var selectedBell: BellEntity?
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
     private let layoutMode: Binding<BellGridLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
@@ -148,6 +149,10 @@ struct CollectionShellView: View {
             .sheet(isPresented: $isPresentingMap) {
                 mapSheet
             }
+            .sheet(item: $selectedBell) { bell in
+                BellEntityDetailSheetContainer(bell: bell, repository: repository)
+                    .presentationDragIndicator(.visible)
+            }
             .onChange(of: collectionEntities.map(\.id)) { _, _ in
                 refreshContent()
             }
@@ -161,7 +166,7 @@ struct CollectionShellView: View {
             layoutMode: selectedLayoutModeBinding,
             orderMode: selectedOrderBinding,
             filters: $selectedSummaryFilter,
-            onBellSelected: onBellSelected
+            onBellSelected: openBell
         )
         .id("collection-\(refreshID.uuidString)")
         .navigationTitle(collection.name)
@@ -249,6 +254,14 @@ struct CollectionShellView: View {
     private func refreshContent() {
         collection = collectionEntities.first(where: { $0.id == collection.id })?.summarySnapshot ?? collection
         refreshID = UUID()
+    }
+
+    private func openBell(_ bell: BellEntity) {
+        if let onBellSelected {
+            onBellSelected(bell)
+        } else {
+            selectedBell = bell
+        }
     }
 
     @MainActor
