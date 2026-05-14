@@ -1,5 +1,35 @@
 import SwiftUI
 
+struct BellGridContainerView<Content: View>: View {
+    let layoutMode: BellGridLayoutMode
+    let bottomContentMargin: CGFloat?
+    @ViewBuilder let content: (CGSize) -> Content
+
+    init(
+        layoutMode: BellGridLayoutMode,
+        bottomContentMargin: CGFloat? = nil,
+        @ViewBuilder content: @escaping (CGSize) -> Content
+    ) {
+        self.layoutMode = layoutMode
+        self.bottomContentMargin = bottomContentMargin
+        self.content = content
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let cardWidth = layoutMode.cardWidth(forContainerWidth: proxy.size.width)
+            let cardSize = CGSize(width: cardWidth, height: layoutMode.metrics.cardHeight)
+
+            ScrollView {
+                content(cardSize)
+            }
+            .contentMargins(.horizontal, nil, for: .scrollContent)
+            .contentMargins(.top, nil, for: .scrollContent)
+            .contentMargins(.bottom, bottomContentMargin, for: .scrollContent)
+        }
+    }
+}
+
 struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview: View>: View {
     let bells: [Bell]
     let layoutMode: BellGridLayoutMode

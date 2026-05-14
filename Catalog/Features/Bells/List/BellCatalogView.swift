@@ -251,7 +251,6 @@ struct BellCatalogView: View {
         GeometryReader { proxy in
             unifiedFeedContent(
                 displayModel: displayModel,
-                screenWidth: proxy.size.width,
                 screenHeight: proxy.size.height,
                 bottomSafeAreaInset: proxy.safeAreaInsets.bottom
             )
@@ -362,16 +361,11 @@ struct BellCatalogView: View {
 
     private func unifiedFeedContent(
         displayModel: BellCatalogDisplayModel,
-        screenWidth: CGFloat,
         screenHeight: CGFloat,
         bottomSafeAreaInset: CGFloat
     ) -> some View {
         return ScrollViewReader { scrollProxy in
-            let metrics = layoutMode.metrics
-            let cardWidth = layoutMode.cardWidth(forContainerWidth: screenWidth)
-            let cardSize = CGSize(width: cardWidth, height: metrics.cardHeight)
-
-            ScrollView {
+            BellGridContainerView(layoutMode: layoutMode, bottomContentMargin: scrollContentBottomInset) { cardSize in
                 LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []) {
                     Color.clear
                         .frame(height: 0)
@@ -406,9 +400,6 @@ struct BellCatalogView: View {
                 )
                 .animation(.snappy(duration: 0.24), value: layoutMode)
             }
-            .contentMargins(.horizontal, nil, for: .scrollContent)
-            .contentMargins(.top, nil, for: .scrollContent)
-            .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
             .background(
                 LinearGradient(
                     colors: themeColors,

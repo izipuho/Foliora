@@ -140,35 +140,28 @@ struct SearchTabView: View {
             )
             .background(.thinMaterial)
 
-            GeometryReader { proxy in
-                let cardWidth = layoutMode.cardWidth(forContainerWidth: proxy.size.width)
-                let cardSize = CGSize(width: cardWidth, height: layoutMode.metrics.cardHeight)
-
-                ScrollView {
-                    if filteredBells.isEmpty {
-                        ContentUnavailableView.search
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 40)
-                    } else {
-                        BellGridView(
-                            bells: filteredBells,
-                            layoutMode: layoutMode,
-                            cardSize: cardSize,
-                            selectedBellIDs: [],
-                            isSelectionModeEnabled: false,
-                            onTap: openBell,
-                            onSelect: nil,
-                            contextMenu: { _ in
-                                EmptyView()
-                            },
-                            preview: { bell in
-                                SearchBellCardPreview(bell: bell, repository: repository)
-                            }
-                        )
-                    }
+            BellGridContainerView(layoutMode: layoutMode) { cardSize in
+                if filteredBells.isEmpty {
+                    ContentUnavailableView.search
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                } else {
+                    BellGridView(
+                        bells: filteredBells,
+                        layoutMode: layoutMode,
+                        cardSize: cardSize,
+                        selectedBellIDs: [],
+                        isSelectionModeEnabled: false,
+                        onTap: openBell,
+                        onSelect: nil,
+                        contextMenu: { _ in
+                            EmptyView()
+                        },
+                        preview: { bell in
+                            SearchBellCardPreview(bell: bell, repository: repository)
+                        }
+                    )
                 }
-                .contentMargins(.horizontal, nil, for: .scrollContent)
-                .contentMargins(.top, nil, for: .scrollContent)
             }
         }
         .searchable(
