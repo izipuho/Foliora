@@ -138,8 +138,7 @@ struct SearchTabView: View {
                 select: selectToken,
                 remove: removeToken
             )
-            .fixedSize(horizontal: false, vertical: true)
-            .background(.regularMaterial)
+            .background(.thinMaterial)
 
             GeometryReader { proxy in
                 let cardWidth = layoutMode.cardWidth(forContainerWidth: proxy.size.width)

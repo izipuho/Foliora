@@ -356,7 +356,6 @@
 				2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */,
 				2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */,
 				2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */,
-				2403CED92F9F945700C63AB6 /* SearchTabView.swift */,
 			);
 			path = Collections;
 			sourceTree = "<group>";
@@ -374,7 +373,6 @@
 		C00000000000000000000044 /* Home */ = {
 			isa = PBXGroup;
 			children = (
-				246FD6842FA8CE2A00B8859A /* BellGridView.swift */,
 				2403CED52F9F912300C63AB6 /* StorageMapCard.swift */,
 				2403CED12F9F8F5100C63AB6 /* HomeDetailView.swift */,
 				2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */,
@@ -386,6 +384,8 @@
 		C00000000000000000000045 /* List */ = {
 			isa = PBXGroup;
 			children = (
+				2403CED92F9F945700C63AB6 /* SearchTabView.swift */,
+				246FD6842FA8CE2A00B8859A /* BellGridView.swift */,
 				246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */,
 				24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */,
 				C0000000000000000000000E /* BellCatalogView.swift */,
