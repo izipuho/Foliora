@@ -48,17 +48,23 @@ struct AppShellView: View {
             repository: repository,
             path: $path,
             navigate: { path.append($0) },
-            destination: destinationView
+            destination: { destination, layoutMode in
+                destinationView(for: destination, layoutMode: layoutMode)
+            }
         )
     }
 
     @ViewBuilder
-    private func destinationView(for destination: AppDestination) -> some View {
+    private func destinationView(
+        for destination: AppDestination,
+        layoutMode: Binding<BellGridLayoutMode>
+    ) -> some View {
         switch destination {
         case .collection(let collection):
             CollectionShellView(
                 collection: collection,
-                repository: repository
+                repository: repository,
+                layoutMode: layoutMode
             )
         case .home(let homeID):
             if let homeBinding = binding(for: homeID) {
@@ -127,7 +133,24 @@ private struct RootShellView<Destination: View>: View {
     let repository: any CatalogRepository
     @Binding var path: NavigationPath
     let navigate: (AppDestination) -> Void
-    let destination: (AppDestination) -> Destination
+    let destination: (AppDestination, Binding<BellGridLayoutMode>) -> Destination
+    @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
+
+    private var layoutMode: BellGridLayoutMode {
+        get {
+            BellGridLayoutMode(rawValue: layoutModeRawValue) ?? .mini
+        }
+        nonmutating set {
+            layoutModeRawValue = newValue.rawValue
+        }
+    }
+
+    private var layoutModeBinding: Binding<BellGridLayoutMode> {
+        Binding(
+            get: { layoutMode },
+            set: { layoutMode = $0 }
+        )
+    }
 
     var body: some View {
         TabView {
@@ -137,7 +160,9 @@ private struct RootShellView<Destination: View>: View {
                         repository: repository,
                         navigate: navigate
                     )
-                    .navigationDestination(for: AppDestination.self, destination: destination)
+                    .navigationDestination(for: AppDestination.self) { destination in
+                        self.destination(destination, layoutModeBinding)
+                    }
                 }
             }
 
@@ -147,13 +172,15 @@ private struct RootShellView<Destination: View>: View {
                         repository: repository,
                         navigate: navigate
                     )
-                    .navigationDestination(for: AppDestination.self, destination: destination)
+                    .navigationDestination(for: AppDestination.self) { destination in
+                        self.destination(destination, layoutModeBinding)
+                    }
                 }
             }
 
             Tab(role: .search) {
                 NavigationStack {
-                    SearchTabView(repository: repository)
+                    SearchTabView(repository: repository, layoutMode: layoutModeBinding)
                 }
             }
         }

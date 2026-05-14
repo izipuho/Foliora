@@ -22,7 +22,7 @@ struct CollectionShellView: View {
     @State private var isPresentingEditCollection = false
     @State private var isPresentingMap = false
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
-    @AppStorage("bellCatalog.layoutMode") private var selectedLayoutModeRawValue = BellGridLayoutMode.mini.rawValue
+    private let layoutMode: Binding<BellGridLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
     @State private var isBellCatalogSelectionMode = false
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
@@ -30,10 +30,12 @@ struct CollectionShellView: View {
     init(
         collection: CollectionSummary,
         repository: any CatalogRepository,
+        layoutMode: Binding<BellGridLayoutMode>,
         onBellSelected: ((BellEntity) -> Void)? = nil
     ) {
         self.repository = repository
         self.onBellSelected = onBellSelected
+        self.layoutMode = layoutMode
         _collection = State(initialValue: collection)
     }
 
@@ -70,15 +72,6 @@ struct CollectionShellView: View {
         }
     }
 
-    private var selectedLayoutMode: BellGridLayoutMode {
-        get {
-            BellGridLayoutMode(rawValue: selectedLayoutModeRawValue) ?? .mini
-        }
-        nonmutating set {
-            selectedLayoutModeRawValue = newValue.rawValue
-        }
-    }
-
     private var selectedOrderBinding: Binding<BellOrderMode> {
         Binding(
             get: { selectedOrder },
@@ -87,10 +80,7 @@ struct CollectionShellView: View {
     }
 
     private var selectedLayoutModeBinding: Binding<BellGridLayoutMode> {
-        Binding(
-            get: { selectedLayoutMode },
-            set: { selectedLayoutMode = $0 }
-        )
+        layoutMode
     }
 
     var body: some View {

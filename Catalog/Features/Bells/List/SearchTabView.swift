@@ -48,27 +48,20 @@ struct BellCatalogSearchState: Equatable {
 struct SearchTabView: View {
     let repository: any CatalogRepository
     let onBellSelected: ((BellEntity) -> Void)?
+    @Binding var layoutMode: BellGridLayoutMode
     @Query(sort: \CollectionEntity.title) private var collections: [CollectionEntity]
     @Query(sort: \BellEntity.title) private var bells: [BellEntity]
-    @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
     @State private var presentedBell: BellEntity?
     @State private var searchState = BellCatalogSearchState()
     @FocusState private var isSearchFocused: Bool
 
-    private var layoutMode: BellGridLayoutMode {
-        get {
-            BellGridLayoutMode(rawValue: layoutModeRawValue) ?? .mini
-        }
-        nonmutating set {
-            layoutModeRawValue = newValue.rawValue
-        }
-    }
-
     init(
         repository: any CatalogRepository,
+        layoutMode: Binding<BellGridLayoutMode>,
         onBellSelected: ((BellEntity) -> Void)? = nil
     ) {
         self.repository = repository
+        self._layoutMode = layoutMode
         self.onBellSelected = onBellSelected
     }
 
