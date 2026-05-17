@@ -133,7 +133,7 @@ struct SearchTabView: View {
             )
             .background(.thinMaterial)
 
-            BellGridContainerView(layoutMode: layoutMode) { cardSize in
+            BellGridContainerView(layoutMode: layoutMode) { cardSize, gridMetrics, cardMetrics in
                 if filteredBells.isEmpty {
                     ContentUnavailableView.search
                         .frame(maxWidth: .infinity)
@@ -143,6 +143,8 @@ struct SearchTabView: View {
                         bells: filteredBells,
                         layoutMode: layoutMode,
                         cardSize: cardSize,
+                        gridMetrics: gridMetrics,
+                        cardMetrics: cardMetrics,
                         selectedBellIDs: [],
                         isSelectionModeEnabled: false,
                         onTap: openBell,

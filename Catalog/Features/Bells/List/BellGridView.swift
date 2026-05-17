@@ -3,12 +3,20 @@ import SwiftUI
 struct BellGridContainerView<Content: View>: View {
     let layoutMode: BellGridLayoutMode
     let bottomContentMargin: CGFloat?
-    @ViewBuilder let content: (CGSize) -> Content
+    @ViewBuilder let content: (
+        CGSize,
+        BellGridLayoutMode.GridMetrics,
+        BellGridLayoutMode.CardMetrics
+    ) -> Content
 
     init(
         layoutMode: BellGridLayoutMode,
         bottomContentMargin: CGFloat? = nil,
-        @ViewBuilder content: @escaping (CGSize) -> Content
+        @ViewBuilder content: @escaping (
+            CGSize,
+            BellGridLayoutMode.GridMetrics,
+            BellGridLayoutMode.CardMetrics
+        ) -> Content
     ) {
         self.layoutMode = layoutMode
         self.bottomContentMargin = bottomContentMargin
@@ -17,11 +25,17 @@ struct BellGridContainerView<Content: View>: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let cardWidth = layoutMode.cardWidth(forContainerWidth: proxy.size.width)
-            let cardSize = CGSize(width: cardWidth, height: layoutMode.metrics.cardHeight)
+            let containerWidth = proxy.size.width
+            let adaptiveGridMetrics = layoutMode.gridMetrics(forContainerWidth: containerWidth)
+            let cardWidth = layoutMode.cardWidth(
+                forContainerWidth: containerWidth,
+                gridMetrics: adaptiveGridMetrics
+            )
+            let adaptiveCardMetrics = layoutMode.cardMetrics(forCardWidth: cardWidth)
+            let cardSize = CGSize(width: cardWidth, height: adaptiveCardMetrics.cardHeight)
 
             ScrollView {
-                content(cardSize)
+                content(cardSize, adaptiveGridMetrics, adaptiveCardMetrics)
             }
             .contentMargins(.horizontal, nil, for: .scrollContent)
             .contentMargins(.top, nil, for: .scrollContent)
@@ -34,6 +48,8 @@ struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview
     let bells: [Bell]
     let layoutMode: BellGridLayoutMode
     let cardSize: CGSize
+    let gridMetrics: BellGridLayoutMode.GridMetrics
+    let cardMetrics: BellGridLayoutMode.CardMetrics
     let selectedBellIDs: Set<UUID>
     let isSelectionModeEnabled: Bool
     let onTap: (Bell) -> Void
@@ -42,7 +58,7 @@ struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview
     @ViewBuilder let preview: (Bell) -> Preview
 
     var body: some View {
-        LazyVGrid(columns: gridColumns, spacing: layoutMode.metrics.spacing) {
+        LazyVGrid(columns: gridColumns, spacing: gridMetrics.spacing) {
             ForEach(bells, id: \.id) { bell in
                 bellCardButton(bell)
             }
@@ -50,11 +66,9 @@ struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview
     }
 
     private var gridColumns: [GridItem] {
-        let metrics = layoutMode.metrics
-
         return Array(
-            repeating: GridItem(.fixed(cardSize.width), spacing: metrics.spacing, alignment: .top),
-            count: metrics.columnCount
+            repeating: GridItem(.fixed(cardSize.width), spacing: gridMetrics.spacing, alignment: .top),
+            count: gridMetrics.columnCount
         )
     }
 
@@ -68,7 +82,8 @@ struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview
             BellCardView(
                 bell: bell,
                 layoutMode: layoutMode,
-                cardSize: cardSize
+                cardSize: cardSize,
+                cardMetrics: cardMetrics
             )
             .overlay {
                 if shouldShowSelectionOverlay {

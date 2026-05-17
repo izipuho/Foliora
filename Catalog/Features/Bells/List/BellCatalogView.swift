@@ -360,7 +360,7 @@ struct BellCatalogView: View {
         bottomSafeAreaInset: CGFloat
     ) -> some View {
         return ScrollViewReader { scrollProxy in
-            BellGridContainerView(layoutMode: layoutMode, bottomContentMargin: scrollContentBottomInset) { cardSize in
+            BellGridContainerView(layoutMode: layoutMode, bottomContentMargin: scrollContentBottomInset) { cardSize, gridMetrics, cardMetrics in
                 LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []) {
                     Color.clear
                         .frame(height: 0)
@@ -384,10 +384,17 @@ struct BellCatalogView: View {
                         groupedBellSectionsContent(
                             sections: sections,
                             cardSize: cardSize,
+                            gridMetrics: gridMetrics,
+                            cardMetrics: cardMetrics,
                             scrollProxy: scrollProxy
                         )
                     case .flat(let bells):
-                        bellGridView(bells: bells, cardSize: cardSize)
+                        bellGridView(
+                            bells: bells,
+                            cardSize: cardSize,
+                            gridMetrics: gridMetrics,
+                            cardMetrics: cardMetrics
+                        )
                     }
                 }
                 .simultaneousGesture(
@@ -493,6 +500,8 @@ struct BellCatalogView: View {
     private func groupedBellSectionsContent(
         sections: [BellGroupedSection],
         cardSize: CGSize,
+        gridMetrics: BellGridLayoutMode.GridMetrics,
+        cardMetrics: BellGridLayoutMode.CardMetrics,
         scrollProxy: ScrollViewProxy
     ) -> some View {
         ForEach(sections) { section in
@@ -509,12 +518,22 @@ struct BellCatalogView: View {
                                     .foregroundStyle(.secondary)
                                     .padding(.horizontal, CatalogSpacing.micro)
 
-                                bellGridView(bells: cabinetGroup.bells, cardSize: cardSize)
+                                bellGridView(
+                                    bells: cabinetGroup.bells,
+                                    cardSize: cardSize,
+                                    gridMetrics: gridMetrics,
+                                    cardMetrics: cardMetrics
+                                )
                             }
                         }
                     }
                 } else {
-                    bellGridView(bells: section.bells, cardSize: cardSize)
+                    bellGridView(
+                        bells: section.bells,
+                        cardSize: cardSize,
+                        gridMetrics: gridMetrics,
+                        cardMetrics: cardMetrics
+                    )
                 }
             } header: {
                 BellGroupedSectionHeader(
@@ -620,11 +639,18 @@ struct BellCatalogView: View {
         }
     }
 
-    private func bellGridView(bells: [BellEntity], cardSize: CGSize) -> some View {
+    private func bellGridView(
+        bells: [BellEntity],
+        cardSize: CGSize,
+        gridMetrics: BellGridLayoutMode.GridMetrics,
+        cardMetrics: BellGridLayoutMode.CardMetrics
+    ) -> some View {
         BellGridView(
             bells: bells,
             layoutMode: layoutMode,
             cardSize: cardSize,
+            gridMetrics: gridMetrics,
+            cardMetrics: cardMetrics,
             selectedBellIDs: selectedBellIDs,
             isSelectionModeEnabled: isSelectionModeEnabled,
             onTap: handleBellCardTap,
