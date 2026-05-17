@@ -132,86 +132,210 @@ enum BellGridLayoutMode: Int, CaseIterable {
     case wide
     case showcase
 
-    struct Metrics {
+    struct GridMetrics {
         let columnCount: Int
+        let spacing: CGFloat
+    }
+
+    struct CardMetrics {
         let cardHeight: CGFloat
         let cardPadding: CGFloat
         let contentSpacing: CGFloat
         let contentAlignment: Alignment
         let cornerRadius: CGFloat
         let imagePreviewHeight: CGFloat
-        let spacing: CGFloat
     }
 
     static let screenHorizontalPadding: CGFloat = CatalogLayoutInsets.screen
 
-    var metrics: Metrics {
+    var gridMetrics: GridMetrics {
         switch self {
         case .covers:
-            return Metrics(
+            return GridMetrics(
                 columnCount: 4,
+                spacing: CatalogSpacing.micro
+            )
+        case .mini:
+            return GridMetrics(
+                columnCount: 3,
+                spacing: CatalogSpacing.micro
+            )
+        case .compact:
+            return GridMetrics(
+                columnCount: 2,
+                spacing: CatalogSpacing.compact
+            )
+        case .wide:
+            return GridMetrics(
+                columnCount: 1,
+                spacing: CatalogSpacing.compact
+            )
+        case .showcase:
+            return GridMetrics(
+                columnCount: 1,
+                spacing: CatalogSpacing.regular
+            )
+        }
+    }
+
+    func gridMetrics(forContainerWidth containerWidth: CGFloat) -> GridMetrics {
+        let base = gridMetrics
+        let usableWidth = max(containerWidth - (BellGridLayoutMode.screenHorizontalPadding * GridSizingRules.horizontalPaddingMultiplier), 0)
+        let availableColumnCount = Int(floor((usableWidth + base.spacing) / (referenceCardWidth + base.spacing)))
+        let columnCount = min(max(availableColumnCount, base.columnCount), maxColumnCount)
+
+        return GridMetrics(
+            columnCount: columnCount,
+            spacing: base.spacing
+        )
+    }
+
+    var cardMetrics: CardMetrics {
+        switch self {
+        case .covers:
+            return CardMetrics(
                 cardHeight: 108,
                 cardPadding: 8,
                 contentSpacing: 4,
                 //contentAlignment: .bottomLeading,
                 contentAlignment: .topLeading,
                 cornerRadius: CatalogCornerRadii.tile,
-                imagePreviewHeight: 210,
-                spacing: CatalogSpacing.micro
+                imagePreviewHeight: 210
             )
         case .mini:
-            return Metrics(
-                columnCount: 3,
+            return CardMetrics(
                 cardHeight: 144,
                 cardPadding: 10,
                 contentSpacing: 4,
                 contentAlignment: .topLeading,
                 cornerRadius: CatalogCornerRadii.tile,
-                imagePreviewHeight: 210,
-                spacing: CatalogSpacing.micro
+                imagePreviewHeight: 210
             )
         case .compact:
-            return Metrics(
-                columnCount: 2,
+            return CardMetrics(
                 cardHeight: 220,
                 cardPadding: 14,
                 contentSpacing: 8,
                 contentAlignment: .topLeading,
                 cornerRadius: CatalogCornerRadii.tile,
-                imagePreviewHeight: 210,
-                spacing: CatalogSpacing.compact
+                imagePreviewHeight: 210
             )
         case .wide:
-            return Metrics(
-                columnCount: 1,
+            return CardMetrics(
                 cardHeight: 220,
                 cardPadding: 18,
                 contentSpacing: 8,
                 contentAlignment: .topLeading,
                 cornerRadius: CatalogCornerRadii.tile,
-                imagePreviewHeight: 210,
-                spacing: CatalogSpacing.compact
+                imagePreviewHeight: 210
             )
         case .showcase:
-            return Metrics(
-                columnCount: 1,
+            return CardMetrics(
                 cardHeight: 460,
                 cardPadding: 22,
                 contentSpacing: 12,
                 contentAlignment: .topLeading,
                 cornerRadius: CatalogCornerRadii.hero,
-                imagePreviewHeight: 210,
-                spacing: CatalogSpacing.regular
+                imagePreviewHeight: 210
             )
         }
     }
 
+    func cardMetrics(forCardWidth cardWidth: CGFloat) -> CardMetrics {
+        let base = cardMetrics
+        let widthGrowth = max((cardWidth / referenceCardWidth) - CardMetricScaleLimits.baselineScale, 0)
+        let heightScale = min(
+            CardMetricScaleLimits.baselineScale + (widthGrowth * CardMetricScaleLimits.heightGrowthMultiplier),
+            CardMetricScaleLimits.maxHeightScale
+        )
+        let imagePreviewScale = min(
+            CardMetricScaleLimits.baselineScale + (widthGrowth * CardMetricScaleLimits.imagePreviewGrowthMultiplier),
+            CardMetricScaleLimits.maxImagePreviewScale
+        )
+        let paddingScale = min(
+            CardMetricScaleLimits.baselineScale + (widthGrowth * CardMetricScaleLimits.paddingGrowthMultiplier),
+            CardMetricScaleLimits.maxPaddingScale
+        )
+        let contentSpacingScale = min(
+            CardMetricScaleLimits.baselineScale + (widthGrowth * CardMetricScaleLimits.contentSpacingGrowthMultiplier),
+            CardMetricScaleLimits.maxContentSpacingScale
+        )
+        let cornerRadiusScale = min(
+            CardMetricScaleLimits.baselineScale + (widthGrowth * CardMetricScaleLimits.cornerRadiusGrowthMultiplier),
+            CardMetricScaleLimits.maxCornerRadiusScale
+        )
+
+        return CardMetrics(
+            cardHeight: base.cardHeight * heightScale,
+            cardPadding: base.cardPadding * paddingScale,
+            contentSpacing: base.contentSpacing * contentSpacingScale,
+            contentAlignment: base.contentAlignment,
+            cornerRadius: base.cornerRadius * cornerRadiusScale,
+            imagePreviewHeight: base.imagePreviewHeight * imagePreviewScale
+        )
+    }
+
+    private var referenceCardWidth: CGFloat {
+        switch self {
+        case .covers: return GridSizingRules.preferredMinimumCoversCardWidth
+        case .mini: return GridSizingRules.preferredMinimumMiniCardWidth
+        case .compact: return GridSizingRules.preferredMinimumCompactCardWidth
+        case .wide: return GridSizingRules.preferredMinimumWideCardWidth
+        case .showcase: return GridSizingRules.preferredMinimumShowcaseCardWidth
+        }
+    }
+
+    private var maxColumnCount: Int {
+        switch self {
+        case .covers: return GridColumnLimits.maxCoversColumns
+        case .mini: return GridColumnLimits.maxMiniColumns
+        case .compact: return GridColumnLimits.maxCompactColumns
+        case .wide: return GridColumnLimits.maxWideColumns
+        case .showcase: return GridColumnLimits.maxShowcaseColumns
+        }
+    }
+
     func cardWidth(forContainerWidth containerWidth: CGFloat) -> CGFloat {
-        let currentMetrics = metrics
+        let currentMetrics = gridMetrics(forContainerWidth: containerWidth)
+        return cardWidth(forContainerWidth: containerWidth, gridMetrics: currentMetrics)
+    }
+
+    func cardWidth(forContainerWidth containerWidth: CGFloat, gridMetrics currentMetrics: GridMetrics) -> CGFloat {
         let totalSpacing = currentMetrics.spacing * CGFloat(max(currentMetrics.columnCount - 1, 0))
-        let usableWidth = max(containerWidth - (BellGridLayoutMode.screenHorizontalPadding * 2) - totalSpacing, 0)
+        let usableWidth = max(containerWidth - (BellGridLayoutMode.screenHorizontalPadding * GridSizingRules.horizontalPaddingMultiplier) - totalSpacing, 0)
         return floor(usableWidth / CGFloat(currentMetrics.columnCount))
     }
+}
+
+private enum CardMetricScaleLimits {
+    static let baselineScale: CGFloat = 1
+    static let heightGrowthMultiplier: CGFloat = 0.35
+    static let imagePreviewGrowthMultiplier: CGFloat = 0.65
+    static let paddingGrowthMultiplier: CGFloat = 0.16
+    static let contentSpacingGrowthMultiplier: CGFloat = 0.14
+    static let cornerRadiusGrowthMultiplier: CGFloat = 0.12
+    static let maxHeightScale: CGFloat = 1.18
+    static let maxImagePreviewScale: CGFloat = 1.32
+    static let maxPaddingScale: CGFloat = 1.10
+    static let maxContentSpacingScale: CGFloat = 1.10
+    static let maxCornerRadiusScale: CGFloat = 1.08
+}
+
+private enum GridColumnLimits {
+    static let maxCoversColumns = 8
+    static let maxMiniColumns = 6
+    static let maxCompactColumns = 4
+    static let maxWideColumns = 3
+    static let maxShowcaseColumns = 2
+}
+
+private enum GridSizingRules {
+    static let horizontalPaddingMultiplier: CGFloat = 2
+    static let preferredMinimumCoversCardWidth: CGFloat = 90
+    static let preferredMinimumMiniCardWidth: CGFloat = 123
+    static let preferredMinimumCompactCardWidth: CGFloat = 185
+    static let preferredMinimumWideCardWidth: CGFloat = 377
+    static let preferredMinimumShowcaseCardWidth: CGFloat = 377
 }
 
 protocol BellCardDisplayable {
@@ -240,16 +364,21 @@ extension BellRecord: BellCardDisplayable {
 
 struct BellCardView: View {
     let bell: any BellCardDisplayable
-    let layoutMode: BellGridLayoutMode
     let cardSize: CGSize
 
     private let style: BellCardStyle
+    private let cardMetrics: BellGridLayoutMode.CardMetrics
 
-    init(bell: some BellCardDisplayable, layoutMode: BellGridLayoutMode, cardSize: CGSize) {
+    init(
+        bell: some BellCardDisplayable,
+        layoutMode: BellGridLayoutMode,
+        cardSize: CGSize,
+        cardMetrics: BellGridLayoutMode.CardMetrics
+    ) {
         self.bell = bell
-        self.layoutMode = layoutMode
         self.cardSize = cardSize
         self.style = BellCardStyle.style(for: layoutMode)
+        self.cardMetrics = cardMetrics
     }
 
     var body: some View {
@@ -274,11 +403,10 @@ struct BellCardView: View {
 
     @ViewBuilder
     private func cardContent(in size: CGSize) -> some View {
-        let metrics = layoutMode.metrics
-        let contentWidth = max(size.width - (metrics.cardPadding * 2), 0)
-        let contentHeight = max(size.height - (metrics.cardPadding * 2), 0)
+        let contentWidth = max(size.width - (cardMetrics.cardPadding * 2), 0)
+        let contentHeight = max(size.height - (cardMetrics.cardPadding * 2), 0)
 
-        VStack(alignment: .leading, spacing: metrics.contentSpacing) {
+        VStack(alignment: .leading, spacing: cardMetrics.contentSpacing) {
             if let titleStyle = style.title {
                 BellCardTitleBlock(
                     bell: bell,
@@ -300,8 +428,8 @@ struct BellCardView: View {
                 )
             }
         }
-        .frame(width: contentWidth, height: contentHeight, alignment: metrics.contentAlignment)
-        .padding(metrics.cardPadding)
+        .frame(width: contentWidth, height: contentHeight, alignment: cardMetrics.contentAlignment)
+        .padding(cardMetrics.cardPadding)
     }
 
     private var coverScrim: some View {
@@ -316,7 +444,7 @@ struct BellCardView: View {
     }
 
     private var cardShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: layoutMode.metrics.cornerRadius, style: .continuous)
+        RoundedRectangle(cornerRadius: cardMetrics.cornerRadius, style: .continuous)
     }
 
     private var hasCoverPhoto: Bool {
@@ -527,12 +655,13 @@ struct BellCardStripView<Bell: BellCardDisplayable>: View {
     let onSelect: (Bell) -> Void
 
     var body: some View {
-        let metrics = layoutMode.metrics
-        let width = layoutMode.cardWidth(forContainerWidth: screenWidth)
-        let cardSize = CGSize(width: width, height: metrics.cardHeight)
+        let gridMetrics = layoutMode.gridMetrics(forContainerWidth: screenWidth)
+        let width = layoutMode.cardWidth(forContainerWidth: screenWidth, gridMetrics: gridMetrics)
+        let cardMetrics = layoutMode.cardMetrics(forCardWidth: width)
+        let cardSize = CGSize(width: width, height: cardMetrics.cardHeight)
 
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: metrics.spacing) {
+            HStack(alignment: .top, spacing: gridMetrics.spacing) {
                 ForEach(bells, id: \.id) { bell in
                     Button {
                         onSelect(bell)
@@ -540,7 +669,8 @@ struct BellCardStripView<Bell: BellCardDisplayable>: View {
                         BellCardView(
                             bell: bell,
                             layoutMode: layoutMode,
-                            cardSize: cardSize
+                            cardSize: cardSize,
+                            cardMetrics: cardMetrics
                         )
                     }
                     .buttonStyle(.plain)
@@ -548,23 +678,24 @@ struct BellCardStripView<Bell: BellCardDisplayable>: View {
             }
             .padding(.horizontal, CatalogSpacing.compact)
         }
-        .frame(height: metrics.cardHeight)
+        .frame(height: cardMetrics.cardHeight)
     }
 }
 
 struct BellCardImagePreviewView: View {
     let bell: any BellCardDisplayable
-    private let metrics = BellGridLayoutMode.wide.metrics
+    private let cardMetrics = BellGridLayoutMode.wide.cardMetrics
 
     var body: some View {
         GeometryReader { proxy in
             BellCardView(
                 bell: bell,
                 layoutMode: .wide,
-                cardSize: CGSize(width: proxy.size.width, height: metrics.imagePreviewHeight)
+                cardSize: CGSize(width: proxy.size.width, height: cardMetrics.imagePreviewHeight),
+                cardMetrics: cardMetrics
             )
         }
-        .frame(height: metrics.imagePreviewHeight)
+        .frame(height: cardMetrics.imagePreviewHeight)
         .padding(.horizontal, CatalogLayoutInsets.screen)
         .padding(.top, CatalogSpacing.regular)
     }

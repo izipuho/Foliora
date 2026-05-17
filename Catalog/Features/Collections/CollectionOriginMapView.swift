@@ -231,7 +231,7 @@ private struct MapSelectionPanel: View {
                 }
             }
         }
-        .frame(height: bells.count == 1 ? BellGridLayoutMode.wide.metrics.cardHeight : BellGridLayoutMode.mini.metrics.cardHeight)
+        .frame(height: bells.count == 1 ? BellGridLayoutMode.wide.cardMetrics.cardHeight : BellGridLayoutMode.mini.cardMetrics.cardHeight)
         .sheet(item: $presentedBell) { bell in
             BellDetailSheetContainer(bell: bell.recordSnapshot, repository: repository)
                 .presentationDragIndicator(.visible)
