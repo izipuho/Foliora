@@ -1,13 +1,9 @@
 "root_tab.collections" = "Коллекции";
 "root_tab.homes" = "Дома";
-"root_tab.search" = "Поиск";
 "root_tab.settings" = "Настройки";
 
 "collection_tab.summary" = "Сводка";
 "collection_tab.items" = "Колокольчики";
-"collection_tab.map" = "Карта";
-"collection_tab.participants" = "Участники";
-"collection_tab.search" = "Поиск";
 
 "collection.placeholder.map.title" = "Карта";
 "collection.placeholder.map.description" = "Здесь появится географическая карта колокольчиков по месту происхождения.";
@@ -73,7 +69,6 @@
 "bell_catalog.sort.oldest_first" = "Сначала старые";
 "bell_catalog.sort.recently_added" = "Последние добавленные";
 "bell_catalog.order.menu" = "Упорядочить";
-"bell_catalog.sort.none" = "Нет";
 "bell_catalog.sort.geography" = "География";
 "bell_catalog.sort.acquisition_year" = "Год получения";
 "bell_catalog.sort.storage" = "Хранение";
@@ -86,37 +81,40 @@
 "common.delete" = "Удалить";
 "common.done" = "Готово";
 "common.edit" = "Редактировать";
+"common.field.title" = "Название";
+"common.field.description" = "Описание";
+"common.field.notes" = "Заметки";
+"common.field.tags" = "Теги";
+"common.field.origin" = "Происхождение";
+"common.field.material" = "Материал";
+"common.field.condition" = "Состояние";
+"common.field.year" = "Год";
+"common.field.acquired_year" = "Год получения";
+"common.field.storage" = "Хранение";
 "common.name" = "Название";
 "common.none" = "Нет";
 "common.notes" = "Заметки";
 "common.no_notes" = "Заметок пока нет.";
 "common.ok" = "OK";
 "common.save" = "Сохранить";
+"common.state.none" = "Нет";
+"common.state.unspecified" = "Не указан";
 "common.unknown" = "Неизвестно";
+"common.ui.search" = "Поиск";
+"common.ui.map" = "Карта";
+"common.ui.participants" = "Участники";
 "common.unassigned" = "Не указано";
 
 "editor.main_info" = "Основное";
-"editor.description" = "Описание";
 "editor.media" = "Медиа";
 "editor.acquisition_details" = "Как появился у меня";
 "editor.attributes" = "Атрибуты";
-"editor.storage" = "Хранение";
 "editor.additional_details" = "Дополнительно";
-"editor.tags" = "Теги";
-"editor.title" = "Название";
 "editor.title.required" = "Для сохранения нужно название";
 "editor.title.focus" = "Ввести название";
-"editor.notes" = "Заметки";
 "editor.short_description" = "Краткое описание";
 "editor.note_history" = "Заметка или история";
-"editor.year" = "Год";
-"editor.year.none" = "Не указан";
-"editor.acquired_year" = "Год получения";
-"editor.acquired_year.none" = "Не указан";
-"editor.origin" = "Происхождение";
-"editor.condition" = "Состояние";
 "editor.acquisition" = "Получение";
-"editor.material" = "Материал";
 "editor.material_required" = "Для сохранения нужно выбрать материал";
 "editor.material.custom" = "Свой материал";
 "editor.location" = "Расположение";
@@ -297,16 +295,9 @@
 "bell.detail.section.location" = "Происхождение и хранение";
 "bell.detail.section.attributes" = "Характеристики";
 "bell.detail.section.media" = "Медиа";
-"bell.detail.section.tags" = "Теги";
-"bell.detail.section.notes" = "Заметки";
-"bell.detail.origin" = "Происхождение";
-"bell.detail.material" = "Материал";
-"bell.detail.condition" = "Состояние";
 "bell.detail.acquisition" = "Способ появления";
 "bell.detail.storage" = "Хранится";
 "bell.detail.created_by" = "Добавил";
-"bell.detail.year" = "Год";
-"bell.detail.acquired_year" = "Год получения";
 "bell.detail.photos" = "Фото";
 "bell.detail.models" = "3D-модели";
 "bell.detail.documents" = "Документы";
@@ -326,11 +317,8 @@
 "bell.context.delete.message" = "Колокольчик будет удален из коллекции.";
 
 "search.scope.all" = "Всё";
-"search.scope.title" = "Название";
 "search.scope.collection" = "Коллекция";
 "search.scope.origin" = "Место";
-"search.scope.tags" = "Теги";
-"search.scope.notes" = "Заметки";
 "search.scope.incomplete" = "Незаполненные";
 "search.results.count" = "%lld результатов";
 

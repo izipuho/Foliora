@@ -100,7 +100,7 @@ struct HomeEditorView: View {
                     }
                 }
             }
-            .navigationTitle(String(localized: "home.editor.title"))
+            .navigationTitle(String(localized: "home.common.field.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

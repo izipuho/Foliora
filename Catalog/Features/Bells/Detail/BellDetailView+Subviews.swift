@@ -77,7 +77,7 @@ private struct OriginTile: View {
                 .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
 
                 VStack(alignment: .leading, spacing: CatalogSpacing.compact) {
-                    Label(String(localized: "bell.detail.origin"), systemImage: "mappin.and.ellipse")
+                    Label(String(localized: "common.field.origin"), systemImage: "mappin.and.ellipse")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white)
 

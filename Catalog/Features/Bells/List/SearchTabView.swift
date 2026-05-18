@@ -90,7 +90,7 @@ struct SearchTabView: View {
                 tokens: uniqueValues(bells.flatMap(\.tagValues)).map(SearchToken.tag)
             ),
             SearchTokenGroup(
-                title: String(localized: "editor.condition"),
+                title: String(localized: "common.field.condition"),
                 systemImage: "checkmark.seal",
                 tokens: uniqueConditions.map(SearchToken.condition)
             ),

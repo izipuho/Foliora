@@ -20,7 +20,7 @@ enum RootTab: String, CaseIterable, Identifiable, Hashable {
         case .settings:
             return String(localized: "root_tab.settings")
         case .search:
-            return String(localized: "root_tab.search")
+            return String(localized: "common.ui.search")
         }
     }
 

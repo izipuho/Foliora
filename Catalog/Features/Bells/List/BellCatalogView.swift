@@ -1009,7 +1009,7 @@ private struct BellQuickMoveSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(String(localized: "editor.storage")) {
+                Section(String(localized: "common.field.storage")) {
                     LocationPickerField(
                         title: String(localized: "editor.location"),
                         selectedLabel: selectedLocationLabel,

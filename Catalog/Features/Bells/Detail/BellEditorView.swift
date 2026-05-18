@@ -50,7 +50,7 @@ struct BellEditorView: View {
     @State private var tagInput = ""
     @State private var tags: [String] = []
     @State private var mediaAssets: [MediaAsset] = []
-    @State private var selectedAcquiredYearOption = String(localized: "editor.acquired_year.none")
+    @State private var selectedAcquiredYearOption = String(localized: "common.field.acquired_year.none")
     @State private var highlightedSection: StartSection?
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
@@ -60,7 +60,7 @@ struct BellEditorView: View {
     private let existingCreatedAt: Date?
     private let editorItemID: UUID
 
-    private let acquiredYearOptions = [String(localized: "editor.acquired_year.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
+    private let acquiredYearOptions = [String(localized: "common.field.acquired_year.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     private var availableLocations: [Location] {
         queriedLocations.map { entity in
@@ -168,7 +168,7 @@ struct BellEditorView: View {
         _selectedLocationID = State(initialValue: bell?.item.locationID)
         _tags = State(initialValue: bell?.tags ?? [])
         _mediaAssets = State(initialValue: bell?.mediaAssets ?? initialMediaAssets)
-        _selectedAcquiredYearOption = State(initialValue: bell?.acquiredYear.map(String.init) ?? String(localized: "editor.acquired_year.none"))
+        _selectedAcquiredYearOption = State(initialValue: bell?.acquiredYear.map(String.init) ?? String(localized: "common.field.acquired_year.none"))
     }
 
     var body: some View {
@@ -290,7 +290,7 @@ struct BellEditorView: View {
                         }
                     }
 
-                    Section(String(localized: "editor.description")) {
+                    Section(String(localized: "common.field.description")) {
                         TextField(String(localized: "editor.short_description"), text: $title)
                             .focused($focusedField, equals: .title)
 
@@ -299,7 +299,7 @@ struct BellEditorView: View {
                                 focusTitleValidation()
                             } label: {
                                 Label {
-                                    Text(String(localized: "editor.title.required"))
+                                    Text(String(localized: "common.field.title.required"))
                                         .font(.footnote)
                                 } icon: {
                                     Image(systemName: "exclamationmark.circle.fill")
@@ -308,7 +308,7 @@ struct BellEditorView: View {
                             }
                             .buttonStyle(.plain)
                             .foregroundStyle(.red)
-                            .accessibilityHint(String(localized: "editor.title.focus"))
+                            .accessibilityHint(String(localized: "common.field.title.focus"))
                         }
 
                         TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
@@ -317,7 +317,7 @@ struct BellEditorView: View {
 
                     Section(String(localized: "editor.acquisition_details")) {
                         YearPickerField(
-                            title: String(localized: "editor.acquired_year"),
+                            title: String(localized: "common.field.acquired_year"),
                             selection: $selectedAcquiredYearOption,
                             options: acquiredYearOptions
                         )
@@ -333,7 +333,7 @@ struct BellEditorView: View {
 
                     Section(String(localized: "editor.attributes")) {
                         EnumSelectionRow(
-                            title: String(localized: "editor.condition"),
+                            title: String(localized: "common.field.condition"),
                             selectedLabel: condition.displayName,
                             options: ItemCondition.allCases,
                             selection: $condition,
@@ -341,7 +341,7 @@ struct BellEditorView: View {
                         )
 
                         EnumSelectionRow(
-                            title: String(localized: "editor.material"),
+                            title: String(localized: "common.field.material"),
                             selectedLabel: material.displayName,
                             options: BellMaterial.allCases,
                             selection: $material,
@@ -349,7 +349,7 @@ struct BellEditorView: View {
                         )
 
                         if material == .other {
-                            TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
+                            TextField(String(localized: "common.field.material.custom"), text: $customMaterialName)
                         }
 
                         if !isMaterialValid {
@@ -357,7 +357,7 @@ struct BellEditorView: View {
                                 emitAnalysisFeedback(.warning)
                             } label: {
                                 Label {
-                                    Text(String(localized: "editor.material.required"))
+                                    Text(String(localized: "common.field.material.required"))
                                         .font(.footnote)
                                 } icon: {
                                     Image(systemName: "exclamationmark.circle.fill")
@@ -369,7 +369,7 @@ struct BellEditorView: View {
                         }
                     }
 
-                    Section(String(localized: "editor.storage")) {
+                    Section(String(localized: "common.field.storage")) {
                         LocationPickerField(
                             title: String(localized: "editor.location"),
                             selectedLabel: selectedLocationLabel,
@@ -382,14 +382,14 @@ struct BellEditorView: View {
 
                     Section(String(localized: "editor.additional_details")) {
                         PlacePickerField(
-                            title: String(localized: "editor.origin"),
+                            title: String(localized: "common.field.origin"),
                             selectedLabel: selectedOriginLabel,
                             places: availablePlaces,
                             selectedPlace: $selectedOriginPlace
                         )
                     }
 
-                    Section(String(localized: "editor.tags")) {
+                    Section(String(localized: "common.field.tags")) {
                         TagEditorSection(
                             tagInput: $tagInput,
                             tags: $tags
@@ -521,7 +521,7 @@ struct BellEditorView: View {
                 createdAt: existingCreatedAt ?? .now,
                 title: trimmedTitle,
                 notes: trimmedNotes,
-                acquiredYear: selectedAcquiredYearOption == String(localized: "editor.acquired_year.none") ? nil : Int(selectedAcquiredYearOption),
+                acquiredYear: selectedAcquiredYearOption == String(localized: "common.field.acquired_year.none") ? nil : Int(selectedAcquiredYearOption),
                 condition: condition,
                 acquisitionMethod: acquisitionMethod
             ),
