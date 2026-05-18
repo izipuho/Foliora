@@ -161,7 +161,7 @@ struct TagEditorSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                TextField(String(localized: "editor.tags.add_placeholder"), text: $tagInput)
+                TextField(String(localized: "common.field.tags.add_placeholder"), text: $tagInput)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
@@ -180,7 +180,7 @@ struct TagEditorSection: View {
             }
 
             if tags.isEmpty {
-                Text(String(localized: "editor.tags.empty"))
+                Text(String(localized: "common.field.tags.empty"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
@@ -664,7 +664,7 @@ struct PlacePickerView: View {
                 }
 
                 if !searchModel.results.isEmpty {
-                    Section(String(localized: "editor.origin.results")) {
+                    Section(String(localized: "common.field.origin.results")) {
                         ForEach(searchModel.results) { result in
                             Button {
                                 PlaceSearchModel.resolve(result) { place in
@@ -697,7 +697,7 @@ struct PlacePickerView: View {
                     }
                 }
 
-                Section(String(localized: "editor.origin.places")) {
+                Section(String(localized: "common.field.origin.places")) {
                     ForEach(filteredPlaces) { place in
                         Button {
                             selectedPlace = place
@@ -724,9 +724,9 @@ struct PlacePickerView: View {
                     }
                 }
             }
-            .navigationTitle(String(localized: "editor.origin.title"))
+            .navigationTitle(String(localized: "common.field.origin.title"))
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: String(localized: "editor.origin.search"))
+            .searchable(text: $searchText, prompt: String(localized: "common.field.origin.search"))
             .onChange(of: searchText) { _, newValue in
                 searchModel.updateQuery(newValue)
             }

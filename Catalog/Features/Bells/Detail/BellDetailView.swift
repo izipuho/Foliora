@@ -130,11 +130,11 @@ struct BellDetailView: View {
         VStack(alignment: .leading, spacing: 18) {
             detailSection(String(localized: "bell.detail.section.collection_info")) {
                 if let acquiredYear = bell.acquiredYear {
-                    detailRow(String(localized: "bell.detail.acquired_year"), value: String(acquiredYear))
+                    detailRow(String(localized: "common.field.acquired_year"), value: String(acquiredYear))
                 }
 
                 detailRow(String(localized: "bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
-                detailRow(String(localized: "bell.detail.condition"), value: bell.condition.displayName)
+                detailRow(String(localized: "common.field.condition"), value: bell.condition.displayName)
             }
 
             detailSection(String(localized: "bell.detail.section.location")) {
@@ -158,7 +158,7 @@ struct BellDetailView: View {
             }
 
             detailSection(
-                String(localized: "bell.detail.section.notes"),
+                String(localized: "common.field.notes"),
                 isHighlighted: isNotesOrTagsDirty,
                 tint: detailAccentColor
             ) {

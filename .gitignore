@@ -13,3 +13,4 @@ xcuserdata/
 *.moved-aside
 TODO.local.md
 .venv-ml/
+localization_key_replacements.tsv

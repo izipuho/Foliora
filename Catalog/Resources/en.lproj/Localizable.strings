@@ -1,13 +1,9 @@
 "root_tab.collections" = "Collections";
 "root_tab.homes" = "Homes";
-"root_tab.search" = "Search";
 "root_tab.settings" = "Settings";
 
 "collection_tab.summary" = "Summary";
 "collection_tab.items" = "Bells";
-"collection_tab.map" = "Map";
-"collection_tab.participants" = "Participants";
-"collection_tab.search" = "Search";
 
 "collection.placeholder.map.title" = "Map";
 "collection.placeholder.map.description" = "A geographic map of bells by origin will appear here.";
@@ -73,7 +69,6 @@
 "bell_catalog.sort.oldest_first" = "Oldest First";
 "bell_catalog.sort.recently_added" = "Recently Added";
 "bell_catalog.order.menu" = "Order by";
-"bell_catalog.sort.none" = "None";
 "bell_catalog.sort.geography" = "Geography";
 "bell_catalog.sort.acquisition_year" = "Acquisition Year";
 "bell_catalog.sort.storage" = "Storage";
@@ -86,37 +81,40 @@
 "common.delete" = "Delete";
 "common.done" = "Done";
 "common.edit" = "Edit";
+"common.field.title" = "Title";
+"common.field.description" = "Description";
+"common.field.notes" = "Notes";
+"common.field.tags" = "Tags";
+"common.field.origin" = "Origin";
+"common.field.material" = "Material";
+"common.field.condition" = "Condition";
+"common.field.year" = "Year";
+"common.field.acquired_year" = "Acquisition Year";
+"common.field.storage" = "Storage";
 "common.name" = "Name";
 "common.none" = "None";
 "common.notes" = "Notes";
 "common.no_notes" = "No notes yet.";
 "common.ok" = "OK";
 "common.save" = "Save";
+"common.state.none" = "None";
+"common.state.unspecified" = "Unspecified";
 "common.unknown" = "Unknown";
+"common.ui.search" = "Search";
+"common.ui.map" = "Map";
+"common.ui.participants" = "Participants";
 "common.unassigned" = "Unassigned";
 
 "editor.main_info" = "Main Info";
-"editor.description" = "Description";
 "editor.media" = "Media";
 "editor.acquisition_details" = "How It Came to Me";
 "editor.attributes" = "Attributes";
-"editor.storage" = "Storage";
 "editor.additional_details" = "Additional Details";
-"editor.tags" = "Tags";
-"editor.title" = "Title";
 "editor.title.required" = "Name is required to save";
 "editor.title.focus" = "Enter name";
-"editor.notes" = "Notes";
 "editor.short_description" = "Short Description";
 "editor.note_history" = "Note or Story";
-"editor.year" = "Year";
-"editor.year.none" = "None";
-"editor.acquired_year" = "Year Added";
-"editor.acquired_year.none" = "None";
-"editor.origin" = "Origin";
-"editor.condition" = "Condition";
 "editor.acquisition" = "Acquisition";
-"editor.material" = "Material";
 "editor.material_required" = "Material is required to save";
 "editor.material.custom" = "Custom material";
 "editor.location" = "Location";
@@ -297,16 +295,9 @@
 "bell.detail.section.location" = "Origin & Storage";
 "bell.detail.section.attributes" = "Attributes";
 "bell.detail.section.media" = "Media";
-"bell.detail.section.tags" = "Tags";
-"bell.detail.section.notes" = "Notes";
-"bell.detail.origin" = "Origin";
-"bell.detail.material" = "Material";
-"bell.detail.condition" = "Condition";
 "bell.detail.acquisition" = "Acquisition";
 "bell.detail.storage" = "Stored In";
 "bell.detail.created_by" = "Added By";
-"bell.detail.year" = "Year";
-"bell.detail.acquired_year" = "Year Added";
 "bell.detail.photos" = "Photos";
 "bell.detail.models" = "3D Models";
 "bell.detail.documents" = "Documents";
@@ -326,11 +317,8 @@
 "bell.context.delete.message" = "This bell will be removed from the collection.";
 
 "search.scope.all" = "All";
-"search.scope.title" = "Title";
 "search.scope.collection" = "Collection";
 "search.scope.origin" = "Place";
-"search.scope.tags" = "Tags";
-"search.scope.notes" = "Notes";
 "search.scope.incomplete" = "Incomplete";
 "search.results.count" = "%lld results";
 
