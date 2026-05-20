@@ -1,3 +1,4 @@
+import CollectionDomain
 import Foundation
 
 struct CatalogTransferBundle: Codable {

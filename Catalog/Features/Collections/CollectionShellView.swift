@@ -1,3 +1,4 @@
+import CollectionDomain
 import SwiftUI
 import SwiftData
 import PhotosUI

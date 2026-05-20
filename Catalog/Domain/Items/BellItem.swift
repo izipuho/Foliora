@@ -1,3 +1,4 @@
+import CollectionDomain
 import Foundation
 
 struct BellDetails: Identifiable, Hashable, Codable {
