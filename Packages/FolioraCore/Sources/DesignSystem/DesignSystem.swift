@@ -114,17 +114,57 @@ public struct CatalogListRowCard: View {
     }
 }
 
-public struct CatalogSettingsRow: View {
+public struct CatalogSettingsRow<Trailing: View>: View {
     private let title: String
+    private let subtitle: String?
     private let systemImage: String
+    private let trailing: Trailing
 
-    public init(_ title: String, systemImage: String) {
+    public init(
+        _ title: String,
+        systemImage: String,
+        subtitle: String? = nil,
+        @ViewBuilder trailing: () -> Trailing
+    ) {
         self.title = title
+        self.subtitle = subtitle
         self.systemImage = systemImage
+        self.trailing = trailing()
     }
 
     public var body: some View {
-        Label(title, systemImage: systemImage)
+        HStack(spacing: CatalogSpacing.regular) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.tint)
+                .frame(width: 24, height: 24)
+
+            VStack(alignment: .leading, spacing: CatalogSpacing.micro) {
+                Text(title)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+
+            Spacer(minLength: CatalogSpacing.regular)
+
+            trailing
+        }
+        .padding(.vertical, subtitle == nil ? 2 : 4)
+    }
+}
+
+public extension CatalogSettingsRow where Trailing == EmptyView {
+    init(_ title: String, systemImage: String, subtitle: String? = nil) {
+        self.init(title, systemImage: systemImage, subtitle: subtitle) {
+            EmptyView()
+        }
     }
 }
 
