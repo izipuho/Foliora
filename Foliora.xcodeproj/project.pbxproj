@@ -67,6 +67,9 @@
 		C000000000000000000000C5 /* CatalogLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000030 /* CatalogLayouts.swift */; };
 		C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000040 /* CatalogArchiveService.swift */; };
 		D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* BellDetailView+Subviews.swift */; };
+		F00000000000000000000003 /* Core in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000006 /* Core */; };
+		F00000000000000000000004 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000007 /* DesignSystem */; };
+		F00000000000000000000005 /* CollectionDomain in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000008 /* CollectionDomain */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -164,6 +167,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F00000000000000000000005 /* CollectionDomain in Frameworks */,
+				F00000000000000000000003 /* Core in Frameworks */,
+				F00000000000000000000004 /* DesignSystem in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -505,6 +511,9 @@
 			);
 			name = "Foliora Bells";
 			packageProductDependencies = (
+				F00000000000000000000006 /* Core */,
+				F00000000000000000000007 /* DesignSystem */,
+				F00000000000000000000008 /* CollectionDomain */,
 			);
 			productName = Catalog;
 			productReference = C00000000000000000000012 /* Foliora Bells.app */;
@@ -589,6 +598,24 @@
 			relativePath = Packages/FolioraCore;
 		};
 /* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F00000000000000000000006 /* Core */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F00000000000000000000002 /* XCLocalSwiftPackageReference "Packages/FolioraCore" */;
+			productName = Core;
+		};
+		F00000000000000000000007 /* DesignSystem */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F00000000000000000000002 /* XCLocalSwiftPackageReference "Packages/FolioraCore" */;
+			productName = DesignSystem;
+		};
+		F00000000000000000000008 /* CollectionDomain */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F00000000000000000000002 /* XCLocalSwiftPackageReference "Packages/FolioraCore" */;
+			productName = CollectionDomain;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin PBXSourcesBuildPhase section */
 		24349FFA2FAC6FD9005383FB /* Sources */ = {
