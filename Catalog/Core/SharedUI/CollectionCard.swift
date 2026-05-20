@@ -1,3 +1,4 @@
+import DesignSystem
 import SwiftUI
 
 struct CollectionCard: View {

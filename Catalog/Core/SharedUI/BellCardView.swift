@@ -1,3 +1,4 @@
+import DesignSystem
 import SwiftUI
 import UIKit
 
@@ -49,46 +50,6 @@ enum CatalogMediaContrast {
     static let iconPaletteShadowStrong = Color.black.opacity(0.35)
 }
 
-struct CatalogShadowStyle {
-    let color: Color
-    let radius: CGFloat
-    let y: CGFloat
-}
-
-enum CatalogElevation {
-    static let card = CatalogShadowStyle(
-        color: CatalogSemanticColors.separator.opacity(0.22),
-        radius: 12,
-        y: 6
-    )
-
-    static let floatingCard = CatalogShadowStyle(
-        color: CatalogSemanticColors.separator.opacity(0.22),
-        radius: 14,
-        y: 8
-    )
-
-    static let collectionCard = CatalogShadowStyle(
-        color: CatalogSemanticColors.separator.opacity(0.22),
-        radius: 16,
-        y: 8
-    )
-
-    static let detailSection = CatalogShadowStyle(
-        color: CatalogSemanticColors.separator.opacity(0.22),
-        radius: 10,
-        y: 4
-    )
-
-    static func highlightedDetailSection(tint: Color) -> CatalogShadowStyle {
-        CatalogShadowStyle(
-            color: tint.opacity(0.14),
-            radius: 14,
-            y: 4
-        )
-    }
-}
-
 enum CatalogPillPadding {
     case micro
     case compact
@@ -118,10 +79,6 @@ extension View {
     func catalogPillPadding(_ style: CatalogPillPadding) -> some View {
         padding(.horizontal, style.horizontal)
             .padding(.vertical, style.vertical)
-    }
-
-    func catalogShadow(_ style: CatalogShadowStyle) -> some View {
-        shadow(color: style.color, radius: style.radius, y: style.y)
     }
 }
 
