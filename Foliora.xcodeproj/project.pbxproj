@@ -105,7 +105,7 @@
 		C0000000000000000000000E /* BellCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogView.swift; sourceTree = "<group>"; };
 		C0000000000000000000000F /* BellDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellDetailView.swift; sourceTree = "<group>"; };
 		C00000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		C00000000000000000000012 /* Catalog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Catalog.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C00000000000000000000013 /* EditorFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFields.swift; sourceTree = "<group>"; };
 		C00000000000000000000014 /* CloudKitConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitConfiguration.swift; sourceTree = "<group>"; };
 		C00000000000000000000015 /* CloudKitCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCatalogRepository.swift; sourceTree = "<group>"; };
@@ -223,7 +223,7 @@
 		C00000000000000000000033 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C00000000000000000000012 /* Catalog.app */,
+				C00000000000000000000012 /* Foliora Bells.app */,
 				246FD65F2FA8BB2900B8859A /* BellRecognition.app */,
 				24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */,
 			);
@@ -491,9 +491,9 @@
 			productReference = 246FD65F2FA8BB2900B8859A /* BellRecognition.app */;
 			productType = "com.apple.product-type.application";
 		};
-		C00000000000000000000051 /* Catalog */ = {
+		C00000000000000000000051 /* Foliora Bells */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C00000000000000000000061 /* Build configuration list for PBXNativeTarget "Catalog" */;
+			buildConfigurationList = C00000000000000000000061 /* Build configuration list for PBXNativeTarget "Foliora Bells" */;
 			buildPhases = (
 				C00000000000000000000022 /* Sources */,
 				C00000000000000000000021 /* Frameworks */,
@@ -503,11 +503,11 @@
 			);
 			dependencies = (
 			);
-			name = Catalog;
+			name = "Foliora Bells";
 			packageProductDependencies = (
 			);
 			productName = Catalog;
-			productReference = C00000000000000000000012 /* Catalog.app */;
+			productReference = C00000000000000000000012 /* Foliora Bells.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -531,7 +531,7 @@
 					};
 				};
 			};
-			buildConfigurationList = C00000000000000000000062 /* Build configuration list for PBXProject "Catalog" */;
+			buildConfigurationList = C00000000000000000000062 /* Build configuration list for PBXProject "Foliora" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -546,7 +546,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				C00000000000000000000051 /* Catalog */,
+				C00000000000000000000051 /* Foliora Bells */,
 				246FD65E2FA8BB2900B8859A /* BellRecognition */,
 				24349FFD2FAC6FD9005383FB /* BellRecognitionDebugML */,
 			);
@@ -1059,9 +1059,14 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Catalog;
+				INFOPLIST_KEY_CFBundleDisplayName = "Foliora Bells";
 				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Use the camera to add photos of collection items.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
@@ -1079,9 +1084,11 @@
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.Catalog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
@@ -1097,9 +1104,14 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Catalog;
+				INFOPLIST_KEY_CFBundleDisplayName = "Foliora Bells";
 				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Use the camera to add photos of collection items.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
@@ -1117,9 +1129,11 @@
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.Catalog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
@@ -1148,7 +1162,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C00000000000000000000061 /* Build configuration list for PBXNativeTarget "Catalog" */ = {
+		C00000000000000000000061 /* Build configuration list for PBXNativeTarget "Foliora Bells" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C00000000000000000000073 /* Debug */,
@@ -1157,7 +1171,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C00000000000000000000062 /* Build configuration list for PBXProject "Catalog" */ = {
+		C00000000000000000000062 /* Build configuration list for PBXProject "Foliora" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C00000000000000000000071 /* Debug */,
