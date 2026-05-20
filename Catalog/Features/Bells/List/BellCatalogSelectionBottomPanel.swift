@@ -21,21 +21,12 @@ struct BellCatalogSelectionBottomPanel: View {
                 .padding(.bottom, -bottomSafeAreaInset)
 
             HStack(alignment: .center, spacing: 18) {
-                Button(action: onMove) {
-                    Image(systemName: "folder")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(accentColor)
-                        .frame(width: 48, height: 48)
-                        .background {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .overlay {
-                                    Circle()
-                                        .fill(accentColor.opacity(0.12))
-                                }
-                        }
-                }
-                .buttonStyle(.plain)
+                CatalogIconActionButton(
+                    systemImage: "folder",
+                    tint: accentColor,
+                    backgroundTint: accentColor.opacity(0.12),
+                    action: onMove
+                )
 
                 Text(selectedBellCountText)
                     .font(.title3.weight(.semibold))
@@ -46,21 +37,13 @@ struct BellCatalogSelectionBottomPanel: View {
                     .contentTransition(.numericText())
                     .frame(minWidth: 150)
 
-                Button(role: .destructive, action: onDelete) {
-                    Image(systemName: "trash")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.red)
-                        .frame(width: 48, height: 48)
-                        .background {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .overlay {
-                                    Circle()
-                                        .fill(Color.red.opacity(0.10))
-                                }
-                        }
-                }
-                .buttonStyle(.plain)
+                CatalogIconActionButton(
+                    systemImage: "trash",
+                    tint: .red,
+                    backgroundTint: Color.red.opacity(0.10),
+                    role: .destructive,
+                    action: onDelete
+                )
             }
             .padding(.horizontal, CatalogLayoutInsets.screen)
             .padding(.top, 24)

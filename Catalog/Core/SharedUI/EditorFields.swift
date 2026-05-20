@@ -189,20 +189,20 @@ private struct TagChip: View {
     let onRemove: () -> Void
 
     var body: some View {
-        HStack(spacing: CatalogSpacing.compact) {
-            Text("#\(tag)")
-                .font(.subheadline.weight(.medium))
+        CatalogPill(padding: .regular) {
+            HStack(spacing: CatalogSpacing.compact) {
+                Text("#\(tag)")
+                    .font(.subheadline.weight(.medium))
 
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Button(action: onRemove) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "common.delete"))
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(String(localized: "common.delete"))
         }
-        .catalogPillPadding(.regular)
-        .background(.thinMaterial, in: Capsule())
     }
 }
 

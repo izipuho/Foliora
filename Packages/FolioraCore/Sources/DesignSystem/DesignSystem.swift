@@ -326,6 +326,24 @@ public extension CatalogKeyValueRow where Label == Text, Value == Text {
     }
 }
 
+public struct CatalogDashboardCard<Content: View>: View {
+    private let width: CGFloat?
+    private let content: Content
+
+    public init(width: CGFloat? = 240, @ViewBuilder content: () -> Content) {
+        self.width = width
+        self.content = content()
+    }
+
+    public var body: some View {
+        content
+            .padding()
+            .frame(width: width, alignment: .leading)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 8)
+    }
+}
+
 public enum CatalogPillPadding {
     case micro
     case compact
@@ -348,6 +366,95 @@ public enum CatalogPillPadding {
         case .regular: return 8
         case .prominent: return 10
         }
+    }
+}
+
+public struct CatalogPill<Content: View>: View {
+    private let padding: CatalogPillPadding
+    private let backgroundStyle: AnyShapeStyle
+    private let foregroundStyle: AnyShapeStyle
+    private let strokeStyle: AnyShapeStyle?
+    private let strokeWidth: CGFloat
+    private let shadowStyle: CatalogShadowStyle?
+    private let content: Content
+
+    public init(
+        padding: CatalogPillPadding = .regular,
+        backgroundStyle: AnyShapeStyle = AnyShapeStyle(.thinMaterial),
+        foregroundStyle: AnyShapeStyle = AnyShapeStyle(.primary),
+        strokeStyle: AnyShapeStyle? = nil,
+        strokeWidth: CGFloat = 1,
+        shadowStyle: CatalogShadowStyle? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.padding = padding
+        self.backgroundStyle = backgroundStyle
+        self.foregroundStyle = foregroundStyle
+        self.strokeStyle = strokeStyle
+        self.strokeWidth = strokeWidth
+        self.shadowStyle = shadowStyle
+        self.content = content()
+    }
+
+    public var body: some View {
+        content
+            .catalogPillPadding(padding)
+            .background(backgroundStyle, in: Capsule())
+            .overlay {
+                if let strokeStyle {
+                    Capsule()
+                        .stroke(strokeStyle, lineWidth: strokeWidth)
+                }
+            }
+            .foregroundStyle(foregroundStyle)
+            .shadow(
+                color: shadowStyle?.color ?? .clear,
+                radius: shadowStyle?.radius ?? 0,
+                y: shadowStyle?.y ?? 0
+            )
+    }
+}
+
+public struct CatalogIconActionButton: View {
+    private let systemImage: String
+    private let tint: Color
+    private let backgroundTint: Color
+    private let role: ButtonRole?
+    private let size: CGFloat
+    private let action: () -> Void
+
+    public init(
+        systemImage: String,
+        tint: Color = .primary,
+        backgroundTint: Color = .clear,
+        role: ButtonRole? = nil,
+        size: CGFloat = 48,
+        action: @escaping () -> Void
+    ) {
+        self.systemImage = systemImage
+        self.tint = tint
+        self.backgroundTint = backgroundTint
+        self.role = role
+        self.size = size
+        self.action = action
+    }
+
+    public var body: some View {
+        Button(role: role, action: action) {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(tint)
+                .frame(width: size, height: size)
+                .background {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .overlay {
+                            Circle()
+                                .fill(backgroundTint)
+                        }
+                }
+        }
+        .buttonStyle(.plain)
     }
 }
 

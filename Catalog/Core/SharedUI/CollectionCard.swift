@@ -51,14 +51,16 @@ struct CollectionCard: View {
     }
 
     private var countChip: some View {
-        Label {
-            Text(collection.kind.countLabel(for: collection.itemCount))
-        } icon: {
-            Image(systemName: "square.stack.3d.up")
+        CatalogPill(
+            padding: .regular,
+            foregroundStyle: AnyShapeStyle(Color.secondary)
+        ) {
+            Label {
+                Text(collection.kind.countLabel(for: collection.itemCount))
+            } icon: {
+                Image(systemName: "square.stack.3d.up")
+            }
+            .font(.footnote.weight(.medium))
         }
-        .font(.footnote.weight(.medium))
-        .catalogPillPadding(.regular)
-        .background(.thinMaterial, in: Capsule())
-        .foregroundStyle(.secondary)
     }
 }

@@ -868,16 +868,14 @@ private struct FilterChip: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.footnote.weight(.semibold))
-                .catalogPillPadding(.prominent)
-                .background(
-                    isSelected
-                        ? tint
-                        : CatalogMediaContrast.overlayChipMuted,
-                    in: Capsule()
-                )
-                .foregroundStyle(isSelected ? .white : .primary)
+            CatalogPill(
+                padding: .prominent,
+                backgroundStyle: AnyShapeStyle(isSelected ? tint : CatalogMediaContrast.overlayChipMuted),
+                foregroundStyle: AnyShapeStyle(isSelected ? Color.white : Color.primary)
+            ) {
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+            }
         }
     }
 }
@@ -888,12 +886,14 @@ private struct SummaryPill: View {
     let tint: Color
 
     var body: some View {
-        Label(title, systemImage: systemImage)
-            .font(.footnote.weight(.semibold))
-            .lineLimit(1)
-            .catalogPillPadding(.regular)
-            .background(tint.opacity(0.12), in: Capsule())
-            .foregroundStyle(.primary)
+        CatalogPill(
+            padding: .regular,
+            backgroundStyle: AnyShapeStyle(tint.opacity(0.12))
+        ) {
+            Label(title, systemImage: systemImage)
+                .font(.footnote.weight(.semibold))
+                .lineLimit(1)
+        }
     }
 }
 

@@ -230,21 +230,20 @@ private struct MetricPill: View {
     }
 
     private var content: some View {
-        HStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(tint)
+        CatalogPill(padding: .prominent, backgroundStyle: AnyShapeStyle(.ultraThinMaterial)) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(tint)
 
-            Text(title)
-                .font(.subheadline.weight(.semibold))
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
 
-            Text(value)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 14)
-        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
     }
 }
 
@@ -255,35 +254,33 @@ struct DashboardDataHealthCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .stroke(CatalogSemanticColors.separator, lineWidth: 8)
+            CatalogDashboardCard {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .stroke(CatalogSemanticColors.separator, lineWidth: 8)
 
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(tint, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
+                        Circle()
+                            .trim(from: 0, to: progress)
+                            .stroke(tint, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
 
-                    Text(progress.formatted(.percent.precision(.fractionLength(0))))
-                        .font(.subheadline.weight(.bold))
+                        Text(progress.formatted(.percent.precision(.fractionLength(0))))
+                            .font(.subheadline.weight(.bold))
+                    }
+                    .frame(width: 56, height: 56)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(localized: "bell_catalog.dashboard.health"))
+                            .font(.headline)
+                        Text(String(localized: "bell_catalog.dashboard.health.subtitle"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
                 }
-                .frame(width: 56, height: 56)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(String(localized: "bell_catalog.dashboard.health"))
-                        .font(.headline)
-                    Text(String(localized: "bell_catalog.dashboard.health.subtitle"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 0)
             }
-            .padding()
-            .frame(width: 240, alignment: .leading)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
-            .shadow(color: .black.opacity(0.05), radius: 8)
         }
         .buttonStyle(.plain)
     }
@@ -298,31 +295,29 @@ struct DashboardTopGeographyCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
-                Text(flag)
-                    .font(.system(size: 34))
+            CatalogDashboardCard {
+                HStack(spacing: 14) {
+                    Text(flag)
+                        .font(.system(size: 34))
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(String(localized: "bell_catalog.dashboard.top_geography"))
-                        .font(.headline)
-                    Text(countryName)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                    Text(countText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(localized: "bell_catalog.dashboard.top_geography"))
+                            .font(.headline)
+                        Text(countryName)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                        Text(countText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(tint)
                 }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "arrow.turn.down.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(tint)
             }
-            .padding()
-            .frame(width: 240, alignment: .leading)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
-            .shadow(color: .black.opacity(0.05), radius: 8)
         }
         .buttonStyle(.plain)
     }
@@ -542,10 +537,13 @@ struct SummaryBreakdownRow: View {
 
                 Spacer()
 
-                Text("\(value)")
-                    .font(.subheadline.weight(.bold))
-                    .catalogPillPadding(.compact)
-                    .background(tint.opacity(0.14), in: Capsule())
+                CatalogPill(
+                    padding: .compact,
+                    backgroundStyle: AnyShapeStyle(tint.opacity(0.14))
+                ) {
+                    Text("\(value)")
+                        .font(.subheadline.weight(.bold))
+                }
             }
         }
         .buttonStyle(.plain)

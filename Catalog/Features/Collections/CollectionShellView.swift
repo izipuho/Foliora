@@ -455,15 +455,12 @@ private struct CollectionMapButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: "map.fill")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.primary)
-                .padding(20)
-                .background(.bar, in: Circle())
-                .shadow(color: .black.opacity(0.05), radius: 8)
-        }
-        .buttonStyle(.plain)
+        CatalogIconActionButton(
+            systemImage: "map.fill",
+            size: 60,
+            action: action
+        )
+        .shadow(color: .black.opacity(0.05), radius: 8)
     }
 }
 
