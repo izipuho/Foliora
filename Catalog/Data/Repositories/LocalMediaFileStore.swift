@@ -1,3 +1,4 @@
+import Core
 import Foundation
 import ImageIO
 import UniformTypeIdentifiers
@@ -41,7 +42,7 @@ struct LocalMediaFileStore: Sendable {
 
         let ext = sourceURL.pathExtension
         let baseName = sourceURL.deletingPathExtension().lastPathComponent
-        let safeBaseName = sanitizedBaseName(baseName.isEmpty ? "document" : baseName)
+        let safeBaseName = FileNameSanitizer.safeBaseName(baseName.isEmpty ? "document" : baseName)
         let fileName = ext.isEmpty
             ? "\(safeBaseName)-\(UUID().uuidString)"
             : "\(safeBaseName)-\(UUID().uuidString).\(ext)"
@@ -153,11 +154,4 @@ struct LocalMediaFileStore: Sendable {
         return value.lowercased().filter { $0.isLetter || $0.isNumber }
     }
 
-    private func sanitizedBaseName(_ value: String) -> String {
-        let cleaned = value
-            .lowercased()
-            .replacingOccurrences(of: " ", with: "-")
-            .filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }
-        return cleaned.isEmpty ? "file" : cleaned
-    }
 }
