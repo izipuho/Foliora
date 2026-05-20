@@ -46,7 +46,10 @@ Forbidden examples:
 
 Responsibility:
 - Reusable visual language shared by app-family targets.
-- Shared modifiers, styles, typography, spacing, elevation, and design tokens.
+- Presentation-only SwiftUI primitives with no product or feature behavior.
+- Shared modifiers, styles, typography, spacing, radius, elevation, and design tokens.
+- Visual semantics that describe reusable UI roles, not business meaning.
+- Generic layout, flow layout, panel, container, row, chip, and card primitives.
 
 Allowed dependencies:
 - SwiftUI.
@@ -54,13 +57,39 @@ Allowed dependencies:
 
 Forbidden dependencies:
 - Domain logic.
+- Product or business semantics.
 - Storage, network, import/export, or persistence logic.
 - App navigation graphs or feature screens.
+- Navigation/state orchestration.
+- Search, filter, editor, picker, or import/export workflows.
+
+Allowed content:
+- Spacing, radius, elevation, typography, and semantic padding tokens.
+- Semantic visual colors such as grouped surfaces, separators, fills, and labels.
+- Generic layout containers and flow layouts.
+- Reusable visual modifiers.
+- Reusable presentation-only SwiftUI components.
+
+Forbidden content:
+- Product/domain semantics such as bell, book, storage, recognition, or import meaning.
+- Business meaning colors such as "missing origin", "import warning", or "bell selected".
+- Feature workflows, app state, repositories, SwiftData queries, networking, or file storage.
+- Search/filter/editor behavior, navigation destinations, or sheet orchestration.
+
+Boundary rule:
+- If a visual primitive starts to know about domain entities, repositories, SwiftData,
+  app navigation, feature state, or feature workflows, it belongs in the app target.
+- `DesignSystem` components may expose actions and state as generic inputs, but they
+  must not own the feature meaning behind those inputs.
 
 Allowed examples:
 - `ViewModifier`s.
 - Shadow/elevation styles.
 - Spacing, corner radius, typography tokens.
+- Visual semantic tokens such as grouped surfaces and separators.
+- `TagFlowLayout`.
+- `catalogGlassPanel(...)`.
+- `CatalogListRowCard`.
 - Generic visual components with no feature behavior.
 
 Forbidden examples:
@@ -68,6 +97,10 @@ Forbidden examples:
 - SwiftData queries.
 - Upload/download state.
 - Navigation destinations.
+- `BellFilterChipBar`.
+- `BellSearchStateView`.
+- `BellImportProgressPanel`.
+- `BellMediaThumbnailController`.
 
 ## CollectionDomain
 

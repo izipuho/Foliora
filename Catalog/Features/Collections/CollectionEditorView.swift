@@ -1,3 +1,4 @@
+import DesignSystem
 import SwiftUI
 
 struct CollectionEditorView: View {

@@ -1,4 +1,5 @@
 import CollectionDomain
+import DesignSystem
 import SwiftUI
 import PhotosUI
 import UIKit

@@ -1,3 +1,4 @@
+import DesignSystem
 import SwiftUI
 import SwiftData
 
@@ -935,12 +936,7 @@ private struct SummaryTagCloudItem: View {
 private struct SummaryGlassCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding()
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
-                    .stroke(CatalogMediaContrast.glassStroke, lineWidth: 1)
-            )
+            .catalogGlassPanel(strokeColor: CatalogMediaContrast.glassStroke)
     }
 }
 

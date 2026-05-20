@@ -2,6 +2,38 @@ import SwiftUI
 
 public enum DesignSystem {}
 
+public enum CatalogCornerRadii {
+    public static let hero: CGFloat = 28
+    public static let section: CGFloat = 24
+    public static let medium: CGFloat = 18
+    public static let tile: CGFloat = 16
+    public static let highlight: CGFloat = 14
+    public static let thumbnail: CGFloat = 12
+}
+
+public enum CatalogLayoutInsets {
+    public static let screen: CGFloat = 8
+    public static let overlay: CGFloat = 8
+}
+
+public enum CatalogSpacing {
+    public static let micro: CGFloat = 4
+    public static let compact: CGFloat = 6
+    public static let regular: CGFloat = 12
+    public static let section: CGFloat = 24
+}
+
+public enum CatalogSemanticColors {
+    public static let separator = Color(uiColor: .separator)
+    public static let groupedSurface = Color(uiColor: .secondarySystemGroupedBackground)
+    public static let groupedSurfaceElevated = Color(uiColor: .tertiarySystemGroupedBackground)
+    public static let fill = Color(uiColor: .systemFill)
+    public static let secondaryFill = Color(uiColor: .secondarySystemFill)
+    public static let tertiaryFill = Color(uiColor: .tertiarySystemFill)
+    public static let quaternaryFill = Color(uiColor: .quaternarySystemFill)
+    public static let tertiaryLabel = Color(uiColor: .tertiaryLabel)
+}
+
 public struct CatalogShadowStyle: Sendable {
     let color: Color
     let radius: CGFloat
@@ -96,8 +128,116 @@ public struct CatalogSettingsRow: View {
     }
 }
 
+public enum CatalogPillPadding {
+    case micro
+    case compact
+    case regular
+    case prominent
+
+    var horizontal: CGFloat {
+        switch self {
+        case .micro: return 6
+        case .compact: return 8
+        case .regular: return 12
+        case .prominent: return 14
+        }
+    }
+
+    var vertical: CGFloat {
+        switch self {
+        case .micro: return 3
+        case .compact: return 6
+        case .regular: return 8
+        case .prominent: return 10
+        }
+    }
+}
+
+public struct TagFlowLayout: Layout {
+    let spacing: CGFloat
+
+    public init(spacing: CGFloat = 8) {
+        self.spacing = spacing
+    }
+
+    public func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+
+            if currentX > 0, currentX + size.width > maxWidth {
+                currentX = 0
+                currentY += rowHeight + spacing
+                rowHeight = 0
+            }
+
+            currentX += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+
+        return CGSize(
+            width: proposal.width ?? currentX,
+            height: currentY + rowHeight
+        )
+    }
+
+    public func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        var currentX = bounds.minX
+        var currentY = bounds.minY
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+
+            if currentX > bounds.minX, currentX + size.width > bounds.maxX {
+                currentX = bounds.minX
+                currentY += rowHeight + spacing
+                rowHeight = 0
+            }
+
+            subview.place(
+                at: CGPoint(x: currentX, y: currentY),
+                proposal: ProposedViewSize(width: size.width, height: size.height)
+            )
+
+            currentX += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
 public extension View {
     func catalogShadow(_ style: CatalogShadowStyle) -> some View {
         shadow(color: style.color, radius: style.radius, y: style.y)
+    }
+
+    func catalogPillPadding(_ style: CatalogPillPadding) -> some View {
+        padding(.horizontal, style.horizontal)
+            .padding(.vertical, style.vertical)
+    }
+
+    func catalogGlassPanel(
+        cornerRadius: CGFloat = CatalogCornerRadii.section,
+        strokeColor: Color = Color.white.opacity(0.32)
+    ) -> some View {
+        padding()
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(strokeColor, lineWidth: 1)
+            )
     }
 }

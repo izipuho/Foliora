@@ -2,38 +2,6 @@ import DesignSystem
 import SwiftUI
 import UIKit
 
-enum CatalogCornerRadii {
-    static let hero: CGFloat = 28
-    static let section: CGFloat = 24
-    static let medium: CGFloat = 18
-    static let tile: CGFloat = 16
-    static let highlight: CGFloat = 14
-    static let thumbnail: CGFloat = 12
-}
-
-enum CatalogLayoutInsets {
-    static let screen: CGFloat = 8 
-    static let overlay: CGFloat = 8 
-}
-
-enum CatalogSpacing {
-    static let micro: CGFloat = 4
-    static let compact: CGFloat = 6
-    static let regular: CGFloat = 12
-    static let section: CGFloat = 24
-}
-
-enum CatalogSemanticColors {
-    static let separator = Color(uiColor: .separator)
-    static let groupedSurface = Color(uiColor: .secondarySystemGroupedBackground)
-    static let groupedSurfaceElevated = Color(uiColor: .tertiarySystemGroupedBackground)
-    static let fill = Color(uiColor: .systemFill)
-    static let secondaryFill = Color(uiColor: .secondarySystemFill)
-    static let tertiaryFill = Color(uiColor: .tertiarySystemFill)
-    static let quaternaryFill = Color(uiColor: .quaternarySystemFill)
-    static let tertiaryLabel = Color(uiColor: .tertiaryLabel)
-}
-
 enum CatalogMediaContrast {
     static let coverScrimBottom = Color.black.opacity(0.22)
     static let coverScrimTop = Color.black.opacity(0.02)
@@ -48,38 +16,6 @@ enum CatalogMediaContrast {
     static let mapScrimBottom = Color.black.opacity(0.30)
     static let iconPaletteShadowSoft = Color.black.opacity(0.25)
     static let iconPaletteShadowStrong = Color.black.opacity(0.35)
-}
-
-enum CatalogPillPadding {
-    case micro
-    case compact
-    case regular
-    case prominent
-
-    var horizontal: CGFloat {
-        switch self {
-        case .micro: return 6
-        case .compact: return 8
-        case .regular: return 12
-        case .prominent: return 14
-        }
-    }
-
-    var vertical: CGFloat {
-        switch self {
-        case .micro: return 3
-        case .compact: return 6
-        case .regular: return 8
-        case .prominent: return 10
-        }
-    }
-}
-
-extension View {
-    func catalogPillPadding(_ style: CatalogPillPadding) -> some View {
-        padding(.horizontal, style.horizontal)
-            .padding(.vertical, style.vertical)
-    }
 }
 
 enum BellGridLayoutMode: Int, CaseIterable {
