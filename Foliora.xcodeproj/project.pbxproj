@@ -70,6 +70,9 @@
 		F00000000000000000000003 /* Core in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000006 /* Core */; };
 		F00000000000000000000004 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000007 /* DesignSystem */; };
 		F00000000000000000000005 /* CollectionDomain in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000008 /* CollectionDomain */; };
+		F00000000000000000000023 /* Core in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000020 /* Core */; };
+		F00000000000000000000024 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000021 /* DesignSystem */; };
+		F00000000000000000000025 /* CollectionDomain in Frameworks */ = {isa = PBXBuildFile; productRef = F00000000000000000000022 /* CollectionDomain */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -109,6 +112,7 @@
 		C0000000000000000000000F /* BellDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellDetailView.swift; sourceTree = "<group>"; };
 		C00000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F00000000000000000000010 /* Foliora Books.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Books.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C00000000000000000000013 /* EditorFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFields.swift; sourceTree = "<group>"; };
 		C00000000000000000000014 /* CloudKitConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitConfiguration.swift; sourceTree = "<group>"; };
 		C00000000000000000000015 /* CloudKitCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCatalogRepository.swift; sourceTree = "<group>"; };
@@ -146,6 +150,11 @@
 			path = BellRecognition;
 			sourceTree = "<group>";
 		};
+		F00000000000000000000011 /* FolioraBooks */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FolioraBooks;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -170,6 +179,16 @@
 				F00000000000000000000005 /* CollectionDomain in Frameworks */,
 				F00000000000000000000003 /* Core in Frameworks */,
 				F00000000000000000000004 /* DesignSystem in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00000000000000000000012 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F00000000000000000000025 /* CollectionDomain in Frameworks */,
+				F00000000000000000000023 /* Core in Frameworks */,
+				F00000000000000000000024 /* DesignSystem in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -207,6 +226,7 @@
 				C00000000000000000000032 /* Catalog */,
 				246FD6602FA8BB2900B8859A /* BellRecognition */,
 				24349FFF2FAC6FD9005383FB /* BellRecognitionDebugML */,
+				F00000000000000000000011 /* FolioraBooks */,
 				C00000000000000000000033 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -232,6 +252,7 @@
 				C00000000000000000000012 /* Foliora Bells.app */,
 				246FD65F2FA8BB2900B8859A /* BellRecognition.app */,
 				24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */,
+				F00000000000000000000010 /* Foliora Books.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -519,6 +540,31 @@
 			productReference = C00000000000000000000012 /* Foliora Bells.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F00000000000000000000013 /* Foliora Books */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F00000000000000000000019 /* Build configuration list for PBXNativeTarget "Foliora Books" */;
+			buildPhases = (
+				F00000000000000000000014 /* Sources */,
+				F00000000000000000000012 /* Frameworks */,
+				F00000000000000000000015 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F00000000000000000000011 /* FolioraBooks */,
+			);
+			name = "Foliora Books";
+			packageProductDependencies = (
+				F00000000000000000000020 /* Core */,
+				F00000000000000000000021 /* DesignSystem */,
+				F00000000000000000000022 /* CollectionDomain */,
+			);
+			productName = "Foliora Books";
+			productReference = F00000000000000000000010 /* Foliora Books.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -537,6 +583,9 @@
 					};
 					C00000000000000000000051 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					F00000000000000000000013 = {
+						CreatedOnToolsVersion = 26.4.1;
 					};
 				};
 			};
@@ -559,6 +608,7 @@
 			projectRoot = "";
 			targets = (
 				C00000000000000000000051 /* Foliora Bells */,
+				F00000000000000000000013 /* Foliora Books */,
 				246FD65E2FA8BB2900B8859A /* BellRecognition */,
 				24349FFD2FAC6FD9005383FB /* BellRecognitionDebugML */,
 			);
@@ -590,6 +640,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F00000000000000000000015 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -611,6 +668,21 @@
 			productName = DesignSystem;
 		};
 		F00000000000000000000008 /* CollectionDomain */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F00000000000000000000002 /* XCLocalSwiftPackageReference "Packages/FolioraCore" */;
+			productName = CollectionDomain;
+		};
+		F00000000000000000000020 /* Core */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F00000000000000000000002 /* XCLocalSwiftPackageReference "Packages/FolioraCore" */;
+			productName = Core;
+		};
+		F00000000000000000000021 /* DesignSystem */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F00000000000000000000002 /* XCLocalSwiftPackageReference "Packages/FolioraCore" */;
+			productName = DesignSystem;
+		};
+		F00000000000000000000022 /* CollectionDomain */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F00000000000000000000002 /* XCLocalSwiftPackageReference "Packages/FolioraCore" */;
 			productName = CollectionDomain;
@@ -693,6 +765,13 @@
 				C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */,
 				C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */,
 				C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00000000000000000000014 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1180,6 +1259,76 @@
 			};
 			name = Release;
 		};
+		F00000000000000000000017 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Foliora Books";
+				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.FolioraBooks;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F00000000000000000000018 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Foliora Books";
+				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.FolioraBooks;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1206,6 +1355,15 @@
 			buildConfigurations = (
 				C00000000000000000000073 /* Debug */,
 				C00000000000000000000074 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F00000000000000000000019 /* Build configuration list for PBXNativeTarget "Foliora Books" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00000000000000000000017 /* Debug */,
+				F00000000000000000000018 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
