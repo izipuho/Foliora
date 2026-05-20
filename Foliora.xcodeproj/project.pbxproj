@@ -541,6 +541,9 @@
 			);
 			mainGroup = C00000000000000000000031;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F00000000000000000000002 /* XCLocalSwiftPackageReference "Packages/FolioraCore" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C00000000000000000000033 /* Products */;
 			projectDirPath = "";
@@ -579,6 +582,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		F00000000000000000000002 /* XCLocalSwiftPackageReference "Packages/FolioraCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/FolioraCore;
+		};
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin PBXSourcesBuildPhase section */
 		24349FFA2FAC6FD9005383FB /* Sources */ = {
