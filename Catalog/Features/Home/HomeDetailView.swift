@@ -1,4 +1,5 @@
 import SwiftUI
+import DesignSystem
 
 struct HomeDetailView: View {
     @Binding var home: Home
@@ -109,23 +110,11 @@ struct HomeListCard: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: home.iconName)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 30, height: 30)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(home.name)
-                    .font(.body.weight(.semibold))
-
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-        }
-        .padding(.vertical, 6)
+        CatalogListRowCard(
+            systemImage: home.iconName,
+            title: home.name,
+            subtitle: subtitle
+        )
     }
 }
 

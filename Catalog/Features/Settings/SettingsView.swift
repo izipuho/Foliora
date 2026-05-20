@@ -1,4 +1,5 @@
 import SwiftUI
+import DesignSystem
 
 struct SettingsView: View {
     let repository: any CatalogRepository
@@ -22,7 +23,7 @@ struct SettingsView: View {
                         navigate: navigate
                     )
                 } label: {
-                    Label(String(localized: "root_tab.homes"), systemImage: "house")
+                    CatalogSettingsRow(String(localized: "root_tab.homes"), systemImage: "house")
                 }
             } footer: {
                 Text(String(localized: "settings.storage.subtitle"))
@@ -32,14 +33,14 @@ struct SettingsView: View {
                 Button {
                     exportCurrentBackup()
                 } label: {
-                    Label(String(localized: "settings.data.export"), systemImage: "square.and.arrow.up")
+                    CatalogSettingsRow(String(localized: "settings.data.export"), systemImage: "square.and.arrow.up")
                 }
                 .disabled(isImportExportRunning)
 
                 Button {
                     isImportingDocument = true
                 } label: {
-                    Label(String(localized: "settings.data.import"), systemImage: "square.and.arrow.down")
+                    CatalogSettingsRow(String(localized: "settings.data.import"), systemImage: "square.and.arrow.down")
                 }
                 .disabled(isImportExportRunning)
             } header: {
