@@ -34,17 +34,7 @@ struct EnumSelectionRow<Option: Hashable>: View {
         Button {
             isPresentingPicker = true
         } label: {
-            HStack {
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-                Text(selectedLabel)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.trailing)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
+            CatalogDisclosureRow(title, value: selectedLabel)
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $isPresentingPicker) {
@@ -100,17 +90,7 @@ struct PlacePickerField: View {
         Button {
             isPresentingPicker = true
         } label: {
-            HStack {
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-                Text(selectedLabel)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.trailing)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
+            CatalogDisclosureRow(title, value: selectedLabel)
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $isPresentingPicker) {
@@ -134,17 +114,7 @@ struct LocationPickerField: View {
         Button {
             isPresentingPicker = true
         } label: {
-            HStack {
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-                Text(selectedLabel)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.trailing)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
+            CatalogDisclosureRow(title, value: selectedLabel)
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $isPresentingPicker) {

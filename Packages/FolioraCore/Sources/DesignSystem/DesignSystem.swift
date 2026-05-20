@@ -168,6 +168,78 @@ public extension CatalogSettingsRow where Trailing == EmptyView {
     }
 }
 
+public struct CatalogDisclosureRow<Title: View, Subtitle: View, Trailing: View>: View {
+    private let systemImage: String?
+    private let showsChevron: Bool
+    private let title: Title
+    private let subtitle: Subtitle
+    private let trailing: Trailing
+
+    public init(
+        systemImage: String? = nil,
+        showsChevron: Bool = true,
+        @ViewBuilder title: () -> Title,
+        @ViewBuilder subtitle: () -> Subtitle,
+        @ViewBuilder trailing: () -> Trailing
+    ) {
+        self.systemImage = systemImage
+        self.showsChevron = showsChevron
+        self.title = title()
+        self.subtitle = subtitle()
+        self.trailing = trailing()
+    }
+
+    public var body: some View {
+        HStack(spacing: CatalogSpacing.regular) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.tint)
+                    .frame(width: 24, height: 24)
+            }
+
+            VStack(alignment: .leading, spacing: CatalogSpacing.micro) {
+                title
+                    .foregroundStyle(.primary)
+
+                subtitle
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: CatalogSpacing.regular)
+
+            trailing
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+    }
+}
+
+public extension CatalogDisclosureRow where Title == Text, Subtitle == EmptyView, Trailing == Text {
+    init(
+        _ title: String,
+        value: String,
+        systemImage: String? = nil,
+        showsChevron: Bool = true
+    ) {
+        self.init(systemImage: systemImage, showsChevron: showsChevron) {
+            Text(title)
+        } subtitle: {
+            EmptyView()
+        } trailing: {
+            Text(value)
+        }
+    }
+}
+
 public struct CatalogDetailSection<Title: View, Content: View>: View {
     private let isHighlighted: Bool
     private let tint: Color
