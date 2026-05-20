@@ -168,6 +168,92 @@ public extension CatalogSettingsRow where Trailing == EmptyView {
     }
 }
 
+public struct CatalogDetailSection<Title: View, Content: View>: View {
+    private let isHighlighted: Bool
+    private let tint: Color
+    private let title: Title
+    private let content: Content
+
+    public init(
+        isHighlighted: Bool = false,
+        tint: Color = .clear,
+        @ViewBuilder title: () -> Title,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.isHighlighted = isHighlighted
+        self.tint = tint
+        self.title = title()
+        self.content = content()
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: CatalogSpacing.regular) {
+            title
+                .font(.headline)
+            content
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
+                .fill(isHighlighted ? AnyShapeStyle(tint.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
+        )
+        .catalogShadow(
+            isHighlighted
+                ? CatalogElevation.highlightedDetailSection(tint: tint)
+                : CatalogElevation.detailSection
+        )
+    }
+}
+
+public extension CatalogDetailSection where Title == Text {
+    init(
+        _ title: String,
+        isHighlighted: Bool = false,
+        tint: Color = .clear,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.init(isHighlighted: isHighlighted, tint: tint) {
+            Text(title)
+        } content: {
+            content()
+        }
+    }
+}
+
+public struct CatalogKeyValueRow<Label: View, Value: View>: View {
+    private let label: Label
+    private let value: Value
+
+    public init(
+        @ViewBuilder label: () -> Label,
+        @ViewBuilder value: () -> Value
+    ) {
+        self.label = label()
+        self.value = value()
+    }
+
+    public var body: some View {
+        HStack {
+            label
+            Spacer(minLength: CatalogSpacing.regular)
+            value
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+}
+
+public extension CatalogKeyValueRow where Label == Text, Value == Text {
+    init(_ label: String, value: String) {
+        self.init {
+            Text(label)
+        } value: {
+            Text(value)
+        }
+    }
+}
+
 public enum CatalogPillPadding {
     case micro
     case compact

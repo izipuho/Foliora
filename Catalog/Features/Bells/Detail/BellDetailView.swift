@@ -130,16 +130,16 @@ struct BellDetailView: View {
 
     private var detailContent: some View {
         VStack(alignment: .leading, spacing: 18) {
-            detailSection(String(localized: "bell.detail.section.collection_info")) {
+            CatalogDetailSection(String(localized: "bell.detail.section.collection_info")) {
                 if let acquiredYear = bell.acquiredYear {
-                    detailRow(String(localized: "common.field.acquired_year"), value: String(acquiredYear))
+                    CatalogKeyValueRow(String(localized: "common.field.acquired_year"), value: String(acquiredYear))
                 }
 
-                detailRow(String(localized: "bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
-                detailRow(String(localized: "common.field.condition"), value: bell.condition.displayName)
+                CatalogKeyValueRow(String(localized: "bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
+                CatalogKeyValueRow(String(localized: "common.field.condition"), value: bell.condition.displayName)
             }
 
-            detailSection(String(localized: "bell.detail.section.location")) {
+            CatalogDetailSection(String(localized: "bell.detail.section.location")) {
                 OriginStorageSection(
                     place: bell.originPlace,
                     storagePath: bell.storageDisplayPath,
@@ -151,7 +151,7 @@ struct BellDetailView: View {
                 )
             }
 
-            detailSection(String(localized: "bell.detail.section.media")) {
+            CatalogDetailSection(String(localized: "bell.detail.section.media")) {
                 MediaSection(
                     itemID: bell.id,
                     mediaAssets: mediaAssetsBinding,
@@ -159,7 +159,7 @@ struct BellDetailView: View {
                 )
             }
 
-            detailSection(
+            CatalogDetailSection(
                 String(localized: "common.field.notes"),
                 isHighlighted: isNotesOrTagsDirty,
                 tint: detailAccentColor
@@ -190,40 +190,6 @@ struct BellDetailView: View {
             )
         )
         .padding(.top, 240)
-    }
-
-    private func detailSection<Content: View>(
-        _ title: String,
-        isHighlighted: Bool = false,
-        tint: Color = .clear,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-            content()
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
-                .fill(isHighlighted ? AnyShapeStyle(tint.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
-        )
-        .catalogShadow(
-            isHighlighted
-                ? CatalogElevation.highlightedDetailSection(tint: tint)
-                : CatalogElevation.detailSection
-        )
-    }
-
-    private func detailRow(_ title: String, value: String) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text(value)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.trailing)
-        }
     }
 
     private var heroHeader: some View {
