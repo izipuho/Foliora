@@ -344,6 +344,253 @@ public struct CatalogDashboardCard<Content: View>: View {
     }
 }
 
+public struct CatalogProgressRow: View {
+    private let title: String
+    private let valueText: String
+    private let progress: CGFloat
+    private let tint: Color
+
+    public init(title: String, valueText: String, progress: CGFloat, tint: Color) {
+        self.title = title
+        self.valueText = valueText
+        self.progress = progress
+        self.tint = tint
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+
+                Spacer()
+
+                Text(valueText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(CatalogSemanticColors.separator)
+
+                    Capsule()
+                        .fill(tint)
+                        .frame(width: proxy.size.width * min(max(progress, 0), 1))
+                }
+            }
+            .frame(height: 8)
+        }
+    }
+}
+
+public struct CatalogCountRow: View {
+    private let title: String
+    private let valueText: String
+    private let tint: Color
+
+    public init(title: String, valueText: String, tint: Color) {
+        self.title = title
+        self.valueText = valueText
+        self.tint = tint
+    }
+
+    public var body: some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.subheadline)
+                .lineLimit(1)
+
+            Spacer()
+
+            CatalogPill(
+                padding: .compact,
+                backgroundStyle: AnyShapeStyle(tint.opacity(0.14))
+            ) {
+                Text(valueText)
+                    .font(.subheadline.weight(.bold))
+            }
+        }
+    }
+}
+
+public struct CatalogStatTile: View {
+    private let value: String
+    private let title: String
+    private let tint: Color
+
+    public init(value: String, title: String, tint: Color) {
+        self.value = value
+        self.title = title
+        self.tint = tint
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: CatalogSpacing.micro) {
+            Text(value)
+                .font(.title2.weight(.bold))
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, CatalogSpacing.regular)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
+    }
+}
+
+public struct CatalogIdentityHeader: View {
+    private let systemImage: String
+    private let title: String
+    private let subtitle: String
+
+    public init(systemImage: String, title: String, subtitle: String) {
+        self.systemImage = systemImage
+        self.title = title
+        self.subtitle = subtitle
+    }
+
+    public var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: systemImage)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(.tint)
+                .frame(width: 44, height: 44)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.headline)
+
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+public struct CatalogIconTile: View {
+    private let systemImage: String
+    private let tint: Color
+    private let size: CGFloat
+
+    public init(systemImage: String, tint: Color, size: CGFloat = 52) {
+        self.systemImage = systemImage
+        self.tint = tint
+        self.size = size
+    }
+
+    public var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
+                .fill(tint.opacity(0.12))
+                .frame(width: size, height: size)
+
+            Image(systemName: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(tint)
+        }
+    }
+}
+
+public struct CatalogGradientCard<Content: View>: View {
+    private let colors: [Color]
+    private let content: Content
+
+    public init(colors: [Color], @ViewBuilder content: () -> Content) {
+        self.colors = colors
+        self.content = content()
+    }
+
+    public var body: some View {
+        content
+            .padding(CatalogLayoutInsets.screen)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: colors.map { $0.opacity(0.42) },
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .catalogShadow(CatalogElevation.collectionCard)
+    }
+}
+
+public struct CatalogEmptyState<Actions: View>: View {
+    private let title: LocalizedStringKey
+    private let systemImage: String
+    private let description: LocalizedStringKey?
+    private let topPadding: CGFloat
+    private let bottomPadding: CGFloat
+    private let actions: Actions
+
+    public init(
+        _ title: LocalizedStringKey,
+        systemImage: String,
+        description: LocalizedStringKey? = nil,
+        topPadding: CGFloat = 0,
+        bottomPadding: CGFloat = 0,
+        @ViewBuilder actions: () -> Actions
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.description = description
+        self.topPadding = topPadding
+        self.bottomPadding = bottomPadding
+        self.actions = actions()
+    }
+
+    public var body: some View {
+        VStack(spacing: CatalogSpacing.section) {
+            if let description {
+                ContentUnavailableView(
+                    title,
+                    systemImage: systemImage,
+                    description: Text(description)
+                )
+                .frame(maxWidth: .infinity)
+            } else {
+                ContentUnavailableView(title, systemImage: systemImage)
+                    .frame(maxWidth: .infinity)
+            }
+
+            actions
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .padding(.top, topPadding)
+        .padding(.bottom, bottomPadding)
+    }
+}
+
+public extension CatalogEmptyState where Actions == EmptyView {
+    init(
+        _ title: LocalizedStringKey,
+        systemImage: String,
+        description: LocalizedStringKey? = nil,
+        topPadding: CGFloat = 0,
+        bottomPadding: CGFloat = 0
+    ) {
+        self.init(
+            title,
+            systemImage: systemImage,
+            description: description,
+            topPadding: topPadding,
+            bottomPadding: bottomPadding
+        ) {
+            EmptyView()
+        }
+    }
+}
+
 public enum CatalogPillPadding {
     case micro
     case compact

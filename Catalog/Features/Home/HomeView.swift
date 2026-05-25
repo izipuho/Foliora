@@ -116,25 +116,24 @@ struct HomeView: View {
     private var homesSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             if homes.isEmpty {
-                ContentUnavailableView(
-                    String(localized: "home.empty.title"),
+                CatalogEmptyState(
+                    LocalizedStringKey(String(localized: "home.empty.title")),
                     systemImage: "house.slash",
-                    description: Text(String(localized: "home.empty.description"))
-                )
-                .frame(maxWidth: .infinity)
-                .padding(.top, 80)
-
-                Button {
-                    let newHome = createHome()
-                    navigate?(.home(newHome.id))
-                } label: {
-                    Label(String(localized: "home.add"), systemImage: "plus.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
+                    description: LocalizedStringKey(String(localized: "home.empty.description")),
+                    topPadding: 80
+                ) {
+                    Button {
+                        let newHome = createHome()
+                        navigate?(.home(newHome.id))
+                    } label: {
+                        Label(String(localized: "home.add"), systemImage: "plus.circle.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color(red: 0.20, green: 0.42, blue: 0.34))
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Color(red: 0.20, green: 0.42, blue: 0.34))
             }
         }
     }

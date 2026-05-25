@@ -445,13 +445,13 @@ struct BellCatalogView: View {
     }
 
     private func emptyBellsGridState(title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
-        ContentUnavailableView(
+        CatalogEmptyState(
             title,
             systemImage: "bell.slash",
-            description: Text(description)
+            description: description,
+            topPadding: 40,
+            bottomPadding: 40
         )
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
     }
 
     private var activeSummaryFilterSection: some View {

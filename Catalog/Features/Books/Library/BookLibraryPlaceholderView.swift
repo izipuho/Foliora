@@ -17,13 +17,12 @@ struct BookLibraryPlaceholderView: View {
                 .padding(CatalogLayoutInsets.screen)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
 
-                ContentUnavailableView(
+                CatalogEmptyState(
                     "Модуль книг следующий в очереди",
                     systemImage: "books.vertical",
-                    description: Text("Каркас приложения уже разделяет коллекции по типам и позволяет каждой из них иметь собственный UI, repository и набор сценариев.")
+                    description: "Каркас приложения уже разделяет коллекции по типам и позволяет каждой из них иметь собственный UI, repository и набор сценариев.",
+                    topPadding: 30
                 )
-                .frame(maxWidth: .infinity)
-                .padding(.top, 30)
             }
         }
         .contentMargins(.horizontal, nil, for: .scrollContent)

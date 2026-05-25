@@ -122,29 +122,10 @@ struct HomeIdentityHeader: View {
     let home: Home
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            Image(systemName: home.iconName)
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 44, height: 44)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(home.name)
-                    .font(.headline)
-
-                if home.notes.isEmpty {
-                    Text(String(localized: "home.notes.empty"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(home.notes)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 4)
+        CatalogIdentityHeader(
+            systemImage: home.iconName,
+            title: home.name,
+            subtitle: home.notes.isEmpty ? String(localized: "home.notes.empty") : home.notes
+        )
     }
 }

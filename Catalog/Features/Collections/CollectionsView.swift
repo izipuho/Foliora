@@ -97,14 +97,12 @@ struct CollectionsView: View {
     }
 
     private var emptyCollectionsView: some View {
-        VStack(spacing: 24) {
-            ContentUnavailableView(
-                String(localized: "collections.empty.title"),
-                systemImage: "square.grid.2x2",
-                description: Text(String(localized: "collections.empty.description"))
-            )
-            .frame(maxWidth: .infinity)
-
+        CatalogEmptyState(
+            LocalizedStringKey(String(localized: "collections.empty.title")),
+            systemImage: "square.grid.2x2",
+            description: LocalizedStringKey(String(localized: "collections.empty.description")),
+            bottomPadding: 80
+        ) {
             Button {
                 isPresentingAddCollectionEditor = true
             } label: {
@@ -116,9 +114,7 @@ struct CollectionsView: View {
             .buttonStyle(.borderedProminent)
             .tint(Color(red: 0.53, green: 0.31, blue: 0.14))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .padding(.horizontal)
-        .padding(.bottom, 80)
     }
 
     private func addCollection(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {

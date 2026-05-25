@@ -45,13 +45,13 @@ struct StorageMapCard: View {
 
     var body: some View {
         if locations.isEmpty {
-            ContentUnavailableView(
-                String(localized: "home.location.empty.title"),
+            CatalogEmptyState(
+                LocalizedStringKey(String(localized: "home.location.empty.title")),
                 systemImage: "square.stack.3d.up.slash",
-                description: Text(String(localized: "home.location.empty.description"))
+                description: LocalizedStringKey(String(localized: "home.location.empty.description")),
+                topPadding: CatalogSpacing.section,
+                bottomPadding: CatalogSpacing.section
             )
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, CatalogSpacing.section)
         } else {
             VStack(alignment: .leading, spacing: 14) {
                 Text(storageSummaryText)
