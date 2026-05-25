@@ -1,2 +1,0 @@
-Status	Candidate	Current location	Suggested target	Reuse value	Blocking dependencies	Risk	Recommended next action
-skip	Settings grouped section or panel shell	Catalog/Features/Settings/SettingsView.swift	CatalogSettingsSection / CatalogSettingsPanel	Low: current implementation uses native SwiftUI Section/List styling, not a custom reusable visual primitive	Navigation, import/export actions, and copy are app-specific	medium	Skip until a real custom grouped settings panel appears in multiple app-family screens
