@@ -1,0 +1,118 @@
+Работаем в отдельной experimental ветке с проверкой modular app-family architecture.
+
+Важно:
+это НЕ production refactor.
+Главная цель ветки — проверить границы shared code и app-family reuse.
+
+Исходный вопрос:
+нужно ли уходить от `.xcodeproj` к pure `Package.swift app architecture`.
+
+Текущий вывод:
+
+- полностью уходить от `xcodeproj` НЕ нужно;
+- `xcodeproj` остается главным app container;
+- local Swift Package используется только для shared code.
+
+Текущее состояние проекта:
+
+Есть app targets:
+
+- Foliora Bells
+- Foliora Books
+
+Есть local Swift Package:
+`Packages/FolioraCore`
+
+Внутри package:
+
+- Core
+- DesignSystem
+- CollectionDomain
+
+Уже проверено:
+
+- package products подключаются к app targets;
+- shared code реально переиспользуется;
+- второй app target успешно работает;
+- dependency direction остается корректным.
+
+Architecture boundaries:
+`Packages/FolioraCore/ARCHITECTURE.md`
+
+Backlog:
+`DesignSystemCandidates.tsv`
+
+Что уже вынесено:
+
+Core:
+
+- FileNameSanitizer
+
+CollectionDomain:
+
+- MediaAsset
+- MediaKind
+
+DesignSystem:
+
+- CatalogShadowStyle
+- CatalogElevation
+- catalogShadow(_:)
+- CatalogCornerRadii
+- CatalogLayoutInsets
+- CatalogSpacing
+- CatalogSemanticColors
+- CatalogPillPadding
+- catalogPillPadding(_:)
+- TagFlowLayout
+- catalogGlassPanel(...)
+- CatalogListRowCard
+- CatalogSettingsRow
+- CatalogDetailSection
+- CatalogKeyValueRow
+
+Также:
+
+- часть reusable settings/detail/list shells уже используется из package;
+- app-specific logic сознательно оставлена в app targets.
+
+Очень важно:
+мы НЕ хотим:
+
+- over-modularization;
+- architecture astronautics;
+- extraction ради extraction;
+- giant DesignSystem;
+- shared app lifecycle;
+- shared navigation;
+- shared SwiftData stack.
+
+Правило:
+новый код выносится в package только при:
+
+- реальном reuse;
+- clear shared boundary;
+- отсутствии feature semantics.
+
+Текущий practical conclusion:
+
+- `xcodeproj` оставляем;
+- `FolioraCore` оставляем;
+- дальнейшая modularization НЕ является обязательной;
+- переносить нужно только то, что реально pressure-tested несколькими app targets.
+
+Если продолжаем работу в этой ветке:
+
+- двигаться маленькими шагами;
+- не делать giant refactors;
+- не переносить feature workflows;
+- сохранять app targets orchestration layer;
+- использовать TSV backlog только как ориентир, а не как обязательный todo list.
+
+Перед любым новым extraction:
+нужно сначала проверить:
+
+- это действительно shared?
+- это reusable beyond Bells?
+- abstraction не искусственная?
+- не начинает ли DesignSystem знать domain semantics?
