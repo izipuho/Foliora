@@ -58,10 +58,10 @@ struct CollectionShellView: View {
     }
 
     private var hasPlacedItems: Bool {
-        collectionEntities
+        (collectionEntities
             .first { $0.id == collection.id }?
-            .bells
-            .contains { $0.location != nil } ?? false
+            .bells ?? [])
+            .contains { $0.location != nil }
     }
 
     private var selectedOrder: BellOrderMode {

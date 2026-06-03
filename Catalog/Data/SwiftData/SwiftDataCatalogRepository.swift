@@ -82,7 +82,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
             context.insert(entity)
         }
 
-        if isNew && entity.memberships.isEmpty {
+        if isNew && (entity.memberships ?? []).isEmpty {
             let membership = MembershipEntity(
                 id: UUID(),
                 userID: currentUserID,
@@ -135,8 +135,8 @@ final class SwiftDataCatalogRepository: CatalogRepository {
             context.insert(entity)
         }
 
-        entity.mediaAssets.forEach(context.delete)
-        entity.tags.forEach(context.delete)
+        (entity.mediaAssets ?? []).forEach(context.delete)
+        (entity.tags ?? []).forEach(context.delete)
 
         let newMediaAssets = bell.mediaAssets.map { asset in
             MediaAssetEntity(
@@ -217,11 +217,11 @@ final class SwiftDataCatalogRepository: CatalogRepository {
             originPlace: entity.originPlace.map(place(from:)),
             storageLocation: location,
             storagePath: entity.storagePath,
-            mediaAssets: entity.mediaAssets
+            mediaAssets: (entity.mediaAssets ?? [])
                 .sorted { $0.sortOrder < $1.sortOrder }
                 .map(mediaAsset(from:)),
             createdBy: entity.createdBy,
-            tags: entity.tags
+            tags: (entity.tags ?? [])
                 .sorted { $0.sortOrder < $1.sortOrder }
                 .map(\.value)
         )

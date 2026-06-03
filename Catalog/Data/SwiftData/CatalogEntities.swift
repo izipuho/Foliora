@@ -9,10 +9,10 @@ final class HomeEntity {
     var notes: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \LocationEntity.home)
-    var locations: [LocationEntity] = []
+    var locations: [LocationEntity]? = []
 
     @Relationship(deleteRule: .cascade, inverse: \CollectionEntity.home)
-    var collections: [CollectionEntity] = []
+    var collections: [CollectionEntity]? = []
 
     init(id: UUID, name: String, iconName: String?, notes: String) {
         self.id = id
@@ -37,10 +37,11 @@ final class LocationEntity {
 
     var parent: LocationEntity?
 
-    var children: [LocationEntity] = []
+    @Relationship(deleteRule: .cascade, inverse: \LocationEntity.parent)
+    var children: [LocationEntity]? = []
 
     @Relationship(deleteRule: .nullify, inverse: \BellEntity.location)
-    var bells: [BellEntity] = []
+    var bells: [BellEntity]? = []
 
     init(
         id: UUID,
@@ -121,10 +122,10 @@ final class CollectionEntity {
     var home: HomeEntity?
 
     @Relationship(deleteRule: .cascade, inverse: \BellEntity.collection)
-    var bells: [BellEntity] = []
+    var bells: [BellEntity]? = []
 
     @Relationship(deleteRule: .cascade, inverse: \MembershipEntity.collection)
-    var memberships: [MembershipEntity] = []
+    var memberships: [MembershipEntity]? = []
 
     init(
         id: UUID,
@@ -149,7 +150,7 @@ final class CollectionEntity {
     }
 
     var summarySnapshot: CollectionSummary {
-        let activeMemberships = memberships.filter { $0.status == .active }
+        let activeMemberships = (memberships ?? []).filter { $0.status == .active }
         let currentUserRole = activeMemberships.first(where: { $0.userID == "me" })?.role ?? .viewer
 
         return CollectionSummary(
@@ -159,7 +160,7 @@ final class CollectionEntity {
             name: title,
             subtitle: notes,
             backgroundStyle: backgroundStyle,
-            itemCount: kind == .bells ? bells.count : 0,
+            itemCount: kind == .bells ? (bells ?? []).count : 0,
             collaboratorCount: activeMemberships.count,
             role: currentUserRole,
             status: kind == .bells ? .active : .planned,
@@ -231,7 +232,7 @@ final class PlaceEntity {
     var longitude: Double?
 
     @Relationship(deleteRule: .nullify, inverse: \BellEntity.originPlace)
-    var bells: [BellEntity] = []
+    var bells: [BellEntity]? = []
 
     init(
         id: UUID,
@@ -285,10 +286,10 @@ final class BellEntity {
     var originPlace: PlaceEntity?
 
     @Relationship(deleteRule: .cascade, inverse: \MediaAssetEntity.bell)
-    var mediaAssets: [MediaAssetEntity] = []
+    var mediaAssets: [MediaAssetEntity]? = []
 
     @Relationship(deleteRule: .cascade, inverse: \BellTagEntity.bell)
-    var tags: [BellTagEntity] = []
+    var tags: [BellTagEntity]? = []
 
     init(
         id: UUID,
@@ -361,7 +362,7 @@ final class BellEntity {
     }
 
     var sortedMediaAssets: [MediaAssetEntity] {
-        mediaAssets.sorted { lhs, rhs in
+        (mediaAssets ?? []).sorted { lhs, rhs in
             if lhs.sortOrder != rhs.sortOrder {
                 return lhs.sortOrder < rhs.sortOrder
             }
@@ -371,7 +372,7 @@ final class BellEntity {
     }
 
     var sortedTags: [BellTagEntity] {
-        tags.sorted { lhs, rhs in
+        (tags ?? []).sorted { lhs, rhs in
             if lhs.sortOrder != rhs.sortOrder {
                 return lhs.sortOrder < rhs.sortOrder
             }
