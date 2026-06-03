@@ -3,10 +3,10 @@ import SwiftData
 
 @Model
 final class HomeEntity {
-    @Attribute(.unique) var id: UUID
-    var name: String
+    var id: UUID = UUID()
+    var name: String = ""
     var iconName: String?
-    var notes: String
+    var notes: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \LocationEntity.home)
     var locations: [LocationEntity] = []
@@ -28,10 +28,10 @@ final class HomeEntity {
 
 @Model
 final class LocationEntity {
-    @Attribute(.unique) var id: UUID
-    var kindRaw: String
-    var name: String
-    var notes: String
+    var id: UUID = UUID()
+    var kindRaw: String = LocationKind.room.rawValue
+    var name: String = ""
+    var notes: String = ""
 
     var home: HomeEntity?
 
@@ -112,11 +112,11 @@ final class LocationEntity {
 
 @Model
 final class CollectionEntity {
-    @Attribute(.unique) var id: UUID
-    var kindRaw: String
-    var title: String
-    var notes: String
-    var backgroundStyleRaw: String
+    var id: UUID = UUID()
+    var kindRaw: String = CollectionKind.bells.rawValue
+    var title: String = ""
+    var notes: String = ""
+    var backgroundStyleRaw: String = CollectionBackgroundStyle.amber.rawValue
 
     var home: HomeEntity?
 
@@ -181,10 +181,10 @@ final class CollectionEntity {
 
 @Model
 final class MembershipEntity {
-    var id: UUID
-    var userID: String
-    var roleRaw: String
-    var statusRaw: String
+    var id: UUID = UUID()
+    var userID: String = ""
+    var roleRaw: String = CollectionRole.viewer.rawValue
+    var statusRaw: String = MembershipStatus.pending.rawValue
 
     var collection: CollectionEntity?
 
@@ -221,10 +221,10 @@ final class MembershipEntity {
 
 @Model
 final class PlaceEntity {
-    @Attribute(.unique) var id: UUID
-    var displayName: String
-    var countryCode: String
-    var countryName: String
+    var id: UUID = UUID()
+    var displayName: String = ""
+    var countryCode: String = ""
+    var countryName: String = ""
     var regionName: String?
     var cityName: String?
     var latitude: Double?
@@ -269,16 +269,16 @@ final class PlaceEntity {
 
 @Model
 final class BellEntity {
-    @Attribute(.unique) var id: UUID
-    var title: String
-    var notes: String
+    var id: UUID = UUID()
+    var title: String = ""
+    var notes: String = ""
     var acquiredYear: Int?
-    var createdAt: Date
-    var conditionRaw: String
-    var acquisitionMethodRaw: String
-    var materialRaw: String
+    var createdAt: Date = Date()
+    var conditionRaw: String = ItemCondition.good.rawValue
+    var acquisitionMethodRaw: String = AcquisitionMethod.bought.rawValue
+    var materialRaw: String = BellMaterial.brass.rawValue
     var customMaterialName: String?
-    var createdBy: String
+    var createdBy: String = ""
 
     var collection: CollectionEntity?
     var location: LocationEntity?
@@ -475,8 +475,8 @@ final class BellEntity {
 @Model
 final class BellTagEntity {
     var id: UUID = UUID()
-    var value: String
-    var sortOrder: Int
+    var value: String = ""
+    var sortOrder: Int = 0
 
     var bell: BellEntity?
 
@@ -489,11 +489,11 @@ final class BellTagEntity {
 
 @Model
 final class MediaAssetEntity {
-    var id: UUID
-    var kindRaw: String
-    var localIdentifier: String
+    var id: UUID = UUID()
+    var kindRaw: String = MediaKind.photo.rawValue
+    var localIdentifier: String = ""
     var displayName: String?
-    var sortOrder: Int
+    var sortOrder: Int = 0
 
     var bell: BellEntity?
 
