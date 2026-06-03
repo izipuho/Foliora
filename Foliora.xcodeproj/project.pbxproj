@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 100;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -148,24 +148,18 @@
 /* Begin PBXFrameworksBuildPhase section */
 		24349FFB2FAC6FD9005383FB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		246FD65C2FA8BB2900B8859A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C00000000000000000000021 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -457,14 +451,10 @@
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
 			fileSystemSynchronizedGroups = (
 				24349FFF2FAC6FD9005383FB /* BellRecognitionDebugML */,
 			);
 			name = BellRecognitionDebugML;
-			packageProductDependencies = (
-			);
 			productName = BellRecognitionDebugML;
 			productReference = 24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */;
 			productType = "com.apple.product-type.application";
@@ -479,14 +469,10 @@
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
 			fileSystemSynchronizedGroups = (
 				246FD6602FA8BB2900B8859A /* BellRecognition */,
 			);
 			name = BellRecognition;
-			packageProductDependencies = (
-			);
 			productName = BellRecognition;
 			productReference = 246FD65F2FA8BB2900B8859A /* BellRecognition.app */;
 			productType = "com.apple.product-type.application";
@@ -501,11 +487,7 @@
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
 			name = "Foliora Bells";
-			packageProductDependencies = (
-			);
 			productName = Catalog;
 			productReference = C00000000000000000000012 /* Foliora Bells.app */;
 			productType = "com.apple.product-type.application";
@@ -541,7 +523,7 @@
 			);
 			mainGroup = C00000000000000000000031;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
+			preferredProjectObjectVersion = 100;
 			productRefGroup = C00000000000000000000033 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -556,54 +538,43 @@
 /* Begin PBXResourcesBuildPhase section */
 		24349FFC2FAC6FD9005383FB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		246FD65D2FA8BB2900B8859A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C00000000000000000000023 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				C000000000000000000000B1 /* Assets.xcassets in Resources */,
 				C000000000000000000000B8 /* Localizable.strings in Resources */,
 				C000000000000000000000B7 /* Localizable.stringsdict in Resources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		24349FFA2FAC6FD9005383FB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				2434A00C2FAC7FDA005383FB /* PhotoAnalysis.swift in Sources */,
 				2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		246FD65B2FA8BB2900B8859A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				246FD67B2FA8BF8600B8859A /* BellPhotoAnalysis.swift in Sources */,
 				24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */,
 				246FD6772FA8BF6300B8859A /* PhotoAnalysis.swift in Sources */,
 				246FD6812FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C00000000000000000000022 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
 				C000000000000000000000A1 /* CatalogApp.swift in Sources */,
@@ -657,7 +628,6 @@
 				C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */,
 				C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
@@ -683,7 +653,7 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		2434A0072FAC6FDA005383FB /* Debug */ = {
+		2434A0072FAC6FDA005383FB /* Debug configuration for PBXNativeTarget "BellRecognitionDebugML" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
@@ -744,7 +714,7 @@
 			};
 			name = Debug;
 		};
-		2434A0082FAC6FDA005383FB /* Release */ = {
+		2434A0082FAC6FDA005383FB /* Release configuration for PBXNativeTarget "BellRecognitionDebugML" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
@@ -804,7 +774,7 @@
 			};
 			name = Release;
 		};
-		246FD6682FA8BB2A00B8859A /* Debug */ = {
+		246FD6682FA8BB2A00B8859A /* Debug configuration for PBXNativeTarget "BellRecognition" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
@@ -880,7 +850,7 @@
 			};
 			name = Debug;
 		};
-		246FD6692FA8BB2A00B8859A /* Release */ = {
+		246FD6692FA8BB2A00B8859A /* Release configuration for PBXNativeTarget "BellRecognition" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
@@ -953,7 +923,7 @@
 			};
 			name = Release;
 		};
-		C00000000000000000000071 /* Debug */ = {
+		C00000000000000000000071 /* Debug configuration for PBXProject "Foliora" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -1005,7 +975,7 @@
 			};
 			name = Debug;
 		};
-		C00000000000000000000072 /* Release */ = {
+		C00000000000000000000072 /* Release configuration for PBXProject "Foliora" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -1051,7 +1021,7 @@
 			};
 			name = Release;
 		};
-		C00000000000000000000073 /* Debug */ = {
+		C00000000000000000000073 /* Debug configuration for PBXNativeTarget "Foliora Bells" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
@@ -1068,6 +1038,7 @@
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Foliora Bells";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Use the camera to add photos of collection items.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
@@ -1097,7 +1068,7 @@
 			};
 			name = Debug;
 		};
-		C00000000000000000000074 /* Release */ = {
+		C00000000000000000000074 /* Release configuration for PBXNativeTarget "Foliora Bells" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
@@ -1114,6 +1085,7 @@
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Foliora Bells";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Use the camera to add photos of collection items.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
@@ -1149,37 +1121,33 @@
 		2434A0062FAC6FDA005383FB /* Build configuration list for PBXNativeTarget "BellRecognitionDebugML" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				2434A0072FAC6FDA005383FB /* Debug */,
-				2434A0082FAC6FDA005383FB /* Release */,
+				2434A0072FAC6FDA005383FB /* Debug configuration for PBXNativeTarget "BellRecognitionDebugML" */,
+				2434A0082FAC6FDA005383FB /* Release configuration for PBXNativeTarget "BellRecognitionDebugML" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		246FD6672FA8BB2A00B8859A /* Build configuration list for PBXNativeTarget "BellRecognition" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				246FD6682FA8BB2A00B8859A /* Debug */,
-				246FD6692FA8BB2A00B8859A /* Release */,
+				246FD6682FA8BB2A00B8859A /* Debug configuration for PBXNativeTarget "BellRecognition" */,
+				246FD6692FA8BB2A00B8859A /* Release configuration for PBXNativeTarget "BellRecognition" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		C00000000000000000000061 /* Build configuration list for PBXNativeTarget "Foliora Bells" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				C00000000000000000000073 /* Debug */,
-				C00000000000000000000074 /* Release */,
+				C00000000000000000000073 /* Debug configuration for PBXNativeTarget "Foliora Bells" */,
+				C00000000000000000000074 /* Release configuration for PBXNativeTarget "Foliora Bells" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		C00000000000000000000062 /* Build configuration list for PBXProject "Foliora" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				C00000000000000000000071 /* Debug */,
-				C00000000000000000000072 /* Release */,
+				C00000000000000000000071 /* Debug configuration for PBXProject "Foliora" */,
+				C00000000000000000000072 /* Release configuration for PBXProject "Foliora" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
