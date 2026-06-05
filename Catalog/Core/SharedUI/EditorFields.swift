@@ -161,7 +161,7 @@ struct TagEditorSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                TextField(String(localized: "common.field.tags.add_placeholder"), text: $tagInput)
+                TextField(String(localized: "editor.tags.add_placeholder"), text: $tagInput)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
@@ -180,7 +180,7 @@ struct TagEditorSection: View {
             }
 
             if tags.isEmpty {
-                Text(String(localized: "common.field.tags.empty"))
+                Text(String(localized: "editor.tags.empty"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {

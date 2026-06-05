@@ -299,7 +299,7 @@ struct BellEditorView: View {
                                 focusTitleValidation()
                             } label: {
                                 Label {
-                                    Text(String(localized: "common.field.title.required"))
+                                    Text(String(localized: "editor.title.required"))
                                         .font(.footnote)
                                 } icon: {
                                     Image(systemName: "exclamationmark.circle.fill")
@@ -357,7 +357,7 @@ struct BellEditorView: View {
                                 emitAnalysisFeedback(.warning)
                             } label: {
                                 Label {
-                                    Text(String(localized: "common.field.material.required"))
+                                    Text(String(localized: "editor.material.required"))
                                         .font(.footnote)
                                 } icon: {
                                     Image(systemName: "exclamationmark.circle.fill")
