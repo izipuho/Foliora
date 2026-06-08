@@ -464,7 +464,17 @@ final class BellEntity {
                     kind: $0.kind,
                     localIdentifier: $0.localIdentifier,
                     displayName: $0.displayName,
-                    sortOrder: $0.sortOrder
+                    sortOrder: $0.sortOrder,
+                    fileName: $0.fileName,
+                    mimeType: $0.mimeType,
+                    byteSize: $0.byteSize,
+                    checksum: $0.checksum,
+                    width: $0.width,
+                    height: $0.height,
+                    duration: $0.duration,
+                    metadataJSON: $0.metadataJSON,
+                    thumbnailData: $0.thumbnailData,
+                    originalData: $0.originalData
                 )
             },
             createdBy: createdBy,
@@ -495,6 +505,20 @@ final class MediaAssetEntity {
     var localIdentifier: String = ""
     var displayName: String?
     var sortOrder: Int = 0
+    var fileName: String?
+    var mimeType: String?
+    var byteSize: Int?
+    var checksum: String?
+    var width: Int?
+    var height: Int?
+    var duration: Double?
+    var metadataJSON: String?
+
+    @Attribute(.externalStorage)
+    var thumbnailData: Data?
+
+    @Attribute(.externalStorage)
+    var originalData: Data?
 
     var bell: BellEntity?
 
@@ -503,13 +527,33 @@ final class MediaAssetEntity {
         kindRaw: String,
         localIdentifier: String,
         displayName: String?,
-        sortOrder: Int
+        sortOrder: Int,
+        fileName: String? = nil,
+        mimeType: String? = nil,
+        byteSize: Int? = nil,
+        checksum: String? = nil,
+        width: Int? = nil,
+        height: Int? = nil,
+        duration: Double? = nil,
+        metadataJSON: String? = nil,
+        thumbnailData: Data? = nil,
+        originalData: Data? = nil
     ) {
         self.id = id
         self.kindRaw = kindRaw
         self.localIdentifier = localIdentifier
         self.displayName = displayName
         self.sortOrder = sortOrder
+        self.fileName = fileName
+        self.mimeType = mimeType
+        self.byteSize = byteSize
+        self.checksum = checksum
+        self.width = width
+        self.height = height
+        self.duration = duration
+        self.metadataJSON = metadataJSON
+        self.thumbnailData = thumbnailData
+        self.originalData = originalData
     }
 
     var kind: MediaKind {

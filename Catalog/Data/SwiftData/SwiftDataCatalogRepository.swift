@@ -144,7 +144,17 @@ final class SwiftDataCatalogRepository: CatalogRepository {
                 kindRaw: asset.kind.rawValue,
                 localIdentifier: asset.localIdentifier,
                 displayName: asset.displayName,
-                sortOrder: asset.sortOrder
+                sortOrder: asset.sortOrder,
+                fileName: asset.fileName,
+                mimeType: asset.mimeType,
+                byteSize: asset.byteSize,
+                checksum: asset.checksum,
+                width: asset.width,
+                height: asset.height,
+                duration: asset.duration,
+                metadataJSON: asset.metadataJSON,
+                thumbnailData: asset.thumbnailData,
+                originalData: asset.originalData
             )
         }
         newMediaAssets.forEach { $0.bell = entity }
@@ -279,7 +289,17 @@ final class SwiftDataCatalogRepository: CatalogRepository {
             kind: mediaKind(from: entity.kindRaw),
             localIdentifier: entity.localIdentifier,
             displayName: entity.displayName,
-            sortOrder: entity.sortOrder
+            sortOrder: entity.sortOrder,
+            fileName: entity.fileName,
+            mimeType: entity.mimeType,
+            byteSize: entity.byteSize,
+            checksum: entity.checksum,
+            width: entity.width,
+            height: entity.height,
+            duration: entity.duration,
+            metadataJSON: entity.metadataJSON,
+            thumbnailData: entity.thumbnailData,
+            originalData: entity.originalData
         )
     }
 

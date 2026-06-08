@@ -7,6 +7,16 @@ struct MediaAsset: Identifiable, Hashable, Codable {
     var localIdentifier: String
     var displayName: String?
     var sortOrder: Int
+    var fileName: String? = nil
+    var mimeType: String? = nil
+    var byteSize: Int? = nil
+    var checksum: String? = nil
+    var width: Int? = nil
+    var height: Int? = nil
+    var duration: Double? = nil
+    var metadataJSON: String? = nil
+    var thumbnailData: Data? = nil
+    var originalData: Data? = nil
 }
 
 enum MediaKind: String, CaseIterable, Hashable, Identifiable, Codable {
