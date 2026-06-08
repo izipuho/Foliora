@@ -521,7 +521,7 @@ struct BellEditorView: View {
                 createdAt: existingCreatedAt ?? .now,
                 title: trimmedTitle,
                 notes: trimmedNotes,
-                acquiredYear: selectedAcquiredYearOption == String(localized: "common.field.acquired_year.none") ? nil : Int(selectedAcquiredYearOption),
+                acquiredYear: selectedAcquiredYearOption == String(localized: "common.field.none") ? nil : Int(selectedAcquiredYearOption),
                 condition: condition,
                 acquisitionMethod: acquisitionMethod
             ),
