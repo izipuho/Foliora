@@ -274,7 +274,13 @@ struct CollectionShellView: View {
         for item in items {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
             guard let image = UIImage(data: data) else { continue }
-            guard let media = try? await imageMediaBuilder.build(from: image) else { continue }
+            let contentType = item.supportedContentTypes.first
+            guard let media = try? imageMediaBuilder.build(
+                from: data,
+                image: image,
+                preferredFileExtension: contentType?.preferredFilenameExtension,
+                mimeType: contentType?.preferredMIMEType
+            ) else { continue }
 
             if firstImage == nil {
                 firstImage = media.uiImage
@@ -295,7 +301,7 @@ struct CollectionShellView: View {
 
     @MainActor
     private func addCapturedPhotoAndPresentEditor(_ image: UIImage) async {
-        guard let media = try? await imageMediaBuilder.build(from: image) else { return }
+        guard let media = try? imageMediaBuilder.build(from: image) else { return }
 
         draftMediaAssets = [
             media.asset.with(sortOrder: 0)

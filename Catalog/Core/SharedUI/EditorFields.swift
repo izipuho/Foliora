@@ -241,6 +241,9 @@ struct MediaSection: View {
     var allowsDeletion = true
     var onPhotoAdded: ((UIImage) -> Void)? = nil
     private let mediaStore = LocalMediaFileStore.shared
+    private var imageMediaBuilder: ImageMediaBuilder {
+        ImageMediaBuilder(store: mediaStore)
+    }
 
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isPresentingPhotoPicker = false
@@ -356,23 +359,20 @@ struct MediaSection: View {
 
         for item in items {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
-            let fileExtension = item.supportedContentTypes.first?.preferredFilenameExtension
-            guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: fileExtension) else { continue }
+            guard let image = UIImage(data: data) else { continue }
+            let contentType = item.supportedContentTypes.first
+            guard let media = try? imageMediaBuilder.build(
+                from: data,
+                image: image,
+                preferredFileExtension: contentType?.preferredFilenameExtension,
+                mimeType: contentType?.preferredMIMEType
+            ) else { continue }
 
             mediaAssets.append(
-                MediaAsset(
-                    id: UUID(),
-                    itemID: itemID,
-                    kind: .photo,
-                    localIdentifier: identifier,
-                    displayName: nil,
-                    sortOrder: mediaAssets.count
-                )
+                media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
             )
 
-            if let image = UIImage(data: data) {
-                onPhotoAdded?(image)
-            }
+            onPhotoAdded?(image)
         }
 
         selectedPhotoItems = []
@@ -380,17 +380,15 @@ struct MediaSection: View {
 
     private func addCapturedPhoto(_ image: UIImage) {
         guard let data = image.jpegData(compressionQuality: 0.92) else { return }
-        guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: "jpg") else { return }
+        guard let media = try? imageMediaBuilder.build(
+            from: data,
+            image: image,
+            preferredFileExtension: "jpg",
+            mimeType: "image/jpeg"
+        ) else { return }
 
         mediaAssets.append(
-            MediaAsset(
-                id: UUID(),
-                itemID: itemID,
-                kind: .photo,
-                localIdentifier: identifier,
-                displayName: nil,
-                sortOrder: mediaAssets.count
-            )
+            media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
         )
 
         onPhotoAdded?(image)
