@@ -719,7 +719,17 @@ struct BellCatalogView: View {
                 kindRaw: asset.kindRaw,
                 localIdentifier: asset.localIdentifier,
                 displayName: asset.displayName,
-                sortOrder: offset
+                sortOrder: offset,
+                fileName: asset.fileName,
+                mimeType: asset.mimeType,
+                byteSize: asset.byteSize,
+                checksum: asset.checksum,
+                width: asset.width,
+                height: asset.height,
+                duration: asset.duration,
+                metadataJSON: asset.metadataJSON,
+                thumbnailData: asset.thumbnailData,
+                originalData: asset.originalData
             )
             copy.bell = duplicatedBell
             modelContext.insert(copy)

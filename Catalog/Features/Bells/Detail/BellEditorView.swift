@@ -509,7 +509,17 @@ struct BellEditorView: View {
                 kind: asset.kind,
                 localIdentifier: asset.localIdentifier,
                 displayName: asset.displayName,
-                sortOrder: index
+                sortOrder: index,
+                fileName: asset.fileName,
+                mimeType: asset.mimeType,
+                byteSize: asset.byteSize,
+                checksum: asset.checksum,
+                width: asset.width,
+                height: asset.height,
+                duration: asset.duration,
+                metadataJSON: asset.metadataJSON,
+                thumbnailData: asset.thumbnailData,
+                originalData: asset.originalData
             )
         }
 

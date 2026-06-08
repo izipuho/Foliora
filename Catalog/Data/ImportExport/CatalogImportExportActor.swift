@@ -181,7 +181,17 @@ actor CatalogImportExportActor {
                     kindRaw: asset.kind.rawValue,
                     localIdentifier: asset.localIdentifier,
                     displayName: asset.displayName,
-                    sortOrder: asset.sortOrder
+                    sortOrder: asset.sortOrder,
+                    fileName: asset.fileName,
+                    mimeType: asset.mimeType,
+                    byteSize: asset.byteSize,
+                    checksum: asset.checksum,
+                    width: asset.width,
+                    height: asset.height,
+                    duration: asset.duration,
+                    metadataJSON: asset.metadataJSON,
+                    thumbnailData: asset.thumbnailData,
+                    originalData: asset.originalData
                 )
             }
             mediaEntities.forEach { $0.bell = entity }

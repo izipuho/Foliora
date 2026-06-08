@@ -287,7 +287,17 @@ struct CollectionShellView: View {
                     kind: media.asset.kind,
                     localIdentifier: media.asset.localIdentifier,
                     displayName: media.asset.displayName,
-                    sortOrder: newAssets.count
+                    sortOrder: newAssets.count,
+                    fileName: media.asset.fileName,
+                    mimeType: media.asset.mimeType,
+                    byteSize: media.asset.byteSize,
+                    checksum: media.asset.checksum,
+                    width: media.asset.width,
+                    height: media.asset.height,
+                    duration: media.asset.duration,
+                    metadataJSON: media.asset.metadataJSON,
+                    thumbnailData: media.asset.thumbnailData,
+                    originalData: media.asset.originalData
                 )
             )
         }
@@ -311,7 +321,17 @@ struct CollectionShellView: View {
                 kind: media.asset.kind,
                 localIdentifier: media.asset.localIdentifier,
                 displayName: media.asset.displayName,
-                sortOrder: 0
+                sortOrder: 0,
+                fileName: media.asset.fileName,
+                mimeType: media.asset.mimeType,
+                byteSize: media.asset.byteSize,
+                checksum: media.asset.checksum,
+                width: media.asset.width,
+                height: media.asset.height,
+                duration: media.asset.duration,
+                metadataJSON: media.asset.metadataJSON,
+                thumbnailData: media.asset.thumbnailData,
+                originalData: media.asset.originalData
             )
         ]
         draftAnalysisImage = media.uiImage
