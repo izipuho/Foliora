@@ -336,24 +336,7 @@ struct BellDetailView: View {
             .sorted { $0.sortOrder < $1.sortOrder }
             .enumerated()
             .map { index, asset in
-                MediaAsset(
-                    id: asset.id,
-                    itemID: bell.id,
-                    kind: asset.kind,
-                    localIdentifier: asset.localIdentifier,
-                    displayName: asset.displayName,
-                    sortOrder: index,
-                    fileName: asset.fileName,
-                    mimeType: asset.mimeType,
-                    byteSize: asset.byteSize,
-                    checksum: asset.checksum,
-                    width: asset.width,
-                    height: asset.height,
-                    duration: asset.duration,
-                    metadataJSON: asset.metadataJSON,
-                    thumbnailData: asset.thumbnailData,
-                    originalData: asset.originalData
-                )
+                asset.with(itemID: bell.id, sortOrder: index)
             }
 
         let updatedBell = BellRecord(

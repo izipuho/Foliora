@@ -281,24 +281,7 @@ struct CollectionShellView: View {
             }
 
             newAssets.append(
-                MediaAsset(
-                    id: media.asset.id,
-                    itemID: media.asset.itemID,
-                    kind: media.asset.kind,
-                    localIdentifier: media.asset.localIdentifier,
-                    displayName: media.asset.displayName,
-                    sortOrder: newAssets.count,
-                    fileName: media.asset.fileName,
-                    mimeType: media.asset.mimeType,
-                    byteSize: media.asset.byteSize,
-                    checksum: media.asset.checksum,
-                    width: media.asset.width,
-                    height: media.asset.height,
-                    duration: media.asset.duration,
-                    metadataJSON: media.asset.metadataJSON,
-                    thumbnailData: media.asset.thumbnailData,
-                    originalData: media.asset.originalData
-                )
+                media.asset.with(sortOrder: newAssets.count)
             )
         }
 
@@ -315,24 +298,7 @@ struct CollectionShellView: View {
         guard let media = try? await imageMediaBuilder.build(from: image) else { return }
 
         draftMediaAssets = [
-            MediaAsset(
-                id: media.asset.id,
-                itemID: media.asset.itemID,
-                kind: media.asset.kind,
-                localIdentifier: media.asset.localIdentifier,
-                displayName: media.asset.displayName,
-                sortOrder: 0,
-                fileName: media.asset.fileName,
-                mimeType: media.asset.mimeType,
-                byteSize: media.asset.byteSize,
-                checksum: media.asset.checksum,
-                width: media.asset.width,
-                height: media.asset.height,
-                duration: media.asset.duration,
-                metadataJSON: media.asset.metadataJSON,
-                thumbnailData: media.asset.thumbnailData,
-                originalData: media.asset.originalData
-            )
+            media.asset.with(sortOrder: 0)
         ]
         draftAnalysisImage = media.uiImage
         shouldPresentEditorAfterCamera = true

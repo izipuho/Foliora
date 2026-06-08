@@ -503,24 +503,7 @@ struct BellEditorView: View {
         let location = availableLocations.first(where: { $0.id == selectedLocationID })
         let originPlace = selectedOriginPlace
         let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
-            MediaAsset(
-                id: asset.id,
-                itemID: itemID,
-                kind: asset.kind,
-                localIdentifier: asset.localIdentifier,
-                displayName: asset.displayName,
-                sortOrder: index,
-                fileName: asset.fileName,
-                mimeType: asset.mimeType,
-                byteSize: asset.byteSize,
-                checksum: asset.checksum,
-                width: asset.width,
-                height: asset.height,
-                duration: asset.duration,
-                metadataJSON: asset.metadataJSON,
-                thumbnailData: asset.thumbnailData,
-                originalData: asset.originalData
-            )
+            asset.with(itemID: itemID, sortOrder: index)
         }
 
         let newBell = BellRecord(
