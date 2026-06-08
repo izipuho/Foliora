@@ -115,7 +115,8 @@ struct LocalMediaFileStore: Sendable {
             kCGImageSourceThumbnailMaxPixelSize: Self.photoThumbnailMaxPixelSize
         ] as CFDictionary
 
-        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions) else {
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions),
+              let jpegImage = opaqueJPEGImage(from: cgImage) else {
             throw CocoaError(.fileReadCorruptFile)
         }
 
@@ -135,7 +136,7 @@ struct LocalMediaFileStore: Sendable {
             throw CocoaError(.fileWriteUnknown)
         }
 
-        CGImageDestinationAddImage(destination, cgImage, [
+        CGImageDestinationAddImage(destination, jpegImage, [
             kCGImageDestinationLossyCompressionQuality: 0.82
         ] as CFDictionary)
 
@@ -146,6 +147,27 @@ struct LocalMediaFileStore: Sendable {
 
     private func thumbnailFileName(for identifier: String) -> String {
         "\(identifier).jpg"
+    }
+
+    private func opaqueJPEGImage(from image: CGImage) -> CGImage? {
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil,
+            width: image.width,
+            height: image.height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ) else {
+            return nil
+        }
+
+        let rect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
+        context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+        context.fill(rect)
+        context.draw(image, in: rect)
+        return context.makeImage()
     }
 
     private func sanitizedFileExtension(_ value: String?) -> String? {

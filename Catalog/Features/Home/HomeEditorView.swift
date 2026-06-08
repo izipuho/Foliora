@@ -5,6 +5,7 @@ struct HomeEditorView: View {
     @Binding var locations: [Location]
     let onSave: () -> Void
     let onDelete: (() -> Void)?
+    let embedsNavigation: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var isPresentingDeleteConfirmation = false
     @State private var isPresentingAddLocationSheet = false
@@ -19,176 +20,198 @@ struct HomeEditorView: View {
         return roots.flatMap { flatten(location: $0, depth: 0) }
     }
 
+    init(
+        home: Binding<Home>,
+        locations: Binding<[Location]>,
+        onSave: @escaping () -> Void,
+        onDelete: (() -> Void)?,
+        embedsNavigation: Bool = true
+    ) {
+        self._home = home
+        self._locations = locations
+        self.onSave = onSave
+        self.onDelete = onDelete
+        self.embedsNavigation = embedsNavigation
+    }
+
     var body: some View {
-        NavigationStack {
-            Form {
-                Section(String(localized: "home.editor.section_home")) {
-                    TextField(
-                        String(localized: "common.name"),
-                        text: $home.name
-                    )
+        if embedsNavigation {
+            NavigationStack {
+                editorContent
+            }
+        } else {
+            editorContent
+        }
+    }
 
-                    Picker(String(localized: "home.icon"), selection: $home.iconName) {
-                        ForEach(HomeIconOption.allCases) { option in
-                            Label(option.title, systemImage: option.systemImage)
-                                .tag(option.systemImage)
-                        }
-                    }
+    private var editorContent: some View {
+        Form {
+            Section(String(localized: "home.editor.section_home")) {
+                TextField(
+                    String(localized: "common.name"),
+                    text: $home.name
+                )
 
-                    TextField(
-                        String(localized: "common.notes"),
-                        text: $home.notes,
-                        axis: .vertical
-                    )
-                    .lineLimit(3, reservesSpace: true)
-                }
-
-                Section(String(localized: "home.editor.section_locations")) {
-                    if locations.isEmpty {
-                        ContentUnavailableView(
-                            String(localized: "home.location.empty.title"),
-                            systemImage: "square.stack.3d.up.slash",
-                            description: Text(String(localized: "home.location.empty.description"))
-                        )
-                    } else {
-                        ForEach(flattenedLocations) { node in
-                            Button {
-                                editingLocationID = node.location.id
-                            } label: {
-                                EditableLocationRow(
-                                    location: node.location,
-                                    depth: node.depth,
-                                    hasChildren: !children(of: node.location).isEmpty,
-                                    isCollapsed: collapsedLocationIDs.contains(node.location.id),
-                                    showsAddChildAction: defaultChildKind(for: node.location) != nil,
-                                    onToggleCollapsed: {
-                                        toggleCollapsed(node.location.id)
-                                    },
-                                    onAddChild: {
-                                        if let childKind = defaultChildKind(for: node.location) {
-                                            addingChildContext = AddChildContext(
-                                                parentID: node.location.id,
-                                                childKind: childKind
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .swipeActions {
-                                Button(String(localized: "common.delete"), role: .destructive) {
-                                    deleteLocation(node.location.id)
-                                }
-                            }
-                        }
-                    }
-
-                    Button {
-                        isPresentingAddLocationSheet = true
-                    } label: {
-                        Label(String(localized: "home.location.add"), systemImage: "plus.circle.fill")
+                Picker(String(localized: "home.icon"), selection: $home.iconName) {
+                    ForEach(HomeIconOption.allCases) { option in
+                        Label(option.title, systemImage: option.systemImage)
+                            .tag(option.systemImage)
                     }
                 }
 
-                if onDelete != nil {
-                    Section {
-                        Button(role: .destructive) {
-                            isPresentingDeleteConfirmation = true
+                TextField(
+                    String(localized: "common.notes"),
+                    text: $home.notes,
+                    axis: .vertical
+                )
+                .lineLimit(3, reservesSpace: true)
+            }
+
+            Section(String(localized: "home.editor.section_locations")) {
+                if locations.isEmpty {
+                    ContentUnavailableView(
+                        String(localized: "home.location.empty.title"),
+                        systemImage: "square.stack.3d.up.slash",
+                        description: Text(String(localized: "home.location.empty.description"))
+                    )
+                } else {
+                    ForEach(flattenedLocations) { node in
+                        Button {
+                            editingLocationID = node.location.id
                         } label: {
-                            Label(String(localized: "common.delete"), systemImage: "trash")
+                            EditableLocationRow(
+                                location: node.location,
+                                depth: node.depth,
+                                hasChildren: !children(of: node.location).isEmpty,
+                                isCollapsed: collapsedLocationIDs.contains(node.location.id),
+                                showsAddChildAction: defaultChildKind(for: node.location) != nil,
+                                onToggleCollapsed: {
+                                    toggleCollapsed(node.location.id)
+                                },
+                                onAddChild: {
+                                    if let childKind = defaultChildKind(for: node.location) {
+                                        addingChildContext = AddChildContext(
+                                            parentID: node.location.id,
+                                            childKind: childKind
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions {
+                            Button(String(localized: "common.delete"), role: .destructive) {
+                                deleteLocation(node.location.id)
+                            }
                         }
                     }
                 }
-            }
-            .navigationTitle(String(localized: "home.screen.single_title"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        locations = normalizedLocations()
-                        onSave()
-                        dismiss()
+                Button {
+                    isPresentingAddLocationSheet = true
+                } label: {
+                    Label(String(localized: "home.location.add"), systemImage: "plus.circle.fill")
+                }
+            }
+
+            if onDelete != nil {
+                Section {
+                    Button(role: .destructive) {
+                        isPresentingDeleteConfirmation = true
                     } label: {
-                        Image(systemName: "checkmark")
+                        Label(String(localized: "common.delete"), systemImage: "trash")
                     }
                 }
             }
-            .confirmationDialog(
-                String(localized: "home.delete.title"),
-                isPresented: $isPresentingDeleteConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button(String(localized: "home.delete.confirm"), role: .destructive) {
-                    onDelete?()
+        }
+        .navigationTitle(String(localized: "home.screen.single_title"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
                     dismiss()
+                } label: {
+                    Image(systemName: "xmark")
                 }
-
-                Button(String(localized: "common.cancel"), role: .cancel) {}
-            } message: {
-                Text(String(localized: "home.delete.message"))
             }
-            .sheet(isPresented: $isPresentingAddLocationSheet) {
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    locations = normalizedLocations()
+                    onSave()
+                    dismiss()
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+            }
+        }
+        .confirmationDialog(
+            String(localized: "home.delete.title"),
+            isPresented: $isPresentingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "home.delete.confirm"), role: .destructive) {
+                onDelete?()
+                dismiss()
+            }
+
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "home.delete.message"))
+        }
+        .sheet(isPresented: $isPresentingAddLocationSheet) {
+            AddLocationSheet(
+                homeID: home.id,
+                existingLocations: locations,
+                initialKind: .room,
+                initialParentLocationID: nil,
+                onAdd: { newLocations in
+                    locations.append(contentsOf: newLocations)
+                }
+            )
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { addingChildContext != nil },
+                set: { newValue in
+                    if !newValue {
+                        addingChildContext = nil
+                    }
+                }
+            )
+        ) {
+            if let addingChildContext {
                 AddLocationSheet(
                     homeID: home.id,
                     existingLocations: locations,
-                    initialKind: .room,
-                    initialParentLocationID: nil,
+                    initialKind: addingChildContext.childKind,
+                    initialParentLocationID: addingChildContext.parentID,
                     onAdd: { newLocations in
                         locations.append(contentsOf: newLocations)
+                        self.addingChildContext = nil
                     }
                 )
             }
-            .sheet(
-                isPresented: Binding(
-                    get: { addingChildContext != nil },
-                    set: { newValue in
-                        if !newValue {
-                            addingChildContext = nil
-                        }
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { editingLocationID != nil },
+                set: { newValue in
+                    if !newValue {
+                        editingLocationID = nil
+                    }
+                }
+            )
+        ) {
+            if let location = editingLocationBinding {
+                EditLocationSheet(
+                    location: location,
+                    allLocations: locations,
+                    onDelete: { deletedID in
+                        deleteLocation(deletedID)
+                        editingLocationID = nil
                     }
                 )
-            ) {
-                if let addingChildContext {
-                    AddLocationSheet(
-                        homeID: home.id,
-                        existingLocations: locations,
-                        initialKind: addingChildContext.childKind,
-                        initialParentLocationID: addingChildContext.parentID,
-                        onAdd: { newLocations in
-                            locations.append(contentsOf: newLocations)
-                            self.addingChildContext = nil
-                        }
-                    )
-                }
-            }
-            .sheet(
-                isPresented: Binding(
-                    get: { editingLocationID != nil },
-                    set: { newValue in
-                        if !newValue {
-                            editingLocationID = nil
-                        }
-                    }
-                )
-            ) {
-                if let location = editingLocationBinding {
-                    EditLocationSheet(
-                        location: location,
-                        allLocations: locations,
-                        onDelete: { deletedID in
-                            deleteLocation(deletedID)
-                            editingLocationID = nil
-                        }
-                    )
-                }
             }
         }
     }
