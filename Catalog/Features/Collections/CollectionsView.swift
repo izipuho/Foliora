@@ -109,9 +109,11 @@ struct CollectionsView: View {
             } label: {
                 Label(String(localized: "collections.add"), systemImage: "plus.circle.fill")
                     .font(.headline)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: 420)
                     .frame(height: 56)
             }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 20)
             .buttonStyle(.borderedProminent)
             .tint(Color(red: 0.53, green: 0.31, blue: 0.14))
         }

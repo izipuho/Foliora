@@ -127,9 +127,11 @@ struct HomeView: View {
                 } label: {
                     Label(String(localized: "home.add"), systemImage: "plus.circle.fill")
                         .font(.headline)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: 420)
                         .frame(height: 52)
                 }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, 20)
                 .buttonStyle(.borderedProminent)
                 .tint(Color(red: 0.20, green: 0.42, blue: 0.34))
             }
