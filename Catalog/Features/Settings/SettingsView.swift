@@ -1,9 +1,12 @@
 import CloudKit
+import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
     let repository: any CatalogRepository
     let navigate: (AppDestination) -> Void
+
+    @Environment(\.modelContext) private var modelContext
 
     @State private var exportDocument: CatalogTransferDocument?
     @State private var isExportingDocument = false
@@ -17,6 +20,9 @@ struct SettingsView: View {
     @State private var cloudStatusErrorMessage: String?
     @State private var cloudStatusLastRefreshText = "Never"
     @State private var isRefreshingCloudStatus = false
+    @State private var isShowingPurgeConfirmation = false
+    @State private var isPurgingCloudData = false
+    @State private var purgeStatusMessage: String?
 
     var body: some View {
         List {
@@ -84,6 +90,27 @@ struct SettingsView: View {
             } footer: {
                 Text("Apple ID/email is not available to apps. CloudKit exposes only account status and user record ID.")
             }
+
+            Section {
+                Button(role: .destructive) {
+                    isShowingPurgeConfirmation = true
+                } label: {
+                    if isPurgingCloudData {
+                        Label("Purging…", systemImage: "trash")
+                    } else {
+                        Label("Purge Cloud Data", systemImage: "trash")
+                    }
+                }
+                .disabled(isPurgingCloudData)
+
+                if let purgeStatusMessage {
+                    Text(purgeStatusMessage)
+                        .font(.footnote)
+                        .foregroundStyle(purgeStatusMessage.hasPrefix("Purge failed") ? .red : .secondary)
+                }
+            } header: {
+                Text("Developer Tools")
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(RootTab.settings.title)
@@ -141,6 +168,18 @@ struct SettingsView: View {
             Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
             Text(importWarningMessage ?? "")
+        }
+        .confirmationDialog(
+            "Purge Cloud Data?",
+            isPresented: $isShowingPurgeConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Purge", role: .destructive) {
+                purgeCloudData()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will delete all Foliora Bells data from this device and sync deletions to iCloud for this Apple ID.")
         }
     }
 
@@ -239,6 +278,40 @@ struct SettingsView: View {
         case .failure(let error):
             importErrorMessage = error.localizedDescription
         }
+    }
+
+    private func purgeCloudData() {
+        guard !isPurgingCloudData else {
+            return
+        }
+
+        isPurgingCloudData = true
+        purgeStatusMessage = "Purging…"
+
+        Task { @MainActor in
+            await Task.yield()
+
+            do {
+                try deleteAllCatalogEntities()
+                purgeStatusMessage = "Purge completed"
+            } catch {
+                purgeStatusMessage = "Purge failed: \(error.localizedDescription)"
+            }
+
+            isPurgingCloudData = false
+        }
+    }
+
+    private func deleteAllCatalogEntities() throws {
+        try modelContext.fetch(FetchDescriptor<MediaAssetEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<BellTagEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<MembershipEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<BellEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<LocationEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<HomeEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<CollectionEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<PlaceEntity>()).forEach(modelContext.delete)
+        try modelContext.save()
     }
 }
 
