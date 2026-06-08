@@ -111,7 +111,8 @@ struct AppShellView: View {
                             path.removeLast()
                         }
                     },
-                    embedsNavigation: false
+                    embedsNavigation: false,
+                    focusesNameOnAppear: true
                 )
             } else {
                 ContentUnavailableView(

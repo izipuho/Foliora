@@ -6,7 +6,9 @@ struct HomeEditorView: View {
     let onSave: () -> Void
     let onDelete: (() -> Void)?
     let embedsNavigation: Bool
+    let focusesNameOnAppear: Bool
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var focusedField: Field?
     @State private var isPresentingDeleteConfirmation = false
     @State private var isPresentingAddLocationSheet = false
     @State private var editingLocationID: UUID?
@@ -25,13 +27,15 @@ struct HomeEditorView: View {
         locations: Binding<[Location]>,
         onSave: @escaping () -> Void,
         onDelete: (() -> Void)?,
-        embedsNavigation: Bool = true
+        embedsNavigation: Bool = true,
+        focusesNameOnAppear: Bool = false
     ) {
         self._home = home
         self._locations = locations
         self.onSave = onSave
         self.onDelete = onDelete
         self.embedsNavigation = embedsNavigation
+        self.focusesNameOnAppear = focusesNameOnAppear
     }
 
     var body: some View {
@@ -51,6 +55,7 @@ struct HomeEditorView: View {
                     String(localized: "common.name"),
                     text: $home.name
                 )
+                .focused($focusedField, equals: .name)
 
                 Picker(String(localized: "home.icon"), selection: $home.iconName) {
                     ForEach(HomeIconOption.allCases) { option in
@@ -126,6 +131,11 @@ struct HomeEditorView: View {
         }
         .navigationTitle(String(localized: "home.screen.single_title"))
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if focusesNameOnAppear {
+                focusedField = .name
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -223,6 +233,10 @@ struct HomeEditorView: View {
         }
 
         return $locations[index]
+    }
+
+    private enum Field {
+        case name
     }
 
     private func deleteLocation(_ locationID: UUID) {

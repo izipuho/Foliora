@@ -209,7 +209,7 @@ struct HomeView: View {
     }
 
     private func createHome() -> Home {
-        let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), iconName: "house.fill", notes: "")
+        let newHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
         repository.saveHome(newHome)
         repository.saveLocations([], in: newHome.id)
         return newHome
