@@ -1,3 +1,4 @@
+import CloudKit
 import SwiftUI
 
 struct SettingsView: View {
@@ -11,6 +12,11 @@ struct SettingsView: View {
     @State private var importErrorMessage: String?
     @State private var importWarningMessage: String?
     @State private var exportErrorMessage: String?
+    @State private var cloudAccountStatusText = "Not checked"
+    @State private var cloudUserRecordIDText = "Not checked"
+    @State private var cloudStatusErrorMessage: String?
+    @State private var cloudStatusLastRefreshText = "Never"
+    @State private var isRefreshingCloudStatus = false
 
     var body: some View {
         List {
@@ -47,9 +53,43 @@ struct SettingsView: View {
             } footer: {
                 Text(String(localized: "settings.data.footer"))
             }
+
+            Section {
+                SettingsInfoRow(title: "App Version", value: appVersion)
+                SettingsInfoRow(title: "Build Number", value: buildNumber)
+                SettingsInfoRow(title: "Bundle Identifier", value: bundleIdentifier)
+                SettingsInfoRow(title: "CloudKit Container", value: CloudKitConfiguration.containerIdentifier)
+                SettingsInfoRow(title: "iCloud Account", value: cloudAccountStatusText)
+                SettingsInfoRow(title: "CloudKit User Record ID", value: cloudUserRecordIDText)
+                SettingsInfoRow(title: "Last Refresh", value: cloudStatusLastRefreshText)
+
+                if let cloudStatusErrorMessage {
+                    Text(cloudStatusErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+
+                Button {
+                    refreshCloudStatus()
+                } label: {
+                    if isRefreshingCloudStatus {
+                        Label("Refreshing Cloud Status", systemImage: "icloud")
+                    } else {
+                        Label("Refresh Cloud Status", systemImage: "arrow.clockwise.icloud")
+                    }
+                }
+                .disabled(isRefreshingCloudStatus)
+            } header: {
+                Text("Cloud Diagnostics")
+            } footer: {
+                Text("Apple ID/email is not available to apps. CloudKit exposes only account status and user record ID.")
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(RootTab.settings.title)
+        .task {
+            refreshCloudStatus()
+        }
         .fileExporter(
             isPresented: $isExportingDocument,
             document: exportDocument,
@@ -104,6 +144,49 @@ struct SettingsView: View {
         }
     }
 
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+    }
+
+    private var bundleIdentifier: String {
+        Bundle.main.bundleIdentifier ?? "Unknown"
+    }
+
+    private func refreshCloudStatus() {
+        guard !isRefreshingCloudStatus else {
+            return
+        }
+
+        isRefreshingCloudStatus = true
+        cloudStatusErrorMessage = nil
+
+        Task {
+            let container = CKContainer(identifier: CloudKitConfiguration.containerIdentifier)
+
+            do {
+                let status = try await container.accountStatus()
+                let userRecordID = try await container.userRecordID()
+
+                await MainActor.run {
+                    cloudAccountStatusText = status.displayText
+                    cloudUserRecordIDText = userRecordID.recordName
+                    cloudStatusLastRefreshText = Date.now.formatted(date: .abbreviated, time: .standard)
+                    isRefreshingCloudStatus = false
+                }
+            } catch {
+                await MainActor.run {
+                    cloudStatusErrorMessage = error.localizedDescription
+                    cloudStatusLastRefreshText = Date.now.formatted(date: .abbreviated, time: .standard)
+                    isRefreshingCloudStatus = false
+                }
+            }
+        }
+    }
+
     private func exportCurrentBackup() {
         isImportExportRunning = true
         Task {
@@ -155,6 +238,41 @@ struct SettingsView: View {
             }
         case .failure(let error):
             importErrorMessage = error.localizedDescription
+        }
+    }
+}
+
+private struct SettingsInfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+                .textSelection(.enabled)
+        }
+    }
+}
+
+private extension CKAccountStatus {
+    var displayText: String {
+        switch self {
+        case .available:
+            "Available"
+        case .noAccount:
+            "No Account"
+        case .restricted:
+            "Restricted"
+        case .couldNotDetermine:
+            "Could Not Determine"
+        case .temporarilyUnavailable:
+            "Temporarily Unavailable"
+        @unknown default:
+            "Unknown"
         }
     }
 }
