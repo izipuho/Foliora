@@ -30,8 +30,9 @@ private struct BellBatchNameGenerator {
     }
 }
 
-extension Notification.Name {
-    static let bellBatchReviewResultsRequested = Notification.Name("bellBatchReviewResultsRequested")
+enum BatchAddCompletionAction {
+    case done
+    case reviewResults(String)
 }
 
 private enum BellBatchMediaLoadState: Equatable {
@@ -53,7 +54,7 @@ struct BellBatchAddView: View {
     private let photoItems: [PhotosPickerItem]
     private let initialMediaAssets: [MediaAsset]
     private let repository: (any CatalogRepository)?
-    private let onComplete: () -> Void
+    private let onComplete: (BatchAddCompletionAction) -> Void
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
     @Query private var queriedLocations: [LocationEntity]
@@ -81,7 +82,7 @@ struct BellBatchAddView: View {
         photoItems: [PhotosPickerItem] = [],
         initialMediaAssets: [MediaAsset] = [],
         repository: (any CatalogRepository)? = nil,
-        onComplete: @escaping () -> Void = {}
+        onComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.collection = collection
         self.photoCount = photoCount
@@ -221,12 +222,12 @@ struct BellBatchAddView: View {
 
             VStack(spacing: 12) {
                 Button(String(localized: "bell_batch_add.review_results")) {
-                    reviewResults(query: reviewQuery)
+                    onComplete(.reviewResults(reviewQuery))
                 }
                 .buttonStyle(.borderedProminent)
 
                 Button(String(localized: "common.done")) {
-                    dismiss()
+                    onComplete(.done)
                 }
                 .buttonStyle(.bordered)
             }
@@ -419,18 +420,6 @@ struct BellBatchAddView: View {
         }
 
         repository.saveBellRecords(bells)
-        onComplete()
         creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)
-    }
-
-    @MainActor
-    private func reviewResults(query: String) {
-        dismiss()
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(
-                name: .bellBatchReviewResultsRequested,
-                object: query
-            )
-        }
     }
 }

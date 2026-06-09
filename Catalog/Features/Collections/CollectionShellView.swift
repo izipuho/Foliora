@@ -5,6 +5,7 @@ import PhotosUI
 struct CollectionShellView: View {
     let repository: any CatalogRepository
     private let onBellSelected: ((BellEntity) -> Void)?
+    private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
@@ -33,10 +34,12 @@ struct CollectionShellView: View {
         collection: CollectionSummary,
         repository: any CatalogRepository,
         layoutMode: Binding<BellGridLayoutMode>,
-        onBellSelected: ((BellEntity) -> Void)? = nil
+        onBellSelected: ((BellEntity) -> Void)? = nil,
+        onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.repository = repository
         self.onBellSelected = onBellSelected
+        self.onBatchAddComplete = onBatchAddComplete
         self.layoutMode = layoutMode
         _collection = State(initialValue: collection)
     }
@@ -196,7 +199,7 @@ struct CollectionShellView: View {
             photoCount: draftMediaAssets.count,
             initialMediaAssets: draftMediaAssets,
             repository: repository,
-            onComplete: refreshContent
+            onComplete: handleBatchAddCompletion
         )
     }
 
@@ -268,6 +271,15 @@ struct CollectionShellView: View {
     private func refreshContent() {
         collection = collectionEntities.first(where: { $0.id == collection.id })?.summarySnapshot ?? collection
         refreshID = UUID()
+    }
+
+    private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
+        isPresentingBatchAdd = false
+        refreshContent()
+
+        if case .reviewResults = action {
+            onBatchAddComplete(action)
+        }
     }
 
     private func openBell(_ bell: BellEntity) {

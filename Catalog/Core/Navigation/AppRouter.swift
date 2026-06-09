@@ -49,11 +49,12 @@ struct AppShellView: View {
             repository: repository,
             path: $path,
             navigate: { path.append($0) },
-            destination: { destination, layoutMode, onBellSelected in
+            destination: { destination, layoutMode, onBellSelected, onBatchAddComplete in
                 destinationView(
                     for: destination,
                     layoutMode: layoutMode,
-                    onBellSelected: onBellSelected
+                    onBellSelected: onBellSelected,
+                    onBatchAddComplete: onBatchAddComplete
                 )
             }
         )
@@ -63,7 +64,8 @@ struct AppShellView: View {
     private func destinationView(
         for destination: AppDestination,
         layoutMode: Binding<BellGridLayoutMode>,
-        onBellSelected: ((BellEntity) -> Void)?
+        onBellSelected: ((BellEntity) -> Void)?,
+        onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void
     ) -> some View {
         switch destination {
         case .collection(let collection):
@@ -71,7 +73,8 @@ struct AppShellView: View {
                 collection: collection,
                 repository: repository,
                 layoutMode: layoutMode,
-                onBellSelected: onBellSelected
+                onBellSelected: onBellSelected,
+                onBatchAddComplete: onBatchAddComplete
             )
         case .home(let homeID):
             if let homeBinding = binding(for: homeID) {
@@ -170,10 +173,11 @@ private struct RootShellView<Destination: View>: View {
     let repository: any CatalogRepository
     @Binding var path: NavigationPath
     let navigate: (AppDestination) -> Void
-    let destination: (AppDestination, Binding<BellGridLayoutMode>, ((BellEntity) -> Void)?) -> Destination
+    let destination: (AppDestination, Binding<BellGridLayoutMode>, ((BellEntity) -> Void)?, @escaping (BatchAddCompletionAction) -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
     @State private var selectedRootTab: RootTab = .collections
+    @State private var searchInitialQuery: String?
     @State private var selectedBell: BellEntity?
 
     private var layoutMode: BellGridLayoutMode {
@@ -212,34 +216,39 @@ private struct RootShellView<Destination: View>: View {
     }
 
     private var iPhoneRootContainer: some View {
-        TabView {
-            Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage) {
+        TabView(selection: $selectedRootTab) {
+            Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage, value: RootTab.collections) {
                 NavigationStack(path: $path) {
                     CollectionsView(
                         repository: repository,
                         navigate: navigate
                     )
                     .navigationDestination(for: AppDestination.self) { destination in
-                        self.destination(destination, layoutModeBinding, nil)
+                        self.destination(destination, layoutModeBinding, nil, handleBatchAddCompletion)
                     }
                 }
             }
 
-            Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage) {
+            Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage, value: RootTab.settings) {
                 NavigationStack(path: $path) {
                     SettingsView(
                         repository: repository,
                         navigate: navigate
                     )
                     .navigationDestination(for: AppDestination.self) { destination in
-                        self.destination(destination, layoutModeBinding, nil)
+                        self.destination(destination, layoutModeBinding, nil, handleBatchAddCompletion)
                     }
                 }
             }
 
-            Tab(role: .search) {
+            Tab(value: RootTab.search, role: .search) {
                 NavigationStack {
-                    SearchTabView(repository: repository, layoutMode: layoutModeBinding)
+                    SearchTabView(
+                        repository: repository,
+                        layoutMode: layoutModeBinding,
+                        initialQuery: searchInitialQuery
+                    )
+                    .id(searchInitialQuery)
                 }
             }
         }
@@ -292,7 +301,7 @@ private struct RootShellView<Destination: View>: View {
                     navigate: navigate
                 )
                 .navigationDestination(for: AppDestination.self) { destination in
-                    self.destination(destination, layoutModeBinding, openBellInspector)
+                    self.destination(destination, layoutModeBinding, openBellInspector, handleBatchAddCompletion)
                 }
             }
         case .search:
@@ -300,8 +309,10 @@ private struct RootShellView<Destination: View>: View {
                 SearchTabView(
                     repository: repository,
                     layoutMode: layoutModeBinding,
+                    initialQuery: searchInitialQuery,
                     onBellSelected: openBellInspector
                 )
+                .id(searchInitialQuery)
             }
         case .settings:
             NavigationStack(path: $path) {
@@ -310,10 +321,16 @@ private struct RootShellView<Destination: View>: View {
                     navigate: navigate
                 )
                 .navigationDestination(for: AppDestination.self) { destination in
-                    self.destination(destination, layoutModeBinding, openBellInspector)
+                    self.destination(destination, layoutModeBinding, openBellInspector, handleBatchAddCompletion)
                 }
             }
         }
+    }
+
+    private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
+        guard case .reviewResults(let query) = action else { return }
+        searchInitialQuery = query
+        selectedRootTab = .search
     }
 
     private func openBellInspector(_ bell: BellEntity) {
