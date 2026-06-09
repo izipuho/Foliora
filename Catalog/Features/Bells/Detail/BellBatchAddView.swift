@@ -34,6 +34,12 @@ private enum BellBatchMediaLoadState: Equatable {
     case failed
 }
 
+private enum BellBatchCreationState: Equatable {
+    case editing
+    case completed(Int)
+    case failed
+}
+
 struct BellBatchAddView: View {
     let collection: CollectionSummary
     let photoCount: Int
@@ -57,6 +63,8 @@ struct BellBatchAddView: View {
     @State private var mediaLoadState: BellBatchMediaLoadState = .idle
     @State private var mediaPayloads: [MediaAsset] = []
     @State private var mediaLoadErrorMessage: String?
+    @State private var creationState: BellBatchCreationState = .editing
+    @State private var creationErrorMessage: String?
 
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
@@ -92,62 +100,7 @@ struct BellBatchAddView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    LocationPickerField(
-                        title: String(localized: "editor.location"),
-                        selectedLabel: selectedLocationLabel,
-                        locations: availableLocations,
-                        selectedLocationID: $selectedLocationID
-                    )
-
-                    PlacePickerField(
-                        title: String(localized: "common.field.origin"),
-                        selectedLabel: selectedOriginLabel,
-                        places: availablePlaces,
-                        selectedPlace: $selectedOriginPlace
-                    )
-
-                    YearPickerField(
-                        title: String(localized: "common.field.acquired_year"),
-                        selection: $selectedAcquiredYearOption,
-                        options: acquiredYearOptions
-                    )
-
-                    EnumSelectionRow(
-                        title: String(localized: "common.field.material"),
-                        selectedLabel: material.displayName,
-                        options: BellMaterial.allCases,
-                        selection: $material,
-                        optionTitle: \.displayName
-                    )
-
-                    if material == .other {
-                        TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
-                    }
-                }
-
-                Section(String(localized: "common.field.tags")) {
-                    TagEditorSection(
-                        tagInput: $tagInput,
-                        tags: $tags
-                    )
-                }
-
-                if let mediaLoadErrorMessage {
-                    Section {
-                        Text(mediaLoadErrorMessage)
-                            .foregroundStyle(.red)
-                    }
-                }
-
-                Section {
-                    Button(createButtonLabel) {
-                        createBatchBells()
-                    }
-                    .disabled(!canCreateBatch)
-                }
-            }
+            content
             .navigationTitle(String(localized: "bell_batch_add.title"))
             .navigationBarTitleDisplayMode(.inline)
             .task(id: photoItems.map(\.itemIdentifier)) {
@@ -172,6 +125,104 @@ struct BellBatchAddView: View {
         }
     }
 
+    @ViewBuilder
+    private var content: some View {
+        switch creationState {
+        case .completed(let createdCount):
+            completionContent(createdCount: createdCount)
+        case .editing, .failed:
+            editContent
+        }
+    }
+
+    private var editContent: some View {
+        Form {
+            Section {
+                LocationPickerField(
+                    title: String(localized: "editor.location"),
+                    selectedLabel: selectedLocationLabel,
+                    locations: availableLocations,
+                    selectedLocationID: $selectedLocationID
+                )
+
+                PlacePickerField(
+                    title: String(localized: "common.field.origin"),
+                    selectedLabel: selectedOriginLabel,
+                    places: availablePlaces,
+                    selectedPlace: $selectedOriginPlace
+                )
+
+                YearPickerField(
+                    title: String(localized: "common.field.acquired_year"),
+                    selection: $selectedAcquiredYearOption,
+                    options: acquiredYearOptions
+                )
+
+                EnumSelectionRow(
+                    title: String(localized: "common.field.material"),
+                    selectedLabel: material.displayName,
+                    options: BellMaterial.allCases,
+                    selection: $material,
+                    optionTitle: \.displayName
+                )
+
+                if material == .other {
+                    TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
+                }
+            }
+
+            Section(String(localized: "common.field.tags")) {
+                TagEditorSection(
+                    tagInput: $tagInput,
+                    tags: $tags
+                )
+            }
+
+            if let mediaLoadErrorMessage {
+                Section(String(localized: "bell_batch_add.error.title")) {
+                    Text(mediaLoadErrorMessage)
+                        .foregroundStyle(.red)
+                }
+            }
+
+            if let creationErrorMessage {
+                Section(String(localized: "bell_batch_add.error.title")) {
+                    Text(creationErrorMessage)
+                        .foregroundStyle(.red)
+                }
+            }
+
+            Section {
+                Button(createButtonLabel) {
+                    createBatchBells()
+                }
+                .disabled(!canCreateBatch)
+            }
+        }
+    }
+
+    private func completionContent(createdCount: Int) -> some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Text(String(localized: "bell_batch_add.completion.title"))
+                .font(.title2.weight(.semibold))
+
+            Text(completionMessage(createdCount: createdCount))
+                .font(.body)
+                .foregroundStyle(.secondary)
+
+            Button(String(localized: "common.done")) {
+                dismiss()
+            }
+            .buttonStyle(.borderedProminent)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+
     private var localizedBellCount: String {
         String.localizedStringWithFormat(
             String(localized: "collection.count.bells"),
@@ -190,6 +241,13 @@ struct BellBatchAddView: View {
         String.localizedStringWithFormat(
             String(localized: "common.create_format"),
             localizedBellCount
+        )
+    }
+
+    private func completionMessage(createdCount: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "bell_batch_add.completion.message"),
+            createdCount
         )
     }
 
@@ -306,7 +364,13 @@ struct BellBatchAddView: View {
 
     @MainActor
     private func createBatchBells() {
-        guard let repository, !mediaPayloads.isEmpty else { return }
+        guard let repository, !mediaPayloads.isEmpty else {
+            creationState = .failed
+            creationErrorMessage = String(localized: "bell_batch_add.error.message")
+            return
+        }
+
+        creationErrorMessage = nil
 
         let names = BellBatchNameGenerator().names(count: mediaPayloads.count)
         let now = Date()
@@ -341,6 +405,6 @@ struct BellBatchAddView: View {
 
         repository.saveBellRecords(bells)
         onComplete()
-        dismiss()
+        creationState = .completed(bells.count)
     }
 }
