@@ -60,8 +60,8 @@ struct ImageMediaBuilder {
             mimeType: mimeType ?? Self.mimeType(for: preferredFileExtension),
             byteSize: data.count,
             checksum: Self.checksum(for: data),
-            width: Self.pixelWidth(for: image),
-            height: Self.pixelHeight(for: image),
+            width: Int(image.size.width * image.scale),
+            height: Int(image.size.height * image.scale),
             thumbnailData: Self.thumbnailData(for: image),
             originalData: data
         )
@@ -89,8 +89,8 @@ struct ImageMediaBuilder {
     private static func thumbnailData(for image: UIImage) -> Data? {
         let maxPixelSize: CGFloat = 700
         let pixelSize = CGSize(
-            width: CGFloat(pixelWidth(for: image)),
-            height: CGFloat(pixelHeight(for: image))
+            width: image.size.width * image.scale,
+            height: image.size.height * image.scale
         )
         let longestSide = max(pixelSize.width, pixelSize.height)
         guard longestSide > 0 else { return nil }
