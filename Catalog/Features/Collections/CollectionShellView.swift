@@ -12,6 +12,7 @@ struct CollectionShellView: View {
     @State private var collection: CollectionSummary
     @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
+    @State private var isPresentingBatchAdd = false
     @State private var isPresentingAddBellOptions = false
     @State private var isPresentingPhotoPicker = false
     @State private var isPresentingCamera = false
@@ -122,7 +123,7 @@ struct CollectionShellView: View {
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
                 selection: $selectedPhotoItems,
-                maxSelectionCount: 1,
+                maxSelectionCount: nil,
                 matching: .images,
                 photoLibrary: .shared()
             )
@@ -142,6 +143,9 @@ struct CollectionShellView: View {
             }
             .sheet(isPresented: $isPresentingAddBell, onDismiss: clearDraftBell) {
                 addBellSheet
+            }
+            .sheet(isPresented: $isPresentingBatchAdd, onDismiss: clearDraftBell) {
+                batchAddSheet
             }
             .sheet(isPresented: $isPresentingEditCollection) {
                 editCollectionSheet
@@ -184,6 +188,13 @@ struct CollectionShellView: View {
             repository.saveBellRecord(newBell)
             refreshContent()
         }
+    }
+
+    private var batchAddSheet: some View {
+        BellBatchAddView(
+            collection: collection,
+            photoCount: draftMediaAssets.count
+        )
     }
 
     private var editCollectionSheet: some View {
@@ -296,7 +307,11 @@ struct CollectionShellView: View {
         guard !newAssets.isEmpty else { return }
         draftMediaAssets = newAssets
         draftAnalysisImage = firstImage
-        isPresentingAddBell = true
+        if newAssets.count == 1 {
+            isPresentingAddBell = true
+        } else {
+            isPresentingBatchAdd = true
+        }
     }
 
     @MainActor
