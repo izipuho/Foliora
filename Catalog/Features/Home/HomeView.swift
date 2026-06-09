@@ -215,3 +215,44 @@ struct HomeView: View {
         repository.deleteHome(homeID: homeID)
     }
 }
+
+private struct HomeListCard: View {
+    let home: Home
+    let locations: [Location]
+    let collectionCount: Int
+
+    private var hasStorageLocations: Bool {
+        !locations.isEmpty
+    }
+
+    private var subtitle: String {
+        let collectionsSummary: String
+        if collectionCount == 0 {
+            collectionsSummary = String(localized: "home.list.collections.empty")
+        } else {
+            collectionsSummary = String.localizedStringWithFormat(
+                NSLocalizedString("home.list.collections.count", comment: "Home list collection count"),
+                collectionCount
+            )
+        }
+
+        guard !hasStorageLocations else {
+            return collectionsSummary
+        }
+
+        return [
+            collectionsSummary,
+            String(localized: "home.list.storage.empty")
+        ].joined(separator: " · ")
+    }
+
+    var body: some View {
+        CatalogContainerCard(
+            title: home.name,
+            subtitle: subtitle,
+            detailLines: [],
+            systemImage: home.iconName,
+            accessorySystemImage: nil
+        )
+    }
+}
