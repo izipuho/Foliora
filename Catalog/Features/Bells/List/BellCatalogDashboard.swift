@@ -275,6 +275,8 @@ struct DashboardDataHealthCard: View {
                     Text(String(localized: "bell_catalog.dashboard.health.subtitle"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Text(" ")
+                        .font(.caption)
                 }
 
                 Spacer(minLength: 0)
@@ -454,6 +456,10 @@ struct DataHealthPopover: View {
 
                             DataHealthMissingProgressBar(progress: entry.missingProgress)
                                 .frame(width: proxy.size.width / 2)
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
                         }
                     }
                     .frame(height: 14)
