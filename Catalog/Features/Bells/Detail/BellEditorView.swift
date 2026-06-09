@@ -345,7 +345,7 @@ struct BellEditorView: View {
                         )
 
                         if material == .other {
-                            TextField(String(localized: "common.field.material.custom"), text: $customMaterialName)
+                            TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
                         }
 
                     }
