@@ -389,20 +389,14 @@ private struct SearchTokenBar: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                if tokens.isEmpty && suggestedTokenGroups.isEmpty {
-                    Text("Нет поисковых токенов")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(tokens) { token in
-                        Button {
-                            remove(token)
-                        } label: {
-                            Label(title(token), systemImage: "xmark")
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .buttonStyle(.bordered)
+                ForEach(tokens) { token in
+                    Button {
+                        remove(token)
+                    } label: {
+                        Label(title(token), systemImage: "xmark")
+                            .font(.subheadline.weight(.semibold))
                     }
+                    .buttonStyle(.bordered)
                 }
 
                 ForEach(suggestedTokenGroups) { group in
