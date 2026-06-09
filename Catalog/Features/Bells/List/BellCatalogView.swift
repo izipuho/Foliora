@@ -20,6 +20,11 @@ private struct BellCatalogFeedbackEvent: Equatable {
     let token: Int
 }
 
+private struct BellBatchReviewSearchRequest: Identifiable {
+    let id = UUID()
+    let query: String
+}
+
 struct BellCatalogSelectionModePreferenceKey: PreferenceKey {
     static let defaultValue = false
 
@@ -114,6 +119,7 @@ struct BellCatalogView: View {
     @State private var selectedBellIDs: Set<UUID> = []
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
     @State private var feedbackToken = 0
+    @State private var batchReviewSearchRequest: BellBatchReviewSearchRequest?
     @State private var scrollRequestToken = 0
     @State private var didEndActivePinchGesture = false
     @StateObject private var viewModel: BellCatalogViewModel
@@ -267,6 +273,23 @@ struct BellCatalogView: View {
                 }
             }
         }
+        .sheet(item: $batchReviewSearchRequest) { request in
+            NavigationStack {
+                SearchTabView(
+                    repository: repository,
+                    layoutMode: $layoutMode,
+                    initialQuery: request.query,
+                    onBellSelected: onBellSelected
+                )
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(String(localized: "common.done")) {
+                            batchReviewSearchRequest = nil
+                        }
+                    }
+                }
+            }
+        }
         .confirmationDialog(
             String(localized: "bell.context.delete.title"),
             isPresented: $isPresentingDeleteConfirmation,
@@ -327,6 +350,10 @@ struct BellCatalogView: View {
             viewModel.updateSource(bells: bells)
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .bellBatchReviewResultsRequested)) { notification in
+            guard let query = notification.object as? String else { return }
+            batchReviewSearchRequest = BellBatchReviewSearchRequest(query: query)
         }
         .onChange(of: bells) { _, newValue in
             viewModel.updateSource(bells: newValue)

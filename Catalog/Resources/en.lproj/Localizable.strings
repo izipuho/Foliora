@@ -127,6 +127,7 @@
 "bell_batch_add.completion.message" = "%d bells created";
 "bell_batch_add.error.title" = "Creation Failed";
 "bell_batch_add.error.message" = "Could not create the selected bells.";
+"bell_batch_add.review_results" = "Review results";
 "batch_name_prefix" = "Batch";
 
 "editor.tags.add_placeholder" = "Add tag";

@@ -17,14 +17,21 @@ private struct BellBatchNameGenerator {
         self.formatter = formatter
     }
 
+    var batchPrefix: String {
+        "\(prefix) \(formatter.string(from: timestamp))"
+    }
+
     func names(count: Int) -> [String] {
         guard count > 0 else { return [] }
 
-        let formattedTimestamp = formatter.string(from: timestamp)
         return (1...count).map { index in
-            "\(prefix) \(formattedTimestamp) #\(index)"
+            "\(batchPrefix) #\(index)"
         }
     }
+}
+
+extension Notification.Name {
+    static let bellBatchReviewResultsRequested = Notification.Name("bellBatchReviewResultsRequested")
 }
 
 private enum BellBatchMediaLoadState: Equatable {
@@ -36,7 +43,7 @@ private enum BellBatchMediaLoadState: Equatable {
 
 private enum BellBatchCreationState: Equatable {
     case editing
-    case completed(Int)
+    case completed(createdCount: Int, reviewQuery: String)
     case failed
 }
 
@@ -128,8 +135,8 @@ struct BellBatchAddView: View {
     @ViewBuilder
     private var content: some View {
         switch creationState {
-        case .completed(let createdCount):
-            completionContent(createdCount: createdCount)
+        case .completed(let createdCount, let reviewQuery):
+            completionContent(createdCount: createdCount, reviewQuery: reviewQuery)
         case .editing, .failed:
             editContent
         }
@@ -201,7 +208,7 @@ struct BellBatchAddView: View {
         }
     }
 
-    private func completionContent(createdCount: Int) -> some View {
+    private func completionContent(createdCount: Int, reviewQuery: String) -> some View {
         VStack(spacing: 24) {
             Spacer()
 
@@ -212,10 +219,17 @@ struct BellBatchAddView: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
 
-            Button(String(localized: "common.done")) {
-                dismiss()
+            VStack(spacing: 12) {
+                Button(String(localized: "bell_batch_add.review_results")) {
+                    reviewResults(query: reviewQuery)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button(String(localized: "common.done")) {
+                    dismiss()
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.borderedProminent)
 
             Spacer()
         }
@@ -372,7 +386,8 @@ struct BellBatchAddView: View {
 
         creationErrorMessage = nil
 
-        let names = BellBatchNameGenerator().names(count: mediaPayloads.count)
+        let nameGenerator = BellBatchNameGenerator()
+        let names = nameGenerator.names(count: mediaPayloads.count)
         let now = Date()
         let bells = mediaPayloads.enumerated().map { index, mediaAsset in
             let bellID = UUID()
@@ -405,6 +420,17 @@ struct BellBatchAddView: View {
 
         repository.saveBellRecords(bells)
         onComplete()
-        creationState = .completed(bells.count)
+        creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)
+    }
+
+    @MainActor
+    private func reviewResults(query: String) {
+        dismiss()
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: .bellBatchReviewResultsRequested,
+                object: query
+            )
+        }
     }
 }

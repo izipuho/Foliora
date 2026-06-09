@@ -127,6 +127,7 @@
 "bell_batch_add.completion.message" = "Создано колокольчиков: %d";
 "bell_batch_add.error.title" = "Не удалось создать";
 "bell_batch_add.error.message" = "Не удалось создать выбранные колокольчики.";
+"bell_batch_add.review_results" = "Посмотреть результаты";
 "batch_name_prefix" = "Партия";
 
 "editor.tags.add_placeholder" = "Добавить тег";
