@@ -1,9 +1,44 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
+
+private struct BellBatchNameGenerator {
+    private let prefix: String
+    private let timestamp: Date
+    private let formatter: DateFormatter
+
+    init(timestamp: Date = .now, prefix: String = String(localized: "batch_name_prefix")) {
+        self.prefix = prefix
+        self.timestamp = timestamp
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH-mm"
+        self.formatter = formatter
+    }
+
+    func names(count: Int) -> [String] {
+        guard count > 0 else { return [] }
+
+        let formattedTimestamp = formatter.string(from: timestamp)
+        return (1...count).map { index in
+            "\(prefix) \(formattedTimestamp) #\(index)"
+        }
+    }
+}
+
+private enum BellBatchMediaLoadState: Equatable {
+    case idle
+    case loading
+    case loaded
+    case failed
+}
 
 struct BellBatchAddView: View {
     let collection: CollectionSummary
     let photoCount: Int
+    private let photoItems: [PhotosPickerItem]
+    private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
     @Query private var queriedLocations: [LocationEntity]
     @Query private var queriedBells: [BellEntity]
@@ -16,12 +51,16 @@ struct BellBatchAddView: View {
     @State private var tags: [String] = []
     @State private var material: BellMaterial = .unknown
     @State private var customMaterialName = ""
+    @State private var mediaLoadState: BellBatchMediaLoadState = .idle
+    @State private var mediaPayloads: [ImageMedia] = []
+    @State private var mediaLoadErrorMessage: String?
 
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
-    init(collection: CollectionSummary, photoCount: Int) {
+    init(collection: CollectionSummary, photoCount: Int, photoItems: [PhotosPickerItem] = []) {
         self.collection = collection
         self.photoCount = photoCount
+        self.photoItems = photoItems
         let homeID = Optional(collection.homeID)
         let collectionID = Optional(collection.id)
         _queriedLocations = Query(
@@ -82,12 +121,23 @@ struct BellBatchAddView: View {
                     )
                 }
 
+                if let mediaLoadErrorMessage {
+                    Section {
+                        Text(mediaLoadErrorMessage)
+                            .foregroundStyle(.red)
+                    }
+                }
+
                 Section {
                     Button(createButtonLabel) {}
+                        .disabled(mediaLoadState == .loading)
                 }
             }
             .navigationTitle(String(localized: "bell_batch_add.title"))
             .navigationBarTitleDisplayMode(.inline)
+            .task(id: photoItems.map(\.itemIdentifier)) {
+                await loadMediaPayloadsIfNeeded()
+            }
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 2) {
@@ -193,5 +243,27 @@ struct BellBatchAddView: View {
         }
 
         return parts.joined(separator: " / ")
+    }
+
+    @MainActor
+    private func loadMediaPayloadsIfNeeded() async {
+        guard mediaLoadState == .idle, !photoItems.isEmpty else { return }
+
+        mediaLoadState = .loading
+        mediaLoadErrorMessage = nil
+
+        do {
+            var loadedPayloads: [ImageMedia] = []
+            for item in photoItems {
+                loadedPayloads.append(try await imageMediaBuilder.build(from: item))
+            }
+
+            mediaPayloads = loadedPayloads
+            mediaLoadState = .loaded
+        } catch {
+            mediaPayloads = []
+            mediaLoadState = .failed
+            mediaLoadErrorMessage = String(localized: "bell.detail.preview.load_error")
+        }
     }
 }

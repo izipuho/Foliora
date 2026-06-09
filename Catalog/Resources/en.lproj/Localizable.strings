@@ -123,6 +123,7 @@
 "editor.bell.add" = "Add Bell";
 "editor.bell.edit" = "Edit Bell";
 "bell_batch_add.title" = "Common Fields";
+"batch_name_prefix" = "Batch";
 
 "editor.tags.add_placeholder" = "Add tag";
 "editor.tags.empty" = "No tags yet.";
