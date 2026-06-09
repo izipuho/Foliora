@@ -96,30 +96,43 @@ struct CollectionsView: View {
     }
 
     private var emptyCollectionsView: some View {
-        VStack(spacing: 24) {
-            ContentUnavailableView(
-                String(localized: "collections.empty.title"),
-                systemImage: "square.grid.2x2",
-                description: Text(String(localized: "collections.empty.description"))
+        if homes.isEmpty {
+            CatalogEmptyStateView(
+                systemImage: "house.slash",
+                title: "home.empty.title",
+                message: "home.empty.description",
+                primaryActionTitle: "home.add",
+                primaryActionSystemImage: "plus.circle.fill",
+                primaryTint: Color(red: 0.20, green: 0.42, blue: 0.34),
+                primaryAction: presentEditorForNewHome
             )
-            .frame(maxWidth: .infinity)
-
-            Button {
-                isPresentingAddCollectionEditor = true
-            } label: {
-                Label(String(localized: "collections.add"), systemImage: "plus.circle.fill")
-                    .font(.headline)
-                    .frame(maxWidth: 420)
-                    .frame(height: 56)
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, 20)
-            .buttonStyle(.borderedProminent)
-            .tint(Color(red: 0.53, green: 0.31, blue: 0.14))
+        } else {
+            CatalogEmptyStateView(
+                systemImage: "square.grid.2x2",
+                title: "collections.empty.title",
+                message: "collections.empty.description",
+                primaryActionTitle: "collections.add",
+                primaryActionSystemImage: "plus.circle.fill",
+                primaryTint: Color(red: 0.53, green: 0.31, blue: 0.14),
+                primaryAction: {
+                    isPresentingAddCollectionEditor = true
+                }
+            )
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .padding(.horizontal)
-        .padding(.bottom, 80)
+    }
+
+    private func createHome() -> Home {
+        let newHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+        repository.saveHome(newHome)
+        repository.saveLocations([], in: newHome.id)
+        return newHome
+    }
+
+    private func presentEditorForNewHome() {
+        let newHome = createHome()
+        DispatchQueue.main.async {
+            navigate?(.editHome(newHome.id))
+        }
     }
 
     private func addCollection(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {

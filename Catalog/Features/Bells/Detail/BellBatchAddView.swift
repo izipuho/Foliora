@@ -30,6 +30,38 @@ private struct BellBatchNameGenerator {
     }
 }
 
+#if DEBUG
+private extension BellBatchAddView {
+    static var completionPreview: some View {
+        BellBatchAddView(
+            collection: CollectionSummary(
+                id: UUID(),
+                homeID: UUID(),
+                kind: .bells,
+                name: "Preview Collection",
+                subtitle: "",
+                backgroundStyle: .amber,
+                itemCount: 0,
+                collaboratorCount: 0,
+                role: .owner,
+                status: .active,
+                sharingSummary: ""
+            ),
+            photoCount: 8
+        )
+        .completionContent(createdCount: 8, reviewQuery: "Preview Batch")
+    }
+}
+
+#Preview("Batch Add Completion") {
+    NavigationStack {
+        BellBatchAddView.completionPreview
+            .navigationTitle(String(localized: "bell_batch_add.title"))
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+#endif
+
 enum BatchAddCompletionAction {
     case done
     case reviewResults(String)
@@ -210,32 +242,20 @@ struct BellBatchAddView: View {
     }
 
     private func completionContent(createdCount: Int, reviewQuery: String) -> some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            Text(String(localized: "bell_batch_add.completion.title"))
-                .font(.title2.weight(.semibold))
-
-            Text(completionMessage(createdCount: createdCount))
-                .font(.body)
-                .foregroundStyle(.secondary)
-
-            VStack(spacing: 12) {
-                Button(String(localized: "bell_batch_add.review_results")) {
-                    onComplete(.reviewResults(reviewQuery))
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button(String(localized: "common.done")) {
-                    onComplete(.done)
-                }
-                .buttonStyle(.bordered)
+        CatalogEmptyStateView(
+            systemImage: "checkmark.circle",
+            title: LocalizedStringKey(String(localized: "bell_batch_add.completion.title")),
+            message: LocalizedStringKey(completionMessage(createdCount: createdCount)),
+            primaryActionTitle: LocalizedStringKey(String(localized: "common.done")),
+            primaryTint: .accentColor,
+            primaryAction: {
+                onComplete(.done)
+            },
+            secondaryActionTitle: LocalizedStringKey(String(localized: "bell_batch_add.review_results")),
+            secondaryAction: {
+                onComplete(.reviewResults(reviewQuery))
             }
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        )
     }
 
     private var localizedBellCount: String {
