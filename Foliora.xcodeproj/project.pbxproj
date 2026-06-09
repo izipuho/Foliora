@@ -36,6 +36,7 @@
 		24F1A4662FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4652FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard */; };
 		24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */; };
 		24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */; };
+		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
 		C000000000000000000000A1 /* CatalogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000001 /* CatalogApp.swift */; };
 		C000000000000000000000A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
 		C000000000000000000000A3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* AppRouter.swift */; };
@@ -55,8 +56,6 @@
 		C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000014 /* CloudKitConfiguration.swift */; };
 		C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000015 /* CloudKitCatalogRepository.swift */; };
 		C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000018 /* LocalMediaFileStore.swift */; };
-		C000000000000000000000B7 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000019 /* Localizable.stringsdict */; };
-		C000000000000000000000B8 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001C /* Localizable.strings */; };
 		C000000000000000000000B9 /* BellCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001F /* BellCardView.swift */; };
 		C000000000000000000000BA /* CatalogEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000025 /* CatalogEntities.swift */; };
 		C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000026 /* CatalogSwiftDataStack.swift */; };
@@ -102,6 +101,7 @@
 		24F1A4652FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "LaunchScreenBells 2.storyboard"; sourceTree = "<group>"; };
 		24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellBatchAddView.swift; sourceTree = "<group>"; };
 		24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEmptyStateView.swift; sourceTree = "<group>"; };
+		24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		C00000000000000000000001 /* CatalogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogApp.swift; sourceTree = "<group>"; };
 		C00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
 		C00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
@@ -123,10 +123,6 @@
 		C00000000000000000000015 /* CloudKitCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCatalogRepository.swift; sourceTree = "<group>"; };
 		C00000000000000000000016 /* Catalog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catalog.entitlements; sourceTree = "<group>"; };
 		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
-		C0000000000000000000001A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		C0000000000000000000001B /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ru; path = ru.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
-		C0000000000000000000001D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
-		C0000000000000000000001E /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
 		C0000000000000000000001F /* BellCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCardView.swift; sourceTree = "<group>"; };
 		C00000000000000000000025 /* CatalogEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEntities.swift; sourceTree = "<group>"; };
 		C00000000000000000000026 /* CatalogSwiftDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSwiftDataStack.swift; sourceTree = "<group>"; };
@@ -295,8 +291,7 @@
 			isa = PBXGroup;
 			children = (
 				C00000000000000000000011 /* Assets.xcassets */,
-				C0000000000000000000001C /* Localizable.strings */,
-				C00000000000000000000019 /* Localizable.stringsdict */,
+				24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -570,9 +565,8 @@
 			files = (
 				24F1A4662FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard in Resources */,
 				C000000000000000000000B1 /* Assets.xcassets in Resources */,
-				C000000000000000000000B8 /* Localizable.strings in Resources */,
+				24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */,
 				24F1A4542FD6B4CF00FC1717 /* LaunchScreenBells.storyboard in Resources */,
-				C000000000000000000000B7 /* Localizable.stringsdict in Resources */,
 			);
 		};
 /* End PBXResourcesBuildPhase section */
@@ -654,27 +648,6 @@
 			);
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		C00000000000000000000019 /* Localizable.stringsdict */ = {
-			isa = PBXVariantGroup;
-			children = (
-				C0000000000000000000001A /* en */,
-				C0000000000000000000001B /* ru */,
-			);
-			name = Localizable.stringsdict;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000001C /* Localizable.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				C0000000000000000000001D /* en */,
-				C0000000000000000000001E /* ru */,
-			);
-			name = Localizable.strings;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		2434A0072FAC6FDA005383FB /* Debug configuration for PBXNativeTarget "BellRecognitionDebugML" */ = {
@@ -991,10 +964,12 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -1038,9 +1013,11 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;

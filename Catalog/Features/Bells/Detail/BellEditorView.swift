@@ -304,7 +304,7 @@ struct BellEditorView: View {
                             }
                             .buttonStyle(.plain)
                             .foregroundStyle(.red)
-                            .accessibilityHint(String(localized: "common.field.title.focus"))
+                            .accessibilityHint(String(localized: "editor.title.focus"))
                         }
 
                         TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
@@ -345,7 +345,7 @@ struct BellEditorView: View {
                         )
 
                         if material == .other {
-                            TextField(String(localized: "common.field.material.custom"), text: $customMaterialName)
+                            TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
                         }
 
                     }

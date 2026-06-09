@@ -665,7 +665,7 @@ struct PlacePickerView: View {
                 }
 
                 if !searchModel.results.isEmpty {
-                    Section(String(localized: "common.field.origin.results")) {
+                    Section(String(localized: "editor.origin.results")) {
                         ForEach(searchModel.results) { result in
                             Button {
                                 PlaceSearchModel.resolve(result) { place in
@@ -698,7 +698,7 @@ struct PlacePickerView: View {
                     }
                 }
 
-                Section(String(localized: "common.field.origin.places")) {
+                Section(String(localized: "editor.origin.places")) {
                     ForEach(filteredPlaces) { place in
                         Button {
                             selectedPlace = place
@@ -725,9 +725,9 @@ struct PlacePickerView: View {
                     }
                 }
             }
-            .navigationTitle(String(localized: "common.field.origin.title"))
+            .navigationTitle(String(localized: "editor.origin.title"))
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: String(localized: "common.field.origin.search"))
+            .searchable(text: $searchText, prompt: String(localized: "editor.origin.search"))
             .onChange(of: searchText) { _, newValue in
                 searchModel.updateQuery(newValue)
             }
