@@ -27,20 +27,6 @@ struct SettingsView: View {
     var body: some View {
         List {
             Section {
-                NavigationLink {
-                    HomeView(
-                        repository: repository,
-                        embedsNavigation: false,
-                        navigate: navigate
-                    )
-                } label: {
-                    Label(String(localized: "root_tab.homes"), systemImage: "house")
-                }
-            } footer: {
-                Text(String(localized: "settings.storage.subtitle"))
-            }
-
-            Section {
                 Button {
                     exportCurrentBackup()
                 } label: {
