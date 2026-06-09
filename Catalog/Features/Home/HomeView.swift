@@ -50,16 +50,7 @@ struct HomeView: View {
     private var homeContent: some View {
         Group {
             if homes.isEmpty {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        homesSection
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .contentMargins(.horizontal, nil, for: .scrollContent)
-                .contentMargins(.top, nil, for: .scrollContent)
-                .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
-                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+                emptyHomesView
             } else {
                 List {
                     Section {
@@ -111,31 +102,16 @@ struct HomeView: View {
         }
     }
 
-    private var homesSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if homes.isEmpty {
-                ContentUnavailableView(
-                    String(localized: "home.empty.title"),
-                    systemImage: "house.slash",
-                    description: Text(String(localized: "home.empty.description"))
-                )
-                .frame(maxWidth: .infinity)
-                .padding(.top, 80)
-
-                Button {
-                    presentEditorForNewHome()
-                } label: {
-                    Label(String(localized: "home.add"), systemImage: "plus.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: 420)
-                        .frame(height: 52)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.horizontal, 20)
-                .buttonStyle(.borderedProminent)
-                .tint(Color(red: 0.20, green: 0.42, blue: 0.34))
-            }
-        }
+    private var emptyHomesView: some View {
+        CatalogEmptyStateView(
+            systemImage: "house.slash",
+            title: "home.empty.title",
+            message: "home.empty.description",
+            primaryActionTitle: "home.add",
+            primaryActionSystemImage: "plus.circle.fill",
+            primaryTint: Color(red: 0.20, green: 0.42, blue: 0.34),
+            primaryAction: presentEditorForNewHome
+        )
     }
 
     @ViewBuilder
