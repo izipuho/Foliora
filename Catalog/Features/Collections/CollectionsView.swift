@@ -110,7 +110,7 @@ struct CollectionsView: View {
     }
 
     private func addCollection(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
-        let trimmedTtle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let collection = Collection(
