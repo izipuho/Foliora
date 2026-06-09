@@ -6,6 +6,7 @@ struct CollectionsView: View {
     let onCollectionSelected: ((CollectionEntity) -> Void)?
     let onBellSelected: ((BellEntity) -> Void)?
     let navigate: ((AppDestination) -> Void)?
+    let onOpenHomes: () -> Void
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
     @State private var isPresentingAddCollectionEditor = false
@@ -15,12 +16,14 @@ struct CollectionsView: View {
         repository: any CatalogRepository,
         onCollectionSelected: ((CollectionEntity) -> Void)? = nil,
         onBellSelected: ((BellEntity) -> Void)? = nil,
-        navigate: ((AppDestination) -> Void)? = nil
+        navigate: ((AppDestination) -> Void)? = nil,
+        onOpenHomes: @escaping () -> Void = {}
     ) {
         self.repository = repository
         self.onCollectionSelected = onCollectionSelected
         self.onBellSelected = onBellSelected
         self.navigate = navigate
+        self.onOpenHomes = onOpenHomes
     }
 
     private var collections: [CollectionSummary] {
@@ -86,7 +89,7 @@ struct CollectionsView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        isPresentingAddCollectionEditor = true
+                        presentAddCollectionEditor()
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -95,17 +98,10 @@ struct CollectionsView: View {
         }
     }
 
+    @ViewBuilder
     private var emptyCollectionsView: some View {
         if homes.isEmpty {
-            CatalogEmptyStateView(
-                systemImage: "house.slash",
-                title: "home.empty.title",
-                message: "home.empty.description",
-                primaryActionTitle: "home.add",
-                primaryActionSystemImage: "plus.circle.fill",
-                primaryTint: Color(red: 0.20, green: 0.42, blue: 0.34),
-                primaryAction: presentEditorForNewHome
-            )
+            requiresHomeEmptyView
         } else {
             CatalogEmptyStateView(
                 systemImage: "square.grid.2x2",
@@ -114,28 +110,37 @@ struct CollectionsView: View {
                 primaryActionTitle: "collections.add",
                 primaryActionSystemImage: "plus.circle.fill",
                 primaryTint: Color(red: 0.53, green: 0.31, blue: 0.14),
-                primaryAction: {
-                    isPresentingAddCollectionEditor = true
-                }
+                primaryAction: presentAddCollectionEditor
             )
         }
     }
 
-    private func createHome() -> Home {
-        let newHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
-        repository.saveHome(newHome)
-        repository.saveLocations([], in: newHome.id)
-        return newHome
+    private var requiresHomeEmptyView: some View {
+        CatalogEmptyStateView(
+            systemImage: "house",
+            title: LocalizedStringKey(String(localized: "collections.empty.requires_home.title")),
+            message: LocalizedStringKey(String(localized: "collections.empty.requires_home.message")),
+            primaryActionTitle: LocalizedStringKey(String(localized: "collections.empty.requires_home.action")),
+            primaryActionSystemImage: "house.fill",
+            primaryTint: Color(red: 0.20, green: 0.42, blue: 0.34),
+            primaryAction: onOpenHomes
+        )
     }
 
-    private func presentEditorForNewHome() {
-        let newHome = createHome()
-        DispatchQueue.main.async {
-            navigate?(.editHome(newHome.id))
+    private func presentAddCollectionEditor() {
+        guard !homes.isEmpty else {
+            onOpenHomes()
+            return
         }
+        isPresentingAddCollectionEditor = true
     }
 
     private func addCollection(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
+        guard !homes.isEmpty else {
+            onOpenHomes()
+            return
+        }
+
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
 

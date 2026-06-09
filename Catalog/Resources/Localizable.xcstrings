@@ -2500,6 +2500,54 @@
         }
       }
     },
+    "collections.empty.requires_home.action" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Homes"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть дома"
+          }
+        }
+      }
+    },
+    "collections.empty.requires_home.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections belong to a home. Create a home before adding collections."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Коллекции привязаны к дому. Перед созданием коллекции необходимо создать дом."
+          }
+        }
+      }
+    },
+    "collections.empty.requires_home.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a home first"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала создайте дом"
+          }
+        }
+      }
+    },
     "collections.empty.title" : {
       "localizations" : {
         "en" : {

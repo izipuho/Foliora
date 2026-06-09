@@ -341,7 +341,8 @@ private struct RootShellView<Destination: View>: View {
         NavigationStack(path: path) {
             CollectionsView(
                 repository: repository,
-                navigate: { path.wrappedValue.append($0) }
+                navigate: { path.wrappedValue.append($0) },
+                onOpenHomes: openHomesTab
             )
             .navigationDestination(for: AppDestination.self) { destination in
                 self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popCollectionsNavigation)
@@ -389,6 +390,10 @@ private struct RootShellView<Destination: View>: View {
         if !settingsPath.isEmpty {
             settingsPath.removeLast()
         }
+    }
+
+    private func openHomesTab() {
+        selectedRootTab = .homes
     }
 
     private func openBellInspector(_ bell: BellEntity) {
