@@ -647,32 +647,28 @@ struct BellBatchAddView: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("\(photoCount) photos selected")
-                }
-
-                Section {
                     LocationPickerField(
-                        title: "Location",
+                        title: String(localized: "editor.location"),
                         selectedLabel: selectedLocationLabel,
                         locations: availableLocations,
                         selectedLocationID: $selectedLocationID
                     )
 
                     PlacePickerField(
-                        title: "Place",
+                        title: String(localized: "common.field.origin"),
                         selectedLabel: selectedOriginLabel,
                         places: availablePlaces,
                         selectedPlace: $selectedOriginPlace
                     )
 
                     YearPickerField(
-                        title: "Acquisition year",
+                        title: String(localized: "common.field.acquired_year"),
                         selection: $selectedAcquiredYearOption,
                         options: acquiredYearOptions
                     )
 
                     EnumSelectionRow(
-                        title: "Material",
+                        title: String(localized: "common.field.material"),
                         selectedLabel: material.displayName,
                         options: BellMaterial.allCases,
                         selection: $material,
@@ -680,11 +676,11 @@ struct BellBatchAddView: View {
                     )
 
                     if material == .other {
-                        TextField(String(localized: "common.field.material.custom"), text: $customMaterialName)
+                        TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
                     }
                 }
 
-                Section("Tags") {
+                Section(String(localized: "common.field.tags")) {
                     TagEditorSection(
                         tagInput: $tagInput,
                         tags: $tags
@@ -692,18 +688,49 @@ struct BellBatchAddView: View {
                 }
 
                 Section {
-                    Button("Create \(photoCount) Bells") {}
+                    Button(createButtonLabel) {}
                 }
             }
-            .navigationTitle("Batch Add Common Fields")
+            .navigationTitle(String(localized: "bell_batch_add.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 2) {
+                        Text(String(localized: "bell_batch_add.title"))
+                            .font(.headline)
+                        Text(selectedCountLabel)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: { Image(systemName: "xmark") }
                         .accessibilityLabel(String(localized: "common.cancel"))
                 }
             }
         }
+    }
+
+    private var localizedBellCount: String {
+        String.localizedStringWithFormat(
+            String(localized: "collection.count.bells"),
+            photoCount
+        )
+    }
+
+    private var selectedCountLabel: String {
+        String.localizedStringWithFormat(
+            String(localized: "common.selected_format"),
+            localizedBellCount
+        )
+    }
+
+    private var createButtonLabel: String {
+        String.localizedStringWithFormat(
+            String(localized: "common.create_format"),
+            localizedBellCount
+        )
     }
 
     private var availableLocations: [Location] {

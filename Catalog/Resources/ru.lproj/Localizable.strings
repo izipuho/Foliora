@@ -78,6 +78,7 @@
 "common.back" = "Назад";
 "common.cancel" = "Отмена";
 "common.clear" = "Сбросить";
+"common.create_format" = "Создать %@";
 "common.delete" = "Удалить";
 "common.done" = "Готово";
 "common.edit" = "Редактировать";
@@ -97,6 +98,7 @@
 "common.no_notes" = "Заметок пока нет.";
 "common.ok" = "OK";
 "common.save" = "Сохранить";
+"common.selected_format" = "Выбрано %@";
 "common.state.none" = "Нет";
 "common.state.unspecified" = "Не указан";
 "common.unknown" = "Неизвестно";
@@ -120,6 +122,7 @@
 "editor.location" = "Расположение";
 "editor.bell.add" = "Добавить колокольчик";
 "editor.bell.edit" = "Редактировать колокольчик";
+"bell_batch_add.title" = "Общие поля";
 
 "editor.tags.add_placeholder" = "Добавить тег";
 "editor.tags.empty" = "Тегов пока нет.";
