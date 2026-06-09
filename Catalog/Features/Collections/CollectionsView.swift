@@ -69,8 +69,8 @@ struct CollectionsView: View {
         if collections.isEmpty {
             emptyCollectionsView
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+            List {
+                Section {
                     ForEach(collections) { collection in
                         Button {
                             selectCollection(collection)
@@ -78,14 +78,14 @@ struct CollectionsView: View {
                             CollectionCard(collection: collection)
                         }
                         .buttonStyle(.plain)
+                        .listRowSeparator(.hidden)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .listStyle(.insetGrouped)
             .contentMargins(.horizontal, nil, for: .scrollContent)
             .contentMargins(.top, nil, for: .scrollContent)
             .contentMargins(.bottom, 120, for: .scrollContent)
-            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
