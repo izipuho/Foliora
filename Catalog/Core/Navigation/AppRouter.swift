@@ -42,19 +42,23 @@ struct AppShellView: View {
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
     @Query(sort: \LocationEntity.name) private var locationEntities: [LocationEntity]
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
-    @State private var path = NavigationPath()
+    @State private var collectionsPath = NavigationPath()
+    @State private var settingsPath = NavigationPath()
+    @State private var searchPath = NavigationPath()
 
     var body: some View {
         RootShellView(
             repository: repository,
-            path: $path,
-            navigate: { path.append($0) },
-            destination: { destination, layoutMode, onBellSelected, onBatchAddComplete in
+            collectionsPath: $collectionsPath,
+            settingsPath: $settingsPath,
+            searchPath: $searchPath,
+            destination: { destination, layoutMode, onBellSelected, onBatchAddComplete, popNavigation in
                 destinationView(
                     for: destination,
                     layoutMode: layoutMode,
                     onBellSelected: onBellSelected,
-                    onBatchAddComplete: onBatchAddComplete
+                    onBatchAddComplete: onBatchAddComplete,
+                    popNavigation: popNavigation
                 )
             }
         )
@@ -65,7 +69,8 @@ struct AppShellView: View {
         for destination: AppDestination,
         layoutMode: Binding<BellGridLayoutMode>,
         onBellSelected: ((BellEntity) -> Void)?,
-        onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void
+        onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void,
+        popNavigation: @escaping () -> Void
     ) -> some View {
         switch destination {
         case .collection(let collection):
@@ -88,9 +93,7 @@ struct AppShellView: View {
                     },
                     onDelete: {
                         repository.deleteHome(homeID: homeID)
-                        if !path.isEmpty {
-                            path.removeLast()
-                        }
+                        popNavigation()
                     }
                 )
             } else {
@@ -110,9 +113,7 @@ struct AppShellView: View {
                     },
                     onDelete: {
                         repository.deleteHome(homeID: homeID)
-                        if !path.isEmpty {
-                            path.removeLast()
-                        }
+                        popNavigation()
                     },
                     embedsNavigation: false,
                     focusesNameOnAppear: true
@@ -171,13 +172,15 @@ struct AppShellView: View {
 
 private struct RootShellView<Destination: View>: View {
     let repository: any CatalogRepository
-    @Binding var path: NavigationPath
-    let navigate: (AppDestination) -> Void
-    let destination: (AppDestination, Binding<BellGridLayoutMode>, ((BellEntity) -> Void)?, @escaping (BatchAddCompletionAction) -> Void) -> Destination
+    @Binding var collectionsPath: NavigationPath
+    @Binding var settingsPath: NavigationPath
+    @Binding var searchPath: NavigationPath
+    let destination: (AppDestination, Binding<BellGridLayoutMode>, ((BellEntity) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
     @State private var selectedRootTab: RootTab = .collections
     @State private var searchInitialQuery: String?
+    @State private var searchResetID = UUID()
     @State private var selectedBell: BellEntity?
 
     private var layoutMode: BellGridLayoutMode {
@@ -207,6 +210,17 @@ private struct RootShellView<Destination: View>: View {
         )
     }
 
+    private var selectedRootTabSelection: Binding<RootTab?> {
+        Binding(
+            get: { selectedRootTab },
+            set: { tab in
+                if let tab {
+                    selectedRootTab = tab
+                }
+            }
+        )
+    }
+
     var body: some View {
         if horizontalSizeClass == .regular {
             iPadRootContainer
@@ -218,37 +232,37 @@ private struct RootShellView<Destination: View>: View {
     private var iPhoneRootContainer: some View {
         TabView(selection: $selectedRootTab) {
             Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage, value: RootTab.collections) {
-                NavigationStack(path: $path) {
+                NavigationStack(path: $collectionsPath) {
                     CollectionsView(
                         repository: repository,
-                        navigate: navigate
+                        navigate: { collectionsPath.append($0) }
                     )
                     .navigationDestination(for: AppDestination.self) { destination in
-                        self.destination(destination, layoutModeBinding, nil, handleBatchAddCompletion)
+                        self.destination(destination, layoutModeBinding, nil, handleBatchAddCompletion, popCollectionsNavigation)
                     }
                 }
             }
 
             Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage, value: RootTab.settings) {
-                NavigationStack(path: $path) {
+                NavigationStack(path: $settingsPath) {
                     SettingsView(
                         repository: repository,
-                        navigate: navigate
+                        navigate: { settingsPath.append($0) }
                     )
                     .navigationDestination(for: AppDestination.self) { destination in
-                        self.destination(destination, layoutModeBinding, nil, handleBatchAddCompletion)
+                        self.destination(destination, layoutModeBinding, nil, handleBatchAddCompletion, popSettingsNavigation)
                     }
                 }
             }
 
             Tab(value: RootTab.search, role: .search) {
-                NavigationStack {
+                NavigationStack(path: $searchPath) {
                     SearchTabView(
                         repository: repository,
                         layoutMode: layoutModeBinding,
                         initialQuery: searchInitialQuery
                     )
-                    .id(searchInitialQuery)
+                    .id(searchResetID)
                 }
             }
         }
@@ -273,19 +287,14 @@ private struct RootShellView<Destination: View>: View {
 
     private var iPadSplitView: some View {
         NavigationSplitView {
-            List {
-                ForEach(RootTab.allCases) { tab in
-                    Button {
-                        closeBellInspector()
-                        selectedRootTab = tab
-                    } label: {
-                        Label(tab.title, systemImage: tab.systemImage)
-                    }
-                    .buttonStyle(.plain)
-                    .listRowBackground(selectedRootTab == tab ? Color.accentColor.opacity(0.14) : nil)
-                }
+            List(RootTab.allCases, selection: selectedRootTabSelection) { tab in
+                Label(tab.title, systemImage: tab.systemImage)
+                    .tag(tab)
             }
             .navigationTitle(RootTab.collections.title)
+            .onChange(of: selectedRootTab) { _, _ in
+                closeBellInspector()
+            }
         } detail: {
             iPadContent(for: selectedRootTab)
         }
@@ -295,33 +304,33 @@ private struct RootShellView<Destination: View>: View {
     private func iPadContent(for tab: RootTab) -> some View {
         switch tab {
         case .collections:
-            NavigationStack(path: $path) {
+            NavigationStack(path: $collectionsPath) {
                 CollectionsView(
                     repository: repository,
-                    navigate: navigate
+                    navigate: { collectionsPath.append($0) }
                 )
                 .navigationDestination(for: AppDestination.self) { destination in
-                    self.destination(destination, layoutModeBinding, openBellInspector, handleBatchAddCompletion)
+                    self.destination(destination, layoutModeBinding, openBellInspector, handleBatchAddCompletion, popCollectionsNavigation)
                 }
             }
         case .search:
-            NavigationStack {
+            NavigationStack(path: $searchPath) {
                 SearchTabView(
                     repository: repository,
                     layoutMode: layoutModeBinding,
                     initialQuery: searchInitialQuery,
                     onBellSelected: openBellInspector
                 )
-                .id(searchInitialQuery)
+                .id(searchResetID)
             }
         case .settings:
-            NavigationStack(path: $path) {
+            NavigationStack(path: $settingsPath) {
                 SettingsView(
                     repository: repository,
-                    navigate: navigate
+                    navigate: { settingsPath.append($0) }
                 )
                 .navigationDestination(for: AppDestination.self) { destination in
-                    self.destination(destination, layoutModeBinding, openBellInspector, handleBatchAddCompletion)
+                    self.destination(destination, layoutModeBinding, openBellInspector, handleBatchAddCompletion, popSettingsNavigation)
                 }
             }
         }
@@ -330,7 +339,22 @@ private struct RootShellView<Destination: View>: View {
     private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
         guard case .reviewResults(let query) = action else { return }
         searchInitialQuery = query
+        searchResetID = UUID()
         selectedRootTab = .search
+        closeBellInspector()
+        searchPath = NavigationPath()
+    }
+
+    private func popCollectionsNavigation() {
+        if !collectionsPath.isEmpty {
+            collectionsPath.removeLast()
+        }
+    }
+
+    private func popSettingsNavigation() {
+        if !settingsPath.isEmpty {
+            settingsPath.removeLast()
+        }
     }
 
     private func openBellInspector(_ bell: BellEntity) {
