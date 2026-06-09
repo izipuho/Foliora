@@ -87,7 +87,7 @@ struct SettingsView: View {
                 Text("Developer Tools")
             }
 
-            Text("Version \(appVersion) (\(buildNumber))")
+            Text("common.version")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)

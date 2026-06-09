@@ -304,7 +304,7 @@ struct BellEditorView: View {
                             }
                             .buttonStyle(.plain)
                             .foregroundStyle(.red)
-                            .accessibilityHint(String(localized: "common.field.title.focus"))
+                            .accessibilityHint(String(localized: "editor.title.focus"))
                         }
 
                         TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
