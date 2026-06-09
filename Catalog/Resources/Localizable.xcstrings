@@ -2505,13 +2505,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open Homes"
+            "value" : "Go to Homes"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть дома"
+            "state" : "needs_review",
+            "value" : "Перейти к домам"
           }
         }
       }
@@ -5928,23 +5928,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Шаринг"
-          }
-        }
-      }
-    },
-    "settings.storage.subtitle" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Homes, locations, items, and media are already represented in the domain model."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Дома, расположения, предметы и медиа уже представлены в доменной модели."
           }
         }
       }
