@@ -277,7 +277,7 @@ final class BellEntity {
     var createdAt: Date = Date()
     var conditionRaw: String = ItemCondition.good.rawValue
     var acquisitionMethodRaw: String = AcquisitionMethod.bought.rawValue
-    var materialRaw: String = BellMaterial.brass.rawValue
+    var materialRaw: String = BellMaterial.unknown.rawValue
     var customMaterialName: String?
     var createdBy: String = ""
 
@@ -348,7 +348,7 @@ final class BellEntity {
     }
 
     var material: BellMaterial {
-        BellMaterial(rawValue: materialRaw) ?? .brass
+        BellMaterial(rawValue: materialRaw) ?? .unknown
     }
 
     var materialDisplayName: String {

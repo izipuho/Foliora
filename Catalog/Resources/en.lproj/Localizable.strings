@@ -78,6 +78,7 @@
 "common.back" = "Back";
 "common.cancel" = "Cancel";
 "common.clear" = "Clear";
+"common.create_format" = "Create %@";
 "common.delete" = "Delete";
 "common.done" = "Done";
 "common.edit" = "Edit";
@@ -97,6 +98,7 @@
 "common.no_notes" = "No notes yet.";
 "common.ok" = "OK";
 "common.save" = "Save";
+"common.selected_format" = "Selected %@";
 "common.state.none" = "None";
 "common.state.unspecified" = "Unspecified";
 "common.unknown" = "Unknown";
@@ -120,6 +122,13 @@
 "editor.location" = "Location";
 "editor.bell.add" = "Add Bell";
 "editor.bell.edit" = "Edit Bell";
+"bell_batch_add.title" = "Common Fields";
+"bell_batch_add.completion.title" = "Batch Created";
+"bell_batch_add.completion.message" = "%d bells created";
+"bell_batch_add.error.title" = "Creation Failed";
+"bell_batch_add.error.message" = "Could not create the selected bells.";
+"bell_batch_add.review_results" = "Review results";
+"batch_name_prefix" = "Batch";
 
 "editor.tags.add_placeholder" = "Add tag";
 "editor.tags.empty" = "No tags yet.";

@@ -1,5 +1,7 @@
 import Foundation
 import CryptoKit
+import PhotosUI
+import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
 
@@ -10,6 +12,22 @@ struct ImageMedia {
 
 struct ImageMediaBuilder {
     let store: LocalMediaFileStore
+
+    @MainActor
+    func build(from item: PhotosPickerItem) async throws -> ImageMedia {
+        guard let data = try await item.loadTransferable(type: Data.self),
+              let image = UIImage(data: data) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        let contentType = item.supportedContentTypes.first
+        return try build(
+            from: data,
+            image: image,
+            preferredFileExtension: contentType?.preferredFilenameExtension,
+            mimeType: contentType?.preferredMIMEType
+        )
+    }
 
     func build(from image: UIImage) throws -> ImageMedia {
         guard let data = image.jpegData(compressionQuality: 0.92) else {

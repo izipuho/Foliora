@@ -78,6 +78,7 @@
 "common.back" = "Назад";
 "common.cancel" = "Отмена";
 "common.clear" = "Сбросить";
+"common.create_format" = "Создать %@";
 "common.delete" = "Удалить";
 "common.done" = "Готово";
 "common.edit" = "Редактировать";
@@ -97,6 +98,7 @@
 "common.no_notes" = "Заметок пока нет.";
 "common.ok" = "OK";
 "common.save" = "Сохранить";
+"common.selected_format" = "Выбрано %@";
 "common.state.none" = "Нет";
 "common.state.unspecified" = "Не указан";
 "common.unknown" = "Неизвестно";
@@ -120,6 +122,13 @@
 "editor.location" = "Расположение";
 "editor.bell.add" = "Добавить колокольчик";
 "editor.bell.edit" = "Редактировать колокольчик";
+"bell_batch_add.title" = "Общие поля";
+"bell_batch_add.completion.title" = "Партия создана";
+"bell_batch_add.completion.message" = "Создано колокольчиков: %d";
+"bell_batch_add.error.title" = "Не удалось создать";
+"bell_batch_add.error.message" = "Не удалось создать выбранные колокольчики.";
+"bell_batch_add.review_results" = "Посмотреть результаты";
+"batch_name_prefix" = "Партия";
 
 "editor.tags.add_placeholder" = "Добавить тег";
 "editor.tags.empty" = "Тегов пока нет.";

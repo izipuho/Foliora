@@ -5,6 +5,7 @@ import PhotosUI
 struct CollectionShellView: View {
     let repository: any CatalogRepository
     private let onBellSelected: ((BellEntity) -> Void)?
+    private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
@@ -12,6 +13,7 @@ struct CollectionShellView: View {
     @State private var collection: CollectionSummary
     @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
+    @State private var isPresentingBatchAdd = false
     @State private var isPresentingAddBellOptions = false
     @State private var isPresentingPhotoPicker = false
     @State private var isPresentingCamera = false
@@ -32,10 +34,12 @@ struct CollectionShellView: View {
         collection: CollectionSummary,
         repository: any CatalogRepository,
         layoutMode: Binding<BellGridLayoutMode>,
-        onBellSelected: ((BellEntity) -> Void)? = nil
+        onBellSelected: ((BellEntity) -> Void)? = nil,
+        onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.repository = repository
         self.onBellSelected = onBellSelected
+        self.onBatchAddComplete = onBatchAddComplete
         self.layoutMode = layoutMode
         _collection = State(initialValue: collection)
     }
@@ -122,7 +126,7 @@ struct CollectionShellView: View {
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
                 selection: $selectedPhotoItems,
-                maxSelectionCount: 1,
+                maxSelectionCount: nil,
                 matching: .images,
                 photoLibrary: .shared()
             )
@@ -142,6 +146,9 @@ struct CollectionShellView: View {
             }
             .sheet(isPresented: $isPresentingAddBell, onDismiss: clearDraftBell) {
                 addBellSheet
+            }
+            .sheet(isPresented: $isPresentingBatchAdd, onDismiss: clearDraftBell) {
+                batchAddSheet
             }
             .sheet(isPresented: $isPresentingEditCollection) {
                 editCollectionSheet
@@ -184,6 +191,16 @@ struct CollectionShellView: View {
             repository.saveBellRecord(newBell)
             refreshContent()
         }
+    }
+
+    private var batchAddSheet: some View {
+        BellBatchAddView(
+            collection: collection,
+            photoCount: draftMediaAssets.count,
+            initialMediaAssets: draftMediaAssets,
+            repository: repository,
+            onComplete: handleBatchAddCompletion
+        )
     }
 
     private var editCollectionSheet: some View {
@@ -256,6 +273,15 @@ struct CollectionShellView: View {
         refreshID = UUID()
     }
 
+    private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
+        isPresentingBatchAdd = false
+        refreshContent()
+
+        if case .reviewResults = action {
+            onBatchAddComplete(action)
+        }
+    }
+
     private func openBell(_ bell: BellEntity) {
         if let onBellSelected {
             onBellSelected(bell)
@@ -296,7 +322,11 @@ struct CollectionShellView: View {
         guard !newAssets.isEmpty else { return }
         draftMediaAssets = newAssets
         draftAnalysisImage = firstImage
-        isPresentingAddBell = true
+        if newAssets.count == 1 {
+            isPresentingAddBell = true
+        } else {
+            isPresentingBatchAdd = true
+        }
     }
 
     @MainActor
@@ -468,7 +498,7 @@ private struct AddBellMenu: View {
         } label: {
             floatingToolbarIcon(systemName: "plus")
         }
-        .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresented, titleVisibility: .visible) {
+        .confirmationDialog(String(localized: "editor.bell.add"), isPresented: $isPresented, titleVisibility: .visible) {
             Button(String(localized: "editor.media.photo_library"), action: onLibrary)
 
             if UIImagePickerController.isSourceTypeAvailable(.camera) {

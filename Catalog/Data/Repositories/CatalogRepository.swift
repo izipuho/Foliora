@@ -10,5 +10,12 @@ protocol CatalogRepository {
     func saveCollection(_ collection: Collection)
     func deleteCollection(collectionID: UUID)
     func saveBellRecord(_ bell: BellRecord)
+    func saveBellRecords(_ bells: [BellRecord])
     func deleteBellRecord(bellID: UUID)
+}
+
+extension CatalogRepository {
+    func saveBellRecords(_ bells: [BellRecord]) {
+        bells.forEach(saveBellRecord)
+    }
 }
