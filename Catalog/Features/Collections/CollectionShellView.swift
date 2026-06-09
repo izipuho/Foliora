@@ -468,7 +468,7 @@ private struct AddBellMenu: View {
         } label: {
             floatingToolbarIcon(systemName: "plus")
         }
-        .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresented, titleVisibility: .visible) {
+        .confirmationDialog(String(localized: "editor.bell.add"), isPresented: $isPresented, titleVisibility: .visible) {
             Button(String(localized: "editor.media.photo_library"), action: onLibrary)
 
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
