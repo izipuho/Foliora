@@ -105,15 +105,11 @@ struct BellEditorView: View {
     }
 
     private var canSave: Bool {
-        isTitleValid && isMaterialValid
+        isTitleValid
     }
 
     private var isTitleValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var isMaterialValid: Bool {
-        existingBellID != nil || material != .unknown
     }
 
     private var shouldShowPhotoAnalysisSection: Bool {
@@ -352,21 +348,6 @@ struct BellEditorView: View {
                             TextField(String(localized: "common.field.material.custom"), text: $customMaterialName)
                         }
 
-                        if !isMaterialValid {
-                            Button {
-                                emitAnalysisFeedback(.warning)
-                            } label: {
-                                Label {
-                                    Text(String(localized: "editor.material.required"))
-                                        .font(.footnote)
-                                } icon: {
-                                    Image(systemName: "exclamationmark.circle.fill")
-                                        .font(.footnote)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.red)
-                        }
                     }
 
                     Section(String(localized: "common.field.storage")) {
