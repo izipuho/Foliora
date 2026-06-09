@@ -48,20 +48,24 @@ struct BellCatalogSearchState: Equatable {
 struct SearchTabView: View {
     let repository: any CatalogRepository
     let onBellSelected: ((BellEntity) -> Void)?
+    private let initialQuery: String?
     @Binding var layoutMode: BellGridLayoutMode
     @Query(sort: \CollectionEntity.title) private var collections: [CollectionEntity]
     @Query(sort: \BellEntity.title) private var bells: [BellEntity]
     @State private var selectedBell: BellEntity?
     @State private var searchState = BellCatalogSearchState()
+    @State private var didApplyInitialQuery = false
     @FocusState private var isSearchFocused: Bool
 
     init(
         repository: any CatalogRepository,
         layoutMode: Binding<BellGridLayoutMode>,
+        initialQuery: String? = nil,
         onBellSelected: ((BellEntity) -> Void)? = nil
     ) {
         self.repository = repository
         self._layoutMode = layoutMode
+        self.initialQuery = initialQuery
         self.onBellSelected = onBellSelected
     }
 
@@ -167,6 +171,7 @@ struct SearchTabView: View {
         }
         .searchFocused($isSearchFocused)
         .onAppear {
+            applyInitialQueryIfNeeded()
             isSearchFocused = true
         }
         .sheet(item: $selectedBell) { bell in
@@ -181,6 +186,14 @@ struct SearchTabView: View {
         } else {
             selectedBell = bell
         }
+    }
+
+    private func applyInitialQueryIfNeeded() {
+        guard !didApplyInitialQuery else { return }
+        didApplyInitialQuery = true
+
+        guard let initialQuery else { return }
+        searchState.query = initialQuery
     }
 
     private func searchTokenTitle(_ token: SearchToken) -> String {
