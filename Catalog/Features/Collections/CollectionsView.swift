@@ -96,17 +96,43 @@ struct CollectionsView: View {
     }
 
     private var emptyCollectionsView: some View {
-        CatalogEmptyStateView(
-            systemImage: "square.grid.2x2",
-            title: "collections.empty.title",
-            message: "collections.empty.description",
-            primaryActionTitle: "collections.add",
-            primaryActionSystemImage: "plus.circle.fill",
-            primaryTint: Color(red: 0.53, green: 0.31, blue: 0.14),
-            primaryAction: {
-                isPresentingAddCollectionEditor = true
-            }
-        )
+        if homes.isEmpty {
+            CatalogEmptyStateView(
+                systemImage: "house.slash",
+                title: "home.empty.title",
+                message: "home.empty.description",
+                primaryActionTitle: "home.add",
+                primaryActionSystemImage: "plus.circle.fill",
+                primaryTint: Color(red: 0.20, green: 0.42, blue: 0.34),
+                primaryAction: presentEditorForNewHome
+            )
+        } else {
+            CatalogEmptyStateView(
+                systemImage: "square.grid.2x2",
+                title: "collections.empty.title",
+                message: "collections.empty.description",
+                primaryActionTitle: "collections.add",
+                primaryActionSystemImage: "plus.circle.fill",
+                primaryTint: Color(red: 0.53, green: 0.31, blue: 0.14),
+                primaryAction: {
+                    isPresentingAddCollectionEditor = true
+                }
+            )
+        }
+    }
+
+    private func createHome() -> Home {
+        let newHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+        repository.saveHome(newHome)
+        repository.saveLocations([], in: newHome.id)
+        return newHome
+    }
+
+    private func presentEditorForNewHome() {
+        let newHome = createHome()
+        DispatchQueue.main.async {
+            navigate?(.editHome(newHome.id))
+        }
     }
 
     private func addCollection(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
