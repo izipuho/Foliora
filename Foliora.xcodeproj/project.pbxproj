@@ -34,6 +34,7 @@
 		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
 		24F1A4542FD6B4CF00FC1717 /* LaunchScreenBells.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4532FD6B4CF00FC1717 /* LaunchScreenBells.storyboard */; };
 		24F1A4662FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4652FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard */; };
+		24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */; };
 		C000000000000000000000A1 /* CatalogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000001 /* CatalogApp.swift */; };
 		C000000000000000000000A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
 		C000000000000000000000A3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* AppRouter.swift */; };
@@ -98,6 +99,7 @@
 		24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Bells-Info.plist"; sourceTree = "<group>"; };
 		24F1A4532FD6B4CF00FC1717 /* LaunchScreenBells.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreenBells.storyboard; sourceTree = "<group>"; };
 		24F1A4652FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "LaunchScreenBells 2.storyboard"; sourceTree = "<group>"; };
+		24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellBatchAddView.swift; sourceTree = "<group>"; };
 		C00000000000000000000001 /* CatalogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogApp.swift; sourceTree = "<group>"; };
 		C00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
 		C00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
@@ -404,6 +406,7 @@
 		C00000000000000000000046 /* Detail */ = {
 			isa = PBXGroup;
 			children = (
+				24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */,
 				24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */,
 				C0000000000000000000000F /* BellDetailView.swift */,
 				D00000000000000000000031 /* BellDetailView+Subviews.swift */,
@@ -610,6 +613,7 @@
 				244FE0462FD7200000B4D805 /* CloudSyncDiagnosticsView.swift in Sources */,
 				244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */,
 				24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */,
+				24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */,
 				C000000000000000000000AF /* BellDetailView.swift in Sources */,
 				D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */,
 				24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */,
