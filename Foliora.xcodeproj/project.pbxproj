@@ -41,7 +41,6 @@
 		C000000000000000000000A1 /* CatalogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000001 /* CatalogApp.swift */; };
 		C000000000000000000000A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
 		C000000000000000000000A3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* AppRouter.swift */; };
-		C000000000000000000000A4 /* CollectionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000004 /* CollectionCard.swift */; };
 		C000000000000000000000A5 /* CollectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000005 /* CollectionModels.swift */; };
 		C000000000000000000000A6 /* ItemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000006 /* ItemModels.swift */; };
 		C000000000000000000000A7 /* BellItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000007 /* BellItem.swift */; };
@@ -107,7 +106,6 @@
 		C00000000000000000000001 /* CatalogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogApp.swift; sourceTree = "<group>"; };
 		C00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
 		C00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
-		C00000000000000000000004 /* CollectionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionCard.swift; sourceTree = "<group>"; };
 		C00000000000000000000005 /* CollectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionModels.swift; sourceTree = "<group>"; };
 		C00000000000000000000006 /* ItemModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemModels.swift; sourceTree = "<group>"; };
 		C00000000000000000000007 /* BellItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellItem.swift; sourceTree = "<group>"; };
@@ -314,7 +312,6 @@
 				C0000000000000000000002E /* AsyncThumbnailLoader.swift */,
 				C0000000000000000000001F /* BellCardView.swift */,
 				C00000000000000000000030 /* CatalogLayouts.swift */,
-				C00000000000000000000004 /* CollectionCard.swift */,
 				C00000000000000000000013 /* EditorFields.swift */,
 			);
 			path = SharedUI;
@@ -599,7 +596,6 @@
 				24F1A5022FD8C89000FC1717 /* CatalogContainerCard.swift in Sources */,
 				C000000000000000000000A2 /* AppContainer.swift in Sources */,
 				C000000000000000000000A3 /* AppRouter.swift in Sources */,
-				C000000000000000000000A4 /* CollectionCard.swift in Sources */,
 				C000000000000000000000A5 /* CollectionModels.swift in Sources */,
 				C000000000000000000000A6 /* ItemModels.swift in Sources */,
 				C000000000000000000000A7 /* BellItem.swift in Sources */,

@@ -194,3 +194,21 @@ struct CollectionsView: View {
         navigate?(.collection(collection))
     }
 }
+
+private struct CollectionCard: View {
+    let collection: CollectionSummary
+
+    private var detailLines: [String] {
+        [collection.kind.countLabel(for: collection.itemCount)]
+    }
+
+    var body: some View {
+        CatalogContainerCard(
+            title: collection.name,
+            subtitle: collection.subtitle,
+            detailLines: detailLines,
+            systemImage: collection.kind.systemImage,
+            accessorySystemImage: nil
+        )
+    }
+}
