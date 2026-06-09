@@ -27,37 +27,23 @@ struct SettingsView: View {
     var body: some View {
         List {
             Section {
-                NavigationLink {
-                    HomeView(
-                        repository: repository,
-                        embedsNavigation: false,
-                        navigate: navigate
-                    )
-                } label: {
-                    Label(String(localized: "root_tab.homes"), systemImage: "house")
-                }
-            } footer: {
-                Text(String(localized: "settings.storage.subtitle"))
-            }
-
-            Section {
                 Button {
                     exportCurrentBackup()
                 } label: {
-                    Label(String(localized: "settings.data.export"), systemImage: "square.and.arrow.up")
+                    Label("settings.data.export", systemImage: "square.and.arrow.up")
                 }
                 .disabled(isImportExportRunning)
 
                 Button {
                     isImportingDocument = true
                 } label: {
-                    Label(String(localized: "settings.data.import"), systemImage: "square.and.arrow.down")
+                    Label("settings.data.import", systemImage: "square.and.arrow.down")
                 }
                 .disabled(isImportExportRunning)
             } header: {
-                Text(String(localized: "settings.data.section_title"))
+                Text("settings.data.section_title")
             } footer: {
-                Text(String(localized: "settings.data.footer"))
+                Text("settings.data.footer")
             }
 
             Section {
@@ -87,7 +73,7 @@ struct SettingsView: View {
                 Text("Developer Tools")
             }
 
-            Text("common.version")
+            Text("common.version \(appVersion) (\(buildNumber))")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -114,7 +100,7 @@ struct SettingsView: View {
         ) { result in
             handleImport(result)
         }
-        .alert(String(localized: "settings.export.error_title"), isPresented: Binding(
+        .alert("settings.export.error_title", isPresented: Binding(
             get: { exportErrorMessage != nil },
             set: { newValue in
                 if !newValue {
@@ -122,11 +108,11 @@ struct SettingsView: View {
                 }
             }
         )) {
-            Button(String(localized: "common.ok"), role: .cancel) {}
+            Button("common.ok", role: .cancel) {}
         } message: {
             Text(exportErrorMessage ?? "")
         }
-        .alert(String(localized: "settings.import.error_title"), isPresented: Binding(
+        .alert("settings.import.error_title", isPresented: Binding(
             get: { importErrorMessage != nil },
             set: { newValue in
                 if !newValue {
@@ -134,11 +120,11 @@ struct SettingsView: View {
                 }
             }
         )) {
-            Button(String(localized: "common.ok"), role: .cancel) {}
+            Button("common.ok", role: .cancel) {}
         } message: {
             Text(importErrorMessage ?? "")
         }
-        .alert(String(localized: "settings.import.warning_title"), isPresented: Binding(
+        .alert("settings.import.warning_title", isPresented: Binding(
             get: { importWarningMessage != nil },
             set: { newValue in
                 if !newValue {
@@ -146,7 +132,7 @@ struct SettingsView: View {
                 }
             }
         )) {
-            Button(String(localized: "common.ok"), role: .cancel) {}
+            Button("common.ok", role: .cancel) {}
         } message: {
             Text(importWarningMessage ?? "")
         }
