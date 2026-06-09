@@ -50,7 +50,7 @@ struct BellEditorView: View {
     @State private var tagInput = ""
     @State private var tags: [String] = []
     @State private var mediaAssets: [MediaAsset] = []
-    @State private var selectedAcquiredYearOption = String(localized: "common.field.none")
+    @State private var selectedAcquiredYearOption = String(localized: "common.none")
     @State private var highlightedSection: StartSection?
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
@@ -60,7 +60,7 @@ struct BellEditorView: View {
     private let existingCreatedAt: Date?
     private let editorItemID: UUID
 
-    private let acquiredYearOptions = [String(localized: "common.field.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
+    private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     private var availableLocations: [Location] {
         queriedLocations.map { entity in
@@ -514,7 +514,7 @@ struct BellEditorView: View {
                 createdAt: existingCreatedAt ?? .now,
                 title: trimmedTitle,
                 notes: trimmedNotes,
-                acquiredYear: selectedAcquiredYearOption == String(localized: "common.field.none") ? nil : Int(selectedAcquiredYearOption),
+                acquiredYear: selectedAcquiredYearOption == String(localized: "common.none") ? nil : Int(selectedAcquiredYearOption),
                 condition: condition,
                 acquisitionMethod: acquisitionMethod
             ),

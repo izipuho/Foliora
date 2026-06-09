@@ -552,19 +552,19 @@ private struct MediaAssetThumbnailView: View {
 
     var body: some View {
         Group {
-            switch asset.kind {
-            case .photo:
-                if let image = previewImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                } else {
+            if let image = previewImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                switch asset.kind {
+                case .photo:
                     placeholder(systemImage: "photo")
+                case .document:
+                    documentPlaceholder
+                case .model3D:
+                    placeholder(systemImage: "cube.transparent")
                 }
-            case .document:
-                documentPlaceholder
-            case .model3D:
-                placeholder(systemImage: "cube.transparent")
             }
         }
         .frame(width: size, height: size)
@@ -572,12 +572,22 @@ private struct MediaAssetThumbnailView: View {
     }
 
     private var previewImage: UIImage? {
-        guard let url = mediaStore.thumbnailFileURL(for: asset.localIdentifier) ?? mediaStore.fileURL(for: asset.localIdentifier),
-              let image = UIImage(contentsOfFile: url.path) else {
-            return nil
+        if let thumbnailData = asset.thumbnailData,
+           let image = UIImage(data: thumbnailData) {
+            return image
         }
 
-        return image
+        if let url = mediaStore.thumbnailFileURL(for: asset.localIdentifier) ?? mediaStore.fileURL(for: asset.localIdentifier),
+           let image = UIImage(contentsOfFile: url.path) {
+            return image
+        }
+
+        if let originalData = asset.originalData,
+           let image = UIImage(data: originalData) {
+            return image
+        }
+
+        return nil
     }
 
     private var documentPlaceholder: some View {

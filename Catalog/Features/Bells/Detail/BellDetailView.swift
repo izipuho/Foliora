@@ -227,9 +227,11 @@ struct BellDetailView: View {
     private var heroHeader: some View {
         GeometryReader { proxy in
             ZStack {
-                if let coverPhotoIdentifier = bell.coverPhotoIdentifier {
+                if bell.coverPhotoThumbnailData != nil || bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil {
                     BellCardCoverBackground(
-                        identifier: coverPhotoIdentifier,
+                        identifier: bell.coverPhotoIdentifier,
+                        thumbnailData: bell.coverPhotoThumbnailData,
+                        originalData: bell.coverPhotoOriginalData,
                         size: CGSize(width: proxy.size.width, height: 320)
                     )
                 } else {

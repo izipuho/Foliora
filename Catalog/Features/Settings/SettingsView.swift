@@ -15,14 +15,14 @@ struct SettingsView: View {
     @State private var importErrorMessage: String?
     @State private var importWarningMessage: String?
     @State private var exportErrorMessage: String?
-    @State private var cloudAccountStatusText = "Not checked"
-    @State private var cloudUserRecordIDText = "Not checked"
-    @State private var cloudStatusErrorMessage: String?
-    @State private var cloudStatusLastRefreshText = "Never"
-    @State private var isRefreshingCloudStatus = false
     @State private var isShowingPurgeConfirmation = false
     @State private var isPurgingCloudData = false
     @State private var purgeStatusMessage: String?
+    @State private var isRefreshingCloudStatus = false
+    @State private var cloudAccountStatusText = "Not checked"
+    @State private var cloudUserRecordIDText = "Not checked"
+    @State private var cloudStatusLastRefreshText = "Never"
+    @State private var cloudStatusErrorMessage: String?
 
     var body: some View {
         List {
@@ -61,37 +61,12 @@ struct SettingsView: View {
             }
 
             Section {
-                SettingsInfoRow(title: "App Version", value: appVersion)
-                SettingsInfoRow(title: "Build Number", value: buildNumber)
-                SettingsInfoRow(title: "Bundle Identifier", value: bundleIdentifier)
-                SettingsInfoRow(title: "CloudKit Container", value: CloudKitConfiguration.containerIdentifier)
-                SettingsInfoRow(title: "iCloud Account", value: cloudAccountStatusText)
-                SettingsInfoRow(title: "CloudKit User Record ID", value: cloudUserRecordIDText)
-                SettingsInfoRow(title: "Last Refresh", value: cloudStatusLastRefreshText)
-
-                if let cloudStatusErrorMessage {
-                    Text(cloudStatusErrorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                }
-
-                Button {
-                    refreshCloudStatus()
+                NavigationLink {
+                    CloudSyncDiagnosticsView()
                 } label: {
-                    if isRefreshingCloudStatus {
-                        Label("Refreshing Cloud Status", systemImage: "icloud")
-                    } else {
-                        Label("Refresh Cloud Status", systemImage: "arrow.clockwise.icloud")
-                    }
+                    Label("Cloud Sync Diagnostics", systemImage: "icloud")
                 }
-                .disabled(isRefreshingCloudStatus)
-            } header: {
-                Text("Cloud Diagnostics")
-            } footer: {
-                Text("Apple ID/email is not available to apps. CloudKit exposes only account status and user record ID.")
-            }
 
-            Section {
                 Button(role: .destructive) {
                     isShowingPurgeConfirmation = true
                 } label: {
@@ -111,6 +86,12 @@ struct SettingsView: View {
             } header: {
                 Text("Developer Tools")
             }
+
+            Text("Version \(appVersion) (\(buildNumber))")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .listRowBackground(Color.clear)
         }
         .listStyle(.insetGrouped)
         .navigationTitle(RootTab.settings.title)
@@ -211,7 +192,7 @@ struct SettingsView: View {
                 let userRecordID = try await container.userRecordID()
 
                 await MainActor.run {
-                    cloudAccountStatusText = status.displayText
+                    cloudAccountStatusText = status.diagnosticsText
                     cloudUserRecordIDText = userRecordID.recordName
                     cloudStatusLastRefreshText = Date.now.formatted(date: .abbreviated, time: .standard)
                     isRefreshingCloudStatus = false
@@ -327,25 +308,6 @@ private struct SettingsInfoRow: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.trailing)
                 .textSelection(.enabled)
-        }
-    }
-}
-
-private extension CKAccountStatus {
-    var displayText: String {
-        switch self {
-        case .available:
-            "Available"
-        case .noAccount:
-            "No Account"
-        case .restricted:
-            "Restricted"
-        case .couldNotDetermine:
-            "Could Not Determine"
-        case .temporarilyUnavailable:
-            "Temporarily Unavailable"
-        @unknown default:
-            "Unknown"
         }
     }
 }

@@ -190,8 +190,14 @@ private struct MapBellAnnotationView: View {
 
     @ViewBuilder
     private var annotationImage: some View {
-        if let identifier = bells.first?.coverPhotoIdentifier {
-            BellCardCoverBackground(identifier: identifier, size: annotationSize)
+        if let bell = bells.first,
+           bell.coverPhotoThumbnailData != nil || bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil {
+            BellCardCoverBackground(
+                identifier: bell.coverPhotoIdentifier,
+                thumbnailData: bell.coverPhotoThumbnailData,
+                originalData: bell.coverPhotoOriginalData,
+                size: annotationSize
+            )
         } else {
             ZStack {
                 RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
