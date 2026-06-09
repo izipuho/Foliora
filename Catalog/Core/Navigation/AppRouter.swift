@@ -9,6 +9,7 @@ enum AppDestination: Hashable {
 
 enum RootTab: String, CaseIterable, Identifiable, Hashable {
     case collections
+    case homes
     case settings
     case search
 
@@ -18,6 +19,8 @@ enum RootTab: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .collections:
             return String(localized: "root_tab.collections")
+        case .homes:
+            return String(localized: "root_tab.homes")
         case .settings:
             return String(localized: "root_tab.settings")
         case .search:
@@ -29,6 +32,8 @@ enum RootTab: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .collections:
             return "square.grid.2x2"
+        case .homes:
+            return "house"
         case .settings:
             return "gearshape"
         case .search:
@@ -43,6 +48,7 @@ struct AppShellView: View {
     @Query(sort: \LocationEntity.name) private var locationEntities: [LocationEntity]
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @State private var collectionsPath = NavigationPath()
+    @State private var homesPath = NavigationPath()
     @State private var settingsPath = NavigationPath()
     @State private var searchPath = NavigationPath()
 
@@ -50,6 +56,7 @@ struct AppShellView: View {
         RootShellView(
             repository: repository,
             collectionsPath: $collectionsPath,
+            homesPath: $homesPath,
             settingsPath: $settingsPath,
             searchPath: $searchPath,
             destination: { destination, layoutMode, onBellSelected, onBatchAddComplete, popNavigation in
@@ -173,6 +180,7 @@ struct AppShellView: View {
 private struct RootShellView<Destination: View>: View {
     let repository: any CatalogRepository
     @Binding var collectionsPath: NavigationPath
+    @Binding var homesPath: NavigationPath
     @Binding var settingsPath: NavigationPath
     @Binding var searchPath: NavigationPath
     let destination: (AppDestination, Binding<BellGridLayoutMode>, ((BellEntity) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
@@ -235,6 +243,10 @@ private struct RootShellView<Destination: View>: View {
                 collectionsStack(path: $collectionsPath, onBellSelected: nil)
             }
 
+            Tab(RootTab.homes.title, systemImage: RootTab.homes.systemImage, value: RootTab.homes) {
+                homesStack(path: $homesPath, onBellSelected: nil)
+            }
+
             Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage, value: RootTab.settings) {
                 settingsStack(path: $settingsPath, onBellSelected: nil)
             }
@@ -289,6 +301,8 @@ private struct RootShellView<Destination: View>: View {
         switch tab {
         case .collections:
             collectionsStack(path: $collectionsPath, onBellSelected: openBellInspector)
+        case .homes:
+            homesStack(path: $homesPath, onBellSelected: openBellInspector)
         case .search:
             NavigationStack(path: $searchPath) {
                 SearchTabView(
@@ -301,6 +315,22 @@ private struct RootShellView<Destination: View>: View {
             }
         case .settings:
             settingsStack(path: $settingsPath, onBellSelected: openBellInspector)
+        }
+    }
+
+    private func homesStack(
+        path: Binding<NavigationPath>,
+        onBellSelected: ((BellEntity) -> Void)?
+    ) -> some View {
+        NavigationStack(path: path) {
+            HomeView(
+                repository: repository,
+                embedsNavigation: false,
+                navigate: { path.wrappedValue.append($0) }
+            )
+            .navigationDestination(for: AppDestination.self) { destination in
+                self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popHomesNavigation)
+            }
         }
     }
 
@@ -346,6 +376,12 @@ private struct RootShellView<Destination: View>: View {
     private func popCollectionsNavigation() {
         if !collectionsPath.isEmpty {
             collectionsPath.removeLast()
+        }
+    }
+
+    private func popHomesNavigation() {
+        if !homesPath.isEmpty {
+            homesPath.removeLast()
         }
     }
 
