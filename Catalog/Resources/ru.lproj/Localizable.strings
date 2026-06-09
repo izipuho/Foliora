@@ -115,7 +115,7 @@
 "editor.short_description" = "Краткое описание";
 "editor.note_history" = "Заметка или история";
 "editor.acquisition" = "Получение";
-"editor.material_required" = "Для сохранения нужно выбрать материал";
+"editor.material.required" = "Для сохранения нужно выбрать материал";
 "editor.material.custom" = "Свой материал";
 "editor.location" = "Расположение";
 "editor.bell.add" = "Добавить колокольчик";

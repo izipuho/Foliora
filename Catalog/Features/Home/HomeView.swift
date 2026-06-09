@@ -88,8 +88,7 @@ struct HomeView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    let newHome = createHome()
-                    navigate?(.home(newHome.id))
+                    presentEditorForNewHome()
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -124,14 +123,15 @@ struct HomeView: View {
                 .padding(.top, 80)
 
                 Button {
-                    let newHome = createHome()
-                    navigate?(.home(newHome.id))
+                    presentEditorForNewHome()
                 } label: {
                     Label(String(localized: "home.add"), systemImage: "plus.circle.fill")
                         .font(.headline)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: 420)
                         .frame(height: 52)
                 }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, 20)
                 .buttonStyle(.borderedProminent)
                 .tint(Color(red: 0.20, green: 0.42, blue: 0.34))
             }
@@ -211,10 +211,17 @@ struct HomeView: View {
     }
 
     private func createHome() -> Home {
-        let newHome = Home(id: UUID(), name: String(localized: "home.new.default_name"), iconName: "house.fill", notes: "")
+        let newHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
         repository.saveHome(newHome)
         repository.saveLocations([], in: newHome.id)
         return newHome
+    }
+
+    private func presentEditorForNewHome() {
+        let newHome = createHome()
+        DispatchQueue.main.async {
+            navigate?(.editHome(newHome.id))
+        }
     }
 
     private func requestDeleteHome(_ homeID: UUID) {

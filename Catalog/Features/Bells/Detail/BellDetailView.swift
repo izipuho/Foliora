@@ -227,9 +227,11 @@ struct BellDetailView: View {
     private var heroHeader: some View {
         GeometryReader { proxy in
             ZStack {
-                if let coverPhotoIdentifier = bell.coverPhotoIdentifier {
+                if bell.coverPhotoThumbnailData != nil || bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil {
                     BellCardCoverBackground(
-                        identifier: coverPhotoIdentifier,
+                        identifier: bell.coverPhotoIdentifier,
+                        thumbnailData: bell.coverPhotoThumbnailData,
+                        originalData: bell.coverPhotoOriginalData,
                         size: CGSize(width: proxy.size.width, height: 320)
                     )
                 } else {
@@ -336,14 +338,7 @@ struct BellDetailView: View {
             .sorted { $0.sortOrder < $1.sortOrder }
             .enumerated()
             .map { index, asset in
-                MediaAsset(
-                    id: asset.id,
-                    itemID: bell.id,
-                    kind: asset.kind,
-                    localIdentifier: asset.localIdentifier,
-                    displayName: asset.displayName,
-                    sortOrder: index
-                )
+                asset.with(itemID: bell.id, sortOrder: index)
             }
 
         let updatedBell = BellRecord(

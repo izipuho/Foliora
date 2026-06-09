@@ -1,0 +1,336 @@
+import CloudKit
+import Combine
+import CoreData
+import SwiftData
+import SwiftUI
+
+// Temporary diagnostics screen. Remove after CloudKit sync investigation.
+struct CloudSyncDiagnosticsView: View {
+    private let containerIdentifier = "iCloud.com.izipuho.Foliora"
+
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var accountStatus = "Not checked"
+    @State private var userRecordID = "Not checked"
+    @State private var accountError: String?
+    @State private var localCounts: [LocalCount] = []
+    @State private var countsError: String?
+    @State private var databaseProbe = CloudKitProbeResult()
+    @State private var localSaveProbe = LocalSaveProbeResult()
+    @State private var eventHistory: [CloudKitEventSummary] = []
+
+    var body: some View {
+        Form {
+            Section {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Cloud Sync Diagnostics")
+                        .font(.title2.weight(.semibold))
+                    Text("Temporary diagnostics screen for SwiftData / CloudKit sync.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section("CloudKit Account") {
+                diagnosticsRow("Container identifier", containerIdentifier)
+                diagnosticsRow("Account status", accountStatus)
+                diagnosticsRow("User record ID", userRecordID)
+
+                if let accountError {
+                    diagnosticsRow("Error", accountError)
+                }
+            }
+
+            Section("Local Store Counts") {
+                Button("Refresh Local Counts") {
+                    refreshLocalCounts()
+                }
+
+                ForEach(localCounts) { count in
+                    diagnosticsRow(count.name, "\(count.value)")
+                }
+
+                if let countsError {
+                    diagnosticsRow("Error", countsError)
+                }
+            }
+
+            Section("Private Database Probe") {
+                Button("Refresh CloudKit Probe") {
+                    refreshCloudKitProbe()
+                }
+
+                diagnosticsRow("Status", databaseProbe.status)
+                diagnosticsRow("Zone count", databaseProbe.zoneCountText)
+                diagnosticsRow("Error code", databaseProbe.errorCode ?? "None")
+                diagnosticsRow("Error", databaseProbe.errorDescription ?? "None")
+                diagnosticsRow("Last checked", databaseProbe.timestampText)
+            }
+
+            Section("SwiftData / CloudKit Event History") {
+                if eventHistory.isEmpty {
+                    Text("No events observed in this app session.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(eventHistory) { event in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(event.type)
+                                .font(.headline)
+                            diagnosticsRow("Timestamp", event.timestampText)
+                            diagnosticsRow("Type", event.type)
+                            diagnosticsRow("Identifier", event.identifier)
+                            diagnosticsRow("Status", event.status)
+                            if let errorDescription = event.errorDescription {
+                                diagnosticsRow("Error", errorDescription)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+
+            Section("Last CloudKit Error") {
+                if let lastError = eventHistory.first(where: { $0.errorDescription != nil }) {
+                    diagnosticsRow("Timestamp", lastError.timestampText)
+                    diagnosticsRow("Type", lastError.type)
+                    diagnosticsRow("Error", lastError.errorDescription ?? "")
+                } else {
+                    Text("No CloudKit errors observed in this app session.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section("Manual Local Save Probe") {
+                Button("Create Local Sync Probe") {
+                    createLocalSyncProbe()
+                }
+
+                diagnosticsRow("Object name", localSaveProbe.objectName ?? "None")
+                diagnosticsRow("Status", localSaveProbe.status)
+                diagnosticsRow("Timestamp", localSaveProbe.timestampText)
+
+                if let errorDescription = localSaveProbe.errorDescription {
+                    diagnosticsRow("Error", errorDescription)
+                }
+            }
+        }
+        .navigationTitle("Cloud Sync Diagnostics")
+        .task {
+            refreshAccountStatus()
+            refreshLocalCounts()
+        }
+        .onReceive(
+            NotificationCenter.default
+                .publisher(for: NSPersistentCloudKitContainer.eventChangedNotification)
+                .receive(on: DispatchQueue.main)
+        ) { notification in
+            appendCloudKitEvent(from: notification)
+        }
+    }
+
+    private func diagnosticsRow(_ title: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+                .textSelection(.enabled)
+        }
+    }
+
+    private func refreshAccountStatus() {
+        Task {
+            let container = CKContainer(identifier: containerIdentifier)
+
+            do {
+                let status = try await container.accountStatus()
+                let recordID = try await container.userRecordID()
+
+                await MainActor.run {
+                    accountStatus = status.diagnosticsText
+                    userRecordID = recordID.recordName
+                    accountError = nil
+                }
+            } catch {
+                await MainActor.run {
+                    accountStatus = "Failed"
+                    userRecordID = "Unavailable"
+                    accountError = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func refreshLocalCounts() {
+        do {
+            localCounts = [
+                LocalCount(name: "HomeEntity", value: try modelContext.fetchCount(FetchDescriptor<HomeEntity>())),
+                LocalCount(name: "LocationEntity", value: try modelContext.fetchCount(FetchDescriptor<LocationEntity>())),
+                LocalCount(name: "BellEntity", value: try modelContext.fetchCount(FetchDescriptor<BellEntity>())),
+                LocalCount(name: "MediaAssetEntity", value: try modelContext.fetchCount(FetchDescriptor<MediaAssetEntity>())),
+                LocalCount(name: "CollectionEntity", value: try modelContext.fetchCount(FetchDescriptor<CollectionEntity>())),
+                LocalCount(name: "PlaceEntity", value: try modelContext.fetchCount(FetchDescriptor<PlaceEntity>())),
+                LocalCount(name: "TagEntity", value: try modelContext.fetchCount(FetchDescriptor<BellTagEntity>()))
+            ]
+            countsError = nil
+        } catch {
+            countsError = error.localizedDescription
+        }
+    }
+
+    private func refreshCloudKitProbe() {
+        databaseProbe = CloudKitProbeResult(status: "In progress", timestamp: Date.now)
+
+        CKContainer(identifier: containerIdentifier).privateCloudDatabase.fetchAllRecordZones { zones, error in
+            DispatchQueue.main.async {
+                if let error {
+                    let ckError = error as? CKError
+                    databaseProbe = CloudKitProbeResult(
+                        status: "Failed",
+                        zoneCount: zones?.count,
+                        errorCode: ckError.map { "\($0.code.rawValue) (\($0.code))" },
+                        errorDescription: error.localizedDescription,
+                        timestamp: Date.now
+                    )
+                } else {
+                    databaseProbe = CloudKitProbeResult(
+                        status: "Success",
+                        zoneCount: zones?.count ?? 0,
+                        timestamp: Date.now
+                    )
+                }
+            }
+        }
+    }
+
+    private func appendCloudKitEvent(from notification: Notification) {
+        guard let event = notification.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey] as? NSPersistentCloudKitContainer.Event else {
+            return
+        }
+
+        eventHistory.insert(CloudKitEventSummary(event: event), at: 0)
+
+        if eventHistory.count > 20 {
+            eventHistory = Array(eventHistory.prefix(20))
+        }
+    }
+
+    private func createLocalSyncProbe() {
+        let timestamp = Date.now.timeIntervalSince1970
+        let name = "__sync_probe_\(Int(timestamp))"
+        let probe = HomeEntity(id: UUID(), name: name, iconName: "icloud", notes: "Temporary CloudKit sync diagnostics probe.")
+
+        modelContext.insert(probe)
+
+        do {
+            try modelContext.save()
+            localSaveProbe = LocalSaveProbeResult(objectName: name, status: "Save success", timestamp: Date.now)
+            refreshLocalCounts()
+        } catch {
+            localSaveProbe = LocalSaveProbeResult(
+                objectName: name,
+                status: "Save failed",
+                errorDescription: error.localizedDescription,
+                timestamp: Date.now
+            )
+        }
+    }
+}
+
+private struct LocalCount: Identifiable {
+    let id = UUID()
+    let name: String
+    let value: Int
+}
+
+private struct CloudKitProbeResult {
+    var status = "Not checked"
+    var zoneCount: Int?
+    var errorCode: String?
+    var errorDescription: String?
+    var timestamp: Date?
+
+    var zoneCountText: String {
+        zoneCount.map(String.init) ?? "Not checked"
+    }
+
+    var timestampText: String {
+        timestamp?.formatted(date: .abbreviated, time: .standard) ?? "Never"
+    }
+}
+
+private struct LocalSaveProbeResult {
+    var objectName: String?
+    var status = "Not created"
+    var errorDescription: String?
+    var timestamp: Date?
+
+    var timestampText: String {
+        timestamp?.formatted(date: .abbreviated, time: .standard) ?? "Never"
+    }
+}
+
+private struct CloudKitEventSummary: Identifiable {
+    let id: UUID
+    let timestamp: Date
+    let type: String
+    let identifier: String
+    let status: String
+    let errorDescription: String?
+
+    init(event: NSPersistentCloudKitContainer.Event) {
+        id = event.identifier
+        timestamp = Date.now
+        type = event.type.diagnosticsText
+        identifier = event.identifier.uuidString
+        errorDescription = event.error?.localizedDescription
+
+        if event.endDate == nil {
+            status = "In progress"
+        } else if event.succeeded {
+            status = "Succeeded"
+        } else {
+            status = "Failed"
+        }
+    }
+
+    var timestampText: String {
+        timestamp.formatted(date: .abbreviated, time: .standard)
+    }
+}
+
+extension CKAccountStatus {
+    var diagnosticsText: String {
+        switch self {
+        case .available:
+            return "Available"
+        case .couldNotDetermine:
+            return "Could not determine"
+        case .noAccount:
+            return "No account"
+        case .restricted:
+            return "Restricted"
+        case .temporarilyUnavailable:
+            return "Temporarily unavailable"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+}
+
+private extension NSPersistentCloudKitContainer.EventType {
+    var diagnosticsText: String {
+        switch self {
+        case .setup:
+            return "Setup"
+        case .import:
+            return "Import"
+        case .export:
+            return "Export"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+}

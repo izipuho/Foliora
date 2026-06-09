@@ -161,7 +161,7 @@ struct TagEditorSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                TextField(String(localized: "common.field.tags.add_placeholder"), text: $tagInput)
+                TextField(String(localized: "editor.tags.add_placeholder"), text: $tagInput)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
@@ -180,7 +180,7 @@ struct TagEditorSection: View {
             }
 
             if tags.isEmpty {
-                Text(String(localized: "common.field.tags.empty"))
+                Text(String(localized: "editor.tags.empty"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
@@ -241,6 +241,9 @@ struct MediaSection: View {
     var allowsDeletion = true
     var onPhotoAdded: ((UIImage) -> Void)? = nil
     private let mediaStore = LocalMediaFileStore.shared
+    private var imageMediaBuilder: ImageMediaBuilder {
+        ImageMediaBuilder(store: mediaStore)
+    }
 
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isPresentingPhotoPicker = false
@@ -356,23 +359,20 @@ struct MediaSection: View {
 
         for item in items {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
-            let fileExtension = item.supportedContentTypes.first?.preferredFilenameExtension
-            guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: fileExtension) else { continue }
+            guard let image = UIImage(data: data) else { continue }
+            let contentType = item.supportedContentTypes.first
+            guard let media = try? imageMediaBuilder.build(
+                from: data,
+                image: image,
+                preferredFileExtension: contentType?.preferredFilenameExtension,
+                mimeType: contentType?.preferredMIMEType
+            ) else { continue }
 
             mediaAssets.append(
-                MediaAsset(
-                    id: UUID(),
-                    itemID: itemID,
-                    kind: .photo,
-                    localIdentifier: identifier,
-                    displayName: nil,
-                    sortOrder: mediaAssets.count
-                )
+                media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
             )
 
-            if let image = UIImage(data: data) {
-                onPhotoAdded?(image)
-            }
+            onPhotoAdded?(image)
         }
 
         selectedPhotoItems = []
@@ -380,17 +380,15 @@ struct MediaSection: View {
 
     private func addCapturedPhoto(_ image: UIImage) {
         guard let data = image.jpegData(compressionQuality: 0.92) else { return }
-        guard let identifier = try? mediaStore.savePhoto(data: data, preferredFileExtension: "jpg") else { return }
+        guard let media = try? imageMediaBuilder.build(
+            from: data,
+            image: image,
+            preferredFileExtension: "jpg",
+            mimeType: "image/jpeg"
+        ) else { return }
 
         mediaAssets.append(
-            MediaAsset(
-                id: UUID(),
-                itemID: itemID,
-                kind: .photo,
-                localIdentifier: identifier,
-                displayName: nil,
-                sortOrder: mediaAssets.count
-            )
+            media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
         )
 
         onPhotoAdded?(image)
@@ -401,14 +399,7 @@ struct MediaSection: View {
             .sorted { $0.sortOrder < $1.sortOrder }
             .enumerated()
             .map { index, asset in
-                MediaAsset(
-                    id: asset.id,
-                    itemID: asset.itemID,
-                    kind: asset.kind,
-                    localIdentifier: asset.localIdentifier,
-                    displayName: asset.displayName,
-                    sortOrder: index
-                )
+                asset.with(sortOrder: index)
             }
     }
 }
@@ -561,19 +552,19 @@ private struct MediaAssetThumbnailView: View {
 
     var body: some View {
         Group {
-            switch asset.kind {
-            case .photo:
-                if let image = previewImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                } else {
+            if let image = previewImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                switch asset.kind {
+                case .photo:
                     placeholder(systemImage: "photo")
+                case .document:
+                    documentPlaceholder
+                case .model3D:
+                    placeholder(systemImage: "cube.transparent")
                 }
-            case .document:
-                documentPlaceholder
-            case .model3D:
-                placeholder(systemImage: "cube.transparent")
             }
         }
         .frame(width: size, height: size)
@@ -581,12 +572,22 @@ private struct MediaAssetThumbnailView: View {
     }
 
     private var previewImage: UIImage? {
-        guard let url = mediaStore.thumbnailFileURL(for: asset.localIdentifier) ?? mediaStore.fileURL(for: asset.localIdentifier),
-              let image = UIImage(contentsOfFile: url.path) else {
-            return nil
+        if let thumbnailData = asset.thumbnailData,
+           let image = UIImage(data: thumbnailData) {
+            return image
         }
 
-        return image
+        if let url = mediaStore.thumbnailFileURL(for: asset.localIdentifier) ?? mediaStore.fileURL(for: asset.localIdentifier),
+           let image = UIImage(contentsOfFile: url.path) {
+            return image
+        }
+
+        if let originalData = asset.originalData,
+           let image = UIImage(data: originalData) {
+            return image
+        }
+
+        return nil
     }
 
     private var documentPlaceholder: some View {

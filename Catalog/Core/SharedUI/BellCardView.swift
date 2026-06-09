@@ -344,21 +344,42 @@ protocol BellCardDisplayable {
     var placeDisplayName: String { get }
     var acquiredYear: Int? { get }
     var coverPhotoIdentifier: String? { get }
+    var coverPhotoThumbnailData: Data? { get }
+    var coverPhotoOriginalData: Data? { get }
 }
 
 extension BellEntity: BellCardDisplayable {
     var coverPhotoIdentifier: String? {
         coverPhotoAsset?.localIdentifier
     }
+
+    var coverPhotoThumbnailData: Data? {
+        coverPhotoAsset?.thumbnailData
+    }
+
+    var coverPhotoOriginalData: Data? {
+        coverPhotoAsset?.originalData
+    }
 }
 
 extension BellRecord: BellCardDisplayable {
-    var coverPhotoIdentifier: String? {
+    private var coverPhoto: MediaAsset? {
         mediaAssets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
-            .first?
-            .localIdentifier
+            .first
+    }
+
+    var coverPhotoIdentifier: String? {
+        coverPhoto?.localIdentifier
+    }
+
+    var coverPhotoThumbnailData: Data? {
+        coverPhoto?.thumbnailData
+    }
+
+    var coverPhotoOriginalData: Data? {
+        coverPhoto?.originalData
     }
 }
 
@@ -383,9 +404,11 @@ struct BellCardView: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            if let coverPhotoIdentifier = bell.coverPhotoIdentifier {
+            if hasCoverPhoto {
                 BellCardCoverBackground(
-                    identifier: coverPhotoIdentifier,
+                    identifier: bell.coverPhotoIdentifier,
+                    thumbnailData: bell.coverPhotoThumbnailData,
+                    originalData: bell.coverPhotoOriginalData,
                     size: cardSize
                 )
             }
@@ -448,7 +471,7 @@ struct BellCardView: View {
     }
 
     private var hasCoverPhoto: Bool {
-        bell.coverPhotoIdentifier != nil
+        bell.coverPhotoThumbnailData != nil || bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil
     }
 
     private var primaryTextColor: Color {
@@ -702,7 +725,9 @@ struct BellCardImagePreviewView: View {
 }
 
 struct BellCardCoverBackground: View {
-    let identifier: String
+    let identifier: String?
+    let thumbnailData: Data?
+    let originalData: Data?
     let size: CGSize
     private let mediaStore = LocalMediaFileStore.shared
     private let thumbnailCache = ThumbnailImageCache.shared
@@ -732,29 +757,40 @@ struct BellCardCoverBackground: View {
         .task(id: thumbnailTaskID) {
             await loadImage()
         }
-        .onChange(of: identifier) { _, _ in
-            image = nil
-        }
     }
 
     private var thumbnailTaskID: String {
         let pixelWidth = Int((size.width * displayScale).rounded(.up))
         let pixelHeight = Int((size.height * displayScale).rounded(.up))
-        return "\(identifier)-\(pixelWidth)x\(pixelHeight)"
+        return "\(identifier ?? "data")-\(thumbnailData?.count ?? 0)-\(originalData?.count ?? 0)-\(pixelWidth)x\(pixelHeight)"
     }
 
     @MainActor
     private func loadImage() async {
-        guard let url = mediaStore.thumbnailFileURL(for: identifier) ?? mediaStore.fileURL(for: identifier),
-              let loadedImage = await thumbnailCache.image(
+        if let thumbnailData {
+            if let loadedImage = UIImage(data: thumbnailData) {
+                image = loadedImage
+                return
+            }
+        }
+
+        if let identifier,
+           let url = mediaStore.thumbnailFileURL(for: identifier) ?? mediaStore.fileURL(for: identifier) {
+            if let loadedImage = await thumbnailCache.image(
                 identifier: identifier,
                 url: url,
                 targetSize: size,
                 scale: displayScale
-              ) else {
-            return
+            ) {
+                image = loadedImage
+                return
+            }
         }
 
-        image = loadedImage
+        if let originalData {
+            if let loadedImage = UIImage(data: originalData) {
+                image = loadedImage
+            }
+        }
     }
 }

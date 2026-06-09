@@ -4,6 +4,7 @@ import SwiftData
 enum AppDestination: Hashable {
     case collection(CollectionSummary)
     case home(UUID)
+    case editHome(UUID)
 }
 
 enum RootTab: String, CaseIterable, Identifiable, Hashable {
@@ -96,6 +97,30 @@ struct AppShellView: View {
                     description: Text(String(localized: "home.not_found.description"))
                 )
             }
+        case .editHome(let homeID):
+            if let homeBinding = binding(for: homeID) {
+                HomeEditorView(
+                    home: homeBinding,
+                    locations: locationsBinding(for: homeID),
+                    onSave: {
+                        saveHome(homeID)
+                    },
+                    onDelete: {
+                        repository.deleteHome(homeID: homeID)
+                        if !path.isEmpty {
+                            path.removeLast()
+                        }
+                    },
+                    embedsNavigation: false,
+                    focusesNameOnAppear: true
+                )
+            } else {
+                ContentUnavailableView(
+                    String(localized: "home.not_found.title"),
+                    systemImage: "house.slash",
+                    description: Text(String(localized: "home.not_found.description"))
+                )
+            }
         }
     }
 
@@ -132,6 +157,12 @@ struct AppShellView: View {
 
     private func collectionCount(in homeID: UUID) -> Int {
         collectionEntities.filter { $0.home?.id == homeID }.count
+    }
+
+    private func saveHome(_ homeID: UUID) {
+        guard let home = homes.first(where: { $0.id == homeID }) else { return }
+        repository.saveHome(home)
+        repository.saveLocations(locationsByHomeID[homeID] ?? [], in: homeID)
     }
 }
 

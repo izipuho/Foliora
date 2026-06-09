@@ -50,7 +50,7 @@ struct BellEditorView: View {
     @State private var tagInput = ""
     @State private var tags: [String] = []
     @State private var mediaAssets: [MediaAsset] = []
-    @State private var selectedAcquiredYearOption = String(localized: "common.field.acquired_year.none")
+    @State private var selectedAcquiredYearOption = String(localized: "common.none")
     @State private var highlightedSection: StartSection?
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
@@ -60,7 +60,7 @@ struct BellEditorView: View {
     private let existingCreatedAt: Date?
     private let editorItemID: UUID
 
-    private let acquiredYearOptions = [String(localized: "common.field.acquired_year.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
+    private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     private var availableLocations: [Location] {
         queriedLocations.map { entity in
@@ -168,7 +168,7 @@ struct BellEditorView: View {
         _selectedLocationID = State(initialValue: bell?.item.locationID)
         _tags = State(initialValue: bell?.tags ?? [])
         _mediaAssets = State(initialValue: bell?.mediaAssets ?? initialMediaAssets)
-        _selectedAcquiredYearOption = State(initialValue: bell?.acquiredYear.map(String.init) ?? String(localized: "common.field.acquired_year.none"))
+        _selectedAcquiredYearOption = State(initialValue: bell?.acquiredYear.map(String.init) ?? String(localized: "common.none"))
     }
 
     var body: some View {
@@ -299,7 +299,7 @@ struct BellEditorView: View {
                                 focusTitleValidation()
                             } label: {
                                 Label {
-                                    Text(String(localized: "common.field.title.required"))
+                                    Text(String(localized: "editor.title.required"))
                                         .font(.footnote)
                                 } icon: {
                                     Image(systemName: "exclamationmark.circle.fill")
@@ -357,7 +357,7 @@ struct BellEditorView: View {
                                 emitAnalysisFeedback(.warning)
                             } label: {
                                 Label {
-                                    Text(String(localized: "common.field.material.required"))
+                                    Text(String(localized: "editor.material.required"))
                                         .font(.footnote)
                                 } icon: {
                                     Image(systemName: "exclamationmark.circle.fill")
@@ -503,14 +503,7 @@ struct BellEditorView: View {
         let location = availableLocations.first(where: { $0.id == selectedLocationID })
         let originPlace = selectedOriginPlace
         let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
-            MediaAsset(
-                id: asset.id,
-                itemID: itemID,
-                kind: asset.kind,
-                localIdentifier: asset.localIdentifier,
-                displayName: asset.displayName,
-                sortOrder: index
-            )
+            asset.with(itemID: itemID, sortOrder: index)
         }
 
         let newBell = BellRecord(
@@ -521,7 +514,7 @@ struct BellEditorView: View {
                 createdAt: existingCreatedAt ?? .now,
                 title: trimmedTitle,
                 notes: trimmedNotes,
-                acquiredYear: selectedAcquiredYearOption == String(localized: "common.field.acquired_year.none") ? nil : Int(selectedAcquiredYearOption),
+                acquiredYear: selectedAcquiredYearOption == String(localized: "common.none") ? nil : Int(selectedAcquiredYearOption),
                 condition: condition,
                 acquisitionMethod: acquisitionMethod
             ),

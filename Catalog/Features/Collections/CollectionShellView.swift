@@ -58,10 +58,10 @@ struct CollectionShellView: View {
     }
 
     private var hasPlacedItems: Bool {
-        collectionEntities
+        (collectionEntities
             .first { $0.id == collection.id }?
-            .bells
-            .contains { $0.location != nil } ?? false
+            .bells ?? [])
+            .contains { $0.location != nil }
     }
 
     private var selectedOrder: BellOrderMode {
@@ -274,21 +274,20 @@ struct CollectionShellView: View {
         for item in items {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
             guard let image = UIImage(data: data) else { continue }
-            guard let media = try? await imageMediaBuilder.build(from: image) else { continue }
+            let contentType = item.supportedContentTypes.first
+            guard let media = try? imageMediaBuilder.build(
+                from: data,
+                image: image,
+                preferredFileExtension: contentType?.preferredFilenameExtension,
+                mimeType: contentType?.preferredMIMEType
+            ) else { continue }
 
             if firstImage == nil {
                 firstImage = media.uiImage
             }
 
             newAssets.append(
-                MediaAsset(
-                    id: media.asset.id,
-                    itemID: media.asset.itemID,
-                    kind: media.asset.kind,
-                    localIdentifier: media.asset.localIdentifier,
-                    displayName: media.asset.displayName,
-                    sortOrder: newAssets.count
-                )
+                media.asset.with(sortOrder: newAssets.count)
             )
         }
 
@@ -302,17 +301,10 @@ struct CollectionShellView: View {
 
     @MainActor
     private func addCapturedPhotoAndPresentEditor(_ image: UIImage) async {
-        guard let media = try? await imageMediaBuilder.build(from: image) else { return }
+        guard let media = try? imageMediaBuilder.build(from: image) else { return }
 
         draftMediaAssets = [
-            MediaAsset(
-                id: media.asset.id,
-                itemID: media.asset.itemID,
-                kind: media.asset.kind,
-                localIdentifier: media.asset.localIdentifier,
-                displayName: media.asset.displayName,
-                sortOrder: 0
-            )
+            media.asset.with(sortOrder: 0)
         ]
         draftAnalysisImage = media.uiImage
         shouldPresentEditorAfterCamera = true

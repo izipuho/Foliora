@@ -3,16 +3,16 @@ import SwiftData
 
 @Model
 final class HomeEntity {
-    @Attribute(.unique) var id: UUID
-    var name: String
+    var id: UUID = UUID()
+    var name: String = ""
     var iconName: String?
-    var notes: String
+    var notes: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \LocationEntity.home)
-    var locations: [LocationEntity] = []
+    var locations: [LocationEntity]? = []
 
     @Relationship(deleteRule: .cascade, inverse: \CollectionEntity.home)
-    var collections: [CollectionEntity] = []
+    var collections: [CollectionEntity]? = []
 
     init(id: UUID, name: String, iconName: String?, notes: String) {
         self.id = id
@@ -28,19 +28,20 @@ final class HomeEntity {
 
 @Model
 final class LocationEntity {
-    @Attribute(.unique) var id: UUID
-    var kindRaw: String
-    var name: String
-    var notes: String
+    var id: UUID = UUID()
+    var kindRaw: String = LocationKind.room.rawValue
+    var name: String = ""
+    var notes: String = ""
 
     var home: HomeEntity?
 
     var parent: LocationEntity?
 
-    var children: [LocationEntity] = []
+    @Relationship(deleteRule: .cascade, inverse: \LocationEntity.parent)
+    var children: [LocationEntity]? = []
 
     @Relationship(deleteRule: .nullify, inverse: \BellEntity.location)
-    var bells: [BellEntity] = []
+    var bells: [BellEntity]? = []
 
     init(
         id: UUID,
@@ -112,19 +113,19 @@ final class LocationEntity {
 
 @Model
 final class CollectionEntity {
-    @Attribute(.unique) var id: UUID
-    var kindRaw: String
-    var title: String
-    var notes: String
-    var backgroundStyleRaw: String
+    var id: UUID = UUID()
+    var kindRaw: String = CollectionKind.bells.rawValue
+    var title: String = ""
+    var notes: String = ""
+    var backgroundStyleRaw: String = CollectionBackgroundStyle.amber.rawValue
 
     var home: HomeEntity?
 
     @Relationship(deleteRule: .cascade, inverse: \BellEntity.collection)
-    var bells: [BellEntity] = []
+    var bells: [BellEntity]? = []
 
     @Relationship(deleteRule: .cascade, inverse: \MembershipEntity.collection)
-    var memberships: [MembershipEntity] = []
+    var memberships: [MembershipEntity]? = []
 
     init(
         id: UUID,
@@ -149,7 +150,7 @@ final class CollectionEntity {
     }
 
     var summarySnapshot: CollectionSummary {
-        let activeMemberships = memberships.filter { $0.status == .active }
+        let activeMemberships = (memberships ?? []).filter { $0.status == .active }
         let currentUserRole = activeMemberships.first(where: { $0.userID == "me" })?.role ?? .viewer
 
         return CollectionSummary(
@@ -159,7 +160,7 @@ final class CollectionEntity {
             name: title,
             subtitle: notes,
             backgroundStyle: backgroundStyle,
-            itemCount: kind == .bells ? bells.count : 0,
+            itemCount: kind == .bells ? (bells ?? []).count : 0,
             collaboratorCount: activeMemberships.count,
             role: currentUserRole,
             status: kind == .bells ? .active : .planned,
@@ -181,10 +182,10 @@ final class CollectionEntity {
 
 @Model
 final class MembershipEntity {
-    var id: UUID
-    var userID: String
-    var roleRaw: String
-    var statusRaw: String
+    var id: UUID = UUID()
+    var userID: String = ""
+    var roleRaw: String = CollectionRole.viewer.rawValue
+    var statusRaw: String = MembershipStatus.pending.rawValue
 
     var collection: CollectionEntity?
 
@@ -221,17 +222,17 @@ final class MembershipEntity {
 
 @Model
 final class PlaceEntity {
-    @Attribute(.unique) var id: UUID
-    var displayName: String
-    var countryCode: String
-    var countryName: String
+    var id: UUID = UUID()
+    var displayName: String = ""
+    var countryCode: String = ""
+    var countryName: String = ""
     var regionName: String?
     var cityName: String?
     var latitude: Double?
     var longitude: Double?
 
     @Relationship(deleteRule: .nullify, inverse: \BellEntity.originPlace)
-    var bells: [BellEntity] = []
+    var bells: [BellEntity]? = []
 
     init(
         id: UUID,
@@ -269,26 +270,26 @@ final class PlaceEntity {
 
 @Model
 final class BellEntity {
-    @Attribute(.unique) var id: UUID
-    var title: String
-    var notes: String
+    var id: UUID = UUID()
+    var title: String = ""
+    var notes: String = ""
     var acquiredYear: Int?
-    var createdAt: Date
-    var conditionRaw: String
-    var acquisitionMethodRaw: String
-    var materialRaw: String
+    var createdAt: Date = Date()
+    var conditionRaw: String = ItemCondition.good.rawValue
+    var acquisitionMethodRaw: String = AcquisitionMethod.bought.rawValue
+    var materialRaw: String = BellMaterial.brass.rawValue
     var customMaterialName: String?
-    var createdBy: String
+    var createdBy: String = ""
 
     var collection: CollectionEntity?
     var location: LocationEntity?
     var originPlace: PlaceEntity?
 
     @Relationship(deleteRule: .cascade, inverse: \MediaAssetEntity.bell)
-    var mediaAssets: [MediaAssetEntity] = []
+    var mediaAssets: [MediaAssetEntity]? = []
 
     @Relationship(deleteRule: .cascade, inverse: \BellTagEntity.bell)
-    var tags: [BellTagEntity] = []
+    var tags: [BellTagEntity]? = []
 
     init(
         id: UUID,
@@ -361,7 +362,7 @@ final class BellEntity {
     }
 
     var sortedMediaAssets: [MediaAssetEntity] {
-        mediaAssets.sorted { lhs, rhs in
+        (mediaAssets ?? []).sorted { lhs, rhs in
             if lhs.sortOrder != rhs.sortOrder {
                 return lhs.sortOrder < rhs.sortOrder
             }
@@ -371,7 +372,7 @@ final class BellEntity {
     }
 
     var sortedTags: [BellTagEntity] {
-        tags.sorted { lhs, rhs in
+        (tags ?? []).sorted { lhs, rhs in
             if lhs.sortOrder != rhs.sortOrder {
                 return lhs.sortOrder < rhs.sortOrder
             }
@@ -463,7 +464,17 @@ final class BellEntity {
                     kind: $0.kind,
                     localIdentifier: $0.localIdentifier,
                     displayName: $0.displayName,
-                    sortOrder: $0.sortOrder
+                    sortOrder: $0.sortOrder,
+                    fileName: $0.fileName,
+                    mimeType: $0.mimeType,
+                    byteSize: $0.byteSize,
+                    checksum: $0.checksum,
+                    width: $0.width,
+                    height: $0.height,
+                    duration: $0.duration,
+                    metadataJSON: $0.metadataJSON,
+                    thumbnailData: $0.thumbnailData,
+                    originalData: $0.originalData
                 )
             },
             createdBy: createdBy,
@@ -475,8 +486,8 @@ final class BellEntity {
 @Model
 final class BellTagEntity {
     var id: UUID = UUID()
-    var value: String
-    var sortOrder: Int
+    var value: String = ""
+    var sortOrder: Int = 0
 
     var bell: BellEntity?
 
@@ -489,11 +500,25 @@ final class BellTagEntity {
 
 @Model
 final class MediaAssetEntity {
-    var id: UUID
-    var kindRaw: String
-    var localIdentifier: String
+    var id: UUID = UUID()
+    var kindRaw: String = MediaKind.photo.rawValue
+    var localIdentifier: String = ""
     var displayName: String?
-    var sortOrder: Int
+    var sortOrder: Int = 0
+    var fileName: String?
+    var mimeType: String?
+    var byteSize: Int?
+    var checksum: String?
+    var width: Int?
+    var height: Int?
+    var duration: Double?
+    var metadataJSON: String?
+
+    @Attribute(.externalStorage)
+    var thumbnailData: Data?
+
+    @Attribute(.externalStorage)
+    var originalData: Data?
 
     var bell: BellEntity?
 
@@ -502,13 +527,33 @@ final class MediaAssetEntity {
         kindRaw: String,
         localIdentifier: String,
         displayName: String?,
-        sortOrder: Int
+        sortOrder: Int,
+        fileName: String? = nil,
+        mimeType: String? = nil,
+        byteSize: Int? = nil,
+        checksum: String? = nil,
+        width: Int? = nil,
+        height: Int? = nil,
+        duration: Double? = nil,
+        metadataJSON: String? = nil,
+        thumbnailData: Data? = nil,
+        originalData: Data? = nil
     ) {
         self.id = id
         self.kindRaw = kindRaw
         self.localIdentifier = localIdentifier
         self.displayName = displayName
         self.sortOrder = sortOrder
+        self.fileName = fileName
+        self.mimeType = mimeType
+        self.byteSize = byteSize
+        self.checksum = checksum
+        self.width = width
+        self.height = height
+        self.duration = duration
+        self.metadataJSON = metadataJSON
+        self.thumbnailData = thumbnailData
+        self.originalData = originalData
     }
 
     var kind: MediaKind {

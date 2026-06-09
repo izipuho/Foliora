@@ -1,8 +1,12 @@
+import CloudKit
+import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
     let repository: any CatalogRepository
     let navigate: (AppDestination) -> Void
+
+    @Environment(\.modelContext) private var modelContext
 
     @State private var exportDocument: CatalogTransferDocument?
     @State private var isExportingDocument = false
@@ -11,6 +15,14 @@ struct SettingsView: View {
     @State private var importErrorMessage: String?
     @State private var importWarningMessage: String?
     @State private var exportErrorMessage: String?
+    @State private var isShowingPurgeConfirmation = false
+    @State private var isPurgingCloudData = false
+    @State private var purgeStatusMessage: String?
+    @State private var isRefreshingCloudStatus = false
+    @State private var cloudAccountStatusText = "Not checked"
+    @State private var cloudUserRecordIDText = "Not checked"
+    @State private var cloudStatusLastRefreshText = "Never"
+    @State private var cloudStatusErrorMessage: String?
 
     var body: some View {
         List {
@@ -47,9 +59,45 @@ struct SettingsView: View {
             } footer: {
                 Text(String(localized: "settings.data.footer"))
             }
+
+            Section {
+                NavigationLink {
+                    CloudSyncDiagnosticsView()
+                } label: {
+                    Label("Cloud Sync Diagnostics", systemImage: "icloud")
+                }
+
+                Button(role: .destructive) {
+                    isShowingPurgeConfirmation = true
+                } label: {
+                    if isPurgingCloudData {
+                        Label("Purging…", systemImage: "trash")
+                    } else {
+                        Label("Purge Cloud Data", systemImage: "trash")
+                    }
+                }
+                .disabled(isPurgingCloudData)
+
+                if let purgeStatusMessage {
+                    Text(purgeStatusMessage)
+                        .font(.footnote)
+                        .foregroundStyle(purgeStatusMessage.hasPrefix("Purge failed") ? .red : .secondary)
+                }
+            } header: {
+                Text("Developer Tools")
+            }
+
+            Text("Version \(appVersion) (\(buildNumber))")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .listRowBackground(Color.clear)
         }
         .listStyle(.insetGrouped)
         .navigationTitle(RootTab.settings.title)
+        .task {
+            refreshCloudStatus()
+        }
         .fileExporter(
             isPresented: $isExportingDocument,
             document: exportDocument,
@@ -101,6 +149,61 @@ struct SettingsView: View {
             Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
             Text(importWarningMessage ?? "")
+        }
+        .confirmationDialog(
+            "Purge Cloud Data?",
+            isPresented: $isShowingPurgeConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Purge", role: .destructive) {
+                purgeCloudData()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will delete all Foliora Bells data from this device and sync deletions to iCloud for this Apple ID.")
+        }
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+    }
+
+    private var bundleIdentifier: String {
+        Bundle.main.bundleIdentifier ?? "Unknown"
+    }
+
+    private func refreshCloudStatus() {
+        guard !isRefreshingCloudStatus else {
+            return
+        }
+
+        isRefreshingCloudStatus = true
+        cloudStatusErrorMessage = nil
+
+        Task {
+            let container = CKContainer(identifier: CloudKitConfiguration.containerIdentifier)
+
+            do {
+                let status = try await container.accountStatus()
+                let userRecordID = try await container.userRecordID()
+
+                await MainActor.run {
+                    cloudAccountStatusText = status.diagnosticsText
+                    cloudUserRecordIDText = userRecordID.recordName
+                    cloudStatusLastRefreshText = Date.now.formatted(date: .abbreviated, time: .standard)
+                    isRefreshingCloudStatus = false
+                }
+            } catch {
+                await MainActor.run {
+                    cloudStatusErrorMessage = error.localizedDescription
+                    cloudStatusLastRefreshText = Date.now.formatted(date: .abbreviated, time: .standard)
+                    isRefreshingCloudStatus = false
+                }
+            }
         }
     }
 
@@ -155,6 +258,56 @@ struct SettingsView: View {
             }
         case .failure(let error):
             importErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func purgeCloudData() {
+        guard !isPurgingCloudData else {
+            return
+        }
+
+        isPurgingCloudData = true
+        purgeStatusMessage = "Purging…"
+
+        Task { @MainActor in
+            await Task.yield()
+
+            do {
+                try deleteAllCatalogEntities()
+                purgeStatusMessage = "Purge completed"
+            } catch {
+                purgeStatusMessage = "Purge failed: \(error.localizedDescription)"
+            }
+
+            isPurgingCloudData = false
+        }
+    }
+
+    private func deleteAllCatalogEntities() throws {
+        try modelContext.fetch(FetchDescriptor<MediaAssetEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<BellTagEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<MembershipEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<BellEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<LocationEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<HomeEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<CollectionEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<PlaceEntity>()).forEach(modelContext.delete)
+        try modelContext.save()
+    }
+}
+
+private struct SettingsInfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+                .textSelection(.enabled)
         }
     }
 }
