@@ -232,27 +232,11 @@ private struct RootShellView<Destination: View>: View {
     private var iPhoneRootContainer: some View {
         TabView(selection: $selectedRootTab) {
             Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage, value: RootTab.collections) {
-                NavigationStack(path: $collectionsPath) {
-                    CollectionsView(
-                        repository: repository,
-                        navigate: { collectionsPath.append($0) }
-                    )
-                    .navigationDestination(for: AppDestination.self) { destination in
-                        self.destination(destination, layoutModeBinding, nil, handleBatchAddCompletion, popCollectionsNavigation)
-                    }
-                }
+                collectionsStack(path: $collectionsPath, onBellSelected: nil)
             }
 
             Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage, value: RootTab.settings) {
-                NavigationStack(path: $settingsPath) {
-                    SettingsView(
-                        repository: repository,
-                        navigate: { settingsPath.append($0) }
-                    )
-                    .navigationDestination(for: AppDestination.self) { destination in
-                        self.destination(destination, layoutModeBinding, nil, handleBatchAddCompletion, popSettingsNavigation)
-                    }
-                }
+                settingsStack(path: $settingsPath, onBellSelected: nil)
             }
 
             Tab(value: RootTab.search, role: .search) {
@@ -304,15 +288,7 @@ private struct RootShellView<Destination: View>: View {
     private func iPadContent(for tab: RootTab) -> some View {
         switch tab {
         case .collections:
-            NavigationStack(path: $collectionsPath) {
-                CollectionsView(
-                    repository: repository,
-                    navigate: { collectionsPath.append($0) }
-                )
-                .navigationDestination(for: AppDestination.self) { destination in
-                    self.destination(destination, layoutModeBinding, openBellInspector, handleBatchAddCompletion, popCollectionsNavigation)
-                }
-            }
+            collectionsStack(path: $collectionsPath, onBellSelected: openBellInspector)
         case .search:
             NavigationStack(path: $searchPath) {
                 SearchTabView(
@@ -324,14 +300,36 @@ private struct RootShellView<Destination: View>: View {
                 .id(searchResetID)
             }
         case .settings:
-            NavigationStack(path: $settingsPath) {
-                SettingsView(
-                    repository: repository,
-                    navigate: { settingsPath.append($0) }
-                )
-                .navigationDestination(for: AppDestination.self) { destination in
-                    self.destination(destination, layoutModeBinding, openBellInspector, handleBatchAddCompletion, popSettingsNavigation)
-                }
+            settingsStack(path: $settingsPath, onBellSelected: openBellInspector)
+        }
+    }
+
+    private func collectionsStack(
+        path: Binding<NavigationPath>,
+        onBellSelected: ((BellEntity) -> Void)?
+    ) -> some View {
+        NavigationStack(path: path) {
+            CollectionsView(
+                repository: repository,
+                navigate: { path.wrappedValue.append($0) }
+            )
+            .navigationDestination(for: AppDestination.self) { destination in
+                self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popCollectionsNavigation)
+            }
+        }
+    }
+
+    private func settingsStack(
+        path: Binding<NavigationPath>,
+        onBellSelected: ((BellEntity) -> Void)?
+    ) -> some View {
+        NavigationStack(path: path) {
+            SettingsView(
+                repository: repository,
+                navigate: { path.wrappedValue.append($0) }
+            )
+            .navigationDestination(for: AppDestination.self) { destination in
+                self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popSettingsNavigation)
             }
         }
     }
