@@ -171,6 +171,10 @@ final class SwiftDataCatalogRepository: CatalogRepository {
         saveContext()
     }
 
+    func saveBellRecords(_ bells: [BellRecord]) {
+        bells.forEach(saveBellRecord)
+    }
+
     func deleteBellRecord(bellID: UUID) {
         guard let entity = fetchBellEntity(by: bellID) else { return }
         context.delete(entity)
@@ -332,7 +336,7 @@ final class SwiftDataCatalogRepository: CatalogRepository {
     }
 
     private func bellMaterial(from rawValue: String) -> BellMaterial {
-        BellMaterial(rawValue: rawValue) ?? .other
+        BellMaterial(rawValue: rawValue) ?? .unknown
     }
 
     private func mediaKind(from rawValue: String) -> MediaKind {

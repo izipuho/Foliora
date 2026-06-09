@@ -38,6 +38,9 @@ struct BellBatchAddView: View {
     let collection: CollectionSummary
     let photoCount: Int
     private let photoItems: [PhotosPickerItem]
+    private let initialMediaAssets: [MediaAsset]
+    private let repository: (any CatalogRepository)?
+    private let onComplete: () -> Void
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
     @Query private var queriedLocations: [LocationEntity]
@@ -52,15 +55,25 @@ struct BellBatchAddView: View {
     @State private var material: BellMaterial = .unknown
     @State private var customMaterialName = ""
     @State private var mediaLoadState: BellBatchMediaLoadState = .idle
-    @State private var mediaPayloads: [ImageMedia] = []
+    @State private var mediaPayloads: [MediaAsset] = []
     @State private var mediaLoadErrorMessage: String?
 
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
-    init(collection: CollectionSummary, photoCount: Int, photoItems: [PhotosPickerItem] = []) {
+    init(
+        collection: CollectionSummary,
+        photoCount: Int,
+        photoItems: [PhotosPickerItem] = [],
+        initialMediaAssets: [MediaAsset] = [],
+        repository: (any CatalogRepository)? = nil,
+        onComplete: @escaping () -> Void = {}
+    ) {
         self.collection = collection
         self.photoCount = photoCount
         self.photoItems = photoItems
+        self.initialMediaAssets = initialMediaAssets
+        self.repository = repository
+        self.onComplete = onComplete
         let homeID = Optional(collection.homeID)
         let collectionID = Optional(collection.id)
         _queriedLocations = Query(
@@ -129,8 +142,10 @@ struct BellBatchAddView: View {
                 }
 
                 Section {
-                    Button(createButtonLabel) {}
-                        .disabled(mediaLoadState == .loading)
+                    Button(createButtonLabel) {
+                        createBatchBells()
+                    }
+                    .disabled(!canCreateBatch)
                 }
             }
             .navigationTitle(String(localized: "bell_batch_add.title"))
@@ -176,6 +191,19 @@ struct BellBatchAddView: View {
             String(localized: "common.create_format"),
             localizedBellCount
         )
+    }
+
+    private var canCreateBatch: Bool {
+        repository != nil && mediaLoadState == .loaded && !mediaPayloads.isEmpty
+    }
+
+    private var selectedAcquiredYear: Int? {
+        Int(selectedAcquiredYearOption)
+    }
+
+    private var selectedLocation: Location? {
+        guard let selectedLocationID else { return nil }
+        return availableLocations.first { $0.id == selectedLocationID }
     }
 
     private var availableLocations: [Location] {
@@ -247,15 +275,24 @@ struct BellBatchAddView: View {
 
     @MainActor
     private func loadMediaPayloadsIfNeeded() async {
-        guard mediaLoadState == .idle, !photoItems.isEmpty else { return }
+        guard mediaLoadState == .idle else { return }
+
+        if !initialMediaAssets.isEmpty {
+            mediaPayloads = initialMediaAssets
+            mediaLoadState = .loaded
+            return
+        }
+
+        guard !photoItems.isEmpty else { return }
 
         mediaLoadState = .loading
         mediaLoadErrorMessage = nil
 
         do {
-            var loadedPayloads: [ImageMedia] = []
+            var loadedPayloads: [MediaAsset] = []
             for item in photoItems {
-                loadedPayloads.append(try await imageMediaBuilder.build(from: item))
+                let media = try await imageMediaBuilder.build(from: item)
+                loadedPayloads.append(media.asset)
             }
 
             mediaPayloads = loadedPayloads
@@ -265,5 +302,45 @@ struct BellBatchAddView: View {
             mediaLoadState = .failed
             mediaLoadErrorMessage = String(localized: "bell.detail.preview.load_error")
         }
+    }
+
+    @MainActor
+    private func createBatchBells() {
+        guard let repository, !mediaPayloads.isEmpty else { return }
+
+        let names = BellBatchNameGenerator().names(count: mediaPayloads.count)
+        let now = Date()
+        let bells = mediaPayloads.enumerated().map { index, mediaAsset in
+            let bellID = UUID()
+            return BellRecord(
+                item: Item(
+                    id: bellID,
+                    collectionID: collection.id,
+                    locationID: selectedLocationID,
+                    createdAt: now,
+                    title: names[index],
+                    notes: "",
+                    acquiredYear: selectedAcquiredYear,
+                    condition: .good,
+                    acquisitionMethod: .other
+                ),
+                details: BellDetails(
+                    itemID: bellID,
+                    originPlaceID: selectedOriginPlace?.id,
+                    material: material,
+                    customMaterialName: material == .other ? customMaterialName : nil
+                ),
+                originPlace: selectedOriginPlace,
+                storageLocation: selectedLocation,
+                storagePath: selectedLocation.map(locationPath(for:)) ?? "",
+                mediaAssets: [mediaAsset.with(itemID: bellID, sortOrder: 0)],
+                createdBy: "me",
+                tags: tags
+            )
+        }
+
+        repository.saveBellRecords(bells)
+        onComplete()
+        dismiss()
     }
 }

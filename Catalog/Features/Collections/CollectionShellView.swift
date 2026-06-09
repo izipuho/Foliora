@@ -193,7 +193,10 @@ struct CollectionShellView: View {
     private var batchAddSheet: some View {
         BellBatchAddView(
             collection: collection,
-            photoCount: draftMediaAssets.count
+            photoCount: draftMediaAssets.count,
+            initialMediaAssets: draftMediaAssets,
+            repository: repository,
+            onComplete: refreshContent
         )
     }
 
