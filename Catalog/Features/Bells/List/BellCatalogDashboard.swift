@@ -275,8 +275,6 @@ struct DashboardDataHealthCard: View {
                     Text(String(localized: "bell_catalog.dashboard.health.subtitle"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(" ")
-                        .font(.caption)
                 }
 
                 Spacer(minLength: 0)
@@ -313,12 +311,6 @@ struct DashboardTopGeographyCard: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "arrow.turn.down.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(tint)
             }
             .padding()
             .frame(width: 240, alignment: .leading)
