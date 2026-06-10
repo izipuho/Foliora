@@ -40,6 +40,7 @@
 		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
 		24F1A5022FD8C89000FC1717 /* CatalogContainerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5012FD8C89000FC1717 /* CatalogContainerCard.swift */; };
 		24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */; };
+		24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */; };
 		C000000000000000000000A1 /* CatalogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000001 /* CatalogApp.swift */; };
 		C000000000000000000000A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
 		C000000000000000000000A3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* AppRouter.swift */; };
@@ -107,6 +108,7 @@
 		24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		24F1A5012FD8C89000FC1717 /* CatalogContainerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogContainerCard.swift; sourceTree = "<group>"; };
 		24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogContainerList.swift; sourceTree = "<group>"; };
+		24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSharingMapper.swift; sourceTree = "<group>"; };
 		C00000000000000000000001 /* CatalogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogApp.swift; sourceTree = "<group>"; };
 		C00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
 		C00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
@@ -344,6 +346,7 @@
 		C0000000000000000000003E /* Sharing */ = {
 			isa = PBXGroup;
 			children = (
+				24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */,
 				C0000000000000000000000A /* SharingModels.swift */,
 			);
 			path = Sharing;
@@ -643,6 +646,7 @@
 				246FD63C2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift in Sources */,
 				2403CEDF2F9FA3A900C63AB6 /* CollectionEditorView.swift in Sources */,
 				2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */,
+				24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */,
 				2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */,
 				2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */,
 				2403CEE32F9FA83A00C63AB6 /* CameraPicker.swift in Sources */,
@@ -1039,7 +1043,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1089,7 +1093,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
