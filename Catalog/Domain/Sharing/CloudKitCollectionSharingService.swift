@@ -4,7 +4,7 @@ import Foundation
 protocol CollectionSharingService: Sendable {
     func fetchShare(for collectionID: UUID) async throws -> CKShare?
 
-    func createShare(for collectionID: UUID) async throws -> CKShare
+    func createShare(for collectionID: UUID, title: String) async throws -> CKShare
 
     func sharingState(
         for collectionID: UUID
@@ -53,13 +53,15 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
     }
 
     func createShare(
-        for collectionID: UUID
+        for collectionID: UUID,
+        title: String
     ) async throws -> CKShare {
         guard let record = try await findCollectionRecord(for: collectionID) else {
             throw CloudKitCollectionSharingError.collectionRecordNotFound(collectionID)
         }
 
         let share = CKShare(rootRecord: record)
+        share[CKShare.SystemFieldKey.title] = title
         try await save(records: [record, share])
 
         return share

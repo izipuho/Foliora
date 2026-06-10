@@ -431,7 +431,7 @@ struct CloudSyncDiagnosticsView: View {
 
         Task {
             do {
-                let share = try await service.createShare(for: collectionID)
+                let share = try await service.createShare(for: collectionID, title: collection.title)
 
                 await MainActor.run {
                     productionShareProbe = CKShareProbeResult(

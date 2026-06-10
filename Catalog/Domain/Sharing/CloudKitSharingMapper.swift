@@ -43,10 +43,14 @@ private extension CloudKitSharingMapper {
 
     static func displayName(for participant: CKShare.Participant) -> String? {
         guard let nameComponents = participant.userIdentity.nameComponents else {
-            return nil
+            return participant.role == .owner ? String(localized: "collection.sharing.participant.you") : nil
         }
 
         let displayName = PersonNameComponentsFormatter().string(from: nameComponents)
+        if displayName.isEmpty, participant.role == .owner {
+            return String(localized: "collection.sharing.participant.you")
+        }
+
         return displayName.isEmpty ? nil : displayName
     }
 

@@ -1,8 +1,20 @@
+import CloudKit
 import SwiftUI
 
 struct CollectionSharingView: View {
     let collection: CollectionSummary
-    let state: CollectionSharingState
+    @State private var state: CollectionSharingState
+    @State private var share: CKShare?
+    @State private var isPresentingSharingController = false
+    @State private var isPreparingShare = false
+
+    private let container = CKContainer(identifier: CloudKitConfiguration.default.containerIdentifier)
+    private let sharingService = CloudKitCollectionSharingService()
+
+    init(collection: CollectionSummary, state: CollectionSharingState) {
+        self.collection = collection
+        self._state = State(initialValue: state)
+    }
 
     var body: some View {
         Form {
@@ -20,7 +32,7 @@ struct CollectionSharingView: View {
 
             Section(String(localized: "collection.sharing.people.section")) {
                 if state.participants.isEmpty {
-                    Text(String(localized: "collection.sharing.people.empty"))
+                    Text("collection.sharing.people.empty")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(state.participants) { participant in
@@ -33,12 +45,28 @@ struct CollectionSharingView: View {
             }
 
             Section {
-                Button(String(localized: "collection.sharing.share_cta")) {}
-                    .disabled(true)
+                Button("collection.sharing.share_cta") {
+                    Task {
+                        await openSharingController()
+                    }
+                }
+                .disabled(isPreparingShare)
             }
         }
         .navigationTitle(String(localized: "collection.sharing.title"))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(
+            isPresented: $isPresentingSharingController,
+            onDismiss: {
+                Task {
+                    await refreshSharingState()
+                }
+            }
+        ) {
+            if let share {
+                CloudSharingController(share: share, container: container)
+            }
+        }
     }
 
     private var sharingStatusText: String {
@@ -50,9 +78,76 @@ struct CollectionSharingView: View {
         case .owner:
             String(localized: "collection.sharing.role.owner")
         case .contributor:
-            "Contributor"
+            String(localized: "collection.sharing.role.contributor")
         case .viewer:
-            "Viewer"
+            String(localized: "collection.sharing.role.viewer")
         }
+    }
+
+    @MainActor
+    private func openSharingController() async {
+        isPreparingShare = true
+        defer { isPreparingShare = false }
+
+        do {
+            if let existingShare = try await sharingService.fetchShare(for: collection.id) {
+                share = existingShare
+            } else {
+                share = try await sharingService.createShare(for: collection.id)
+            }
+            isPresentingSharingController = true
+        } catch {
+            share = nil
+        }
+    }
+
+    @MainActor
+    private func refreshSharingState() async {
+        do {
+            state = try await sharingService.sharingState(for: collection.id)
+        } catch {
+            state = CollectionSharingState(
+                isShared: false,
+                currentUserRole: .owner,
+                participants: []
+            )
+        }
+    }
+}
+
+private struct CloudSharingController: UIViewControllerRepresentable {
+    let share: CKShare
+    let container: CKContainer
+
+    func makeUIViewController(context: Context) -> UICloudSharingController {
+        let controller = UICloudSharingController(share: share, container: container)
+        controller.delegate = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(
+        _ uiViewController: UICloudSharingController,
+        context: Context
+    ) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(share: share)
+    }
+
+    final class Coordinator: NSObject, UICloudSharingControllerDelegate {
+        private let share: CKShare
+
+        init(share: CKShare) {
+            self.share = share
+        }
+
+        func itemTitle(for cloudSharingController: UICloudSharingController) -> String? {
+            share[CKShare.SystemFieldKey.title] as? String
+        }
+
+        func cloudSharingController(
+            _ csc: UICloudSharingController,
+            failedToSaveShareWithError error: any Error
+        ) {}
     }
 }

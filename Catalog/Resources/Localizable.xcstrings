@@ -2496,6 +2496,22 @@
         }
       }
     },
+    "collection.sharing.participant.you" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы"
+          }
+        }
+      }
+    },
     "collection.sharing.people.empty" : {
       "localizations" : {
         "en" : {
@@ -2524,6 +2540,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Люди"
+          }
+        }
+      }
+    },
+    "collection.sharing.role.contributor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contributor"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Контрибьютор"
           }
         }
       }
@@ -2604,6 +2637,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Приватная коллекция"
+          }
+        }
+      }
+    },
+    "collection.sharing.status.shared" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shared collection"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Общая коллекция"
           }
         }
       }
@@ -4373,74 +4422,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Дерево"
-          }
-        }
-      }
-    },
-    "enum.collection_role.contributor" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contributor"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Контрибьютор"
-          }
-        }
-      }
-    },
-    "enum.collection_role.editor" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Editor"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Редактор"
-          }
-        }
-      }
-    },
-    "enum.collection_role.owner" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Owner"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Владелец"
-          }
-        }
-      }
-    },
-    "enum.collection_role.viewer" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Viewer"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Наблюдатель"
           }
         }
       }
