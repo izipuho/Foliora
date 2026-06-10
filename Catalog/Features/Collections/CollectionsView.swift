@@ -69,8 +69,8 @@ struct CollectionsView: View {
         if collections.isEmpty {
             emptyCollectionsView
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+            CatalogContainerList {
+                Section {
                     ForEach(collections) { collection in
                         Button {
                             selectCollection(collection)
@@ -78,14 +78,18 @@ struct CollectionsView: View {
                             CollectionCard(collection: collection)
                         }
                         .buttonStyle(.plain)
+                        .catalogContainerListRow()
+                        .swipeActions {
+                            Button(String(localized: "common.delete"), role: .destructive) {
+                                deleteCollection(collection.id)
+                            }
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .contentMargins(.horizontal, nil, for: .scrollContent)
             .contentMargins(.top, nil, for: .scrollContent)
             .contentMargins(.bottom, 120, for: .scrollContent)
-            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -184,6 +188,10 @@ struct CollectionsView: View {
         navigate?(.collection(collection))
     }
 
+    private func deleteCollection(_ collectionID: UUID) {
+        repository.deleteCollection(collectionID: collectionID)
+    }
+
     private func autoOpenSingleCollectionIfNeeded() {
         guard onCollectionSelected == nil else { return }
         guard !didAutoOpenSingleCollection else { return }
@@ -192,5 +200,21 @@ struct CollectionsView: View {
 
         didAutoOpenSingleCollection = true
         navigate?(.collection(collection))
+    }
+}
+
+private struct CollectionCard: View {
+    let collection: CollectionSummary
+
+    private var detailLines: [String] {
+        [collection.kind.countLabel(for: collection.itemCount)]
+    }
+
+    var body: some View {
+        CatalogContainerCard(
+            title: collection.name,
+            subtitle: collection.kind.countLabel(for: collection.itemCount),
+            systemImage: collection.kind.systemImage
+        )
     }
 }

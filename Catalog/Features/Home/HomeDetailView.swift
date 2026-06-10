@@ -78,57 +78,6 @@ struct HomeDetailView: View {
     }
 }
 
-struct HomeListCard: View {
-    let home: Home
-    let locations: [Location]
-    let collectionCount: Int
-
-    private var hasStorageLocations: Bool {
-        !locations.isEmpty
-    }
-
-    private var subtitle: String {
-        let collectionsSummary: String
-        if collectionCount == 0 {
-            collectionsSummary = String(localized: "home.list.collections.empty")
-        } else {
-            collectionsSummary = String.localizedStringWithFormat(
-                NSLocalizedString("home.list.collections.count", comment: "Home list collection count"),
-                collectionCount
-            )
-        }
-
-        guard !hasStorageLocations else {
-            return collectionsSummary
-        }
-
-        return [
-            collectionsSummary,
-            String(localized: "home.list.storage.empty")
-        ].joined(separator: " · ")
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: home.iconName)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 30, height: 30)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(home.name)
-                    .font(.body.weight(.semibold))
-
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-        }
-        .padding(.vertical, 6)
-    }
-}
-
 struct HomeIdentityHeader: View {
     let home: Home
 

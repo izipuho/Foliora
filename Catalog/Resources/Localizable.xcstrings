@@ -1876,6 +1876,12 @@
                   "state" : "translated",
                   "value" : "%d bells"
                 }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "No bells yet"
+                }
               }
             }
           }
@@ -1905,6 +1911,12 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%d колокольчика"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "needs_review",
+                  "value" : "Колокольчиков пока нет"
                 }
               }
             }

@@ -52,15 +52,11 @@ struct HomeView: View {
             if homes.isEmpty {
                 emptyHomesView
             } else {
-                List {
+                CatalogContainerList {
                     Section {
                         homesRows
                     }
                 }
-                .listStyle(.insetGrouped)
-                .contentMargins(.horizontal, nil, for: .scrollContent)
-                .contentMargins(.top, nil, for: .scrollContent)
-                .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
             }
         }
         .background(
@@ -128,7 +124,7 @@ struct HomeView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .listRowSeparator(.hidden)
+                .catalogContainerListRow()
                 .swipeActions {
                     Button(String(localized: "common.delete"), role: .destructive) {
                         requestDeleteHome(home.id)
@@ -145,7 +141,7 @@ struct HomeView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .listRowSeparator(.hidden)
+                .catalogContainerListRow()
                 .swipeActions {
                     Button(String(localized: "common.delete"), role: .destructive) {
                         requestDeleteHome(home.id)
@@ -157,7 +153,7 @@ struct HomeView: View {
                     locations: locationsByHomeID[home.id] ?? [],
                     collectionCount: collectionCount(in: home.id)
                 )
-                .listRowSeparator(.hidden)
+                .catalogContainerListRow()
                 .swipeActions {
                     Button(String(localized: "common.delete"), role: .destructive) {
                         requestDeleteHome(home.id)
@@ -213,5 +209,45 @@ struct HomeView: View {
 
     private func deleteHome(_ homeID: UUID) {
         repository.deleteHome(homeID: homeID)
+    }
+}
+
+private struct HomeListCard: View {
+    let home: Home
+    let locations: [Location]
+    let collectionCount: Int
+
+    private var hasStorageLocations: Bool {
+        !locations.isEmpty
+    }
+
+    private var subtitle: String {
+        let collectionsSummary: String
+        if collectionCount == 0 {
+            collectionsSummary = String(localized: "home.list.collections.empty")
+        } else {
+            collectionsSummary = String.localizedStringWithFormat(
+                NSLocalizedString("home.list.collections.count", comment: "Home list collection count"),
+                collectionCount
+            )
+        }
+
+        guard !hasStorageLocations else {
+            return collectionsSummary
+        }
+
+        return [
+            collectionsSummary,
+            String(localized: "home.list.storage.empty")
+        ].joined(separator: " · ")
+    }
+
+    var body: some View {
+        CatalogContainerCard(
+            title: home.name,
+            subtitle: subtitle,
+            footnote: [],
+            systemImage: home.iconName
+        )
     }
 }
