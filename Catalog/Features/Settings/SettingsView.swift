@@ -272,7 +272,7 @@ struct SettingsView: View {
     private func deleteAllCatalogEntities() throws {
         try modelContext.fetch(FetchDescriptor<MediaAssetEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<BellTagEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<MembershipEntity>()).forEach(modelContext.delete)
+        try modelContext.fetch(FetchDescriptor<CollectionParticipantEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<BellEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<LocationEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<HomeEntity>()).forEach(modelContext.delete)

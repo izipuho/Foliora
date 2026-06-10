@@ -124,8 +124,8 @@ final class CollectionEntity {
     @Relationship(deleteRule: .cascade, inverse: \BellEntity.collection)
     var bells: [BellEntity]? = []
 
-    @Relationship(deleteRule: .cascade, inverse: \MembershipEntity.collection)
-    var memberships: [MembershipEntity]? = []
+    @Relationship(deleteRule: .cascade, inverse: \CollectionParticipantEntity.collection)
+    var participants: [CollectionParticipantEntity]? = []
 
     init(
         id: UUID,
@@ -176,42 +176,34 @@ final class CollectionEntity {
 }
 
 @Model
-final class MembershipEntity {
+final class CollectionParticipantEntity {
     var id: UUID = UUID()
-    var userID: String = ""
-    var roleRaw: String = CollectionAccessRole.viewer.rawValue
-    var statusRaw: String = CollectionParticipantStatus.unknown.rawValue
+    var cloudKitParticipantID: String = ""
+    var roleRaw: CollectionAccessRole
+    var statusRaw: CollectionParticipantStatus
 
     var collection: CollectionEntity?
 
     init(
         id: UUID,
-        userID: String,
-        roleRaw: String,
-        statusRaw: String
+        cloudKitParticipantID: String,
+        roleRaw: CollectionAccessRole,
+        statusRaw: CollectionParticipantStatus
     ) {
         self.id = id
-        self.userID = userID
+        self.cloudKitParticipantID = cloudKitParticipantID
         self.roleRaw = roleRaw
         self.statusRaw = statusRaw
     }
 
-    var role: CollectionAccessRole {
-        CollectionAccessRole(rawValue: roleRaw) ?? .viewer
-    }
-
-    var status: CollectionParticipantStatus {
-        CollectionParticipantStatus(rawValue: statusRaw) ?? .unknown
-    }
-
-    var membershipSnapshot: CollectionParticipant {
+    var participantSnapshot: CollectionParticipant {
         CollectionParticipant(
             id: id,
             collectionID: collection?.id ?? UUID(),
-            cloudKitParticipantID: userID.isEmpty ? nil : userID,
+            cloudKitParticipantID: cloudKitParticipantID.isEmpty ? nil : cloudKitParticipantID,
             displayName: nil,
-            role: role,
-            status: status
+            role: roleRaw,
+            status: statusRaw
         )
     }
 }
