@@ -42,8 +42,6 @@ private extension BellBatchAddView {
                 subtitle: "",
                 backgroundStyle: .amber,
                 itemCount: 0,
-                collaboratorCount: 0,
-                role: .owner,
                 status: .active,
                 sharingSummary: ""
             ),

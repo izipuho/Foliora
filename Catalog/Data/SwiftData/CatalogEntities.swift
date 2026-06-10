@@ -150,9 +150,6 @@ final class CollectionEntity {
     }
 
     var summarySnapshot: CollectionSummary {
-        let activeMemberships = (memberships ?? []).filter { $0.status == .active }
-        let currentUserRole = activeMemberships.first(where: { $0.userID == "me" })?.role ?? .viewer
-
         return CollectionSummary(
             id: id,
             homeID: home?.id ?? UUID(),
@@ -161,8 +158,6 @@ final class CollectionEntity {
             subtitle: notes,
             backgroundStyle: backgroundStyle,
             itemCount: kind == .bells ? (bells ?? []).count : 0,
-            collaboratorCount: activeMemberships.count,
-            role: currentUserRole,
             status: kind == .bells ? .active : .planned,
             sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
         )
