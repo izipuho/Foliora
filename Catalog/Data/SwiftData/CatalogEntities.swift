@@ -124,9 +124,6 @@ final class CollectionEntity {
     @Relationship(deleteRule: .cascade, inverse: \BellEntity.collection)
     var bells: [BellEntity]? = []
 
-    @Relationship(deleteRule: .cascade, inverse: \CollectionParticipantEntity.collection)
-    var participants: [CollectionParticipantEntity]? = []
-
     init(
         id: UUID,
         kindRaw: String,
@@ -171,39 +168,6 @@ final class CollectionEntity {
             title: title,
             notes: notes,
             backgroundStyle: backgroundStyle
-        )
-    }
-}
-
-@Model
-final class CollectionParticipantEntity {
-    var id: UUID = UUID()
-    var cloudKitParticipantID: String = ""
-    var roleRaw: CollectionAccessRole
-    var statusRaw: CollectionParticipantStatus
-
-    var collection: CollectionEntity?
-
-    init(
-        id: UUID,
-        cloudKitParticipantID: String,
-        roleRaw: CollectionAccessRole,
-        statusRaw: CollectionParticipantStatus
-    ) {
-        self.id = id
-        self.cloudKitParticipantID = cloudKitParticipantID
-        self.roleRaw = roleRaw
-        self.statusRaw = statusRaw
-    }
-
-    var participantSnapshot: CollectionParticipant {
-        CollectionParticipant(
-            id: id,
-            collectionID: collection?.id ?? UUID(),
-            cloudKitParticipantID: cloudKitParticipantID.isEmpty ? nil : cloudKitParticipantID,
-            displayName: nil,
-            role: roleRaw,
-            status: statusRaw
         )
     }
 }

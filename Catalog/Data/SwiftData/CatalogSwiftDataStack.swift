@@ -6,7 +6,6 @@ enum CatalogSwiftDataStack {
         HomeEntity.self,
         LocationEntity.self,
         CollectionEntity.self,
-        CollectionParticipantEntity.self,
         PlaceEntity.self,
         BellEntity.self,
         BellTagEntity.self,

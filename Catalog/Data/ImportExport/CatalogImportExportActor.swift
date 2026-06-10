@@ -222,7 +222,6 @@ actor CatalogImportExportActor {
         try modelContext.fetch(FetchDescriptor<MediaAssetEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<BellTagEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<BellEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<CollectionParticipantEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<CollectionEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<LocationEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<PlaceEntity>()).forEach(modelContext.delete)
