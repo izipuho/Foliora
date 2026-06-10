@@ -18,6 +18,7 @@ struct CloudSyncDiagnosticsView: View {
     @State private var databaseProbe = CloudKitProbeResult()
     @State private var mirroredRecordsProbe = MirroredRecordsProbeResult()
     @State private var shareProbe = CKShareProbeResult()
+    @State private var productionShareProbe = CKShareProbeResult()
     @State private var localSaveProbe = LocalSaveProbeResult()
     @State private var eventHistory: [CloudKitEventSummary] = []
 
@@ -83,6 +84,10 @@ struct CloudSyncDiagnosticsView: View {
                     createCKShareForCurrentCollection()
                 }
 
+                Button("Create Share Using Production Service") {
+                    createShareUsingProductionService()
+                }
+
                 diagnosticsRow("Status", mirroredRecordsProbe.status)
                 diagnosticsRow("CD_CollectionEntity count", mirroredRecordsProbe.countText)
                 diagnosticsRow("First recordName", mirroredRecordsProbe.firstRecordName ?? "None")
@@ -96,6 +101,10 @@ struct CloudSyncDiagnosticsView: View {
                 diagnosticsRow("Share error code", shareProbe.errorCode ?? "None")
                 diagnosticsRow("Share error", shareProbe.errorDescription ?? "None")
                 diagnosticsRow("Share last checked", shareProbe.timestampText)
+                diagnosticsRow("Production share status", productionShareProbe.status)
+                diagnosticsRow("Production share recordName", productionShareProbe.shareRecordName ?? "None")
+                diagnosticsRow("Production share error code", productionShareProbe.errorCode ?? "None")
+                diagnosticsRow("Production share error", productionShareProbe.errorDescription ?? "None")
             }
 
             Section("SwiftData / CloudKit Event History") {
@@ -390,6 +399,52 @@ struct CloudSyncDiagnosticsView: View {
 
                 await MainActor.run {
                     shareProbe = CKShareProbeResult(
+                        status: "Failed",
+                        errorCode: ckError.map { "\($0.code.rawValue) (\($0.code))" },
+                        errorDescription: error.localizedDescription,
+                        timestamp: Date.now
+                    )
+                }
+            }
+        }
+    }
+
+    private func createShareUsingProductionService() {
+        productionShareProbe = CKShareProbeResult(status: "In progress", timestamp: Date.now)
+
+        var descriptor = FetchDescriptor<CollectionEntity>(sortBy: [SortDescriptor(\.title)])
+        descriptor.fetchLimit = 1
+
+        guard let collection = try? modelContext.fetch(descriptor).first else {
+            productionShareProbe = CKShareProbeResult(
+                status: "Failed",
+                errorDescription: "No local CollectionEntity found.",
+                timestamp: Date.now
+            )
+            return
+        }
+
+        let collectionID = collection.id
+        let service = CloudKitCollectionSharingService(
+            container: CKContainer(identifier: containerIdentifier)
+        )
+
+        Task {
+            do {
+                let share = try await service.createShare(for: collectionID)
+
+                await MainActor.run {
+                    productionShareProbe = CKShareProbeResult(
+                        status: "Success",
+                        shareRecordName: share.recordID.recordName,
+                        timestamp: Date.now
+                    )
+                }
+            } catch {
+                let ckError = error as? CKError
+
+                await MainActor.run {
+                    productionShareProbe = CKShareProbeResult(
                         status: "Failed",
                         errorCode: ckError.map { "\($0.code.rawValue) (\($0.code))" },
                         errorDescription: error.localizedDescription,
