@@ -5,7 +5,6 @@ import SwiftData
 final class SwiftDataCatalogRepository: CatalogRepository {
     let modelContainer: ModelContainer
     private let context: ModelContext
-    private let currentUserID = "me"
 
     init(container: ModelContainer) {
         self.modelContainer = container
@@ -63,7 +62,6 @@ final class SwiftDataCatalogRepository: CatalogRepository {
     func saveCollection(_ collection: Collection) {
         guard let home = fetchHomeEntity(by: collection.homeID) else { return }
 
-        let isNew = fetchCollectionEntity(by: collection.id) == nil
         let entity = fetchCollectionEntity(by: collection.id) ?? CollectionEntity(
             id: collection.id,
             kindRaw: collection.kind.rawValue,
@@ -80,17 +78,6 @@ final class SwiftDataCatalogRepository: CatalogRepository {
 
         if entity.modelContext == nil {
             context.insert(entity)
-        }
-
-        if isNew && (entity.memberships ?? []).isEmpty {
-            let membership = MembershipEntity(
-                id: UUID(),
-                userID: currentUserID,
-                roleRaw: CollectionRole.owner.rawValue,
-                statusRaw: MembershipStatus.active.rawValue
-            )
-            membership.collection = entity
-            context.insert(membership)
         }
 
         saveContext()
