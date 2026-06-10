@@ -57,10 +57,6 @@ struct HomeView: View {
                         homesRows
                     }
                 }
-                .listStyle(.insetGrouped)
-                .contentMargins(.horizontal, nil, for: .scrollContent)
-                .contentMargins(.top, nil, for: .scrollContent)
-                .contentMargins(.bottom, scrollContentBottomInset, for: .scrollContent)
             }
         }
         .background(

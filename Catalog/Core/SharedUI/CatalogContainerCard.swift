@@ -7,13 +7,23 @@ struct CatalogContainerCard: View {
     let systemImage: String
     let accessorySystemImage: String?
 
+    private enum Metrics {
+        static let cornerRadius: CGFloat = 24
+        static let iconCornerRadius: CGFloat = 18
+        static let internalPadding: CGFloat = 16
+        static let iconSize: CGFloat = 52
+        static let shadowRadius: CGFloat = 14
+        static let shadowY: CGFloat = 6
+        static let strokeWidth: CGFloat = 1
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top, spacing: 14) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous)
+                    RoundedRectangle(cornerRadius: Metrics.iconCornerRadius, style: .continuous)
                         .fill(Color.accentColor.opacity(0.12))
-                        .frame(width: 52, height: 52)
+                        .frame(width: Metrics.iconSize, height: Metrics.iconSize)
 
                     Image(systemName: systemImage)
                         .font(.title3.weight(.semibold))
@@ -53,10 +63,10 @@ struct CatalogContainerCard: View {
                 }
             }
         }
-        .padding(CatalogLayoutInsets.screen)
+        .padding(Metrics.internalPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous)
+            RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -68,6 +78,14 @@ struct CatalogContainerCard: View {
                     )
                 )
         )
-        .catalogShadow(CatalogElevation.collectionCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
+                .stroke(.white.opacity(0.42), lineWidth: Metrics.strokeWidth)
+        )
+        .shadow(
+            color: CatalogSemanticColors.separator.opacity(0.18),
+            radius: Metrics.shadowRadius,
+            y: Metrics.shadowY
+        )
     }
 }
