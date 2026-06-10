@@ -213,10 +213,8 @@ private struct CollectionCard: View {
     var body: some View {
         CatalogContainerCard(
             title: collection.name,
-            subtitle: collection.subtitle,
-            detailLines: detailLines,
-            systemImage: collection.kind.systemImage,
-            accessorySystemImage: nil
+            subtitle: collection.kind.countLabel(for: collection.itemCount),
+            systemImage: collection.kind.systemImage
         )
     }
 }

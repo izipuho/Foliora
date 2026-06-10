@@ -2,10 +2,12 @@ import SwiftUI
 
 struct CatalogContainerCard: View {
     let title: String
-    let subtitle: String?
-    let detailLines: [String]
+    var subtitle: String? = nil
+    var subtitleTrailing: String? = nil
+    var subtitleTrailingIcon: String? = nil
+    var footnote: [String] = []
     let systemImage: String
-    let accessorySystemImage: String?
+    var accessorySystemImage: String? = nil
 
     private enum Metrics {
         static let cornerRadius: CGFloat = 24
@@ -34,11 +36,20 @@ struct CatalogContainerCard: View {
                     Text(title)
                         .font(.title3.bold())
 
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                    HStack(alignment: .firstTextBaseline) {
+                        if let subtitle {
+                            Text(subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+
+
+                        Spacer(minLength: 8)
+
+                        if let subtitleTrailing, let subtitleTrailingIcon {
+                            Label(subtitleTrailing, systemImage: subtitleTrailingIcon)
+                        }
                     }
                 }
 
@@ -52,9 +63,9 @@ struct CatalogContainerCard: View {
                 }
             }
 
-            if !detailLines.isEmpty {
+            if !footnote.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(detailLines, id: \.self) { detailLine in
+                    ForEach(footnote, id: \.self) { detailLine in
                         Text(detailLine)
                             .font(.footnote.weight(.medium))
                             .foregroundStyle(.secondary)
