@@ -52,7 +52,7 @@ struct HomeView: View {
             if homes.isEmpty {
                 emptyHomesView
             } else {
-                List {
+                CatalogContainerList {
                     Section {
                         homesRows
                     }
@@ -124,7 +124,7 @@ struct HomeView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .listRowSeparator(.hidden)
+                .catalogContainerListRow()
                 .swipeActions {
                     Button(String(localized: "common.delete"), role: .destructive) {
                         requestDeleteHome(home.id)
@@ -141,7 +141,7 @@ struct HomeView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .listRowSeparator(.hidden)
+                .catalogContainerListRow()
                 .swipeActions {
                     Button(String(localized: "common.delete"), role: .destructive) {
                         requestDeleteHome(home.id)
@@ -153,7 +153,7 @@ struct HomeView: View {
                     locations: locationsByHomeID[home.id] ?? [],
                     collectionCount: collectionCount(in: home.id)
                 )
-                .listRowSeparator(.hidden)
+                .catalogContainerListRow()
                 .swipeActions {
                     Button(String(localized: "common.delete"), role: .destructive) {
                         requestDeleteHome(home.id)

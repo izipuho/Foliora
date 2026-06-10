@@ -69,7 +69,7 @@ struct CollectionsView: View {
         if collections.isEmpty {
             emptyCollectionsView
         } else {
-            List {
+            CatalogContainerList {
                 Section {
                     ForEach(collections) { collection in
                         Button {
@@ -78,11 +78,15 @@ struct CollectionsView: View {
                             CollectionCard(collection: collection)
                         }
                         .buttonStyle(.plain)
-                        .listRowSeparator(.hidden)
+                        .catalogContainerListRow()
+                        .swipeActions {
+                            Button(String(localized: "common.delete"), role: .destructive) {
+                                deleteCollection(collection.id)
+                            }
+                        }
                     }
                 }
             }
-            .listStyle(.insetGrouped)
             .contentMargins(.horizontal, nil, for: .scrollContent)
             .contentMargins(.top, nil, for: .scrollContent)
             .contentMargins(.bottom, 120, for: .scrollContent)
@@ -182,6 +186,10 @@ struct CollectionsView: View {
         }
 
         navigate?(.collection(collection))
+    }
+
+    private func deleteCollection(_ collectionID: UUID) {
+        repository.deleteCollection(collectionID: collectionID)
     }
 
     private func autoOpenSingleCollectionIfNeeded() {
