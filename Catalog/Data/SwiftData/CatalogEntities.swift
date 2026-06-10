@@ -179,8 +179,8 @@ final class CollectionEntity {
 final class MembershipEntity {
     var id: UUID = UUID()
     var userID: String = ""
-    var roleRaw: String = CollectionRole.viewer.rawValue
-    var statusRaw: String = MembershipStatus.pending.rawValue
+    var roleRaw: String = CollectionAccessRole.viewer.rawValue
+    var statusRaw: String = CollectionParticipantStatus.invited.rawValue
 
     var collection: CollectionEntity?
 
@@ -196,19 +196,20 @@ final class MembershipEntity {
         self.statusRaw = statusRaw
     }
 
-    var role: CollectionRole {
-        CollectionRole(rawValue: roleRaw) ?? .viewer
+    var role: CollectionAccessRole {
+        CollectionAccessRole(rawValue: roleRaw) ?? .viewer
     }
 
-    var status: MembershipStatus {
-        MembershipStatus(rawValue: statusRaw) ?? .pending
+    var status: CollectionParticipantStatus {
+        CollectionParticipantStatus(rawValue: statusRaw) ?? .unknown
     }
 
-    var membershipSnapshot: Membership {
-        Membership(
+    var membershipSnapshot: CollectionParticipant {
+        CollectionParticipant(
             id: id,
             collectionID: collection?.id ?? UUID(),
-            userID: userID,
+            cloudKitParticipantID: userID.isEmpty ? nil : userID,
+            displayName: nil,
             role: role,
             status: status
         )

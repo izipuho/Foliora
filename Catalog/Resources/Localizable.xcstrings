@@ -4226,6 +4226,7 @@
       }
     },
     "enum.collection_role.contributor" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4242,6 +4243,7 @@
       }
     },
     "enum.collection_role.editor" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4258,6 +4260,7 @@
       }
     },
     "enum.collection_role.owner" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4274,6 +4277,7 @@
       }
     },
     "enum.collection_role.viewer" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

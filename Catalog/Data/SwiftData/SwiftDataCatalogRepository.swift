@@ -296,8 +296,8 @@ final class SwiftDataCatalogRepository: CatalogRepository {
         CollectionBackgroundStyle(rawValue: rawValue) ?? .amber
     }
 
-    private func collectionRole(from rawValue: String) -> CollectionRole {
-        CollectionRole(rawValue: rawValue) ?? .viewer
+    private func collectionRole(from rawValue: String) -> CollectionAccessRole {
+        CollectionAccessRole(rawValue: rawValue) ?? .viewer
     }
 
     private func itemCondition(from rawValue: String) -> ItemCondition {
