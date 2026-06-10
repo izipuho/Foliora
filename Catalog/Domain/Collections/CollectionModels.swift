@@ -242,8 +242,6 @@ struct CollectionSummary: Identifiable, Hashable, Codable {
     let subtitle: String
     let backgroundStyle: CollectionBackgroundStyle
     let itemCount: Int
-    let collaboratorCount: Int
-    let role: CollectionRole
     let status: CollectionStatus
     let sharingSummary: String
 }

@@ -168,8 +168,6 @@ struct CollectionsView: View {
                     subtitle: collection.notes,
                     backgroundStyle: collection.backgroundStyle,
                     itemCount: 0,
-                    collaboratorCount: 0,
-                    role: .owner,
                     status: .active,
                     sharingSummary: ""
                 )

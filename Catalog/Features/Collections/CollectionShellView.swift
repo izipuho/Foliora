@@ -9,7 +9,6 @@ struct CollectionShellView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
     @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
-    @Query private var membershipEntities: [MembershipEntity]
     @State private var collection: CollectionSummary
     @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
@@ -46,19 +45,6 @@ struct CollectionShellView: View {
 
     private var homes: [Home] {
         homeEntities.map(\.homeSnapshot)
-    }
-
-    private var collaborators: [Collaborator] {
-        membershipEntities
-            .filter { $0.collection?.id == collection.id && $0.status == .active }
-            .map { membership in
-                Collaborator(
-                    id: membership.id,
-                    displayName: membership.userID == "me" ? "Вы" : membership.userID,
-                    role: membership.role,
-                    isCurrentUser: membership.userID == "me"
-                )
-            }
     }
 
     private var hasPlacedItems: Bool {
@@ -169,7 +155,6 @@ struct CollectionShellView: View {
         BellCatalogView(
             collection: collection,
             repository: repository,
-            collaborators: collaborators,
             layoutMode: selectedLayoutModeBinding,
             orderMode: selectedOrderBinding,
             filters: $selectedSummaryFilter,

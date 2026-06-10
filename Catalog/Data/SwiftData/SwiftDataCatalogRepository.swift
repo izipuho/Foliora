@@ -5,7 +5,6 @@ import SwiftData
 final class SwiftDataCatalogRepository: CatalogRepository {
     let modelContainer: ModelContainer
     private let context: ModelContext
-    private let currentUserID = "me"
 
     init(container: ModelContainer) {
         self.modelContainer = container
@@ -63,7 +62,6 @@ final class SwiftDataCatalogRepository: CatalogRepository {
     func saveCollection(_ collection: Collection) {
         guard let home = fetchHomeEntity(by: collection.homeID) else { return }
 
-        let isNew = fetchCollectionEntity(by: collection.id) == nil
         let entity = fetchCollectionEntity(by: collection.id) ?? CollectionEntity(
             id: collection.id,
             kindRaw: collection.kind.rawValue,
@@ -80,17 +78,6 @@ final class SwiftDataCatalogRepository: CatalogRepository {
 
         if entity.modelContext == nil {
             context.insert(entity)
-        }
-
-        if isNew && (entity.memberships ?? []).isEmpty {
-            let membership = MembershipEntity(
-                id: UUID(),
-                userID: currentUserID,
-                roleRaw: CollectionRole.owner.rawValue,
-                statusRaw: MembershipStatus.active.rawValue
-            )
-            membership.collection = entity
-            context.insert(membership)
         }
 
         saveContext()
@@ -263,16 +250,6 @@ final class SwiftDataCatalogRepository: CatalogRepository {
         )
     }
 
-    private func membership(from entity: MembershipEntity) -> Membership {
-        Membership(
-            id: entity.id,
-            collectionID: entity.collection?.id ?? UUID(),
-            userID: entity.userID,
-            role: collectionRole(from: entity.roleRaw),
-            status: membershipStatus(from: entity.statusRaw)
-        )
-    }
-
     private func place(from entity: PlaceEntity) -> Place {
         Place(
             id: entity.id,
@@ -321,10 +298,6 @@ final class SwiftDataCatalogRepository: CatalogRepository {
 
     private func collectionRole(from rawValue: String) -> CollectionRole {
         CollectionRole(rawValue: rawValue) ?? .viewer
-    }
-
-    private func membershipStatus(from rawValue: String) -> MembershipStatus {
-        MembershipStatus(rawValue: rawValue) ?? .pending
     }
 
     private func itemCondition(from rawValue: String) -> ItemCondition {
