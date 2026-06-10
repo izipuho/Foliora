@@ -94,7 +94,6 @@ private extension BellFilters {
 
 struct BellCatalogView: View {
     let repository: any CatalogRepository
-    let collaborators: [Collaborator]
     let collection: CollectionSummary?
     let onBellSelected: ((BellEntity) -> Void)?
     @Environment(\.modelContext) private var modelContext
@@ -122,14 +121,12 @@ struct BellCatalogView: View {
     init(
         collection: CollectionSummary?,
         repository: any CatalogRepository,
-        collaborators: [Collaborator],
         layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
         onBellSelected: ((BellEntity) -> Void)? = nil
     ) {
         self.repository = repository
-        self.collaborators = collaborators
         self.collection = collection
         self.onBellSelected = onBellSelected
         self._layoutMode = layoutMode

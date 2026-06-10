@@ -155,7 +155,6 @@ struct CollectionShellView: View {
         BellCatalogView(
             collection: collection,
             repository: repository,
-            collaborators: [],
             layoutMode: selectedLayoutModeBinding,
             orderMode: selectedOrderBinding,
             filters: $selectedSummaryFilter,
