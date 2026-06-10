@@ -12,12 +12,24 @@ struct CatalogContainerList<Content: View>: View {
     }
 }
 
+private enum Metrics {
+    static let rowVerticalInset: CGFloat = 8
+    static let rowHorizontalInset: CGFloat = 24
+
+    static let rowInsets = EdgeInsets(
+        top: rowVerticalInset,
+        leading: rowHorizontalInset,
+        bottom: rowVerticalInset,
+        trailing: rowHorizontalInset
+    )
+}
+
 private struct CatalogContainerListRowModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
+            .listRowInsets(Metrics.rowInsets)
     }
 }
 
