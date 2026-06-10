@@ -10,7 +10,6 @@ enum CollectionAccessRole: String, Identifiable, Hashable, Codable {
 
 enum CollectionParticipantStatus: String, Identifiable, Hashable, Codable {
     case current
-    case invited
     case removed
     case unknown
 

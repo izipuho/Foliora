@@ -180,7 +180,7 @@ final class MembershipEntity {
     var id: UUID = UUID()
     var userID: String = ""
     var roleRaw: String = CollectionAccessRole.viewer.rawValue
-    var statusRaw: String = CollectionParticipantStatus.invited.rawValue
+    var statusRaw: String = CollectionParticipantStatus.unknown.rawValue
 
     var collection: CollectionEntity?
 
