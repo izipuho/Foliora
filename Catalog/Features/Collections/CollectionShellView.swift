@@ -198,7 +198,7 @@ struct CollectionShellView: View {
             initialBackgroundStyle: collection.backgroundStyle,
             hasPlacedItems: hasPlacedItems,
             allowsDeletion: true,
-            sharingDestination: AnyView(CollectionSharingView(collection: collection, state: .placeholder))
+            sharingDestination: AnyView(CollectionSharingStateLoaderView(collection: collection))
         ) { title, notes, homeID, backgroundStyle in
             saveCollectionEdits(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
         } onDelete: {
@@ -325,6 +325,55 @@ struct CollectionShellView: View {
         draftAnalysisImage = media.uiImage
         shouldPresentEditorAfterCamera = true
     }
+}
+
+private struct CollectionSharingStateLoaderView: View {
+    let collection: CollectionSummary
+    private let sharingService: any CollectionSharingService
+    @State private var state = CollectionSharingState.privateState
+    @State private var isLoading = true
+
+    init(
+        collection: CollectionSummary,
+        sharingService: any CollectionSharingService = CloudKitCollectionSharingService()
+    ) {
+        self.collection = collection
+        self.sharingService = sharingService
+    }
+
+    var body: some View {
+        Group {
+            if isLoading {
+                ProgressView("Loading sharing...")
+            } else {
+                CollectionSharingView(collection: collection, state: state)
+            }
+        }
+        .task(id: collection.id) {
+            await loadSharingState()
+        }
+    }
+
+    @MainActor
+    private func loadSharingState() async {
+        isLoading = true
+
+        do {
+            state = try await sharingService.sharingState(for: collection.id)
+        } catch {
+            state = .privateState
+        }
+
+        isLoading = false
+    }
+}
+
+private extension CollectionSharingState {
+    static let privateState = CollectionSharingState(
+        isShared: false,
+        currentUserRole: .owner,
+        participants: []
+    )
 }
 
 private struct CollectionShellToolbar: ToolbarContent {

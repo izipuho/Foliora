@@ -2365,6 +2365,121 @@
         }
       }
     },
+    "collection.home_change.confirm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Home"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сменить дом"
+          }
+        }
+      }
+    },
+    "collection.home_change.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changing the home will remove placed items from this collection."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "При смене дома размещение предметов в этой коллекции будет удалено."
+          }
+        }
+      }
+    },
+    "collection.home_change.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change Home?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сменить дом?"
+          }
+        }
+      }
+    },
+    "collection.placeholder.map.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A geographic map of bells by origin will appear here."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь появится географическая карта колокольчиков по месту происхождения."
+          }
+        }
+      }
+    },
+    "collection.placeholder.map.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Map"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Карта"
+          }
+        }
+      }
+    },
+    "collection.placeholder.participants.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collection members, roles, invites, and statuses will appear here."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь появятся участники коллекции, роли, приглашения и статусы."
+          }
+        }
+      }
+    },
+    "collection.placeholder.participants.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participants"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Участники"
+          }
+        }
+      }
+    },
     "collection.sharing.entry_title" : {
       "localizations" : {
         "en" : {
@@ -2505,121 +2620,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Доступ"
-          }
-        }
-      }
-    },
-    "collection.home_change.confirm" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change Home"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сменить дом"
-          }
-        }
-      }
-    },
-    "collection.home_change.message" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changing the home will remove placed items from this collection."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "При смене дома размещение предметов в этой коллекции будет удалено."
-          }
-        }
-      }
-    },
-    "collection.home_change.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change Home?"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сменить дом?"
-          }
-        }
-      }
-    },
-    "collection.placeholder.map.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A geographic map of bells by origin will appear here."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Здесь появится географическая карта колокольчиков по месту происхождения."
-          }
-        }
-      }
-    },
-    "collection.placeholder.map.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Map"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Карта"
-          }
-        }
-      }
-    },
-    "collection.placeholder.participants.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collection members, roles, invites, and statuses will appear here."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Здесь появятся участники коллекции, роли, приглашения и статусы."
-          }
-        }
-      }
-    },
-    "collection.placeholder.participants.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Participants"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Участники"
           }
         }
       }
@@ -5667,6 +5667,10 @@
     },
     "Last CloudKit Error" : {
       "comment" : "A label displayed in the Cloud Sync Diagnostics screen.",
+      "isCommentAutoGenerated" : true
+    },
+    "Loading sharing..." : {
+      "comment" : "A placeholder text while loading the sharing state.",
       "isCommentAutoGenerated" : true
     },
     "Local Store Counts" : {

@@ -42,6 +42,7 @@
 		24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */; };
 		24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */; };
 		24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */; };
+		24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */; };
 		C000000000000000000000A1 /* CatalogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000001 /* CatalogApp.swift */; };
 		C000000000000000000000A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
 		C000000000000000000000A3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* AppRouter.swift */; };
@@ -111,6 +112,7 @@
 		24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogContainerList.swift; sourceTree = "<group>"; };
 		24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSharingMapper.swift; sourceTree = "<group>"; };
 		24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingState.swift; sourceTree = "<group>"; };
+		24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCollectionSharingService.swift; sourceTree = "<group>"; };
 		C00000000000000000000001 /* CatalogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogApp.swift; sourceTree = "<group>"; };
 		C00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
 		C00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
@@ -348,6 +350,7 @@
 		C0000000000000000000003E /* Sharing */ = {
 			isa = PBXGroup;
 			children = (
+				24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */,
 				24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */,
 				C0000000000000000000000A /* SharingModels.swift */,
 			);
@@ -658,6 +661,7 @@
 				24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */,
 				C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */,
 				C000000000000000000000C5 /* CatalogLayouts.swift in Sources */,
+				24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */,
 				C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */,
 				C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */,
 				C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */,
