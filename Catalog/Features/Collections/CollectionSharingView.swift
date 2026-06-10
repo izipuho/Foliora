@@ -93,7 +93,7 @@ struct CollectionSharingView: View {
             if let existingShare = try await sharingService.fetchShare(for: collection.id) {
                 share = existingShare
             } else {
-                share = try await sharingService.createShare(for: collection.id)
+                share = try await sharingService.createShare(for: collection.id, title: collection.name)
             }
             isPresentingSharingController = true
         } catch {
