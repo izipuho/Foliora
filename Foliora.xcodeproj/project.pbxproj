@@ -17,6 +17,7 @@
 		2403CEE32F9FA83A00C63AB6 /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE12F9FA83A00C63AB6 /* CameraPicker.swift */; };
 		2403CEE52F9FCD9F00C63AB6 /* ImageMediaBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE42F9FCD9F00C63AB6 /* ImageMediaBuilder.swift */; };
 		2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */; };
+		2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */; };
 		24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
@@ -85,6 +86,7 @@
 		2403CEE12F9FA83A00C63AB6 /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
 		2403CEE42F9FCD9F00C63AB6 /* ImageMediaBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageMediaBuilder.swift; sourceTree = "<group>"; };
 		2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionShellView.swift; sourceTree = "<group>"; };
+		2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingView.swift; sourceTree = "<group>"; };
 		24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticPhotoFeatureExtractor.swift; sourceTree = "<group>"; };
 		24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognitionDebugML.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		244FE0452FD7200000B4D805 /* CloudSyncDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncDiagnosticsView.swift; sourceTree = "<group>"; };
@@ -361,6 +363,7 @@
 			isa = PBXGroup;
 			children = (
 				2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */,
+				2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */,
 				2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */,
 				2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */,
 				2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */,
@@ -639,6 +642,7 @@
 				C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */,
 				246FD63C2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift in Sources */,
 				2403CEDF2F9FA3A900C63AB6 /* CollectionEditorView.swift in Sources */,
+				2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */,
 				2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */,
 				2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */,
 				2403CEE32F9FA83A00C63AB6 /* CameraPicker.swift in Sources */,
@@ -1035,7 +1039,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1085,7 +1089,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;

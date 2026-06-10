@@ -197,7 +197,8 @@ struct CollectionShellView: View {
             initialHomeID: collection.homeID,
             initialBackgroundStyle: collection.backgroundStyle,
             hasPlacedItems: hasPlacedItems,
-            allowsDeletion: true
+            allowsDeletion: true,
+            sharingDestination: AnyView(CollectionSharingView(collection: collection))
         ) { title, notes, homeID, backgroundStyle in
             saveCollectionEdits(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
         } onDelete: {
