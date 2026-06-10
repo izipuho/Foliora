@@ -250,16 +250,6 @@ final class SwiftDataCatalogRepository: CatalogRepository {
         )
     }
 
-    private func membership(from entity: MembershipEntity) -> Membership {
-        Membership(
-            id: entity.id,
-            collectionID: entity.collection?.id ?? UUID(),
-            userID: entity.userID,
-            role: collectionRole(from: entity.roleRaw),
-            status: membershipStatus(from: entity.statusRaw)
-        )
-    }
-
     private func place(from entity: PlaceEntity) -> Place {
         Place(
             id: entity.id,
@@ -308,10 +298,6 @@ final class SwiftDataCatalogRepository: CatalogRepository {
 
     private func collectionRole(from rawValue: String) -> CollectionRole {
         CollectionRole(rawValue: rawValue) ?? .viewer
-    }
-
-    private func membershipStatus(from rawValue: String) -> MembershipStatus {
-        MembershipStatus(rawValue: rawValue) ?? .pending
     }
 
     private func itemCondition(from rawValue: String) -> ItemCondition {
