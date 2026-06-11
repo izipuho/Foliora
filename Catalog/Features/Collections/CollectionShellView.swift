@@ -349,7 +349,11 @@ private struct CollectionSharingStateLoaderView: View {
             } else if errorMessage != nil {
                 sharingLoadFailedView
             } else {
-                CollectionSharingView(collection: collection, state: state)
+                CollectionSharingView(collection: collection, state: state) {
+                    Task {
+                        await loadSharingState()
+                    }
+                }
             }
         }
         .task(id: collection.id) {

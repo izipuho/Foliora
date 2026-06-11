@@ -5,7 +5,8 @@ import Foundation
 enum CloudKitSharingMapper {
     static func collectionParticipant(
         from participant: CKShare.Participant,
-        collectionID: UUID
+        collectionID: UUID,
+        isCurrentUser: Bool = false
     ) -> CollectionParticipant {
         let cloudKitParticipantID = cloudKitParticipantID(for: participant)
         let displayName = displayName(for: participant)
@@ -19,7 +20,8 @@ enum CloudKitSharingMapper {
             collectionID: collectionID,
             cloudKitParticipantID: cloudKitParticipantID,
             displayName: displayName,
-            role: role(for: participant)
+            role: role(for: participant),
+            isCurrentUser: isCurrentUser
         )
     }
 }

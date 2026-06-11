@@ -78,19 +78,16 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
             )
         }
 
+        let currentUserParticipant = share.currentUserParticipant
         let participants = share.participants.map {
             CloudKitSharingMapper.collectionParticipant(
                 from: $0,
-                collectionID: collectionID
+                collectionID: collectionID,
+                isCurrentUser: $0 == currentUserParticipant
             )
         }
 
-        let currentUserRole = share.currentUserParticipant.map {
-            CloudKitSharingMapper.collectionParticipant(
-                from: $0,
-                collectionID: collectionID
-            ).role
-        } ?? .owner
+        let currentUserRole = participants.first { $0.isCurrentUser }?.role ?? .viewer
 
         return CollectionSharingState(
             isShared: true,

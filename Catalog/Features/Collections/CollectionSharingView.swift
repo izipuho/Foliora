@@ -3,6 +3,7 @@ import SwiftUI
 
 struct CollectionSharingView: View {
     let collection: CollectionSummary
+    let onSharingChanged: () -> Void
     @State private var state: CollectionSharingState
     @State private var share: CKShare?
     @State private var isPresentingSharingController = false
@@ -11,8 +12,9 @@ struct CollectionSharingView: View {
     private let container = CKContainer(identifier: CloudKitConfiguration.default.containerIdentifier)
     private let sharingService = CloudKitCollectionSharingService()
 
-    init(collection: CollectionSummary, state: CollectionSharingState) {
+    init(collection: CollectionSummary, state: CollectionSharingState, onSharingChanged: @escaping () -> Void) {
         self.collection = collection
+        self.onSharingChanged = onSharingChanged
         self._state = State(initialValue: state)
     }
 
@@ -37,7 +39,7 @@ struct CollectionSharingView: View {
                 } else {
                     ForEach(state.participants) { participant in
                         LabeledContent(
-                            participant.displayName ?? "Unknown person",
+                            participantName(participant),
                             value: roleText(participant.role)
                         )
                     }
@@ -60,17 +62,31 @@ struct CollectionSharingView: View {
             onDismiss: {
                 Task {
                     await refreshSharingState()
+                    onSharingChanged()
                 }
             }
         ) {
             if let share {
-                CloudSharingController(share: share, container: container)
+                CloudSharingController(share: share, container: container, onSharingChanged: onSharingChanged)
             }
         }
     }
 
     private var sharingStatusText: String {
         state.isShared ? "Shared" : String(localized: "collection.sharing.status.private")
+    }
+
+    private func participantName(_ participant: CollectionParticipant) -> String {
+        if participant.isCurrentUser {
+            return String(localized: "collection.sharing.participant.you")
+        }
+
+        let youText = String(localized: "collection.sharing.participant.you")
+        if let displayName = participant.displayName, !displayName.isEmpty, displayName != youText {
+            return displayName
+        }
+
+        return String(localized: "collection.sharing.participant.unknown")
     }
 
     private func roleText(_ role: CollectionAccessRole) -> String {
@@ -118,6 +134,7 @@ struct CollectionSharingView: View {
 private struct CloudSharingController: UIViewControllerRepresentable {
     let share: CKShare
     let container: CKContainer
+    let onSharingChanged: () -> Void
 
     func makeUIViewController(context: Context) -> UICloudSharingController {
         let controller = UICloudSharingController(share: share, container: container)
@@ -131,14 +148,16 @@ private struct CloudSharingController: UIViewControllerRepresentable {
     ) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(share: share)
+        Coordinator(share: share, onSharingChanged: onSharingChanged)
     }
 
     final class Coordinator: NSObject, UICloudSharingControllerDelegate {
         private let share: CKShare
+        private let onSharingChanged: () -> Void
 
-        init(share: CKShare) {
+        init(share: CKShare, onSharingChanged: @escaping () -> Void) {
             self.share = share
+            self.onSharingChanged = onSharingChanged
         }
 
         func itemTitle(for cloudSharingController: UICloudSharingController) -> String? {
@@ -149,5 +168,13 @@ private struct CloudSharingController: UIViewControllerRepresentable {
             _ csc: UICloudSharingController,
             failedToSaveShareWithError error: any Error
         ) {}
+
+        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
+            onSharingChanged()
+        }
+
+        func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
+            onSharingChanged()
+        }
     }
 }
