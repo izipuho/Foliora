@@ -3,12 +3,11 @@ import SwiftData
 import CloudKit
 import UIKit
 
-final class FolioraBellsAppDelegate: NSObject, UIApplicationDelegate {
+final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-
         let container = CKContainer.default()
 
         container.accept(cloudKitShareMetadata) { metadata, error in
@@ -24,7 +23,7 @@ final class FolioraBellsAppDelegate: NSObject, UIApplicationDelegate {
 
 @main
 struct FolioraApp: App {
-    @UIApplicationDelegateAdaptor(FolioraBellsAppDelegate.self)
+    @UIApplicationDelegateAdaptor(FolioraAppDelegate.self)
     private var appDelegate
 
     private let container = AppContainer()
