@@ -332,6 +332,7 @@ private struct CollectionSharingStateLoaderView: View {
     private let sharingService: any CollectionSharingService
     @State private var state = CollectionSharingState.privateState
     @State private var isLoading = true
+    @State private var errorMessage: String?
 
     init(
         collection: CollectionSummary,
@@ -344,7 +345,9 @@ private struct CollectionSharingStateLoaderView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("Loading sharing...")
+                ProgressView(String(localized: "collection.sharing.loading"))
+            } else if errorMessage != nil {
+                sharingLoadFailedView
             } else {
                 CollectionSharingView(collection: collection, state: state)
             }
@@ -354,14 +357,29 @@ private struct CollectionSharingStateLoaderView: View {
         }
     }
 
+    private var sharingLoadFailedView: some View {
+        ContentUnavailableView {
+            Label(String(localized: "collection.sharing.load_failed.title"), systemImage: "icloud.slash")
+        } description: {
+            Text(String(localized: "collection.sharing.load_failed.message"))
+        } actions: {
+            Button(String(localized: "common.retry")) {
+                Task {
+                    await loadSharingState()
+                }
+            }
+        }
+    }
+
     @MainActor
     private func loadSharingState() async {
         isLoading = true
+        errorMessage = nil
 
         do {
             state = try await sharingService.sharingState(for: collection.id)
         } catch {
-            state = .privateState
+            errorMessage = error.localizedDescription
         }
 
         isLoading = false
