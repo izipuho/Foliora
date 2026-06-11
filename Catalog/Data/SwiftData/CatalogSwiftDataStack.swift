@@ -19,7 +19,7 @@ enum CatalogSwiftDataStack {
             configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         } else {
             let storeURL = try persistentStoreURL()
-            configuration = ModelConfiguration(schema: schema, url: storeURL, cloudKitDatabase: .private(CloudKitConfiguration.containerIdentifier))
+            configuration = ModelConfiguration(schema: schema, url: storeURL, cloudKitDatabase: .automatic)
         }
 
         return try ModelContainer(for: schema, configurations: [configuration])

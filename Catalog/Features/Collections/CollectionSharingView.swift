@@ -9,7 +9,7 @@ struct CollectionSharingView: View {
     @State private var isPresentingSharingController = false
     @State private var isPreparingShare = false
 
-    private let container = CKContainer(identifier: CloudKitConfiguration.default.containerIdentifier)
+    private let container = CKContainer.default()
     private let sharingService = CloudKitCollectionSharingService()
 
     init(collection: CollectionSummary, state: CollectionSharingState, onSharingChanged: @escaping () -> Void) {

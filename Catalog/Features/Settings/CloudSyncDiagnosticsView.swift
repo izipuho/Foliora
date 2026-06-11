@@ -6,7 +6,6 @@ import SwiftUI
 
 // Temporary diagnostics screen. Remove after CloudKit sync investigation.
 struct CloudSyncDiagnosticsView: View {
-    private let containerIdentifier = "iCloud.com.izipuho.Foliora"
 
     @Environment(\.modelContext) private var modelContext
 
@@ -36,7 +35,6 @@ struct CloudSyncDiagnosticsView: View {
             }
 
             Section("CloudKit Account") {
-                diagnosticsRow("Container identifier", containerIdentifier)
                 diagnosticsRow("Account status", accountStatus)
                 diagnosticsRow("User record ID", userRecordID)
 
@@ -181,7 +179,7 @@ struct CloudSyncDiagnosticsView: View {
 
     private func refreshAccountStatus() {
         Task {
-            let container = CKContainer(identifier: containerIdentifier)
+            let container = CKContainer.default()
 
             do {
                 let status = try await container.accountStatus()
@@ -222,7 +220,7 @@ struct CloudSyncDiagnosticsView: View {
     private func refreshCloudKitProbe() {
         databaseProbe = CloudKitProbeResult(status: "In progress", timestamp: Date.now)
 
-        CKContainer(identifier: containerIdentifier).privateCloudDatabase.fetchAllRecordZones { zones, error in
+        CKContainer.default().privateCloudDatabase.fetchAllRecordZones { zones, error in
             DispatchQueue.main.async {
                 let zoneNames = zones?
                     .map { $0.zoneID.zoneName }
@@ -268,7 +266,7 @@ struct CloudSyncDiagnosticsView: View {
         let collectionID = collection.id.uuidString
 
         Task {
-            let database = CKContainer(identifier: containerIdentifier).privateCloudDatabase
+            let database = CKContainer.default().privateCloudDatabase
             let query = CKQuery(
                 recordType: "CD_CollectionEntity",
                 predicate: NSPredicate(
@@ -340,7 +338,7 @@ struct CloudSyncDiagnosticsView: View {
         let collectionID = collection.id.uuidString
 
         Task {
-            let database = CKContainer(identifier: containerIdentifier).privateCloudDatabase
+            let database = CKContainer.default().privateCloudDatabase
             let query = CKQuery(
                 recordType: "CD_CollectionEntity",
                 predicate: NSPredicate(
@@ -426,7 +424,7 @@ struct CloudSyncDiagnosticsView: View {
 
         let collectionID = collection.id
         let service = CloudKitCollectionSharingService(
-            container: CKContainer(identifier: containerIdentifier)
+            container: CKContainer.default()
         )
 
         Task {

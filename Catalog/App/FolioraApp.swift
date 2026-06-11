@@ -8,12 +8,8 @@ final class FolioraBellsAppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        print("CLOUDKIT_SHARE_ACCEPTED_METADATA:")
-        print("containerIdentifier:", cloudKitShareMetadata.containerIdentifier)
-        print("share:", cloudKitShareMetadata.share)
-        print("rootRecordID:", cloudKitShareMetadata.rootRecordID)
 
-        let container = CKContainer(identifier: CloudKitConfiguration.containerIdentifier)
+        let container = CKContainer.default()
 
         container.accept(cloudKitShareMetadata) { metadata, error in
             if let error {

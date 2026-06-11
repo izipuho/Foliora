@@ -58,7 +58,6 @@
 		C000000000000000000000AF /* BellDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000F /* BellDetailView.swift */; };
 		C000000000000000000000B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Assets.xcassets */; };
 		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
-		C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000014 /* CloudKitConfiguration.swift */; };
 		C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000018 /* LocalMediaFileStore.swift */; };
 		C000000000000000000000B9 /* BellCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001F /* BellCardView.swift */; };
 		C000000000000000000000BA /* CatalogEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000025 /* CatalogEntities.swift */; };
@@ -128,7 +127,6 @@
 		C00000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C00000000000000000000013 /* EditorFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFields.swift; sourceTree = "<group>"; };
-		C00000000000000000000014 /* CloudKitConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitConfiguration.swift; sourceTree = "<group>"; };
 		C00000000000000000000016 /* Catalog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catalog.entitlements; sourceTree = "<group>"; };
 		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
 		C0000000000000000000001F /* BellCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCardView.swift; sourceTree = "<group>"; };
@@ -248,7 +246,6 @@
 			children = (
 				24F1A5492FDB309D00FC1717 /* FolioraApp.swift */,
 				C00000000000000000000002 /* AppContainer.swift */,
-				C00000000000000000000014 /* CloudKitConfiguration.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -630,7 +627,6 @@
 				24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */,
 				2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */,
 				C000000000000000000000B2 /* EditorFields.swift in Sources */,
-				C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */,
 				C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */,
 				2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */,
 				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
@@ -1047,7 +1043,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1097,7 +1093,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;

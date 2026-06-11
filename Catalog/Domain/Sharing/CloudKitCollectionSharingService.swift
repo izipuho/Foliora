@@ -15,7 +15,7 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
     private let container: CKContainer
     private let privateDatabase: CKDatabase
 
-    init(container: CKContainer = CKContainer(identifier: CloudKitConfiguration.default.containerIdentifier)) {
+    init(container: CKContainer = CKContainer.default()) {
         self.container = container
         self.privateDatabase = container.privateCloudDatabase
     }

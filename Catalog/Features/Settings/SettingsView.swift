@@ -171,7 +171,7 @@ struct SettingsView: View {
         cloudStatusErrorMessage = nil
 
         Task {
-            let container = CKContainer(identifier: CloudKitConfiguration.containerIdentifier)
+            let container = CKContainer.default()
 
             do {
                 let status = try await container.accountStatus()
