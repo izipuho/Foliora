@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct CatalogApp: App {
+struct FolioraApp: App {
     private let container = AppContainer()
 
     var body: some Scene {

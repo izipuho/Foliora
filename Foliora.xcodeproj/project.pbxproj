@@ -43,7 +43,7 @@
 		24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */; };
 		24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */; };
 		24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */; };
-		C000000000000000000000A1 /* CatalogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000001 /* CatalogApp.swift */; };
+		24F1A54A2FDB309D00FC1717 /* FolioraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5492FDB309D00FC1717 /* FolioraApp.swift */; };
 		C000000000000000000000A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
 		C000000000000000000000A3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* AppRouter.swift */; };
 		C000000000000000000000A5 /* CollectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000005 /* CollectionModels.swift */; };
@@ -112,7 +112,7 @@
 		24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSharingMapper.swift; sourceTree = "<group>"; };
 		24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingState.swift; sourceTree = "<group>"; };
 		24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCollectionSharingService.swift; sourceTree = "<group>"; };
-		C00000000000000000000001 /* CatalogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogApp.swift; sourceTree = "<group>"; };
+		24F1A5492FDB309D00FC1717 /* FolioraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolioraApp.swift; sourceTree = "<group>"; };
 		C00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
 		C00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		C00000000000000000000005 /* CollectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionModels.swift; sourceTree = "<group>"; };
@@ -246,7 +246,7 @@
 		C00000000000000000000034 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				C00000000000000000000001 /* CatalogApp.swift */,
+				24F1A5492FDB309D00FC1717 /* FolioraApp.swift */,
 				C00000000000000000000002 /* AppContainer.swift */,
 				C00000000000000000000014 /* CloudKitConfiguration.swift */,
 			);
@@ -604,7 +604,6 @@
 			isa = PBXSourcesBuildPhase;
 			files = (
 				246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
-				C000000000000000000000A1 /* CatalogApp.swift in Sources */,
 				24F1A5022FD8C89000FC1717 /* CatalogContainerCard.swift in Sources */,
 				24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */,
 				C000000000000000000000A2 /* AppContainer.swift in Sources */,
@@ -655,6 +654,7 @@
 				2403CEE32F9FA83A00C63AB6 /* CameraPicker.swift in Sources */,
 				C000000000000000000000B9 /* BellCardView.swift in Sources */,
 				24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */,
+				24F1A54A2FDB309D00FC1717 /* FolioraApp.swift in Sources */,
 				C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */,
 				C000000000000000000000C5 /* CatalogLayouts.swift in Sources */,
 				24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */,
@@ -1047,7 +1047,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1097,7 +1097,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
