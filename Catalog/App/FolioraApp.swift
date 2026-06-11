@@ -1,14 +1,45 @@
 import SwiftUI
 import SwiftData
+import CloudKit
+import UIKit
+
+final class FolioraBellsAppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
+    ) {
+        print("CLOUDKIT_SHARE_ACCEPTED_METADATA:")
+        print("containerIdentifier:", cloudKitShareMetadata.containerIdentifier)
+        print("share:", cloudKitShareMetadata.share)
+        print("rootRecordID:", cloudKitShareMetadata.rootRecordID)
+
+        let container = CKContainer(identifier: CloudKitConfiguration.containerIdentifier)
+
+        container.accept(cloudKitShareMetadata) { metadata, error in
+            if let error {
+                print("CLOUDKIT_SHARE_ACCEPT_ERROR:", error)
+                return
+            }
+
+            print("CLOUDKIT_SHARE_ACCEPT_SUCCESS:", metadata as Any)
+        }
+    }
+}
 
 @main
 struct FolioraApp: App {
+    @UIApplicationDelegateAdaptor(FolioraBellsAppDelegate.self)
+    private var appDelegate
+
     private let container = AppContainer()
 
     var body: some Scene {
         WindowGroup {
             AppShellView(repository: container.repository)
                 .modelContainer(container.swiftDataContainer)
+                .onOpenURL { url in
+                    print("OPEN_URL:", url.absoluteString)
+                }
         }
     }
 }
