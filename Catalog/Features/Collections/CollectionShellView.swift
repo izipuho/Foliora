@@ -4,7 +4,7 @@ import CoreData
 
 struct CollectionShellView: View {
     let repository: any CatalogRepository
-    private let onBellSelected: ((BellEntity) -> Void)?
+    private let onBellSelected: ((UUID) -> Void)?
     private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -22,7 +22,7 @@ struct CollectionShellView: View {
     @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
     @State private var isPresentingMap = false
-    @State private var selectedBell: BellEntity?
+    @State private var selectedBellID: UUID?
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
     private let layoutMode: Binding<BellGridLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
@@ -33,7 +33,7 @@ struct CollectionShellView: View {
         collection: CollectionSummary,
         repository: any CatalogRepository,
         layoutMode: Binding<BellGridLayoutMode>,
-        onBellSelected: ((BellEntity) -> Void)? = nil,
+        onBellSelected: ((UUID) -> Void)? = nil,
         onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.repository = repository
@@ -69,6 +69,17 @@ struct CollectionShellView: View {
 
     private var selectedLayoutModeBinding: Binding<BellGridLayoutMode> {
         layoutMode
+    }
+
+    private var isBellDetailPresented: Binding<Bool> {
+        Binding(
+            get: { selectedBellID != nil },
+            set: { isPresented in
+                if !isPresented {
+                    selectedBellID = nil
+                }
+            }
+        )
     }
 
     var body: some View {
@@ -139,9 +150,11 @@ struct CollectionShellView: View {
             .sheet(isPresented: $isPresentingMap) {
                 mapSheet
             }
-            .sheet(item: $selectedBell) { bell in
-                BellEntityDetailSheetContainer(bell: bell, repository: repository)
-                    .presentationDragIndicator(.visible)
+            .sheet(isPresented: isBellDetailPresented) {
+                if let selectedBellID {
+                    BellCatalogDetailSheetContainer(bellID: selectedBellID, repository: repository)
+                        .presentationDragIndicator(.visible)
+                }
             }
             .onAppear(perform: refreshContent)
             .onReceive(NotificationCenter.default.publisher(
@@ -271,11 +284,11 @@ struct CollectionShellView: View {
         }
     }
 
-    private func openBell(_ bell: BellEntity) {
+    private func openBell(_ bellID: UUID) {
         if let onBellSelected {
-            onBellSelected(bell)
+            onBellSelected(bellID)
         } else {
-            selectedBell = bell
+            selectedBellID = bellID
         }
     }
 

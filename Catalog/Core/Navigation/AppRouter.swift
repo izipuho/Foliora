@@ -81,7 +81,7 @@ struct AppShellView: View {
     private func destinationView(
         for destination: AppDestination,
         layoutMode: Binding<BellGridLayoutMode>,
-        onBellSelected: ((BellEntity) -> Void)?,
+        onBellSelected: ((UUID) -> Void)?,
         onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void,
         popNavigation: @escaping () -> Void
     ) -> some View {
@@ -281,13 +281,13 @@ private struct RootShellView<Destination: View>: View {
     @Binding var homesPath: NavigationPath
     @Binding var settingsPath: NavigationPath
     @Binding var searchPath: NavigationPath
-    let destination: (AppDestination, Binding<BellGridLayoutMode>, ((BellEntity) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
+    let destination: (AppDestination, Binding<BellGridLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
     @State private var selectedRootTab: RootTab = .collections
     @State private var searchInitialQuery: String?
     @State private var searchResetID = UUID()
-    @State private var selectedBell: BellEntity?
+    @State private var selectedBellID: UUID?
 
     private var layoutMode: BellGridLayoutMode {
         get {
@@ -307,10 +307,10 @@ private struct RootShellView<Destination: View>: View {
 
     private var isBellInspectorPresented: Binding<Bool> {
         Binding(
-            get: { selectedBell != nil },
+            get: { selectedBellID != nil },
             set: { isPresented in
                 if !isPresented {
-                    selectedBell = nil
+                    selectedBellID = nil
                 }
             }
         )
@@ -367,9 +367,9 @@ private struct RootShellView<Destination: View>: View {
         iPadSplitView
             .navigationSplitViewStyle(.balanced)
             .inspector(isPresented: isBellInspectorPresented) {
-                if let selectedBell {
+                if let selectedBellID {
                     BellDetailInspectorView(
-                        bell: selectedBell,
+                        bellID: selectedBellID,
                         repository: repository,
                         onClose: closeBellInspector
                     )
@@ -418,7 +418,7 @@ private struct RootShellView<Destination: View>: View {
 
     private func homesStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((BellEntity) -> Void)?
+        onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
             HomeView(
@@ -434,7 +434,7 @@ private struct RootShellView<Destination: View>: View {
 
     private func collectionsStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((BellEntity) -> Void)?
+        onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
             CollectionsView(
@@ -450,7 +450,7 @@ private struct RootShellView<Destination: View>: View {
 
     private func settingsStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((BellEntity) -> Void)?
+        onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
             SettingsView(
@@ -494,41 +494,76 @@ private struct RootShellView<Destination: View>: View {
         selectedRootTab = .homes
     }
 
-    private func openBellInspector(_ bell: BellEntity) {
-        selectedBell = bell
+    private func openBellInspector(_ bellID: UUID) {
+        selectedBellID = bellID
     }
 
     private func closeBellInspector() {
-        selectedBell = nil
+        selectedBellID = nil
     }
 }
 
 private struct BellDetailInspectorView: View {
-    @State private var bell: BellRecord
+    let bellID: UUID
     let repository: any CatalogRepository
     let onClose: () -> Void
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var bell: BellRecord?
 
     init(
-        bell: BellEntity,
+        bellID: UUID,
         repository: any CatalogRepository,
         onClose: @escaping () -> Void
     ) {
-        _bell = State(initialValue: bell.recordSnapshot)
+        self.bellID = bellID
         self.repository = repository
         self.onClose = onClose
     }
 
     var body: some View {
         NavigationStack {
-            BellDetailView(bell: $bell, repository: repository)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: onClose) {
-                            Image(systemName: "xmark")
-                        }
+            Group {
+                if let bellBinding {
+                    BellDetailView(bell: bellBinding, repository: repository)
+                } else {
+                    ContentUnavailableView("bel.not_found", systemImage: "bell.slash")
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: onClose) {
+                        Image(systemName: "xmark")
                     }
                 }
+            }
         }
+        .task(id: bellID) {
+            reloadBell()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextObjectsDidChange,
+            object: managedObjectContext
+        )) { _ in
+            reloadBell()
+        }
+    }
+
+    private var bellBinding: Binding<BellRecord>? {
+        guard let currentBell = bell else { return nil }
+
+        return Binding(
+            get: {
+                bell ?? currentBell
+            },
+            set: {
+                bell = $0
+            }
+        )
+    }
+
+    private func reloadBell() {
+        let snapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext).loadSnapshot()
+        bell = snapshot.bells.first { $0.id == bellID }
     }
 }
 
