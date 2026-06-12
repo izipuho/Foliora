@@ -6,6 +6,22 @@ import UIKit
 final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+
+        let configuration = UISceneConfiguration(
+            name: nil,
+            sessionRole: connectingSceneSession.role
+        )
+
+        configuration.delegateClass = CloudKitSharingSceneDelegate.self
+
+        return configuration
+    }
+
+    func application(
+        _ application: UIApplication,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
         let container = CKContainer.default()
