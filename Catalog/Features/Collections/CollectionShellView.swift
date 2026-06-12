@@ -1,14 +1,14 @@
 import SwiftUI
-import SwiftData
 import PhotosUI
+import CoreData
 
 struct CollectionShellView: View {
     let repository: any CatalogRepository
     private let onBellSelected: ((BellEntity) -> Void)?
     private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
     @Environment(\.dismiss) private var dismiss
-    @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
-    @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var catalogSnapshot = CollectionShellCatalogSnapshot()
     @State private var collection: CollectionSummary
     @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
@@ -44,14 +44,11 @@ struct CollectionShellView: View {
     }
 
     private var homes: [Home] {
-        homeEntities.map(\.homeSnapshot)
+        catalogSnapshot.homes
     }
 
     private var hasPlacedItems: Bool {
-        (collectionEntities
-            .first { $0.id == collection.id }?
-            .bells ?? [])
-            .contains { $0.location != nil }
+        catalogSnapshot.collectionIDsWithPlacedItems.contains(collection.id)
     }
 
     private var selectedOrder: BellOrderMode {
@@ -146,7 +143,11 @@ struct CollectionShellView: View {
                 BellEntityDetailSheetContainer(bell: bell, repository: repository)
                     .presentationDragIndicator(.visible)
             }
-            .onChange(of: collectionEntities.map(\.id)) { _, _ in
+            .onAppear(perform: refreshContent)
+            .onReceive(NotificationCenter.default.publisher(
+                for: .NSManagedObjectContextObjectsDidChange,
+                object: managedObjectContext
+            )) { _ in
                 refreshContent()
             }
     }
@@ -255,7 +256,9 @@ struct CollectionShellView: View {
     }
 
     private func refreshContent() {
-        collection = collectionEntities.first(where: { $0.id == collection.id })?.summarySnapshot ?? collection
+        let snapshot = CollectionShellCatalogSnapshot(context: managedObjectContext)
+        catalogSnapshot = snapshot
+        collection = snapshot.collections.first(where: { $0.id == collection.id }) ?? collection
         refreshID = UUID()
     }
 
@@ -324,6 +327,102 @@ struct CollectionShellView: View {
         ]
         draftAnalysisImage = media.uiImage
         shouldPresentEditorAfterCamera = true
+    }
+}
+
+private struct CollectionShellCatalogSnapshot {
+    var collections: [CollectionSummary] = []
+    var homes: [Home] = []
+    var collectionIDsWithPlacedItems: Set<UUID> = []
+
+    init() {}
+
+    init(context: NSManagedObjectContext) {
+        let collectionEntities = Self.fetchEntities(
+            named: "CollectionEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "title", ascending: true)]
+        )
+        let homeEntities = Self.fetchEntities(
+            named: "HomeEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+        )
+
+        collections = collectionEntities.map(Self.collectionSummary)
+        homes = homeEntities.map(Self.home)
+        collectionIDsWithPlacedItems = Set(collectionEntities.compactMap(Self.collectionIDWithPlacedItems))
+    }
+
+    private static func fetchEntities(
+        named entityName: String,
+        in context: NSManagedObjectContext,
+        sortDescriptors: [NSSortDescriptor]
+    ) -> [NSManagedObject] {
+        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+        request.sortDescriptors = sortDescriptors
+        return (try? context.fetch(request)) ?? []
+    }
+
+    private static func collectionSummary(from entity: NSManagedObject) -> CollectionSummary {
+        let kind = collectionKind(from: stringValue(entity, "kindRaw", default: CollectionKind.bells.rawValue))
+
+        return CollectionSummary(
+            id: uuidValue(entity, "id"),
+            homeID: (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            kind: kind,
+            name: stringValue(entity, "title"),
+            subtitle: stringValue(entity, "notes"),
+            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyleRaw", default: CollectionBackgroundStyle.amber.rawValue)),
+            itemCount: kind == .bells ? relatedObjectCount(entity, "bells") : 0,
+            status: kind == .bells ? .active : .planned,
+            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+        )
+    }
+
+    private static func home(from entity: NSManagedObject) -> Home {
+        Home(
+            id: uuidValue(entity, "id"),
+            name: stringValue(entity, "name"),
+            iconName: stringValue(entity, "iconName", default: "house.fill"),
+            notes: stringValue(entity, "notes")
+        )
+    }
+
+    private static func collectionIDWithPlacedItems(from entity: NSManagedObject) -> UUID? {
+        guard relatedObjects(entity, "bells").contains(where: { $0.value(forKey: "location") != nil }) else {
+            return nil
+        }
+
+        return uuidValue(entity, "id")
+    }
+
+    private static func collectionKind(from rawValue: String) -> CollectionKind {
+        CollectionKind(rawValue: rawValue) ?? .bells
+    }
+
+    private static func collectionBackgroundStyle(from rawValue: String) -> CollectionBackgroundStyle {
+        CollectionBackgroundStyle(rawValue: rawValue) ?? .amber
+    }
+
+    private static func relatedObjectCount(_ entity: NSManagedObject, _ key: String) -> Int {
+        relatedObjects(entity, key).count
+    }
+
+    private static func relatedObjects(_ entity: NSManagedObject, _ key: String) -> [NSManagedObject] {
+        if let objects = entity.value(forKey: key) as? Set<NSManagedObject> {
+            return Array(objects)
+        }
+
+        return (entity.value(forKey: key) as? NSSet)?.allObjects.compactMap { $0 as? NSManagedObject } ?? []
+    }
+
+    private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
+        entity.value(forKey: key) as? UUID ?? UUID()
+    }
+
+    private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
+        entity.value(forKey: key) as? String ?? defaultValue
     }
 }
 
