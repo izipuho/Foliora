@@ -1,7 +1,7 @@
 import SwiftUI
 import MapKit
 import PhotosUI
-import SwiftData
+import CoreData
 import UIKit
 
 
@@ -9,9 +9,11 @@ struct HomeView: View {
     let repository: any CatalogRepository
     let embedsNavigation: Bool
     let navigate: ((AppDestination) -> Void)?
-    @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
-    @Query(sort: \LocationEntity.name) private var locationEntities: [LocationEntity]
-    @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var catalogSnapshot = HomeCatalogSnapshot()
+    @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+    @State private var draftLocations: [Location] = []
+    @State private var isPresentingCreateHomeEditor = false
     @State private var pendingDeleteHomeID: UUID?
     @State private var isPresentingDeleteConfirmation = false
 
@@ -32,19 +34,11 @@ struct HomeView: View {
     private var scrollContentBottomInset: CGFloat { 120 }
 
     private var homes: [Home] {
-        homeEntities.map(\.homeSnapshot)
+        catalogSnapshot.homes
     }
 
     private var locationsByHomeID: [UUID: [Location]] {
-        Dictionary(grouping: locationEntities.compactMap { location -> (UUID, Location)? in
-            guard let homeID = location.home?.id else { return nil }
-            return (homeID, location.locationSnapshot)
-        }, by: \.0)
-        .mapValues { rows in
-            rows.map(\.1).sorted { lhs, rhs in
-                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-            }
-        }
+        catalogSnapshot.locationsByHomeID
     }
 
     private var homeContent: some View {
@@ -95,6 +89,22 @@ struct HomeView: View {
             }
         } message: {
             Text(String(localized: "home.delete.message"))
+        }
+        .sheet(isPresented: $isPresentingCreateHomeEditor) {
+            HomeEditorView(
+                home: $draftHome,
+                locations: $draftLocations,
+                onSave: saveDraftHome,
+                onDelete: nil,
+                focusesNameOnAppear: true
+            )
+        }
+        .onAppear(perform: reloadCatalogSnapshot)
+        .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextObjectsDidChange,
+            object: managedObjectContext
+        )) { _ in
+            reloadCatalogSnapshot()
         }
     }
 
@@ -166,34 +176,38 @@ struct HomeView: View {
     private func binding(for homeID: UUID) -> Binding<Home>? {
         guard homes.contains(where: { $0.id == homeID }) else { return nil }
         return Binding(
-            get: { homeEntities.first(where: { $0.id == homeID })?.homeSnapshot ?? Home(id: homeID, name: "", notes: "") },
-            set: { repository.saveHome($0) }
+            get: { homes.first(where: { $0.id == homeID }) ?? Home(id: homeID, name: "", notes: "") },
+            set: {
+                repository.saveHome($0)
+                reloadCatalogSnapshot()
+            }
         )
     }
 
     private func locationsBinding(for homeID: UUID) -> Binding<[Location]> {
         Binding(
             get: { locationsByHomeID[homeID] ?? [] },
-            set: { repository.saveLocations($0, in: homeID) }
+            set: {
+                repository.saveLocations($0, in: homeID)
+                reloadCatalogSnapshot()
+            }
         )
     }
 
     private func collectionCount(in homeID: UUID) -> Int {
-        collectionEntities.filter { $0.home?.id == homeID }.count
-    }
-
-    private func createHome() -> Home {
-        let newHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
-        repository.saveHome(newHome)
-        repository.saveLocations([], in: newHome.id)
-        return newHome
+        catalogSnapshot.collectionCountsByHomeID[homeID] ?? 0
     }
 
     private func presentEditorForNewHome() {
-        let newHome = createHome()
-        DispatchQueue.main.async {
-            navigate?(.editHome(newHome.id))
-        }
+        draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+        draftLocations = []
+        isPresentingCreateHomeEditor = true
+    }
+
+    private func saveDraftHome() {
+        repository.saveHome(draftHome)
+        repository.saveLocations(draftLocations, in: draftHome.id)
+        reloadCatalogSnapshot()
     }
 
     private func requestDeleteHome(_ homeID: UUID) {
@@ -209,6 +223,97 @@ struct HomeView: View {
 
     private func deleteHome(_ homeID: UUID) {
         repository.deleteHome(homeID: homeID)
+        reloadCatalogSnapshot()
+    }
+
+    private func reloadCatalogSnapshot() {
+        catalogSnapshot = HomeCatalogSnapshot(context: managedObjectContext)
+    }
+}
+
+private struct HomeCatalogSnapshot {
+    var homes: [Home] = []
+    var locationsByHomeID: [UUID: [Location]] = [:]
+    var collectionCountsByHomeID: [UUID: Int] = [:]
+
+    init() {}
+
+    init(context: NSManagedObjectContext) {
+        let homeEntities = Self.fetchEntities(
+            named: "HomeEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+        )
+        let locationEntities = Self.fetchEntities(
+            named: "LocationEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+        )
+        let collectionEntities = Self.fetchEntities(
+            named: "CollectionEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "title", ascending: true)]
+        )
+
+        homes = homeEntities.map(Self.home)
+        locationsByHomeID = Dictionary(grouping: locationEntities.compactMap(Self.locationRow), by: \.0)
+            .mapValues { rows in
+                rows.map(\.1).sorted { lhs, rhs in
+                    lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            }
+        collectionCountsByHomeID = Dictionary(
+            collectionEntities.compactMap(Self.collectionHomeID).map { ($0, 1) },
+            uniquingKeysWith: +
+        )
+    }
+
+    private static func fetchEntities(
+        named entityName: String,
+        in context: NSManagedObjectContext,
+        sortDescriptors: [NSSortDescriptor]
+    ) -> [NSManagedObject] {
+        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+        request.sortDescriptors = sortDescriptors
+        return (try? context.fetch(request)) ?? []
+    }
+
+    private static func home(from entity: NSManagedObject) -> Home {
+        Home(
+            id: uuidValue(entity, "id"),
+            name: stringValue(entity, "name"),
+            iconName: stringValue(entity, "iconName", default: "house.fill"),
+            notes: stringValue(entity, "notes")
+        )
+    }
+
+    private static func locationRow(from entity: NSManagedObject) -> (UUID, Location)? {
+        guard let home = entity.value(forKey: "home") as? NSManagedObject else { return nil }
+        let homeID = uuidValue(home, "id")
+
+        return (
+            homeID,
+            Location(
+                id: uuidValue(entity, "id"),
+                homeID: homeID,
+                parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
+                kind: LocationKind(rawValue: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)) ?? .room,
+                name: stringValue(entity, "name"),
+                notes: stringValue(entity, "notes")
+            )
+        )
+    }
+
+    private static func collectionHomeID(from entity: NSManagedObject) -> UUID? {
+        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
+    }
+
+    private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
+        entity.value(forKey: key) as? UUID ?? UUID()
+    }
+
+    private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
+        entity.value(forKey: key) as? String ?? defaultValue
     }
 }
 
