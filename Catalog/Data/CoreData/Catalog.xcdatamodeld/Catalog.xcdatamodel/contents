@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="26400" systemVersion="26A0" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="BellEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="acquiredYear" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <attribute name="acquisitionMethodRaw" optional="YES" attributeType="String" defaultValueString="bought"/>
+        <attribute name="conditionRaw" optional="YES" attributeType="String" defaultValueString="good"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" defaultDateTimeInterval="0"/>
+        <attribute name="createdBy" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="customMaterialName" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID"/>
+        <attribute name="materialRaw" optional="YES" attributeType="String" defaultValueString="unknown"/>
+        <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="title" optional="YES" attributeType="String" defaultValueString=""/>
+        <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="bells" inverseEntity="CollectionEntity"/>
+        <relationship name="location" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="LocationEntity" inverseName="bells" inverseEntity="LocationEntity"/>
+        <relationship name="mediaAssets" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MediaAssetEntity" inverseName="bell" inverseEntity="MediaAssetEntity"/>
+        <relationship name="originPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="bells" inverseEntity="PlaceEntity"/>
+        <relationship name="tags" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BellTagEntity" inverseName="bell" inverseEntity="BellTagEntity"/>
+    </entity>
+    <entity name="BellTagEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="id" optional="YES" attributeType="UUID"/>
+        <attribute name="sortOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="NO"/>
+        <attribute name="value" optional="YES" attributeType="String" defaultValueString=""/>
+        <relationship name="bell" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BellEntity" inverseName="tags" inverseEntity="BellEntity"/>
+    </entity>
+    <entity name="CollectionEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="backgroundStyleRaw" optional="YES" attributeType="String" defaultValueString="amber"/>
+        <attribute name="id" optional="YES" attributeType="UUID"/>
+        <attribute name="kindRaw" optional="YES" attributeType="String" defaultValueString="bells"/>
+        <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="title" optional="YES" attributeType="String" defaultValueString=""/>
+        <relationship name="bells" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BellEntity" inverseName="collection" inverseEntity="BellEntity"/>
+        <relationship name="home" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="HomeEntity" inverseName="collections" inverseEntity="HomeEntity"/>
+    </entity>
+    <entity name="HomeEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="iconName" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID"/>
+        <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
+        <relationship name="collections" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CollectionEntity" inverseName="home" inverseEntity="CollectionEntity"/>
+        <relationship name="locations" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="LocationEntity" inverseName="home" inverseEntity="LocationEntity"/>
+    </entity>
+    <entity name="LocationEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="id" optional="YES" attributeType="UUID"/>
+        <attribute name="kindRaw" optional="YES" attributeType="String" defaultValueString="room"/>
+        <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
+        <relationship name="bells" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BellEntity" inverseName="location" inverseEntity="BellEntity"/>
+        <relationship name="children" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="LocationEntity" inverseName="parent" inverseEntity="LocationEntity"/>
+        <relationship name="home" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="HomeEntity" inverseName="locations" inverseEntity="HomeEntity"/>
+        <relationship name="parent" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="LocationEntity" inverseName="children" inverseEntity="LocationEntity"/>
+    </entity>
+    <entity name="MediaAssetEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="byteSize" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <attribute name="checksum" optional="YES" attributeType="String"/>
+        <attribute name="displayName" optional="YES" attributeType="String"/>
+        <attribute name="duration" optional="YES" attributeType="Double" usesScalarValueType="NO"/>
+        <attribute name="fileName" optional="YES" attributeType="String"/>
+        <attribute name="height" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID"/>
+        <attribute name="kindRaw" optional="YES" attributeType="String" defaultValueString="photo"/>
+        <attribute name="localIdentifier" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="metadataJSON" optional="YES" attributeType="String"/>
+        <attribute name="mimeType" optional="YES" attributeType="String"/>
+        <attribute name="originalData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="sortOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="NO"/>
+        <attribute name="thumbnailData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="width" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <relationship name="bell" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BellEntity" inverseName="mediaAssets" inverseEntity="BellEntity"/>
+    </entity>
+    <entity name="PlaceEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="cityName" optional="YES" attributeType="String"/>
+        <attribute name="countryCode" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="countryName" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="displayName" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="id" optional="YES" attributeType="UUID"/>
+        <attribute name="latitude" optional="YES" attributeType="Double" usesScalarValueType="NO"/>
+        <attribute name="longitude" optional="YES" attributeType="Double" usesScalarValueType="NO"/>
+        <attribute name="regionName" optional="YES" attributeType="String"/>
+        <relationship name="bells" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BellEntity" inverseName="originPlace" inverseEntity="BellEntity"/>
+    </entity>
+</model>

@@ -75,6 +75,8 @@
 		C000000000000000000000C5 /* CatalogLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000030 /* CatalogLayouts.swift */; };
 		C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000040 /* CatalogArchiveService.swift */; };
 		D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* BellDetailView+Subviews.swift */; };
+		E00000000000000000000005 /* CatalogCoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000002 /* CatalogCoreDataStack.swift */; };
+		E00000000000000000000006 /* Catalog.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000003 /* Catalog.xcdatamodeld */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -146,6 +148,8 @@
 		C00000000000000000000030 /* CatalogLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLayouts.swift; sourceTree = "<group>"; };
 		C00000000000000000000040 /* CatalogArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogArchiveService.swift; sourceTree = "<group>"; };
 		D00000000000000000000031 /* BellDetailView+Subviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BellDetailView+Subviews.swift"; sourceTree = "<group>"; };
+		E00000000000000000000002 /* CatalogCoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCoreDataStack.swift; sourceTree = "<group>"; };
+		E00000000000000000000004 /* Catalog.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Catalog.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -279,6 +283,7 @@
 			children = (
 				C0000000000000000000003F /* Repositories */,
 				C00000000000000000000048 /* SwiftData */,
+				E00000000000000000000001 /* CoreData */,
 				C00000000000000000000049 /* ImportExport */,
 			);
 			path = Data;
@@ -444,6 +449,15 @@
 				C00000000000000000000040 /* CatalogArchiveService.swift */,
 			);
 			path = ImportExport;
+			sourceTree = "<group>";
+		};
+		E00000000000000000000001 /* CoreData */ = {
+			isa = PBXGroup;
+			children = (
+				E00000000000000000000003 /* Catalog.xcdatamodeld */,
+				E00000000000000000000002 /* CatalogCoreDataStack.swift */,
+			);
+			path = CoreData;
 			sourceTree = "<group>";
 		};
 		C0000000000000000000004A /* PhotoAnalysis */ = {
@@ -635,6 +649,8 @@
 				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
 				C000000000000000000000BA /* CatalogEntities.swift in Sources */,
 				C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */,
+				E00000000000000000000006 /* Catalog.xcdatamodeld in Sources */,
+				E00000000000000000000005 /* CatalogCoreDataStack.swift in Sources */,
 				2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */,
 				C000000000000000000000BC /* SwiftDataCatalogRepository.swift in Sources */,
 				24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */,
@@ -664,6 +680,19 @@
 			);
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin XCVersionGroup section */
+		E00000000000000000000003 /* Catalog.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				E00000000000000000000004 /* Catalog.xcdatamodel */,
+			);
+			currentVersion = E00000000000000000000004 /* Catalog.xcdatamodel */;
+			path = Catalog.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 
 /* Begin XCBuildConfiguration section */
 		2434A0072FAC6FDA005383FB /* Debug configuration for PBXNativeTarget "BellRecognitionDebugML" */ = {
