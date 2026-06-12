@@ -4,6 +4,7 @@ struct CollectionEditorView: View {
     let homes: [Home]
     let onSave: (String, String, UUID, CollectionBackgroundStyle) -> Void
     let onDelete: (() -> Void)?
+    let sharingDestination: AnyView?
 
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
@@ -26,6 +27,7 @@ struct CollectionEditorView: View {
         initialBackgroundStyle: CollectionBackgroundStyle = .amber,
         hasPlacedItems: Bool = false,
         allowsDeletion: Bool = false,
+        sharingDestination: AnyView? = nil,
         onSave: @escaping (String, String, UUID, CollectionBackgroundStyle) -> Void,
         onDelete: (() -> Void)? = nil
     ) {
@@ -33,6 +35,7 @@ struct CollectionEditorView: View {
         self.screenTitle = screenTitle
         self.hasPlacedItems = hasPlacedItems
         self.allowsDeletion = allowsDeletion
+        self.sharingDestination = sharingDestination
         self.onSave = onSave
         self.onDelete = onDelete
         _title = State(initialValue: initialTitle)
@@ -107,6 +110,19 @@ struct CollectionEditorView: View {
     }
 
     @ViewBuilder
+    private var sharingSection: some View {
+        if let sharingDestination {
+            Section {
+                NavigationLink {
+                    sharingDestination
+                } label: {
+                    Label(String(localized: "collection.sharing.entry_title"), systemImage: "person.2")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private var deleteSection: some View {
         if allowsDeletion {
             Section {
@@ -124,6 +140,7 @@ struct CollectionEditorView: View {
             Form {
                 collectionSection
                 backgroundSection
+                sharingSection
                 deleteSection
             }
             .navigationTitle(screenTitle)

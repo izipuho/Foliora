@@ -197,7 +197,8 @@ struct CollectionShellView: View {
             initialHomeID: collection.homeID,
             initialBackgroundStyle: collection.backgroundStyle,
             hasPlacedItems: hasPlacedItems,
-            allowsDeletion: true
+            allowsDeletion: true,
+            sharingDestination: AnyView(CollectionSharingStateLoaderView(collection: collection))
         ) { title, notes, homeID, backgroundStyle in
             saveCollectionEdits(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
         } onDelete: {
@@ -324,6 +325,77 @@ struct CollectionShellView: View {
         draftAnalysisImage = media.uiImage
         shouldPresentEditorAfterCamera = true
     }
+}
+
+private struct CollectionSharingStateLoaderView: View {
+    let collection: CollectionSummary
+    private let sharingService: any CollectionSharingService
+    @State private var state = CollectionSharingState.privateState
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+
+    init(
+        collection: CollectionSummary,
+        sharingService: any CollectionSharingService = CloudKitCollectionSharingService()
+    ) {
+        self.collection = collection
+        self.sharingService = sharingService
+    }
+
+    var body: some View {
+        Group {
+            if isLoading {
+                ProgressView(String(localized: "collection.sharing.loading"))
+            } else if errorMessage != nil {
+                sharingLoadFailedView
+            } else {
+                CollectionSharingView(collection: collection, state: state) {
+                    Task {
+                        await loadSharingState()
+                    }
+                }
+            }
+        }
+        .task(id: collection.id) {
+            await loadSharingState()
+        }
+    }
+
+    private var sharingLoadFailedView: some View {
+        ContentUnavailableView {
+            Label(String(localized: "collection.sharing.load_failed.title"), systemImage: "icloud.slash")
+        } description: {
+            Text(String(localized: "collection.sharing.load_failed.message"))
+        } actions: {
+            Button(String(localized: "common.retry")) {
+                Task {
+                    await loadSharingState()
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func loadSharingState() async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            state = try await sharingService.sharingState(for: collection.id)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+}
+
+private extension CollectionSharingState {
+    static let privateState = CollectionSharingState(
+        isShared: false,
+        currentUserRole: .owner,
+        participants: []
+    )
 }
 
 private struct CollectionShellToolbar: ToolbarContent {

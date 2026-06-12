@@ -1,48 +1,44 @@
 import Foundation
 
-enum CollectionRole: String, Hashable, Codable {
+enum CollectionAccessRole: String, Identifiable, Hashable, Codable {
     case owner
-    case editor
     case contributor
     case viewer
-
-    var shortLabel: String {
-        title.lowercased(with: .autoupdatingCurrent)
-    }
-
-    var title: String {
-        switch self {
-        case .owner:
-            return String(localized: "enum.collection_role.owner")
-        case .editor:
-            return String(localized: "enum.collection_role.editor")
-        case .contributor:
-            return String(localized: "enum.collection_role.contributor")
-        case .viewer:
-            return String(localized: "enum.collection_role.viewer")
-        }
-    }
-}
-
-enum MembershipStatus: String, Hashable, CaseIterable, Identifiable, Codable {
-    case pending
-    case active
-    case revoked
 
     var id: String { rawValue }
 }
 
-struct Membership: Identifiable, Hashable, Codable {
+struct CollectionParticipant: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
-    let userID: String
-    var role: CollectionRole
-    var status: MembershipStatus
-}
-
-struct Collaborator: Identifiable, Hashable, Codable {
-    let id: UUID
-    let displayName: String
-    let role: CollectionRole
+    let cloudKitParticipantID: String?
+    let displayName: String?
+    var role: CollectionAccessRole
     let isCurrentUser: Bool
+
+    init(
+        id: UUID,
+        collectionID: UUID,
+        cloudKitParticipantID: String?,
+        displayName: String?,
+        role: CollectionAccessRole,
+        isCurrentUser: Bool = false
+    ) {
+        self.id = id
+        self.collectionID = collectionID
+        self.cloudKitParticipantID = cloudKitParticipantID
+        self.displayName = displayName
+        self.role = role
+        self.isCurrentUser = isCurrentUser
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        collectionID = try container.decode(UUID.self, forKey: .collectionID)
+        cloudKitParticipantID = try container.decodeIfPresent(String.self, forKey: .cloudKitParticipantID)
+        displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
+        role = try container.decode(CollectionAccessRole.self, forKey: .role)
+        isCurrentUser = try container.decodeIfPresent(Bool.self, forKey: .isCurrentUser) ?? false
+    }
 }

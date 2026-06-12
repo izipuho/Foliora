@@ -124,9 +124,6 @@ final class CollectionEntity {
     @Relationship(deleteRule: .cascade, inverse: \BellEntity.collection)
     var bells: [BellEntity]? = []
 
-    @Relationship(deleteRule: .cascade, inverse: \MembershipEntity.collection)
-    var memberships: [MembershipEntity]? = []
-
     init(
         id: UUID,
         kindRaw: String,
@@ -171,46 +168,6 @@ final class CollectionEntity {
             title: title,
             notes: notes,
             backgroundStyle: backgroundStyle
-        )
-    }
-}
-
-@Model
-final class MembershipEntity {
-    var id: UUID = UUID()
-    var userID: String = ""
-    var roleRaw: String = CollectionRole.viewer.rawValue
-    var statusRaw: String = MembershipStatus.pending.rawValue
-
-    var collection: CollectionEntity?
-
-    init(
-        id: UUID,
-        userID: String,
-        roleRaw: String,
-        statusRaw: String
-    ) {
-        self.id = id
-        self.userID = userID
-        self.roleRaw = roleRaw
-        self.statusRaw = statusRaw
-    }
-
-    var role: CollectionRole {
-        CollectionRole(rawValue: roleRaw) ?? .viewer
-    }
-
-    var status: MembershipStatus {
-        MembershipStatus(rawValue: statusRaw) ?? .pending
-    }
-
-    var membershipSnapshot: Membership {
-        Membership(
-            id: id,
-            collectionID: collection?.id ?? UUID(),
-            userID: userID,
-            role: role,
-            status: status
         )
     }
 }

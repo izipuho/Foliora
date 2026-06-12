@@ -171,7 +171,7 @@ struct SettingsView: View {
         cloudStatusErrorMessage = nil
 
         Task {
-            let container = CKContainer(identifier: CloudKitConfiguration.containerIdentifier)
+            let container = CKContainer.default()
 
             do {
                 let status = try await container.accountStatus()
@@ -272,7 +272,6 @@ struct SettingsView: View {
     private func deleteAllCatalogEntities() throws {
         try modelContext.fetch(FetchDescriptor<MediaAssetEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<BellTagEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<MembershipEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<BellEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<LocationEntity>()).forEach(modelContext.delete)
         try modelContext.fetch(FetchDescriptor<HomeEntity>()).forEach(modelContext.delete)

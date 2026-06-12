@@ -17,6 +17,7 @@
 		2403CEE32F9FA83A00C63AB6 /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE12F9FA83A00C63AB6 /* CameraPicker.swift */; };
 		2403CEE52F9FCD9F00C63AB6 /* ImageMediaBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE42F9FCD9F00C63AB6 /* ImageMediaBuilder.swift */; };
 		2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */; };
+		2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */; };
 		24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
@@ -39,7 +40,11 @@
 		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
 		24F1A5022FD8C89000FC1717 /* CatalogContainerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5012FD8C89000FC1717 /* CatalogContainerCard.swift */; };
 		24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */; };
-		C000000000000000000000A1 /* CatalogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000001 /* CatalogApp.swift */; };
+		24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */; };
+		24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */; };
+		24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */; };
+		24F1A54A2FDB309D00FC1717 /* FolioraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5492FDB309D00FC1717 /* FolioraApp.swift */; };
+		24F1A54C2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */; };
 		C000000000000000000000A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
 		C000000000000000000000A3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* AppRouter.swift */; };
 		C000000000000000000000A5 /* CollectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000005 /* CollectionModels.swift */; };
@@ -54,8 +59,6 @@
 		C000000000000000000000AF /* BellDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000F /* BellDetailView.swift */; };
 		C000000000000000000000B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Assets.xcassets */; };
 		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
-		C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000014 /* CloudKitConfiguration.swift */; };
-		C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000015 /* CloudKitCatalogRepository.swift */; };
 		C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000018 /* LocalMediaFileStore.swift */; };
 		C000000000000000000000B9 /* BellCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001F /* BellCardView.swift */; };
 		C000000000000000000000BA /* CatalogEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000025 /* CatalogEntities.swift */; };
@@ -85,6 +88,7 @@
 		2403CEE12F9FA83A00C63AB6 /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
 		2403CEE42F9FCD9F00C63AB6 /* ImageMediaBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageMediaBuilder.swift; sourceTree = "<group>"; };
 		2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionShellView.swift; sourceTree = "<group>"; };
+		2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingView.swift; sourceTree = "<group>"; };
 		24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticPhotoFeatureExtractor.swift; sourceTree = "<group>"; };
 		24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognitionDebugML.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		244FE0452FD7200000B4D805 /* CloudSyncDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncDiagnosticsView.swift; sourceTree = "<group>"; };
@@ -105,7 +109,11 @@
 		24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		24F1A5012FD8C89000FC1717 /* CatalogContainerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogContainerCard.swift; sourceTree = "<group>"; };
 		24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogContainerList.swift; sourceTree = "<group>"; };
-		C00000000000000000000001 /* CatalogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogApp.swift; sourceTree = "<group>"; };
+		24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSharingMapper.swift; sourceTree = "<group>"; };
+		24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingState.swift; sourceTree = "<group>"; };
+		24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCollectionSharingService.swift; sourceTree = "<group>"; };
+		24F1A5492FDB309D00FC1717 /* FolioraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolioraApp.swift; sourceTree = "<group>"; };
+		24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSharingSceneDelegate.swift; sourceTree = "<group>"; };
 		C00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
 		C00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		C00000000000000000000005 /* CollectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionModels.swift; sourceTree = "<group>"; };
@@ -121,8 +129,6 @@
 		C00000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C00000000000000000000013 /* EditorFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFields.swift; sourceTree = "<group>"; };
-		C00000000000000000000014 /* CloudKitConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitConfiguration.swift; sourceTree = "<group>"; };
-		C00000000000000000000015 /* CloudKitCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCatalogRepository.swift; sourceTree = "<group>"; };
 		C00000000000000000000016 /* Catalog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catalog.entitlements; sourceTree = "<group>"; };
 		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
 		C0000000000000000000001F /* BellCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCardView.swift; sourceTree = "<group>"; };
@@ -240,9 +246,9 @@
 		C00000000000000000000034 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				C00000000000000000000001 /* CatalogApp.swift */,
+				24F1A5492FDB309D00FC1717 /* FolioraApp.swift */,
+				24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */,
 				C00000000000000000000002 /* AppContainer.swift */,
-				C00000000000000000000014 /* CloudKitConfiguration.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -342,6 +348,8 @@
 		C0000000000000000000003E /* Sharing */ = {
 			isa = PBXGroup;
 			children = (
+				24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */,
+				24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */,
 				C0000000000000000000000A /* SharingModels.swift */,
 			);
 			path = Sharing;
@@ -351,7 +359,6 @@
 			isa = PBXGroup;
 			children = (
 				C0000000000000000000000B /* CatalogRepository.swift */,
-				C00000000000000000000015 /* CloudKitCatalogRepository.swift */,
 				C00000000000000000000018 /* LocalMediaFileStore.swift */,
 			);
 			path = Repositories;
@@ -360,7 +367,9 @@
 		C00000000000000000000041 /* Collections */ = {
 			isa = PBXGroup;
 			children = (
+				24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */,
 				2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */,
+				2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */,
 				2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */,
 				2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */,
 				2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */,
@@ -595,7 +604,6 @@
 			isa = PBXSourcesBuildPhase;
 			files = (
 				246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
-				C000000000000000000000A1 /* CatalogApp.swift in Sources */,
 				24F1A5022FD8C89000FC1717 /* CatalogContainerCard.swift in Sources */,
 				24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */,
 				C000000000000000000000A2 /* AppContainer.swift in Sources */,
@@ -622,8 +630,6 @@
 				24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */,
 				2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */,
 				C000000000000000000000B2 /* EditorFields.swift in Sources */,
-				C000000000000000000000B3 /* CloudKitConfiguration.swift in Sources */,
-				C000000000000000000000B4 /* CloudKitCatalogRepository.swift in Sources */,
 				C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */,
 				2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */,
 				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
@@ -632,6 +638,7 @@
 				2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */,
 				C000000000000000000000BC /* SwiftDataCatalogRepository.swift in Sources */,
 				24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */,
+				24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */,
 				C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */,
 				C000000000000000000000BE /* CatalogJSONPort.swift in Sources */,
 				C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */,
@@ -639,13 +646,18 @@
 				C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */,
 				246FD63C2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift in Sources */,
 				2403CEDF2F9FA3A900C63AB6 /* CollectionEditorView.swift in Sources */,
+				2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */,
+				24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */,
 				2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */,
 				2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */,
 				2403CEE32F9FA83A00C63AB6 /* CameraPicker.swift in Sources */,
 				C000000000000000000000B9 /* BellCardView.swift in Sources */,
 				24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */,
+				24F1A54A2FDB309D00FC1717 /* FolioraApp.swift in Sources */,
+				24F1A54C2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift in Sources */,
 				C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */,
 				C000000000000000000000C5 /* CatalogLayouts.swift in Sources */,
+				24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */,
 				C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */,
 				C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */,
 				C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */,
@@ -1035,7 +1047,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1060,7 +1072,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.8;
+				MARKETING_VERSION = 0.9.1;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.FolioraBells;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1085,7 +1097,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1110,7 +1122,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.8;
+				MARKETING_VERSION = 0.9.1;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.FolioraBells;
 				PRODUCT_NAME = "$(TARGET_NAME)";
