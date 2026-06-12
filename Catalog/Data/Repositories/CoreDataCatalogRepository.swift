@@ -72,6 +72,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(collection, forKey: "collection")
         entity.setValue(bell.item.locationID.flatMap { fetchEntity(named: "LocationEntity", by: $0) }, forKey: "location")
         entity.setValue(bell.originPlace.map(upsertPlace), forKey: "originPlace")
+        replaceMediaAssets(bell.mediaAssets, for: entity)
         replaceTags(bell.tags, for: entity)
         saveContext()
     }
@@ -150,6 +151,34 @@ final class CoreDataCatalogRepository: CatalogRepository {
         bell.setValue(Set(newTags), forKey: "tags")
     }
 
+    private func replaceMediaAssets(_ mediaAssets: [MediaAsset], for bell: NSManagedObject) {
+        let existingAssets = (bell.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []
+        existingAssets.forEach(context.delete)
+
+        let newAssets = mediaAssets.map { asset in
+            let entity = makeEntity(named: "MediaAssetEntity")
+            entity.setValue(asset.id, forKey: "id")
+            entity.setValue(asset.kind.rawValue, forKey: "kindRaw")
+            entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
+            entity.setValue(asset.displayName, forKey: "displayName")
+            entity.setValue(asset.sortOrder, forKey: "sortOrder")
+            entity.setValue(asset.fileName, forKey: "fileName")
+            entity.setValue(asset.mimeType, forKey: "mimeType")
+            entity.setValue(asset.byteSize, forKey: "byteSize")
+            entity.setValue(asset.checksum, forKey: "checksum")
+            entity.setValue(asset.width, forKey: "width")
+            entity.setValue(asset.height, forKey: "height")
+            entity.setValue(asset.duration, forKey: "duration")
+            entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
+            entity.setValue(asset.thumbnailData, forKey: "thumbnailData")
+            entity.setValue(asset.originalData, forKey: "originalData")
+            entity.setValue(bell, forKey: "bell")
+            return entity
+        }
+
+        bell.setValue(Set(newAssets), forKey: "mediaAssets")
+    }
+
     private func home(from entity: NSManagedObject) -> Home {
         Home(
             id: uuidValue(entity, "id"),
@@ -187,6 +216,9 @@ final class CoreDataCatalogRepository: CatalogRepository {
         let tags = ((entity.value(forKey: "tags") as? Set<NSManagedObject>) ?? [])
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
             .map { stringValue($0, "value") }
+        let mediaAssets = ((entity.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? [])
+            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+            .map { mediaAsset(from: $0, itemID: uuidValue(entity, "id")) }
 
         return BellRecord(
             item: Item(
@@ -209,7 +241,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
             originPlace: originPlaceEntity.map(place),
             storageLocation: locationEntity.map(location),
             storagePath: locationEntity.map(storagePath) ?? "",
-            mediaAssets: [],
+            mediaAssets: mediaAssets,
             createdBy: stringValue(entity, "createdBy"),
             tags: tags
         )
@@ -225,6 +257,27 @@ final class CoreDataCatalogRepository: CatalogRepository {
             cityName: entity.value(forKey: "cityName") as? String,
             latitude: entity.value(forKey: "latitude") as? Double,
             longitude: entity.value(forKey: "longitude") as? Double
+        )
+    }
+
+    private func mediaAsset(from entity: NSManagedObject, itemID: UUID) -> MediaAsset {
+        MediaAsset(
+            id: uuidValue(entity, "id"),
+            itemID: itemID,
+            kind: mediaKind(from: stringValue(entity, "kindRaw", default: MediaKind.photo.rawValue)),
+            localIdentifier: stringValue(entity, "localIdentifier"),
+            displayName: entity.value(forKey: "displayName") as? String,
+            sortOrder: intValue(entity, "sortOrder"),
+            fileName: entity.value(forKey: "fileName") as? String,
+            mimeType: entity.value(forKey: "mimeType") as? String,
+            byteSize: optionalIntValue(entity, "byteSize"),
+            checksum: entity.value(forKey: "checksum") as? String,
+            width: optionalIntValue(entity, "width"),
+            height: optionalIntValue(entity, "height"),
+            duration: optionalDoubleValue(entity, "duration"),
+            metadataJSON: entity.value(forKey: "metadataJSON") as? String,
+            thumbnailData: entity.value(forKey: "thumbnailData") as? Data,
+            originalData: entity.value(forKey: "originalData") as? Data
         )
     }
 
@@ -268,7 +321,23 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func intValue(_ entity: NSManagedObject, _ key: String) -> Int {
-        entity.value(forKey: key) as? Int ?? 0
+        optionalIntValue(entity, key) ?? 0
+    }
+
+    private func optionalIntValue(_ entity: NSManagedObject, _ key: String) -> Int? {
+        if let value = entity.value(forKey: key) as? Int {
+            return value
+        }
+
+        return (entity.value(forKey: key) as? NSNumber)?.intValue
+    }
+
+    private func optionalDoubleValue(_ entity: NSManagedObject, _ key: String) -> Double? {
+        if let value = entity.value(forKey: key) as? Double {
+            return value
+        }
+
+        return (entity.value(forKey: key) as? NSNumber)?.doubleValue
     }
 
     private func dateValue(_ entity: NSManagedObject, _ key: String) -> Date {
@@ -297,6 +366,10 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
     private func bellMaterial(from rawValue: String) -> BellMaterial {
         BellMaterial(rawValue: rawValue) ?? .unknown
+    }
+
+    private func mediaKind(from rawValue: String) -> MediaKind {
+        MediaKind(rawValue: rawValue) ?? .photo
     }
 
     private func saveContext() {
