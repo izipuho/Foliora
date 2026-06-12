@@ -43,7 +43,6 @@ struct FolioraApp: App {
     @UIApplicationDelegateAdaptor(FolioraAppDelegate.self)
     private var appDelegate
 
-    private let container = AppContainer()
     private let coreDataContainer: NSPersistentCloudKitContainer = {
         do {
             let container = try CatalogCoreDataStack.makeContainer()
@@ -52,6 +51,11 @@ struct FolioraApp: App {
             fatalError("Failed to create Core Data container: \(error)")
         }
     }()
+    private let container: AppContainer
+
+    init() {
+        self.container = AppContainer(coreDataContainer: coreDataContainer)
+    }
 
     var body: some Scene {
         WindowGroup {
