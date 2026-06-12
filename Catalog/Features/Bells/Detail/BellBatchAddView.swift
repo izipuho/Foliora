@@ -1,5 +1,5 @@
 import SwiftUI
-import SwiftData
+import CoreData
 import PhotosUI
 
 private struct BellBatchNameGenerator {
@@ -87,10 +87,9 @@ struct BellBatchAddView: View {
     private let onComplete: (BatchAddCompletionAction) -> Void
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
-    @Query private var queriedLocations: [LocationEntity]
-    @Query private var queriedBells: [BellEntity]
-
+    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
+    @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var selectedLocationID: UUID?
     @State private var selectedOriginPlace: Place?
     @State private var selectedAcquiredYearOption = String(localized: "common.none")
@@ -120,20 +119,6 @@ struct BellBatchAddView: View {
         self.initialMediaAssets = initialMediaAssets
         self.repository = repository
         self.onComplete = onComplete
-        let homeID = Optional(collection.homeID)
-        let collectionID = Optional(collection.id)
-        _queriedLocations = Query(
-            filter: #Predicate<LocationEntity> { location in
-                location.home?.id == homeID
-            },
-            sort: [SortDescriptor(\.name)]
-        )
-        _queriedBells = Query(
-            filter: #Predicate<BellEntity> { bell in
-                bell.collection?.id == collectionID
-            },
-            sort: [SortDescriptor(\.createdAt, order: .reverse)]
-        )
     }
 
     var body: some View {
@@ -142,6 +127,7 @@ struct BellBatchAddView: View {
             .navigationTitle(String(localized: "bell_batch_add.title"))
             .navigationBarTitleDisplayMode(.inline)
             .task(id: photoItems.map(\.itemIdentifier)) {
+                reloadLookupSnapshot()
                 await loadMediaPayloadsIfNeeded()
             }
             .toolbar {
@@ -298,37 +284,11 @@ struct BellBatchAddView: View {
     }
 
     private var availableLocations: [Location] {
-        queriedLocations.map { entity in
-            Location(
-                id: entity.id,
-                homeID: entity.home?.id ?? collection.homeID,
-                parentLocationID: entity.parent?.id,
-                kind: entity.kind,
-                name: entity.name,
-                notes: entity.notes
-            )
-        }
+        lookupSnapshot.locations
     }
 
     private var availablePlaces: [Place] {
-        let places = queriedBells
-            .compactMap { bell -> Place? in
-                guard let place = bell.originPlace else { return nil }
-                return Place(
-                    id: place.id,
-                    displayName: place.displayName,
-                    countryCode: place.countryCode,
-                    countryName: place.countryName,
-                    regionName: place.regionName,
-                    cityName: place.cityName,
-                    latitude: place.latitude,
-                    longitude: place.longitude
-                )
-            }
-
-        return Array(Set(places)).sorted { lhs, rhs in
-            lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName) == .orderedAscending
-        }
+        lookupSnapshot.places
     }
 
     private var selectedLocationLabel: String {
@@ -344,11 +304,7 @@ struct BellBatchAddView: View {
     }
 
     private var locationPathByID: [UUID: String] {
-        Dictionary(
-            uniqueKeysWithValues: availableLocations.map { location in
-                (location.id, locationPath(for: location))
-            }
-        )
+        lookupSnapshot.locationPathByID
     }
 
     private func locationPath(for location: Location) -> String {
@@ -362,6 +318,11 @@ struct BellBatchAddView: View {
         }
 
         return parts.joined(separator: " / ")
+    }
+
+    private func reloadLookupSnapshot() {
+        lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
+            .loadSnapshot(collectionID: collection.id, homeID: collection.homeID)
     }
 
     @MainActor
