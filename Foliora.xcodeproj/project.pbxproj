@@ -451,15 +451,6 @@
 			path = ImportExport;
 			sourceTree = "<group>";
 		};
-		E00000000000000000000001 /* CoreData */ = {
-			isa = PBXGroup;
-			children = (
-				E00000000000000000000003 /* Catalog.xcdatamodeld */,
-				E00000000000000000000002 /* CatalogCoreDataStack.swift */,
-			);
-			path = CoreData;
-			sourceTree = "<group>";
-		};
 		C0000000000000000000004A /* PhotoAnalysis */ = {
 			isa = PBXGroup;
 			children = (
@@ -476,6 +467,15 @@
 				C0000000000000000000002C /* BellPhotoAnalysis.swift */,
 			);
 			path = Analysis;
+			sourceTree = "<group>";
+		};
+		E00000000000000000000001 /* CoreData */ = {
+			isa = PBXGroup;
+			children = (
+				E00000000000000000000003 /* Catalog.xcdatamodeld */,
+				E00000000000000000000002 /* CatalogCoreDataStack.swift */,
+			);
+			path = CoreData;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -680,19 +680,6 @@
 			);
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin XCVersionGroup section */
-		E00000000000000000000003 /* Catalog.xcdatamodeld */ = {
-			isa = XCVersionGroup;
-			children = (
-				E00000000000000000000004 /* Catalog.xcdatamodel */,
-			);
-			currentVersion = E00000000000000000000004 /* Catalog.xcdatamodel */;
-			path = Catalog.xcdatamodeld;
-			sourceTree = "<group>";
-			versionGroupType = wrapper.xcdatamodel;
-		};
-/* End XCVersionGroup section */
 
 /* Begin XCBuildConfiguration section */
 		2434A0072FAC6FDA005383FB /* Debug configuration for PBXNativeTarget "BellRecognitionDebugML" */ = {
@@ -1076,7 +1063,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1126,7 +1113,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1203,6 +1190,19 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		E00000000000000000000003 /* Catalog.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				E00000000000000000000004 /* Catalog.xcdatamodel */,
+			);
+			currentVersion = E00000000000000000000004 /* Catalog.xcdatamodel */;
+			path = Catalog.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = C00000000000000000000052 /* Project object */;
 }

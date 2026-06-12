@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import CloudKit
+import CoreData
 import UIKit
 
 final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
@@ -43,11 +44,20 @@ struct FolioraApp: App {
     private var appDelegate
 
     private let container = AppContainer()
+    private let coreDataContainer: NSPersistentCloudKitContainer = {
+        do {
+            let container = try CatalogCoreDataStack.makeContainer()
+            return container
+        } catch {
+            fatalError("Failed to create Core Data container: \(error)")
+        }
+    }()
 
     var body: some Scene {
         WindowGroup {
             AppShellView(repository: container.repository)
                 .modelContainer(container.swiftDataContainer)
+                .environment(\.managedObjectContext, coreDataContainer.viewContext)
                 .onOpenURL { url in
                     print("OPEN_URL:", url.absoluteString)
                 }
