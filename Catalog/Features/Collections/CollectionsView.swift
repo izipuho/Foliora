@@ -4,7 +4,7 @@ import CoreData
 struct CollectionsView: View {
     let repository: any CatalogRepository
     let onCollectionSelected: ((CollectionEntity) -> Void)?
-    let onBellSelected: ((BellEntity) -> Void)?
+    let onBellSelected: ((UUID) -> Void)?
     let navigate: ((AppDestination) -> Void)?
     let onOpenHomes: () -> Void
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -15,7 +15,7 @@ struct CollectionsView: View {
     init(
         repository: any CatalogRepository,
         onCollectionSelected: ((CollectionEntity) -> Void)? = nil,
-        onBellSelected: ((BellEntity) -> Void)? = nil,
+        onBellSelected: ((UUID) -> Void)? = nil,
         navigate: ((AppDestination) -> Void)? = nil,
         onOpenHomes: @escaping () -> Void = {}
     ) {

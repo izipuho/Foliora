@@ -95,7 +95,7 @@ private extension BellFilters {
 struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collection: CollectionSummary?
-    let onBellSelected: ((BellEntity) -> Void)?
+    let onBellSelected: ((UUID) -> Void)?
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
@@ -121,7 +121,7 @@ struct BellCatalogView: View {
         layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
-        onBellSelected: ((BellEntity) -> Void)? = nil
+        onBellSelected: ((UUID) -> Void)? = nil
     ) {
         self.repository = repository
         self.collection = collection
@@ -631,8 +631,8 @@ struct BellCatalogView: View {
                 bellCardContextMenu(for: bell)
             },
             preview: { bell in
-                if let entity = bridgedBellEntity(for: bell.id) {
-                    BellCardContextPreview(bell: entity, repository: repository)
+                if let record = catalogSnapshot.recordsByID[bell.id] {
+                    BellCardContextPreview(bell: record, repository: repository)
                 }
             }
         )
@@ -646,8 +646,8 @@ struct BellCatalogView: View {
 
         if isSelectionModeEnabled {
             toggleBellSelection(bell.id)
-        } else if let onBellSelected, let entity = bridgedBellEntity(for: bell.id) {
-            onBellSelected(entity)
+        } else if let onBellSelected {
+            onBellSelected(bell.id)
         }
     }
 
@@ -687,9 +687,6 @@ struct BellCatalogView: View {
         emitFeedback(.warning)
     }
 
-    private func bridgedBellEntity(for bellID: UUID) -> BellEntity? {
-        catalogSnapshot.recordsByID[bellID].map(BellEntity.init(record:))
-    }
 }
 
 private struct BellGroupedSectionHeader: View {
@@ -854,20 +851,53 @@ private extension View {
     }
 }
 
-struct BellEntityDetailSheetContainer: View {
-    @State private var bell: BellRecord
+struct BellCatalogDetailSheetContainer: View {
+    let bellID: UUID
     let repository: any CatalogRepository
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var bell: BellRecord?
 
-    init(bell: BellEntity, repository: any CatalogRepository) {
-        _bell = State(initialValue: bell.recordSnapshot)
+    init(bellID: UUID, repository: any CatalogRepository) {
+        self.bellID = bellID
         self.repository = repository
     }
 
     var body: some View {
         NavigationStack {
-            BellDetailView(bell: $bell, repository: repository)
+            if let bellBinding {
+                BellDetailView(bell: bellBinding, repository: repository)
+            } else {
+                ContentUnavailableView("bel.not_found", systemImage: "bell.slash")
+            }
         }
         .presentationBackground(.clear)
+        .task(id: bellID) {
+            reloadBell()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextObjectsDidChange,
+            object: managedObjectContext
+        )) { _ in
+            reloadBell()
+        }
+    }
+
+    private var bellBinding: Binding<BellRecord>? {
+        guard let currentBell = bell else { return nil }
+
+        return Binding(
+            get: {
+                bell ?? currentBell
+            },
+            set: {
+                bell = $0
+            }
+        )
+    }
+
+    private func reloadBell() {
+        let snapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext).loadSnapshot()
+        bell = snapshot.bells.first { $0.id == bellID }
     }
 }
 
@@ -875,8 +905,8 @@ private struct BellCardContextPreview: View {
     @State private var bell: BellRecord
     let repository: any CatalogRepository
 
-    init(bell: BellEntity, repository: any CatalogRepository) {
-        _bell = State(initialValue: bell.recordSnapshot)
+    init(bell: BellRecord, repository: any CatalogRepository) {
+        _bell = State(initialValue: bell)
         self.repository = repository
     }
 

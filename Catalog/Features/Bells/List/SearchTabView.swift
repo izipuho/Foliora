@@ -47,12 +47,12 @@ struct BellCatalogSearchState: Equatable {
 
 struct SearchTabView: View {
     let repository: any CatalogRepository
-    let onBellSelected: ((BellEntity) -> Void)?
+    let onBellSelected: ((UUID) -> Void)?
     private let initialQuery: String?
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Binding var layoutMode: BellGridLayoutMode
     @State private var searchSnapshot = SearchCatalogSnapshot()
-    @State private var selectedBell: BellEntity?
+    @State private var selectedBellID: UUID?
     @State private var searchState = BellCatalogSearchState()
     @State private var didApplyInitialQuery = false
     @FocusState private var isSearchFocused: Bool
@@ -61,7 +61,7 @@ struct SearchTabView: View {
         repository: any CatalogRepository,
         layoutMode: Binding<BellGridLayoutMode>,
         initialQuery: String? = nil,
-        onBellSelected: ((BellEntity) -> Void)? = nil
+        onBellSelected: ((UUID) -> Void)? = nil
     ) {
         self.repository = repository
         self._layoutMode = layoutMode
@@ -130,6 +130,17 @@ struct SearchTabView: View {
             }
     }
 
+    private var isBellDetailPresented: Binding<Bool> {
+        Binding(
+            get: { selectedBellID != nil },
+            set: { isPresented in
+                if !isPresented {
+                    selectedBellID = nil
+                }
+            }
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             SearchTokenBar(
@@ -187,19 +198,19 @@ struct SearchTabView: View {
         )) { _ in
             reloadSearchSnapshot()
         }
-        .sheet(item: $selectedBell) { bell in
-            BellEntityDetailSheetContainer(bell: bell, repository: repository)
-                .presentationDragIndicator(.visible)
+        .sheet(isPresented: isBellDetailPresented) {
+            if let selectedBellID {
+                BellCatalogDetailSheetContainer(bellID: selectedBellID, repository: repository)
+                    .presentationDragIndicator(.visible)
+            }
         }
     }
 
     private func openBell(_ bell: BellListItem) {
-        guard let entity = searchSnapshot.recordsByID[bell.id].map(BellEntity.init(record:)) else { return }
-
         if let onBellSelected {
-            onBellSelected(entity)
+            onBellSelected(bell.id)
         } else {
-            selectedBell = entity
+            selectedBellID = bell.id
         }
     }
 
