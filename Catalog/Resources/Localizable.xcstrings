@@ -5473,12 +5473,12 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Home Not Found"
+            "value" : "Home not found"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Дом не найден"
           }
         }

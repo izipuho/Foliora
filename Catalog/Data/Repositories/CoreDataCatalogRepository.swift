@@ -1,14 +1,9 @@
 import CoreData
 import Foundation
-import SwiftData
 
 @MainActor
 final class CoreDataCatalogRepository: CatalogRepository {
     private let context: NSManagedObjectContext
-
-    var modelContainer: ModelContainer {
-        fatalError("CoreDataCatalogRepository does not provide a SwiftData ModelContainer")
-    }
 
     init(context: NSManagedObjectContext) {
         self.context = context

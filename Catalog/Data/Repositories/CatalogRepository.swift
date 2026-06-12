@@ -1,9 +1,7 @@
 import Foundation
-import SwiftData
 
 @MainActor
 protocol CatalogRepository {
-    var modelContainer: ModelContainer { get }
     func saveHome(_ home: Home)
     func saveLocations(_ locations: [Location], in homeID: UUID)
     func deleteHome(homeID: UUID)

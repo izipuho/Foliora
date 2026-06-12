@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import CloudKit
 import CoreData
 import UIKit
@@ -60,7 +59,6 @@ struct FolioraApp: App {
     var body: some Scene {
         WindowGroup {
             AppShellView(repository: container.repository)
-                .modelContainer(container.swiftDataContainer)
                 .environment(\.managedObjectContext, coreDataContainer.viewContext)
                 .onOpenURL { url in
                     print("OPEN_URL:", url.absoluteString)
