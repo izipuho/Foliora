@@ -1,5 +1,5 @@
 import SwiftUI
-import SwiftData
+import CoreData
 
 struct BellEditorView: View {
     enum StartSection: Hashable {
@@ -34,11 +34,11 @@ struct BellEditorView: View {
     let startSection: StartSection?
     let initialAnalysisImage: UIImage?
     let onSave: (BellRecord) -> Void
-    @Query private var queriedLocations: [LocationEntity]
-    @Query private var queriedBells: [BellEntity]
 
+    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: FocusedField?
+    @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var title = ""
     @State private var notes = ""
     @State private var condition: ItemCondition = .good
@@ -63,45 +63,15 @@ struct BellEditorView: View {
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     private var availableLocations: [Location] {
-        queriedLocations.map { entity in
-            Location(
-                id: entity.id,
-                homeID: entity.home?.id ?? collection.homeID,
-                parentLocationID: entity.parent?.id,
-                kind: entity.kind,
-                name: entity.name,
-                notes: entity.notes
-            )
-        }
+        lookupSnapshot.locations
     }
 
     private var availablePlaces: [Place] {
-        let places = queriedBells
-            .compactMap { bell -> Place? in
-                guard let place = bell.originPlace else { return nil }
-                return Place(
-                    id: place.id,
-                    displayName: place.displayName,
-                    countryCode: place.countryCode,
-                    countryName: place.countryName,
-                    regionName: place.regionName,
-                    cityName: place.cityName,
-                    latitude: place.latitude,
-                    longitude: place.longitude
-                )
-            }
-
-        return Array(Set(places)).sorted { lhs, rhs in
-            lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName) == .orderedAscending
-        }
+        lookupSnapshot.places
     }
 
     private var locationPathByID: [UUID: String] {
-        Dictionary(
-            uniqueKeysWithValues: availableLocations.map { location in
-                (location.id, locationPath(for: location))
-            }
-        )
+        lookupSnapshot.locationPathByID
     }
 
     private var canSave: Bool {
@@ -140,20 +110,6 @@ struct BellEditorView: View {
         self.existingBellID = bell?.id
         self.existingCreatedAt = bell?.createdAt
         self.editorItemID = bell?.id ?? UUID()
-        let homeID = Optional(collection.homeID)
-        let collectionID = Optional(collection.id)
-        _queriedLocations = Query(
-            filter: #Predicate<LocationEntity> { location in
-                location.home?.id == homeID
-            },
-            sort: [SortDescriptor(\.name)]
-        )
-        _queriedBells = Query(
-            filter: #Predicate<BellEntity> { bell in
-                bell.collection?.id == collectionID
-            },
-            sort: [SortDescriptor(\.createdAt, order: .reverse)]
-        )
         _title = State(initialValue: bell?.title ?? "")
         _notes = State(initialValue: bell?.notes ?? "")
         _condition = State(initialValue: bell?.condition ?? .good)
@@ -392,6 +348,7 @@ struct BellEditorView: View {
                     }
                 }
                 .task {
+                    reloadLookupSnapshot()
                     startInitialPhotoAnalysisIfNeeded()
                     guard let startSection else { return }
                     highlightedSection = startSection
@@ -412,6 +369,9 @@ struct BellEditorView: View {
                 .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
                     guard wasAnalyzing, !isAnalyzing else { return }
                     handlePhotoAnalysisCompletion()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
+                    reloadLookupSnapshot()
                 }
             }
         }
@@ -446,6 +406,11 @@ struct BellEditorView: View {
         guard !didStartInitialAnalysis, existingBellID == nil, let initialAnalysisImage else { return }
         didStartInitialAnalysis = true
         photoAnalysis.analyze(image: initialAnalysisImage)
+    }
+
+    private func reloadLookupSnapshot() {
+        lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
+            .loadSnapshot(collectionID: collection.id, homeID: collection.homeID)
     }
 
     private func requestSave() {
