@@ -115,6 +115,7 @@ struct BellCatalogView: View {
     @State private var feedbackToken = 0
     @State private var scrollRequestToken = 0
     @State private var didEndActivePinchGesture = false
+    @State private var bellsByID: [UUID: BellEntity] = [:]
     @StateObject private var viewModel: BellCatalogViewModel
     @Namespace private var bellGridTransitionNamespace
 
@@ -321,12 +322,12 @@ struct BellCatalogView: View {
             }
         }
         .onAppear {
-            viewModel.updateSource(bells: bells)
+            updateBellListSource(from: bells)
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
         }
         .onChange(of: bells) { _, newValue in
-            viewModel.updateSource(bells: newValue)
+            updateBellListSource(from: newValue)
             pruneSelectionToVisibleBells()
         }
         .onChange(of: orderMode) { _, newValue in
@@ -580,7 +581,13 @@ struct BellCatalogView: View {
         )
     }
 
-    private var visibleBells: [BellEntity] {
+    private func updateBellListSource(from bells: [BellEntity]) {
+        // Temporary bridge while BellCatalogView mutations still operate on SwiftData entities.
+        bellsByID = Dictionary(uniqueKeysWithValues: bells.map { ($0.id, $0) })
+        viewModel.updateSource(bells: bells.map(BellListItem.init(bell:)))
+    }
+
+    private var visibleBells: [BellListItem] {
         switch displayModel.layout {
         case .empty:
             return []
@@ -601,7 +608,9 @@ struct BellCatalogView: View {
 
     private var selectedBells: [BellEntity] {
         let selectedVisibleBellIDs = selectedVisibleBellIDs
-        return visibleBells.filter { selectedVisibleBellIDs.contains($0.id) }
+        return visibleBells
+            .filter { selectedVisibleBellIDs.contains($0.id) }
+            .compactMap { bellsByID[$0.id] }
     }
 
     private func enterSelectionMode(with bellID: UUID) {
@@ -637,7 +646,7 @@ struct BellCatalogView: View {
     }
 
     private func bellGridView(
-        bells: [BellEntity],
+        bells: [BellListItem],
         cardSize: CGSize,
         gridMetrics: BellGridLayoutMode.GridMetrics,
         cardMetrics: BellGridLayoutMode.CardMetrics
@@ -658,12 +667,14 @@ struct BellCatalogView: View {
                 bellCardContextMenu(for: bell)
             },
             preview: { bell in
-                BellCardContextPreview(bell: bell, repository: repository)
+                if let entity = bellsByID[bell.id] {
+                    BellCardContextPreview(bell: entity, repository: repository)
+                }
             }
         )
     }
 
-    private func handleBellCardTap(_ bell: BellEntity) {
+    private func handleBellCardTap(_ bell: BellListItem) {
         if didEndActivePinchGesture {
             didEndActivePinchGesture = false
             return
@@ -671,21 +682,21 @@ struct BellCatalogView: View {
 
         if isSelectionModeEnabled {
             toggleBellSelection(bell.id)
-        } else if let onBellSelected {
-            onBellSelected(bell)
+        } else if let onBellSelected, let entity = bellsByID[bell.id] {
+            onBellSelected(entity)
         }
     }
 
     @ViewBuilder
-    private func bellCardContextMenu(for bell: BellEntity) -> some View {
+    private func bellCardContextMenu(for bell: BellListItem) -> some View {
         Button {
-            bellPendingMove = bell
+            bellPendingMove = bellsByID[bell.id]
         } label: {
             Label(String(localized: "bell.context.move"), systemImage: "folder")
         }
 
         Button(role: .destructive) {
-            bellPendingDeletion = bell
+            bellPendingDeletion = bellsByID[bell.id]
             isPresentingDeleteConfirmation = true
         } label: {
             Label(String(localized: "common.delete"), systemImage: "trash")
