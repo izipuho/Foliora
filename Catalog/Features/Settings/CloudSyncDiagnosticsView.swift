@@ -1,13 +1,12 @@
 import CloudKit
 import Combine
 import CoreData
-import SwiftData
 import SwiftUI
 
 // Temporary diagnostics screen. Remove after CloudKit sync investigation.
 struct CloudSyncDiagnosticsView: View {
 
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.managedObjectContext) private var managedObjectContext
 
     @State private var accountStatus = "Not checked"
     @State private var userRecordID = "Not checked"
@@ -27,7 +26,7 @@ struct CloudSyncDiagnosticsView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Cloud Sync Diagnostics")
                         .font(.title2.weight(.semibold))
-                    Text("Temporary diagnostics screen for SwiftData / CloudKit sync.")
+                    Text("Temporary diagnostics screen for Core Data / CloudKit sync.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -73,7 +72,7 @@ struct CloudSyncDiagnosticsView: View {
                 }
             }
 
-            Section("SwiftData Mirrored Records") {
+            Section("Core Data Mirrored Records") {
                 Button("Refresh CD_CollectionEntity Records") {
                     refreshMirroredCollectionRecords()
                 }
@@ -105,7 +104,7 @@ struct CloudSyncDiagnosticsView: View {
                 diagnosticsRow("Production share error", productionShareProbe.errorDescription ?? "None")
             }
 
-            Section("SwiftData / CloudKit Event History") {
+            Section("Core Data / CloudKit Event History") {
                 if eventHistory.isEmpty {
                     Text("No events observed in this app session.")
                         .foregroundStyle(.secondary)
@@ -203,18 +202,23 @@ struct CloudSyncDiagnosticsView: View {
     private func refreshLocalCounts() {
         do {
             localCounts = [
-                LocalCount(name: "HomeEntity", value: try modelContext.fetchCount(FetchDescriptor<HomeEntity>())),
-                LocalCount(name: "LocationEntity", value: try modelContext.fetchCount(FetchDescriptor<LocationEntity>())),
-                LocalCount(name: "BellEntity", value: try modelContext.fetchCount(FetchDescriptor<BellEntity>())),
-                LocalCount(name: "MediaAssetEntity", value: try modelContext.fetchCount(FetchDescriptor<MediaAssetEntity>())),
-                LocalCount(name: "CollectionEntity", value: try modelContext.fetchCount(FetchDescriptor<CollectionEntity>())),
-                LocalCount(name: "PlaceEntity", value: try modelContext.fetchCount(FetchDescriptor<PlaceEntity>())),
-                LocalCount(name: "TagEntity", value: try modelContext.fetchCount(FetchDescriptor<BellTagEntity>()))
+                LocalCount(name: "HomeEntity", value: try countCoreDataEntities(named: "HomeEntity")),
+                LocalCount(name: "LocationEntity", value: try countCoreDataEntities(named: "LocationEntity")),
+                LocalCount(name: "BellEntity", value: try countCoreDataEntities(named: "BellEntity")),
+                LocalCount(name: "MediaAssetEntity", value: try countCoreDataEntities(named: "MediaAssetEntity")),
+                LocalCount(name: "CollectionEntity", value: try countCoreDataEntities(named: "CollectionEntity")),
+                LocalCount(name: "PlaceEntity", value: try countCoreDataEntities(named: "PlaceEntity")),
+                LocalCount(name: "TagEntity", value: try countCoreDataEntities(named: "BellTagEntity"))
             ]
             countsError = nil
         } catch {
             countsError = error.localizedDescription
         }
+    }
+
+    private func countCoreDataEntities(named entityName: String) throws -> Int {
+        let request = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+        return try managedObjectContext.count(for: request)
     }
 
     private func refreshCloudKitProbe() {
@@ -251,10 +255,7 @@ struct CloudSyncDiagnosticsView: View {
     private func refreshMirroredCollectionRecords() {
         mirroredRecordsProbe = MirroredRecordsProbeResult(status: "In progress", timestamp: Date.now)
 
-        var descriptor = FetchDescriptor<CollectionEntity>(sortBy: [SortDescriptor(\.title)])
-        descriptor.fetchLimit = 1
-
-        guard let collection = try? modelContext.fetch(descriptor).first else {
+        guard let collection = try? fetchFirstCollection() else {
             mirroredRecordsProbe = MirroredRecordsProbeResult(
                 status: "Failed",
                 errorDescription: "No local CollectionEntity found.",
@@ -323,10 +324,7 @@ struct CloudSyncDiagnosticsView: View {
     private func createCKShareForCurrentCollection() {
         shareProbe = CKShareProbeResult(status: "In progress", timestamp: Date.now)
 
-        var descriptor = FetchDescriptor<CollectionEntity>(sortBy: [SortDescriptor(\.title)])
-        descriptor.fetchLimit = 1
-
-        guard let collection = try? modelContext.fetch(descriptor).first else {
+        guard let collection = try? fetchFirstCollection() else {
             shareProbe = CKShareProbeResult(
                 status: "Failed",
                 errorDescription: "No local CollectionEntity found.",
@@ -410,10 +408,7 @@ struct CloudSyncDiagnosticsView: View {
     private func createShareUsingProductionService() {
         productionShareProbe = CKShareProbeResult(status: "In progress", timestamp: Date.now)
 
-        var descriptor = FetchDescriptor<CollectionEntity>(sortBy: [SortDescriptor(\.title)])
-        descriptor.fetchLimit = 1
-
-        guard let collection = try? modelContext.fetch(descriptor).first else {
+        guard let collection = try? fetchFirstCollection() else {
             productionShareProbe = CKShareProbeResult(
                 status: "Failed",
                 errorDescription: "No local CollectionEntity found.",
@@ -468,12 +463,14 @@ struct CloudSyncDiagnosticsView: View {
     private func createLocalSyncProbe() {
         let timestamp = Date.now.timeIntervalSince1970
         let name = "__sync_probe_\(Int(timestamp))"
-        let probe = HomeEntity(id: UUID(), name: name, iconName: "icloud", notes: "Temporary CloudKit sync diagnostics probe.")
-
-        modelContext.insert(probe)
+        let probe = NSEntityDescription.insertNewObject(forEntityName: "HomeEntity", into: managedObjectContext)
+        probe.setValue(UUID(), forKey: "id")
+        probe.setValue(name, forKey: "name")
+        probe.setValue("icloud", forKey: "iconName")
+        probe.setValue("Temporary CloudKit sync diagnostics probe.", forKey: "notes")
 
         do {
-            try modelContext.save()
+            try managedObjectContext.save()
             localSaveProbe = LocalSaveProbeResult(objectName: name, status: "Save success", timestamp: Date.now)
             refreshLocalCounts()
         } catch {
@@ -484,6 +481,22 @@ struct CloudSyncDiagnosticsView: View {
                 timestamp: Date.now
             )
         }
+    }
+
+    private func fetchFirstCollection() throws -> (id: UUID, title: String)? {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "CollectionEntity")
+        request.fetchLimit = 1
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+
+        guard let entity = try managedObjectContext.fetch(request).first,
+              let id = entity.value(forKey: "id") as? UUID else {
+            return nil
+        }
+
+        return (
+            id: id,
+            title: entity.value(forKey: "title") as? String ?? ""
+        )
     }
 }
 

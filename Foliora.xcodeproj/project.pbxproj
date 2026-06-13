@@ -31,7 +31,6 @@
 		246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */; };
 		246FD6832FA8CE2A00B8859A /* BellGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6842FA8CE2A00B8859A /* BellGridView.swift */; };
 		246FD6852FA8CE2A00B8859A /* BellListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6872FA8CE2A00B8859A /* BellListItem.swift */; };
-		246FD6862FA8CE2A00B8859A /* BellListItem+BellEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6882FA8CE2A00B8859A /* BellListItem+BellEntity.swift */; };
 		249A28282FDC1940009A0E03 /* CoreDataCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249A28272FDC1940009A0E03 /* CoreDataCatalogRepository.swift */; };
 		249A283A2FDC3A61009A0E03 /* BellCatalogSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249A28392FDC3A61009A0E03 /* BellCatalogSnapshot.swift */; };
 		249A283C2FDC4074009A0E03 /* BellLookupSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249A283B2FDC4074009A0E03 /* BellLookupSnapshot.swift */; };
@@ -66,9 +65,6 @@
 		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
 		C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000018 /* LocalMediaFileStore.swift */; };
 		C000000000000000000000B9 /* BellCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001F /* BellCardView.swift */; };
-		C000000000000000000000BA /* CatalogEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000025 /* CatalogEntities.swift */; };
-		C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000026 /* CatalogSwiftDataStack.swift */; };
-		C000000000000000000000BC /* SwiftDataCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000027 /* SwiftDataCatalogRepository.swift */; };
 		C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000028 /* CatalogTransferBundle.swift */; };
 		C000000000000000000000BE /* CatalogJSONPort.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000029 /* CatalogJSONPort.swift */; };
 		C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002A /* CatalogTransferDocument.swift */; };
@@ -649,7 +645,6 @@
 				C000000000000000000000AD /* HomeView.swift in Sources */,
 				C000000000000000000000AE /* BellCatalogView.swift in Sources */,
 				246FD6852FA8CE2A00B8859A /* BellListItem.swift in Sources */,
-				246FD6862FA8CE2A00B8859A /* BellListItem+BellEntity.swift in Sources */,
 				246FD6832FA8CE2A00B8859A /* BellGridView.swift in Sources */,
 				244FE0462FD7200000B4D805 /* CloudSyncDiagnosticsView.swift in Sources */,
 				244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */,
@@ -666,12 +661,9 @@
 				C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */,
 				2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */,
 				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
-				C000000000000000000000BA /* CatalogEntities.swift in Sources */,
-				C000000000000000000000BB /* CatalogSwiftDataStack.swift in Sources */,
 				E00000000000000000000006 /* Catalog.xcdatamodeld in Sources */,
 				E00000000000000000000005 /* CatalogCoreDataStack.swift in Sources */,
 				2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */,
-				C000000000000000000000BC /* SwiftDataCatalogRepository.swift in Sources */,
 				24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */,
 				24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */,
 				C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */,
@@ -1083,7 +1075,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1133,7 +1125,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;

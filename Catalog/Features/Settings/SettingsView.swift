@@ -1,6 +1,5 @@
 import CloudKit
 import CoreData
-import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
@@ -8,7 +7,6 @@ struct SettingsView: View {
     let navigate: (AppDestination) -> Void
 
     @Environment(\.managedObjectContext) private var managedObjectContext
-    @Environment(\.modelContext) private var modelContext
 
     @State private var exportDocument: CatalogTransferDocument?
     @State private var isExportingDocument = false
@@ -275,14 +273,19 @@ struct SettingsView: View {
     }
 
     private func deleteAllCatalogEntities() throws {
-        try modelContext.fetch(FetchDescriptor<MediaAssetEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<BellTagEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<BellEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<LocationEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<HomeEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<CollectionEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<PlaceEntity>()).forEach(modelContext.delete)
-        try modelContext.save()
+        try deleteCoreDataEntities(named: "MediaAssetEntity")
+        try deleteCoreDataEntities(named: "BellTagEntity")
+        try deleteCoreDataEntities(named: "BellEntity")
+        try deleteCoreDataEntities(named: "CollectionEntity")
+        try deleteCoreDataEntities(named: "LocationEntity")
+        try deleteCoreDataEntities(named: "PlaceEntity")
+        try deleteCoreDataEntities(named: "HomeEntity")
+        try managedObjectContext.save()
+    }
+
+    private func deleteCoreDataEntities(named entityName: String) throws {
+        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+        try managedObjectContext.fetch(request).forEach(managedObjectContext.delete)
     }
 }
 
