@@ -70,6 +70,7 @@ final class CatalogImportExportActor {
             guard fileManager.fileExists(atPath: sourceURL.path) else { continue }
             try mediaStore.restoreFile(from: sourceURL, identifier: identifier)
         }
+        try restoreMediaData(for: bundle, mediaStore: mediaStore)
 
         let missing = mediaIdentifiers(in: bundle).filter {
             mediaStore.fileURL(for: $0) == nil
@@ -193,8 +194,8 @@ final class CatalogImportExportActor {
                 mediaEntity.setValue(asset.height, forKey: "height")
                 mediaEntity.setValue(asset.duration, forKey: "duration")
                 mediaEntity.setValue(asset.metadataJSON, forKey: "metadataJSON")
-                mediaEntity.setValue(asset.thumbnailData, forKey: "thumbnailData")
-                mediaEntity.setValue(asset.originalData, forKey: "originalData")
+                mediaEntity.setValue(nil, forKey: "thumbnailData")
+                mediaEntity.setValue(nil, forKey: "originalData")
                 mediaEntity.setValue(entity, forKey: "bell")
                 return mediaEntity
             }
@@ -221,6 +222,32 @@ final class CatalogImportExportActor {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         return Array(Set(identifiers)).sorted()
+    }
+
+    private func restoreMediaData(
+        for bundle: CatalogTransferBundle,
+        mediaStore: LocalMediaFileStore
+    ) throws {
+        let identifiers = mediaIdentifiers(in: bundle)
+        guard !identifiers.isEmpty else { return }
+
+        let request = NSFetchRequest<NSManagedObject>(entityName: "MediaAssetEntity")
+        request.predicate = NSPredicate(format: "localIdentifier IN %@", identifiers)
+        let mediaEntities = try context.fetch(request)
+
+        for entity in mediaEntities {
+            let identifier = stringValue(entity, "localIdentifier")
+            guard let fileURL = mediaStore.fileURL(for: identifier) else { continue }
+
+            entity.setValue(try Data(contentsOf: fileURL), forKey: "originalData")
+            if let thumbnailURL = mediaStore.thumbnailFileURL(for: identifier) {
+                entity.setValue(try Data(contentsOf: thumbnailURL), forKey: "thumbnailData")
+            }
+        }
+
+        if context.hasChanges {
+            try context.save()
+        }
     }
 
     private func deleteExistingData() throws {
@@ -358,8 +385,8 @@ final class CatalogImportExportActor {
             height: optionalIntValue(entity, "height"),
             duration: optionalDoubleValue(entity, "duration"),
             metadataJSON: entity.value(forKey: "metadataJSON") as? String,
-            thumbnailData: entity.value(forKey: "thumbnailData") as? Data,
-            originalData: entity.value(forKey: "originalData") as? Data
+            thumbnailData: nil,
+            originalData: nil
         )
     }
 
