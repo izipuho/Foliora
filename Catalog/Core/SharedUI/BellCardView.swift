@@ -348,20 +348,6 @@ protocol BellCardDisplayable {
     var coverPhotoOriginalData: Data? { get }
 }
 
-extension BellEntity: BellCardDisplayable {
-    var coverPhotoIdentifier: String? {
-        coverPhotoAsset?.localIdentifier
-    }
-
-    var coverPhotoThumbnailData: Data? {
-        coverPhotoAsset?.thumbnailData
-    }
-
-    var coverPhotoOriginalData: Data? {
-        coverPhotoAsset?.originalData
-    }
-}
-
 extension BellRecord: BellCardDisplayable {
     private var coverPhoto: MediaAsset? {
         mediaAssets

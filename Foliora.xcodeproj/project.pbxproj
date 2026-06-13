@@ -101,7 +101,6 @@
 		246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedFieldValue.swift; sourceTree = "<group>"; };
 		246FD6842FA8CE2A00B8859A /* BellGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellGridView.swift; sourceTree = "<group>"; };
 		246FD6872FA8CE2A00B8859A /* BellListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellListItem.swift; sourceTree = "<group>"; };
-		246FD6882FA8CE2A00B8859A /* BellListItem+BellEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BellListItem+BellEntity.swift"; sourceTree = "<group>"; };
 		249A28272FDC1940009A0E03 /* CoreDataCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataCatalogRepository.swift; sourceTree = "<group>"; };
 		249A28392FDC3A61009A0E03 /* BellCatalogSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogSnapshot.swift; sourceTree = "<group>"; };
 		249A283B2FDC4074009A0E03 /* BellLookupSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellLookupSnapshot.swift; sourceTree = "<group>"; };
@@ -140,9 +139,6 @@
 		C00000000000000000000016 /* Catalog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catalog.entitlements; sourceTree = "<group>"; };
 		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
 		C0000000000000000000001F /* BellCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCardView.swift; sourceTree = "<group>"; };
-		C00000000000000000000025 /* CatalogEntities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEntities.swift; sourceTree = "<group>"; };
-		C00000000000000000000026 /* CatalogSwiftDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSwiftDataStack.swift; sourceTree = "<group>"; };
-		C00000000000000000000027 /* SwiftDataCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftDataCatalogRepository.swift; sourceTree = "<group>"; };
 		C00000000000000000000028 /* CatalogTransferBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferBundle.swift; sourceTree = "<group>"; };
 		C00000000000000000000029 /* CatalogJSONPort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogJSONPort.swift; sourceTree = "<group>"; };
 		C0000000000000000000002A /* CatalogTransferDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferDocument.swift; sourceTree = "<group>"; };
@@ -288,7 +284,6 @@
 			isa = PBXGroup;
 			children = (
 				C0000000000000000000003F /* Repositories */,
-				C00000000000000000000048 /* SwiftData */,
 				E00000000000000000000001 /* CoreData */,
 				C00000000000000000000049 /* ImportExport */,
 			);
@@ -419,7 +414,6 @@
 				249A28392FDC3A61009A0E03 /* BellCatalogSnapshot.swift */,
 				2403CED92F9F945700C63AB6 /* SearchTabView.swift */,
 				246FD6872FA8CE2A00B8859A /* BellListItem.swift */,
-				246FD6882FA8CE2A00B8859A /* BellListItem+BellEntity.swift */,
 				246FD6842FA8CE2A00B8859A /* BellGridView.swift */,
 				246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */,
 				24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */,
@@ -438,16 +432,6 @@
 				D00000000000000000000031 /* BellDetailView+Subviews.swift */,
 			);
 			path = Detail;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000048 /* SwiftData */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000025 /* CatalogEntities.swift */,
-				C00000000000000000000026 /* CatalogSwiftDataStack.swift */,
-				C00000000000000000000027 /* SwiftDataCatalogRepository.swift */,
-			);
-			path = SwiftData;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000049 /* ImportExport */ = {
@@ -1075,7 +1059,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1125,7 +1109,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;

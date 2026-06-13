@@ -3,7 +3,7 @@ import CoreData
 
 struct CollectionsView: View {
     let repository: any CatalogRepository
-    let onCollectionSelected: ((CollectionEntity) -> Void)?
+    let onCollectionSelected: ((UUID) -> Void)?
     let onBellSelected: ((UUID) -> Void)?
     let navigate: ((AppDestination) -> Void)?
     let onOpenHomes: () -> Void
@@ -14,7 +14,7 @@ struct CollectionsView: View {
 
     init(
         repository: any CatalogRepository,
-        onCollectionSelected: ((CollectionEntity) -> Void)? = nil,
+        onCollectionSelected: ((UUID) -> Void)? = nil,
         onBellSelected: ((UUID) -> Void)? = nil,
         navigate: ((AppDestination) -> Void)? = nil,
         onOpenHomes: @escaping () -> Void = {}
@@ -185,14 +185,7 @@ struct CollectionsView: View {
 
     private func selectCollection(_ collection: CollectionSummary) {
         if let onCollectionSelected {
-            let collectionEntity = CollectionEntity(
-                id: collection.id,
-                kindRaw: collection.kind.rawValue,
-                title: collection.name,
-                notes: collection.subtitle,
-                backgroundStyleRaw: collection.backgroundStyle.rawValue
-            )
-            onCollectionSelected(collectionEntity)
+            onCollectionSelected(collection.id)
             return
         }
 
