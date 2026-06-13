@@ -2,8 +2,8 @@ import CloudKit
 import CoreData
 import Foundation
 
-enum CatalogCoreDataStack {
-    static let modelName = "Catalog"
+enum FolioraCoreDataStack {
+    static let modelName = "Foliora"
     static let cloudKitContainerIdentifier = "iCloud.com.izipuho.FolioraBells"
 
     static func makeContainer(inMemory: Bool = false) throws -> NSPersistentCloudKitContainer {
@@ -30,12 +30,12 @@ enum CatalogCoreDataStack {
     }
 
     private static func managedObjectModel() throws -> NSManagedObjectModel {
-        let bundle = Bundle(for: CatalogCoreDataStackBundleToken.self)
+        let bundle = Bundle(for: FolioraCoreDataStackBundleToken.self)
         let modelURL = bundle.url(forResource: modelName, withExtension: "momd")
             ?? Bundle.main.url(forResource: modelName, withExtension: "momd")
 
         guard let modelURL, let model = NSManagedObjectModel(contentsOf: modelURL) else {
-            throw CatalogCoreDataStackError.modelNotFound(modelName)
+            throw FolioraCoreDataStackError.modelNotFound(modelName)
         }
 
         return model
@@ -90,7 +90,7 @@ enum CatalogCoreDataStack {
     }
 }
 
-enum CatalogCoreDataStackError: LocalizedError {
+enum FolioraCoreDataStackError: LocalizedError {
     case modelNotFound(String)
 
     var errorDescription: String? {
@@ -101,4 +101,4 @@ enum CatalogCoreDataStackError: LocalizedError {
     }
 }
 
-private final class CatalogCoreDataStackBundleToken {}
+private final class FolioraCoreDataStackBundleToken {}

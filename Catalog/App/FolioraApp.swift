@@ -44,7 +44,7 @@ struct FolioraApp: App {
 
     private let coreDataContainer: NSPersistentCloudKitContainer = {
         do {
-            let container = try CatalogCoreDataStack.makeContainer()
+            let container = try FolioraCoreDataStack.makeContainer()
             return container
         } catch {
             fatalError("Failed to create Core Data container: \(error)")

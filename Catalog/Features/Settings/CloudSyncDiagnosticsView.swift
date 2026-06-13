@@ -76,15 +76,6 @@ struct CloudSyncDiagnosticsView: View {
                 Button("Refresh CD_CollectionEntity Records") {
                     refreshMirroredCollectionRecords()
                 }
-
-                Button("Create CKShare For Current Collection") {
-                    createCKShareForCurrentCollection()
-                }
-
-                Button("Create Share Using Production Service") {
-                    createShareUsingProductionService()
-                }
-
                 diagnosticsRow("Status", mirroredRecordsProbe.status)
                 diagnosticsRow("CD_CollectionEntity count", mirroredRecordsProbe.countText)
                 diagnosticsRow("First recordName", mirroredRecordsProbe.firstRecordName ?? "None")
@@ -93,15 +84,6 @@ struct CloudSyncDiagnosticsView: View {
                 diagnosticsRow("Error code", mirroredRecordsProbe.errorCode ?? "None")
                 diagnosticsRow("Error", mirroredRecordsProbe.errorDescription ?? "None")
                 diagnosticsRow("Last checked", mirroredRecordsProbe.timestampText)
-                diagnosticsRow("Share status", shareProbe.status)
-                diagnosticsRow("Share recordName", shareProbe.shareRecordName ?? "None")
-                diagnosticsRow("Share error code", shareProbe.errorCode ?? "None")
-                diagnosticsRow("Share error", shareProbe.errorDescription ?? "None")
-                diagnosticsRow("Share last checked", shareProbe.timestampText)
-                diagnosticsRow("Production share status", productionShareProbe.status)
-                diagnosticsRow("Production share recordName", productionShareProbe.shareRecordName ?? "None")
-                diagnosticsRow("Production share error code", productionShareProbe.errorCode ?? "None")
-                diagnosticsRow("Production share error", productionShareProbe.errorDescription ?? "None")
             }
 
             Section("Core Data / CloudKit Event History") {

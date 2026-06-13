@@ -76,8 +76,8 @@
 		C000000000000000000000C5 /* CatalogLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000030 /* CatalogLayouts.swift */; };
 		C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000040 /* CatalogArchiveService.swift */; };
 		D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* BellDetailView+Subviews.swift */; };
-		E00000000000000000000005 /* CatalogCoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000002 /* CatalogCoreDataStack.swift */; };
-		E00000000000000000000006 /* Catalog.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000003 /* Catalog.xcdatamodeld */; };
+		E00000000000000000000005 /* FolioraCoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000002 /* FolioraCoreDataStack.swift */; };
+		E00000000000000000000006 /* Foliora.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000003 /* Foliora.xcdatamodeld */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -150,8 +150,8 @@
 		C00000000000000000000030 /* CatalogLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLayouts.swift; sourceTree = "<group>"; };
 		C00000000000000000000040 /* CatalogArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogArchiveService.swift; sourceTree = "<group>"; };
 		D00000000000000000000031 /* BellDetailView+Subviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BellDetailView+Subviews.swift"; sourceTree = "<group>"; };
-		E00000000000000000000002 /* CatalogCoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCoreDataStack.swift; sourceTree = "<group>"; };
-		E00000000000000000000004 /* Catalog.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Catalog.xcdatamodel; sourceTree = "<group>"; };
+		E00000000000000000000002 /* FolioraCoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolioraCoreDataStack.swift; sourceTree = "<group>"; };
+		E00000000000000000000004 /* Foliora.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Foliora.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -467,8 +467,8 @@
 		E00000000000000000000001 /* CoreData */ = {
 			isa = PBXGroup;
 			children = (
-				E00000000000000000000003 /* Catalog.xcdatamodeld */,
-				E00000000000000000000002 /* CatalogCoreDataStack.swift */,
+				E00000000000000000000003 /* Foliora.xcdatamodeld */,
+				E00000000000000000000002 /* FolioraCoreDataStack.swift */,
 			);
 			path = CoreData;
 			sourceTree = "<group>";
@@ -645,8 +645,8 @@
 				C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */,
 				2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */,
 				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
-				E00000000000000000000006 /* Catalog.xcdatamodeld in Sources */,
-				E00000000000000000000005 /* CatalogCoreDataStack.swift in Sources */,
+				E00000000000000000000006 /* Foliora.xcdatamodeld in Sources */,
+				E00000000000000000000005 /* FolioraCoreDataStack.swift in Sources */,
 				2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */,
 				24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */,
 				24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */,
@@ -1188,13 +1188,13 @@
 /* End XCConfigurationList section */
 
 /* Begin XCVersionGroup section */
-		E00000000000000000000003 /* Catalog.xcdatamodeld */ = {
+		E00000000000000000000003 /* Foliora.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
-				E00000000000000000000004 /* Catalog.xcdatamodel */,
+				E00000000000000000000004 /* Foliora.xcdatamodel */,
 			);
-			currentVersion = E00000000000000000000004 /* Catalog.xcdatamodel */;
-			path = Catalog.xcdatamodeld;
+			currentVersion = E00000000000000000000004 /* Foliora.xcdatamodel */;
+			path = Foliora.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
 		};
