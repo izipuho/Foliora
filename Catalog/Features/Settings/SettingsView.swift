@@ -1,4 +1,5 @@
 import CloudKit
+import CoreData
 import SwiftData
 import SwiftUI
 
@@ -6,6 +7,7 @@ struct SettingsView: View {
     let repository: any CatalogRepository
     let navigate: (AppDestination) -> Void
 
+    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.modelContext) private var modelContext
 
     @State private var exportDocument: CatalogTransferDocument?
@@ -197,8 +199,9 @@ struct SettingsView: View {
         isImportExportRunning = true
         Task {
             do {
-                let actor = CatalogImportExportActor(modelContainer: repository.modelContainer)
-                let data = try await actor.exportArchiveData()
+                let data = try await CatalogJSONPort.exportArchiveData(
+                    context: managedObjectContext
+                )
                 await MainActor.run {
                     exportDocument = CatalogTransferDocument(data: data)
                     isExportingDocument = true
@@ -226,8 +229,10 @@ struct SettingsView: View {
                 }
 
                 do {
-                    let actor = CatalogImportExportActor(modelContainer: repository.modelContainer)
-                    let importResult = try await actor.importArchive(from: url)
+                    let importResult = try await CatalogJSONPort.importArchive(
+                        from: url,
+                        context: managedObjectContext
+                    )
 
                     await MainActor.run {
                         if !importResult.missingMediaIdentifiers.isEmpty {

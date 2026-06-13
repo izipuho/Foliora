@@ -44,6 +44,10 @@ struct CoreDataBellLookupSnapshotLoader: BellLookupSnapshotLoading {
             predicate: homeID.map { NSPredicate(format: "id == %@", $0 as NSUUID) },
             sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
         )
+        let placeEntities = fetchEntities(
+            named: "PlaceEntity",
+            sortDescriptors: [NSSortDescriptor(key: "displayName", ascending: true)]
+        )
 
         let bells = bellEntities.map(bellRecord)
         let locations = locationEntities.map(location)
@@ -53,7 +57,7 @@ struct CoreDataBellLookupSnapshotLoader: BellLookupSnapshotLoading {
         snapshot.locations = locations
         snapshot.collections = collectionEntities.map(collection)
         snapshot.homes = homeEntities.map(home)
-        snapshot.places = uniquePlaces(from: bells)
+        snapshot.places = placeEntities.map(place)
         snapshot.locationPathByID = Dictionary(
             uniqueKeysWithValues: locationEntities.map { (uuidValue($0, "id"), locationPath(from: $0)) }
         )
@@ -171,12 +175,6 @@ struct CoreDataBellLookupSnapshotLoader: BellLookupSnapshotLoading {
             thumbnailData: entity.value(forKey: "thumbnailData") as? Data,
             originalData: entity.value(forKey: "originalData") as? Data
         )
-    }
-
-    private func uniquePlaces(from bells: [BellRecord]) -> [Place] {
-        Array(Set(bells.compactMap(\.originPlace))).sorted {
-            $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
-        }
     }
 
     private func locationPath(from entity: NSManagedObject) -> String {

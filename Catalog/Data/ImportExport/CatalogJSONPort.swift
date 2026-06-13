@@ -1,14 +1,19 @@
+import CoreData
 import Foundation
-import SwiftData
 
 enum CatalogJSONPort {
-    static func exportArchiveData(from modelContainer: ModelContainer) async throws -> Data {
-        let actor = CatalogImportExportActor(modelContainer: modelContainer)
-        return try await actor.exportArchiveData()
+    @MainActor
+    static func exportArchiveData(context: NSManagedObjectContext) async throws -> Data {
+        let actor = CatalogImportExportActor(context: context)
+        return try actor.exportArchiveData()
     }
 
-    static func importArchive(from url: URL, into modelContainer: ModelContainer) async throws -> CatalogImportExportActor.ImportResult {
-        let actor = CatalogImportExportActor(modelContainer: modelContainer)
-        return try await actor.importArchive(from: url)
+    @MainActor
+    static func importArchive(
+        from url: URL,
+        context: NSManagedObjectContext
+    ) async throws -> CatalogImportExportActor.ImportResult {
+        let actor = CatalogImportExportActor(context: context)
+        return try actor.importArchive(from: url)
     }
 }
