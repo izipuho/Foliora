@@ -254,7 +254,7 @@ struct CollectionsView: View {
         case .deletePrivateCollection:
             return String(localized: "collection.delete.message")
         case .deleteSharedCollectionAsOwner:
-            return String(localized: "This shared collection and its items will be deleted for everyone.")
+            return String(localized: "collection.delete.message")
         case .leaveSharedCollectionAsParticipant:
             return String(localized: "collection.leave.message")
         }
