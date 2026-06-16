@@ -2,8 +2,12 @@ import SwiftUI
 import CloudKit
 import CoreData
 import UIKit
+import os
 
 final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
+    static var coreDataContainer: NSPersistentCloudKitContainer?
+    private let logger = Logger(subsystem: "com.izipuho.FolioraBells", category: "CloudKitSharing")
+
     func application(
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
@@ -24,16 +28,8 @@ final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        let container = CKContainer.default()
-
-        container.accept(cloudKitShareMetadata) { metadata, error in
-            if let error {
-                print("CLOUDKIT_SHARE_ACCEPT_ERROR:", error)
-                return
-            }
-
-            print("CLOUDKIT_SHARE_ACCEPT_SUCCESS:", metadata as Any)
-        }
+        logger.info("received share metadata")
+        FolioraCloudKitShareInvitationAcceptor.accept(cloudKitShareMetadata, logger: logger)
     }
 }
 
@@ -53,6 +49,7 @@ struct FolioraApp: App {
     private let container: AppContainer
 
     init() {
+        FolioraAppDelegate.coreDataContainer = coreDataContainer
         self.container = AppContainer(coreDataContainer: coreDataContainer)
     }
 
