@@ -8,12 +8,20 @@ enum CollectionAccessRole: String, Identifiable, Hashable, Codable {
     var id: String { rawValue }
 }
 
+enum CollectionParticipantAcceptanceStatus: String, Hashable, Codable {
+    case accepted
+    case pending
+    case removed
+    case unknown
+}
+
 struct CollectionParticipant: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
     let cloudKitParticipantID: String?
     let displayName: String?
     var role: CollectionAccessRole
+    let acceptanceStatus: CollectionParticipantAcceptanceStatus
     let isCurrentUser: Bool
 
     init(
@@ -22,6 +30,7 @@ struct CollectionParticipant: Identifiable, Hashable, Codable {
         cloudKitParticipantID: String?,
         displayName: String?,
         role: CollectionAccessRole,
+        acceptanceStatus: CollectionParticipantAcceptanceStatus,
         isCurrentUser: Bool = false
     ) {
         self.id = id
@@ -29,6 +38,7 @@ struct CollectionParticipant: Identifiable, Hashable, Codable {
         self.cloudKitParticipantID = cloudKitParticipantID
         self.displayName = displayName
         self.role = role
+        self.acceptanceStatus = acceptanceStatus
         self.isCurrentUser = isCurrentUser
     }
 
@@ -39,6 +49,10 @@ struct CollectionParticipant: Identifiable, Hashable, Codable {
         cloudKitParticipantID = try container.decodeIfPresent(String.self, forKey: .cloudKitParticipantID)
         displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
         role = try container.decode(CollectionAccessRole.self, forKey: .role)
+        acceptanceStatus = try container.decodeIfPresent(
+            CollectionParticipantAcceptanceStatus.self,
+            forKey: .acceptanceStatus
+        ) ?? .unknown
         isCurrentUser = try container.decodeIfPresent(Bool.self, forKey: .isCurrentUser) ?? false
     }
 }

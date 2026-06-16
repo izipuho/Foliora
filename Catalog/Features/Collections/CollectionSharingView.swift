@@ -40,16 +40,17 @@ struct CollectionSharingView: View {
             }
 
             Section(String(localized: "collection.sharing.people.section")) {
-                if state.participants.isEmpty {
+                if state.peopleParticipants.isEmpty {
                     Text("collection.sharing.people.empty")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(state.participants) { participant in
-                        LabeledContent(
-                            participantName(participant),
-                            value: roleText(participant.role)
-                        )
-                    }
+                    participantsContent(state.peopleParticipants)
+                }
+            }
+
+            if !state.invitedParticipants.isEmpty {
+                Section("collection.sharing.invited.section") {
+                    participantsContent(state.invitedParticipants)
                 }
             }
 
@@ -83,6 +84,16 @@ struct CollectionSharingView: View {
         state.isShared ? "Shared" : String(localized: "collection.sharing.status.private")
     }
 
+    @ViewBuilder
+    private func participantsContent(_ participants: [CollectionParticipant]) -> some View {
+        ForEach(participants) { participant in
+            LabeledContent(
+                participantName(participant),
+                value: roleText(participant.role)
+            )
+        }
+    }
+
     private func participantName(_ participant: CollectionParticipant) -> String {
         if participant.isCurrentUser {
             return String(localized: "collection.sharing.participant.you")
@@ -93,7 +104,7 @@ struct CollectionSharingView: View {
             return displayName
         }
 
-        return String(localized: "collection.sharing.participant.unknown")
+        return String(localized: "collection.sharing.participant.unknown_user")
     }
 
     private func roleText(_ role: CollectionAccessRole) -> String {
@@ -101,7 +112,7 @@ struct CollectionSharingView: View {
         case .owner:
             String(localized: "collection.sharing.role.owner")
         case .contributor:
-            String(localized: "collection.sharing.role.contributor")
+            String(localized: "collection.sharing.role.editor")
         case .viewer:
             String(localized: "collection.sharing.role.viewer")
         }

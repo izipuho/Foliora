@@ -21,6 +21,7 @@ enum CloudKitSharingMapper {
             cloudKitParticipantID: cloudKitParticipantID,
             displayName: displayName,
             role: role(for: participant),
+            acceptanceStatus: acceptanceStatus(for: participant),
             isCurrentUser: isCurrentUser
         )
     }
@@ -41,6 +42,21 @@ private extension CloudKitSharingMapper {
         }
 
         return .viewer
+    }
+
+    static func acceptanceStatus(for participant: CKShare.Participant) -> CollectionParticipantAcceptanceStatus {
+        switch participant.acceptanceStatus {
+        case .accepted:
+            return .accepted
+        case .pending:
+            return .pending
+        case .removed:
+            return .removed
+        case .unknown:
+            return .unknown
+        @unknown default:
+            return .unknown
+        }
     }
 
     static func displayName(for participant: CKShare.Participant) -> String? {
@@ -97,6 +113,7 @@ private extension CloudKitSharingMapper {
 
         components.append("role:\(participant.role)")
         components.append("permission:\(participant.permission)")
+        components.append("acceptanceStatus:\(participant.acceptanceStatus)")
 
         return components.joined(separator: "|")
     }
