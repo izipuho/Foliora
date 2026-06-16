@@ -243,8 +243,8 @@ struct CollectionsView: View {
             )
         case .leaveSharedCollectionAsParticipant:
             return CollectionDeleteActionPresentation(
-                title: "Leave Shared Collection",
-                systemImage: "link.slash"
+                title: String(localized: "collection.leave"),
+                systemImage: "icloud.slash"
             )
         }
     }
@@ -252,11 +252,11 @@ struct CollectionsView: View {
     private func deleteConfirmationMessage(for collectionID: UUID) -> String {
         switch repository.deleteResolution(for: collectionID) {
         case .deletePrivateCollection:
-            return "This collection and its items will be deleted."
+            return String(localized: "collection.delete.message")
         case .deleteSharedCollectionAsOwner:
-            return "This shared collection and its items will be deleted for everyone."
+            return String(localized: "This shared collection and its items will be deleted for everyone.")
         case .leaveSharedCollectionAsParticipant:
-            return "You will leave this shared collection. Other participants will keep access."
+            return String(localized: "collection.leave.message")
         }
     }
 
@@ -333,7 +333,7 @@ private struct CollectionsCatalogSnapshot {
 
         return CollectionSummary(
             id: uuidValue(entity, "id"),
-            homeID: (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            homeID: collectionHomeID(from: entity),
             kind: kind,
             name: stringValue(entity, "title"),
             subtitle: stringValue(entity, "notes"),
@@ -406,6 +406,12 @@ private struct CollectionsCatalogSnapshot {
 
     private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
         entity.value(forKey: key) as? UUID ?? UUID()
+    }
+
+    private static func collectionHomeID(from entity: NSManagedObject) -> UUID {
+        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
+            ?? entity.value(forKey: "homeID") as? UUID
+            ?? UUID()
     }
 
     private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {

@@ -388,7 +388,7 @@ private struct CollectionShellCatalogSnapshot {
 
         return CollectionSummary(
             id: uuidValue(entity, "id"),
-            homeID: (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            homeID: collectionHomeID(from: entity),
             kind: kind,
             name: stringValue(entity, "title"),
             subtitle: stringValue(entity, "notes"),
@@ -438,6 +438,12 @@ private struct CollectionShellCatalogSnapshot {
 
     private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
         entity.value(forKey: key) as? UUID ?? UUID()
+    }
+
+    private static func collectionHomeID(from entity: NSManagedObject) -> UUID {
+        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
+            ?? entity.value(forKey: "homeID") as? UUID
+            ?? UUID()
     }
 
     private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {

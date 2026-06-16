@@ -41,6 +41,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
             entity.setValue(location.parentLocationID.flatMap { entitiesByID[$0] }, forKey: "parent")
         }
 
+        syncCollectionLocations(from: locations, in: homeID)
         saveContext()
     }
 
@@ -51,11 +52,18 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     func saveCollection(_ collection: Collection) {
-        guard let home = fetchEntity(named: "HomeEntity", by: collection.homeID) else { return }
-
         let entity = fetchEntity(named: "CollectionEntity", by: collection.id) ?? makeEntity(named: "CollectionEntity")
         apply(collection, to: entity)
-        entity.setValue(home, forKey: "home")
+
+        if let home = fetchEntity(named: "HomeEntity", by: collection.homeID) {
+            applyHomeSnapshot(home, to: entity)
+            entity.setValue(nil, forKey: "home")
+            syncCollectionLocations(from: locations(in: home), in: collection.homeID, for: entity)
+        } else {
+            entity.setValue(collection.homeID, forKey: "homeID")
+            entity.setValue(nil, forKey: "home")
+        }
+
         saveContext()
     }
 
@@ -92,7 +100,10 @@ final class CoreDataCatalogRepository: CatalogRepository {
         let entity = fetchEntity(named: "BellEntity", by: bell.id) ?? makeEntity(named: "BellEntity")
         apply(bell, to: entity)
         entity.setValue(collection, forKey: "collection")
-        entity.setValue(bell.item.locationID.flatMap { fetchEntity(named: "LocationEntity", by: $0) }, forKey: "location")
+        let collectionLocation = bell.item.locationID.flatMap { fetchCollectionLocation(in: collection, by: $0) }
+        let sourceLocationID = collectionLocation?.value(forKey: "sourceLocationID") as? UUID
+        entity.setValue(collectionLocation, forKey: "collectionLocation")
+        entity.setValue(sourceLocationID.flatMap { fetchEntity(named: "LocationEntity", by: $0) }, forKey: "location")
         entity.setValue(bell.originPlace.map(upsertPlace), forKey: "originPlace")
         replaceMediaAssets(bell.mediaAssets, for: entity)
         replaceTags(bell.tags, for: entity)
@@ -129,6 +140,22 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(collection.title, forKey: "title")
         entity.setValue(collection.notes, forKey: "notes")
         entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyleRaw")
+    }
+
+    private func applyHomeSnapshot(_ home: NSManagedObject, to collection: NSManagedObject) {
+        collection.setValue(uuidValue(home, "id"), forKey: "homeID")
+        collection.setValue(stringValue(home, "name"), forKey: "homeName")
+        collection.setValue(stringValue(home, "iconName", default: "house.fill"), forKey: "homeIconName")
+    }
+
+    private func apply(_ location: Location, sortOrder: Int, to entity: NSManagedObject) {
+        entity.setValue(location.id, forKey: "id")
+        entity.setValue(location.id, forKey: "sourceLocationID")
+        entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(location.name, forKey: "name")
+        entity.setValue(location.notes, forKey: "notes")
+        entity.setValue(sortOrder, forKey: "sortOrder")
+        entity.setValue(false, forKey: "isArchived")
     }
 
     private func apply(_ bell: BellRecord, to entity: NSManagedObject) {
@@ -213,7 +240,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func location(from entity: NSManagedObject) -> Location {
         Location(
             id: uuidValue(entity, "id"),
-            homeID: (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            homeID: locationHomeID(from: entity),
             parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
             kind: locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)),
             name: stringValue(entity, "name"),
@@ -224,7 +251,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func collection(from entity: NSManagedObject) -> Collection {
         Collection(
             id: uuidValue(entity, "id"),
-            homeID: (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            homeID: collectionHomeID(from: entity),
             kind: collectionKind(from: stringValue(entity, "kindRaw", default: CollectionKind.bells.rawValue)),
             title: stringValue(entity, "title"),
             notes: stringValue(entity, "notes"),
@@ -233,7 +260,8 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func bellRecord(from entity: NSManagedObject) -> BellRecord {
-        let locationEntity = entity.value(forKey: "location") as? NSManagedObject
+        let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
+            ?? entity.value(forKey: "location") as? NSManagedObject
         let originPlaceEntity = entity.value(forKey: "originPlace") as? NSManagedObject
         let tags = ((entity.value(forKey: "tags") as? Set<NSManagedObject>) ?? [])
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
@@ -321,6 +349,111 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
     private func fetchEntity(named entityName: String, by id: UUID) -> NSManagedObject? {
         fetchEntities(named: entityName, predicate: NSPredicate(format: "id == %@", id as NSUUID), fetchLimit: 1).first
+    }
+
+    private func fetchCollectionLocation(in collection: NSManagedObject, by id: UUID) -> NSManagedObject? {
+        relatedObjects(collection, "collectionLocations").first {
+            uuidValue($0, "id") == id || ($0.value(forKey: "sourceLocationID") as? UUID) == id
+        }
+    }
+
+    private func collectionHomeID(from entity: NSManagedObject) -> UUID {
+        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
+            ?? entity.value(forKey: "homeID") as? UUID
+            ?? UUID()
+    }
+
+    private func locationHomeID(from entity: NSManagedObject) -> UUID {
+        if entity.entity.name == "LocationEntity",
+           let home = entity.value(forKey: "home") as? NSManagedObject {
+            return uuidValue(home, "id")
+        }
+
+        if entity.entity.name == "CollectionLocationEntity",
+           let collection = entity.value(forKey: "collection") as? NSManagedObject {
+            return collectionHomeID(from: collection)
+        }
+
+        return UUID()
+    }
+
+    private func locations(in home: NSManagedObject) -> [Location] {
+        relatedObjects(home, "locations")
+            .map(location)
+            .sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    private func syncCollectionLocations(from locations: [Location], in homeID: UUID) {
+        fetchCollections(in: homeID).forEach {
+            syncCollectionLocations(from: locations, in: homeID, for: $0)
+        }
+    }
+
+    private func syncCollectionLocations(from locations: [Location], in homeID: UUID, for collection: NSManagedObject) {
+        let existingLocations = relatedObjects(collection, "collectionLocations")
+        var existingBySourceID: [UUID: NSManagedObject] = [:]
+        for entity in existingLocations {
+            guard let sourceLocationID = entity.value(forKey: "sourceLocationID") as? UUID else { continue }
+            existingBySourceID[sourceLocationID] = existingBySourceID[sourceLocationID] ?? entity
+        }
+        var syncedBySourceID: [UUID: NSManagedObject] = [:]
+        let sourceIDs = Set(locations.map(\.id))
+
+        for (sortOrder, location) in locations.enumerated() {
+            let entity = existingBySourceID[location.id] ?? makeEntity(named: "CollectionLocationEntity")
+            apply(location, sortOrder: sortOrder, to: entity)
+            entity.setValue(collection, forKey: "collection")
+            syncedBySourceID[location.id] = entity
+            existingBySourceID[location.id] = entity
+        }
+
+        for location in locations {
+            guard let entity = syncedBySourceID[location.id] else { continue }
+            entity.setValue(location.parentLocationID.flatMap { syncedBySourceID[$0] }, forKey: "parent")
+        }
+
+        for entity in existingLocations {
+            guard
+                let sourceLocationID = entity.value(forKey: "sourceLocationID") as? UUID,
+                !sourceIDs.contains(sourceLocationID)
+            else {
+                continue
+            }
+
+            if relatedObjects(entity, "bells").isEmpty {
+                context.delete(entity)
+            } else {
+                entity.setValue(true, forKey: "isArchived")
+                entity.setValue(nil, forKey: "parent")
+            }
+        }
+
+        backfillBellCollectionLocations(in: collection)
+    }
+
+    private func backfillBellCollectionLocations(in collection: NSManagedObject) {
+        for bell in relatedObjects(collection, "bells") {
+            guard bell.value(forKey: "collectionLocation") == nil else { continue }
+            guard let location = bell.value(forKey: "location") as? NSManagedObject else { continue }
+            bell.setValue(fetchCollectionLocation(in: collection, by: uuidValue(location, "id")), forKey: "collectionLocation")
+        }
+    }
+
+    private func fetchCollections(in homeID: UUID) -> [NSManagedObject] {
+        fetchEntities(
+            named: "CollectionEntity",
+            predicate: NSPredicate(format: "homeID == %@ OR home.id == %@", homeID as NSUUID, homeID as NSUUID)
+        )
+    }
+
+    private func relatedObjects(_ entity: NSManagedObject, _ key: String) -> [NSManagedObject] {
+        if let objects = entity.value(forKey: key) as? Set<NSManagedObject> {
+            return Array(objects)
+        }
+
+        return (entity.value(forKey: key) as? NSSet)?.allObjects.compactMap { $0 as? NSManagedObject } ?? []
     }
 
     private func share(for entity: NSManagedObject) -> CKShare? {

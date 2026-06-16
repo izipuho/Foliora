@@ -113,6 +113,7 @@ final class CatalogImportExportActor {
         var homeEntities: [UUID: NSManagedObject] = [:]
         var locationEntities: [UUID: NSManagedObject] = [:]
         var collectionEntities: [UUID: NSManagedObject] = [:]
+        var collectionLocationEntities: [UUID: [UUID: NSManagedObject]] = [:]
         var placeEntities: [UUID: NSManagedObject] = [:]
 
         for home in bundle.homes {
@@ -146,8 +147,36 @@ final class CatalogImportExportActor {
             entity.setValue(collection.title, forKey: "title")
             entity.setValue(collection.notes, forKey: "notes")
             entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyleRaw")
-            entity.setValue(homeEntities[collection.homeID], forKey: "home")
+            if let home = homeEntities[collection.homeID] {
+                entity.setValue(home, forKey: "home")
+                entity.setValue(home.value(forKey: "id"), forKey: "homeID")
+                entity.setValue(home.value(forKey: "name"), forKey: "homeName")
+                entity.setValue(home.value(forKey: "iconName"), forKey: "homeIconName")
+            }
             collectionEntities[collection.id] = entity
+        }
+
+        for collection in bundle.collections {
+            guard let collectionEntity = collectionEntities[collection.id] else { continue }
+            let collectionLocations = bundle.locations.filter { $0.homeID == collection.homeID }
+
+            for (sortOrder, location) in collectionLocations.enumerated() {
+                let entity = makeEntity(named: "CollectionLocationEntity")
+                entity.setValue(location.id, forKey: "id")
+                entity.setValue(location.id, forKey: "sourceLocationID")
+                entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+                entity.setValue(location.name, forKey: "name")
+                entity.setValue(location.notes, forKey: "notes")
+                entity.setValue(sortOrder, forKey: "sortOrder")
+                entity.setValue(false, forKey: "isArchived")
+                entity.setValue(collectionEntity, forKey: "collection")
+                collectionLocationEntities[collection.id, default: [:]][location.id] = entity
+            }
+
+            for location in collectionLocations {
+                guard let entity = collectionLocationEntities[collection.id]?[location.id] else { continue }
+                entity.setValue(location.parentLocationID.flatMap { collectionLocationEntities[collection.id]?[$0] }, forKey: "parent")
+            }
         }
 
         for place in bundle.places {
@@ -176,6 +205,7 @@ final class CatalogImportExportActor {
             entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
             entity.setValue(bell.createdBy, forKey: "createdBy")
             entity.setValue(collectionEntities[bell.item.collectionID], forKey: "collection")
+            entity.setValue(bell.item.locationID.flatMap { collectionLocationEntities[bell.item.collectionID]?[$0] }, forKey: "collectionLocation")
             entity.setValue(bell.item.locationID.flatMap { locationEntities[$0] }, forKey: "location")
             entity.setValue(bell.details.originPlaceID.flatMap { placeEntities[$0] }, forKey: "originPlace")
 
@@ -254,6 +284,7 @@ final class CatalogImportExportActor {
         try deleteEntities(named: "MediaAssetEntity")
         try deleteEntities(named: "BellTagEntity")
         try deleteEntities(named: "BellEntity")
+        try deleteEntities(named: "CollectionLocationEntity")
         try deleteEntities(named: "CollectionEntity")
         try deleteEntities(named: "LocationEntity")
         try deleteEntities(named: "PlaceEntity")
@@ -296,7 +327,7 @@ final class CatalogImportExportActor {
     private func location(from entity: NSManagedObject) -> Location {
         Location(
             id: uuidValue(entity, "id"),
-            homeID: (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            homeID: locationHomeID(from: entity),
             parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
             kind: LocationKind(rawValue: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)) ?? .room,
             name: stringValue(entity, "name"),
@@ -307,7 +338,7 @@ final class CatalogImportExportActor {
     private func collection(from entity: NSManagedObject) -> Collection {
         Collection(
             id: uuidValue(entity, "id"),
-            homeID: (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            homeID: collectionHomeID(from: entity),
             kind: CollectionKind(rawValue: stringValue(entity, "kindRaw", default: CollectionKind.bells.rawValue)) ?? .bells,
             title: stringValue(entity, "title"),
             notes: stringValue(entity, "notes"),
@@ -315,6 +346,26 @@ final class CatalogImportExportActor {
                 rawValue: stringValue(entity, "backgroundStyleRaw", default: CollectionBackgroundStyle.amber.rawValue)
             ) ?? .amber
         )
+    }
+
+    private func collectionHomeID(from entity: NSManagedObject) -> UUID {
+        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
+            ?? entity.value(forKey: "homeID") as? UUID
+            ?? UUID()
+    }
+
+    private func locationHomeID(from entity: NSManagedObject) -> UUID {
+        if entity.entity.name == "LocationEntity",
+           let home = entity.value(forKey: "home") as? NSManagedObject {
+            return uuidValue(home, "id")
+        }
+
+        if entity.entity.name == "CollectionLocationEntity",
+           let collection = entity.value(forKey: "collection") as? NSManagedObject {
+            return collectionHomeID(from: collection)
+        }
+
+        return UUID()
     }
 
     private func place(from entity: NSManagedObject) -> Place {
@@ -331,7 +382,8 @@ final class CatalogImportExportActor {
     }
 
     private func bellRecord(from entity: NSManagedObject) -> BellRecord {
-        let locationEntity = entity.value(forKey: "location") as? NSManagedObject
+        let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
+            ?? entity.value(forKey: "location") as? NSManagedObject
         let originPlaceEntity = entity.value(forKey: "originPlace") as? NSManagedObject
         let tags = ((entity.value(forKey: "tags") as? Set<NSManagedObject>) ?? [])
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }

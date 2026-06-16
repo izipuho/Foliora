@@ -276,6 +276,7 @@ struct SettingsView: View {
         try deleteCoreDataEntities(named: "MediaAssetEntity")
         try deleteCoreDataEntities(named: "BellTagEntity")
         try deleteCoreDataEntities(named: "BellEntity")
+        try deleteCoreDataEntities(named: "CollectionLocationEntity")
         try deleteCoreDataEntities(named: "CollectionEntity")
         try deleteCoreDataEntities(named: "LocationEntity")
         try deleteCoreDataEntities(named: "PlaceEntity")

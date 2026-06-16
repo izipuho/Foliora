@@ -12,6 +12,7 @@
         <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="title" optional="YES" attributeType="String" defaultValueString=""/>
         <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="bells" inverseEntity="CollectionEntity"/>
+        <relationship name="collectionLocation" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionLocationEntity" inverseName="bells" inverseEntity="CollectionLocationEntity"/>
         <relationship name="location" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="LocationEntity" inverseName="bells" inverseEntity="LocationEntity"/>
         <relationship name="mediaAssets" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MediaAssetEntity" inverseName="bell" inverseEntity="MediaAssetEntity"/>
         <relationship name="originPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="bells" inverseEntity="PlaceEntity"/>
@@ -25,12 +26,29 @@
     </entity>
     <entity name="CollectionEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="backgroundStyleRaw" optional="YES" attributeType="String" defaultValueString="amber"/>
+        <attribute name="homeIconName" optional="YES" attributeType="String"/>
+        <attribute name="homeID" optional="YES" attributeType="UUID"/>
+        <attribute name="homeName" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID"/>
         <attribute name="kindRaw" optional="YES" attributeType="String" defaultValueString="bells"/>
         <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="title" optional="YES" attributeType="String" defaultValueString=""/>
         <relationship name="bells" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BellEntity" inverseName="collection" inverseEntity="BellEntity"/>
+        <relationship name="collectionLocations" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CollectionLocationEntity" inverseName="collection" inverseEntity="CollectionLocationEntity"/>
         <relationship name="home" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="HomeEntity" inverseName="collections" inverseEntity="HomeEntity"/>
+    </entity>
+    <entity name="CollectionLocationEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="id" optional="YES" attributeType="UUID"/>
+        <attribute name="isArchived" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="NO"/>
+        <attribute name="kindRaw" optional="YES" attributeType="String" defaultValueString="room"/>
+        <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
+        <attribute name="sortOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="NO"/>
+        <attribute name="sourceLocationID" optional="YES" attributeType="UUID"/>
+        <relationship name="bells" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BellEntity" inverseName="collectionLocation" inverseEntity="BellEntity"/>
+        <relationship name="children" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CollectionLocationEntity" inverseName="parent" inverseEntity="CollectionLocationEntity"/>
+        <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="collectionLocations" inverseEntity="CollectionEntity"/>
+        <relationship name="parent" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionLocationEntity" inverseName="children" inverseEntity="CollectionLocationEntity"/>
     </entity>
     <entity name="HomeEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="iconName" optional="YES" attributeType="String"/>

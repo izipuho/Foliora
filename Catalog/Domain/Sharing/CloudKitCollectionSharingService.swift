@@ -45,6 +45,7 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
             )
         }
 
+        try await prepareForSharing(collection)
         let share = try await share(collection)
 
         return try await savedShare(
@@ -115,6 +116,117 @@ private extension CloudKitCollectionSharingService {
                 }
             }
         }
+    }
+
+    func prepareForSharing(_ collection: NSManagedObject) async throws {
+        let objectID = collection.objectID
+
+        try await context.perform {
+            let collection = try self.context.existingObject(with: objectID)
+
+            if let home = collection.value(forKey: "home") as? NSManagedObject {
+                collection.setValue(home.value(forKey: "id"), forKey: "homeID")
+                collection.setValue(home.value(forKey: "name"), forKey: "homeName")
+                collection.setValue(home.value(forKey: "iconName"), forKey: "homeIconName")
+            }
+
+            self.syncCollectionLocations(for: collection)
+            collection.setValue(nil, forKey: "home")
+
+            if self.context.hasChanges {
+                try self.context.save()
+            }
+        }
+    }
+
+    func syncCollectionLocations(for collection: NSManagedObject) {
+        guard let homeID = collection.value(forKey: "homeID") as? UUID else { return }
+
+        let locations = fetchLocations(in: homeID)
+        let existingLocations = relatedObjects(collection, "collectionLocations")
+        var existingBySourceID: [UUID: NSManagedObject] = [:]
+        for entity in existingLocations {
+            guard let sourceLocationID = entity.value(forKey: "sourceLocationID") as? UUID else { continue }
+            existingBySourceID[sourceLocationID] = existingBySourceID[sourceLocationID] ?? entity
+        }
+
+        var syncedBySourceID: [UUID: NSManagedObject] = [:]
+        let sourceIDs = Set(locations.map { uuidValue($0, "id") })
+
+        for (sortOrder, location) in locations.enumerated() {
+            let sourceLocationID = uuidValue(location, "id")
+            let entity = existingBySourceID[sourceLocationID] ?? NSEntityDescription.insertNewObject(
+                forEntityName: "CollectionLocationEntity",
+                into: context
+            )
+            entity.setValue(sourceLocationID, forKey: "id")
+            entity.setValue(sourceLocationID, forKey: "sourceLocationID")
+            entity.setValue(location.value(forKey: "kindRaw"), forKey: "kindRaw")
+            entity.setValue(location.value(forKey: "name"), forKey: "name")
+            entity.setValue(location.value(forKey: "notes"), forKey: "notes")
+            entity.setValue(sortOrder, forKey: "sortOrder")
+            entity.setValue(false, forKey: "isArchived")
+            entity.setValue(collection, forKey: "collection")
+            syncedBySourceID[sourceLocationID] = entity
+        }
+
+        for location in locations {
+            let sourceLocationID = uuidValue(location, "id")
+            guard let entity = syncedBySourceID[sourceLocationID] else { continue }
+            let parent = (location.value(forKey: "parent") as? NSManagedObject)
+                .map { uuidValue($0, "id") }
+                .flatMap { syncedBySourceID[$0] }
+            entity.setValue(parent, forKey: "parent")
+        }
+
+        for entity in existingLocations {
+            guard
+                let sourceLocationID = entity.value(forKey: "sourceLocationID") as? UUID,
+                !sourceIDs.contains(sourceLocationID)
+            else {
+                continue
+            }
+
+            if relatedObjects(entity, "bells").isEmpty {
+                context.delete(entity)
+            } else {
+                entity.setValue(true, forKey: "isArchived")
+                entity.setValue(nil, forKey: "parent")
+            }
+        }
+
+        backfillBellCollectionLocations(in: collection)
+    }
+
+    func fetchLocations(in homeID: UUID) -> [NSManagedObject] {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "LocationEntity")
+        request.predicate = NSPredicate(format: "home.id == %@", homeID as NSUUID)
+        request.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
+        return (try? context.fetch(request)) ?? []
+    }
+
+    func backfillBellCollectionLocations(in collection: NSManagedObject) {
+        for bell in relatedObjects(collection, "bells") {
+            guard bell.value(forKey: "collectionLocation") == nil else { continue }
+            guard let location = bell.value(forKey: "location") as? NSManagedObject else { continue }
+            let sourceLocationID = uuidValue(location, "id")
+            let collectionLocation = relatedObjects(collection, "collectionLocations").first {
+                ($0.value(forKey: "sourceLocationID") as? UUID) == sourceLocationID
+            }
+            bell.setValue(collectionLocation, forKey: "collectionLocation")
+        }
+    }
+
+    func relatedObjects(_ entity: NSManagedObject, _ key: String) -> [NSManagedObject] {
+        if let objects = entity.value(forKey: key) as? Set<NSManagedObject> {
+            return Array(objects)
+        }
+
+        return (entity.value(forKey: key) as? NSSet)?.allObjects.compactMap { $0 as? NSManagedObject } ?? []
+    }
+
+    func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
+        entity.value(forKey: key) as? UUID ?? UUID()
     }
 
     func savedShare(

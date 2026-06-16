@@ -16,11 +16,28 @@ struct BellCatalogSnapshot {
             predicate: collectionID.map { NSPredicate(format: "collection.id == %@", $0 as NSUUID) },
             sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)]
         )
-        let locationEntities = Self.fetchEntities(
-            named: "LocationEntity",
+        let collectionEntities = Self.fetchEntities(
+            named: "CollectionEntity",
             in: context,
-            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+            predicate: collectionID.map { NSPredicate(format: "id == %@", $0 as NSUUID) }
         )
+        var locationEntities = collectionID.map {
+            Self.fetchEntities(
+                named: "CollectionLocationEntity",
+                in: context,
+                predicate: NSPredicate(format: "collection.id == %@", $0 as NSUUID),
+                sortDescriptors: [NSSortDescriptor(key: "sortOrder", ascending: true)]
+            )
+        } ?? []
+        if collectionID == nil || locationEntities.isEmpty {
+            let homeID = collectionEntities.first.map(Self.collectionHomeID)
+            locationEntities = Self.fetchEntities(
+                named: "LocationEntity",
+                in: context,
+                predicate: homeID.map { NSPredicate(format: "home.id == %@", $0 as NSUUID) },
+                sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+            )
+        }
         let records = bellEntities.map(Self.bellRecord)
         bells = bellEntities.map(Self.bellListItem)
         recordsByID = Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) })
@@ -42,7 +59,8 @@ struct BellCatalogSnapshot {
 
     private static func bellRecord(from entity: NSManagedObject) -> BellRecord {
         let id = uuidValue(entity, "id")
-        let locationEntity = entity.value(forKey: "location") as? NSManagedObject
+        let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
+            ?? entity.value(forKey: "location") as? NSManagedObject
         let originPlaceEntity = entity.value(forKey: "originPlace") as? NSManagedObject
         let collectionID = (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID()
         let tags = relatedObjects(entity, "tags")
@@ -80,7 +98,8 @@ struct BellCatalogSnapshot {
 
     private static func bellListItem(from entity: NSManagedObject) -> BellListItem {
         let record = bellRecord(from: entity)
-        let locationEntity = entity.value(forKey: "location") as? NSManagedObject
+        let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
+            ?? entity.value(forKey: "location") as? NSManagedObject
         let storageComponents = locationEntity.map(storageComponents) ?? [:]
         let coverPhoto = record.mediaAssets
             .sorted { $0.sortOrder < $1.sortOrder }
@@ -119,7 +138,7 @@ struct BellCatalogSnapshot {
     private static func location(from entity: NSManagedObject) -> Location {
         Location(
             id: uuidValue(entity, "id"),
-            homeID: (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            homeID: locationHomeID(from: entity),
             parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
             kind: locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)),
             name: stringValue(entity, "name"),
@@ -199,6 +218,26 @@ struct BellCatalogSnapshot {
 
     private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
         entity.value(forKey: key) as? UUID ?? UUID()
+    }
+
+    private static func collectionHomeID(from entity: NSManagedObject) -> UUID {
+        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
+            ?? entity.value(forKey: "homeID") as? UUID
+            ?? UUID()
+    }
+
+    private static func locationHomeID(from entity: NSManagedObject) -> UUID {
+        if entity.entity.name == "LocationEntity",
+           let home = entity.value(forKey: "home") as? NSManagedObject {
+            return uuidValue(home, "id")
+        }
+
+        if entity.entity.name == "CollectionLocationEntity",
+           let collection = entity.value(forKey: "collection") as? NSManagedObject {
+            return collectionHomeID(from: collection)
+        }
+
+        return UUID()
     }
 
     private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {

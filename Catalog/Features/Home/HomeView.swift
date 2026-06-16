@@ -306,6 +306,7 @@ private struct HomeCatalogSnapshot {
 
     private static func collectionHomeID(from entity: NSManagedObject) -> UUID? {
         (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
+            ?? entity.value(forKey: "homeID") as? UUID
     }
 
     private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
