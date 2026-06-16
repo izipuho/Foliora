@@ -73,7 +73,7 @@ struct CollectionsView: View {
                 }
             }
             .confirmationDialog(
-                "Confirm Collection Action",
+                Text(deleteConfirmationTitle(for: collectionIDPendingDeletion)),
                 isPresented: $isPresentingDeleteConfirmation,
                 titleVisibility: .visible,
                 presenting: collectionIDPendingDeletion
@@ -90,7 +90,20 @@ struct CollectionsView: View {
                 }
             } message: { collectionID in
                 Text(deleteConfirmationMessage(for: collectionID))
-            }
+        }
+    }
+
+    private func deleteConfirmationTitle(for collectionID: UUID?) -> String {
+        switch collectionID.map(repository.deleteResolution(for:)) {
+        case .deletePrivateCollection:
+            return String(localized: "collection.delete_private.title")
+        case .deleteSharedCollectionAsOwner:
+            return String(localized: "collection.delete_shared_owner.title")
+        case .leaveSharedCollectionAsParticipant:
+            return String(localized: "collection.leave_shared.title")
+        case nil:
+            return ""
+        }
     }
 
     @ViewBuilder
@@ -252,11 +265,11 @@ struct CollectionsView: View {
     private func deleteConfirmationMessage(for collectionID: UUID) -> String {
         switch repository.deleteResolution(for: collectionID) {
         case .deletePrivateCollection:
-            return String(localized: "collection.delete.message")
+            return String(localized: "collection.delete_private.message")
         case .deleteSharedCollectionAsOwner:
-            return String(localized: "collection.delete.message")
+            return String(localized: "collection.delete_shared_owner.message")
         case .leaveSharedCollectionAsParticipant:
-            return String(localized: "collection.leave.message")
+            return String(localized: "collection.leave_shared.message")
         }
     }
 
