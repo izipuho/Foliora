@@ -5,6 +5,7 @@ import Foundation
 enum FolioraCoreDataStack {
     static let modelName = "Foliora"
     static let cloudKitContainerIdentifier = "iCloud.com.izipuho.FolioraBells"
+    nonisolated(unsafe) private static var cloudKitEventObserver: NSObjectProtocol?
 
     static func makeContainer(inMemory: Bool = false) throws -> NSPersistentCloudKitContainer {
         let model = try managedObjectModel()
@@ -25,6 +26,7 @@ enum FolioraCoreDataStack {
 
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        installCloudKitEventObserver(for: container)
 
         return container
     }
@@ -84,9 +86,50 @@ enum FolioraCoreDataStack {
 
     private static func storeURL(named fileName: String) throws -> URL {
         let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Catalog/CoreData", isDirectory: true)
+            .appendingPathComponent("FolioraBells/CoreData", isDirectory: true)
         try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
         return baseURL.appendingPathComponent(fileName)
+    }
+
+    private static func installCloudKitEventObserver(for container: NSPersistentCloudKitContainer) {
+        if let cloudKitEventObserver {
+            NotificationCenter.default.removeObserver(cloudKitEventObserver)
+        }
+
+        cloudKitEventObserver = NotificationCenter.default.addObserver(
+            forName: NSPersistentCloudKitContainer.eventChangedNotification,
+            object: container,
+            queue: nil
+        ) { notification in
+            guard let event = notification.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey]
+                as? NSPersistentCloudKitContainer.Event else {
+                return
+            }
+            let deviceName = ProcessInfo.processInfo.hostName
+            print(
+                "CORE_DATA_CLOUDKIT_EVENT:",
+                "device=\(deviceName)",
+                "type=\(cloudKitEventTypeDescription(event.type))",
+                "storeIdentifier=\(event.storeIdentifier)",
+                "startDate=\(event.startDate)",
+                "endDate=\(String(describing: event.endDate))",
+                "succeeded=\(event.succeeded)",
+                "error=\(String(describing: event.error))"
+            )
+        }
+    }
+
+    private static func cloudKitEventTypeDescription(_ type: NSPersistentCloudKitContainer.EventType) -> String {
+        switch type {
+        case .setup:
+            return "setup"
+        case .import:
+            return "import"
+        case .export:
+            return "export"
+        @unknown default:
+            return "unknown(\(type.rawValue))"
+        }
     }
 }
 

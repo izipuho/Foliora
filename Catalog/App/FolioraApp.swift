@@ -58,7 +58,7 @@ struct FolioraApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppShellView(repository: container.repository)
+            AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
                 .environment(\.managedObjectContext, coreDataContainer.viewContext)
                 .onOpenURL { url in
                     print("OPEN_URL:", url.absoluteString)

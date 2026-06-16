@@ -44,6 +44,7 @@ enum RootTab: String, CaseIterable, Identifiable, Hashable {
 
 struct AppShellView: View {
     let repository: any CatalogRepository
+    let coreDataContainer: NSPersistentCloudKitContainer
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var navigationSnapshot = AppNavigationCatalogSnapshot()
     @State private var collectionsPath = NavigationPath()
@@ -90,6 +91,7 @@ struct AppShellView: View {
             CollectionShellView(
                 collection: collection,
                 repository: repository,
+                coreDataContainer: coreDataContainer,
                 layoutMode: layoutMode,
                 onBellSelected: onBellSelected,
                 onBatchAddComplete: onBatchAddComplete

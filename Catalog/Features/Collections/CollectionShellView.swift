@@ -4,6 +4,7 @@ import CoreData
 
 struct CollectionShellView: View {
     let repository: any CatalogRepository
+    let coreDataContainer: NSPersistentCloudKitContainer
     private let onBellSelected: ((UUID) -> Void)?
     private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -32,11 +33,13 @@ struct CollectionShellView: View {
     init(
         collection: CollectionSummary,
         repository: any CatalogRepository,
+        coreDataContainer: NSPersistentCloudKitContainer,
         layoutMode: Binding<BellGridLayoutMode>,
         onBellSelected: ((UUID) -> Void)? = nil,
         onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.repository = repository
+        self.coreDataContainer = coreDataContainer
         self.onBellSelected = onBellSelected
         self.onBatchAddComplete = onBatchAddComplete
         self.layoutMode = layoutMode
@@ -212,7 +215,10 @@ struct CollectionShellView: View {
             initialBackgroundStyle: collection.backgroundStyle,
             hasPlacedItems: hasPlacedItems,
             allowsDeletion: true,
-            sharingDestination: AnyView(CollectionSharingStateLoaderView(collection: collection))
+            sharingDestination: AnyView(CollectionSharingStateLoaderView(
+                collection: collection,
+                sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer)
+            ))
         ) { title, notes, homeID, backgroundStyle in
             saveCollectionEdits(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
         } onDelete: {
@@ -448,7 +454,7 @@ private struct CollectionSharingStateLoaderView: View {
 
     init(
         collection: CollectionSummary,
-        sharingService: any CollectionSharingService = CloudKitCollectionSharingService()
+        sharingService: any CollectionSharingService
     ) {
         self.collection = collection
         self.sharingService = sharingService
@@ -461,7 +467,7 @@ private struct CollectionSharingStateLoaderView: View {
             } else if errorMessage != nil {
                 sharingLoadFailedView
             } else {
-                CollectionSharingView(collection: collection, state: state) {
+                CollectionSharingView(collection: collection, state: state, sharingService: sharingService) {
                     Task {
                         await loadSharingState()
                     }
