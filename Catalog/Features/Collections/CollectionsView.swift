@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreData
+import CloudKit
 
 struct CollectionsView: View {
     let repository: any CatalogRepository
@@ -82,7 +83,10 @@ struct CollectionsView: View {
                         Button {
                             selectCollection(collection)
                         } label: {
-                            CollectionCard(collection: collection)
+                            CollectionCard(
+                                collection: collection,
+                                sharingStatus: catalogSnapshot.sharingStatus(for: collection.id)
+                            )
                         }
                         .buttonStyle(.plain)
                         .catalogContainerListRow()
@@ -212,9 +216,11 @@ struct CollectionsView: View {
     }
 }
 
+@MainActor
 private struct CollectionsCatalogSnapshot {
     var collections: [CollectionSummary] = []
     var homes: [Home] = []
+    private var collectionSharingStatuses: [UUID: CollectionCardSharingStatus] = [:]
 
     init() {}
 
@@ -230,8 +236,22 @@ private struct CollectionsCatalogSnapshot {
             sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
         )
 
+        let sharesByObjectID = Self.sharesByObjectID(for: collectionEntities)
+
         collections = collectionEntities.map(Self.collectionSummary)
         homes = homeEntities.map(Self.home)
+        collectionSharingStatuses = Dictionary(
+            uniqueKeysWithValues: collectionEntities.map { entity in
+                (
+                    Self.uuidValue(entity, "id"),
+                    Self.collectionSharingStatus(from: sharesByObjectID[entity.objectID])
+                )
+            }
+        )
+    }
+
+    func sharingStatus(for collectionID: UUID) -> CollectionCardSharingStatus {
+        collectionSharingStatuses[collectionID] ?? .privateCollection
     }
 
     private static func fetchEntities(
@@ -258,6 +278,29 @@ private struct CollectionsCatalogSnapshot {
             status: kind == .bells ? .active : .planned,
             sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
         )
+    }
+
+    private static func sharesByObjectID(for entities: [NSManagedObject]) -> [NSManagedObjectID: CKShare] {
+        guard
+            let persistentContainer = FolioraAppDelegate.coreDataContainer,
+            !entities.isEmpty
+        else {
+            return [:]
+        }
+
+        return (try? persistentContainer.fetchShares(matching: entities.map(\.objectID))) ?? [:]
+    }
+
+    private static func collectionSharingStatus(from share: CKShare?) -> CollectionCardSharingStatus {
+        guard let share else {
+            return .privateCollection
+        }
+
+        if share.currentUserParticipant?.role == .owner {
+            return .sharedOwner(participantsCount: max(share.participants.count, 1))
+        }
+
+        return .sharedParticipant
     }
 
     private static func home(from entity: NSManagedObject) -> Home {
@@ -294,17 +337,48 @@ private struct CollectionsCatalogSnapshot {
     }
 }
 
+private enum CollectionCardSharingStatus {
+    case privateCollection
+    case sharedOwner(participantsCount: Int)
+    case sharedParticipant
+}
+
 private struct CollectionCard: View {
     let collection: CollectionSummary
+    let sharingStatus: CollectionCardSharingStatus
 
     private var detailLines: [String] {
         [collection.kind.countLabel(for: collection.itemCount)]
+    }
+
+    private var subtitleTrailing: String? {
+        switch sharingStatus {
+        case .privateCollection:
+            return nil
+        case .sharedOwner(let participantsCount):
+            return "\(participantsCount)"
+        case .sharedParticipant:
+            return nil
+        }
+    }
+
+    private var subtitleTrailingIcon: String? {
+        switch sharingStatus {
+        case .privateCollection:
+            return nil
+        case .sharedOwner:
+            return "person.2"
+        case .sharedParticipant:
+            return "link"
+        }
     }
 
     var body: some View {
         CatalogContainerCard(
             title: collection.name,
             subtitle: collection.kind.countLabel(for: collection.itemCount),
+            subtitleTrailing: subtitleTrailing,
+            subtitleTrailingIcon: subtitleTrailingIcon,
             systemImage: collection.kind.systemImage
         )
     }

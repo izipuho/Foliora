@@ -47,8 +47,15 @@ struct CatalogContainerCard: View {
 
                         Spacer(minLength: 8)
 
-                        if let subtitleTrailing, let subtitleTrailingIcon {
+                        switch (subtitleTrailing, subtitleTrailingIcon) {
+                        case let (.some(subtitleTrailing), .some(subtitleTrailingIcon)):
                             Label(subtitleTrailing, systemImage: subtitleTrailingIcon)
+                        case let (.some(subtitleTrailing), .none):
+                            Text(subtitleTrailing)
+                        case let (.none, .some(subtitleTrailingIcon)):
+                            Image(systemName: subtitleTrailingIcon)
+                        case (.none, .none):
+                            EmptyView()
                         }
                     }
                 }
