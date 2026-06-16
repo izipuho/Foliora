@@ -1,25 +1,23 @@
 import CloudKit
 import Combine
 import CoreData
-import SwiftData
 import SwiftUI
 
 // Temporary diagnostics screen. Remove after CloudKit sync investigation.
 struct CloudSyncDiagnosticsView: View {
 
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.managedObjectContext) private var managedObjectContext
 
     @State private var accountStatus = "Not checked"
     @State private var userRecordID = "Not checked"
     @State private var accountError: String?
-    @State private var localCounts: [LocalCount] = []
-    @State private var countsError: String?
-    @State private var databaseProbe = CloudKitProbeResult()
-    @State private var mirroredRecordsProbe = MirroredRecordsProbeResult()
-    @State private var shareProbe = CKShareProbeResult()
-    @State private var productionShareProbe = CKShareProbeResult()
     @State private var localSaveProbe = LocalSaveProbeResult()
     @State private var eventHistory: [CloudKitEventSummary] = []
+    @State private var persistentStores: [PersistentStoreDiagnostics] = []
+
+    private var diagnosticsCloudKitContainer: CKContainer {
+        CKContainer(identifier: FolioraCoreDataStack.cloudKitContainerIdentifier)
+    }
 
     var body: some View {
         Form {
@@ -27,7 +25,7 @@ struct CloudSyncDiagnosticsView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Cloud Sync Diagnostics")
                         .font(.title2.weight(.semibold))
-                    Text("Temporary diagnostics screen for SwiftData / CloudKit sync.")
+                    Text("Temporary diagnostics screen for Core Data / CloudKit sync.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -43,69 +41,40 @@ struct CloudSyncDiagnosticsView: View {
                 }
             }
 
-            Section("Local Store Counts") {
-                Button("Refresh Local Counts") {
-                    refreshLocalCounts()
+            Section("Container") {
+                diagnosticsRow("Expected identifier", FolioraCoreDataStack.cloudKitContainerIdentifier)
+                diagnosticsRow(
+                    "Diagnostics identifier",
+                    diagnosticsCloudKitContainer.containerIdentifier ?? "Unavailable"
+                )
+            }
+
+            Section("Persistent Stores") {
+                Button("Refresh Persistent Stores") {
+                    refreshPersistentStores()
                 }
 
-                ForEach(localCounts) { count in
-                    diagnosticsRow(count.name, "\(count.value)")
-                }
-
-                if let countsError {
-                    diagnosticsRow("Error", countsError)
+                if persistentStores.isEmpty {
+                    Text("No persistent stores loaded.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(persistentStores) { store in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(store.title)
+                                .font(.headline)
+                            diagnosticsRow("URL", store.url)
+                            diagnosticsRow("Configuration", store.configurationName)
+                            diagnosticsRow("Database scope", store.databaseScope)
+                            diagnosticsRow("Read-only", store.isReadOnlyText)
+                            diagnosticsRow("CloudKit enabled", store.isCloudKitEnabledText)
+                            diagnosticsRow("Container identifier", store.containerIdentifier ?? "Unavailable")
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
             }
 
-            Section("Private Database Probe") {
-                Button("Refresh CloudKit Probe") {
-                    refreshCloudKitProbe()
-                }
-
-                diagnosticsRow("Status", databaseProbe.status)
-                diagnosticsRow("Zone count", databaseProbe.zoneCountText)
-                diagnosticsRow("Error code", databaseProbe.errorCode ?? "None")
-                diagnosticsRow("Error", databaseProbe.errorDescription ?? "None")
-                diagnosticsRow("Last checked", databaseProbe.timestampText)
-                //DELETE
-                ForEach(databaseProbe.zoneNames, id: \.self) { zoneName in
-                    diagnosticsRow("Zone", zoneName)
-                }
-            }
-
-            Section("SwiftData Mirrored Records") {
-                Button("Refresh CD_CollectionEntity Records") {
-                    refreshMirroredCollectionRecords()
-                }
-
-                Button("Create CKShare For Current Collection") {
-                    createCKShareForCurrentCollection()
-                }
-
-                Button("Create Share Using Production Service") {
-                    createShareUsingProductionService()
-                }
-
-                diagnosticsRow("Status", mirroredRecordsProbe.status)
-                diagnosticsRow("CD_CollectionEntity count", mirroredRecordsProbe.countText)
-                diagnosticsRow("First recordName", mirroredRecordsProbe.firstRecordName ?? "None")
-                diagnosticsRow("First CD_id", mirroredRecordsProbe.firstCDID ?? "None")
-                diagnosticsRow("First allKeys", mirroredRecordsProbe.firstAllKeysText)
-                diagnosticsRow("Error code", mirroredRecordsProbe.errorCode ?? "None")
-                diagnosticsRow("Error", mirroredRecordsProbe.errorDescription ?? "None")
-                diagnosticsRow("Last checked", mirroredRecordsProbe.timestampText)
-                diagnosticsRow("Share status", shareProbe.status)
-                diagnosticsRow("Share recordName", shareProbe.shareRecordName ?? "None")
-                diagnosticsRow("Share error code", shareProbe.errorCode ?? "None")
-                diagnosticsRow("Share error", shareProbe.errorDescription ?? "None")
-                diagnosticsRow("Share last checked", shareProbe.timestampText)
-                diagnosticsRow("Production share status", productionShareProbe.status)
-                diagnosticsRow("Production share recordName", productionShareProbe.shareRecordName ?? "None")
-                diagnosticsRow("Production share error code", productionShareProbe.errorCode ?? "None")
-                diagnosticsRow("Production share error", productionShareProbe.errorDescription ?? "None")
-            }
-
-            Section("SwiftData / CloudKit Event History") {
+            Section("Core Data / CloudKit Event History") {
                 if eventHistory.isEmpty {
                     Text("No events observed in this app session.")
                         .foregroundStyle(.secondary)
@@ -142,9 +111,16 @@ struct CloudSyncDiagnosticsView: View {
                 Button("Create Local Sync Probe") {
                     createLocalSyncProbe()
                 }
+                Button("Check Probe Export") {
+                    checkLocalSyncProbeExport()
+                }
+                .disabled(localSaveProbe.objectID == nil)
 
                 diagnosticsRow("Object name", localSaveProbe.objectName ?? "None")
+                diagnosticsRow("Object ID", localSaveProbe.objectID?.uuidString ?? "None")
                 diagnosticsRow("Status", localSaveProbe.status)
+                diagnosticsRow("Export status", localSaveProbe.exportStatus)
+                diagnosticsRow("Exported recordName", localSaveProbe.exportedRecordName ?? "None")
                 diagnosticsRow("Timestamp", localSaveProbe.timestampText)
 
                 if let errorDescription = localSaveProbe.errorDescription {
@@ -155,7 +131,7 @@ struct CloudSyncDiagnosticsView: View {
         .navigationTitle("Cloud Sync Diagnostics")
         .task {
             refreshAccountStatus()
-            refreshLocalCounts()
+            refreshPersistentStores()
         }
         .onReceive(
             NotificationCenter.default
@@ -179,7 +155,7 @@ struct CloudSyncDiagnosticsView: View {
 
     private func refreshAccountStatus() {
         Task {
-            let container = CKContainer.default()
+            let container = diagnosticsCloudKitContainer
 
             do {
                 let status = try await container.accountStatus()
@@ -200,257 +176,9 @@ struct CloudSyncDiagnosticsView: View {
         }
     }
 
-    private func refreshLocalCounts() {
-        do {
-            localCounts = [
-                LocalCount(name: "HomeEntity", value: try modelContext.fetchCount(FetchDescriptor<HomeEntity>())),
-                LocalCount(name: "LocationEntity", value: try modelContext.fetchCount(FetchDescriptor<LocationEntity>())),
-                LocalCount(name: "BellEntity", value: try modelContext.fetchCount(FetchDescriptor<BellEntity>())),
-                LocalCount(name: "MediaAssetEntity", value: try modelContext.fetchCount(FetchDescriptor<MediaAssetEntity>())),
-                LocalCount(name: "CollectionEntity", value: try modelContext.fetchCount(FetchDescriptor<CollectionEntity>())),
-                LocalCount(name: "PlaceEntity", value: try modelContext.fetchCount(FetchDescriptor<PlaceEntity>())),
-                LocalCount(name: "TagEntity", value: try modelContext.fetchCount(FetchDescriptor<BellTagEntity>()))
-            ]
-            countsError = nil
-        } catch {
-            countsError = error.localizedDescription
-        }
-    }
-
-    private func refreshCloudKitProbe() {
-        databaseProbe = CloudKitProbeResult(status: "In progress", timestamp: Date.now)
-
-        CKContainer.default().privateCloudDatabase.fetchAllRecordZones { zones, error in
-            DispatchQueue.main.async {
-                let zoneNames = zones?
-                    .map { $0.zoneID.zoneName }
-                    .sorted() ?? []
-
-                if let error {
-                    let ckError = error as? CKError
-                    databaseProbe = CloudKitProbeResult(
-                        status: "Failed",
-                        zoneCount: zones?.count,
-                        zoneNames: zoneNames,
-                        errorCode: ckError.map { "\($0.code.rawValue) (\($0.code))" },
-                        errorDescription: error.localizedDescription,
-                        timestamp: Date.now
-                    )
-                } else {
-                    databaseProbe = CloudKitProbeResult(
-                        status: "Success",
-                        zoneCount: zones?.count ?? 0,
-                        zoneNames: zoneNames,
-                        timestamp: Date.now
-                    )
-                }
-            }
-        }
-    }
-
-    private func refreshMirroredCollectionRecords() {
-        mirroredRecordsProbe = MirroredRecordsProbeResult(status: "In progress", timestamp: Date.now)
-
-        var descriptor = FetchDescriptor<CollectionEntity>(sortBy: [SortDescriptor(\.title)])
-        descriptor.fetchLimit = 1
-
-        guard let collection = try? modelContext.fetch(descriptor).first else {
-            mirroredRecordsProbe = MirroredRecordsProbeResult(
-                status: "Failed",
-                errorDescription: "No local CollectionEntity found.",
-                timestamp: Date.now
-            )
-            return
-        }
-
-        let collectionID = collection.id.uuidString
-
-        Task {
-            let database = CKContainer.default().privateCloudDatabase
-            let query = CKQuery(
-                recordType: "CD_CollectionEntity",
-                predicate: NSPredicate(
-                    format: "CD_id == %@",
-                    collectionID
-                )
-            )
-            let zoneID = CKRecordZone.ID(
-                zoneName: "com.apple.coredata.cloudkit.zone",
-                ownerName: CKCurrentUserDefaultName
-            )
-
-            do {
-                let response = try await database.records(matching: query, inZoneWith: zoneID)
-                var matchResults = response.matchResults
-                var cursor = response.queryCursor
-
-                while let currentCursor = cursor {
-                    let nextResponse = try await database.records(continuingMatchFrom: currentCursor)
-                    matchResults.append(contentsOf: nextResponse.matchResults)
-                    cursor = nextResponse.queryCursor
-                }
-
-                let records = try matchResults.map { _, result in
-                    try result.get()
-                }
-                let firstRecord = records.first
-
-                await MainActor.run {
-                    mirroredRecordsProbe = MirroredRecordsProbeResult(
-                        status: "Success",
-                        count: records.count,
-                        firstRecordName: firstRecord?.recordID.recordName,
-                        firstCDID: firstRecord?["CD_id"] as? String,
-                        firstAllKeys: firstRecord?.allKeys().sorted() ?? [],
-                        timestamp: Date.now
-                    )
-                }
-            } catch {
-                let ckError = error as? CKError
-
-                await MainActor.run {
-                    mirroredRecordsProbe = MirroredRecordsProbeResult(
-                        status: "Failed",
-                        errorCode: ckError.map { "\($0.code.rawValue) (\($0.code))" },
-                        errorDescription: error.localizedDescription,
-                        timestamp: Date.now
-                    )
-                }
-            }
-        }
-    }
-
-    private func createCKShareForCurrentCollection() {
-        shareProbe = CKShareProbeResult(status: "In progress", timestamp: Date.now)
-
-        var descriptor = FetchDescriptor<CollectionEntity>(sortBy: [SortDescriptor(\.title)])
-        descriptor.fetchLimit = 1
-
-        guard let collection = try? modelContext.fetch(descriptor).first else {
-            shareProbe = CKShareProbeResult(
-                status: "Failed",
-                errorDescription: "No local CollectionEntity found.",
-                timestamp: Date.now
-            )
-            return
-        }
-
-        let collectionID = collection.id.uuidString
-
-        Task {
-            let database = CKContainer.default().privateCloudDatabase
-            let query = CKQuery(
-                recordType: "CD_CollectionEntity",
-                predicate: NSPredicate(
-                    format: "CD_id == %@",
-                    collectionID
-                )
-            )
-            let zoneID = CKRecordZone.ID(
-                zoneName: "com.apple.coredata.cloudkit.zone",
-                ownerName: CKCurrentUserDefaultName
-            )
-
-            do {
-                let response = try await database.records(matching: query, inZoneWith: zoneID)
-                let records = try response.matchResults.map { _, result in
-                    try result.get()
-                }
-
-                guard let record = records.first else {
-                    await MainActor.run {
-                        shareProbe = CKShareProbeResult(
-                            status: "Failed",
-                            errorDescription: "No CD_CollectionEntity found for \(collectionID).",
-                            timestamp: Date.now
-                        )
-                    }
-                    return
-                }
-
-                let share = CKShare(rootRecord: record)
-                let operation = CKModifyRecordsOperation(recordsToSave: [record, share], recordIDsToDelete: nil)
-                operation.savePolicy = .ifServerRecordUnchanged
-                operation.modifyRecordsResultBlock = { result in
-                    DispatchQueue.main.async {
-                        switch result {
-                        case .success:
-                            shareProbe = CKShareProbeResult(
-                                status: "Success",
-                                shareRecordName: share.recordID.recordName,
-                                timestamp: Date.now
-                            )
-                        case .failure(let error):
-                            let ckError = error as? CKError
-                            shareProbe = CKShareProbeResult(
-                                status: "Failed",
-                                errorCode: ckError.map { "\($0.code.rawValue) (\($0.code))" },
-                                errorDescription: error.localizedDescription,
-                                timestamp: Date.now
-                            )
-                        }
-                    }
-                }
-                database.add(operation)
-            } catch {
-                let ckError = error as? CKError
-
-                await MainActor.run {
-                    shareProbe = CKShareProbeResult(
-                        status: "Failed",
-                        errorCode: ckError.map { "\($0.code.rawValue) (\($0.code))" },
-                        errorDescription: error.localizedDescription,
-                        timestamp: Date.now
-                    )
-                }
-            }
-        }
-    }
-
-    private func createShareUsingProductionService() {
-        productionShareProbe = CKShareProbeResult(status: "In progress", timestamp: Date.now)
-
-        var descriptor = FetchDescriptor<CollectionEntity>(sortBy: [SortDescriptor(\.title)])
-        descriptor.fetchLimit = 1
-
-        guard let collection = try? modelContext.fetch(descriptor).first else {
-            productionShareProbe = CKShareProbeResult(
-                status: "Failed",
-                errorDescription: "No local CollectionEntity found.",
-                timestamp: Date.now
-            )
-            return
-        }
-
-        let collectionID = collection.id
-        let service = CloudKitCollectionSharingService(
-            container: CKContainer.default()
-        )
-
-        Task {
-            do {
-                let share = try await service.createShare(for: collectionID, title: collection.title)
-
-                await MainActor.run {
-                    productionShareProbe = CKShareProbeResult(
-                        status: "Success",
-                        shareRecordName: share.recordID.recordName,
-                        timestamp: Date.now
-                    )
-                }
-            } catch {
-                let ckError = error as? CKError
-
-                await MainActor.run {
-                    productionShareProbe = CKShareProbeResult(
-                        status: "Failed",
-                        errorCode: ckError.map { "\($0.code.rawValue) (\($0.code))" },
-                        errorDescription: error.localizedDescription,
-                        timestamp: Date.now
-                    )
-                }
-            }
-        }
+    private func refreshPersistentStores() {
+        let stores = managedObjectContext.persistentStoreCoordinator?.persistentStores ?? []
+        persistentStores = stores.map(PersistentStoreDiagnostics.init(store:))
     }
 
     private func appendCloudKitEvent(from notification: Notification) {
@@ -468,16 +196,19 @@ struct CloudSyncDiagnosticsView: View {
     private func createLocalSyncProbe() {
         let timestamp = Date.now.timeIntervalSince1970
         let name = "__sync_probe_\(Int(timestamp))"
-        let probe = HomeEntity(id: UUID(), name: name, iconName: "icloud", notes: "Temporary CloudKit sync diagnostics probe.")
-
-        modelContext.insert(probe)
+        let id = UUID()
+        let probe = NSEntityDescription.insertNewObject(forEntityName: "HomeEntity", into: managedObjectContext)
+        probe.setValue(id, forKey: "id")
+        probe.setValue(name, forKey: "name")
+        probe.setValue("icloud", forKey: "iconName")
+        probe.setValue("Temporary CloudKit sync diagnostics probe.", forKey: "notes")
 
         do {
-            try modelContext.save()
-            localSaveProbe = LocalSaveProbeResult(objectName: name, status: "Save success", timestamp: Date.now)
-            refreshLocalCounts()
+            try managedObjectContext.save()
+            localSaveProbe = LocalSaveProbeResult(objectID: id, objectName: name, status: "Save success", timestamp: Date.now)
         } catch {
             localSaveProbe = LocalSaveProbeResult(
+                objectID: id,
                 objectName: name,
                 status: "Save failed",
                 errorDescription: error.localizedDescription,
@@ -485,74 +216,118 @@ struct CloudSyncDiagnosticsView: View {
             )
         }
     }
-}
 
-private struct CKShareProbeResult {
-    var status = "Not checked"
-    var shareRecordName: String?
-    var errorCode: String?
-    var errorDescription: String?
-    var timestamp: Date?
+    private func checkLocalSyncProbeExport() {
+        guard let objectID = localSaveProbe.objectID else {
+            localSaveProbe.exportStatus = "No probe object"
+            localSaveProbe.timestamp = Date.now
+            return
+        }
 
-    var timestampText: String {
-        timestamp?.formatted(date: .abbreviated, time: .standard) ?? "Never"
-    }
-}
+        localSaveProbe.exportStatus = "In progress"
+        localSaveProbe.exportedRecordName = nil
+        localSaveProbe.errorDescription = nil
+        localSaveProbe.timestamp = Date.now
 
-private struct MirroredRecordsProbeResult {
-    var status = "Not checked"
-    var count: Int?
-    var firstRecordName: String?
-    var firstCDID: String?
-    var firstAllKeys: [String] = []
-    var errorCode: String?
-    var errorDescription: String?
-    var timestamp: Date?
+        Task {
+            let database = diagnosticsCloudKitContainer.privateCloudDatabase
+            let query = CKQuery(
+                recordType: "CD_HomeEntity",
+                predicate: NSPredicate(format: "CD_id == %@", objectID.uuidString)
+            )
+            let zoneID = CKRecordZone.ID(
+                zoneName: "com.apple.coredata.cloudkit.zone",
+                ownerName: CKCurrentUserDefaultName
+            )
 
-    var countText: String {
-        count.map(String.init) ?? "Not checked"
-    }
+            do {
+                let response = try await database.records(matching: query, inZoneWith: zoneID)
+                let records = try response.matchResults.map { _, result in
+                    try result.get()
+                }
+                let firstRecord = records.first
 
-    var firstAllKeysText: String {
-        firstAllKeys.isEmpty ? "None" : firstAllKeys.joined(separator: ", ")
-    }
-
-    var timestampText: String {
-        timestamp?.formatted(date: .abbreviated, time: .standard) ?? "Never"
-    }
-}
-
-private struct LocalCount: Identifiable {
-    let id = UUID()
-    let name: String
-    let value: Int
-}
-
-private struct CloudKitProbeResult {
-    var status = "Not checked"
-    var zoneCount: Int?
-    var zoneNames: [String] = []
-    var errorCode: String?
-    var errorDescription: String?
-    var timestamp: Date?
-
-    var zoneCountText: String {
-        zoneCount.map(String.init) ?? "Not checked"
-    }
-
-    var timestampText: String {
-        timestamp?.formatted(date: .abbreviated, time: .standard) ?? "Never"
+                await MainActor.run {
+                    localSaveProbe.exportStatus = firstRecord == nil ? "Not found" : "Found"
+                    localSaveProbe.exportedRecordName = firstRecord?.recordID.recordName
+                    localSaveProbe.timestamp = Date.now
+                }
+            } catch {
+                await MainActor.run {
+                    localSaveProbe.exportStatus = "Check failed"
+                    localSaveProbe.errorDescription = error.localizedDescription
+                    localSaveProbe.timestamp = Date.now
+                }
+            }
+        }
     }
 }
 
 private struct LocalSaveProbeResult {
+    var objectID: UUID?
     var objectName: String?
     var status = "Not created"
+    var exportStatus = "Not checked"
+    var exportedRecordName: String?
     var errorDescription: String?
     var timestamp: Date?
 
     var timestampText: String {
         timestamp?.formatted(date: .abbreviated, time: .standard) ?? "Never"
+    }
+}
+
+private struct PersistentStoreDiagnostics: Identifiable {
+    let id: String
+    let title: String
+    let url: String
+    let configurationName: String
+    let databaseScope: String
+    let isReadOnly: Bool
+    let isCloudKitEnabled: Bool
+    let containerIdentifier: String?
+
+    init(store: NSPersistentStore) {
+        let fileName = store.url?.lastPathComponent ?? store.identifier ?? "Unknown store"
+        let inferredCloudKitConfiguration = Self.cloudKitConfiguration(for: store.url)
+
+        id = store.identifier ?? fileName
+        title = fileName
+        url = store.url?.path ?? "Unavailable"
+        configurationName = store.configurationName
+        databaseScope = inferredCloudKitConfiguration?.databaseScope ?? "Unavailable"
+        isReadOnly = store.isReadOnly
+        isCloudKitEnabled = inferredCloudKitConfiguration != nil || Self.hasCloudKitOptions(store.options)
+        containerIdentifier = inferredCloudKitConfiguration?.containerIdentifier
+    }
+
+    var isReadOnlyText: String {
+        isReadOnly ? "Yes" : "No"
+    }
+
+    var isCloudKitEnabledText: String {
+        isCloudKitEnabled ? "Yes" : "No"
+    }
+
+    private static func cloudKitConfiguration(for url: URL?) -> (databaseScope: String, containerIdentifier: String)? {
+        switch url?.lastPathComponent {
+        case "Private.sqlite":
+            return ("Private", FolioraCoreDataStack.cloudKitContainerIdentifier)
+        case "Shared.sqlite":
+            return ("Shared", FolioraCoreDataStack.cloudKitContainerIdentifier)
+        default:
+            return nil
+        }
+    }
+
+    private static func hasCloudKitOptions(_ options: [AnyHashable: Any]?) -> Bool {
+        guard let options else {
+            return false
+        }
+
+        return options.keys.contains { key in
+            String(describing: key).localizedCaseInsensitiveContains("CloudKit")
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 import MapKit
-import SwiftData
+import CoreData
 
 struct BellDetailView: View {
     private enum DetailFeedback: Equatable {
@@ -22,8 +22,8 @@ struct BellDetailView: View {
 
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
-    @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
-    @Query(sort: \LocationEntity.name) private var locationEntities: [LocationEntity]
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
@@ -36,14 +36,6 @@ struct BellDetailView: View {
     init(bell: Binding<BellRecord>, repository: any CatalogRepository) {
         _bell = bell
         self.repository = repository
-
-        let collectionID = bell.wrappedValue.item.collectionID
-        _collectionEntities = Query(
-            filter: #Predicate<CollectionEntity> { entity in
-                entity.id == collectionID
-            },
-            sort: \.title
-        )
     }
 
     var body: some View {
@@ -117,12 +109,18 @@ struct BellDetailView: View {
                 selectedLocationID: locationIDBinding
             )
         }
+        .task {
+            reloadLookupSnapshot()
+        }
         .onAppear {
             syncDraftsFromBell()
         }
         .onChange(of: bell) { _, _ in
             guard !isNotesOrTagsDirty else { return }
             syncDraftsFromBell()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
+            reloadLookupSnapshot()
         }
     }
 
@@ -265,13 +263,11 @@ struct BellDetailView: View {
 
     private var availableLocations: [Location] {
         guard let homeID = inferredCollection?.homeID else { return [] }
-        return locationEntities
-            .filter { $0.home?.id == homeID }
-            .map(\.locationSnapshot)
+        return lookupSnapshot.locations.filter { $0.homeID == homeID }
     }
 
     private var inferredCollection: CollectionSummary? {
-        collectionEntities.first?.summarySnapshot
+        lookupSnapshot.collections.first(where: { $0.id == bell.item.collectionID })?.summarySnapshot
     }
 
     private var detailAccentColor: Color {
@@ -286,6 +282,11 @@ struct BellDetailView: View {
         draftNotes = bell.notes
         draftTags = bell.tags
         tagInput = ""
+    }
+
+    private func reloadLookupSnapshot() {
+        lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
+            .loadSnapshot(collectionID: bell.item.collectionID, homeID: nil)
     }
 
     private var mediaAssetsBinding: Binding<[MediaAsset]> {
@@ -364,6 +365,7 @@ struct BellDetailView: View {
 
         repository.saveBellRecord(updatedBell)
         bell = updatedBell
+        reloadLookupSnapshot()
     }
 
     private func locationPath(for location: Location, locationsByID: [UUID: Location]) -> String {
@@ -382,7 +384,8 @@ struct BellDetailView: View {
 private struct BellDetailPreviewHost: View {
     let collectionID: UUID
     let repository: any CatalogRepository
-    @Query(sort: \BellEntity.createdAt, order: .reverse) private var bells: [BellEntity]
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var bell: BellRecord?
 
     var body: some View {
@@ -396,7 +399,14 @@ private struct BellDetailPreviewHost: View {
                 ContentUnavailableView(String(localized: "home.not_found.title"), systemImage: "bell.slash")
             }
         }
-        .onAppear(perform: syncBellIfNeeded)
+        .task {
+            reloadLookupSnapshot()
+            syncBellIfNeeded()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
+            reloadLookupSnapshot()
+            syncBellIfNeeded()
+        }
     }
 
     private var bellBinding: Binding<BellRecord>? {
@@ -409,6 +419,27 @@ private struct BellDetailPreviewHost: View {
 
     private func syncBellIfNeeded() {
         guard bell == nil else { return }
-        bell = bells.first(where: { $0.collection?.id == collectionID })?.recordSnapshot
+        bell = lookupSnapshot.bells.first(where: { $0.item.collectionID == collectionID })
+    }
+
+    private func reloadLookupSnapshot() {
+        lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
+            .loadSnapshot(collectionID: collectionID, homeID: nil)
+    }
+}
+
+private extension Collection {
+    var summarySnapshot: CollectionSummary {
+        CollectionSummary(
+            id: id,
+            homeID: homeID,
+            kind: kind,
+            name: title,
+            subtitle: notes,
+            backgroundStyle: backgroundStyle,
+            itemCount: 0,
+            status: kind == .bells ? .active : .planned,
+            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+        )
     }
 }

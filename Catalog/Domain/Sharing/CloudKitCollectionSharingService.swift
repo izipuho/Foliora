@@ -1,4 +1,5 @@
 import CloudKit
+import CoreData
 import Foundation
 
 protocol CollectionSharingService: Sendable {
@@ -12,59 +13,46 @@ protocol CollectionSharingService: Sendable {
 }
 
 final class CloudKitCollectionSharingService: CollectionSharingService, @unchecked Sendable {
-    private let container: CKContainer
-    private let privateDatabase: CKDatabase
+    private let persistentContainer: NSPersistentCloudKitContainer
+    private let context: NSManagedObjectContext
 
-    init(container: CKContainer = CKContainer.default()) {
-        self.container = container
-        self.privateDatabase = container.privateCloudDatabase
+    init(persistentContainer: NSPersistentCloudKitContainer) {
+        self.persistentContainer = persistentContainer
+        self.context = persistentContainer.newBackgroundContext()
+        self.context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
     }
 
     func fetchShare(for collectionID: UUID) async throws -> CKShare? {
-        guard let record = try await findCollectionRecord(for: collectionID),
-              let shareReference = record.share else {
-            return nil
-        }
-
-        return try await privateDatabase.record(
-            for: shareReference.recordID
-        ) as? CKShare
-    }
-
-    func findCollectionRecord(
-        for collectionID: UUID
-    ) async throws -> CKRecord? {
-        let predicate = NSPredicate(
-            format: "%K == %@",
-            Field.collectionID,
-            collectionID.uuidString
-        )
-        let query = CKQuery(
-            recordType: RecordType.collectionEntity,
-            predicate: predicate
-        )
-        let result = try await privateDatabase.records(
-            matching: query,
-            inZoneWith: Zone.swiftData,
-            resultsLimit: 1
-        )
-
-        return try result.matchResults.first?.1.get()
+        let collection = try await collectionEntity(for: collectionID)
+        return try persistentContainer.fetchShares(matching: [collection.objectID])[collection.objectID]
     }
 
     func createShare(
         for collectionID: UUID,
         title: String
     ) async throws -> CKShare {
-        guard let record = try await findCollectionRecord(for: collectionID) else {
-            throw CloudKitCollectionSharingError.collectionRecordNotFound(collectionID)
+        let collection = try await collectionEntity(for: collectionID)
+        let persistentStore = try persistentStore(for: collection)
+
+        let sharesBefore = try persistentContainer.fetchShares(matching: [collection.objectID])
+
+        if let existingShare = sharesBefore[collection.objectID] {
+            return try await savedShare(
+                existingShare,
+                title: title,
+                objectID: collection.objectID,
+                in: persistentStore
+            )
         }
 
-        let share = CKShare(rootRecord: record)
-        share[CKShare.SystemFieldKey.title] = title
-        try await save(records: [record, share])
+        let share = try await share(collection)
 
-        return share
+        return try await savedShare(
+            share,
+            title: title,
+            objectID: collection.objectID,
+            in: persistentStore
+        )
     }
 
     func sharingState(
@@ -98,44 +86,116 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
 }
 
 private extension CloudKitCollectionSharingService {
-    enum RecordType {
-        static let collectionEntity = "CD_CollectionEntity"
-    }
+    func collectionEntity(for collectionID: UUID) async throws -> NSManagedObject {
+        try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CollectionEntity")
+            request.fetchLimit = 1
+            request.predicate = NSPredicate(format: "id == %@", collectionID as NSUUID)
 
-    enum Field {
-        static let collectionID = "CD_id"
-    }
-
-    enum Zone {
-        static let swiftData = CKRecordZone.ID(
-            zoneName: "com.apple.coredata.cloudkit.zone",
-            ownerName: CKCurrentUserDefaultName
-        )
-    }
-
-    func save(records: [CKRecord]) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            let operation = CKModifyRecordsOperation(
-                recordsToSave: records,
-                recordIDsToDelete: nil
-            )
-            operation.savePolicy = .ifServerRecordUnchanged
-            operation.modifyRecordsResultBlock = { result in
-                continuation.resume(with: result)
+            guard let collection = try self.context.fetch(request).first else {
+                throw CloudKitCollectionSharingError.collectionNotFound(collectionID)
             }
 
-            privateDatabase.add(operation)
+            return collection
         }
+    }
+
+    func share(_ collection: NSManagedObject) async throws -> CKShare {
+        try await withCheckedThrowingContinuation { continuation in
+            persistentContainer.share([collection], to: nil) { _, share, _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                if let share {
+                    continuation.resume(returning: share)
+                } else {
+                    continuation.resume(throwing: CloudKitCollectionSharingError.shareNotCreated)
+                }
+            }
+        }
+    }
+
+    func savedShare(
+        _ share: CKShare,
+        title: String? = nil,
+        objectID: NSManagedObjectID,
+        in persistentStore: NSPersistentStore
+    ) async throws -> CKShare {
+        var needsPersisting = share.url == nil
+
+        if let title, share[CKShare.SystemFieldKey.title] as? String != title {
+            share[CKShare.SystemFieldKey.title] = title
+            needsPersisting = true
+        }
+
+        if needsPersisting {
+            _ = try await persistUpdatedShare(share, in: persistentStore)
+
+            let sharesAfterPersist = try persistentContainer.fetchShares(matching: [objectID])
+            let refetchedShare = sharesAfterPersist[objectID]
+
+            guard let refetchedShare else {
+                throw CloudKitCollectionSharingError.shareNotCreated
+            }
+
+            guard refetchedShare.url != nil else {
+                throw CloudKitCollectionSharingError.shareURLUnavailable
+            }
+
+            return refetchedShare
+        }
+
+        guard share.url != nil else {
+            throw CloudKitCollectionSharingError.shareURLUnavailable
+        }
+
+        return share
+    }
+
+    func persistUpdatedShare(_ share: CKShare, in persistentStore: NSPersistentStore) async throws -> CKShare {
+        try await withCheckedThrowingContinuation { continuation in
+            persistentContainer.persistUpdatedShare(share, in: persistentStore) { persistedShare, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                if let persistedShare {
+                    continuation.resume(returning: persistedShare)
+                } else {
+                    continuation.resume(throwing: CloudKitCollectionSharingError.shareNotCreated)
+                }
+            }
+        }
+    }
+
+    func persistentStore(for collection: NSManagedObject) throws -> NSPersistentStore {
+        guard let persistentStore = collection.objectID.persistentStore else {
+            throw CloudKitCollectionSharingError.persistentStoreNotFound
+        }
+
+        return persistentStore
     }
 }
 
 private enum CloudKitCollectionSharingError: LocalizedError {
-    case collectionRecordNotFound(UUID)
+    case collectionNotFound(UUID)
+    case persistentStoreNotFound
+    case shareNotCreated
+    case shareURLUnavailable
 
     var errorDescription: String? {
         switch self {
-        case .collectionRecordNotFound(let collectionID):
-            return "No CD_CollectionEntity found for \(collectionID)."
+        case .collectionNotFound(let collectionID):
+            return "No CollectionEntity found for \(collectionID)."
+        case .persistentStoreNotFound:
+            return "No persistent store found for the shared collection."
+        case .shareNotCreated:
+            return "Core Data did not return a CloudKit share."
+        case .shareURLUnavailable:
+            return "Core Data did not return a saved CloudKit share URL."
         }
     }
 }

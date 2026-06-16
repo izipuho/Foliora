@@ -1,14 +1,15 @@
 import SwiftUI
-import SwiftData
 import PhotosUI
+import CoreData
 
 struct CollectionShellView: View {
     let repository: any CatalogRepository
-    private let onBellSelected: ((BellEntity) -> Void)?
+    let coreDataContainer: NSPersistentCloudKitContainer
+    private let onBellSelected: ((UUID) -> Void)?
     private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
     @Environment(\.dismiss) private var dismiss
-    @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
-    @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var catalogSnapshot = CollectionShellCatalogSnapshot()
     @State private var collection: CollectionSummary
     @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
@@ -22,7 +23,7 @@ struct CollectionShellView: View {
     @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
     @State private var isPresentingMap = false
-    @State private var selectedBell: BellEntity?
+    @State private var selectedBellID: UUID?
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
     private let layoutMode: Binding<BellGridLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
@@ -32,11 +33,13 @@ struct CollectionShellView: View {
     init(
         collection: CollectionSummary,
         repository: any CatalogRepository,
+        coreDataContainer: NSPersistentCloudKitContainer,
         layoutMode: Binding<BellGridLayoutMode>,
-        onBellSelected: ((BellEntity) -> Void)? = nil,
+        onBellSelected: ((UUID) -> Void)? = nil,
         onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.repository = repository
+        self.coreDataContainer = coreDataContainer
         self.onBellSelected = onBellSelected
         self.onBatchAddComplete = onBatchAddComplete
         self.layoutMode = layoutMode
@@ -44,14 +47,11 @@ struct CollectionShellView: View {
     }
 
     private var homes: [Home] {
-        homeEntities.map(\.homeSnapshot)
+        catalogSnapshot.homes
     }
 
     private var hasPlacedItems: Bool {
-        (collectionEntities
-            .first { $0.id == collection.id }?
-            .bells ?? [])
-            .contains { $0.location != nil }
+        catalogSnapshot.collectionIDsWithPlacedItems.contains(collection.id)
     }
 
     private var selectedOrder: BellOrderMode {
@@ -72,6 +72,17 @@ struct CollectionShellView: View {
 
     private var selectedLayoutModeBinding: Binding<BellGridLayoutMode> {
         layoutMode
+    }
+
+    private var isBellDetailPresented: Binding<Bool> {
+        Binding(
+            get: { selectedBellID != nil },
+            set: { isPresented in
+                if !isPresented {
+                    selectedBellID = nil
+                }
+            }
+        )
     }
 
     var body: some View {
@@ -142,11 +153,17 @@ struct CollectionShellView: View {
             .sheet(isPresented: $isPresentingMap) {
                 mapSheet
             }
-            .sheet(item: $selectedBell) { bell in
-                BellEntityDetailSheetContainer(bell: bell, repository: repository)
-                    .presentationDragIndicator(.visible)
+            .sheet(isPresented: isBellDetailPresented) {
+                if let selectedBellID {
+                    BellCatalogDetailSheetContainer(bellID: selectedBellID, repository: repository)
+                        .presentationDragIndicator(.visible)
+                }
             }
-            .onChange(of: collectionEntities.map(\.id)) { _, _ in
+            .onAppear(perform: refreshContent)
+            .onReceive(NotificationCenter.default.publisher(
+                for: .NSManagedObjectContextObjectsDidChange,
+                object: managedObjectContext
+            )) { _ in
                 refreshContent()
             }
     }
@@ -198,7 +215,10 @@ struct CollectionShellView: View {
             initialBackgroundStyle: collection.backgroundStyle,
             hasPlacedItems: hasPlacedItems,
             allowsDeletion: true,
-            sharingDestination: AnyView(CollectionSharingStateLoaderView(collection: collection))
+            sharingDestination: AnyView(CollectionSharingStateLoaderView(
+                collection: collection,
+                sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer)
+            ))
         ) { title, notes, homeID, backgroundStyle in
             saveCollectionEdits(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
         } onDelete: {
@@ -255,7 +275,9 @@ struct CollectionShellView: View {
     }
 
     private func refreshContent() {
-        collection = collectionEntities.first(where: { $0.id == collection.id })?.summarySnapshot ?? collection
+        let snapshot = CollectionShellCatalogSnapshot(context: managedObjectContext)
+        catalogSnapshot = snapshot
+        collection = snapshot.collections.first(where: { $0.id == collection.id }) ?? collection
         refreshID = UUID()
     }
 
@@ -268,11 +290,11 @@ struct CollectionShellView: View {
         }
     }
 
-    private func openBell(_ bell: BellEntity) {
+    private func openBell(_ bellID: UUID) {
         if let onBellSelected {
-            onBellSelected(bell)
+            onBellSelected(bellID)
         } else {
-            selectedBell = bell
+            selectedBellID = bellID
         }
     }
 
@@ -327,6 +349,102 @@ struct CollectionShellView: View {
     }
 }
 
+private struct CollectionShellCatalogSnapshot {
+    var collections: [CollectionSummary] = []
+    var homes: [Home] = []
+    var collectionIDsWithPlacedItems: Set<UUID> = []
+
+    init() {}
+
+    init(context: NSManagedObjectContext) {
+        let collectionEntities = Self.fetchEntities(
+            named: "CollectionEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "title", ascending: true)]
+        )
+        let homeEntities = Self.fetchEntities(
+            named: "HomeEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+        )
+
+        collections = collectionEntities.map(Self.collectionSummary)
+        homes = homeEntities.map(Self.home)
+        collectionIDsWithPlacedItems = Set(collectionEntities.compactMap(Self.collectionIDWithPlacedItems))
+    }
+
+    private static func fetchEntities(
+        named entityName: String,
+        in context: NSManagedObjectContext,
+        sortDescriptors: [NSSortDescriptor]
+    ) -> [NSManagedObject] {
+        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+        request.sortDescriptors = sortDescriptors
+        return (try? context.fetch(request)) ?? []
+    }
+
+    private static func collectionSummary(from entity: NSManagedObject) -> CollectionSummary {
+        let kind = collectionKind(from: stringValue(entity, "kindRaw", default: CollectionKind.bells.rawValue))
+
+        return CollectionSummary(
+            id: uuidValue(entity, "id"),
+            homeID: (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            kind: kind,
+            name: stringValue(entity, "title"),
+            subtitle: stringValue(entity, "notes"),
+            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyleRaw", default: CollectionBackgroundStyle.amber.rawValue)),
+            itemCount: kind == .bells ? relatedObjectCount(entity, "bells") : 0,
+            status: kind == .bells ? .active : .planned,
+            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+        )
+    }
+
+    private static func home(from entity: NSManagedObject) -> Home {
+        Home(
+            id: uuidValue(entity, "id"),
+            name: stringValue(entity, "name"),
+            iconName: stringValue(entity, "iconName", default: "house.fill"),
+            notes: stringValue(entity, "notes")
+        )
+    }
+
+    private static func collectionIDWithPlacedItems(from entity: NSManagedObject) -> UUID? {
+        guard relatedObjects(entity, "bells").contains(where: { $0.value(forKey: "location") != nil }) else {
+            return nil
+        }
+
+        return uuidValue(entity, "id")
+    }
+
+    private static func collectionKind(from rawValue: String) -> CollectionKind {
+        CollectionKind(rawValue: rawValue) ?? .bells
+    }
+
+    private static func collectionBackgroundStyle(from rawValue: String) -> CollectionBackgroundStyle {
+        CollectionBackgroundStyle(rawValue: rawValue) ?? .amber
+    }
+
+    private static func relatedObjectCount(_ entity: NSManagedObject, _ key: String) -> Int {
+        relatedObjects(entity, key).count
+    }
+
+    private static func relatedObjects(_ entity: NSManagedObject, _ key: String) -> [NSManagedObject] {
+        if let objects = entity.value(forKey: key) as? Set<NSManagedObject> {
+            return Array(objects)
+        }
+
+        return (entity.value(forKey: key) as? NSSet)?.allObjects.compactMap { $0 as? NSManagedObject } ?? []
+    }
+
+    private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
+        entity.value(forKey: key) as? UUID ?? UUID()
+    }
+
+    private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
+        entity.value(forKey: key) as? String ?? defaultValue
+    }
+}
+
 private struct CollectionSharingStateLoaderView: View {
     let collection: CollectionSummary
     private let sharingService: any CollectionSharingService
@@ -336,7 +454,7 @@ private struct CollectionSharingStateLoaderView: View {
 
     init(
         collection: CollectionSummary,
-        sharingService: any CollectionSharingService = CloudKitCollectionSharingService()
+        sharingService: any CollectionSharingService
     ) {
         self.collection = collection
         self.sharingService = sharingService
@@ -349,7 +467,7 @@ private struct CollectionSharingStateLoaderView: View {
             } else if errorMessage != nil {
                 sharingLoadFailedView
             } else {
-                CollectionSharingView(collection: collection, state: state) {
+                CollectionSharingView(collection: collection, state: state, sharingService: sharingService) {
                     Task {
                         await loadSharingState()
                     }

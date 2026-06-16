@@ -1,24 +1,16 @@
 import Foundation
-import SwiftData
+import CoreData
 
 @MainActor
 struct AppContainer {
-    let swiftDataContainer: ModelContainer
     let repository: any CatalogRepository
 
-    init(swiftDataContainer: ModelContainer, repository: any CatalogRepository) {
-        self.swiftDataContainer = swiftDataContainer
+    init(repository: any CatalogRepository) {
         self.repository = repository
     }
 
-    init() {
-        do {
-            let container = try CatalogSwiftDataStack.makeContainer()
-            self.swiftDataContainer = container
-            self.repository = SwiftDataCatalogRepository(container: container)
-        } catch {
-            fatalError("Failed to create SwiftData container: \(error)")
-        }
+    init(coreDataContainer: NSPersistentCloudKitContainer) {
+        self.repository = CoreDataCatalogRepository(context: coreDataContainer.viewContext)
     }
 }
  

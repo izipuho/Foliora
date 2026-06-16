@@ -1,4 +1,5 @@
 import CloudKit
+import CoreData
 import SwiftUI
 
 struct CollectionSharingView: View {
@@ -10,11 +11,17 @@ struct CollectionSharingView: View {
     @State private var isPreparingShare = false
 
     private let container = CKContainer.default()
-    private let sharingService = CloudKitCollectionSharingService()
+    private let sharingService: any CollectionSharingService
 
-    init(collection: CollectionSummary, state: CollectionSharingState, onSharingChanged: @escaping () -> Void) {
+    init(
+        collection: CollectionSummary,
+        state: CollectionSharingState,
+        sharingService: any CollectionSharingService,
+        onSharingChanged: @escaping () -> Void
+    ) {
         self.collection = collection
         self.onSharingChanged = onSharingChanged
+        self.sharingService = sharingService
         self._state = State(initialValue: state)
     }
 
@@ -106,11 +113,7 @@ struct CollectionSharingView: View {
         defer { isPreparingShare = false }
 
         do {
-            if let existingShare = try await sharingService.fetchShare(for: collection.id) {
-                share = existingShare
-            } else {
-                share = try await sharingService.createShare(for: collection.id, title: collection.name)
-            }
+            share = try await sharingService.createShare(for: collection.id, title: collection.name)
             isPresentingSharingController = true
         } catch {
             share = nil

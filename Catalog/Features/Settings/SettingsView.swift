@@ -1,12 +1,12 @@
 import CloudKit
-import SwiftData
+import CoreData
 import SwiftUI
 
 struct SettingsView: View {
     let repository: any CatalogRepository
     let navigate: (AppDestination) -> Void
 
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.managedObjectContext) private var managedObjectContext
 
     @State private var exportDocument: CatalogTransferDocument?
     @State private var isExportingDocument = false
@@ -197,8 +197,9 @@ struct SettingsView: View {
         isImportExportRunning = true
         Task {
             do {
-                let actor = CatalogImportExportActor(modelContainer: repository.modelContainer)
-                let data = try await actor.exportArchiveData()
+                let data = try await CatalogJSONPort.exportArchiveData(
+                    context: managedObjectContext
+                )
                 await MainActor.run {
                     exportDocument = CatalogTransferDocument(data: data)
                     isExportingDocument = true
@@ -226,8 +227,10 @@ struct SettingsView: View {
                 }
 
                 do {
-                    let actor = CatalogImportExportActor(modelContainer: repository.modelContainer)
-                    let importResult = try await actor.importArchive(from: url)
+                    let importResult = try await CatalogJSONPort.importArchive(
+                        from: url,
+                        context: managedObjectContext
+                    )
 
                     await MainActor.run {
                         if !importResult.missingMediaIdentifiers.isEmpty {
@@ -270,14 +273,19 @@ struct SettingsView: View {
     }
 
     private func deleteAllCatalogEntities() throws {
-        try modelContext.fetch(FetchDescriptor<MediaAssetEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<BellTagEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<BellEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<LocationEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<HomeEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<CollectionEntity>()).forEach(modelContext.delete)
-        try modelContext.fetch(FetchDescriptor<PlaceEntity>()).forEach(modelContext.delete)
-        try modelContext.save()
+        try deleteCoreDataEntities(named: "MediaAssetEntity")
+        try deleteCoreDataEntities(named: "BellTagEntity")
+        try deleteCoreDataEntities(named: "BellEntity")
+        try deleteCoreDataEntities(named: "CollectionEntity")
+        try deleteCoreDataEntities(named: "LocationEntity")
+        try deleteCoreDataEntities(named: "PlaceEntity")
+        try deleteCoreDataEntities(named: "HomeEntity")
+        try managedObjectContext.save()
+    }
+
+    private func deleteCoreDataEntities(named entityName: String) throws {
+        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+        try managedObjectContext.fetch(request).forEach(managedObjectContext.delete)
     }
 }
 

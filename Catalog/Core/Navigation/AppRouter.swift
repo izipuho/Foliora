@@ -1,5 +1,5 @@
 import SwiftUI
-import SwiftData
+import CoreData
 
 enum AppDestination: Hashable {
     case collection(CollectionSummary)
@@ -44,9 +44,9 @@ enum RootTab: String, CaseIterable, Identifiable, Hashable {
 
 struct AppShellView: View {
     let repository: any CatalogRepository
-    @Query(sort: \HomeEntity.name) private var homeEntities: [HomeEntity]
-    @Query(sort: \LocationEntity.name) private var locationEntities: [LocationEntity]
-    @Query(sort: \CollectionEntity.title) private var collectionEntities: [CollectionEntity]
+    let coreDataContainer: NSPersistentCloudKitContainer
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var navigationSnapshot = AppNavigationCatalogSnapshot()
     @State private var collectionsPath = NavigationPath()
     @State private var homesPath = NavigationPath()
     @State private var settingsPath = NavigationPath()
@@ -69,13 +69,20 @@ struct AppShellView: View {
                 )
             }
         )
+        .onAppear(perform: reloadNavigationSnapshot)
+        .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextObjectsDidChange,
+            object: managedObjectContext
+        )) { _ in
+            reloadNavigationSnapshot()
+        }
     }
 
     @ViewBuilder
     private func destinationView(
         for destination: AppDestination,
         layoutMode: Binding<BellGridLayoutMode>,
-        onBellSelected: ((BellEntity) -> Void)?,
+        onBellSelected: ((UUID) -> Void)?,
         onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void,
         popNavigation: @escaping () -> Void
     ) -> some View {
@@ -84,6 +91,7 @@ struct AppShellView: View {
             CollectionShellView(
                 collection: collection,
                 repository: repository,
+                coreDataContainer: coreDataContainer,
                 layoutMode: layoutMode,
                 onBellSelected: onBellSelected,
                 onBatchAddComplete: onBatchAddComplete
@@ -97,9 +105,11 @@ struct AppShellView: View {
                     onSave: { updatedHome, updatedLocations in
                         repository.saveHome(updatedHome)
                         repository.saveLocations(updatedLocations, in: updatedHome.id)
+                        reloadNavigationSnapshot()
                     },
                     onDelete: {
                         repository.deleteHome(homeID: homeID)
+                        reloadNavigationSnapshot()
                         popNavigation()
                     }
                 )
@@ -120,6 +130,7 @@ struct AppShellView: View {
                     },
                     onDelete: {
                         repository.deleteHome(homeID: homeID)
+                        reloadNavigationSnapshot()
                         popNavigation()
                     },
                     embedsNavigation: false,
@@ -136,44 +147,133 @@ struct AppShellView: View {
     }
 
     private var homes: [Home] {
-        homeEntities.map(\.homeSnapshot)
+        navigationSnapshot.homes
     }
 
     private var locationsByHomeID: [UUID: [Location]] {
-        Dictionary(grouping: locationEntities.compactMap { location -> (UUID, Location)? in
-            guard let homeID = location.home?.id else { return nil }
-            return (homeID, location.locationSnapshot)
-        }, by: \.0)
-        .mapValues { rows in
-            rows.map(\.1).sorted { lhs, rhs in
-                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-            }
-        }
+        navigationSnapshot.locationsByHomeID
     }
 
     private func binding(for homeID: UUID) -> Binding<Home>? {
         guard homes.contains(where: { $0.id == homeID }) else { return nil }
         return Binding(
-            get: { homeEntities.first(where: { $0.id == homeID })?.homeSnapshot ?? Home(id: homeID, name: "", notes: "") },
-            set: { repository.saveHome($0) }
+            get: { homes.first(where: { $0.id == homeID }) ?? Home(id: homeID, name: "", notes: "") },
+            set: {
+                repository.saveHome($0)
+                reloadNavigationSnapshot()
+            }
         )
     }
 
     private func locationsBinding(for homeID: UUID) -> Binding<[Location]> {
         Binding(
             get: { locationsByHomeID[homeID] ?? [] },
-            set: { repository.saveLocations($0, in: homeID) }
+            set: {
+                repository.saveLocations($0, in: homeID)
+                reloadNavigationSnapshot()
+            }
         )
     }
 
     private func collectionCount(in homeID: UUID) -> Int {
-        collectionEntities.filter { $0.home?.id == homeID }.count
+        navigationSnapshot.collectionCountsByHomeID[homeID] ?? 0
     }
 
     private func saveHome(_ homeID: UUID) {
         guard let home = homes.first(where: { $0.id == homeID }) else { return }
         repository.saveHome(home)
         repository.saveLocations(locationsByHomeID[homeID] ?? [], in: homeID)
+        reloadNavigationSnapshot()
+    }
+
+    private func reloadNavigationSnapshot() {
+        navigationSnapshot = AppNavigationCatalogSnapshot(context: managedObjectContext)
+    }
+}
+
+private struct AppNavigationCatalogSnapshot {
+    var homes: [Home] = []
+    var locationsByHomeID: [UUID: [Location]] = [:]
+    var collectionCountsByHomeID: [UUID: Int] = [:]
+
+    init() {}
+
+    init(context: NSManagedObjectContext) {
+        let homeEntities = Self.fetchEntities(
+            named: "HomeEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+        )
+        let locationEntities = Self.fetchEntities(
+            named: "LocationEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+        )
+        let collectionEntities = Self.fetchEntities(
+            named: "CollectionEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "title", ascending: true)]
+        )
+
+        homes = homeEntities.map(Self.home)
+        locationsByHomeID = Dictionary(grouping: locationEntities.compactMap(Self.locationRow), by: \.0)
+            .mapValues { rows in
+                rows.map(\.1).sorted { lhs, rhs in
+                    lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            }
+        collectionCountsByHomeID = Dictionary(
+            collectionEntities.compactMap(Self.collectionHomeID).map { ($0, 1) },
+            uniquingKeysWith: +
+        )
+    }
+
+    private static func fetchEntities(
+        named entityName: String,
+        in context: NSManagedObjectContext,
+        sortDescriptors: [NSSortDescriptor]
+    ) -> [NSManagedObject] {
+        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+        request.sortDescriptors = sortDescriptors
+        return (try? context.fetch(request)) ?? []
+    }
+
+    private static func home(from entity: NSManagedObject) -> Home {
+        Home(
+            id: uuidValue(entity, "id"),
+            name: stringValue(entity, "name"),
+            iconName: stringValue(entity, "iconName", default: "house.fill"),
+            notes: stringValue(entity, "notes")
+        )
+    }
+
+    private static func locationRow(from entity: NSManagedObject) -> (UUID, Location)? {
+        guard let home = entity.value(forKey: "home") as? NSManagedObject else { return nil }
+        let homeID = uuidValue(home, "id")
+
+        return (
+            homeID,
+            Location(
+                id: uuidValue(entity, "id"),
+                homeID: homeID,
+                parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
+                kind: LocationKind(rawValue: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)) ?? .room,
+                name: stringValue(entity, "name"),
+                notes: stringValue(entity, "notes")
+            )
+        )
+    }
+
+    private static func collectionHomeID(from entity: NSManagedObject) -> UUID? {
+        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
+    }
+
+    private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
+        entity.value(forKey: key) as? UUID ?? UUID()
+    }
+
+    private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
+        entity.value(forKey: key) as? String ?? defaultValue
     }
 }
 
@@ -183,13 +283,13 @@ private struct RootShellView<Destination: View>: View {
     @Binding var homesPath: NavigationPath
     @Binding var settingsPath: NavigationPath
     @Binding var searchPath: NavigationPath
-    let destination: (AppDestination, Binding<BellGridLayoutMode>, ((BellEntity) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
+    let destination: (AppDestination, Binding<BellGridLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
     @State private var selectedRootTab: RootTab = .collections
     @State private var searchInitialQuery: String?
     @State private var searchResetID = UUID()
-    @State private var selectedBell: BellEntity?
+    @State private var selectedBellID: UUID?
 
     private var layoutMode: BellGridLayoutMode {
         get {
@@ -209,10 +309,10 @@ private struct RootShellView<Destination: View>: View {
 
     private var isBellInspectorPresented: Binding<Bool> {
         Binding(
-            get: { selectedBell != nil },
+            get: { selectedBellID != nil },
             set: { isPresented in
                 if !isPresented {
-                    selectedBell = nil
+                    selectedBellID = nil
                 }
             }
         )
@@ -269,9 +369,9 @@ private struct RootShellView<Destination: View>: View {
         iPadSplitView
             .navigationSplitViewStyle(.balanced)
             .inspector(isPresented: isBellInspectorPresented) {
-                if let selectedBell {
+                if let selectedBellID {
                     BellDetailInspectorView(
-                        bell: selectedBell,
+                        bellID: selectedBellID,
                         repository: repository,
                         onClose: closeBellInspector
                     )
@@ -320,7 +420,7 @@ private struct RootShellView<Destination: View>: View {
 
     private func homesStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((BellEntity) -> Void)?
+        onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
             HomeView(
@@ -336,7 +436,7 @@ private struct RootShellView<Destination: View>: View {
 
     private func collectionsStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((BellEntity) -> Void)?
+        onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
             CollectionsView(
@@ -352,7 +452,7 @@ private struct RootShellView<Destination: View>: View {
 
     private func settingsStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((BellEntity) -> Void)?
+        onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
             SettingsView(
@@ -396,41 +496,76 @@ private struct RootShellView<Destination: View>: View {
         selectedRootTab = .homes
     }
 
-    private func openBellInspector(_ bell: BellEntity) {
-        selectedBell = bell
+    private func openBellInspector(_ bellID: UUID) {
+        selectedBellID = bellID
     }
 
     private func closeBellInspector() {
-        selectedBell = nil
+        selectedBellID = nil
     }
 }
 
 private struct BellDetailInspectorView: View {
-    @State private var bell: BellRecord
+    let bellID: UUID
     let repository: any CatalogRepository
     let onClose: () -> Void
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var bell: BellRecord?
 
     init(
-        bell: BellEntity,
+        bellID: UUID,
         repository: any CatalogRepository,
         onClose: @escaping () -> Void
     ) {
-        _bell = State(initialValue: bell.recordSnapshot)
+        self.bellID = bellID
         self.repository = repository
         self.onClose = onClose
     }
 
     var body: some View {
         NavigationStack {
-            BellDetailView(bell: $bell, repository: repository)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: onClose) {
-                            Image(systemName: "xmark")
-                        }
+            Group {
+                if let bellBinding {
+                    BellDetailView(bell: bellBinding, repository: repository)
+                } else {
+                    ContentUnavailableView("bel.not_found", systemImage: "bell.slash")
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: onClose) {
+                        Image(systemName: "xmark")
                     }
                 }
+            }
         }
+        .task(id: bellID) {
+            reloadBell()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextObjectsDidChange,
+            object: managedObjectContext
+        )) { _ in
+            reloadBell()
+        }
+    }
+
+    private var bellBinding: Binding<BellRecord>? {
+        guard let currentBell = bell else { return nil }
+
+        return Binding(
+            get: {
+                bell ?? currentBell
+            },
+            set: {
+                bell = $0
+            }
+        )
+    }
+
+    private func reloadBell() {
+        let snapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext).loadSnapshot()
+        bell = snapshot.bells.first { $0.id == bellID }
     }
 }
 

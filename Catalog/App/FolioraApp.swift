@@ -1,9 +1,11 @@
 import SwiftUI
-import SwiftData
 import CloudKit
+import CoreData
 import UIKit
 
 final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
+    static var coreDataContainer: NSPersistentCloudKitContainer?
+
     func application(
         _ application: UIApplication,
         configurationForConnecting connectingSceneSession: UISceneSession,
@@ -24,16 +26,7 @@ final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        let container = CKContainer.default()
-
-        container.accept(cloudKitShareMetadata) { metadata, error in
-            if let error {
-                print("CLOUDKIT_SHARE_ACCEPT_ERROR:", error)
-                return
-            }
-
-            print("CLOUDKIT_SHARE_ACCEPT_SUCCESS:", metadata as Any)
-        }
+        FolioraCloudKitShareInvitationAcceptor.accept(cloudKitShareMetadata)
     }
 }
 
@@ -42,15 +35,25 @@ struct FolioraApp: App {
     @UIApplicationDelegateAdaptor(FolioraAppDelegate.self)
     private var appDelegate
 
-    private let container = AppContainer()
+    private let coreDataContainer: NSPersistentCloudKitContainer = {
+        do {
+            let container = try FolioraCoreDataStack.makeContainer()
+            return container
+        } catch {
+            fatalError("Failed to create Core Data container: \(error)")
+        }
+    }()
+    private let container: AppContainer
+
+    init() {
+        FolioraAppDelegate.coreDataContainer = coreDataContainer
+        self.container = AppContainer(coreDataContainer: coreDataContainer)
+    }
 
     var body: some Scene {
         WindowGroup {
-            AppShellView(repository: container.repository)
-                .modelContainer(container.swiftDataContainer)
-                .onOpenURL { url in
-                    print("OPEN_URL:", url.absoluteString)
-                }
+            AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
+                .environment(\.managedObjectContext, coreDataContainer.viewContext)
         }
     }
 }

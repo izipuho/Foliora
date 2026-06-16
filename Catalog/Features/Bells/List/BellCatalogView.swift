@@ -1,5 +1,5 @@
 import SwiftUI
-import SwiftData
+import CoreData
 
 private enum BellCatalogFeedback: Equatable {
     case success
@@ -95,18 +95,15 @@ private extension BellFilters {
 struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collection: CollectionSummary?
-    let onBellSelected: ((BellEntity) -> Void)?
-    @Environment(\.modelContext) private var modelContext
+    let onBellSelected: ((UUID) -> Void)?
+    @Environment(\.managedObjectContext) private var managedObjectContext
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
     @Binding var filters: BellFilters
-    @Query private var bells: [BellEntity]
-    @Query private var queriedLocations: [LocationEntity]
-    @Query private var queriedHomes: [HomeEntity]
-    @State private var bellPendingMove: BellEntity?
-    @State private var bellPendingDeletion: BellEntity?
+    @State private var catalogSnapshot = BellCatalogSnapshot()
+    @State private var bellPendingMove: BellListItem?
+    @State private var bellPendingDeletion: BellListItem?
     @State private var isPresentingDeleteConfirmation = false
-    @State private var persistenceError: Error?
     @State private var activeJumpPopoverSectionID: String?
     @State private var pendingScrollTargetID: String?
     @State private var isSelectionModeEnabled = false
@@ -124,7 +121,7 @@ struct BellCatalogView: View {
         layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
-        onBellSelected: ((BellEntity) -> Void)? = nil
+        onBellSelected: ((UUID) -> Void)? = nil
     ) {
         self.repository = repository
         self.collection = collection
@@ -132,19 +129,6 @@ struct BellCatalogView: View {
         self._layoutMode = layoutMode
         self._orderMode = orderMode
         self._filters = filters
-        if let collection {
-            let collectionID = Optional(collection.id)
-            _bells = Query(
-                filter: #Predicate<BellEntity> { bell in
-                    bell.collection?.id == collectionID
-                },
-                sort: [SortDescriptor(\.createdAt, order: .reverse)]
-            )
-        } else {
-            _bells = Query(sort: [SortDescriptor(\.createdAt, order: .reverse)])
-        }
-        _queriedLocations = Query()
-        _queriedHomes = Query()
         _viewModel = StateObject(
             wrappedValue: BellCatalogViewModel(
                 orderMode: orderMode.wrappedValue,
@@ -177,7 +161,7 @@ struct BellCatalogView: View {
         filters = BellFilters(attributes: [filter])
     }
 
-    private var locationsByID: [UUID: LocationEntity] {
+    private var locationsByID: [UUID: Location] {
         Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
     }
 
@@ -285,24 +269,6 @@ struct BellCatalogView: View {
         } message: { _ in
             Text(String(localized: "bell.context.delete.message"))
         }
-        .alert(
-            "Error",
-            isPresented: Binding(
-                get: { persistenceError != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        persistenceError = nil
-                    }
-                }
-            ),
-            presenting: persistenceError
-        ) { _ in
-            Button("OK") {
-                persistenceError = nil
-            }
-        } message: { error in
-            Text(error.localizedDescription)
-        }
         .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
             newValue?.kind.sensoryFeedback
         }
@@ -321,13 +287,15 @@ struct BellCatalogView: View {
             }
         }
         .onAppear {
-            viewModel.updateSource(bells: bells)
+            reloadCatalogSnapshot()
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
         }
-        .onChange(of: bells) { _, newValue in
-            viewModel.updateSource(bells: newValue)
-            pruneSelectionToVisibleBells()
+        .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextObjectsDidChange,
+            object: managedObjectContext
+        )) { _ in
+            reloadCatalogSnapshot()
         }
         .onChange(of: orderMode) { _, newValue in
             activeJumpPopoverSectionID = nil
@@ -567,20 +535,24 @@ struct BellCatalogView: View {
         }
     }
 
-    private var availableLocations: [LocationEntity] {
-        guard let collection else { return queriedLocations }
-        return queriedLocations.filter { $0.home?.id == collection.homeID }
+    private var availableLocations: [Location] {
+        guard let collection else { return catalogSnapshot.locations }
+        return catalogSnapshot.locations.filter { $0.homeID == collection.homeID }
     }
 
     private var locationPathByID: [UUID: String] {
-        Dictionary(
-            uniqueKeysWithValues: availableLocations.map { location in
-                (location.id, location.pathDisplayName)
-            }
-        )
+        catalogSnapshot.locationPathByID.filter { id, _ in
+            availableLocations.contains { $0.id == id }
+        }
     }
 
-    private var visibleBells: [BellEntity] {
+    private func reloadCatalogSnapshot() {
+        catalogSnapshot = BellCatalogSnapshot(context: managedObjectContext, collectionID: collection?.id)
+        viewModel.updateSource(bells: catalogSnapshot.bells)
+        pruneSelectionToVisibleBells()
+    }
+
+    private var visibleBells: [BellListItem] {
         switch displayModel.layout {
         case .empty:
             return []
@@ -599,9 +571,10 @@ struct BellCatalogView: View {
         selectedBellIDs.intersection(visibleBellIDs)
     }
 
-    private var selectedBells: [BellEntity] {
+    private var selectedBells: [BellListItem] {
         let selectedVisibleBellIDs = selectedVisibleBellIDs
-        return visibleBells.filter { selectedVisibleBellIDs.contains($0.id) }
+        return visibleBells
+            .filter { selectedVisibleBellIDs.contains($0.id) }
     }
 
     private func enterSelectionMode(with bellID: UUID) {
@@ -637,7 +610,7 @@ struct BellCatalogView: View {
     }
 
     private func bellGridView(
-        bells: [BellEntity],
+        bells: [BellListItem],
         cardSize: CGSize,
         gridMetrics: BellGridLayoutMode.GridMetrics,
         cardMetrics: BellGridLayoutMode.CardMetrics
@@ -658,12 +631,14 @@ struct BellCatalogView: View {
                 bellCardContextMenu(for: bell)
             },
             preview: { bell in
-                BellCardContextPreview(bell: bell, repository: repository)
+                if let record = catalogSnapshot.recordsByID[bell.id] {
+                    BellCardContextPreview(bell: record, repository: repository)
+                }
             }
         )
     }
 
-    private func handleBellCardTap(_ bell: BellEntity) {
+    private func handleBellCardTap(_ bell: BellListItem) {
         if didEndActivePinchGesture {
             didEndActivePinchGesture = false
             return
@@ -672,12 +647,12 @@ struct BellCatalogView: View {
         if isSelectionModeEnabled {
             toggleBellSelection(bell.id)
         } else if let onBellSelected {
-            onBellSelected(bell)
+            onBellSelected(bell.id)
         }
     }
 
     @ViewBuilder
-    private func bellCardContextMenu(for bell: BellEntity) -> some View {
+    private func bellCardContextMenu(for bell: BellListItem) -> some View {
         Button {
             bellPendingMove = bell
         } label: {
@@ -692,105 +667,24 @@ struct BellCatalogView: View {
         }
     }
 
-    private func duplicateBell(_ bell: BellEntity) {
-        let duplicatedBell = BellEntity(
-            id: UUID(),
-            title: bell.title,
-            notes: bell.notes,
-            acquiredYear: bell.acquiredYear,
-            createdAt: .now,
-            conditionRaw: bell.conditionRaw,
-            acquisitionMethodRaw: bell.acquisitionMethodRaw,
-            materialRaw: bell.materialRaw,
-            customMaterialName: bell.customMaterialName,
-            createdBy: bell.createdBy
-        )
-        duplicatedBell.collection = bell.collection
-        duplicatedBell.location = bell.location
-        duplicatedBell.originPlace = bell.originPlace
-        modelContext.insert(duplicatedBell)
-
-        duplicatedBell.mediaAssets = bell.sortedMediaAssets.enumerated().map { offset, asset in
-            let copy = MediaAssetEntity(
-                id: UUID(),
-                kindRaw: asset.kindRaw,
-                localIdentifier: asset.localIdentifier,
-                displayName: asset.displayName,
-                sortOrder: offset,
-                fileName: asset.fileName,
-                mimeType: asset.mimeType,
-                byteSize: asset.byteSize,
-                checksum: asset.checksum,
-                width: asset.width,
-                height: asset.height,
-                duration: asset.duration,
-                metadataJSON: asset.metadataJSON,
-                thumbnailData: asset.thumbnailData,
-                originalData: asset.originalData
-            )
-            copy.bell = duplicatedBell
-            modelContext.insert(copy)
-            return copy
-        }
-
-        duplicatedBell.tags = bell.sortedTags.enumerated().map { offset, tag in
-            let copy = BellTagEntity(value: tag.value, sortOrder: offset)
-            copy.bell = duplicatedBell
-            modelContext.insert(copy)
-            return copy
-        }
-
-        if saveModelContext() {
-            emitFeedback(.success)
-        }
-    }
-
-    private func moveBells(_ bells: [BellEntity], to locationID: UUID?) {
+    private func moveBells(_ bells: [BellListItem], to locationID: UUID?) {
         let location = locationID.flatMap { locationsByID[$0] }
         for bell in bells {
-            bell.location = location
+            guard let record = catalogSnapshot.recordsByID[bell.id] else { continue }
+            repository.saveBellRecord(record.moving(to: location, path: locationID.flatMap { locationPathByID[$0] } ?? ""))
         }
 
-        if saveModelContext() {
-            emitFeedback(.success)
-        }
+        reloadCatalogSnapshot()
+        emitFeedback(.success)
     }
 
-    private func deleteBells(_ bells: [BellEntity]) {
+    private func deleteBells(_ bells: [BellListItem]) {
         for bell in bells {
-            modelContext.delete(bell)
+            repository.deleteBellRecord(bellID: bell.id)
         }
 
-        if saveModelContext() {
-            emitFeedback(.warning)
-        }
-    }
-
-    private func saveModelContext() -> Bool {
-        do {
-            try modelContext.save()
-            return true
-        } catch {
-            modelContext.rollback()
-            persistenceError = error
-            assertionFailure("modelContext.save failed: \(error)")
-            return false
-        }
-    }
-
-    private func bellShareText(for bell: BellEntity) -> String {
-        var lines = [bell.title]
-
-        if bell.originPlace != nil {
-            lines.append(bell.placeDisplayName)
-        }
-
-        if !bell.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            lines.append("")
-            lines.append(bell.notes)
-        }
-
-        return lines.joined(separator: "\n")
+        reloadCatalogSnapshot()
+        emitFeedback(.warning)
     }
 
 }
@@ -957,20 +851,53 @@ private extension View {
     }
 }
 
-struct BellEntityDetailSheetContainer: View {
-    @State private var bell: BellRecord
+struct BellCatalogDetailSheetContainer: View {
+    let bellID: UUID
     let repository: any CatalogRepository
+    @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var bell: BellRecord?
 
-    init(bell: BellEntity, repository: any CatalogRepository) {
-        _bell = State(initialValue: bell.recordSnapshot)
+    init(bellID: UUID, repository: any CatalogRepository) {
+        self.bellID = bellID
         self.repository = repository
     }
 
     var body: some View {
         NavigationStack {
-            BellDetailView(bell: $bell, repository: repository)
+            if let bellBinding {
+                BellDetailView(bell: bellBinding, repository: repository)
+            } else {
+                ContentUnavailableView("bel.not_found", systemImage: "bell.slash")
+            }
         }
         .presentationBackground(.clear)
+        .task(id: bellID) {
+            reloadBell()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextObjectsDidChange,
+            object: managedObjectContext
+        )) { _ in
+            reloadBell()
+        }
+    }
+
+    private var bellBinding: Binding<BellRecord>? {
+        guard let currentBell = bell else { return nil }
+
+        return Binding(
+            get: {
+                bell ?? currentBell
+            },
+            set: {
+                bell = $0
+            }
+        )
+    }
+
+    private func reloadBell() {
+        let snapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext).loadSnapshot()
+        bell = snapshot.bells.first { $0.id == bellID }
     }
 }
 
@@ -978,8 +905,8 @@ private struct BellCardContextPreview: View {
     @State private var bell: BellRecord
     let repository: any CatalogRepository
 
-    init(bell: BellEntity, repository: any CatalogRepository) {
-        _bell = State(initialValue: bell.recordSnapshot)
+    init(bell: BellRecord, repository: any CatalogRepository) {
+        _bell = State(initialValue: bell)
         self.repository = repository
     }
 
@@ -992,8 +919,8 @@ private struct BellCardContextPreview: View {
 }
 
 private struct BellQuickMoveSheet: View {
-    let bell: BellEntity
-    let locations: [LocationEntity]
+    let bell: BellListItem
+    let locations: [Location]
     let locationPathByID: [UUID: String]
     let onSave: (UUID?) -> Void
 
@@ -1001,8 +928,8 @@ private struct BellQuickMoveSheet: View {
     @State private var selectedLocationID: UUID?
 
     init(
-        bell: BellEntity,
-        locations: [LocationEntity],
+        bell: BellListItem,
+        locations: [Location],
         locationPathByID: [UUID: String],
         onSave: @escaping (UUID?) -> Void
     ) {
@@ -1010,7 +937,7 @@ private struct BellQuickMoveSheet: View {
         self.locations = locations
         self.locationPathByID = locationPathByID
         self.onSave = onSave
-        _selectedLocationID = State(initialValue: bell.location?.id)
+        _selectedLocationID = State(initialValue: bell.locationID)
     }
 
     var body: some View {
@@ -1060,15 +987,6 @@ private struct BellQuickMoveSheet: View {
     }
 
     private var domainLocations: [Location] {
-        locations.map { entity in
-            Location(
-                id: entity.id,
-                homeID: entity.home?.id ?? UUID(),
-                parentLocationID: entity.parent?.id,
-                kind: entity.kind,
-                name: entity.name,
-                notes: entity.notes
-            )
-        }
+        locations
     }
 }
