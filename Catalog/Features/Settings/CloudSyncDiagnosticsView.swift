@@ -205,7 +205,6 @@ struct CloudSyncDiagnosticsView: View {
 
         do {
             try managedObjectContext.save()
-            logPersistentHistoryDiagnostics(for: probe)
             localSaveProbe = LocalSaveProbeResult(objectID: id, objectName: name, status: "Save success", timestamp: Date.now)
         } catch {
             localSaveProbe = LocalSaveProbeResult(
@@ -214,73 +213,6 @@ struct CloudSyncDiagnosticsView: View {
                 status: "Save failed",
                 errorDescription: error.localizedDescription,
                 timestamp: Date.now
-            )
-        }
-    }
-
-    private func logPersistentHistoryDiagnostics(for probe: NSManagedObject) {
-        let objectID = probe.objectID
-        let store = objectID.persistentStore
-        let storeName = store?.url?.lastPathComponent ?? "nil"
-        let isPrivateStore = storeName == "Private.sqlite"
-        let request = NSPersistentHistoryChangeRequest.fetchHistory(after: nil as NSPersistentHistoryToken?)
-        request.resultType = NSPersistentHistoryResultType.transactionsAndChanges
-
-        do {
-            let result = try managedObjectContext.execute(request) as? NSPersistentHistoryResult
-            let transactions = result?.result as? [NSPersistentHistoryTransaction] ?? []
-            let changes = transactions.flatMap { transaction in
-                transaction.changes ?? []
-            }
-            let homeChanges = changes.filter { change in
-                change.changedObjectID.entity.name == "HomeEntity"
-            }
-
-            print(
-                "PERSISTENT_HISTORY_DIAGNOSTICS:",
-                "objectID=\(objectID.uriRepresentation().absoluteString)",
-                "isTemporaryID=\(objectID.isTemporaryID)",
-                "persistentStore=\(storeName)",
-                "isPrivateStore=\(isPrivateStore)",
-                "transactions=\(transactions.count)",
-                "changes=\(changes.count)",
-                "homeEntityChanges=\(homeChanges.count)"
-            )
-
-            for transaction in transactions {
-                let transactionHomeChanges = (transaction.changes ?? []).filter { change in
-                    change.changedObjectID.entity.name == "HomeEntity"
-                }
-
-                guard !transactionHomeChanges.isEmpty else { continue }
-
-                print(
-                    "PERSISTENT_HISTORY_TRANSACTION:",
-                    "timestamp=\(String(describing: transaction.timestamp))",
-                    "author=\(transaction.author ?? "nil")",
-                    "storeID=\(transaction.storeID)",
-                    "bundleID=\(transaction.bundleID)",
-                    "processID=\(transaction.processID)",
-                    "homeEntityChanges=\(transactionHomeChanges.count)"
-                )
-
-                for change in transactionHomeChanges {
-                    print(
-                        "PERSISTENT_HISTORY_HOME_CHANGE:",
-                        "changeType=\(change.changeType.rawValue)",
-                        "objectID=\(change.changedObjectID.uriRepresentation().absoluteString)",
-                        "isProbeObject=\(change.changedObjectID == objectID)"
-                    )
-                }
-            }
-        } catch {
-            print(
-                "PERSISTENT_HISTORY_DIAGNOSTICS_ERROR:",
-                "objectID=\(objectID.uriRepresentation().absoluteString)",
-                "isTemporaryID=\(objectID.isTemporaryID)",
-                "persistentStore=\(storeName)",
-                "isPrivateStore=\(isPrivateStore)",
-                "error=\(error.localizedDescription)"
             )
         }
     }

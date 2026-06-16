@@ -2,11 +2,9 @@ import SwiftUI
 import CloudKit
 import CoreData
 import UIKit
-import os
 
 final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
     static var coreDataContainer: NSPersistentCloudKitContainer?
-    private let logger = Logger(subsystem: "com.izipuho.FolioraBells", category: "CloudKitSharing")
 
     func application(
         _ application: UIApplication,
@@ -28,8 +26,7 @@ final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
-        logger.info("received share metadata")
-        FolioraCloudKitShareInvitationAcceptor.accept(cloudKitShareMetadata, logger: logger)
+        FolioraCloudKitShareInvitationAcceptor.accept(cloudKitShareMetadata)
     }
 }
 
@@ -57,9 +54,6 @@ struct FolioraApp: App {
         WindowGroup {
             AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
                 .environment(\.managedObjectContext, coreDataContainer.viewContext)
-                .onOpenURL { url in
-                    print("OPEN_URL:", url.absoluteString)
-                }
         }
     }
 }

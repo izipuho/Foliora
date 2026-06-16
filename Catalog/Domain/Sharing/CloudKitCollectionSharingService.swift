@@ -31,20 +31,12 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
         for collectionID: UUID,
         title: String
     ) async throws -> CKShare {
-        log("start createShare collectionID=\(collectionID)")
         let collection = try await collectionEntity(for: collectionID)
         let persistentStore = try persistentStore(for: collection)
-        log("collection objectID=\(collection.objectID.uriRepresentation().absoluteString)")
-        log("collection persistentStore=\(describePersistentStore(persistentStore))")
 
         let sharesBefore = try persistentContainer.fetchShares(matching: [collection.objectID])
-        log("fetchShares before create result=\(describeShare(sharesBefore[collection.objectID]))")
 
         if let existingShare = sharesBefore[collection.objectID] {
-            if existingShare.url == nil {
-                log("existing share has nil url share=\(describeShare(existingShare))")
-            }
-
             return try await savedShare(
                 existingShare,
                 title: title,
@@ -54,10 +46,6 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
         }
 
         let share = try await share(collection)
-        log("container.share returned share=\(describeShare(share))")
-
-        let sharesAfter = try persistentContainer.fetchShares(matching: [collection.objectID])
-        log("fetchShares after create result=\(describeShare(sharesAfter[collection.objectID]))")
 
         return try await savedShare(
             share,
@@ -114,13 +102,7 @@ private extension CloudKitCollectionSharingService {
 
     func share(_ collection: NSManagedObject) async throws -> CKShare {
         try await withCheckedThrowingContinuation { continuation in
-            persistentContainer.share([collection], to: nil) { objectIDs, share, container, error in
-                self.log(
-                    "container.share completion objectIDs=\(objectIDs?.map { $0.uriRepresentation().absoluteString } ?? []) " +
-                    "containerIdentifier=\(container?.containerIdentifier ?? "nil") " +
-                    "share=\(self.describeShare(share)) error=\(String(describing: error))"
-                )
-
+            persistentContainer.share([collection], to: nil) { _, share, _, error in
                 if let error {
                     continuation.resume(throwing: error)
                     return
@@ -149,13 +131,10 @@ private extension CloudKitCollectionSharingService {
         }
 
         if needsPersisting {
-            log("persistUpdatedShare start share=\(describeShare(share))")
-            let persistedShare = try await persistUpdatedShare(share, in: persistentStore)
-            log("persistUpdatedShare result share=\(describeShare(persistedShare))")
+            _ = try await persistUpdatedShare(share, in: persistentStore)
 
             let sharesAfterPersist = try persistentContainer.fetchShares(matching: [objectID])
             let refetchedShare = sharesAfterPersist[objectID]
-            log("fetchShares after persistUpdatedShare result=\(describeShare(refetchedShare))")
 
             guard let refetchedShare else {
                 throw CloudKitCollectionSharingError.shareNotCreated
@@ -198,29 +177,6 @@ private extension CloudKitCollectionSharingService {
         }
 
         return persistentStore
-    }
-
-    func describePersistentStore(_ persistentStore: NSPersistentStore) -> String {
-        let identifier = persistentStore.identifier ?? "nil"
-        let url = persistentStore.url?.absoluteString ?? "nil"
-        let name = persistentStore.url?.lastPathComponent ?? "nil"
-        return "identifier=\(identifier) name=\(name) url=\(url)"
-    }
-
-    func describeShare(_ share: CKShare?) -> String {
-        guard let share else {
-            return "nil"
-        }
-
-        return "recordID=\(describeRecordID(share.recordID)) urlIsNil=\(share.url == nil) url=\(share.url?.absoluteString ?? "nil")"
-    }
-
-    func describeRecordID(_ recordID: CKRecord.ID) -> String {
-        "recordName=\(recordID.recordName) zoneName=\(recordID.zoneID.zoneName) ownerName=\(recordID.zoneID.ownerName)"
-    }
-
-    func log(_ message: String) {
-        print("CORE_DATA_CLOUD_SHARING:", message)
     }
 }
 

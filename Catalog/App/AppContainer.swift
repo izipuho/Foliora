@@ -11,7 +11,6 @@ struct AppContainer {
 
     init(coreDataContainer: NSPersistentCloudKitContainer) {
         self.repository = CoreDataCatalogRepository(context: coreDataContainer.viewContext)
-        print("Catalog repository backend: Core Data")
     }
 }
  
