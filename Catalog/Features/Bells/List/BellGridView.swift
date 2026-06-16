@@ -44,7 +44,7 @@ struct BellGridContainerView<Content: View>: View {
     }
 }
 
-struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview: View>: View {
+struct BellGridView<Bell: BellCardDisplayable>: View {
     let bells: [Bell]
     let layoutMode: BellGridLayoutMode
     let cardSize: CGSize
@@ -54,8 +54,31 @@ struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview
     let isSelectionModeEnabled: Bool
     let onTap: (Bell) -> Void
     let onSelect: ((Bell) -> Void)?
-    @ViewBuilder let contextMenu: (Bell) -> ContextMenuContent
-    @ViewBuilder let preview: (Bell) -> Preview
+    let contextMenu: ((Bell) -> AnyView)?
+
+    init(
+        bells: [Bell],
+        layoutMode: BellGridLayoutMode,
+        cardSize: CGSize,
+        gridMetrics: BellGridLayoutMode.GridMetrics,
+        cardMetrics: BellGridLayoutMode.CardMetrics,
+        selectedBellIDs: Set<UUID>,
+        isSelectionModeEnabled: Bool,
+        onTap: @escaping (Bell) -> Void,
+        onSelect: ((Bell) -> Void)?,
+        contextMenu: ((Bell) -> AnyView)? = nil
+    ) {
+        self.bells = bells
+        self.layoutMode = layoutMode
+        self.cardSize = cardSize
+        self.gridMetrics = gridMetrics
+        self.cardMetrics = cardMetrics
+        self.selectedBellIDs = selectedBellIDs
+        self.isSelectionModeEnabled = isSelectionModeEnabled
+        self.onTap = onTap
+        self.onSelect = onSelect
+        self.contextMenu = contextMenu
+    }
 
     var body: some View {
         LazyVGrid(columns: gridColumns, spacing: gridMetrics.spacing) {
@@ -72,11 +95,12 @@ struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview
         )
     }
 
+    @ViewBuilder
     private func bellCardButton(_ bell: Bell) -> some View {
         let isSelected = selectedBellIDs.contains(bell.id)
         let shouldShowSelectionOverlay = isSelectionModeEnabled && isSelected
 
-        return Button {
+        let button = Button {
             onTap(bell)
         } label: {
             BellCardView(
@@ -108,18 +132,22 @@ struct BellGridView<Bell: BellCardDisplayable, ContextMenuContent: View, Preview
             }
         }
         .buttonStyle(.plain)
-        .contextMenu {
-            if let onSelect {
-                Button {
-                    onSelect(bell)
-                } label: {
-                    Label(String(localized: "bell.context.select"), systemImage: "checkmark.circle")
-                }
-            }
 
-            contextMenu(bell)
-        } preview: {
-            preview(bell)
+        if let contextMenu {
+            button
+                .contextMenu {
+                    if let onSelect {
+                        Button {
+                            onSelect(bell)
+                        } label: {
+                            Label(String(localized: "bell.context.select"), systemImage: "checkmark.circle")
+                        }
+                    }
+
+                    contextMenu(bell)
+                }
+        } else {
+            button
         }
     }
 }

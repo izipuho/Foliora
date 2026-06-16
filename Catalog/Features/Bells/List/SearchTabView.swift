@@ -167,15 +167,7 @@ struct SearchTabView: View {
                         selectedBellIDs: [],
                         isSelectionModeEnabled: false,
                         onTap: openBell,
-                        onSelect: nil,
-                        contextMenu: { _ in
-                            EmptyView()
-                        },
-                        preview: { bell in
-                            if let record = searchSnapshot.recordsByID[bell.id] {
-                                SearchBellCardPreview(bell: record, repository: repository)
-                            }
-                        }
+                        onSelect: nil
                     )
                 }
             }
@@ -386,23 +378,6 @@ struct SearchTabView: View {
 
     private func collectionTitle(for bell: BellListItem) -> String {
         bell.collectionID.flatMap { searchSnapshot.collectionTitlesByID[$0] } ?? ""
-    }
-}
-
-private struct SearchBellCardPreview: View {
-    @State private var bell: BellRecord
-    let repository: any CatalogRepository
-
-    init(bell: BellRecord, repository: any CatalogRepository) {
-        _bell = State(initialValue: bell)
-        self.repository = repository
-    }
-
-    var body: some View {
-        NavigationStack {
-            BellDetailView(bell: $bell, repository: repository)
-        }
-        .allowsHitTesting(false)
     }
 }
 

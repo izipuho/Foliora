@@ -628,12 +628,7 @@ struct BellCatalogView: View {
                 enterSelectionMode(with: bell.id)
             },
             contextMenu: { bell in
-                bellCardContextMenu(for: bell)
-            },
-            preview: { bell in
-                if let record = catalogSnapshot.recordsByID[bell.id] {
-                    BellCardContextPreview(bell: record, repository: repository)
-                }
+                AnyView(bellCardContextMenu(for: bell))
             }
         )
     }
@@ -898,23 +893,6 @@ struct BellCatalogDetailSheetContainer: View {
     private func reloadBell() {
         let snapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext).loadSnapshot()
         bell = snapshot.bells.first { $0.id == bellID }
-    }
-}
-
-private struct BellCardContextPreview: View {
-    @State private var bell: BellRecord
-    let repository: any CatalogRepository
-
-    init(bell: BellRecord, repository: any CatalogRepository) {
-        _bell = State(initialValue: bell)
-        self.repository = repository
-    }
-
-    var body: some View {
-        NavigationStack {
-            BellDetailView(bell: $bell, repository: repository)
-        }
-        .allowsHitTesting(false)
     }
 }
 
