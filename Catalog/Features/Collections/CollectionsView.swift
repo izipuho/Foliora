@@ -14,6 +14,7 @@ struct CollectionsView: View {
     @State private var didAutoOpenSingleCollection = false
     @State private var isPresentingDeleteConfirmation = false
     @State private var collectionIDPendingDeletion: UUID?
+    @State private var collectionPendingSharing: CollectionSummary?
 
     init(
         repository: any CatalogRepository,
@@ -70,6 +71,13 @@ struct CollectionsView: View {
                     initialHomeID: homes.first?.id
                 ) { title, notes, homeID, backgroundStyle in
                     addCollection(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
+                }
+            }
+            .sheet(item: $collectionPendingSharing) { collection in
+                NavigationStack {
+                    CollectionSharingSheetLoaderView(collection: collection) {
+                        reloadCatalogSnapshot()
+                    }
                 }
             }
             .confirmationDialog(
@@ -129,6 +137,14 @@ struct CollectionsView: View {
                                 confirmDeleteCollection(collection.id)
                             } label: {
                                 deleteActionLabel(for: collection.id)
+                            }
+
+                            if canShareCollection(collection.id) {
+                                Button {
+                                    openCollectionSharing(collection)
+                                } label: {
+                                    Label(String(localized: "collection.sharing.swipe_action"), systemImage: "square.and.arrow.up")
+                                }
                             }
                         }
                     }
@@ -242,6 +258,19 @@ struct CollectionsView: View {
         isPresentingDeleteConfirmation = true
     }
 
+    private func openCollectionSharing(_ collection: CollectionSummary) {
+        collectionPendingSharing = collection
+    }
+
+    private func canShareCollection(_ collectionID: UUID) -> Bool {
+        switch catalogSnapshot.sharingStatus(for: collectionID) {
+        case .privateCollection, .sharedOwner:
+            return true
+        case .sharedParticipant:
+            return false
+        }
+    }
+
     private func deleteActionLabel(for collectionID: UUID) -> some View {
         let action = deleteActionPresentation(for: collectionID)
         return Label(action.title, systemImage: action.systemImage)
@@ -291,6 +320,82 @@ struct CollectionsView: View {
 private struct CollectionDeleteActionPresentation {
     let title: String
     let systemImage: String
+}
+
+private struct CollectionSharingSheetLoaderView: View {
+    let collection: CollectionSummary
+    let onSharingChanged: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var state = CollectionSharingState.placeholder
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+
+    var body: some View {
+        Group {
+            if isLoading {
+                ProgressView(String(localized: "collection.sharing.loading"))
+            } else if errorMessage != nil {
+                sharingLoadFailedView
+            } else if let sharingService {
+                CollectionSharingView(collection: collection, state: state, sharingService: sharingService) {
+                    onSharingChanged()
+                    Task {
+                        await loadSharingState()
+                    }
+                }
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button { dismiss() } label: { Image(systemName: "xmark") }
+            }
+        }
+        .task(id: collection.id) {
+            await loadSharingState()
+        }
+    }
+
+    private var sharingService: CloudKitCollectionSharingService? {
+        guard let persistentContainer = FolioraAppDelegate.coreDataContainer else {
+            return nil
+        }
+
+        return CloudKitCollectionSharingService(persistentContainer: persistentContainer)
+    }
+
+    private var sharingLoadFailedView: some View {
+        ContentUnavailableView {
+            Label(String(localized: "collection.sharing.load_failed.title"), systemImage: "icloud.slash")
+        } description: {
+            Text(String(localized: "collection.sharing.load_failed.message"))
+        } actions: {
+            Button(String(localized: "common.retry")) {
+                Task {
+                    await loadSharingState()
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func loadSharingState() async {
+        guard let sharingService else {
+            errorMessage = String(localized: "collection.sharing.load_failed.message")
+            isLoading = false
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            state = try await sharingService.sharingState(for: collection.id)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isLoading = false
+    }
 }
 
 @MainActor

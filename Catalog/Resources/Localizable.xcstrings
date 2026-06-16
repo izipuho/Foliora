@@ -2849,6 +2849,22 @@
         }
       }
     },
+    "collection.sharing.swipe_action" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поделиться"
+          }
+        }
+      }
+    },
     "collection.sharing.status.label" : {
       "localizations" : {
         "en" : {
