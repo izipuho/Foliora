@@ -13,7 +13,7 @@ final class CloudKitSharingSceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 enum FolioraCloudKitShareInvitationAcceptor {
     static func accept(_ metadata: CKShare.Metadata) {
-        guard let container = FolioraAppDelegate.coreDataContainer else {
+        guard let container = MainActor.assumeIsolated({ FolioraAppDelegate.coreDataContainer }) else {
             return
         }
 
