@@ -1,12 +1,18 @@
+import CloudKit
 import CoreData
 import Foundation
 
 @MainActor
 final class CoreDataCatalogRepository: CatalogRepository {
     private let context: NSManagedObjectContext
+    private let persistentContainer: NSPersistentCloudKitContainer?
 
-    init(context: NSManagedObjectContext) {
+    init(
+        context: NSManagedObjectContext,
+        persistentContainer: NSPersistentCloudKitContainer? = FolioraAppDelegate.coreDataContainer
+    ) {
         self.context = context
+        self.persistentContainer = persistentContainer
     }
 
     func saveHome(_ home: Home) {
@@ -53,10 +59,31 @@ final class CoreDataCatalogRepository: CatalogRepository {
         saveContext()
     }
 
+    func deleteResolution(for collectionID: UUID) -> CollectionDeleteResolution {
+        guard
+            let entity = fetchEntity(named: "CollectionEntity", by: collectionID),
+            let share = share(for: entity)
+        else {
+            return .deletePrivateCollection
+        }
+
+        if share.currentUserParticipant?.role == .owner {
+            return .deleteSharedCollectionAsOwner
+        }
+
+        return .leaveSharedCollectionAsParticipant
+    }
+
     func deleteCollection(collectionID: UUID) {
         guard let entity = fetchEntity(named: "CollectionEntity", by: collectionID) else { return }
-        context.delete(entity)
-        saveContext()
+
+        switch deleteResolution(for: collectionID) {
+        case .deletePrivateCollection, .deleteSharedCollectionAsOwner:
+            context.delete(entity)
+            saveContext()
+        case .leaveSharedCollectionAsParticipant:
+            leaveSharedCollection(entity)
+        }
     }
 
     func saveBellRecord(_ bell: BellRecord) {
@@ -294,6 +321,29 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
     private func fetchEntity(named entityName: String, by id: UUID) -> NSManagedObject? {
         fetchEntities(named: entityName, predicate: NSPredicate(format: "id == %@", id as NSUUID), fetchLimit: 1).first
+    }
+
+    private func share(for entity: NSManagedObject) -> CKShare? {
+        try? persistentContainer?.fetchShares(matching: [entity.objectID])[entity.objectID]
+    }
+
+    private func leaveSharedCollection(_ entity: NSManagedObject) {
+        guard
+            let persistentContainer,
+            let persistentStore = entity.objectID.persistentStore,
+            let share = share(for: entity)
+        else {
+            return
+        }
+
+        persistentContainer.purgeObjectsAndRecordsInZone(
+            with: share.recordID.zoneID,
+            in: persistentStore
+        ) { _, error in
+            if let error {
+                assertionFailure("Failed to leave shared collection: \(error)")
+            }
+        }
     }
 
     private func fetchEntities(

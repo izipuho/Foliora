@@ -12,6 +12,8 @@ struct CollectionsView: View {
     @State private var catalogSnapshot = CollectionsCatalogSnapshot()
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
+    @State private var isPresentingDeleteConfirmation = false
+    @State private var collectionIDPendingDeletion: UUID?
 
     init(
         repository: any CatalogRepository,
@@ -70,6 +72,25 @@ struct CollectionsView: View {
                     addCollection(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
                 }
             }
+            .confirmationDialog(
+                "Confirm Collection Action",
+                isPresented: $isPresentingDeleteConfirmation,
+                titleVisibility: .visible,
+                presenting: collectionIDPendingDeletion
+            ) { collectionID in
+                let action = deleteActionPresentation(for: collectionID)
+
+                Button(action.title, role: .destructive) {
+                    deleteCollection(collectionID)
+                    collectionIDPendingDeletion = nil
+                }
+
+                Button("Cancel", role: .cancel) {
+                    collectionIDPendingDeletion = nil
+                }
+            } message: { collectionID in
+                Text(deleteConfirmationMessage(for: collectionID))
+            }
     }
 
     @ViewBuilder
@@ -91,8 +112,10 @@ struct CollectionsView: View {
                         .buttonStyle(.plain)
                         .catalogContainerListRow()
                         .swipeActions {
-                            Button(String(localized: "common.delete"), role: .destructive) {
-                                deleteCollection(collection.id)
+                            Button(role: .destructive) {
+                                confirmDeleteCollection(collection.id)
+                            } label: {
+                                deleteActionLabel(for: collection.id)
                             }
                         }
                     }
@@ -201,6 +224,42 @@ struct CollectionsView: View {
         reloadCatalogSnapshot()
     }
 
+    private func confirmDeleteCollection(_ collectionID: UUID) {
+        collectionIDPendingDeletion = collectionID
+        isPresentingDeleteConfirmation = true
+    }
+
+    private func deleteActionLabel(for collectionID: UUID) -> some View {
+        let action = deleteActionPresentation(for: collectionID)
+        return Label(action.title, systemImage: action.systemImage)
+    }
+
+    private func deleteActionPresentation(for collectionID: UUID) -> CollectionDeleteActionPresentation {
+        switch repository.deleteResolution(for: collectionID) {
+        case .deletePrivateCollection, .deleteSharedCollectionAsOwner:
+            return CollectionDeleteActionPresentation(
+                title: String(localized: "common.delete"),
+                systemImage: "trash"
+            )
+        case .leaveSharedCollectionAsParticipant:
+            return CollectionDeleteActionPresentation(
+                title: "Leave Shared Collection",
+                systemImage: "link.slash"
+            )
+        }
+    }
+
+    private func deleteConfirmationMessage(for collectionID: UUID) -> String {
+        switch repository.deleteResolution(for: collectionID) {
+        case .deletePrivateCollection:
+            return "This collection and its items will be deleted."
+        case .deleteSharedCollectionAsOwner:
+            return "This shared collection and its items will be deleted for everyone."
+        case .leaveSharedCollectionAsParticipant:
+            return "You will leave this shared collection. Other participants will keep access."
+        }
+    }
+
     private func autoOpenSingleCollectionIfNeeded() {
         guard onCollectionSelected == nil else { return }
         guard !didAutoOpenSingleCollection else { return }
@@ -214,6 +273,11 @@ struct CollectionsView: View {
     private func reloadCatalogSnapshot() {
         catalogSnapshot = CollectionsCatalogSnapshot(context: managedObjectContext)
     }
+}
+
+private struct CollectionDeleteActionPresentation {
+    let title: String
+    let systemImage: String
 }
 
 @MainActor
@@ -296,11 +360,23 @@ private struct CollectionsCatalogSnapshot {
             return .privateCollection
         }
 
+        let participantsCount = acceptedParticipantsCount(in: share)
+
+        if participantsCount == 1, share.currentUserParticipant?.role == .owner {
+            return .privateCollection
+        }
+
         if share.currentUserParticipant?.role == .owner {
-            return .sharedOwner(participantsCount: max(share.participants.count, 1))
+            return .sharedOwner(participantsCount: participantsCount)
         }
 
         return .sharedParticipant
+    }
+
+    private static func acceptedParticipantsCount(in share: CKShare) -> Int {
+        share.participants.filter {
+            $0.role == .owner || $0.acceptanceStatus == .accepted
+        }.count
     }
 
     private static func home(from entity: NSManagedObject) -> Home {
