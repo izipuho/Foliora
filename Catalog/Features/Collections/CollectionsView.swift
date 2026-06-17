@@ -264,9 +264,9 @@ struct CollectionsView: View {
 
     private func canShareCollection(_ collectionID: UUID) -> Bool {
         switch catalogSnapshot.sharingStatus(for: collectionID) {
-        case .privateCollection, .sharedOwner:
+        case .privateOwner, .sharedOwner:
             return true
-        case .sharedParticipant:
+        case .sharedParticipant, .unknown:
             return false
         }
     }
@@ -285,7 +285,7 @@ struct CollectionsView: View {
             )
         case .leaveSharedCollectionAsParticipant:
             return CollectionDeleteActionPresentation(
-                title: String(localized: "collection.leave"),
+                title: "Leave Shared Collection",
                 systemImage: "icloud.slash"
             )
         }
@@ -433,7 +433,7 @@ private struct CollectionsCatalogSnapshot {
     }
 
     func sharingStatus(for collectionID: UUID) -> CollectionCardSharingStatus {
-        collectionSharingStatuses[collectionID] ?? .privateCollection
+        collectionSharingStatuses[collectionID] ?? .unknown
     }
 
     private static func fetchEntities(
@@ -462,33 +462,46 @@ private struct CollectionsCatalogSnapshot {
         )
     }
 
-    private static func sharesByObjectID(for entities: [NSManagedObject]) -> [NSManagedObjectID: CKShare] {
+    private static func sharesByObjectID(for entities: [NSManagedObject]) -> [NSManagedObjectID: CKShare?] {
         guard
             let persistentContainer = FolioraAppDelegate.coreDataContainer,
             !entities.isEmpty
         else {
-            return [:]
+            return Dictionary(uniqueKeysWithValues: entities.map { ($0.objectID, nil) })
         }
 
-        return (try? persistentContainer.fetchShares(matching: entities.map(\.objectID))) ?? [:]
+        do {
+            return try persistentContainer.fetchShares(matching: entities.map(\.objectID))
+                .mapValues { Optional($0) }
+        } catch {
+            return Dictionary(uniqueKeysWithValues: entities.map { ($0.objectID, nil) })
+        }
     }
 
-    private static func collectionSharingStatus(from share: CKShare?) -> CollectionCardSharingStatus {
-        guard let share else {
-            return .privateCollection
+    private static func collectionSharingStatus(from shareLookup: CKShare??) -> CollectionCardSharingStatus {
+        guard let shareLookup else {
+            return .privateOwner
+        }
+
+        guard let share = shareLookup else {
+            return .unknown
         }
 
         let participantsCount = acceptedParticipantsCount(in: share)
 
         if participantsCount == 1, share.currentUserParticipant?.role == .owner {
-            return .privateCollection
+            return .privateOwner
         }
 
         if share.currentUserParticipant?.role == .owner {
             return .sharedOwner(participantsCount: participantsCount)
         }
 
-        return .sharedParticipant
+        if share.currentUserParticipant?.acceptanceStatus == .accepted {
+            return .sharedParticipant
+        }
+
+        return .unknown
     }
 
     private static func acceptedParticipantsCount(in share: CKShare) -> Int {
@@ -538,9 +551,10 @@ private struct CollectionsCatalogSnapshot {
 }
 
 private enum CollectionCardSharingStatus {
-    case privateCollection
+    case privateOwner
     case sharedOwner(participantsCount: Int)
     case sharedParticipant
+    case unknown
 }
 
 private struct CollectionCard: View {
@@ -553,7 +567,7 @@ private struct CollectionCard: View {
 
     private var subtitleTrailing: String? {
         switch sharingStatus {
-        case .privateCollection:
+        case .privateOwner, .unknown:
             return nil
         case .sharedOwner(let participantsCount):
             return "\(participantsCount)"
@@ -564,7 +578,7 @@ private struct CollectionCard: View {
 
     private var subtitleTrailingIcon: String? {
         switch sharingStatus {
-        case .privateCollection:
+        case .privateOwner, .unknown:
             return nil
         case .sharedOwner:
             return "person.2"
