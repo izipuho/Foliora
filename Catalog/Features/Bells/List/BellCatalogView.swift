@@ -388,7 +388,7 @@ struct BellCatalogView: View {
                 pendingScrollTargetID = nil
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if isSelectionModeEnabled && !selectedVisibleBellIDs.isEmpty {
+                if canEditCollection && isSelectionModeEnabled && !selectedVisibleBellIDs.isEmpty {
                     BellCatalogSelectionBottomPanel(
                         selectedCount: selectedVisibleBellIDs.count,
                         accentColor: catalogStyle.accentColor,
@@ -627,12 +627,12 @@ struct BellCatalogView: View {
             selectedBellIDs: selectedBellIDs,
             isSelectionModeEnabled: isSelectionModeEnabled,
             onTap: handleBellCardTap,
-            onSelect: { bell in
+            onSelect: canEditCollection ? { bell in
                 enterSelectionMode(with: bell.id)
-            },
-            contextMenu: { bell in
+            } : nil,
+            contextMenu: canEditCollection ? { bell in
                 AnyView(bellCardContextMenu(for: bell))
-            }
+            } : nil
         )
     }
 
@@ -666,6 +666,8 @@ struct BellCatalogView: View {
     }
 
     private func moveBells(_ bells: [BellListItem], to locationID: UUID?) {
+        guard canEditCollection else { return }
+
         let location = locationID.flatMap { locationsByID[$0] }
         for bell in bells {
             guard let record = catalogSnapshot.recordsByID[bell.id] else { continue }
@@ -677,6 +679,8 @@ struct BellCatalogView: View {
     }
 
     private func deleteBells(_ bells: [BellListItem]) {
+        guard canEditCollection else { return }
+
         for bell in bells {
             repository.deleteBellRecord(bellID: bell.id)
         }
