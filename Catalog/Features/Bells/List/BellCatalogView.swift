@@ -96,6 +96,7 @@ struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collection: CollectionSummary?
     let onBellSelected: ((UUID) -> Void)?
+    let canEditCollection: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
@@ -121,11 +122,13 @@ struct BellCatalogView: View {
         layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
+        canEditCollection: Bool,
         onBellSelected: ((UUID) -> Void)? = nil
     ) {
         self.repository = repository
         self.collection = collection
         self.onBellSelected = onBellSelected
+        self.canEditCollection = canEditCollection
         self._layoutMode = layoutMode
         self._orderMode = orderMode
         self._filters = filters
@@ -849,18 +852,24 @@ private extension View {
 struct BellCatalogDetailSheetContainer: View {
     let bellID: UUID
     let repository: any CatalogRepository
+    let canEditCollection: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var bell: BellRecord?
 
-    init(bellID: UUID, repository: any CatalogRepository) {
+    init(bellID: UUID, repository: any CatalogRepository, canEditCollection: Bool) {
         self.bellID = bellID
         self.repository = repository
+        self.canEditCollection = canEditCollection
     }
 
     var body: some View {
         NavigationStack {
             if let bellBinding {
-                BellDetailView(bell: bellBinding, repository: repository)
+                BellDetailView(
+                    bell: bellBinding,
+                    repository: repository,
+                    canEditCollection: canEditCollection
+                )
             } else {
                 ContentUnavailableView("bel.not_found", systemImage: "bell.slash")
             }

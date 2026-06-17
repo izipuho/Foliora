@@ -256,7 +256,11 @@ private struct BellDetailSheetContainer: View {
 
     var body: some View {
         NavigationStack {
-            BellDetailView(bell: $bell, repository: repository)
+            BellDetailView(
+                bell: $bell,
+                repository: repository,
+                canEditCollection: false
+            )
         }
         .presentationBackground(.clear)
     }

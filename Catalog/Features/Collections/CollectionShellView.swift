@@ -24,6 +24,8 @@ struct CollectionShellView: View {
     @State private var isPresentingEditCollection = false
     @State private var isPresentingMap = false
     @State private var selectedBellID: UUID?
+    @State private var collectionSharingState: CollectionSharingState?
+    @State private var collectionSharingLoadError: Error?
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
     private let layoutMode: Binding<BellGridLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
@@ -83,6 +85,17 @@ struct CollectionShellView: View {
                 }
             }
         )
+    }
+
+    private var canEditCollection: Bool {
+        guard collectionSharingLoadError == nil else { return false }
+
+        switch collectionSharingState?.currentUserRole {
+        case .owner, .contributor:
+            return true
+        case .viewer, nil:
+            return false
+        }
     }
 
     var body: some View {
@@ -155,11 +168,18 @@ struct CollectionShellView: View {
             }
             .sheet(isPresented: isBellDetailPresented) {
                 if let selectedBellID {
-                    BellCatalogDetailSheetContainer(bellID: selectedBellID, repository: repository)
+                    BellCatalogDetailSheetContainer(
+                        bellID: selectedBellID,
+                        repository: repository,
+                        canEditCollection: canEditCollection
+                    )
                         .presentationDragIndicator(.visible)
                 }
             }
             .onAppear(perform: refreshContent)
+            .task(id: collection.id) {
+                await loadCollectionSharingState()
+            }
             .onReceive(NotificationCenter.default.publisher(
                 for: .NSManagedObjectContextObjectsDidChange,
                 object: managedObjectContext
@@ -175,6 +195,7 @@ struct CollectionShellView: View {
             layoutMode: selectedLayoutModeBinding,
             orderMode: selectedOrderBinding,
             filters: $selectedSummaryFilter,
+            canEditCollection: canEditCollection,
             onBellSelected: openBell
         )
         .id("collection-\(refreshID.uuidString)")
@@ -279,6 +300,20 @@ struct CollectionShellView: View {
         catalogSnapshot = snapshot
         collection = snapshot.collections.first(where: { $0.id == collection.id }) ?? collection
         refreshID = UUID()
+    }
+
+    @MainActor
+    private func loadCollectionSharingState() async {
+        collectionSharingState = nil
+        collectionSharingLoadError = nil
+
+        do {
+            collectionSharingState = try await CloudKitCollectionSharingService(
+                persistentContainer: coreDataContainer
+            ).sharingState(for: collection.id)
+        } catch {
+            collectionSharingLoadError = error
+        }
     }
 
     private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {

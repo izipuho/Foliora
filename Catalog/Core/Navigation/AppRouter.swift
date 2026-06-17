@@ -527,7 +527,11 @@ private struct BellDetailInspectorView: View {
         NavigationStack {
             Group {
                 if let bellBinding {
-                    BellDetailView(bell: bellBinding, repository: repository)
+                    BellDetailView(
+                        bell: bellBinding,
+                        repository: repository,
+                        canEditCollection: false
+                    )
                 } else {
                     ContentUnavailableView("bel.not_found", systemImage: "bell.slash")
                 }

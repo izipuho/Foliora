@@ -22,6 +22,7 @@ struct BellDetailView: View {
 
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
+    let canEditCollection: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var draftNotes = ""
@@ -33,9 +34,10 @@ struct BellDetailView: View {
     @State private var feedbackEvent: DetailFeedbackEvent?
     @State private var feedbackToken = 0
 
-    init(bell: Binding<BellRecord>, repository: any CatalogRepository) {
+    init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool) {
         _bell = bell
         self.repository = repository
+        self.canEditCollection = canEditCollection
     }
 
     var body: some View {
@@ -393,7 +395,8 @@ private struct BellDetailPreviewHost: View {
             if let binding = bellBinding {
                 BellDetailView(
                     bell: binding,
-                    repository: repository
+                    repository: repository,
+                    canEditCollection: false
                 )
             } else {
                 ContentUnavailableView(String(localized: "home.not_found.title"), systemImage: "bell.slash")
