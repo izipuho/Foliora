@@ -52,12 +52,12 @@ struct BellDetailView: View {
         .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
             newValue?.kind.sensoryFeedback
         }
-        .interactiveDismissDisabled(isNotesOrTagsDirty)
+        .interactiveDismissDisabled(canEditCollection && isNotesOrTagsDirty)
         .navigationTitle(bell.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
-            if isNotesOrTagsDirty {
+            if canEditCollection && isNotesOrTagsDirty {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
                     .accessibilityLabel(String(localized: "common.cancel"))
@@ -67,7 +67,7 @@ struct BellDetailView: View {
                     Button { saveNotesAndTagsChanges() } label: { Image(systemName: "checkmark") }
                     .accessibilityLabel(String(localized: "common.save"))
                 }
-            } else {
+            } else if canEditCollection {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
                     .accessibilityLabel(String(localized: "common.edit"))
@@ -92,7 +92,7 @@ struct BellDetailView: View {
             Text(String(localized: "bell.detail.unsaved_changes.message"))
         }
         .sheet(isPresented: $isPresentingEditor) {
-            if let collection = inferredCollection {
+            if canEditCollection, let collection = inferredCollection {
                 BellEditorView(
                     collection: collection,
                     repository: repository,
@@ -143,6 +143,7 @@ struct BellDetailView: View {
                     storagePath: bell.storageDisplayPath,
                     accentColor: detailAccentColor,
                     isStorageAssigned: bell.item.locationID != nil,
+                    canEditStorage: canEditCollection,
                     onEditStorage: {
                         isPresentingLocationPicker = true
                     }
@@ -162,14 +163,35 @@ struct BellDetailView: View {
                 isHighlighted: isNotesOrTagsDirty,
                 tint: detailAccentColor
             ) {
-                TextField(String(localized: "editor.note_history"), text: $draftNotes, axis: .vertical)
-                    .lineLimit(6, reservesSpace: true)
-                    .textFieldStyle(.plain)
+                if canEditCollection {
+                    TextField(String(localized: "editor.note_history"), text: $draftNotes, axis: .vertical)
+                        .lineLimit(6, reservesSpace: true)
+                        .textFieldStyle(.plain)
 
-                TagEditorSection(
-                    tagInput: $tagInput,
-                    tags: $draftTags
-                )
+                    TagEditorSection(
+                        tagInput: $tagInput,
+                        tags: $draftTags
+                    )
+                } else {
+                    Text(bell.notes.isEmpty ? String(localized: "editor.note_history") : bell.notes)
+                        .foregroundStyle(bell.notes.isEmpty ? .secondary : .primary)
+
+                    if bell.tags.isEmpty {
+                        Text(String(localized: "editor.tags.empty"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        TagFlowLayout(spacing: 8) {
+                            ForEach(bell.tags, id: \.self) { tag in
+                                Text("#\(tag)")
+                                    .font(.subheadline.weight(.medium))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(CatalogSemanticColors.groupedSurfaceElevated, in: Capsule())
+                            }
+                        }
+                    }
+                }
             }
         }
         .padding(.horizontal, CatalogLayoutInsets.screen)
@@ -294,18 +316,25 @@ struct BellDetailView: View {
     private var mediaAssetsBinding: Binding<[MediaAsset]> {
         Binding(
             get: { bell.mediaAssets },
-            set: { persist(mediaAssets: $0) }
+            set: {
+                guard canEditCollection else { return }
+                persist(mediaAssets: $0)
+            }
         )
     }
 
     private var locationIDBinding: Binding<UUID?> {
         Binding(
             get: { bell.item.locationID },
-            set: { persist(locationID: $0) }
+            set: {
+                guard canEditCollection else { return }
+                persist(locationID: $0)
+            }
         )
     }
 
     private func requestDiscardNotesAndTagsChanges() {
+        guard canEditCollection else { return }
         guard isNotesOrTagsDirty else { return }
         isPresentingUnsavedChangesConfirmation = true
     }
@@ -315,6 +344,7 @@ struct BellDetailView: View {
     }
 
     private func saveNotesAndTagsChanges() {
+        guard canEditCollection else { return }
         persist(
             notes: draftNotes.trimmingCharacters(in: .whitespacesAndNewlines),
             tags: draftTags
@@ -334,6 +364,7 @@ struct BellDetailView: View {
         mediaAssets: [MediaAsset]? = nil,
         locationID: UUID?? = nil
     ) {
+        guard canEditCollection else { return }
         let resolvedLocationID = locationID ?? bell.item.locationID
         let location = availableLocations.first(where: { $0.id == resolvedLocationID })
         let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })

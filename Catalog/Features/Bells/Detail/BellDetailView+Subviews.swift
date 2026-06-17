@@ -6,6 +6,7 @@ struct OriginStorageSection: View {
     let storagePath: String
     let accentColor: Color
     let isStorageAssigned: Bool
+    let canEditStorage: Bool
     let onEditStorage: () -> Void
 
     var body: some View {
@@ -16,6 +17,7 @@ struct OriginStorageSection: View {
                 storagePath: storagePath,
                 accentColor: accentColor,
                 isAssigned: isStorageAssigned,
+                canEditStorage: canEditStorage,
                 onEditStorage: onEditStorage
             )
         }
@@ -102,6 +104,7 @@ private struct StorageTile: View {
     let storagePath: String
     let accentColor: Color
     let isAssigned: Bool
+    let canEditStorage: Bool
     let onEditStorage: () -> Void
 
     private var pathParts: [String] {
@@ -112,10 +115,16 @@ private struct StorageTile: View {
     }
 
     var body: some View {
-        Button(action: onEditStorage) {
-            tileContent
+        Group {
+            if canEditStorage {
+                Button(action: onEditStorage) {
+                    tileContent
+                }
+                .buttonStyle(.plain)
+            } else {
+                tileContent
+            }
         }
-        .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
