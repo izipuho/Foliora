@@ -285,7 +285,7 @@ struct CollectionsView: View {
             )
         case .leaveSharedCollectionAsParticipant:
             return CollectionDeleteActionPresentation(
-                title: "Leave Shared Collection",
+                title: String(localized: "collection.leave"),
                 systemImage: "icloud.slash"
             )
         }
