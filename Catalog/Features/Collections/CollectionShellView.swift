@@ -98,6 +98,20 @@ struct CollectionShellView: View {
         }
     }
 
+    private var canManageCollectionSharing: Bool {
+        guard collectionSharingLoadError == nil else { return false }
+        return collectionSharingState?.currentUserRole == .owner
+    }
+
+    private var collectionSharingDestination: AnyView? {
+        guard canManageCollectionSharing else { return nil }
+
+        return AnyView(CollectionSharingStateLoaderView(
+            collection: collection,
+            sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer)
+        ))
+    }
+
     var body: some View {
         content
             .toolbar {
@@ -106,16 +120,20 @@ struct CollectionShellView: View {
                         selectedOrder: selectedOrderBinding,
                         selectedLayoutMode: selectedLayoutModeBinding,
                         isPresentingAddBellOptions: $isPresentingAddBellOptions,
+                        canEditCollection: canEditCollection,
                         onEdit: {
+                            guard canEditCollection else { return }
                             isPresentingEditCollection = true
                         },
                         onOpenMap: {
                             isPresentingMap = true
                         },
                         onLibrary: {
+                            guard canEditCollection else { return }
                             isPresentingPhotoPicker = true
                         },
                         onCamera: {
+                            guard canEditCollection else { return }
                             isPresentingCamera = true
                         }
                     )
@@ -236,10 +254,7 @@ struct CollectionShellView: View {
             initialBackgroundStyle: collection.backgroundStyle,
             hasPlacedItems: hasPlacedItems,
             allowsDeletion: true,
-            sharingDestination: AnyView(CollectionSharingStateLoaderView(
-                collection: collection,
-                sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer)
-            ))
+            sharingDestination: collectionSharingDestination
         ) { title, notes, homeID, backgroundStyle in
             saveCollectionEdits(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
         } onDelete: {
@@ -280,6 +295,8 @@ struct CollectionShellView: View {
     }
 
     private func saveCollectionEdits(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
+        guard canEditCollection else { return }
+
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let updatedCollection = Collection(
@@ -335,6 +352,7 @@ struct CollectionShellView: View {
 
     @MainActor
     private func addDraftPhotosAndPresentEditor(from items: [PhotosPickerItem]) async {
+        guard canEditCollection else { return }
         guard !items.isEmpty else { return }
 
         var newAssets: [MediaAsset] = []
@@ -374,6 +392,7 @@ struct CollectionShellView: View {
 
     @MainActor
     private func addCapturedPhotoAndPresentEditor(_ image: UIImage) async {
+        guard canEditCollection else { return }
         guard let media = try? imageMediaBuilder.build(from: image) else { return }
 
         draftMediaAssets = [
@@ -561,15 +580,18 @@ private struct CollectionShellToolbar: ToolbarContent {
     @Binding var selectedOrder: BellOrderMode
     @Binding var selectedLayoutMode: BellGridLayoutMode
     @Binding var isPresentingAddBellOptions: Bool
+    let canEditCollection: Bool
     let onEdit: () -> Void
     let onOpenMap: () -> Void
     let onLibrary: () -> Void
     let onCamera: () -> Void
 
     var body: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button(action: onEdit) {
-                floatingToolbarIcon(systemName: "square.and.pencil")
+        if canEditCollection {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: onEdit) {
+                    floatingToolbarIcon(systemName: "square.and.pencil")
+                }
             }
         }
 
@@ -626,12 +648,14 @@ private struct CollectionShellToolbar: ToolbarContent {
             }
         }
 
-        ToolbarItem(placement: .topBarTrailing) {
-            AddBellMenu(
-                isPresented: $isPresentingAddBellOptions,
-                onCamera: onCamera,
-                onLibrary: onLibrary
-            )
+        if canEditCollection {
+            ToolbarItem(placement: .topBarTrailing) {
+                AddBellMenu(
+                    isPresented: $isPresentingAddBellOptions,
+                    onCamera: onCamera,
+                    onLibrary: onLibrary
+                )
+            }
         }
     }
 
