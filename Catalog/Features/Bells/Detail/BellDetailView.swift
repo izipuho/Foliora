@@ -154,6 +154,7 @@ struct BellDetailView: View {
                 MediaSection(
                     itemID: bell.id,
                     mediaAssets: mediaAssetsBinding,
+                    allowsAdding: canEditCollection,
                     allowsDeletion: false
                 )
             }

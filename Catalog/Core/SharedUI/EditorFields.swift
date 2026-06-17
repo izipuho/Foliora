@@ -238,6 +238,7 @@ struct MediaSection: View {
     let itemID: UUID
     @Binding var mediaAssets: [MediaAsset]
     var analysisHighlightedAssetID: UUID? = nil
+    var allowsAdding = true
     var allowsDeletion = true
     var onPhotoAdded: ((UIImage) -> Void)? = nil
     private let mediaStore = LocalMediaFileStore.shared
@@ -272,18 +273,20 @@ struct MediaSection: View {
                     )
                 }
 
-                Button {
-                    isPresentingAddMediaOptions = true
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
-                        .background(.green, in: Circle())
-                        .frame(width: 48, height: 110)
+                if allowsAdding {
+                    Button {
+                        isPresentingAddMediaOptions = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 38, height: 38)
+                            .background(.green, in: Circle())
+                            .frame(width: 48, height: 110)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "editor.media.add"))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(String(localized: "editor.media.add"))
             }
         }
         .scrollIndicators(.hidden)
@@ -355,6 +358,7 @@ struct MediaSection: View {
 
     @MainActor
     private func addPhotos(from items: [PhotosPickerItem]) async {
+        guard allowsAdding else { return }
         guard !items.isEmpty else { return }
 
         for item in items {
@@ -379,6 +383,7 @@ struct MediaSection: View {
     }
 
     private func addCapturedPhoto(_ image: UIImage) {
+        guard allowsAdding else { return }
         guard let data = image.jpegData(compressionQuality: 0.92) else { return }
         guard let media = try? imageMediaBuilder.build(
             from: data,
