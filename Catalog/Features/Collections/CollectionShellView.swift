@@ -213,6 +213,7 @@ struct CollectionShellView: View {
             layoutMode: selectedLayoutModeBinding,
             orderMode: selectedOrderBinding,
             filters: $selectedSummaryFilter,
+            sharingState: collectionSharingState ?? .privateState,
             canEditCollection: canEditCollection,
             onBellSelected: openBell
         )

@@ -95,6 +95,7 @@ private extension BellFilters {
 struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collection: CollectionSummary?
+    let sharingState: CollectionSharingState
     let onBellSelected: ((UUID) -> Void)?
     let canEditCollection: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -122,11 +123,13 @@ struct BellCatalogView: View {
         layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
+        sharingState: CollectionSharingState,
         canEditCollection: Bool,
         onBellSelected: ((UUID) -> Void)? = nil
     ) {
         self.repository = repository
         self.collection = collection
+        self.sharingState = sharingState
         self.onBellSelected = onBellSelected
         self.canEditCollection = canEditCollection
         self._layoutMode = layoutMode
@@ -445,6 +448,7 @@ struct BellCatalogView: View {
         BellCatalogDashboardView(
             stats: displayModel.stats,
             accentColor: catalogStyle.accentColor,
+            sharingState: sharingState,
             onFilterApply: setFilter,
             onGeographyFocus: focusGeography,
             onResetFilters: {

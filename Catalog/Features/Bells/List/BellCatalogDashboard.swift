@@ -3,6 +3,7 @@ import SwiftUI
 struct BellCatalogDashboardView: View {
     let stats: BellCatalogStats
     let accentColor: Color
+    let sharingState: CollectionSharingState
     let onFilterApply: (BellPresenceFilter) -> Void
     let onGeographyFocus: (String) -> Void
     let onResetFilters: () -> Void
@@ -54,6 +55,13 @@ struct BellCatalogDashboardView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
+                    if sharingState.isShared {
+                        DashboardSharingCard(
+                            state: sharingState,
+                            tint: accentColor
+                        )
+                    }
+
                     DashboardDataHealthCard(
                         progress: dataHealthProgress,
                         tint: accentColor
@@ -245,6 +253,109 @@ private struct MetricPill: View {
         .padding(.horizontal, 14)
         .background(.ultraThinMaterial, in: Capsule(style: .continuous))
     }
+}
+
+private struct DashboardSharingCard: View {
+    let state: CollectionSharingState
+    let tint: Color
+
+    @ViewBuilder
+    var body: some View {
+        if let content {
+            HStack(spacing: 14) {
+                Image(systemName: content.systemImage)
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 56, height: 56)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "bell_catalog.dashboard.sharing"))
+                        .font(.headline)
+                    Text(content.value)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+
+                    if let detail = content.detail {
+                        Text(detail)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding()
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 8)
+        } else {
+            EmptyView()
+        }
+    }
+
+    private var content: DashboardSharingCardContent? {
+        guard state.isShared else {
+            assertionFailure("DashboardSharingCard should not be shown for private collections.")
+            return nil
+        }
+
+        switch state.currentUserRole {
+        case .owner:
+            return DashboardSharingCardContent(
+                systemImage: "person.2.fill",
+                value: localizedParticipantsCount,
+                detail: pendingInvitationsDetail
+            )
+        case .contributor:
+            return DashboardSharingCardContent(
+                systemImage: "person.crop.circle.badge.checkmark",
+                value: String(localized: "collection.sharing.role.contributor"),
+                detail: nil
+            )
+        case .viewer:
+            return DashboardSharingCardContent(
+                systemImage: "eye.fill",
+                value: String(localized: "collection.sharing.role.viewer"),
+                detail: nil
+            )
+        }
+    }
+
+    private var localizedParticipantsCount: String {
+        String.localizedStringWithFormat(
+            String(localized: "bell_catalog.dashboard.sharing.participants_count"),
+            acceptedParticipantCount
+        )
+    }
+
+    private var pendingInvitationsDetail: String? {
+        guard pendingInvitationCount > 0 else { return nil }
+
+        return String.localizedStringWithFormat(
+            String(localized: "bell_catalog.dashboard.sharing.pending_invitations_count"),
+            pendingInvitationCount
+        )
+    }
+
+    private var acceptedParticipantCount: Int {
+        state.participants.filter {
+            !$0.isCurrentUser && $0.acceptanceStatus == .accepted
+        }.count
+    }
+
+    private var pendingInvitationCount: Int {
+        state.participants.filter {
+            !$0.isCurrentUser && $0.acceptanceStatus == .pending
+        }.count
+    }
+}
+
+private struct DashboardSharingCardContent {
+    let systemImage: String
+    let value: String
+    let detail: String?
 }
 
 struct DashboardDataHealthCard: View {
