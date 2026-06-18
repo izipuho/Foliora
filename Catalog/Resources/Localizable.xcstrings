@@ -2893,13 +2893,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "People"
+            "value" : "Participants"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Люди"
+            "state" : "needs_review",
+            "value" : "Участники"
           }
         }
       }
