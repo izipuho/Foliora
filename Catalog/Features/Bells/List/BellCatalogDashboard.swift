@@ -336,7 +336,7 @@ private struct DashboardSharingCard: View {
 
     private var localizedParticipantsCount: String {
         String.localizedStringWithFormat(
-            String(localized: "bell_catalog.dashboard.sharing.participants_count"),
+            String(localized: "collection.sharing.participants_count"),
             acceptedParticipantCount
         )
     }

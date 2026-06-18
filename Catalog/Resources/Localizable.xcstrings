@@ -238,58 +238,6 @@
         }
       }
     },
-    "bell_catalog.dashboard.sharing.participants_count" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d participant"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d participants"
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "variations" : {
-            "plural" : {
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d участника"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d участников"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d участник"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d участника"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "bell_catalog.dashboard.sharing.pending_invitations_count" : {
       "localizations" : {
         "en" : {
@@ -2872,7 +2820,59 @@
         }
       }
     },
-    "collection.sharing.people.empty" : {
+    "collection.sharing.participants_count" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d participant"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d participants"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d участника"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d участников"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d участник"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%d участника"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "collection.sharing.participants.empty" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2888,7 +2888,7 @@
         }
       }
     },
-    "collection.sharing.people.section" : {
+    "collection.sharing.participants.section" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {

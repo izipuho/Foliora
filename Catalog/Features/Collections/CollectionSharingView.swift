@@ -44,9 +44,9 @@ struct CollectionSharingView: View {
                 )
             }
 
-            Section(String(localized: "collection.sharing.people.section")) {
+            Section(String(localized: "collection.sharing.participants.section")) {
                 if state.peopleParticipants.isEmpty {
-                    Text("collection.sharing.people.empty")
+                    Text("collection.sharing.participants.empty")
                         .foregroundStyle(.secondary)
                 } else {
                     participantsContent(state.peopleParticipants)
