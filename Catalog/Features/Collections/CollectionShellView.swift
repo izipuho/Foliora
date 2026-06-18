@@ -206,17 +206,40 @@ struct CollectionShellView: View {
             }
     }
 
+    @ViewBuilder
     private var content: some View {
-        BellCatalogView(
-            collection: collection,
-            repository: repository,
-            layoutMode: selectedLayoutModeBinding,
-            orderMode: selectedOrderBinding,
-            filters: $selectedSummaryFilter,
-            sharingState: collectionSharingState ?? .privateState,
-            canEditCollection: canEditCollection,
-            onBellSelected: openBell
-        )
+        Group {
+            if canEditCollection && collection.itemCount == 0 {
+                CatalogEmptyStateView(
+                    systemImage: "bell.slash",
+                    title: "bell_catalog.empty.title",
+                    message: "bell_catalog.empty.description",
+                    primaryActionTitle: "editor.bell.add",
+                    primaryActionSystemImage: "plus.circle.fill",
+                    primaryTint: collection.backgroundStyle.accentColor,
+                    primaryAction: { isPresentingAddBellOptions = true }
+                )
+                .background(
+                    LinearGradient(
+                        colors: collection.backgroundStyle.screenColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                )
+            } else {
+                BellCatalogView(
+                    collection: collection,
+                    repository: repository,
+                    layoutMode: selectedLayoutModeBinding,
+                    orderMode: selectedOrderBinding,
+                    filters: $selectedSummaryFilter,
+                    sharingState: collectionSharingState ?? .privateState,
+                    canEditCollection: canEditCollection,
+                    onBellSelected: openBell
+                )
+            }
+        }
         .id("collection-\(refreshID.uuidString)")
         .navigationTitle(collection.name)
         .navigationBarTitleDisplayMode(.inline)

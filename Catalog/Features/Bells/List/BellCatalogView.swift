@@ -347,10 +347,13 @@ struct BellCatalogView: View {
 
                     switch displayModel.layout {
                     case .empty:
-                        emptyBellsGridState(
-                            title: LocalizedStringKey(String(localized: "bell_catalog.empty.title")),
-                            description: LocalizedStringKey(String(localized: "bell_catalog.empty.description"))
+                        ContentUnavailableView(
+                            "bell_catalog.empty.title",
+                            systemImage: "bell.slash",
+                            description: Text("bell_catalog.empty.description")
                         )
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
                     case .grouped(let sections):
                         groupedBellSectionsContent(
                             sections: sections,
@@ -412,16 +415,6 @@ struct BellCatalogView: View {
             .animation(.easeInOut(duration: 0.22), value: isSelectionModeEnabled)
             .animation(.easeInOut(duration: 0.22), value: selectedVisibleBellIDs.isEmpty)
         }
-    }
-
-    private func emptyBellsGridState(title: LocalizedStringKey, description: LocalizedStringKey) -> some View {
-        ContentUnavailableView(
-            title,
-            systemImage: "bell.slash",
-            description: Text(description)
-        )
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
     }
 
     private var activeSummaryFilterSection: some View {
