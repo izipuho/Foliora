@@ -259,16 +259,25 @@ private struct DashboardSharingCard: View {
     let state: CollectionSharingState
     let tint: Color
 
+    private enum Layout {
+        static let horizontalSpacing: CGFloat = 10
+        static let textSpacing: CGFloat = 2
+        static let iconSize: CGFloat = 36
+        static let iconFontSize: CGFloat = 24
+        static let horizontalPadding: CGFloat = 14
+        static let verticalPadding: CGFloat = 12
+    }
+
     @ViewBuilder
     var body: some View {
         if let content {
-            HStack(spacing: 14) {
+            HStack(spacing: Layout.horizontalSpacing) {
                 Image(systemName: content.systemImage)
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(.system(size: Layout.iconFontSize, weight: .semibold))
                     .foregroundStyle(tint)
-                    .frame(width: 56, height: 56)
+                    .frame(width: Layout.iconSize, height: Layout.iconSize)
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Layout.textSpacing) {
                     Text(String(localized: "bell_catalog.dashboard.sharing"))
                         .font(.headline)
                     Text(content.value)
@@ -287,9 +296,11 @@ private struct DashboardSharingCard: View {
 
                 Spacer(minLength: 0)
             }
-            .padding()
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
-            .shadow(color: .black.opacity(0.05), radius: 8)
+            .dashboardCard(
+                width: nil,
+                horizontalPadding: Layout.horizontalPadding,
+                verticalPadding: Layout.verticalPadding
+            )
         } else {
             EmptyView()
         }
@@ -358,6 +369,20 @@ private struct DashboardSharingCardContent {
     let detail: String?
 }
 
+private extension View {
+    func dashboardCard(
+        width: CGFloat? = 240,
+        horizontalPadding: CGFloat = 16,
+        verticalPadding: CGFloat = 16
+    ) -> some View {
+        padding(.vertical, verticalPadding)
+            .padding(.horizontal, horizontalPadding)
+            .frame(width: width, alignment: .leading)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 8)
+    }
+}
+
 struct DashboardDataHealthCard: View {
     let progress: Double
     let tint: Color
@@ -390,10 +415,7 @@ struct DashboardDataHealthCard: View {
 
                 Spacer(minLength: 0)
             }
-            .padding()
-            .frame(width: 240, alignment: .leading)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
-            .shadow(color: .black.opacity(0.05), radius: 8)
+            .dashboardCard()
         }
         .buttonStyle(.plain)
     }
@@ -423,10 +445,7 @@ struct DashboardTopGeographyCard: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding()
-            .frame(width: 240, alignment: .leading)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
-            .shadow(color: .black.opacity(0.05), radius: 8)
+            .dashboardCard()
         }
         .buttonStyle(.plain)
     }
