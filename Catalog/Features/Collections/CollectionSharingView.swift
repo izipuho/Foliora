@@ -29,9 +29,14 @@ struct CollectionSharingView: View {
         Form {
             Section {
                 LabeledContent(
-                    String(localized: "collection.sharing.status.label"),
-                    value: sharingStatusText
-                )
+                    String(localized: "collection.sharing.status.label")
+                ) {
+                    Text(
+                        state.isShared
+                            ? "collection.sharing.status.shared"
+                            : "collection.sharing.status.private"
+                    )
+                }
 
                 LabeledContent(
                     String(localized: "collection.sharing.role.label"),
@@ -78,10 +83,6 @@ struct CollectionSharingView: View {
                 CloudSharingController(share: share, container: container, onSharingChanged: onSharingChanged)
             }
         }
-    }
-
-    private var sharingStatusText: String {
-        state.isShared ? "Shared" : String(localized: "collection.sharing.status.private")
     }
 
     @ViewBuilder
