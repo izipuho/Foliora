@@ -192,6 +192,8 @@ final class CatalogImportExportActor {
             placeEntities[place.id] = entity
         }
 
+        var tagEntitiesByCollectionAndName: [UUID: [String: NSManagedObject]] = [:]
+
         for bell in bundle.bellItems {
             let entity = makeEntity(named: "BellEntity")
             entity.setValue(bell.item.id, forKey: "id")
@@ -231,12 +233,23 @@ final class CatalogImportExportActor {
             }
             entity.setValue(Set(mediaEntities), forKey: "mediaAssets")
 
-            let tagEntities = bell.tags.enumerated().map { index, tag in
-                let tagEntity = makeEntity(named: "BellTagEntity")
-                tagEntity.setValue(UUID(), forKey: "id")
+            var seenNormalizedNames = Set<String>()
+            let tagEntities = bell.tags.enumerated().compactMap { index, tag -> NSManagedObject? in
+                guard let collectionEntity = collectionEntities[bell.item.collectionID] else { return nil }
+
+                let normalizedName = normalizedTagName(tag)
+                guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
+
+                let existingTagEntity = tagEntitiesByCollectionAndName[bell.item.collectionID]?[normalizedName]
+                let tagEntity = existingTagEntity ?? makeEntity(named: "BellTagEntity")
+                if tagEntity.value(forKey: "id") == nil {
+                    tagEntity.setValue(UUID(), forKey: "id")
+                }
+                tagEntity.setValue(normalizedName, forKey: "normalizedName")
                 tagEntity.setValue(tag, forKey: "value")
                 tagEntity.setValue(index, forKey: "sortOrder")
-                tagEntity.setValue(entity, forKey: "bell")
+                tagEntity.setValue(collectionEntity, forKey: "collection")
+                tagEntitiesByCollectionAndName[bell.item.collectionID, default: [:]][normalizedName] = tagEntity
                 return tagEntity
             }
             entity.setValue(Set(tagEntities), forKey: "tags")
@@ -460,6 +473,12 @@ final class CatalogImportExportActor {
 
     private func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
         entity.value(forKey: key) as? String ?? defaultValue
+    }
+
+    private func normalizedTagName(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 
     private func intValue(_ entity: NSManagedObject, _ key: String) -> Int {

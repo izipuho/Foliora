@@ -1,11 +1,13 @@
 import CloudKit
 import CoreData
 import Foundation
+import OSLog
 
 @MainActor
 final class CoreDataCatalogRepository: CatalogRepository {
     private let context: NSManagedObjectContext
     private let persistentContainer: NSPersistentCloudKitContainer?
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Catalog", category: "CoreDataCatalogRepository")
 
     init(
         context: NSManagedObjectContext,
@@ -13,6 +15,8 @@ final class CoreDataCatalogRepository: CatalogRepository {
     ) {
         self.context = context
         self.persistentContainer = persistentContainer
+        cleanupBellTags()
+        saveContext()
     }
 
     func saveHome(_ home: Home) {
@@ -185,19 +189,26 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func replaceTags(_ tags: [String], for bell: NSManagedObject) {
-        let existingTags = (bell.value(forKey: "tags") as? Set<NSManagedObject>) ?? []
-        existingTags.forEach(context.delete)
+        guard let collection = bell.value(forKey: "collection") as? NSManagedObject else {
+            bell.setValue(Set<NSManagedObject>(), forKey: "tags")
+            return
+        }
 
-        let newTags = tags.enumerated().map { index, tag in
-            let entity = makeEntity(named: "BellTagEntity")
-            entity.setValue(UUID(), forKey: "id")
-            entity.setValue(tag, forKey: "value")
-            entity.setValue(index, forKey: "sortOrder")
-            entity.setValue(bell, forKey: "bell")
+        var seenNormalizedNames = Set<String>()
+        let newTags = tags.enumerated().compactMap { index, tag -> NSManagedObject? in
+            let normalizedName = normalizedTagName(tag)
+            guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
+
+            let entity = tagEntity(named: tag, normalizedName: normalizedName, in: collection, sortOrder: index)
+            guard entity.value(forKey: "collection") as? NSManagedObject == collection else {
+                logger.error("Cross-collection tag detected: \(tag)")
+                return nil
+            }
             return entity
         }
 
         bell.setValue(Set(newTags), forKey: "tags")
+        deleteOrphanBellTags()
     }
 
     private func replaceMediaAssets(_ mediaAssets: [MediaAsset], for bell: NSManagedObject) {
@@ -355,6 +366,74 @@ final class CoreDataCatalogRepository: CatalogRepository {
         relatedObjects(collection, "collectionLocations").first {
             uuidValue($0, "id") == id || ($0.value(forKey: "sourceLocationID") as? UUID) == id
         }
+    }
+
+    private func tagEntity(
+        named value: String,
+        normalizedName: String,
+        in collection: NSManagedObject,
+        sortOrder: Int
+    ) -> NSManagedObject {
+        let entity = fetchEntities(
+            named: "BellTagEntity",
+            predicate: NSPredicate(format: "normalizedName == %@ AND collection == %@", normalizedName, collection),
+            fetchLimit: 1
+        ).first ?? makeEntity(named: "BellTagEntity")
+
+        if entity.value(forKey: "id") == nil {
+            entity.setValue(UUID(), forKey: "id")
+        }
+        entity.setValue(value, forKey: "value")
+        entity.setValue(normalizedName, forKey: "normalizedName")
+        entity.setValue(sortOrder, forKey: "sortOrder")
+        entity.setValue(collection, forKey: "collection")
+        return entity
+    }
+
+    private func cleanupBellTags() {
+        for tag in fetchEntities(named: "BellTagEntity") {
+            let normalizedName = normalizedTagName(stringValue(tag, "value"))
+            tag.setValue(normalizedName, forKey: "normalizedName")
+        }
+
+        for bell in fetchEntities(named: "BellEntity") {
+            guard let collection = bell.value(forKey: "collection") as? NSManagedObject else { continue }
+
+            var seenNormalizedNames = Set<String>()
+            let scopedTags = relatedObjects(bell, "tags").compactMap { tag -> NSManagedObject? in
+                let value = stringValue(tag, "value")
+                let normalizedName = normalizedTagName(value)
+                guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
+
+                if tag.value(forKey: "collection") as? NSManagedObject == collection {
+                    return tag
+                }
+
+                logger.error("Cross-collection tag detected: \(value)")
+                return tagEntity(
+                    named: value,
+                    normalizedName: normalizedName,
+                    in: collection,
+                    sortOrder: intValue(tag, "sortOrder")
+                )
+            }
+
+            bell.setValue(Set(scopedTags), forKey: "tags")
+        }
+
+        deleteOrphanBellTags()
+    }
+
+    private func deleteOrphanBellTags() {
+        for tag in fetchEntities(named: "BellTagEntity") where relatedObjects(tag, "bells").isEmpty {
+            context.delete(tag)
+        }
+    }
+
+    private func normalizedTagName(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 
     private func collectionHomeID(from entity: NSManagedObject) -> UUID {
