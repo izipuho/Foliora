@@ -51,10 +51,14 @@ struct AppShellView: View {
     @State private var homesPath = NavigationPath()
     @State private var settingsPath = NavigationPath()
     @State private var searchPath = NavigationPath()
+    @State private var selectedRootTab: RootTab = .collections
+    @State private var shareInvitationFailureMessage: String?
+    @ObservedObject private var shareInvitationController = CloudKitShareInvitationAcceptanceController.shared
 
     var body: some View {
         RootShellView(
             repository: repository,
+            selectedRootTab: $selectedRootTab,
             collectionsPath: $collectionsPath,
             homesPath: $homesPath,
             settingsPath: $settingsPath,
@@ -75,6 +79,23 @@ struct AppShellView: View {
             object: managedObjectContext
         )) { _ in
             reloadNavigationSnapshot()
+        }
+        .onChange(of: shareInvitationController.state) { _, state in
+            handleShareInvitationState(state)
+        }
+        .overlay {
+            ShareInvitationStatusOverlay(state: shareInvitationController.state)
+        }
+        .alert(
+            "collection.sharing.accept_failed",
+            isPresented: shareInvitationFailureAlertBinding
+        ) {
+            Button("OK") {
+                shareInvitationFailureMessage = nil
+                shareInvitationController.reset()
+            }
+        } message: {
+            Text(shareInvitationFailureMessage ?? "")
         }
     }
 
@@ -189,6 +210,72 @@ struct AppShellView: View {
     private func reloadNavigationSnapshot() {
         navigationSnapshot = AppNavigationCatalogSnapshot(context: managedObjectContext)
     }
+
+    private var shareInvitationFailureAlertBinding: Binding<Bool> {
+        Binding(
+            get: { shareInvitationFailureMessage != nil },
+            set: { isPresented in
+                guard !isPresented else { return }
+                shareInvitationFailureMessage = nil
+                shareInvitationController.reset()
+            }
+        )
+    }
+
+    private func handleShareInvitationState(_ state: CloudKitShareInvitationAcceptanceState) {
+        switch state {
+        case .idle, .accepting:
+            break
+        case .accepted:
+            managedObjectContext.refreshAllObjects()
+            reloadNavigationSnapshot()
+            selectedRootTab = .collections
+            collectionsPath = NavigationPath()
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.5))
+                if shareInvitationController.state == .accepted {
+                    shareInvitationController.reset()
+                }
+            }
+        case .failed(let message):
+            shareInvitationFailureMessage = message
+        }
+    }
+}
+
+private struct ShareInvitationStatusOverlay: View {
+    let state: CloudKitShareInvitationAcceptanceState
+
+    var body: some View {
+        switch state {
+        case .accepting:
+            statusCard {
+                ProgressView()
+                Text("collection.sharing.accepting")
+                    .font(.headline)
+            }
+        case .accepted:
+            statusCard {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.green)
+                Text("sharing.access.granted")
+                    .font(.headline)
+            }
+        case .idle, .failed:
+            EmptyView()
+        }
+    }
+
+    private func statusCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 14) {
+            content()
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 18)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .shadow(radius: 18)
+    }
 }
 
 private struct AppNavigationCatalogSnapshot {
@@ -280,6 +367,7 @@ private struct AppNavigationCatalogSnapshot {
 
 private struct RootShellView<Destination: View>: View {
     let repository: any CatalogRepository
+    @Binding var selectedRootTab: RootTab
     @Binding var collectionsPath: NavigationPath
     @Binding var homesPath: NavigationPath
     @Binding var settingsPath: NavigationPath
@@ -287,7 +375,6 @@ private struct RootShellView<Destination: View>: View {
     let destination: (AppDestination, Binding<BellGridLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
-    @State private var selectedRootTab: RootTab = .collections
     @State private var searchInitialQuery: String?
     @State private var searchResetID = UUID()
     @State private var selectedBellID: UUID?
