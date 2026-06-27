@@ -2734,6 +2734,23 @@
         }
       }
     },
+    "collection.sharing.access_granted" : {
+      "comment" : "A description of a user's access to collection.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Access granted"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ открыт"
+          }
+        }
+      }
+    },
     "collection.sharing.entry_title" : {
       "localizations" : {
         "en" : {
@@ -6568,23 +6585,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Хранение"
-          }
-        }
-      }
-    },
-    "sharing.access.granted" : {
-      "comment" : "A description of a user's access to collection.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Access granted"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Доступ открыт"
           }
         }
       }

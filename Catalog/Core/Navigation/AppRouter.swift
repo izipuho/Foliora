@@ -259,7 +259,7 @@ private struct ShareInvitationStatusOverlay: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.title)
                     .foregroundStyle(.green)
-                Text("sharing.access.granted")
+                Text("collection.sharing.access_granted")
                     .font(.headline)
             }
         case .idle, .failed:
