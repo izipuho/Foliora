@@ -6,9 +6,7 @@ struct CollectionSharingView: View {
     let collection: CollectionSummary
     let onSharingChanged: () -> Void
     @State private var state: CollectionSharingState
-    @State private var share: CKShare?
     @State private var isPresentingSharingController = false
-    @State private var isPreparingShare = false
     @State private var sharingAlert: SharingAlert?
     @State private var pendingSharingMessage: String?
 
@@ -64,11 +62,8 @@ struct CollectionSharingView: View {
             if canManageSharing {
                 Section {
                     Button("collection.sharing.share_cta") {
-                        Task {
-                            await openSharingController()
-                        }
+                        openSharingController()
                     }
-                    .disabled(isPreparingShare)
                 }
             }
         }
@@ -84,14 +79,14 @@ struct CollectionSharingView: View {
                 }
             }
         ) {
-            if let share {
-                CloudSharingController(
-                    share: share,
-                    container: container,
-                    onSharingChanged: onSharingChanged,
-                    onError: handleSharingControllerError
-                )
-            }
+            CloudSharingController(
+                collectionID: collection.id,
+                collectionTitle: collection.name,
+                container: container,
+                sharingService: sharingService,
+                onSharingChanged: onSharingChanged,
+                onError: handleSharingControllerError
+            )
         }
         .alert(
             "Управление доступом недоступно",
@@ -145,23 +140,8 @@ struct CollectionSharingView: View {
     }
 
     @MainActor
-    private func openSharingController() async {
-        isPreparingShare = true
-        defer { isPreparingShare = false }
-
-        do {
-            let readiness = try await sharingService.localSharingReadiness(for: collection.id)
-            guard readiness.isReady else {
-                presentSharingMessage(localReadinessMessage(reasons: readiness.reasons))
-                return
-            }
-
-            share = try await sharingService.createShare(for: collection.id, title: collection.name)
-            isPresentingSharingController = true
-        } catch {
-            share = nil
-            presentSharingMessage(sharingMessage(for: error))
-        }
+    private func openSharingController() {
+        isPresentingSharingController = true
     }
 
     private func isShareURLUnavailableError(_ error: any Error) -> Bool {
@@ -177,12 +157,6 @@ struct CollectionSharingView: View {
         }
 
         return "Ошибка подготовки CloudKit Sharing: \(errorMessages(error).joined(separator: " | "))"
-    }
-
-    private func localReadinessMessage(reasons: [String]) -> String {
-        let reasonText = reasons.isEmpty ? "unknown" : reasons.joined(separator: ", ")
-
-        return "Локальная проверка не пройдена: \(reasonText)"
     }
 
     private func errorMessages(_ error: any Error) -> [String] {
@@ -246,69 +220,59 @@ private struct SharingAlert: Identifiable {
 }
 
 private struct CloudSharingController: UIViewControllerRepresentable {
-    let share: CKShare
+    let collectionID: UUID
+    let collectionTitle: String
     let container: CKContainer
+    let sharingService: any CollectionSharingService
     let onSharingChanged: () -> Void
     let onError: (any Error) -> Void
 
-    func makeUIViewController(context: Context) -> UICloudSharingController {
-        let controller = UICloudSharingController(share: share, container: container)
-        controller.delegate = context.coordinator
-        controller.availablePermissions = [
-            .allowPrivate,
-            .allowReadOnly,
-            .allowReadWrite
-        ]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let itemProvider = NSItemProvider()
+        itemProvider.registerCKShare(
+            container: container,
+            allowedSharingOptions: allowedSharingOptions
+        ) {
+            do {
+                return try await sharingService.createShare(
+                    for: collectionID,
+                    title: collectionTitle
+                )
+            } catch {
+                await MainActor.run {
+                    onError(error)
+                }
+                throw error
+            }
+        }
+
+        let configuration = UIActivityItemsConfiguration(itemProviders: [itemProvider])
+        configuration.metadataProvider = { key in
+            key == .title ? collectionTitle : nil
+        }
+
+        let controller = UIActivityViewController(activityItemsConfiguration: configuration)
+        controller.completionWithItemsHandler = { _, completed, _, error in
+            if let error {
+                DispatchQueue.main.async {
+                    onError(error)
+                }
+            } else if completed {
+                onSharingChanged()
+            }
+        }
         return controller
     }
 
     func updateUIViewController(
-        _ uiViewController: UICloudSharingController,
+        _ uiViewController: UIActivityViewController,
         context: Context
     ) {}
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(
-            share: share,
-            onSharingChanged: onSharingChanged,
-            onError: onError
+    private var allowedSharingOptions: CKAllowedSharingOptions {
+        CKAllowedSharingOptions(
+            allowedParticipantPermissionOptions: [.readOnly, .readWrite],
+            allowedParticipantAccessOptions: [.specifiedRecipientsOnly]
         )
-    }
-
-    final class Coordinator: NSObject, UICloudSharingControllerDelegate {
-        private let share: CKShare
-        private let onSharingChanged: () -> Void
-        private let onError: (any Error) -> Void
-
-        init(
-            share: CKShare,
-            onSharingChanged: @escaping () -> Void,
-            onError: @escaping (any Error) -> Void
-        ) {
-            self.share = share
-            self.onSharingChanged = onSharingChanged
-            self.onError = onError
-        }
-
-        func itemTitle(for cloudSharingController: UICloudSharingController) -> String? {
-            share[CKShare.SystemFieldKey.title] as? String
-        }
-
-        func cloudSharingController(
-            _ csc: UICloudSharingController,
-            failedToSaveShareWithError error: any Error
-        ) {
-            DispatchQueue.main.async {
-                self.onError(error)
-            }
-        }
-
-        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
-            onSharingChanged()
-        }
-
-        func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
-            onSharingChanged()
-        }
     }
 }
