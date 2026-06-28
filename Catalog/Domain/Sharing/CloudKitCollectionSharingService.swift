@@ -5,6 +5,8 @@ import Foundation
 protocol CollectionSharingService: Sendable {
     func fetchShare(for collectionID: UUID) async throws -> CKShare?
 
+    func localSharingReadiness(for collectionID: UUID) async throws -> (isReady: Bool, reasons: [String])
+
     func createShare(for collectionID: UUID, title: String) async throws -> CKShare
 
     func sharingState(
@@ -25,6 +27,41 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
     func fetchShare(for collectionID: UUID) async throws -> CKShare? {
         let collection = try await collectionEntity(for: collectionID)
         return try persistentContainer.fetchShares(matching: [collection.objectID])[collection.objectID]
+    }
+
+    func localSharingReadiness(for collectionID: UUID) async throws -> (isReady: Bool, reasons: [String]) {
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CollectionEntity")
+            request.fetchLimit = 1
+            request.predicate = NSPredicate(format: "id == %@", collectionID as NSUUID)
+
+            guard let collection = try self.context.fetch(request).first else {
+                throw CloudKitCollectionSharingError.collectionNotFound(collectionID)
+            }
+
+            let hasPermanentObjectID = !collection.objectID.isTemporaryID
+            let hasPersistentStore = collection.objectID.persistentStore != nil
+            let isNotInserted = !collection.isInserted
+            let isNotDeleted = !collection.isDeleted
+            let hasNoChanges = !collection.hasChanges
+
+            let isReady = hasPermanentObjectID
+                && hasPersistentStore
+                && isNotInserted
+                && isNotDeleted
+                && hasNoChanges
+
+            var reasons: [String] = []
+            if !isReady {
+                if !hasPermanentObjectID { reasons.append("temporaryObjectID") }
+                if !hasPersistentStore { reasons.append("missingPersistentStore") }
+                if !isNotInserted { reasons.append("inserted") }
+                if !isNotDeleted { reasons.append("deleted") }
+                if !hasNoChanges { reasons.append("hasChanges") }
+            }
+
+            return (isReady, reasons)
+        }
     }
 
     func createShare(
@@ -130,7 +167,6 @@ private extension CloudKitCollectionSharingService {
                 collection.setValue(home.value(forKey: "iconName"), forKey: "homeIconName")
             }
 
-            self.syncCollectionLocations(for: collection)
             collection.setValue(nil, forKey: "home")
 
             if self.context.hasChanges {
@@ -307,7 +343,7 @@ private enum CloudKitCollectionSharingError: LocalizedError {
         case .shareNotCreated:
             return "Core Data did not return a CloudKit share."
         case .shareURLUnavailable:
-            return "Core Data did not return a saved CloudKit share URL."
+            return "Коллекция еще не загружена в iCloud. Попробуйте немного позже."
         }
     }
 }
