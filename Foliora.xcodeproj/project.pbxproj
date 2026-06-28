@@ -42,7 +42,6 @@
 		24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */; };
 		24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */; };
 		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
-		24F1A5022FD8C89000FC1717 /* CatalogContainerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5012FD8C89000FC1717 /* CatalogContainerCard.swift */; };
 		24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */; };
 		24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */; };
 		24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */; };
@@ -114,7 +113,6 @@
 		24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellBatchAddView.swift; sourceTree = "<group>"; };
 		24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEmptyStateView.swift; sourceTree = "<group>"; };
 		24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		24F1A5012FD8C89000FC1717 /* CatalogContainerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogContainerCard.swift; sourceTree = "<group>"; };
 		24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogContainerList.swift; sourceTree = "<group>"; };
 		24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSharingMapper.swift; sourceTree = "<group>"; };
 		24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingState.swift; sourceTree = "<group>"; };
@@ -321,7 +319,6 @@
 		C0000000000000000000003B /* SharedUI */ = {
 			isa = PBXGroup;
 			children = (
-				24F1A5012FD8C89000FC1717 /* CatalogContainerCard.swift */,
 				24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */,
 				24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */,
 				C0000000000000000000002E /* AsyncThumbnailLoader.swift */,
@@ -613,7 +610,6 @@
 			isa = PBXSourcesBuildPhase;
 			files = (
 				246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
-				24F1A5022FD8C89000FC1717 /* CatalogContainerCard.swift in Sources */,
 				24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */,
 				C000000000000000000000A2 /* AppContainer.swift in Sources */,
 				C000000000000000000000A3 /* AppRouter.swift in Sources */,
