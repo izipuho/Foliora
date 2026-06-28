@@ -96,6 +96,8 @@ struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collection: CollectionSummary?
     let sharingState: CollectionSharingState
+    let sharingService: (any CollectionSharingService)?
+    let onSharingChanged: () -> Void
     let onBellSelected: ((UUID) -> Void)?
     let canEditCollection: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -124,12 +126,16 @@ struct BellCatalogView: View {
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
         sharingState: CollectionSharingState,
+        sharingService: (any CollectionSharingService)? = nil,
+        onSharingChanged: @escaping () -> Void = {},
         canEditCollection: Bool,
         onBellSelected: ((UUID) -> Void)? = nil
     ) {
         self.repository = repository
         self.collection = collection
         self.sharingState = sharingState
+        self.sharingService = sharingService
+        self.onSharingChanged = onSharingChanged
         self.onBellSelected = onBellSelected
         self.canEditCollection = canEditCollection
         self._layoutMode = layoutMode
@@ -441,7 +447,10 @@ struct BellCatalogView: View {
         BellCatalogDashboardView(
             stats: displayModel.stats,
             accentColor: catalogStyle.accentColor,
+            collection: collection,
             sharingState: sharingState,
+            sharingService: sharingService,
+            onSharingChanged: onSharingChanged,
             onFilterApply: setFilter,
             onGeographyFocus: focusGeography,
             onResetFilters: {

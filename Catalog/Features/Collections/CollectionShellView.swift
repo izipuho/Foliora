@@ -235,6 +235,12 @@ struct CollectionShellView: View {
                     orderMode: selectedOrderBinding,
                     filters: $selectedSummaryFilter,
                     sharingState: collectionSharingState ?? .privateState,
+                    sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer),
+                    onSharingChanged: {
+                        Task {
+                            await loadCollectionSharingState()
+                        }
+                    },
                     canEditCollection: canEditCollection,
                     onBellSelected: openBell
                 )

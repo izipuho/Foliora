@@ -3,7 +3,10 @@ import SwiftUI
 struct BellCatalogDashboardView: View {
     let stats: BellCatalogStats
     let accentColor: Color
+    let collection: CollectionSummary?
     let sharingState: CollectionSharingState
+    let sharingService: (any CollectionSharingService)?
+    let onSharingChanged: () -> Void
     let onFilterApply: (BellPresenceFilter) -> Void
     let onGeographyFocus: (String) -> Void
     let onResetFilters: () -> Void
@@ -55,11 +58,8 @@ struct BellCatalogDashboardView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    if sharingState.isShared {
-                        DashboardSharingCard(
-                            state: sharingState,
-                            tint: accentColor
-                        )
+                    if shouldShowSharingCard {
+                        sharingCard
                     }
 
                     DashboardDataHealthCard(
@@ -109,6 +109,34 @@ struct BellCatalogDashboardView: View {
             content
                 .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
                 .opacity(phase.isIdentity ? 1 : 0.82)
+        }
+    }
+
+    private var shouldShowSharingCard: Bool {
+        sharingState.isShared || sharingState.currentUserRole == .owner
+    }
+
+    @ViewBuilder
+    private var sharingCard: some View {
+        if let collection, let sharingService {
+            NavigationLink {
+                CollectionSharingView(collection: collection, state: sharingState, sharingService: sharingService) {
+                    onSharingChanged()
+                }
+            } label: {
+                DashboardSharingCard(
+                    state: sharingState,
+                    tint: accentColor,
+                    showsAccessory: true
+                )
+            }
+            .buttonStyle(.plain)
+        } else {
+            DashboardSharingCard(
+                state: sharingState,
+                tint: accentColor,
+                showsAccessory: false
+            )
         }
     }
 
@@ -258,12 +286,14 @@ private struct MetricPill: View {
 private struct DashboardSharingCard: View {
     let state: CollectionSharingState
     let tint: Color
+    let showsAccessory: Bool
 
     private enum Layout {
         static let horizontalSpacing: CGFloat = 10
         static let textSpacing: CGFloat = 2
         static let iconSize: CGFloat = 36
         static let iconFontSize: CGFloat = 24
+        static let accessoryFontSize: CGFloat = 13
         static let horizontalPadding: CGFloat = 14
         static let verticalPadding: CGFloat = 12
     }
@@ -295,6 +325,12 @@ private struct DashboardSharingCard: View {
                 }
 
                 Spacer(minLength: 0)
+
+                if showsAccessory {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: Layout.accessoryFontSize, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                }
             }
             .dashboardCard(
                 width: nil,
@@ -307,16 +343,11 @@ private struct DashboardSharingCard: View {
     }
 
     private var content: DashboardSharingCardContent? {
-        guard state.isShared else {
-            assertionFailure("DashboardSharingCard should not be shown for private collections.")
-            return nil
-        }
-
         switch state.currentUserRole {
         case .owner:
             return DashboardSharingCardContent(
                 systemImage: "person.2.fill",
-                value: localizedParticipantsCount,
+                value: state.isShared ? localizedParticipantsCount : String(localized: "collection.sharing.status.private"),
                 detail: pendingInvitationsDetail
             )
         case .contributor:

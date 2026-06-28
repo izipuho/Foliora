@@ -61,13 +61,15 @@ struct CollectionSharingView: View {
                 }
             }
 
-            Section {
-                Button("collection.sharing.share_cta") {
-                    Task {
-                        await openSharingController()
+            if canManageSharing {
+                Section {
+                    Button("collection.sharing.share_cta") {
+                        Task {
+                            await openSharingController()
+                        }
                     }
+                    .disabled(isPreparingShare)
                 }
-                .disabled(isPreparingShare)
             }
         }
         .navigationTitle(String(localized: "collection.sharing.title"))
@@ -136,6 +138,10 @@ struct CollectionSharingView: View {
         case .viewer:
             String(localized: "collection.sharing.role.viewer")
         }
+    }
+
+    private var canManageSharing: Bool {
+        state.currentUserRole == .owner
     }
 
     @MainActor
