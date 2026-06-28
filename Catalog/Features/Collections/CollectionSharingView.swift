@@ -290,6 +290,44 @@ private struct CloudSharingController: UIViewControllerRepresentable {
             collectionTitle
         }
 
+        func itemThumbnailData(for csc: UICloudSharingController) -> Data? {
+            let size = CGSize(width: 256, height: 256)
+            let cornerRadius: CGFloat = 52
+            let symbolConfiguration = UIImage.SymbolConfiguration(pointSize: 124, weight: .semibold)
+
+            guard let symbol = UIImage(systemName: "bell.fill", withConfiguration: symbolConfiguration)?
+                .withTintColor(.white, renderingMode: .alwaysOriginal)
+            else {
+                return nil
+            }
+
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            format.opaque = false
+
+            let renderer = UIGraphicsImageRenderer(size: size, format: format)
+            var image: UIImage?
+            csc.traitCollection.performAsCurrent {
+                image = renderer.image { _ in
+                    UIColor.systemOrange.setFill()
+                    UIBezierPath(
+                        roundedRect: CGRect(origin: .zero, size: size),
+                        cornerRadius: cornerRadius
+                    ).fill()
+
+                    let symbolSize = symbol.size
+                    let symbolOrigin = CGPoint(
+                        x: (size.width - symbolSize.width) / 2,
+                        y: (size.height - symbolSize.height) / 2
+                    )
+
+                    symbol.draw(in: CGRect(origin: symbolOrigin, size: symbolSize))
+                }
+            }
+
+            return image?.pngData()
+        }
+
         func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
             onSharingChanged()
         }
