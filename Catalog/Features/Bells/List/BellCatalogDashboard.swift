@@ -126,16 +126,14 @@ struct BellCatalogDashboardView: View {
             } label: {
                 DashboardSharingCard(
                     state: sharingState,
-                    tint: accentColor,
-                    showsAccessory: true
+                    tint: accentColor
                 )
             }
             .buttonStyle(.plain)
         } else {
             DashboardSharingCard(
                 state: sharingState,
-                tint: accentColor,
-                showsAccessory: false
+                tint: accentColor
             )
         }
     }
@@ -286,27 +284,20 @@ private struct MetricPill: View {
 private struct DashboardSharingCard: View {
     let state: CollectionSharingState
     let tint: Color
-    let showsAccessory: Bool
 
     private enum Layout {
-        static let horizontalSpacing: CGFloat = 10
         static let textSpacing: CGFloat = 2
-        static let iconSize: CGFloat = 36
         static let iconFontSize: CGFloat = 24
-        static let accessoryFontSize: CGFloat = 13
-        static let horizontalPadding: CGFloat = 14
-        static let verticalPadding: CGFloat = 12
     }
 
     @ViewBuilder
     var body: some View {
         if let content {
-            HStack(spacing: Layout.horizontalSpacing) {
+            DashboardCard {
                 Image(systemName: content.systemImage)
                     .font(.system(size: Layout.iconFontSize, weight: .semibold))
                     .foregroundStyle(tint)
-                    .frame(width: Layout.iconSize, height: Layout.iconSize)
-
+            } content: {
                 VStack(alignment: .leading, spacing: Layout.textSpacing) {
                     Text(String(localized: "bell_catalog.dashboard.sharing"))
                         .font(.headline)
@@ -323,20 +314,7 @@ private struct DashboardSharingCard: View {
                             .fixedSize(horizontal: true, vertical: false)
                     }
                 }
-
-                Spacer(minLength: 0)
-
-                if showsAccessory {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: Layout.accessoryFontSize, weight: .semibold))
-                        .foregroundStyle(.tertiary)
-                }
             }
-            .dashboardCard(
-                width: nil,
-                horizontalPadding: Layout.horizontalPadding,
-                verticalPadding: Layout.verticalPadding
-            )
         } else {
             EmptyView()
         }
@@ -400,17 +378,36 @@ private struct DashboardSharingCardContent {
     let detail: String?
 }
 
-private extension View {
-    func dashboardCard(
-        width: CGFloat? = 240,
-        horizontalPadding: CGFloat = 16,
-        verticalPadding: CGFloat = 16
-    ) -> some View {
-        padding(.vertical, verticalPadding)
-            .padding(.horizontal, horizontalPadding)
-            .frame(width: width, alignment: .leading)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
-            .shadow(color: .black.opacity(0.05), radius: 8)
+private enum DashboardCardLayout {
+    static let minHeight: CGFloat = 88
+    static let horizontalSpacing: CGFloat = 14
+    static let horizontalPadding: CGFloat = 16
+    static let verticalPadding: CGFloat = 16
+}
+
+private struct DashboardCard<Leading: View, Content: View>: View {
+    let leading: Leading
+    let content: Content
+
+    init(
+        @ViewBuilder leading: () -> Leading,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.leading = leading()
+        self.content = content()
+    }
+
+    var body: some View {
+        HStack(spacing: DashboardCardLayout.horizontalSpacing) {
+            leading
+
+            content
+        }
+        .padding(.vertical, DashboardCardLayout.verticalPadding)
+        .padding(.horizontal, DashboardCardLayout.horizontalPadding)
+        .frame(minHeight: DashboardCardLayout.minHeight)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
+        .shadow(color: .black.opacity(0.05), radius: 8)
     }
 }
 
@@ -421,7 +418,7 @@ struct DashboardDataHealthCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            DashboardCard {
                 ZStack {
                     Circle()
                         .stroke(CatalogSemanticColors.separator, lineWidth: 8)
@@ -435,7 +432,7 @@ struct DashboardDataHealthCard: View {
                         .font(.subheadline.weight(.bold))
                 }
                 .frame(width: 56, height: 56)
-
+            } content: {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(String(localized: "bell_catalog.dashboard.health"))
                         .font(.headline)
@@ -443,10 +440,7 @@ struct DashboardDataHealthCard: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-
-                Spacer(minLength: 0)
             }
-            .dashboardCard()
         }
         .buttonStyle(.plain)
     }
@@ -461,10 +455,10 @@ struct DashboardTopGeographyCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            DashboardCard {
                 Text(flag)
                     .font(.system(size: 34))
-
+            } content: {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(String(localized: "bell_catalog.dashboard.top_geography"))
                         .font(.headline)
@@ -476,7 +470,6 @@ struct DashboardTopGeographyCard: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .dashboardCard()
         }
         .buttonStyle(.plain)
     }
