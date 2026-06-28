@@ -56,16 +56,26 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     func saveCollection(_ collection: Collection) {
-        let entity = fetchEntity(named: "CollectionEntity", by: collection.id) ?? makeEntity(named: "CollectionEntity")
+        let existingEntity = fetchEntity(named: "CollectionEntity", by: collection.id)
+        let previousHomeID = existingEntity.map(collectionHomeID)
+        let entity = existingEntity ?? makeEntity(named: "CollectionEntity")
         apply(collection, to: entity)
+        let didChangeHome = previousHomeID.map { $0 != collection.homeID } ?? false
 
         if let home = fetchEntity(named: "HomeEntity", by: collection.homeID) {
             applyHomeSnapshot(home, to: entity)
             entity.setValue(nil, forKey: "home")
-            syncCollectionLocations(from: locations(in: home), in: collection.homeID, for: entity)
+            if didChangeHome {
+                clearCollectionLocations(in: entity)
+            } else {
+                syncCollectionLocations(from: locations(in: home), in: collection.homeID, for: entity)
+            }
         } else {
             entity.setValue(collection.homeID, forKey: "homeID")
             entity.setValue(nil, forKey: "home")
+            if didChangeHome {
+                clearCollectionLocations(in: entity)
+            }
         }
 
         saveContext()
@@ -518,6 +528,14 @@ final class CoreDataCatalogRepository: CatalogRepository {
             guard let location = bell.value(forKey: "location") as? NSManagedObject else { continue }
             bell.setValue(fetchCollectionLocation(in: collection, by: uuidValue(location, "id")), forKey: "collectionLocation")
         }
+    }
+
+    private func clearCollectionLocations(in collection: NSManagedObject) {
+        for bell in relatedObjects(collection, "bells") {
+            bell.setValue(nil, forKey: "collectionLocation")
+        }
+
+        relatedObjects(collection, "collectionLocations").forEach(context.delete)
     }
 
     private func fetchCollections(in homeID: UUID) -> [NSManagedObject] {
