@@ -114,9 +114,12 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
         }
 
         let currentUserRole = participants.first { $0.isCurrentUser }?.role ?? .viewer
+        let hasExternalParticipants = participants.contains {
+            !$0.isCurrentUser && $0.role != .owner && $0.acceptanceStatus != .removed
+        }
 
         return CollectionSharingState(
-            isShared: true,
+            isShared: hasExternalParticipants,
             currentUserRole: currentUserRole,
             participants: participants
         )
