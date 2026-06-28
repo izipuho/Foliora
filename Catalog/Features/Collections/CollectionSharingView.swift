@@ -227,52 +227,75 @@ private struct CloudSharingController: UIViewControllerRepresentable {
     let onSharingChanged: () -> Void
     let onError: (any Error) -> Void
 
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let itemProvider = NSItemProvider()
-        itemProvider.registerCKShare(
-            container: container,
-            allowedSharingOptions: allowedSharingOptions
-        ) {
-            do {
-                return try await sharingService.createShare(
-                    for: collectionID,
-                    title: collectionTitle
-                )
-            } catch {
-                await MainActor.run {
-                    onError(error)
+    func makeUIViewController(context: Context) -> UICloudSharingController {
+        let controller = UICloudSharingController { _, completion in
+            Task {
+                do {
+                    let share = try await sharingService.createShare(
+                        for: collectionID,
+                        title: collectionTitle
+                    )
+
+                    completion(share, container, nil)
+                } catch {
+                    await MainActor.run {
+                        onError(error)
+                    }
+                    completion(nil, nil, error)
                 }
-                throw error
             }
         }
 
-        let configuration = UIActivityItemsConfiguration(itemProviders: [itemProvider])
-        configuration.metadataProvider = { key in
-            key == .title ? collectionTitle : nil
-        }
-
-        let controller = UIActivityViewController(activityItemsConfiguration: configuration)
-        controller.completionWithItemsHandler = { _, completed, _, error in
-            if let error {
-                DispatchQueue.main.async {
-                    onError(error)
-                }
-            } else if completed {
-                onSharingChanged()
-            }
-        }
+        controller.delegate = context.coordinator
+        controller.availablePermissions = [.allowReadOnly, .allowReadWrite, .allowPrivate]
         return controller
     }
 
     func updateUIViewController(
-        _ uiViewController: UIActivityViewController,
+        _ uiViewController: UICloudSharingController,
         context: Context
     ) {}
 
-    private var allowedSharingOptions: CKAllowedSharingOptions {
-        CKAllowedSharingOptions(
-            allowedParticipantPermissionOptions: [.readOnly, .readWrite],
-            allowedParticipantAccessOptions: [.specifiedRecipientsOnly]
+    func makeCoordinator() -> Coordinator {
+        Coordinator(
+            collectionTitle: collectionTitle,
+            onSharingChanged: onSharingChanged,
+            onError: onError
         )
+    }
+
+    final class Coordinator: NSObject, UICloudSharingControllerDelegate {
+        let collectionTitle: String
+        let onSharingChanged: () -> Void
+        let onError: (any Error) -> Void
+
+        init(
+            collectionTitle: String,
+            onSharingChanged: @escaping () -> Void,
+            onError: @escaping (any Error) -> Void
+        ) {
+            self.collectionTitle = collectionTitle
+            self.onSharingChanged = onSharingChanged
+            self.onError = onError
+        }
+
+        func cloudSharingController(
+            _ csc: UICloudSharingController,
+            failedToSaveShareWithError error: any Error
+        ) {
+            onError(error)
+        }
+
+        func itemTitle(for csc: UICloudSharingController) -> String? {
+            collectionTitle
+        }
+
+        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
+            onSharingChanged()
+        }
+
+        func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
+            onSharingChanged()
+        }
     }
 }
