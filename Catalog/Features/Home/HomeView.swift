@@ -138,18 +138,18 @@ struct HomeView: View {
         .buttonStyle(.plain)
         .catalogContainerListRow()
         .swipeActions {
+            Button(role: .destructive) {
+                requestDeleteHome(home.id)
+            } label: {
+                Label(String(localized: "common.delete"), systemImage: "trash")
+            }
+
             Button {
                 navigate?(.editHome(home.id))
             } label: {
                 Label(String(localized: "common.edit"), systemImage: "pencil")
             }
             .tint(.blue)
-
-            Button(role: .destructive) {
-                requestDeleteHome(home.id)
-            } label: {
-                Label(String(localized: "common.delete"), systemImage: "trash")
-            }
         }
     }
 

@@ -5,7 +5,6 @@ import CloudKit
 struct CollectionsView: View {
     let repository: any CatalogRepository
     let onCollectionSelected: ((UUID) -> Void)?
-    let onBellSelected: ((UUID) -> Void)?
     let navigate: ((AppDestination) -> Void)?
     let onOpenHomes: () -> Void
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -15,17 +14,16 @@ struct CollectionsView: View {
     @State private var isPresentingDeleteConfirmation = false
     @State private var collectionIDPendingDeletion: UUID?
     @State private var collectionPendingSharing: CollectionSummary?
+    @State private var collectionPendingEdit: CollectionSummary?
 
     init(
         repository: any CatalogRepository,
         onCollectionSelected: ((UUID) -> Void)? = nil,
-        onBellSelected: ((UUID) -> Void)? = nil,
         navigate: ((AppDestination) -> Void)? = nil,
         onOpenHomes: @escaping () -> Void = {}
     ) {
         self.repository = repository
         self.onCollectionSelected = onCollectionSelected
-        self.onBellSelected = onBellSelected
         self.navigate = navigate
         self.onOpenHomes = onOpenHomes
     }
@@ -78,6 +76,24 @@ struct CollectionsView: View {
                     CollectionSharingSheetLoaderView(collection: collection) {
                         reloadCatalogSnapshot()
                     }
+                }
+            }
+            .sheet(item: $collectionPendingEdit) { collection in
+                CollectionEditorView(
+                    homes: homes,
+                    screenTitle: String(localized: "collection.editor.edit_title"),
+                    initialTitle: collection.name,
+                    initialNotes: collection.subtitle,
+                    initialHomeID: collection.homeID,
+                    initialBackgroundStyle: collection.backgroundStyle
+                ) { title, notes, homeID, backgroundStyle in
+                    saveCollectionEdits(
+                        collection,
+                        title: title,
+                        notes: notes,
+                        homeID: homeID,
+                        backgroundStyle: backgroundStyle
+                    )
                 }
             }
             .confirmationDialog(
@@ -136,12 +152,22 @@ struct CollectionsView: View {
                             Button(role: .destructive) {
                                 confirmDeleteCollection(collection.id)
                             } label: {
-                                deleteActionLabel(for: collection.id)
+                                let action = deleteActionPresentation(for: collection.id)
+                                Label(action.title, systemImage: action.systemImage)
                             }
 
-                            if canShareCollection(collection.id) {
+                            if canManageCollection(collection.id) {
                                 Button {
-                                    openCollectionSharing(collection)
+                                    collectionPendingEdit = collection
+                                } label: {
+                                    Label(String(localized: "common.edit"), systemImage: "pencil")
+                                }
+                                .tint(.blue)
+                            }
+
+                            if canManageCollection(collection.id) {
+                                Button {
+                                    collectionPendingSharing = collection
                                 } label: {
                                     Label(String(localized: "collection.sharing.swipe_action"), systemImage: "square.and.arrow.up")
                                 }
@@ -258,22 +284,13 @@ struct CollectionsView: View {
         isPresentingDeleteConfirmation = true
     }
 
-    private func openCollectionSharing(_ collection: CollectionSummary) {
-        collectionPendingSharing = collection
-    }
-
-    private func canShareCollection(_ collectionID: UUID) -> Bool {
+    private func canManageCollection(_ collectionID: UUID) -> Bool {
         switch catalogSnapshot.sharingStatus(for: collectionID) {
         case .privateOwner, .sharedOwner:
             return true
         case .sharedParticipant, .unknown:
             return false
         }
-    }
-
-    private func deleteActionLabel(for collectionID: UUID) -> some View {
-        let action = deleteActionPresentation(for: collectionID)
-        return Label(action.title, systemImage: action.systemImage)
     }
 
     private func deleteActionPresentation(for collectionID: UUID) -> CollectionDeleteActionPresentation {
@@ -289,6 +306,28 @@ struct CollectionsView: View {
                 systemImage: "icloud.slash"
             )
         }
+    }
+
+    private func saveCollectionEdits(
+        _ collection: CollectionSummary,
+        title: String,
+        notes: String,
+        homeID: UUID,
+        backgroundStyle: CollectionBackgroundStyle
+    ) {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let updatedCollection = Collection(
+            id: collection.id,
+            homeID: homeID,
+            kind: collection.kind,
+            title: trimmedTitle.isEmpty ? collection.name : trimmedTitle,
+            notes: trimmedNotes,
+            backgroundStyle: backgroundStyle
+        )
+
+        repository.saveCollection(updatedCollection)
+        reloadCatalogSnapshot()
     }
 
     private func deleteConfirmationMessage(for collectionID: UUID) -> String {
@@ -560,10 +599,6 @@ private enum CollectionCardSharingStatus {
 private struct CollectionCard: View {
     let collection: CollectionSummary
     let sharingStatus: CollectionCardSharingStatus
-
-    private var detailLines: [String] {
-        [collection.kind.countLabel(for: collection.itemCount)]
-    }
 
     private var subtitleTrailing: String? {
         switch sharingStatus {
