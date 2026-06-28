@@ -31,8 +31,6 @@ struct HomeView: View {
         homeContent
     }
 
-    private var scrollContentBottomInset: CGFloat { 120 }
-
     private var homes: [Home] {
         catalogSnapshot.homes
     }
@@ -123,75 +121,36 @@ struct HomeView: View {
     @ViewBuilder
     private var homesRows: some View {
         ForEach(homes) { home in
-            if embedsNavigation {
-                Button {
-                    navigate?(.home(home.id))
-                } label: {
-                    HomeListCard(
-                        home: home,
-                        locations: locationsByHomeID[home.id] ?? [],
-                        collectionCount: collectionCount(in: home.id)
-                    )
-                }
-                .buttonStyle(.plain)
-                .catalogContainerListRow()
-                .swipeActions {
-                    Button(String(localized: "common.delete"), role: .destructive) {
-                        requestDeleteHome(home.id)
-                    }
-                }
-            } else if binding(for: home.id) != nil {
-                Button {
-                    navigate?(.home(home.id))
-                } label: {
-                    HomeListCard(
-                        home: home,
-                        locations: locationsByHomeID[home.id] ?? [],
-                        collectionCount: collectionCount(in: home.id)
-                    )
-                }
-                .buttonStyle(.plain)
-                .catalogContainerListRow()
-                .swipeActions {
-                    Button(String(localized: "common.delete"), role: .destructive) {
-                        requestDeleteHome(home.id)
-                    }
-                }
-            } else {
-                HomeListCard(
-                    home: home,
-                    locations: locationsByHomeID[home.id] ?? [],
-                    collectionCount: collectionCount(in: home.id)
-                )
-                .catalogContainerListRow()
-                .swipeActions {
-                    Button(String(localized: "common.delete"), role: .destructive) {
-                        requestDeleteHome(home.id)
-                    }
-                }
-            }
+            homeRow(for: home)
         }
     }
 
-    private func binding(for homeID: UUID) -> Binding<Home>? {
-        guard homes.contains(where: { $0.id == homeID }) else { return nil }
-        return Binding(
-            get: { homes.first(where: { $0.id == homeID }) ?? Home(id: homeID, name: "", notes: "") },
-            set: {
-                repository.saveHome($0)
-                reloadCatalogSnapshot()
+    private func homeRow(for home: Home) -> some View {
+        Button {
+            navigate?(.home(home.id))
+        } label: {
+            HomeListCard(
+                home: home,
+                locations: locationsByHomeID[home.id] ?? [],
+                collectionCount: collectionCount(in: home.id)
+            )
+        }
+        .buttonStyle(.plain)
+        .catalogContainerListRow()
+        .swipeActions {
+            Button {
+                navigate?(.editHome(home.id))
+            } label: {
+                Label(String(localized: "common.edit"), systemImage: "pencil")
             }
-        )
-    }
+            .tint(.blue)
 
-    private func locationsBinding(for homeID: UUID) -> Binding<[Location]> {
-        Binding(
-            get: { locationsByHomeID[homeID] ?? [] },
-            set: {
-                repository.saveLocations($0, in: homeID)
-                reloadCatalogSnapshot()
+            Button(role: .destructive) {
+                requestDeleteHome(home.id)
+            } label: {
+                Label(String(localized: "common.delete"), systemImage: "trash")
             }
-        )
+        }
     }
 
     private func collectionCount(in homeID: UUID) -> Int {
