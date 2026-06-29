@@ -1,6 +1,16 @@
 import CloudKit
 import CoreData
 import Foundation
+import OSLog
+
+private let sharingTraceLogger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+    category: "CloudSharing"
+)
+
+private func sharingTrace(_ message: String) {
+    sharingTraceLogger.debug("SHARING_TRACE \(message, privacy: .public)")
+}
 
 protocol CollectionSharingService: Sendable {
     func fetchShare(for collectionID: UUID) async throws -> CKShare?
@@ -25,8 +35,21 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
     }
 
     func fetchShare(for collectionID: UUID) async throws -> CKShare? {
-        let collection = try await collectionEntity(for: collectionID)
-        return try persistentContainer.fetchShares(matching: [collection.objectID])[collection.objectID]
+        let startedAt = CFAbsoluteTimeGetCurrent()
+        sharingTrace("fetchShare begin collectionID=\(collectionID)")
+        do {
+            let collection = try await collectionEntity(for: collectionID)
+            let share = try persistentContainer.fetchShares(matching: [collection.objectID])[collection.objectID]
+            sharingTrace(
+                "fetchShare end result=\(share == nil ? "notFound" : "found") durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) hasURL=\(share?.url != nil) collectionID=\(collectionID)"
+            )
+            return share
+        } catch {
+            sharingTrace(
+                "fetchShare end result=error durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) error=\(String(describing: error)) collectionID=\(collectionID)"
+            )
+            throw error
+        }
     }
 
     func localSharingReadiness(for collectionID: UUID) async throws -> (isReady: Bool, reasons: [String]) {
@@ -68,29 +91,67 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
         for collectionID: UUID,
         title: String
     ) async throws -> CKShare {
-        let collection = try await collectionEntity(for: collectionID)
-        let persistentStore = try persistentStore(for: collection)
+        let startedAt = CFAbsoluteTimeGetCurrent()
+        sharingTrace("createShare begin collectionID=\(collectionID)")
+        do {
+            let collection = try await collectionEntity(for: collectionID)
+            let persistentStore = try persistentStore(for: collection)
 
-        let sharesBefore = try persistentContainer.fetchShares(matching: [collection.objectID])
+            let searchStartedAt = CFAbsoluteTimeGetCurrent()
+            sharingTrace("existingShare search begin collectionID=\(collectionID)")
+            let sharesBefore: [NSManagedObjectID: CKShare]
+            do {
+                sharesBefore = try persistentContainer.fetchShares(matching: [collection.objectID])
+            } catch {
+                sharingTrace(
+                    "existingShare search end result=error durationMs=\((CFAbsoluteTimeGetCurrent() - searchStartedAt) * 1000) error=\(String(describing: error)) collectionID=\(collectionID)"
+                )
+                throw error
+            }
+            let existingShare = sharesBefore[collection.objectID]
+            sharingTrace(
+                "existingShare search end result=\(existingShare == nil ? "notFound" : "found") durationMs=\((CFAbsoluteTimeGetCurrent() - searchStartedAt) * 1000) hasURL=\(existingShare?.url != nil) collectionID=\(collectionID)"
+            )
 
-        if let existingShare = sharesBefore[collection.objectID] {
-            return try await savedShare(
-                existingShare,
+            if let existingShare {
+                let share: CKShare
+                if existingShare.url != nil {
+                    share = existingShare
+                } else {
+                    share = try await savedShare(
+                        existingShare,
+                        title: nil,
+                        branch: "existingShare",
+                        objectID: collection.objectID,
+                        in: persistentStore
+                    )
+                }
+                sharingTrace(
+                    "createShare end result=success existingShare=found durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) hasURL=\(share.url != nil) collectionID=\(collectionID)"
+                )
+                return share
+            }
+
+            try await prepareForSharing(collection)
+            let share = try await share(collection)
+
+            let savedShare = try await savedShare(
+                share,
                 title: title,
+                branch: "newShare",
                 objectID: collection.objectID,
                 in: persistentStore
             )
+            sharingTrace(
+                "createShare end result=success existingShare=notFound durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) hasURL=\(savedShare.url != nil) collectionID=\(collectionID)"
+            )
+            return savedShare
+        } catch {
+            sharingTrace(
+                "createShare end result=error durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) error=\(String(describing: error)) collectionID=\(collectionID)"
+            )
+            throw error
         }
-
-        try await prepareForSharing(collection)
-        let share = try await share(collection)
-
-        return try await savedShare(
-            share,
-            title: title,
-            objectID: collection.objectID,
-            in: persistentStore
-        )
     }
 
     func sharingState(
@@ -142,39 +203,64 @@ private extension CloudKitCollectionSharingService {
     }
 
     func share(_ collection: NSManagedObject) async throws -> CKShare {
-        try await withCheckedThrowingContinuation { continuation in
-            persistentContainer.share([collection], to: nil) { _, share, _, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
+        let startedAt = CFAbsoluteTimeGetCurrent()
+        sharingTrace("persistentContainer.share begin objectID=\(collection.objectID.uriRepresentation().absoluteString)")
+        do {
+            let share: CKShare = try await withCheckedThrowingContinuation { continuation in
+                persistentContainer.share([collection], to: nil) { _, share, _, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
 
-                if let share {
-                    continuation.resume(returning: share)
-                } else {
-                    continuation.resume(throwing: CloudKitCollectionSharingError.shareNotCreated)
+                    if let share {
+                        continuation.resume(returning: share)
+                    } else {
+                        continuation.resume(throwing: CloudKitCollectionSharingError.shareNotCreated)
+                    }
                 }
             }
+            sharingTrace(
+                "persistentContainer.share end result=success durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) hasURL=\(share.url != nil) objectID=\(collection.objectID.uriRepresentation().absoluteString)"
+            )
+            return share
+        } catch {
+            sharingTrace(
+                "persistentContainer.share end result=error durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) error=\(String(describing: error)) objectID=\(collection.objectID.uriRepresentation().absoluteString)"
+            )
+            throw error
         }
     }
 
     func prepareForSharing(_ collection: NSManagedObject) async throws {
+        let startedAt = CFAbsoluteTimeGetCurrent()
         let objectID = collection.objectID
+        sharingTrace("prepareForSharing begin objectID=\(objectID.uriRepresentation().absoluteString)")
 
-        try await context.perform {
-            let collection = try self.context.existingObject(with: objectID)
+        do {
+            try await context.perform {
+                let collection = try self.context.existingObject(with: objectID)
 
-            if let home = collection.value(forKey: "home") as? NSManagedObject {
-                collection.setValue(home.value(forKey: "id"), forKey: "homeID")
-                collection.setValue(home.value(forKey: "name"), forKey: "homeName")
-                collection.setValue(home.value(forKey: "iconName"), forKey: "homeIconName")
+                if let home = collection.value(forKey: "home") as? NSManagedObject {
+                    collection.setValue(home.value(forKey: "id"), forKey: "homeID")
+                    collection.setValue(home.value(forKey: "name"), forKey: "homeName")
+                    collection.setValue(home.value(forKey: "iconName"), forKey: "homeIconName")
+                }
+
+                collection.setValue(nil, forKey: "home")
+
+                if self.context.hasChanges {
+                    try self.context.save()
+                }
             }
-
-            collection.setValue(nil, forKey: "home")
-
-            if self.context.hasChanges {
-                try self.context.save()
-            }
+            sharingTrace(
+                "prepareForSharing end result=success durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) objectID=\(objectID.uriRepresentation().absoluteString)"
+            )
+        } catch {
+            sharingTrace(
+                "prepareForSharing end result=error durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) error=\(String(describing: error)) objectID=\(objectID.uriRepresentation().absoluteString)"
+            )
+            throw error
         }
     }
 
@@ -268,57 +354,127 @@ private extension CloudKitCollectionSharingService {
         entity.value(forKey: key) as? UUID ?? UUID()
     }
 
+    func normalizedShareTitle(_ title: String?) -> String {
+        title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    func needsTitleUpdate(_ share: CKShare, title: String) -> Bool {
+        let newTitle = normalizedShareTitle(title)
+        guard !newTitle.isEmpty else { return false }
+
+        let currentTitle = normalizedShareTitle(share[CKShare.SystemFieldKey.title] as? String)
+        return currentTitle != newTitle
+    }
+
     func savedShare(
         _ share: CKShare,
         title: String? = nil,
+        branch: String,
         objectID: NSManagedObjectID,
         in persistentStore: NSPersistentStore
     ) async throws -> CKShare {
         var needsPersisting = share.url == nil
+        var persistReasons: [String] = []
+        if share.url == nil {
+            persistReasons.append("missingURL")
+        }
+        let initialURLStartedAt = CFAbsoluteTimeGetCurrent()
+        sharingTrace(
+            "shareURL check begin objectID=\(objectID.uriRepresentation().absoluteString)"
+        )
+        sharingTrace(
+            "shareURL check end result=success durationMs=\((CFAbsoluteTimeGetCurrent() - initialURLStartedAt) * 1000) hasURL=\(share.url != nil) objectID=\(objectID.uriRepresentation().absoluteString)"
+        )
 
-        if let title, share[CKShare.SystemFieldKey.title] as? String != title {
+        if let title, needsTitleUpdate(share, title: title) {
+            persistReasons.append("titleChanged")
             share[CKShare.SystemFieldKey.title] = title
             needsPersisting = true
         }
 
         if needsPersisting {
+            sharingTrace(
+                "persist decision branch=\(branch) hasURL=\(share.url != nil) needsPersisting=\(needsPersisting) reasons=[\(persistReasons.joined(separator: ","))]"
+            )
             _ = try await persistUpdatedShare(share, in: persistentStore)
 
-            let sharesAfterPersist = try persistentContainer.fetchShares(matching: [objectID])
+            let refetchStartedAt = CFAbsoluteTimeGetCurrent()
+            sharingTrace("postPersist fetchShare begin objectID=\(objectID.uriRepresentation().absoluteString)")
+            let sharesAfterPersist: [NSManagedObjectID: CKShare]
+            do {
+                sharesAfterPersist = try persistentContainer.fetchShares(matching: [objectID])
+            } catch {
+                sharingTrace(
+                    "postPersist fetchShare end result=error durationMs=\((CFAbsoluteTimeGetCurrent() - refetchStartedAt) * 1000) error=\(String(describing: error)) objectID=\(objectID.uriRepresentation().absoluteString)"
+                )
+                throw error
+            }
             let refetchedShare = sharesAfterPersist[objectID]
+            sharingTrace(
+                "postPersist fetchShare end result=\(refetchedShare == nil ? "notFound" : "found") durationMs=\((CFAbsoluteTimeGetCurrent() - refetchStartedAt) * 1000) hasURL=\(refetchedShare?.url != nil) objectID=\(objectID.uriRepresentation().absoluteString)"
+            )
 
             guard let refetchedShare else {
                 throw CloudKitCollectionSharingError.shareNotCreated
             }
 
+            let postPersistURLStartedAt = CFAbsoluteTimeGetCurrent()
+            sharingTrace("postPersist shareURL begin objectID=\(objectID.uriRepresentation().absoluteString)")
             guard refetchedShare.url != nil else {
+                sharingTrace(
+                    "postPersist shareURL end result=error durationMs=\((CFAbsoluteTimeGetCurrent() - postPersistURLStartedAt) * 1000) hasURL=false objectID=\(objectID.uriRepresentation().absoluteString)"
+                )
                 throw CloudKitCollectionSharingError.shareURLUnavailable
             }
+            sharingTrace(
+                "postPersist shareURL end result=success durationMs=\((CFAbsoluteTimeGetCurrent() - postPersistURLStartedAt) * 1000) hasURL=true objectID=\(objectID.uriRepresentation().absoluteString)"
+            )
 
             return refetchedShare
         }
 
+        let savedShareURLStartedAt = CFAbsoluteTimeGetCurrent()
+        sharingTrace("savedShare shareURL begin objectID=\(objectID.uriRepresentation().absoluteString)")
         guard share.url != nil else {
+            sharingTrace(
+                "savedShare shareURL end result=error durationMs=\((CFAbsoluteTimeGetCurrent() - savedShareURLStartedAt) * 1000) hasURL=false objectID=\(objectID.uriRepresentation().absoluteString)"
+            )
             throw CloudKitCollectionSharingError.shareURLUnavailable
         }
+        sharingTrace(
+            "savedShare shareURL end result=success durationMs=\((CFAbsoluteTimeGetCurrent() - savedShareURLStartedAt) * 1000) hasURL=true objectID=\(objectID.uriRepresentation().absoluteString)"
+        )
 
         return share
     }
 
     func persistUpdatedShare(_ share: CKShare, in persistentStore: NSPersistentStore) async throws -> CKShare {
-        try await withCheckedThrowingContinuation { continuation in
-            persistentContainer.persistUpdatedShare(share, in: persistentStore) { persistedShare, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
+        let startedAt = CFAbsoluteTimeGetCurrent()
+        sharingTrace("persistUpdatedShare begin hasURL=\(share.url != nil)")
+        do {
+            let persistedShare: CKShare = try await withCheckedThrowingContinuation { continuation in
+                persistentContainer.persistUpdatedShare(share, in: persistentStore) { persistedShare, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
 
-                if let persistedShare {
-                    continuation.resume(returning: persistedShare)
-                } else {
-                    continuation.resume(throwing: CloudKitCollectionSharingError.shareNotCreated)
+                    if let persistedShare {
+                        continuation.resume(returning: persistedShare)
+                    } else {
+                        continuation.resume(throwing: CloudKitCollectionSharingError.shareNotCreated)
+                    }
                 }
             }
+            sharingTrace(
+                "persistUpdatedShare end result=success durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) hasURL=\(persistedShare.url != nil)"
+            )
+            return persistedShare
+        } catch {
+            sharingTrace(
+                "persistUpdatedShare end result=error durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) error=\(String(describing: error))"
+            )
+            throw error
         }
     }
 

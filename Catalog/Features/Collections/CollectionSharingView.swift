@@ -1,14 +1,25 @@
 import CloudKit
 import CoreData
+import Foundation
+import OSLog
 import SwiftUI
+
+private let sharingTraceLogger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+    category: "CloudSharing"
+)
+
+private func sharingTrace(_ message: String) {
+    sharingTraceLogger.debug("SHARING_TRACE \(message, privacy: .public)")
+}
 
 struct CollectionSharingView: View {
     let collection: CollectionSummary
     let onSharingChanged: () -> Void
     @State private var state: CollectionSharingState
-    @State private var isPresentingSharingController = false
     @State private var sharingAlert: SharingAlert?
     @State private var pendingSharingMessage: String?
+    @State private var sharingControllerMode: CloudSharingControllerMode?
 
     private let container = CKContainer.default()
     private let sharingService: any CollectionSharingService
@@ -62,7 +73,9 @@ struct CollectionSharingView: View {
             if canManageSharing {
                 Section {
                     Button("collection.sharing.share_cta") {
-                        openSharingController()
+                        Task {
+                            await openSharingController()
+                        }
                     }
                 }
             }
@@ -70,23 +83,37 @@ struct CollectionSharingView: View {
         .navigationTitle(String(localized: "collection.sharing.title"))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(
-            isPresented: $isPresentingSharingController,
+            item: $sharingControllerMode,
             onDismiss: {
                 Task {
+                    let startedAt = CFAbsoluteTimeGetCurrent()
+                    sharingTrace("systemUI dismissed begin collectionID=\(collection.id)")
                     await refreshSharingState()
                     onSharingChanged()
                     showPendingSharingMessage()
+                    sharingTrace(
+                        "systemUI dismissed end result=localStateUpdated durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) collectionID=\(collection.id)"
+                    )
                 }
             }
-        ) {
+        ) { mode in
             CloudSharingController(
                 collectionID: collection.id,
                 collectionTitle: collection.name,
                 container: container,
                 sharingService: sharingService,
+                mode: mode,
                 onSharingChanged: onSharingChanged,
                 onError: handleSharingControllerError
             )
+            .onAppear {
+                sharingTrace("systemUI appeared begin collectionID=\(collection.id)")
+                sharingTrace("systemUI appeared end result=success durationMs=0.0 collectionID=\(collection.id)")
+            }
+            .onDisappear {
+                sharingTrace("systemUI disappeared begin collectionID=\(collection.id)")
+                sharingTrace("systemUI disappeared end result=success durationMs=0.0 collectionID=\(collection.id)")
+            }
         }
         .alert(
             "Управление доступом недоступно",
@@ -140,8 +167,24 @@ struct CollectionSharingView: View {
     }
 
     @MainActor
-    private func openSharingController() {
-        isPresentingSharingController = true
+    private func openSharingController() async {
+        sharingTrace("openSharingController begin collectionID=\(collection.id)")
+        do {
+            let existingShare = try await sharingService.fetchShare(for: collection.id)
+            let mode: CloudSharingControllerMode = if let existingShare {
+                .existingShare(existingShare)
+            } else {
+                .preparationHandler
+            }
+            sharingTrace(
+                "openSharingController controllerMode=\(existingShare == nil ? "preparationHandler" : "existingShare") collectionID=\(collection.id)"
+            )
+            sharingControllerMode = mode
+            sharingTrace("openSharingController end result=presenting collectionID=\(collection.id)")
+        } catch {
+            sharingTrace("openSharingController end result=error error=\(String(describing: error)) collectionID=\(collection.id)")
+            handleSharingControllerError(error)
+        }
     }
 
     private func isShareURLUnavailableError(_ error: any Error) -> Bool {
@@ -184,9 +227,9 @@ struct CollectionSharingView: View {
 
     @MainActor
     private func presentSharingMessage(_ message: String) {
-        if isPresentingSharingController {
+        if sharingControllerMode != nil {
             pendingSharingMessage = message
-            isPresentingSharingController = false
+            sharingControllerMode = nil
         } else {
             sharingAlert = SharingAlert(message: message)
         }
@@ -219,48 +262,103 @@ private struct SharingAlert: Identifiable {
     let message: String
 }
 
+private enum CloudSharingControllerMode: Identifiable {
+    case existingShare(CKShare)
+    case preparationHandler
+
+    var id: String {
+        switch self {
+        case .existingShare(let share):
+            "existingShare-\(share.recordID.recordName)"
+        case .preparationHandler:
+            "preparationHandler"
+        }
+    }
+}
+
 private struct CloudSharingController: UIViewControllerRepresentable {
     let collectionID: UUID
     let collectionTitle: String
     let container: CKContainer
     let sharingService: any CollectionSharingService
+    let mode: CloudSharingControllerMode
     let onSharingChanged: () -> Void
     let onError: (any Error) -> Void
 
-    func makeUIViewController(context: Context) -> UICloudSharingController {
-        let controller = UICloudSharingController { _, completion in
-            Task {
+    func makeUIViewController(context: Context) -> UIViewController {
+        let startedAt = CFAbsoluteTimeGetCurrent()
+        sharingTrace("makeUICloudSharingController begin collectionID=\(collectionID)")
+
+        switch mode {
+        case .existingShare(let existingShare):
+            sharingTrace("makeUICloudSharingController controllerMode=existingShare collectionID=\(collectionID)")
+            let controller = UICloudSharingController(share: existingShare, container: container)
+            controller.delegate = context.coordinator
+            controller.availablePermissions = [.allowReadOnly, .allowReadWrite, .allowPrivate]
+            sharingTrace(
+                "makeUICloudSharingController end result=success durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) collectionID=\(collectionID)"
+            )
+            return controller
+
+        case .preparationHandler:
+            sharingTrace("makeUICloudSharingController controllerMode=preparationHandler collectionID=\(collectionID)")
+            let itemProvider = NSItemProvider()
+            itemProvider.registerCKShare(
+                container: container,
+                allowedSharingOptions: allowedSharingOptions
+            ) {
+                let preparationStartedAt = CFAbsoluteTimeGetCurrent()
+                sharingTrace("preparationHandler begin collectionID=\(collectionID)")
                 do {
                     let share = try await sharingService.createShare(
                         for: collectionID,
                         title: collectionTitle
                     )
 
-                    completion(share, container, nil)
+                    sharingTrace(
+                        "preparationHandler complete result=success durationMs=\((CFAbsoluteTimeGetCurrent() - preparationStartedAt) * 1000) hasURL=\(share.url != nil) collectionID=\(collectionID)"
+                    )
+                    return share
                 } catch {
                     await MainActor.run {
                         onError(error)
                     }
-                    completion(nil, nil, error)
+                    sharingTrace(
+                        "preparationHandler complete result=error durationMs=\((CFAbsoluteTimeGetCurrent() - preparationStartedAt) * 1000) error=\(String(describing: error)) collectionID=\(collectionID)"
+                    )
+                    throw error
                 }
             }
-        }
 
-        controller.delegate = context.coordinator
-        controller.availablePermissions = [.allowReadOnly, .allowReadWrite, .allowPrivate]
-        return controller
+            let configuration = UIActivityItemsConfiguration(itemProviders: [itemProvider])
+            let controller = UIActivityViewController(activityItemsConfiguration: configuration)
+            sharingTrace(
+                "makeUICloudSharingController end result=success durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) collectionID=\(collectionID)"
+            )
+            return controller
+        }
     }
 
     func updateUIViewController(
-        _ uiViewController: UICloudSharingController,
+        _ uiViewController: UIViewController,
         context: Context
-    ) {}
+    ) {
+        sharingTrace("updateUICloudSharingController begin collectionID=\(collectionID)")
+        sharingTrace("updateUICloudSharingController end result=success collectionID=\(collectionID)")
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
             collectionTitle: collectionTitle,
             onSharingChanged: onSharingChanged,
             onError: onError
+        )
+    }
+
+    private var allowedSharingOptions: CKAllowedSharingOptions {
+        CKAllowedSharingOptions(
+            allowedParticipantPermissionOptions: [.readOnly, .readWrite],
+            allowedParticipantAccessOptions: [.specifiedRecipientsOnly]
         )
     }
 
@@ -283,14 +381,26 @@ private struct CloudSharingController: UIViewControllerRepresentable {
             _ csc: UICloudSharingController,
             failedToSaveShareWithError error: any Error
         ) {
+            let startedAt = CFAbsoluteTimeGetCurrent()
+            sharingTrace("delegate failedToSaveShareWithError begin")
             onError(error)
+            sharingTrace(
+                "delegate failedToSaveShareWithError end result=error durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) error=\(String(describing: error))"
+            )
         }
 
         func itemTitle(for csc: UICloudSharingController) -> String? {
-            collectionTitle
+            let startedAt = CFAbsoluteTimeGetCurrent()
+            sharingTrace("delegate itemTitle begin")
+            sharingTrace(
+                "delegate itemTitle end result=success durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) hasTitle=\(!collectionTitle.isEmpty)"
+            )
+            return collectionTitle
         }
 
         func itemThumbnailData(for csc: UICloudSharingController) -> Data? {
+            let startedAt = CFAbsoluteTimeGetCurrent()
+            sharingTrace("delegate itemThumbnailData begin")
             let size = CGSize(width: 256, height: 256)
             let cornerRadius: CGFloat = 52
             let symbolConfiguration = UIImage.SymbolConfiguration(pointSize: 124, weight: .semibold)
@@ -298,6 +408,9 @@ private struct CloudSharingController: UIViewControllerRepresentable {
             guard let symbol = UIImage(systemName: "bell.fill", withConfiguration: symbolConfiguration)?
                 .withTintColor(.white, renderingMode: .alwaysOriginal)
             else {
+                sharingTrace(
+                    "delegate itemThumbnailData end result=notFound durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000)"
+                )
                 return nil
             }
 
@@ -325,15 +438,30 @@ private struct CloudSharingController: UIViewControllerRepresentable {
                 }
             }
 
-            return image?.pngData()
+            let data = image?.pngData()
+            sharingTrace(
+                "delegate itemThumbnailData end result=success durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000) hasData=\(data != nil)"
+            )
+            return data
         }
 
         func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
+            let startedAt = CFAbsoluteTimeGetCurrent()
+            sharingTrace("delegate cloudSharingControllerDidSaveShare begin")
             onSharingChanged()
+            sharingTrace(
+                "delegate cloudSharingControllerDidSaveShare end result=localStateChangeRequested durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000)"
+            )
         }
 
         func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
+            let startedAt = CFAbsoluteTimeGetCurrent()
+            sharingTrace("delegate cloudSharingControllerDidStopSharing begin")
             onSharingChanged()
+            sharingTrace(
+                "delegate cloudSharingControllerDidStopSharing end result=localStateChangeRequested durationMs=\((CFAbsoluteTimeGetCurrent() - startedAt) * 1000)"
+            )
         }
     }
+
 }
