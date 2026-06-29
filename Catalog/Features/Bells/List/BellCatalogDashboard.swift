@@ -58,9 +58,7 @@ struct BellCatalogDashboardView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    if shouldShowSharingCard {
-                        sharingCard
-                    }
+                    sharingCard
 
                     DashboardDataHealthCard(
                         progress: dataHealthProgress,
@@ -110,10 +108,6 @@ struct BellCatalogDashboardView: View {
                 .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
                 .opacity(phase.isIdentity ? 1 : 0.82)
         }
-    }
-
-    private var shouldShowSharingCard: Bool {
-        sharingState.isShared || sharingState.currentUserRole == .owner
     }
 
     @ViewBuilder
