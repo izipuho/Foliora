@@ -46,6 +46,7 @@ struct SettingsView: View {
                 Text("settings.data.footer")
             }
 
+            #if DEBUG
             Section {
                 NavigationLink {
                     CloudSyncDiagnosticsView()
@@ -72,6 +73,7 @@ struct SettingsView: View {
             } header: {
                 Text("Developer Tools")
             }
+            #endif
 
             Text("common.version \(appVersion) (\(buildNumber))")
                 .font(.footnote)
