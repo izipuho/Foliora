@@ -465,7 +465,10 @@ private struct CollectionsCatalogSnapshot {
             uniqueKeysWithValues: collectionEntities.map { entity in
                 (
                     Self.uuidValue(entity, "id"),
-                    Self.collectionSharingStatus(from: sharesByObjectID[entity.objectID])
+                    Self.collectionSharingStatus(
+                        from: sharesByObjectID[entity.objectID],
+                        collectionID: Self.uuidValue(entity, "id")
+                    )
                 )
             }
         )
@@ -517,7 +520,10 @@ private struct CollectionsCatalogSnapshot {
         }
     }
 
-    private static func collectionSharingStatus(from shareLookup: CKShare??) -> CollectionCardSharingStatus {
+    private static func collectionSharingStatus(
+        from shareLookup: CKShare??,
+        collectionID: UUID
+    ) -> CollectionCardSharingStatus {
         guard let shareLookup else {
             return .privateOwner
         }
@@ -526,27 +532,29 @@ private struct CollectionsCatalogSnapshot {
             return .unknown
         }
 
-        let participantsCount = acceptedParticipantsCount(in: share)
+        let currentUserParticipant = share.currentUserParticipant
+        let participants = share.participants.map {
+            CloudKitSharingMapper.collectionParticipant(
+                from: $0,
+                collectionID: collectionID,
+                isCurrentUser: $0 == currentUserParticipant
+            )
+        }
+        let currentUserRole = CloudKitSharingMapper.currentUserRole(from: participants)
+        let state = CollectionSharingState(
+            currentUserRole: currentUserRole,
+            participants: participants
+        )
 
-        if participantsCount == 1, share.currentUserParticipant?.role == .owner {
+        switch state.currentUserRole {
+        case .owner:
+            if state.isShared {
+                return .sharedOwner(participantsCount: state.visibleParticipantsCount)
+            }
             return .privateOwner
+        case .contributor, .viewer:
+            return state.isShared ? .sharedParticipant : .unknown
         }
-
-        if share.currentUserParticipant?.role == .owner {
-            return .sharedOwner(participantsCount: participantsCount)
-        }
-
-        if share.currentUserParticipant?.acceptanceStatus == .accepted {
-            return .sharedParticipant
-        }
-
-        return .unknown
-    }
-
-    private static func acceptedParticipantsCount(in share: CKShare) -> Int {
-        share.participants.filter {
-            $0.role == .owner || $0.acceptanceStatus == .accepted
-        }.count
     }
 
     private static func home(from entity: NSManagedObject) -> Home {

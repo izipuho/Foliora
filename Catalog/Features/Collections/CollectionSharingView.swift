@@ -220,7 +220,6 @@ struct CollectionSharingView: View {
             state = try await sharingService.sharingState(for: collection.id)
         } catch {
             state = CollectionSharingState(
-                isShared: false,
                 currentUserRole: .owner,
                 participants: []
             )

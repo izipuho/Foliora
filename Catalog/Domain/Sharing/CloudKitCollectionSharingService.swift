@@ -118,7 +118,6 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
     ) async throws -> CollectionSharingState {
         guard let share = try await fetchShare(for: collectionID) else {
             return CollectionSharingState(
-                isShared: false,
                 currentUserRole: .owner,
                 participants: []
             )
@@ -134,12 +133,8 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
         }
 
         let currentUserRole = participants.first { $0.isCurrentUser }?.role ?? .viewer
-        let hasExternalParticipants = participants.contains {
-            !$0.isCurrentUser && $0.role != .owner && $0.acceptanceStatus != .removed
-        }
 
         return CollectionSharingState(
-            isShared: hasExternalParticipants,
             currentUserRole: currentUserRole,
             participants: participants
         )

@@ -600,7 +600,6 @@ private struct CollectionSharingStateLoaderView: View {
 
 private extension CollectionSharingState {
     static let privateState = CollectionSharingState(
-        isShared: false,
         currentUserRole: .owner,
         participants: []
     )

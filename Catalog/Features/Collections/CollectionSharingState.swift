@@ -3,6 +3,17 @@ struct CollectionSharingState {
     var currentUserRole: CollectionAccessRole
     var participants: [CollectionParticipant]
 
+    init(
+        currentUserRole: CollectionAccessRole,
+        participants: [CollectionParticipant]
+    ) {
+        self.currentUserRole = currentUserRole
+        self.participants = participants
+        self.isShared = participants.contains {
+            !$0.isCurrentUser && $0.role != .owner && $0.acceptanceStatus != .removed
+        }
+    }
+
     var peopleParticipants: [CollectionParticipant] {
         participants.filter {
             $0.role == .owner || $0.acceptanceStatus == .accepted
@@ -20,7 +31,6 @@ struct CollectionSharingState {
     }
 
     static let placeholder = CollectionSharingState(
-        isShared: false,
         currentUserRole: .owner,
         participants: []
     )

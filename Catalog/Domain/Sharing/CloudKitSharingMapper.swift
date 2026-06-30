@@ -25,6 +25,10 @@ enum CloudKitSharingMapper {
             isCurrentUser: isCurrentUser
         )
     }
+
+    static func currentUserRole(from participants: [CollectionParticipant]) -> CollectionAccessRole {
+        participants.first { $0.isCurrentUser }?.role ?? .viewer
+    }
 }
 
 private extension CloudKitSharingMapper {
