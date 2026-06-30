@@ -49,6 +49,7 @@ struct SearchTabView: View {
     let repository: any CatalogRepository
     let onBellSelected: ((UUID) -> Void)?
     private let initialQuery: String?
+    private let horizontalContentInset: CGFloat = 16
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Binding var layoutMode: BellGridLayoutMode
     @State private var searchSnapshot = SearchCatalogSnapshot()
@@ -142,35 +143,17 @@ struct SearchTabView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            SearchTokenBar(
-                tokens: searchState.tokens,
-                suggestedTokenGroups: suggestedTokenGroups,
-                title: searchTokenTitle,
-                select: selectToken,
-                remove: removeToken
-            )
-            .background(.thinMaterial)
+        BellGridContainerView(layoutMode: layoutMode) { cardSize, gridMetrics, cardMetrics in
+            LazyVStack(alignment: .leading, spacing: CatalogSpacing.section) {
+                searchHeader
 
-            BellGridContainerView(layoutMode: layoutMode) { cardSize, gridMetrics, cardMetrics in
-                if filteredBells.isEmpty {
-                    ContentUnavailableView.search
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
-                } else {
-                    BellGridView(
-                        bells: filteredBells,
-                        layoutMode: layoutMode,
-                        cardSize: cardSize,
-                        gridMetrics: gridMetrics,
-                        cardMetrics: cardMetrics,
-                        selectedBellIDs: [],
-                        isSelectionModeEnabled: false,
-                        onTap: openBell,
-                        onSelect: nil
-                    )
-                }
+                searchResults(
+                    cardSize: cardSize,
+                    gridMetrics: gridMetrics,
+                    cardMetrics: cardMetrics
+                )
             }
+            .padding(.top, CatalogSpacing.section)
         }
         .searchable(
             text: $searchState.query,
@@ -199,6 +182,51 @@ struct SearchTabView: View {
                 )
                     .presentationDragIndicator(.visible)
             }
+        }
+    }
+
+    private var searchHeader: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("common.ui.search")
+                .font(.largeTitle.weight(.bold))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, horizontalContentInset)
+
+            SearchTokenBar(
+                tokens: searchState.tokens,
+                suggestedTokenGroups: suggestedTokenGroups,
+                title: searchTokenTitle,
+                contentInset: horizontalContentInset,
+                select: selectToken,
+                remove: removeToken
+            )
+            .ignoresSafeArea(.container, edges: .horizontal)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func searchResults(
+        cardSize: CGSize,
+        gridMetrics: BellGridLayoutMode.GridMetrics,
+        cardMetrics: BellGridLayoutMode.CardMetrics
+    ) -> some View {
+        if filteredBells.isEmpty {
+            ContentUnavailableView.search
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 40)
+        } else {
+            BellGridView(
+                bells: filteredBells,
+                layoutMode: layoutMode,
+                cardSize: cardSize,
+                gridMetrics: gridMetrics,
+                cardMetrics: cardMetrics,
+                selectedBellIDs: [],
+                isSelectionModeEnabled: false,
+                onTap: openBell,
+                onSelect: nil
+            )
         }
     }
 
@@ -448,6 +476,7 @@ private struct SearchTokenBar: View {
     let tokens: [SearchToken]
     let suggestedTokenGroups: [SearchTokenGroup]
     let title: (SearchToken) -> String
+    let contentInset: CGFloat
     let select: (SearchToken) -> Void
     let remove: (SearchToken) -> Void
 
@@ -478,7 +507,7 @@ private struct SearchTokenBar: View {
                     .buttonStyle(.bordered)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, contentInset)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
