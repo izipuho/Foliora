@@ -89,7 +89,8 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
             if let existingShare {
                 let share = try await savedShare(
                     existingShare,
-                    title: nil,
+                    title: title,
+                    thumbnailImageData: shareThumbnailImageData(),
                     objectID: collection.objectID,
                     in: persistentStore
                 )
@@ -102,6 +103,7 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
             let savedShare = try await savedShare(
                 share,
                 title: title,
+                thumbnailImageData: shareThumbnailImageData(),
                 objectID: collection.objectID,
                 in: persistentStore
             )
@@ -307,9 +309,19 @@ private extension CloudKitCollectionSharingService {
         return currentTitle != newTitle
     }
 
+    func needsThumbnailUpdate(_ share: CKShare, thumbnailImageData: Data) -> Bool {
+        let currentThumbnailImageData = share[CKShare.SystemFieldKey.thumbnailImageData] as? Data
+        return currentThumbnailImageData != thumbnailImageData
+    }
+
+    func shareThumbnailImageData() -> Data? {
+        UIImage(named: "IconBells")?.pngData()
+    }
+
     func savedShare(
         _ share: CKShare,
         title: String? = nil,
+        thumbnailImageData: Data? = nil,
         objectID: NSManagedObjectID,
         in persistentStore: NSPersistentStore
     ) async throws -> CKShare {
@@ -317,6 +329,11 @@ private extension CloudKitCollectionSharingService {
 
         if let title, needsTitleUpdate(share, title: title) {
             share[CKShare.SystemFieldKey.title] = title
+            needsPersisting = true
+        }
+
+        if let thumbnailImageData, needsThumbnailUpdate(share, thumbnailImageData: thumbnailImageData) {
+            share[CKShare.SystemFieldKey.thumbnailImageData] = thumbnailImageData
             needsPersisting = true
         }
 

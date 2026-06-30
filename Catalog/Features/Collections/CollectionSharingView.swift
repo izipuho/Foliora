@@ -260,7 +260,6 @@ private struct CloudSharingController: UIViewControllerRepresentable {
         switch mode {
         case .existingShare(let existingShare):
             let controller = UICloudSharingController(share: existingShare, container: container)
-            controller.delegate = context.coordinator
             controller.availablePermissions = [.allowReadOnly, .allowReadWrite, .allowPrivate]
             return controller
 
@@ -286,6 +285,12 @@ private struct CloudSharingController: UIViewControllerRepresentable {
             }
 
             let configuration = UIActivityItemsConfiguration(itemProviders: [itemProvider])
+            configuration.metadataProvider = { key in
+                key == .title ? collectionTitle : nil
+            }
+            configuration.perItemMetadataProvider = { _, key in
+                key == .title ? collectionTitle : nil
+            }
             let controller = UIActivityViewController(activityItemsConfiguration: configuration)
             return controller
         }
@@ -312,7 +317,7 @@ private struct CloudSharingController: UIViewControllerRepresentable {
         )
     }
 
-    final class Coordinator: NSObject, UICloudSharingControllerDelegate {
+    final class Coordinator: NSObject {
         let collectionTitle: String
         let onSharingChanged: () -> Void
         let onError: (any Error) -> Void
@@ -327,24 +332,6 @@ private struct CloudSharingController: UIViewControllerRepresentable {
             self.onError = onError
         }
 
-        func cloudSharingController(
-            _ csc: UICloudSharingController,
-            failedToSaveShareWithError error: any Error
-        ) {
-            onError(error)
-        }
-
-        func itemTitle(for csc: UICloudSharingController) -> String? {
-            collectionTitle
-        }
-
-        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
-            onSharingChanged()
-        }
-
-        func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
-            onSharingChanged()
-        }
     }
 
 }
