@@ -320,11 +320,6 @@ private extension CloudKitCollectionSharingService {
             needsPersisting = true
         }
 
-        if share[CKShare.SystemFieldKey.thumbnailImageData] == nil {
-            share[CKShare.SystemFieldKey.thumbnailImageData] = shareThumbnailImageData()
-            needsPersisting = true
-        }
-
         if needsPersisting {
             _ = try await persistUpdatedShare(share, in: persistentStore)
 
@@ -352,32 +347,6 @@ private extension CloudKitCollectionSharingService {
         }
 
         return share
-    }
-
-    func shareThumbnailImageData() -> Data {
-        let size = CGSize(width: 256, height: 256)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        let image = renderer.image { context in
-            UIColor.systemOrange.setFill()
-            context.fill(CGRect(origin: .zero, size: size))
-
-            let configuration = UIImage.SymbolConfiguration(pointSize: 132, weight: .regular)
-            let symbol = UIImage(
-                systemName: "bell.fill",
-                withConfiguration: configuration
-            )?.withTintColor(.white, renderingMode: .alwaysOriginal)
-
-            let symbolSize = CGSize(width: 144, height: 144)
-            let symbolRect = CGRect(
-                x: (size.width - symbolSize.width) / 2,
-                y: (size.height - symbolSize.height) / 2,
-                width: symbolSize.width,
-                height: symbolSize.height
-            )
-            symbol?.draw(in: symbolRect)
-        }
-
-        return image.pngData() ?? Data()
     }
 
     func persistUpdatedShare(_ share: CKShare, in persistentStore: NSPersistentStore) async throws -> CKShare {
