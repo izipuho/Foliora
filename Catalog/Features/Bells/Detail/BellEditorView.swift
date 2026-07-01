@@ -658,15 +658,16 @@ private struct PhotoSuggestedTagChip: View {
 
     var body: some View {
         Button(action: onTap) {
-            Text("#\(tag)")
-                .font(.subheadline.weight(.medium))
-                .catalogPillPadding(.regular)
-                .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear, in: Capsule())
-                .overlay {
-                    Capsule()
-                        .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.25), lineWidth: isSelected ? 1.5 : 1)
-                }
-                .shadow(color: isSelected ? Color.accentColor.opacity(0.18) : .clear, radius: 4, y: 1)
+            CatalogSurfaceCapsule {
+                Text("#\(tag)")
+                    .font(.subheadline.weight(.medium))
+            }
+            .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+            .overlay {
+                Capsule()
+                    .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: isSelected ? 1.5 : 0)
+            }
+            .shadow(color: isSelected ? Color.accentColor.opacity(0.18) : .clear, radius: 4, y: 1)
         }
         .buttonStyle(.plain)
     }
