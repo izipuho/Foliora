@@ -487,10 +487,17 @@ private struct SearchTokenBar: View {
                     Button {
                         remove(token)
                     } label: {
-                        Label(title(token), systemImage: "xmark")
+                        CatalogSurfaceCapsule {
+                            HStack(spacing: CatalogSpacing.compact) {
+                                Text(title(token))
+
+                                Image(systemName: "xmark")
+                                    .foregroundStyle(.secondary)
+                            }
                             .font(.subheadline.weight(.semibold))
+                        }
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                 }
 
                 ForEach(suggestedTokenGroups) { group in
@@ -501,10 +508,12 @@ private struct SearchTokenBar: View {
                             }
                         }
                     } label: {
-                        Label(group.title, systemImage: group.systemImage)
-                            .font(.subheadline.weight(.semibold))
+                        CatalogSurfaceCapsule {
+                            Label(group.title, systemImage: group.systemImage)
+                                .font(.subheadline.weight(.semibold))
+                        }
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, contentInset)

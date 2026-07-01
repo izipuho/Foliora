@@ -832,10 +832,11 @@ private struct SummaryTagCloudItem: View {
 
     var body: some View {
         Button(action: action) {
-            Text(tag)
-                .font(font)
-                .foregroundStyle(tint.opacity(emphasis))
-                .padding(.vertical, 2)
+            CatalogSurfaceCapsule {
+                Text(tag)
+                    .font(font)
+                    .foregroundStyle(tint.opacity(emphasis))
+            }
         }
         .buttonStyle(.plain)
     }
