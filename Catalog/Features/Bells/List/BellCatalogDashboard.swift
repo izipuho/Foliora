@@ -373,10 +373,7 @@ private struct DashboardSharingCardContent {
 }
 
 private enum DashboardCardLayout {
-    static let minHeight: CGFloat = 88
     static let horizontalSpacing: CGFloat = 14
-    static let horizontalPadding: CGFloat = 16
-    static let verticalPadding: CGFloat = 16
 }
 
 private struct DashboardCard<Leading: View, Content: View>: View {
@@ -397,11 +394,7 @@ private struct DashboardCard<Leading: View, Content: View>: View {
 
             content
         }
-        .padding(.vertical, DashboardCardLayout.verticalPadding)
-        .padding(.horizontal, DashboardCardLayout.horizontalPadding)
-        .frame(minHeight: DashboardCardLayout.minHeight)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
-        .shadow(color: .black.opacity(0.05), radius: 8)
+        .catalogSurfaceCard()
     }
 }
 
