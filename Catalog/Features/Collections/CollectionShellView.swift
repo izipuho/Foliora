@@ -22,7 +22,6 @@ struct CollectionShellView: View {
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
-    @State private var isPresentingMap = false
     @State private var selectedBellID: UUID?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
@@ -125,9 +124,6 @@ struct CollectionShellView: View {
                             guard canEditCollection else { return }
                             isPresentingEditCollection = true
                         },
-                        onOpenMap: {
-                            isPresentingMap = true
-                        },
                         onLibrary: {
                             guard canEditCollection else { return }
                             isPresentingPhotoPicker = true
@@ -141,15 +137,6 @@ struct CollectionShellView: View {
             }
             .onPreferenceChange(BellCatalogSelectionModePreferenceKey.self) { isSelectionMode in
                 isBellCatalogSelectionMode = isSelectionMode
-            }
-            .overlay(alignment: .bottomTrailing) {
-                if !isBellCatalogSelectionMode {
-                    CollectionMapButton {
-                        isPresentingMap = true
-                    }
-                    .padding(.trailing, CatalogLayoutInsets.screen)
-                    .padding(.bottom, 16)
-                }
             }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
@@ -180,9 +167,6 @@ struct CollectionShellView: View {
             }
             .sheet(isPresented: $isPresentingEditCollection) {
                 editCollectionSheet
-            }
-            .sheet(isPresented: $isPresentingMap) {
-                mapSheet
             }
             .sheet(isPresented: isBellDetailPresented) {
                 if let selectedBellID {
@@ -291,24 +275,6 @@ struct CollectionShellView: View {
             repository.deleteCollection(collectionID: collection.id)
             dismiss()
         }
-    }
-
-    private var mapSheet: some View {
-        NavigationStack {
-            CollectionOriginMapView(
-                collection: collection,
-                repository: repository
-            )
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "common.done")) {
-                        isPresentingMap = false
-                    }
-                }
-            }
-        }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
     }
 
     private var cameraPicker: some View {
@@ -611,7 +577,6 @@ private struct CollectionShellToolbar: ToolbarContent {
     @Binding var isPresentingAddBellOptions: Bool
     let canEditCollection: Bool
     let onEdit: () -> Void
-    let onOpenMap: () -> Void
     let onLibrary: () -> Void
     let onCamera: () -> Void
 
@@ -737,22 +702,6 @@ private extension BellGridLayoutMode {
         case .showcase:
             return "bell_catalog.layout.showcase"
         }
-    }
-}
-
-private struct CollectionMapButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "map.fill")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.primary)
-                .padding(20)
-                .background(.bar, in: Circle())
-                .shadow(color: .black.opacity(0.05), radius: 8)
-        }
-        .buttonStyle(.plain)
     }
 }
 

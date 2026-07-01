@@ -448,11 +448,11 @@ struct BellCatalogView: View {
             stats: displayModel.stats,
             accentColor: catalogStyle.accentColor,
             collection: collection,
+            repository: repository,
             sharingState: sharingState,
             sharingService: sharingService,
             onSharingChanged: onSharingChanged,
             onFilterApply: setFilter,
-            onGeographyFocus: focusGeography,
             onResetFilters: {
                 filters = BellFilters()
             }

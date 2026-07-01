@@ -127,27 +127,17 @@ struct CollectionOriginMapView: View {
             return
         }
 
-        let coordinates = mappedGroups.map(\.coordinate)
-        let latitudes = coordinates.map(\.latitude)
-        let longitudes = coordinates.map(\.longitude)
-
-        guard let minLatitude = latitudes.min(),
-              let maxLatitude = latitudes.max(),
-              let minLongitude = longitudes.min(),
-              let maxLongitude = longitudes.max() else {
+        guard let focusedGroup = mappedGroups.max(by: { $0.bells.count < $1.bells.count }) else {
             return
         }
 
-        let center = CLLocationCoordinate2D(
-            latitude: (minLatitude + maxLatitude) / 2,
-            longitude: (minLongitude + maxLongitude) / 2
+        position = .region(
+            MKCoordinateRegion(
+                center: focusedGroup.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 6, longitudeDelta: 6)
+            )
         )
-        let span = MKCoordinateSpan(
-            latitudeDelta: max((maxLatitude - minLatitude) * 1.6, 8),
-            longitudeDelta: max((maxLongitude - minLongitude) * 1.6, 8)
-        )
-
-        position = .region(MKCoordinateRegion(center: center, span: span))
+        selectedGroupID = focusedGroup.id
     }
 }
 

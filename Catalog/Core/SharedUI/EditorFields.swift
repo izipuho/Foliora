@@ -730,7 +730,7 @@ struct PlacePickerView: View {
                     }
                 }
             }
-            .navigationTitle(String(localized: "editor.origin.title"))
+            .navigationTitle(String(localized: "common.ui.origin"))
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: String(localized: "editor.origin.search"))
             .onChange(of: searchText) { _, newValue in

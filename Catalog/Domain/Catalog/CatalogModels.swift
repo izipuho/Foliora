@@ -31,7 +31,7 @@ enum BellOrderMode: String, CaseIterable, Hashable {
             case .title: "bell_catalog.sort.title"
             case .newestFirst: "bell_catalog.sort.newest_first"
             case .oldestFirst: "bell_catalog.sort.oldest_first"
-            case .geography: "bell_catalog.sort.geography"
+            case .geography: "common.ui.geography"
             case .acquisitionYear: "bell_catalog.sort.acquisition_year"
             case .storage: "bell_catalog.sort.storage"
         }

@@ -294,22 +294,6 @@
         }
       }
     },
-    "bell_catalog.dashboard.top_geography" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Top Geography"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Главная география"
-          }
-        }
-      }
-    },
     "bell_catalog.dashboard.total" : {
       "localizations" : {
         "en" : {
@@ -637,22 +621,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Год получения"
-          }
-        }
-      }
-    },
-    "bell_catalog.sort.geography" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geography"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "География"
           }
         }
       }
@@ -1140,12 +1108,12 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Geography"
+            "value" : "Top Countries"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "География"
           }
         }
@@ -3764,6 +3732,22 @@
         }
       }
     },
+    "common.ui.geography" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geography"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "География"
+          }
+        }
+      }
+    },
     "common.ui.map" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3777,6 +3761,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Карта"
+          }
+        }
+      }
+    },
+    "common.ui.origin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origin"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Происхождение"
           }
         }
       }
@@ -4366,23 +4367,6 @@
         }
       }
     },
-    "editor.origin.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Origin"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Происхождение"
-          }
-        }
-      }
-    },
     "editor.photo_analysis.analyzing" : {
       "localizations" : {
         "en" : {
@@ -4427,22 +4411,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Распознанный текст"
-          }
-        }
-      }
-    },
-    "editor.photo_analysis.geo" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Origin"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Происхождение"
           }
         }
       }

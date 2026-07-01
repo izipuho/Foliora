@@ -216,7 +216,7 @@ struct BellEditorView: View {
 
                                 if let geoSuggestion = photoAnalysis.suggestions.suggestedGeo {
                                     PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.geo"),
+                                        title: String(localized: "common.ui.origin"),
                                         suggestedValue: geoSuggestion.value.name,
                                         confidence: geoSuggestion.confidence,
                                         onAccept: {

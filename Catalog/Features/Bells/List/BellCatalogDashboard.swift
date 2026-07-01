@@ -4,14 +4,13 @@ struct BellCatalogDashboardView: View {
     let stats: BellCatalogStats
     let accentColor: Color
     let collection: CollectionSummary?
+    let repository: any CatalogRepository
     let sharingState: CollectionSharingState
     let sharingService: (any CollectionSharingService)?
     let onSharingChanged: () -> Void
     let onFilterApply: (BellPresenceFilter) -> Void
-    let onGeographyFocus: (String) -> Void
     let onResetFilters: () -> Void
 
-    @State private var isPresentingTopGeographyPopover = false
     @State private var isPresentingDataHealthPopover = false
 
     var body: some View {
@@ -60,6 +59,30 @@ struct BellCatalogDashboardView: View {
                 HStack(spacing: 12) {
                     sharingCard
 
+                    if let collection {
+                        NavigationLink {
+                            CollectionOriginMapView(
+                                collection: collection,
+                                repository: repository
+                            )
+                        } label: {
+                            DashboardTopGeographyCard(
+                                countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                                flag: topGeography?.flag ?? "🌍",
+                                countText: topGeographyCountText,
+                                tint: accentColor
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        DashboardTopGeographyCard(
+                            countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                            flag: topGeography?.flag ?? "🌍",
+                            countText: topGeographyCountText,
+                            tint: accentColor
+                        )
+                    }
+
                     DashboardDataHealthCard(
                         progress: dataHealthProgress,
                         tint: accentColor
@@ -72,26 +95,6 @@ struct BellCatalogDashboardView: View {
                             onSelect: { filter in
                                 isPresentingDataHealthPopover = false
                                 onFilterApply(filter)
-                            }
-                        )
-                    }
-
-                    DashboardTopGeographyCard(
-                        countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                        flag: topGeography?.flag ?? "🌍",
-                        countText: topGeographyCountText,
-                        tint: accentColor,
-                        action: {
-                            guard !topGeographyEntries.isEmpty else { return }
-                            isPresentingTopGeographyPopover = true
-                        }
-                    )
-                    .popover(isPresented: $isPresentingTopGeographyPopover) {
-                        TopGeographyPopover(
-                            entries: topGeographyEntries,
-                            onSelect: { country in
-                                isPresentingTopGeographyPopover = false
-                                onGeographyFocus(country)
                             }
                         )
                     }
@@ -203,16 +206,6 @@ struct BellCatalogDashboardView: View {
             flag: flagEmoji(for: topCountry.countryCode),
             count: topCountry.count
         )
-    }
-
-    private var topGeographyEntries: [TopGeographyEntry] {
-        Array(stats.topCountries.prefix(5)).map { row in
-            TopGeographyEntry(
-                country: row.country,
-                flag: flagEmoji(for: row.countryCode),
-                countText: localizedCount(row.count, kind: .bells)
-            )
-        }
     }
 
     private var topGeographyCountText: String {
@@ -412,77 +405,23 @@ struct DashboardTopGeographyCard: View {
     let flag: String
     let countText: String
     let tint: Color
-    let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            DashboardCard {
-                Text(flag)
-                    .font(.system(size: 34))
-            } content: {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(String(localized: "bell_catalog.dashboard.top_geography"))
-                        .font(.headline)
-                    Text(countryName)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                    Text(countText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-struct TopGeographyEntry: Identifiable {
-    let country: String
-    let flag: String
-    let countText: String
-
-    var id: String { country }
-}
-
-struct TopGeographyPopover: View {
-    let entries: [TopGeographyEntry]
-    let onSelect: (String) -> Void
-
-    var body: some View {
-        DashboardPopoverContainer(
-            title: "bell_catalog.dashboard.top_geography",
-            entries: entries,
-            onSelect: { onSelect($0.country) }
-        ) { entry in
-            DashboardPopoverButtonRow(
-                title: entry.country,
-                subtitle: entry.countText
-            )
-        }
-    }
-}
-
-private struct DashboardPopoverButtonRow: View {
-    let title: String
-    let subtitle: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+        DashboardCard {
+            Text(flag)
+                .font(.system(size: 34))
+        } content: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(localized: "common.ui.geography"))
+                    .font(.headline)
+                Text(countryName)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-
-                Text(subtitle)
+                    .lineLimit(1)
+                Text(countText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-
-            Spacer()
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
     }
 }
 
