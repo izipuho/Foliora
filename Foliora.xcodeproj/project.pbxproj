@@ -22,6 +22,7 @@
 		24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		2434A00C2FAC7FDA005383FB /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
+		24374F242FF4F93800E83899 /* CatalogSurfaceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F222FF4F93800E83899 /* CatalogSurfaceCard.swift */; };
 		244FE0462FD7200000B4D805 /* CloudSyncDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0452FD7200000B4D805 /* CloudSyncDiagnosticsView.swift */; };
 		244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0472FB465CF00B4D805 /* SettingsView.swift */; };
 		246FD63C2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */; };
@@ -93,6 +94,7 @@
 		2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingView.swift; sourceTree = "<group>"; };
 		24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticPhotoFeatureExtractor.swift; sourceTree = "<group>"; };
 		24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognitionDebugML.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		24374F222FF4F93800E83899 /* CatalogSurfaceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSurfaceCard.swift; sourceTree = "<group>"; };
 		244FE0452FD7200000B4D805 /* CloudSyncDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncDiagnosticsView.swift; sourceTree = "<group>"; };
 		244FE0472FB465CF00B4D805 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogSelectionBottomPanel.swift; sourceTree = "<group>"; };
@@ -193,6 +195,14 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
+		24374F232FF4F93800E83899 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				24374F222FF4F93800E83899 /* CatalogSurfaceCard.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
 		244FE0482FB465CF00B4D805 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
@@ -260,6 +270,7 @@
 		C00000000000000000000035 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				24374F232FF4F93800E83899 /* DesignSystem */,
 				C0000000000000000000003A /* Navigation */,
 				C0000000000000000000004A /* PhotoAnalysis */,
 				C0000000000000000000003B /* SharedUI */,
@@ -617,6 +628,7 @@
 				C000000000000000000000A6 /* ItemModels.swift in Sources */,
 				C000000000000000000000A7 /* BellItem.swift in Sources */,
 				C000000000000000000000A8 /* Place.swift in Sources */,
+				24374F242FF4F93800E83899 /* CatalogSurfaceCard.swift in Sources */,
 				2403CEDC2F9F954D00C63AB6 /* CollectionOriginMapView.swift in Sources */,
 				249A283C2FDC4074009A0E03 /* BellLookupSnapshot.swift in Sources */,
 				C000000000000000000000A9 /* MediaAsset.swift in Sources */,
@@ -1055,7 +1067,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1105,7 +1117,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
