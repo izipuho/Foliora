@@ -40,10 +40,14 @@ extension View {
 }
 
 struct CatalogContainerCard: View {
+    enum Accessory {
+        case icon(String)
+        case label(text: String, systemImage: String)
+    }
+
     let title: String
     var subtitle: String? = nil
-    var trailingText: String? = nil
-    var trailingIcon: String? = nil
+    var accessory: Accessory? = nil
     var supportingText: String? = nil
     let systemImage: String
 
@@ -98,15 +102,13 @@ struct CatalogContainerCard: View {
 
     @ViewBuilder
     private var trailing: some View {
-        switch (trailingText, trailingIcon) {
-        case let (.some(trailingText), .some(trailingIcon)):
-            Label(trailingText, systemImage: trailingIcon)
-        case let (.some(trailingText), .none):
-            Text(trailingText)
-        case let (.none, .some(trailingIcon)):
-            Image(systemName: trailingIcon)
-        case (.none, .none):
+        switch accessory {
+        case nil:
             EmptyView()
+        case .icon(let systemImage):
+            Image(systemName: systemImage)
+        case .label(let text, let systemImage):
+            Label(text, systemImage: systemImage)
         }
     }
 }

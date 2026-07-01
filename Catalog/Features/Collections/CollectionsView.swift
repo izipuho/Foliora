@@ -608,25 +608,14 @@ private struct CollectionCard: View {
     let collection: CollectionSummary
     let sharingStatus: CollectionCardSharingStatus
 
-    private var trailingText: String? {
+    private var accessory: CatalogContainerCard.Accessory? {
         switch sharingStatus {
         case .privateOwner, .unknown:
             return nil
         case .sharedOwner(let participantsCount):
-            return "\(participantsCount)"
+            return .label(text: "\(participantsCount)", systemImage: "person.2")
         case .sharedParticipant:
-            return nil
-        }
-    }
-
-    private var trailingIcon: String? {
-        switch sharingStatus {
-        case .privateOwner, .unknown:
-            return nil
-        case .sharedOwner:
-            return "person.2"
-        case .sharedParticipant:
-            return "link"
+            return .icon("link")
         }
     }
 
@@ -634,8 +623,7 @@ private struct CollectionCard: View {
         CatalogContainerCard(
             title: collection.name,
             subtitle: collection.kind.countLabel(for: collection.itemCount),
-            trailingText: trailingText,
-            trailingIcon: trailingIcon,
+            accessory: accessory,
             systemImage: collection.kind.systemImage
         )
     }
