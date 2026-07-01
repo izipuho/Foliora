@@ -58,6 +58,8 @@ struct AppShellView: View {
     var body: some View {
         RootShellView(
             repository: repository,
+            navigationSnapshot: navigationSnapshot,
+            reloadNavigationSnapshot: reloadNavigationSnapshot,
             selectedRootTab: $selectedRootTab,
             collectionsPath: $collectionsPath,
             homesPath: $homesPath,
@@ -280,6 +282,8 @@ private struct ShareInvitationStatusOverlay: View {
 
 private struct RootShellView<Destination: View>: View {
     let repository: any CatalogRepository
+    let navigationSnapshot: CatalogSnapshot?
+    let reloadNavigationSnapshot: () -> Void
     @Binding var selectedRootTab: RootTab
     @Binding var collectionsPath: NavigationPath
     @Binding var homesPath: NavigationPath
@@ -427,7 +431,9 @@ private struct RootShellView<Destination: View>: View {
             HomeView(
                 repository: repository,
                 embedsNavigation: false,
-                navigate: { path.wrappedValue.append($0) }
+                navigate: { path.wrappedValue.append($0) },
+                navigationSnapshot: navigationSnapshot,
+                reloadNavigationSnapshot: reloadNavigationSnapshot
             )
             .navigationDestination(for: AppDestination.self) { destination in
                 self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popHomesNavigation)

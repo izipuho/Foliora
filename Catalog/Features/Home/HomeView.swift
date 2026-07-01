@@ -1,7 +1,6 @@
 import SwiftUI
 import MapKit
 import PhotosUI
-import CoreData
 import UIKit
 
 
@@ -9,8 +8,8 @@ struct HomeView: View {
     let repository: any CatalogRepository
     let embedsNavigation: Bool
     let navigate: ((AppDestination) -> Void)?
-    @Environment(\.managedObjectContext) private var managedObjectContext
-    @State private var catalogSnapshot: CatalogSnapshot?
+    let navigationSnapshot: CatalogSnapshot?
+    let reloadNavigationSnapshot: () -> Void
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
     @State private var draftLocations: [Location] = []
     @State private var isPresentingCreateHomeEditor = false
@@ -20,11 +19,15 @@ struct HomeView: View {
     init(
         repository: any CatalogRepository,
         embedsNavigation: Bool = true,
-        navigate: ((AppDestination) -> Void)? = nil
+        navigate: ((AppDestination) -> Void)? = nil,
+        navigationSnapshot: CatalogSnapshot?,
+        reloadNavigationSnapshot: @escaping () -> Void
     ) {
         self.repository = repository
         self.embedsNavigation = embedsNavigation
         self.navigate = navigate
+        self.navigationSnapshot = navigationSnapshot
+        self.reloadNavigationSnapshot = reloadNavigationSnapshot
     }
 
     var body: some View {
@@ -32,11 +35,11 @@ struct HomeView: View {
     }
 
     private var homes: [Home] {
-        catalogSnapshot?.homes ?? []
+        navigationSnapshot?.homes ?? []
     }
 
     private var locationsByHomeID: [UUID: [Location]] {
-        catalogSnapshot?.locationsByHomeID ?? [:]
+        navigationSnapshot?.locationsByHomeID ?? [:]
     }
 
     private var homeContent: some View {
@@ -97,13 +100,6 @@ struct HomeView: View {
                 focusesNameOnAppear: true
             )
         }
-        .onAppear(perform: reloadCatalogSnapshot)
-        .onReceive(NotificationCenter.default.publisher(
-            for: .NSManagedObjectContextObjectsDidChange,
-            object: managedObjectContext
-        )) { _ in
-            reloadCatalogSnapshot()
-        }
     }
 
     private var emptyHomesView: some View {
@@ -154,7 +150,7 @@ struct HomeView: View {
     }
 
     private func collectionCount(in homeID: UUID) -> Int {
-        catalogSnapshot?.collectionCountsByHomeID[homeID] ?? 0
+        navigationSnapshot?.collectionCountsByHomeID[homeID] ?? 0
     }
 
     private func presentEditorForNewHome() {
@@ -166,7 +162,7 @@ struct HomeView: View {
     private func saveDraftHome() {
         repository.saveHome(draftHome)
         repository.saveLocations(draftLocations, in: draftHome.id)
-        reloadCatalogSnapshot()
+        reloadNavigationSnapshot()
     }
 
     private func requestDeleteHome(_ homeID: UUID) {
@@ -182,11 +178,7 @@ struct HomeView: View {
 
     private func deleteHome(_ homeID: UUID) {
         repository.deleteHome(homeID: homeID)
-        reloadCatalogSnapshot()
-    }
-
-    private func reloadCatalogSnapshot() {
-        catalogSnapshot = CatalogSnapshot.load(from: managedObjectContext)
+        reloadNavigationSnapshot()
     }
 }
 

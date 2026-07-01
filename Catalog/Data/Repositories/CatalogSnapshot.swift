@@ -357,7 +357,10 @@ struct CatalogSnapshot {
     }
 
     private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
-        entity.value(forKey: key) as? UUID ?? UUID()
+        guard let value = entity.value(forKey: key) as? UUID else {
+            fatalError("Missing UUID for \(entity.entity.name ?? "Unknown").\(key)")
+        }
+        return value
     }
 
     private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
