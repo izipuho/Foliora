@@ -553,7 +553,7 @@ private struct CollectionsCatalogSnapshot {
             }
             return .privateOwner
         case .contributor, .viewer:
-            return state.isShared ? .sharedParticipant : .unknown
+            return .sharedParticipant
         }
     }
 

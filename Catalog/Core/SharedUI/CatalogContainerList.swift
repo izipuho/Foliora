@@ -57,7 +57,7 @@ struct CatalogContainerCard: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .center, spacing: 14) {
             leading
 
             VStack(alignment: .leading, spacing: 8) {
