@@ -8,7 +8,8 @@ struct CollectionsView: View {
     let navigate: ((AppDestination) -> Void)?
     let onOpenHomes: () -> Void
     @Environment(\.managedObjectContext) private var managedObjectContext
-    @State private var catalogSnapshot = CollectionsCatalogSnapshot()
+    @State private var catalogSnapshot: CatalogSnapshot?
+    @State private var collectionSharingStatuses: [UUID: CollectionCardSharingStatus] = [:]
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
     @State private var isPresentingDeleteConfirmation = false
@@ -29,11 +30,11 @@ struct CollectionsView: View {
     }
 
     private var collections: [CollectionSummary] {
-        catalogSnapshot.collections
+        catalogSnapshot.map(collectionSummaries) ?? []
     }
 
     private var homes: [Home] {
-        catalogSnapshot.homes
+        catalogSnapshot?.homes ?? []
     }
 
     var body: some View {
@@ -143,7 +144,7 @@ struct CollectionsView: View {
                         } label: {
                             CollectionCard(
                                 collection: collection,
-                                sharingStatus: catalogSnapshot.sharingStatus(for: collection.id)
+                                sharingStatus: sharingStatus(for: collection.id)
                             )
                         }
                         .buttonStyle(.plain)
@@ -285,10 +286,10 @@ struct CollectionsView: View {
     }
 
     private func canManageCollection(_ collectionID: UUID) -> Bool {
-        switch catalogSnapshot.sharingStatus(for: collectionID) {
-        case .privateOwner, .sharedOwner:
+        switch repository.deleteResolution(for: collectionID) {
+        case .deletePrivateCollection, .deleteSharedCollectionAsOwner:
             return true
-        case .sharedParticipant, .unknown:
+        case .leaveSharedCollectionAsParticipant:
             return false
         }
     }
@@ -352,7 +353,72 @@ struct CollectionsView: View {
     }
 
     private func reloadCatalogSnapshot() {
-        catalogSnapshot = CollectionsCatalogSnapshot(context: managedObjectContext)
+        let snapshot = CatalogSnapshot.load(from: managedObjectContext)
+        catalogSnapshot = snapshot
+
+        Task {
+            await loadCollectionSharingStatuses(for: snapshot.collections.map(\.id))
+        }
+    }
+
+    private func collectionSummaries(from snapshot: CatalogSnapshot) -> [CollectionSummary] {
+        snapshot.collections.map { collectionSummary(from: $0, in: snapshot) }
+    }
+
+    private func collectionSummary(from collection: Collection, in snapshot: CatalogSnapshot) -> CollectionSummary {
+        let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
+
+        return CollectionSummary(
+            id: collection.id,
+            homeID: collection.homeID,
+            kind: collection.kind,
+            name: collection.title,
+            subtitle: collection.notes,
+            backgroundStyle: collection.backgroundStyle,
+            itemCount: collection.kind == .bells ? itemCount : 0,
+            status: collection.kind == .bells ? .active : .planned,
+            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+        )
+    }
+
+    private func sharingStatus(for collectionID: UUID) -> CollectionCardSharingStatus {
+        collectionSharingStatuses[collectionID] ?? .unknown
+    }
+
+    @MainActor
+    private func loadCollectionSharingStatuses(for collectionIDs: [UUID]) async {
+        guard let persistentContainer = FolioraAppDelegate.coreDataContainer else {
+            collectionSharingStatuses = Dictionary(
+                uniqueKeysWithValues: collectionIDs.map { ($0, .privateOwner) }
+            )
+            return
+        }
+
+        let sharingService = CloudKitCollectionSharingService(persistentContainer: persistentContainer)
+        var statuses: [UUID: CollectionCardSharingStatus] = [:]
+
+        for collectionID in collectionIDs {
+            do {
+                let state = try await sharingService.sharingState(for: collectionID)
+                statuses[collectionID] = collectionSharingStatus(from: state)
+            } catch {
+                statuses[collectionID] = .unknown
+            }
+        }
+
+        collectionSharingStatuses = statuses
+    }
+
+    private func collectionSharingStatus(from state: CollectionSharingState) -> CollectionCardSharingStatus {
+        switch state.currentUserRole {
+        case .owner:
+            if state.isShared {
+                return .sharedOwner(participantsCount: state.visibleParticipantsCount)
+            }
+            return .privateOwner
+        case .contributor, .viewer:
+            return .sharedParticipant
+        }
     }
 }
 
@@ -434,166 +500,6 @@ private struct CollectionSharingSheetLoaderView: View {
         }
 
         isLoading = false
-    }
-}
-
-@MainActor
-private struct CollectionsCatalogSnapshot {
-    var collections: [CollectionSummary] = []
-    var homes: [Home] = []
-    private var collectionSharingStatuses: [UUID: CollectionCardSharingStatus] = [:]
-
-    init() {}
-
-    init(context: NSManagedObjectContext) {
-        let collectionEntities = Self.fetchEntities(
-            named: "CollectionEntity",
-            in: context,
-            sortDescriptors: [NSSortDescriptor(key: "title", ascending: true)]
-        )
-        let homeEntities = Self.fetchEntities(
-            named: "HomeEntity",
-            in: context,
-            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
-        )
-
-        let sharesByObjectID = Self.sharesByObjectID(for: collectionEntities)
-
-        collections = collectionEntities.map(Self.collectionSummary)
-        homes = homeEntities.map(Self.home)
-        collectionSharingStatuses = Dictionary(
-            uniqueKeysWithValues: collectionEntities.map { entity in
-                (
-                    Self.uuidValue(entity, "id"),
-                    Self.collectionSharingStatus(
-                        from: sharesByObjectID[entity.objectID],
-                        collectionID: Self.uuidValue(entity, "id")
-                    )
-                )
-            }
-        )
-    }
-
-    func sharingStatus(for collectionID: UUID) -> CollectionCardSharingStatus {
-        collectionSharingStatuses[collectionID] ?? .unknown
-    }
-
-    private static func fetchEntities(
-        named entityName: String,
-        in context: NSManagedObjectContext,
-        sortDescriptors: [NSSortDescriptor]
-    ) -> [NSManagedObject] {
-        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
-        request.sortDescriptors = sortDescriptors
-        return (try? context.fetch(request)) ?? []
-    }
-
-    private static func collectionSummary(from entity: NSManagedObject) -> CollectionSummary {
-        let kind = collectionKind(from: stringValue(entity, "kindRaw", default: CollectionKind.bells.rawValue))
-
-        return CollectionSummary(
-            id: uuidValue(entity, "id"),
-            homeID: collectionHomeID(from: entity),
-            kind: kind,
-            name: stringValue(entity, "title"),
-            subtitle: stringValue(entity, "notes"),
-            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyleRaw", default: CollectionBackgroundStyle.amber.rawValue)),
-            itemCount: kind == .bells ? relatedObjectCount(entity, "bells") : 0,
-            status: kind == .bells ? .active : .planned,
-            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
-        )
-    }
-
-    private static func sharesByObjectID(for entities: [NSManagedObject]) -> [NSManagedObjectID: CKShare?] {
-        guard
-            let persistentContainer = FolioraAppDelegate.coreDataContainer,
-            !entities.isEmpty
-        else {
-            return Dictionary(uniqueKeysWithValues: entities.map { ($0.objectID, nil) })
-        }
-
-        do {
-            return try persistentContainer.fetchShares(matching: entities.map(\.objectID))
-                .mapValues { Optional($0) }
-        } catch {
-            return Dictionary(uniqueKeysWithValues: entities.map { ($0.objectID, nil) })
-        }
-    }
-
-    private static func collectionSharingStatus(
-        from shareLookup: CKShare??,
-        collectionID: UUID
-    ) -> CollectionCardSharingStatus {
-        guard let shareLookup else {
-            return .privateOwner
-        }
-
-        guard let share = shareLookup else {
-            return .unknown
-        }
-
-        let currentUserParticipant = share.currentUserParticipant
-        let participants = share.participants.map {
-            CloudKitSharingMapper.collectionParticipant(
-                from: $0,
-                collectionID: collectionID,
-                isCurrentUser: $0 == currentUserParticipant
-            )
-        }
-        let currentUserRole = CloudKitSharingMapper.currentUserRole(from: participants)
-        let state = CollectionSharingState(
-            currentUserRole: currentUserRole,
-            participants: participants
-        )
-
-        switch state.currentUserRole {
-        case .owner:
-            if state.isShared {
-                return .sharedOwner(participantsCount: state.visibleParticipantsCount)
-            }
-            return .privateOwner
-        case .contributor, .viewer:
-            return .sharedParticipant
-        }
-    }
-
-    private static func home(from entity: NSManagedObject) -> Home {
-        Home(
-            id: uuidValue(entity, "id"),
-            name: stringValue(entity, "name"),
-            iconName: stringValue(entity, "iconName", default: "house.fill"),
-            notes: stringValue(entity, "notes")
-        )
-    }
-
-    private static func collectionKind(from rawValue: String) -> CollectionKind {
-        CollectionKind(rawValue: rawValue) ?? .bells
-    }
-
-    private static func collectionBackgroundStyle(from rawValue: String) -> CollectionBackgroundStyle {
-        CollectionBackgroundStyle(rawValue: rawValue) ?? .amber
-    }
-
-    private static func relatedObjectCount(_ entity: NSManagedObject, _ key: String) -> Int {
-        if let objects = entity.value(forKey: key) as? Set<NSManagedObject> {
-            return objects.count
-        }
-
-        return (entity.value(forKey: key) as? NSSet)?.count ?? 0
-    }
-
-    private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
-        entity.value(forKey: key) as? UUID ?? UUID()
-    }
-
-    private static func collectionHomeID(from entity: NSManagedObject) -> UUID {
-        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
-            ?? entity.value(forKey: "homeID") as? UUID
-            ?? UUID()
-    }
-
-    private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
-        entity.value(forKey: key) as? String ?? defaultValue
     }
 }
 
