@@ -372,32 +372,6 @@ private struct DashboardSharingCardContent {
     let detail: String?
 }
 
-private enum DashboardCardLayout {
-    static let horizontalSpacing: CGFloat = 14
-}
-
-private struct DashboardCard<Leading: View, Content: View>: View {
-    let leading: Leading
-    let content: Content
-
-    init(
-        @ViewBuilder leading: () -> Leading,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.leading = leading()
-        self.content = content()
-    }
-
-    var body: some View {
-        HStack(spacing: DashboardCardLayout.horizontalSpacing) {
-            leading
-
-            content
-        }
-        .catalogSurfaceCard()
-    }
-}
-
 struct DashboardDataHealthCard: View {
     let progress: Double
     let tint: Color
