@@ -311,7 +311,7 @@ private struct HomeListCard: View {
         CatalogContainerCard(
             title: home.name,
             subtitle: subtitle,
-            footnote: [],
+            supportingText: [],
             systemImage: home.iconName
         )
     }
