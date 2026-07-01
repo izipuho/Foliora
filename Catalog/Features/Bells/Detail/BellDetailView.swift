@@ -184,11 +184,10 @@ struct BellDetailView: View {
                     } else {
                         TagFlowLayout(spacing: 8) {
                             ForEach(bell.tags, id: \.self) { tag in
-                                Text("#\(tag)")
-                                    .font(.subheadline.weight(.medium))
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(CatalogSemanticColors.groupedSurfaceElevated, in: Capsule())
+                                CatalogSurfaceCapsule {
+                                    Text("#\(tag)")
+                                        .font(.subheadline.weight(.medium))
+                                }
                             }
                         }
                     }
