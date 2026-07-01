@@ -53,8 +53,6 @@ struct CatalogContainerCard: View {
         static let iconCornerRadius: CGFloat = 18
         static let internalPadding: CGFloat = 16
         static let iconSize: CGFloat = 52
-        static let shadowRadius: CGFloat = 14
-        static let shadowY: CGFloat = 6
         static let strokeWidth: CGFloat = 1
     }
 
@@ -124,7 +122,7 @@ struct CatalogContainerCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
-                .fill(.regularMaterial)
+                .fill(.ultraThickMaterial)
         )
         .overlay(
             RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
