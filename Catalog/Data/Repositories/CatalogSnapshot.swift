@@ -4,14 +4,17 @@ import Foundation
 struct CatalogSnapshot {
     private(set) var homes: [Home] = []
     private(set) var locations: [Location] = []
+    private(set) var collectionLocations: [Location] = []
     private(set) var collections: [Collection] = []
     private(set) var bells: [BellListItem] = []
     private(set) var bellRecords: [BellRecord] = []
     private(set) var places: [Place] = []
     private(set) var recordsByID: [UUID: BellRecord] = [:]
     private(set) var locationsByHomeID: [UUID: [Location]] = [:]
+    private(set) var collectionLocationsByCollectionID: [UUID: [Location]] = [:]
     private(set) var collectionCountsByHomeID: [UUID: Int] = [:]
     private(set) var locationPathByID: [UUID: String] = [:]
+    private(set) var collectionLocationPathByCollectionID: [UUID: [UUID: String]] = [:]
 
     private init() {}
 
@@ -46,12 +49,12 @@ struct CatalogSnapshot {
             in: context,
             sortDescriptors: [NSSortDescriptor(key: "displayName", ascending: true)]
         )
-        let allLocationEntities = locationEntities + collectionLocationEntities
         let records = bellEntities.map(bellRecord)
 
         var snapshot = CatalogSnapshot()
         snapshot.homes = homeEntities.map(home)
-        snapshot.locations = allLocationEntities.map(location)
+        snapshot.locations = locationEntities.map(storageLocation)
+        snapshot.collectionLocations = collectionLocationEntities.map(collectionLocation)
         snapshot.collections = collectionEntities.map(collection)
         snapshot.bells = bellEntities.map(bellListItem)
         snapshot.bellRecords = records
@@ -63,13 +66,23 @@ struct CatalogSnapshot {
                     lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
                 }
             }
+        snapshot.collectionLocationsByCollectionID = Dictionary(
+            grouping: collectionLocationEntities.compactMap(collectionLocationRow),
+            by: \.0
+        )
+        .mapValues { rows in rows.map(\.1) }
         snapshot.collectionCountsByHomeID = Dictionary(
             collectionEntities.compactMap(collectionHomeID).map { ($0, 1) },
             uniquingKeysWith: +
         )
         snapshot.locationPathByID = Dictionary(
-            uniqueKeysWithValues: allLocationEntities.map { (uuidValue($0, "id"), locationPath(from: $0)) }
+            uniqueKeysWithValues: locationEntities.map { (uuidValue($0, "id"), storageLocationPath(from: $0)) }
         )
+        snapshot.collectionLocationPathByCollectionID = Dictionary(
+            grouping: collectionLocationEntities.compactMap(collectionLocationPathRow),
+            by: \.0
+        )
+        .mapValues { rows in Dictionary(rows.map(\.1), uniquingKeysWith: { first, _ in first }) }
         return snapshot
     }
 
@@ -105,10 +118,21 @@ struct CatalogSnapshot {
         )
     }
 
-    private static func location(from entity: NSManagedObject) -> Location {
+    private static func storageLocation(from entity: NSManagedObject) -> Location {
         Location(
             id: uuidValue(entity, "id"),
-            homeID: locationHomeID(from: entity),
+            homeID: storageLocationHomeID(from: entity),
+            parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
+            kind: locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)),
+            name: stringValue(entity, "name"),
+            notes: stringValue(entity, "notes")
+        )
+    }
+
+    private static func collectionLocation(from entity: NSManagedObject) -> Location {
+        Location(
+            id: uuidValue(entity, "id"),
+            homeID: collectionLocationHomeID(from: entity),
             parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
             kind: locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)),
             name: stringValue(entity, "name"),
@@ -131,6 +155,16 @@ struct CatalogSnapshot {
                 notes: stringValue(entity, "notes")
             )
         )
+    }
+
+    private static func collectionLocationRow(from entity: NSManagedObject) -> (UUID, Location)? {
+        guard let collectionID = collectionLocationCollectionID(from: entity) else { return nil }
+        return (collectionID, collectionLocation(from: entity))
+    }
+
+    private static func collectionLocationPathRow(from entity: NSManagedObject) -> (UUID, (UUID, String))? {
+        guard let collectionID = collectionLocationCollectionID(from: entity) else { return nil }
+        return (collectionID, (uuidValue(entity, "id"), collectionLocationPath(from: entity)))
     }
 
     private static func place(from entity: NSManagedObject) -> Place {
@@ -174,8 +208,8 @@ struct CatalogSnapshot {
                 customMaterialName: entity.value(forKey: "customMaterialName") as? String
             ),
             originPlace: originPlaceEntity.map(place),
-            storageLocation: locationEntity.map(location),
-            storagePath: locationEntity.map(locationPath) ?? "",
+            storageLocation: locationEntity.map(locationForBellStorage),
+            storagePath: locationEntity.map(storagePathForBellStorage) ?? "",
             mediaAssets: relatedObjects(entity, "mediaAssets")
                 .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
                 .map { mediaAsset(from: $0, itemID: id) },
@@ -250,18 +284,40 @@ struct CatalogSnapshot {
             ?? UUID()
     }
 
-    private static func locationHomeID(from entity: NSManagedObject) -> UUID {
-        if entity.entity.name == "LocationEntity",
-           let home = entity.value(forKey: "home") as? NSManagedObject {
-            return uuidValue(home, "id")
+    private static func storageLocationHomeID(from entity: NSManagedObject) -> UUID {
+        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID()
+    }
+
+    private static func collectionLocationHomeID(from entity: NSManagedObject) -> UUID {
+        (entity.value(forKey: "collection") as? NSManagedObject).map(collectionHomeID) ?? UUID()
+    }
+
+    private static func collectionLocationCollectionID(from entity: NSManagedObject) -> UUID? {
+        (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") }
+    }
+
+    private static func locationForBellStorage(from entity: NSManagedObject) -> Location {
+        if entity.entity.name == "CollectionLocationEntity" {
+            return collectionLocation(from: entity)
         }
 
-        if entity.entity.name == "CollectionLocationEntity",
-           let collection = entity.value(forKey: "collection") as? NSManagedObject {
-            return collectionHomeID(from: collection)
+        return storageLocation(from: entity)
+    }
+
+    private static func storagePathForBellStorage(from entity: NSManagedObject) -> String {
+        if entity.entity.name == "CollectionLocationEntity" {
+            return collectionLocationPath(from: entity)
         }
 
-        return UUID()
+        return storageLocationPath(from: entity)
+    }
+
+    private static func storageLocationPath(from entity: NSManagedObject) -> String {
+        locationPath(from: entity)
+    }
+
+    private static func collectionLocationPath(from entity: NSManagedObject) -> String {
+        locationPath(from: entity)
     }
 
     private static func locationPath(from entity: NSManagedObject) -> String {
