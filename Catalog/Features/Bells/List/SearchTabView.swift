@@ -186,7 +186,7 @@ struct SearchTabView: View {
     }
 
     private var searchHeader: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             Text("common.ui.search")
                 .font(.largeTitle.weight(.bold))
                 .foregroundStyle(.primary)
@@ -482,7 +482,7 @@ private struct SearchTokenBar: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: CatalogMetrics.Spacing.sm) {
                 ForEach(tokens) { token in
                     Button {
                         remove(token)

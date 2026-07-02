@@ -159,8 +159,8 @@ struct TagEditorSection: View {
     @Binding var tags: [String]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+            HStack(spacing: CatalogMetrics.Spacing.sm) {
                 TextField(String(localized: "editor.tags.add_placeholder"), text: $tagInput)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -184,7 +184,7 @@ struct TagEditorSection: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                TagFlowLayout(spacing: 8) {
+                TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
                     ForEach(tags, id: \.self) { tag in
                         TagChip(tag: tag) {
                             removeTag(tag)
@@ -218,7 +218,7 @@ private struct TagChip: View {
 
     var body: some View {
         CatalogSurfaceCapsule {
-            HStack(spacing: CatalogMetrics.Spacing.xs) {
+            HStack(spacing: CatalogMetrics.Spacing.xxs) {
                 Text("#\(tag)")
                     .font(.subheadline.weight(.medium))
 
@@ -420,7 +420,7 @@ private struct MediaAssetGridTileView: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                 MediaAssetThumbnailView(
                     asset: asset,
                     size: asset.kind == .photo ? 110 : 88
@@ -491,7 +491,7 @@ private struct MediaAssetGridTileView: View {
                     .foregroundStyle(.white)
                     .frame(width: 20, height: 20)
                     .background(.tint, in: Circle())
-                    .padding(5)
+                    .padding(CatalogMetrics.Spasing.xxs)
                     .frame(width: 110, height: 110, alignment: .bottomLeading)
             }
         }
@@ -600,7 +600,7 @@ private struct MediaAssetThumbnailView: View {
             RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
                 .fill(CatalogSemanticColors.groupedSurfaceElevated)
 
-            VStack(spacing: 3) {
+            VStack(spacing: CatalogMetrics.Spacing.xxs) {
                 Image(systemName: "doc.fill")
                     .font(.title3)
                     .foregroundStyle(.secondary)
@@ -680,7 +680,7 @@ struct PlacePickerView: View {
                                 }
                             } label: {
                                 HStack {
-                                    VStack(alignment: .leading, spacing: 3) {
+                                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xxs) {
                                         Text(result.title)
                                             .foregroundStyle(.primary)
 
@@ -710,7 +710,7 @@ struct PlacePickerView: View {
                             dismiss()
                         } label: {
                             HStack {
-                                VStack(alignment: .leading, spacing: 3) {
+                                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xxs) {
                                     Text(place.displayName)
                                         .foregroundStyle(.primary)
 
@@ -935,7 +935,7 @@ struct LocationHierarchyPickerView: View {
                             selectedLocationID = currentNode.id
                         } label: {
                             HStack {
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xxs) {
                                     Text(currentNode.name)
                                     Text(currentNode.kind.displayName)
                                         .font(.caption)
@@ -967,8 +967,8 @@ struct LocationHierarchyPickerView: View {
                                 dismiss()
                             }
                         } label: {
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: CatalogMetrics.Spacing.md) {
+                                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xxs) {
                                     Text(location.name)
                                         .foregroundStyle(.primary)
                                     Text(location.kind.displayName)

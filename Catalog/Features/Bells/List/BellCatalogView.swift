@@ -338,7 +338,7 @@ struct BellCatalogView: View {
     ) -> some View {
         return ScrollViewReader { scrollProxy in
             BellGridContainerView(layoutMode: layoutMode, bottomContentMargin: scrollContentBottomInset) { cardSize, gridMetrics, cardMetrics in
-                LazyVStack(alignment: .leading, spacing: 16, pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []) {
+                LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg, pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []) {
                     Color.clear
                         .frame(height: 0)
                         .id("bell-grid-top")
@@ -424,7 +424,7 @@ struct BellCatalogView: View {
     }
 
     private var activeSummaryFilterSection: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: CatalogMetrics.Spacing.sm) {
             Image(systemName: "tag.fill")
                 .foregroundStyle(catalogStyle.accentColor)
 
@@ -439,7 +439,7 @@ struct BellCatalogView: View {
             .font(.footnote.weight(.semibold))
             .foregroundStyle(catalogStyle.accentColor)
         }
-        .padding(14)
+        .padding(CatalogMetrics.Spacing.md)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous))
     }
 
@@ -484,9 +484,9 @@ struct BellCatalogView: View {
 
             Section {
                 if usesCabinetGroups {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                         ForEach(section.cabinetGroups) { cabinetGroup in
-                            VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                                 Text(cabinetGroup.title)
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(.secondary)
@@ -717,7 +717,7 @@ private struct BellGroupedSectionHeader: View {
     }
 
     private var headerContent: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: CatalogMetrics.Spacing.sm) {
             Text(title)
                 .font(.headline)
                 .foregroundStyle(.primary)
@@ -730,8 +730,8 @@ private struct BellGroupedSectionHeader: View {
 
             Spacer()
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 14)
+        .padding(.vertical, CatalogMetrics.Spacing.sm)
+        .padding(.horizontal, CatalogMetrics.Spacing.md)
         .background(.ultraThinMaterial)
         .overlay(alignment: .bottom) {
             Rectangle()
@@ -754,7 +754,7 @@ private struct BellGroupingJumpPopover: View {
                     }
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, CatalogMetrics.Spacing.sm)
                     .padding(.horizontal, CatalogMetrics.Spacing.md)
                     .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
                 }

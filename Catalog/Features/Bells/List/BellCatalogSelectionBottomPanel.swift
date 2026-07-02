@@ -19,7 +19,7 @@ struct BellCatalogSelectionBottomPanel: View {
             panelBackground
                 .padding(.bottom, -bottomSafeAreaInset)
 
-            HStack(alignment: .center, spacing: 18) {
+            HStack(alignment: .center, spacing: CatalogMetrics.Spacing.lg) {
                 Button(action: onMove) {
                     Image(systemName: "folder")
                         .font(.title3.weight(.semibold))
@@ -62,8 +62,7 @@ struct BellCatalogSelectionBottomPanel: View {
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)
-            .padding(.top, 24)
-            .padding(.bottom, 8)
+            .padding(.vertical, CatalogMetrics.Spacing.lg)
         }
     }
 

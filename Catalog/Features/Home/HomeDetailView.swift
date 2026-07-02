@@ -82,13 +82,13 @@ struct HomeIdentityHeader: View {
     let home: Home
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
             Image(systemName: home.iconName)
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(.tint)
                 .frame(width: 44, height: 44)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                 Text(home.name)
                     .font(.headline)
 
@@ -105,6 +105,6 @@ struct HomeIdentityHeader: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, CatalogMetrics.Spacing.xs)
     }
 }

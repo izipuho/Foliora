@@ -132,7 +132,7 @@ struct BellBatchAddView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    VStack(spacing: 2) {
+                    VStack(spacing: CatalogMetrics.Spacing.xxs) {
                         Text(String(localized: "bell_batch_add.title"))
                             .font(.headline)
                         Text(selectedCountLabel)

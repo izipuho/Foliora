@@ -57,10 +57,10 @@ struct CatalogContainerCard: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .center, spacing: CatalogMetrics.Spacing.md) {
             leading
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                 Text(title)
                     .font(.title3.bold())
 
@@ -76,7 +76,7 @@ struct CatalogContainerCard: View {
                         .font(.footnote.weight(.medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
-                        .padding(.top, 10)
+                        .padding(.top, CatalogMetrics.Spacing.sm)
                 }
             }
 

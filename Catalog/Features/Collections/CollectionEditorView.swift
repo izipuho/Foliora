@@ -61,7 +61,7 @@ struct CollectionEditorView: View {
     }
 
     private var backgroundColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 74, maximum: 110), spacing: 12)]
+        [GridItem(.adaptive(minimum: 74, maximum: 110), spacing: CatalogMetrics.Spacing.md)]
     }
 
     private var homeSelection: Binding<UUID?> {
@@ -96,7 +96,7 @@ struct CollectionEditorView: View {
 
     private var backgroundSection: some View {
         Section(String(localized: "collection.editor.section_background")) {
-            LazyVGrid(columns: backgroundColumns, spacing: 12) {
+            LazyVGrid(columns: backgroundColumns, spacing: CatalogMetrics.Spacing.md) {
                 ForEach(CollectionBackgroundStyle.allCases) { style in
                     CollectionBackgroundStyleButton(
                         style: style,
@@ -200,7 +200,7 @@ private struct CollectionBackgroundStyleButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                 RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                     .fill(
                         LinearGradient(

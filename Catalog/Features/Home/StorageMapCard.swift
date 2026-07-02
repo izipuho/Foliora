@@ -52,7 +52,7 @@ struct StorageMapCard: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, CatalogMetrics.Spacing.xl)
         } else {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                 Text(storageSummaryText)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -119,7 +119,7 @@ struct StorageMapCard: View {
     }
 
     private func locationRow(location: Location, depth: Int) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: CatalogMetrics.Spacing.sm) {
             Circle()
                 .fill(kindColor(location.kind))
                 .frame(width: 8, height: 8)

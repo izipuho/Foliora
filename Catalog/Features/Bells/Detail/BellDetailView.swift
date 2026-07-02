@@ -127,7 +127,7 @@ struct BellDetailView: View {
     }
 
     private var detailContent: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
             detailSection(String(localized: "bell.detail.section.collection_info")) {
                 if let acquiredYear = bell.acquiredYear {
                     detailRow(String(localized: "common.field.acquired_year"), value: String(acquiredYear))
@@ -182,7 +182,7 @@ struct BellDetailView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     } else {
-                        TagFlowLayout(spacing: 8) {
+                        TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
                             ForEach(bell.tags, id: \.self) { tag in
                                 CatalogSurfaceCapsule {
                                     Text("#\(tag)")
@@ -218,12 +218,12 @@ struct BellDetailView: View {
         tint: Color = .clear,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             Text(title)
                 .font(.headline)
             content()
         }
-        .padding(18)
+        .padding(CatalogMetrics.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.section, style: .continuous)

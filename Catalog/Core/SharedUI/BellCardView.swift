@@ -477,7 +477,7 @@ private struct BellCardStyle {
             showsSubtitle: false,
             subtitleFont: .caption2,
             subtitleLineLimit: 1,
-            spacing: 2
+            spacing: CatalogMetrics.Spacing.xxs
         ),
         meta: nil
     )
@@ -489,7 +489,7 @@ private struct BellCardStyle {
             showsSubtitle: false,
             subtitleFont: .caption2,
             subtitleLineLimit: 1,
-            spacing: 4
+            spacing: CatalogMetrics.Spacing.xs
         ),
         meta: MetaBlockStyle(
             fields: [.year],
@@ -504,7 +504,7 @@ private struct BellCardStyle {
             showsSubtitle: true,
             subtitleFont: .caption,
             subtitleLineLimit: 2,
-            spacing: 4
+            spacing: CatalogMetrics.Spacing.xs
         ),
         meta: MetaBlockStyle(
             fields: [.year],
@@ -519,7 +519,7 @@ private struct BellCardStyle {
             showsSubtitle: true,
             subtitleFont: .caption,
             subtitleLineLimit: 2,
-            spacing: 4
+            spacing: CatalogMetrics.Spacing.xs
         ),
         meta: MetaBlockStyle(
             fields: [.year],
@@ -534,7 +534,7 @@ private struct BellCardStyle {
             showsSubtitle: true,
             subtitleFont: .body,
             subtitleLineLimit: 2,
-            spacing: 6
+            spacing: CatalogMetrics.Spacing.xs
         ),
         meta: MetaBlockStyle(
             fields: [.year],

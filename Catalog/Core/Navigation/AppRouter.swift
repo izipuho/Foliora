@@ -270,12 +270,12 @@ private struct ShareInvitationStatusOverlay: View {
     }
 
     private func statusCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(spacing: 14) {
+        VStack(spacing: CatalogMetrics.Spacing.md) {
             content()
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 18)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(.horizontal, CatalogMetrics.Spacing.xl)
+        .padding(.vertical, CatalogMetrics.Spacing.lg)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
         .shadow(radius: 18)
     }
 }

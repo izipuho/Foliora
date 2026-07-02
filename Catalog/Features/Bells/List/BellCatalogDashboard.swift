@@ -14,9 +14,9 @@ struct BellCatalogDashboardView: View {
     @State private var isPresentingDataHealthPopover = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: CatalogMetrics.Spacing.sm) {
                     MetricPill(
                         title: String(localized: "bell_catalog.dashboard.total"),
                         value: "\(stats.totalCount)",
@@ -56,7 +56,7 @@ struct BellCatalogDashboardView: View {
             .scrollClipDisabled()
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: CatalogMetrics.Spacing.md) {
                     sharingCard
 
                     if let collection {
@@ -105,7 +105,7 @@ struct BellCatalogDashboardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, CatalogMetrics.Insets.screen)
         .padding(.top, CatalogMetrics.Spacing.xs)
-        .padding(.vertical, 4)
+        .padding(.vertical, CatalogMetrics.Spacing.xs)
         .scrollTransition(axis: .vertical) { content, phase in
             content
                 .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
@@ -250,7 +250,7 @@ private struct MetricPill: View {
     }
 
     private var content: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: CatalogMetrics.Spacing.sm) {
             Image(systemName: systemImage)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(tint)
@@ -262,8 +262,8 @@ private struct MetricPill: View {
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 14)
+        .padding(.vertical, CatalogMetrics.Spacing.sm)
+        .padding(.horizontal, CatalogMetrics.Spacing.md)
         .background(.ultraThinMaterial, in: Capsule(style: .continuous))
     }
 }
@@ -387,7 +387,7 @@ struct DashboardDataHealthCard: View {
                 }
                 .frame(width: 56, height: 56)
             } content: {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                     Text(String(localized: "bell_catalog.dashboard.health"))
                         .font(.headline)
                     Text(String(localized: "bell_catalog.dashboard.health.subtitle"))
@@ -411,7 +411,7 @@ struct DashboardTopGeographyCard: View {
             Text(flag)
                 .font(.system(size: 34))
         } content: {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                 Text(String(localized: "common.ui.geography"))
                     .font(.headline)
                 Text(countryName)
@@ -432,7 +432,7 @@ private struct DashboardPopoverContainer<Entry, Content: View>: View {
     let content: (Entry) -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             Text(title)
                 .font(.title2.bold())
                 .foregroundStyle(.primary)
@@ -447,7 +447,6 @@ private struct DashboardPopoverContainer<Entry, Content: View>: View {
                             onSelect(entry)
                         } label: {
                             content(entry)
-                                //.padding(.vertical, 5)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .contentShape(Rectangle())
                         }
@@ -459,7 +458,7 @@ private struct DashboardPopoverContainer<Entry, Content: View>: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
             }
         }
         .padding()
@@ -486,14 +485,14 @@ struct DataHealthPopover: View {
             entries: entries,
             onSelect: { onSelect($0.filter) }
         ) { entry in
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: CatalogMetrics.Spacing.md) {
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xxs) {
                     Text(entry.title)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.primary)
 
                     GeometryReader { proxy in
-                        HStack(spacing: 8) {
+                        HStack(spacing: CatalogMetrics.Spacing.sm) {
                             Text(entry.countText)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -512,7 +511,7 @@ struct DataHealthPopover: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(12)
+            .padding(CatalogMetrics.Spacing.md)
         }
     }
 }
@@ -549,7 +548,7 @@ struct SummaryCoverageRow: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                 HStack {
                     Text(title)
                         .font(.subheadline.weight(.semibold))
@@ -586,7 +585,7 @@ struct SummaryBreakdownRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: CatalogMetrics.Spacing.md) {
                 Text(title)
                     .font(.subheadline)
                     .lineLimit(1)
@@ -616,7 +615,7 @@ struct StatChip: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, CatalogMetrics.Spacing.sm)
         .padding(.horizontal, CatalogMetrics.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))

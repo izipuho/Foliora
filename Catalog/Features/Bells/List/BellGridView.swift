@@ -127,7 +127,7 @@ struct BellGridView<Bell: BellCardDisplayable>: View {
                             Circle()
                                 .stroke(.white, lineWidth: 2)
                         }
-                        .padding(8)
+                        .padding(CatalogMetrics.Spacing.sm)
                 }
             }
         }

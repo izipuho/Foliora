@@ -5,16 +5,16 @@ struct BookLibraryPlaceholderView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                     Text(collection.name)
                         .font(.largeTitle.bold())
 
                     Text("Для книг будет отдельный интерфейс: полки, авторы, издания, статусы прочтения и поиск по библиотеке. Этот модуль пока только обозначен архитектурно.")
                         .foregroundStyle(.secondary)
                 }
-                .padding(CatalogLayoutInsets.screen)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.hero, style: .continuous))
+                .padding(CatalogMetrics.Insets.screen)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.hero, style: .continuous))
 
                 ContentUnavailableView(
                     "Модуль книг следующий в очереди",
@@ -22,7 +22,7 @@ struct BookLibraryPlaceholderView: View {
                     description: Text("Каркас приложения уже разделяет коллекции по типам и позволяет каждой из них иметь собственный UI, repository и набор сценариев.")
                 )
                 .frame(maxWidth: .infinity)
-                .padding(.top, 30)
+                .padding(.top, CatalogMetrics.Spasing.xl)
             }
         }
         .contentMargins(.horizontal, nil, for: .scrollContent)

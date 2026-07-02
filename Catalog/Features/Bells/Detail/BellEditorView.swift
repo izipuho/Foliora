@@ -138,7 +138,7 @@ struct BellEditorView: View {
                     if shouldShowPhotoAnalysisSection {
                         Section(String(localized: "editor.photo_analysis.section")) {
                             if photoAnalysis.isAnalyzing {
-                                HStack(spacing: 10) {
+                                HStack(spacing: CatalogMetrics.Spacing.sm) {
                                     ProgressView()
                                     Text(String(localized: "editor.photo_analysis.analyzing"))
                                         .foregroundStyle(.secondary)
@@ -539,7 +539,7 @@ private struct PhotoSuggestionRow: View {
     let onAccept: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
             HStack {
                 Text(title)
                     .foregroundStyle(.secondary)
@@ -575,12 +575,12 @@ private struct PhotoRecognizedTextBlock: View {
     let textFeatures: [RecognizedTextFeature]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
             Text(String(localized: "editor.photo_analysis.detected_text"))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            TagFlowLayout(spacing: 8) {
+            TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
                 ForEach(textFeatures, id: \.self) { feature in
                     Text(feature.text)
                         .font(.caption.weight(.medium))
@@ -611,14 +611,14 @@ private struct PhotoSuggestedTagsRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
             HStack {
                 Text(title)
                     .foregroundStyle(.secondary)
                 Spacer()
             }
 
-            TagFlowLayout(spacing: 8) {
+            TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
                 ForEach(suggestions, id: \.value) { suggestion in
                     PhotoSuggestedTagChip(
                         tag: suggestion.value,

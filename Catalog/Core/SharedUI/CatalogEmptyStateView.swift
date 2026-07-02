@@ -34,7 +34,7 @@ struct CatalogEmptyStateView: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: CatalogMetrics.Spacing.xl) {
             ContentUnavailableView(
                 title,
                 systemImage: systemImage,
@@ -42,7 +42,7 @@ struct CatalogEmptyStateView: View {
             )
             .frame(maxWidth: .infinity)
 
-            VStack(spacing: 12) {
+            VStack(spacing: CatalogMetrics.Spacing.md) {
                 Button(action: primaryAction) {
                     primaryActionLabel
                         .font(.headline)
@@ -62,7 +62,7 @@ struct CatalogEmptyStateView: View {
                     .tint(primaryTint)
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, CatalogMetrics.Spacing.lg)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .padding(.horizontal)

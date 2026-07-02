@@ -553,7 +553,7 @@ private struct EditableLocationRow: View {
     let onAddChild: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: CatalogMetrics.Spacing.sm) {
             if hasChildren {
                 Button(action: onToggleCollapsed) {
                     Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
@@ -570,11 +570,11 @@ private struct EditableLocationRow: View {
                 .fill(kindColor(location.kind))
                 .frame(width: 8, height: 8)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                 Text(location.name)
                     .font(.body.weight(.medium))
 
-                HStack(spacing: 6) {
+                HStack(spacing: CatalogMetrics.Spacing.xs) {
                     Text(location.kind.displayName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -607,7 +607,7 @@ private struct EditableLocationRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .padding(.leading, CGFloat(depth) * 18)
-        .padding(.vertical, 4)
+        .padding(.vertical, CatalogMetrics.Spacing.xs)
     }
 
     private func kindColor(_ kind: LocationKind) -> Color {

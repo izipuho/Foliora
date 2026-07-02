@@ -22,14 +22,14 @@ struct CloudSyncDiagnosticsView: View {
     var body: some View {
         Form {
             Section {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                     Text("Cloud Sync Diagnostics")
                         .font(.title2.weight(.semibold))
                     Text("Temporary diagnostics screen for Core Data / CloudKit sync.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, CatalogMetrics.Spacing.xs)
             }
 
             Section("CloudKit Account") {
@@ -58,7 +58,7 @@ struct CloudSyncDiagnosticsView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(persistentStores) { store in
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                             Text(store.title)
                                 .font(.headline)
                             diagnosticsRow("URL", store.url)
@@ -68,7 +68,7 @@ struct CloudSyncDiagnosticsView: View {
                             diagnosticsRow("CloudKit enabled", store.isCloudKitEnabledText)
                             diagnosticsRow("Container identifier", store.containerIdentifier ?? "Unavailable")
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, CatalogMetrics.Spacing.xs)
                     }
                 }
             }
@@ -79,7 +79,7 @@ struct CloudSyncDiagnosticsView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(eventHistory) { event in
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                             Text(event.type)
                                 .font(.headline)
                             diagnosticsRow("Timestamp", event.timestampText)
@@ -90,7 +90,7 @@ struct CloudSyncDiagnosticsView: View {
                                 diagnosticsRow("Error", errorDescription)
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, CatalogMetrics.Spacing.xs)
                     }
                 }
             }

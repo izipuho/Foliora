@@ -10,7 +10,7 @@ struct OriginStorageSection: View {
     let onEditStorage: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
             OriginTile(place: place, accentColor: accentColor)
 
             StorageTile(
@@ -49,7 +49,7 @@ private struct OriginTile: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
             ZStack(alignment: .bottomLeading) {
                 if let coordinate, let region {
                     Map(initialPosition: .region(region), interactionModes: []) {
@@ -139,10 +139,10 @@ private struct StorageTile: View {
     }
 
     private var assignedTileContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                 ForEach(Array(pathParts.enumerated()), id: \.offset) { index, part in
-                    HStack(spacing: 8) {
+                    HStack(spacing: CatalogMetrics.Spacing.sm) {
                         Circle()
                             .fill(index == pathParts.count - 1 ? accentColor.opacity(0.80) : CatalogSemanticColors.tertiaryLabel)
                             .frame(width: 7, height: 7)
@@ -156,7 +156,7 @@ private struct StorageTile: View {
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-            .padding(14)
+            .padding(CatalogMetrics.Spacing.md)
             .background(CatalogSemanticColors.groupedSurfaceElevated, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
@@ -166,7 +166,7 @@ private struct StorageTile: View {
     }
 
     private var placeholderTileContent: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: CatalogMetrics.Spacing.sm) {
             Spacer(minLength: 0)
 
             Image(systemName: "square.stack.3d.up.slash")
@@ -187,7 +187,7 @@ private struct StorageTile: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-        .padding(14)
+        .padding(CatalogMetrics.Spacing.md)
         .background(accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
