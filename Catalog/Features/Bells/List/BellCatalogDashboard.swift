@@ -375,7 +375,7 @@ struct DashboardDataHealthCard: View {
             DashboardCard {
                 ZStack {
                     Circle()
-                        .stroke(CatalogSemanticColors.separator, lineWidth: 8)
+                        .stroke(Color(uiColor: .separator), lineWidth: 8)
 
                     Circle()
                         .trim(from: 0, to: progress)
@@ -563,7 +563,7 @@ struct SummaryCoverageRow: View {
                 GeometryReader { proxy in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(CatalogSemanticColors.separator)
+                            .fill(Color(uiColor: .separator))
 
                         Capsule()
                             .fill(tint)

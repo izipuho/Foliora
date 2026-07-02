@@ -598,7 +598,7 @@ private struct MediaAssetThumbnailView: View {
     private var documentPlaceholder: some View {
         ZStack {
             RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
-                .fill(CatalogSemanticColors.groupedSurfaceElevated)
+                .fill(Color(uiColor: .tertiarySystemGroupedBackground))
 
             VStack(spacing: CatalogMetrics.Spacing.xxs) {
                 Image(systemName: "doc.fill")
@@ -614,7 +614,7 @@ private struct MediaAssetThumbnailView: View {
     private func placeholder(systemImage: String) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
-                .fill(CatalogSemanticColors.groupedSurfaceElevated)
+                .fill(Color(uiColor: .tertiarySystemGroupedBackground))
 
             Image(systemName: systemImage)
                 .font(CatalogTypography.cardTitle)

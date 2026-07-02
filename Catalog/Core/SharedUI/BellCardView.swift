@@ -9,25 +9,25 @@ struct CatalogShadowStyle {
 
 enum CatalogElevation {
     static let card = CatalogShadowStyle(
-        color: CatalogSemanticColors.separator.opacity(0.22),
+        color: Color(uiColor: .separator).opacity(0.22),
         radius: 12,
         y: 6
     )
 
     static let floatingCard = CatalogShadowStyle(
-        color: CatalogSemanticColors.separator.opacity(0.22),
+        color: Color(uiColor: .separator).opacity(0.22),
         radius: 14,
         y: 8
     )
 
     static let collectionCard = CatalogShadowStyle(
-        color: CatalogSemanticColors.separator.opacity(0.22),
+        color: Color(uiColor: .separator).opacity(0.22),
         radius: 16,
         y: 8
     )
 
     static let detailSection = CatalogShadowStyle(
-        color: CatalogSemanticColors.separator.opacity(0.22),
+        color: Color(uiColor: .separator).opacity(0.22),
         radius: 10,
         y: 4
     )
@@ -602,7 +602,7 @@ private struct BellCardMetaChip: View {
             .background(
                 bright
                     ? CatalogMediaContrast.glassFill
-                    : CatalogSemanticColors.groupedSurface,
+                    : Color(uiColor: .secondarySystemGroupedBackground),
                 in: Capsule()
             )
             .foregroundStyle(bright ? CatalogMediaContrast.onMediaPrimary : .secondary)

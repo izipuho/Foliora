@@ -17,7 +17,7 @@ struct CatalogSurfaceCapsule<Content: View>: View {
             }
             .overlay {
                 Capsule()
-                    .stroke(CatalogSemanticColors.separator, lineWidth: 1)
+                    .stroke(Color(uiColor: .separator), lineWidth: 1)
             }
     }
 }

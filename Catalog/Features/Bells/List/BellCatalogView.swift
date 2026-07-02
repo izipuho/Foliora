@@ -735,7 +735,7 @@ private struct BellGroupedSectionHeader: View {
         .background(.ultraThinMaterial)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(CatalogSemanticColors.separator)
+                .fill(Color(uiColor: .separator))
                 .frame(height: 0.5)
         }
     }
@@ -756,7 +756,7 @@ private struct BellGroupingJumpPopover: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, CatalogMetrics.Spacing.sm)
                     .padding(.horizontal, CatalogMetrics.Spacing.md)
-                    .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
+                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
                 }
             }
             .padding(CatalogMetrics.Spacing.md)

@@ -1,16 +1,16 @@
 import SwiftUI
 
 enum CatalogSemanticColors {
-    static let groupedBackground = Color(uiColor: .systemGroupedBackground)
-    static let groupedSurface = Color(uiColor: .secondarySystemGroupedBackground)
-    static let groupedSurfaceElevated = Color(uiColor: .tertiarySystemGroupedBackground)
+    //static let groupedBackground = Color(uiColor: .systemGroupedBackground)
+    //static let groupedSurface = Color(uiColor: .secondarySystemGroupedBackground)
+    //static let groupedSurfaceElevated = Color(uiColor: .tertiarySystemGroupedBackground)
 
-    static let primaryLabel = Color(uiColor: .label)
-    static let secondaryLabel = Color(uiColor: .secondaryLabel)
-    static let tertiaryLabel = Color(uiColor: .tertiaryLabel)
+    //static let primaryLabel = Color(uiColor: .label)
+    //static let secondaryLabel = Color(uiColor: .secondaryLabel)
+    //static let tertiaryLabel = Color(uiColor: .tertiaryLabel)
 
-    static let separator = Color(uiColor: .separator)
-    static let secondaryFill = Color(uiColor: .secondarySystemFill)
+    //static let separator = Color(uiColor: .separator)
+    //static let secondaryFill = Color(uiColor: .secondarySystemFill)
 
     static let success = Color.green
     static let destructive = Color.red

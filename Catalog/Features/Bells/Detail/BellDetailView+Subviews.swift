@@ -60,7 +60,7 @@ private struct OriginTile: View {
                 } else {
                     ZStack {
                         RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
-                            .fill(CatalogSemanticColors.groupedSurfaceElevated)
+                            .fill(Color(uiColor: .tertiarySystemGroupedBackground))
                         Image(systemName: "mappin.slash")
                             .font(CatalogTypography.cardTitle)
                             .foregroundStyle(.secondary)
@@ -144,7 +144,7 @@ private struct StorageTile: View {
                 ForEach(Array(pathParts.enumerated()), id: \.offset) { index, part in
                     HStack(spacing: CatalogMetrics.Spacing.sm) {
                         Circle()
-                            .fill(index == pathParts.count - 1 ? accentColor.opacity(0.80) : CatalogSemanticColors.tertiaryLabel)
+                            .fill(index == pathParts.count - 1 ? accentColor.opacity(0.80) : Color(uiColor: .tertiaryLabel))
                             .frame(width: 7, height: 7)
 
                         Text(part)
@@ -157,7 +157,7 @@ private struct StorageTile: View {
             }
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
             .padding(CatalogMetrics.Spacing.md)
-            .background(CatalogSemanticColors.groupedSurfaceElevated, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
+            .background(Color(uiColor: .tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                     .stroke(accentColor.opacity(0.22), lineWidth: 1)
