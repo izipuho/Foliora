@@ -18,21 +18,33 @@ enum CatalogSemanticColors {
 }
 
 enum CatalogMediaContrast {
-    static let coverScrimBottom = Color.black.opacity(0.22)
-    static let coverScrimTop = Color.black.opacity(0.02)
-    static let overlayChip = Color.white.opacity(0.16)
-    static let overlayChipMuted = Color.white.opacity(0.72)
+    static let scrimClear = Color.black.opacity(0)
+    static let scrimWeak = Color.black.opacity(0.10)
+    static let scrimMedium = Color.black.opacity(0.22)
+    static let scrimStrong = Color.black.opacity(0.32)
+
+    static let glassFill = Color.white.opacity(0.16)
     static let glassStroke = Color.white.opacity(0.32)
-    static let mediaSelectionStroke = Color.white.opacity(0.9)
-    static let previewGradientStart = Color.white.opacity(0.88)
-    static let previewGradientEnd = Color.white.opacity(0.72)
-    static let mapScrimTop = Color.black.opacity(0)
-    static let mapScrimMiddle = Color.black.opacity(0.10)
-    static let mapScrimBottom = Color.black.opacity(0.30)
-    static let iconPaletteShadowSoft = Color.black.opacity(0.25)
-    static let iconPaletteShadowStrong = Color.black.opacity(0.35)
+
     static let onMediaPrimary = Color.white
 }
+
+//enum CatalogMediaContrast {
+//    static let coverScrimBottom = Color.black.opacity(0.22)
+//    static let coverScrimTop = Color.black.opacity(0.02)
+//    static let overlayChip = Color.white.opacity(0.16)
+//    static let overlayChipMuted = Color.white.opacity(0.72)
+//    static let glassStroke = Color.white.opacity(0.32)
+//    static let mediaSelectionStroke = Color.white.opacity(0.9)
+//    static let previewGradientStart = Color.white.opacity(0.88)
+//    static let previewGradientEnd = Color.white.opacity(0.72)
+//    static let mapScrimTop = Color.black.opacity(0)
+//    static let mapScrimMiddle = Color.black.opacity(0.10)
+//    static let mapScrimBottom = Color.black.opacity(0.30)
+//    static let iconPaletteShadowSoft = Color.black.opacity(0.25)
+//    static let iconPaletteShadowStrong = Color.black.opacity(0.35)
+//    static let onMediaPrimary = Color.white
+//}
 
 //enum CatalogSemanticColors {
 //    static let separator = Color(uiColor: .separator)
