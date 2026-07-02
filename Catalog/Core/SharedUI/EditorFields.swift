@@ -491,7 +491,7 @@ private struct MediaAssetGridTileView: View {
                     .foregroundStyle(.white)
                     .frame(width: 20, height: 20)
                     .background(.tint, in: Circle())
-                    .padding(CatalogMetrics.Spasing.xxs)
+                    .padding(CatalogMetrics.Spacing.xxs)
                     .frame(width: 110, height: 110, alignment: .bottomLeading)
             }
         }
