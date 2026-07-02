@@ -26,6 +26,11 @@ enum FolioraCoreDataStack {
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
 
+        #if DEBUG
+        try container.initializeCloudKitSchema(options: [])
+        print("CloudKit schema initialized successfully.")
+        #endif
+
         return container
     }
 
