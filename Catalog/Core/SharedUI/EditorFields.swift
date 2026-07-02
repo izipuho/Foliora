@@ -479,7 +479,7 @@ private struct MediaAssetGridTileView: View {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title3)
                         .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowStrong)
+                        .foregroundStyle(CatalogMediaContrast.onMediaPrimary, CatalogMediaContrast.iconPaletteShadowStrong)
                 }
                 .buttonStyle(.plain)
                 .offset(x: 6, y: -6)

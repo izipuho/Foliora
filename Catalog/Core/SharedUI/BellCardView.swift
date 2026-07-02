@@ -413,11 +413,11 @@ struct BellCardView: View {
     }
 
     private var primaryTextColor: Color {
-        hasCoverPhoto ? .white : .primary
+        hasCoverPhoto ? CatalogMediaContrast.onMediaPrimary : .primary
     }
 
     private var secondaryTextColor: Color {
-        hasCoverPhoto ? .white.opacity(0.86) : .secondary
+        hasCoverPhoto ? CatalogMediaContrast.overlayChipMuted : .secondary
     }
 }
 
@@ -605,7 +605,7 @@ private struct BellCardMetaChip: View {
                     : CatalogSemanticColors.groupedSurface,
                 in: Capsule()
             )
-            .foregroundStyle(bright ? .white : .secondary)
+            .foregroundStyle(bright ? CatalogMediaContrast.onMediaPrimary : .secondary)
     }
 }
 

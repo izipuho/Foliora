@@ -14,7 +14,7 @@ extension View {
             )
             .overlay {
                 RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.section, style: .continuous)
-                    .stroke(.white.opacity(0.42), lineWidth: CatalogSurfaceCardMetrics.strokeWidth)
+                    .stroke(CatalogMediaContrast.glassStroke, lineWidth: CatalogSurfaceCardMetrics.strokeWidth)
             }
     }
 }
