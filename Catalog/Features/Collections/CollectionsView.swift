@@ -8,6 +8,7 @@ struct CollectionsView: View {
     let navigate: ((AppDestination) -> Void)?
     let onOpenHomes: () -> Void
     @Environment(\.managedObjectContext) private var managedObjectContext
+    @Environment(\.colorScheme) private var colorScheme
     @State private var catalogSnapshot: CatalogSnapshot?
     @State private var collectionSharingStatuses: [UUID: CollectionCardSharingStatus] = [:]
     @State private var isPresentingAddCollectionEditor = false
@@ -39,17 +40,21 @@ struct CollectionsView: View {
 
     var body: some View {
         collectionsRoot
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.99, green: 0.97, blue: 0.93),
-                        Color(red: 0.94, green: 0.92, blue: 0.86)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            )
+            .background {
+                CatalogBackgrounds.app(scheme: colorScheme)
+                    .ignoresSafeArea()
+            }
+            //.background(
+            //    LinearGradient(
+            //        colors: [
+            //            Color(red: 0.99, green: 0.97, blue: 0.93),
+            //            Color(red: 0.94, green: 0.92, blue: 0.86)
+            //        ],
+            //        startPoint: .topLeading,
+            //        endPoint: .bottomTrailing
+            //    )
+            //    .ignoresSafeArea()
+            //)
             .onAppear {
                 reloadCatalogSnapshot()
                 autoOpenSingleCollectionIfNeeded()

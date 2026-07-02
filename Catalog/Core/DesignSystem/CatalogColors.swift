@@ -17,3 +17,42 @@ enum CatalogMediaContrast {
 
     static let onMediaPrimary = Color.white
 }
+
+enum CatalogBackgrounds {
+    static func app(scheme: ColorScheme) -> LinearGradient {
+        tinted(.orange, scheme: scheme, strength: .weak)
+    }
+
+    static func collection(_ tint: Color, scheme: ColorScheme) -> LinearGradient {
+        tinted(tint, scheme: scheme, strength: .medium)
+    }
+
+    private static func tinted(
+        _ tint: Color,
+        scheme: ColorScheme,
+        strength: TintStrength
+    ) -> LinearGradient {
+        LinearGradient(
+            colors: [
+                tint.opacity(strength.opacity),
+                scheme == .dark
+                    ? Color.black.opacity(0.92)
+                    : Color.white.opacity(0.92)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private enum TintStrength {
+        case weak
+        case medium
+
+        var opacity: Double {
+            switch self {
+            case .weak: 0.10
+            case .medium: 0.18
+            }
+        }
+    }
+}

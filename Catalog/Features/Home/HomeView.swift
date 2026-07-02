@@ -10,6 +10,7 @@ struct HomeView: View {
     let navigate: ((AppDestination) -> Void)?
     let navigationSnapshot: CatalogSnapshot?
     let reloadNavigationSnapshot: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
     @State private var draftLocations: [Location] = []
     @State private var isPresentingCreateHomeEditor = false
@@ -54,17 +55,21 @@ struct HomeView: View {
                 }
             }
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.99, green: 0.97, blue: 0.93),
-                    Color(red: 0.94, green: 0.92, blue: 0.86)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
+        .background {
+            CatalogBackgrounds.app(scheme: colorScheme)
+                .ignoresSafeArea()
+        }
+        //.background(
+        //    LinearGradient(
+        //        colors: [
+        //            Color(red: 0.99, green: 0.97, blue: 0.93),
+        //            Color(red: 0.94, green: 0.92, blue: 0.86)
+        //        ],
+        //        startPoint: .topLeading,
+        //        endPoint: .bottomTrailing
+        //    )
+        //    .ignoresSafeArea()
+        //)
         .navigationTitle(String(localized: "home.screen.title"))
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
