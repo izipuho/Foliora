@@ -201,7 +201,7 @@ private struct CollectionBackgroundStyleButton: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 8) {
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: style.colors,
@@ -216,7 +216,7 @@ private struct CollectionBackgroundStyleButton: View {
                                 .font(.title3)
                                 .symbolRenderingMode(.palette)
                                 .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowSoft)
-                                .padding(CatalogSpacing.compact)
+                                .padding(CatalogMetrics.Spacing.xs)
                         }
                     }
 

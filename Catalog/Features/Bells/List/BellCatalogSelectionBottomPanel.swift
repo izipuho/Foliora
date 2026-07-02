@@ -61,7 +61,7 @@ struct BellCatalogSelectionBottomPanel: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, CatalogLayoutInsets.screen)
+            .padding(.horizontal, CatalogMetrics.Insets.screen)
             .padding(.top, 24)
             .padding(.bottom, 8)
         }

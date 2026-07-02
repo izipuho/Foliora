@@ -56,10 +56,10 @@ private struct OriginTile: View {
                         Marker("", coordinate: coordinate)
                     }
                     .mapStyle(.standard(elevation: .flat))
-                    .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
                 } else {
                     ZStack {
-                        RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
+                        RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                             .fill(CatalogSemanticColors.groupedSurfaceElevated)
                         Image(systemName: "mappin.slash")
                             .font(.title3)
@@ -76,9 +76,9 @@ private struct OriginTile: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
 
-                VStack(alignment: .leading, spacing: CatalogSpacing.compact) {
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                     Label(String(localized: "common.field.origin"), systemImage: "mappin.and.ellipse")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white)
@@ -88,11 +88,11 @@ private struct OriginTile: View {
                         .foregroundStyle(.white)
                         .lineLimit(2)
                 }
-                .padding(CatalogSpacing.regular)
+                .padding(CatalogMetrics.Spacing.md)
             }
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottomLeading)
             .overlay(
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                     .stroke(accentColor.opacity(0.22), lineWidth: 1)
             )
         }
@@ -157,9 +157,9 @@ private struct StorageTile: View {
             }
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
             .padding(14)
-            .background(CatalogSemanticColors.groupedSurfaceElevated, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
+            .background(CatalogSemanticColors.groupedSurfaceElevated, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                     .stroke(accentColor.opacity(0.22), lineWidth: 1)
             )
         }
@@ -188,9 +188,9 @@ private struct StorageTile: View {
         }
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
         .padding(14)
-        .background(accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
+        .background(accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                 .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [6, 6]))
                 .foregroundStyle(accentColor.opacity(0.38))
         )

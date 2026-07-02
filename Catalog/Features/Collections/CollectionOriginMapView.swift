@@ -91,8 +91,7 @@ struct CollectionOriginMapView: View {
                         bells: selectedGroup.bells,
                         repository: repository
                     )
-                        //.padding(.horizontal, CatalogLayoutInsets.overlay)
-                        .padding(.bottom, CatalogSpacing.section)
+                    .padding(.bottom, CatalogMetrics.Spacing.xl)
                 }
             }
         }
@@ -166,9 +165,9 @@ private struct MapBellAnnotationView: View {
         ZStack(alignment: .topTrailing) {
             annotationImage
                 .frame(width: annotationSize.width, height: annotationSize.height)
-                .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
+                    RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                         .stroke(isSelected ? accentColor : CatalogMediaContrast.mediaSelectionStroke, lineWidth: isSelected ? 3 : 2)
                 )
 
@@ -195,7 +194,7 @@ private struct MapBellAnnotationView: View {
             )
         } else {
             ZStack {
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                     .fill(.regularMaterial)
                 Image(systemName: "bell.fill")
                     .foregroundStyle(accentColor)

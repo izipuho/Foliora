@@ -50,7 +50,7 @@ struct StorageMapCard: View {
                 description: Text(String(localized: "home.location.empty.description"))
             )
             .frame(maxWidth: .infinity)
-            .padding(.vertical, CatalogSpacing.section)
+            .padding(.vertical, CatalogMetrics.Spacing.xl)
         } else {
             VStack(alignment: .leading, spacing: 14) {
                 Text(storageSummaryText)

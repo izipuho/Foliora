@@ -1,27 +1,6 @@
 import SwiftUI
 import UIKit
 
-enum CatalogCornerRadii {
-    static let hero: CGFloat = 28
-    static let section: CGFloat = 24
-    static let medium: CGFloat = 18
-    static let tile: CGFloat = 16
-    static let highlight: CGFloat = 14
-    static let thumbnail: CGFloat = 12
-}
-
-enum CatalogLayoutInsets {
-    static let screen: CGFloat = 8 
-    static let overlay: CGFloat = 8 
-}
-
-enum CatalogSpacing {
-    static let micro: CGFloat = 4
-    static let compact: CGFloat = 6
-    static let regular: CGFloat = 12
-    static let section: CGFloat = 24
-}
-
 enum CatalogSemanticColors {
     static let separator = Color(uiColor: .separator)
     static let groupedSurface = Color(uiColor: .secondarySystemGroupedBackground)
@@ -146,34 +125,34 @@ enum BellGridLayoutMode: Int, CaseIterable {
         let imagePreviewHeight: CGFloat
     }
 
-    static let screenHorizontalPadding: CGFloat = CatalogLayoutInsets.screen
+    static let screenHorizontalPadding: CGFloat = CatalogMetrics.Insets.screen
 
     var gridMetrics: GridMetrics {
         switch self {
         case .covers:
             return GridMetrics(
                 columnCount: 4,
-                spacing: CatalogSpacing.micro
+                spacing: CatalogMetrics.Spacing.xs
             )
         case .mini:
             return GridMetrics(
                 columnCount: 3,
-                spacing: CatalogSpacing.micro
+                spacing: CatalogMetrics.Spacing.xs
             )
         case .compact:
             return GridMetrics(
                 columnCount: 2,
-                spacing: CatalogSpacing.compact
+                spacing: CatalogMetrics.Spacing.xs
             )
         case .wide:
             return GridMetrics(
                 columnCount: 1,
-                spacing: CatalogSpacing.compact
+                spacing: CatalogMetrics.Spacing.xs
             )
         case .showcase:
             return GridMetrics(
                 columnCount: 1,
-                spacing: CatalogSpacing.regular
+                spacing: CatalogMetrics.Spacing.md
             )
         }
     }
@@ -199,7 +178,7 @@ enum BellGridLayoutMode: Int, CaseIterable {
                 contentSpacing: 4,
                 //contentAlignment: .bottomLeading,
                 contentAlignment: .topLeading,
-                cornerRadius: CatalogCornerRadii.tile,
+                cornerRadius: CatalogMetrics.CornerRadius.tile,
                 imagePreviewHeight: 210
             )
         case .mini:
@@ -208,7 +187,7 @@ enum BellGridLayoutMode: Int, CaseIterable {
                 cardPadding: 10,
                 contentSpacing: 4,
                 contentAlignment: .topLeading,
-                cornerRadius: CatalogCornerRadii.tile,
+                cornerRadius: CatalogMetrics.CornerRadius.tile,
                 imagePreviewHeight: 210
             )
         case .compact:
@@ -217,7 +196,7 @@ enum BellGridLayoutMode: Int, CaseIterable {
                 cardPadding: 14,
                 contentSpacing: 8,
                 contentAlignment: .topLeading,
-                cornerRadius: CatalogCornerRadii.tile,
+                cornerRadius: CatalogMetrics.CornerRadius.tile,
                 imagePreviewHeight: 210
             )
         case .wide:
@@ -226,7 +205,7 @@ enum BellGridLayoutMode: Int, CaseIterable {
                 cardPadding: 18,
                 contentSpacing: 8,
                 contentAlignment: .topLeading,
-                cornerRadius: CatalogCornerRadii.tile,
+                cornerRadius: CatalogMetrics.CornerRadius.tile,
                 imagePreviewHeight: 210
             )
         case .showcase:
@@ -235,7 +214,7 @@ enum BellGridLayoutMode: Int, CaseIterable {
                 cardPadding: 22,
                 contentSpacing: 12,
                 contentAlignment: .topLeading,
-                cornerRadius: CatalogCornerRadii.hero,
+                cornerRadius: CatalogMetrics.CornerRadius.hero,
                 imagePreviewHeight: 210
             )
         }
@@ -685,7 +664,7 @@ struct BellCardStripView<Bell: BellCardDisplayable>: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, CatalogSpacing.compact)
+            .padding(.horizontal, CatalogMetrics.Spacing.xs)
         }
         .frame(height: cardMetrics.cardHeight)
     }
@@ -705,8 +684,8 @@ struct BellCardImagePreviewView: View {
             )
         }
         .frame(height: cardMetrics.imagePreviewHeight)
-        .padding(.horizontal, CatalogLayoutInsets.screen)
-        .padding(.top, CatalogSpacing.regular)
+        .padding(.horizontal, CatalogMetrics.Insets.screen)
+        .padding(.top, CatalogMetrics.Spacing.md)
     }
 }
 

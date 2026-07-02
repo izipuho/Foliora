@@ -194,9 +194,9 @@ struct BellDetailView: View {
                 }
             }
         }
-        .padding(.horizontal, CatalogLayoutInsets.screen)
-        .padding(.top, CatalogSpacing.section)
-        .padding(.bottom, CatalogSpacing.section)
+        .padding(.horizontal, CatalogMetrics.Insets.screen)
+        .padding(.top, CatalogMetrics.Spacing.xl)
+        .padding(.bottom, CatalogMetrics.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
@@ -226,7 +226,7 @@ struct BellDetailView: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.section, style: .continuous)
                 .fill(isHighlighted ? AnyShapeStyle(tint.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
         )
         .catalogShadow(

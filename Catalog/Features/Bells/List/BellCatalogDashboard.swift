@@ -103,8 +103,8 @@ struct BellCatalogDashboardView: View {
             .scrollClipDisabled()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, CatalogLayoutInsets.screen)
-        .padding(.top, CatalogSpacing.compact)
+        .padding(.horizontal, CatalogMetrics.Insets.screen)
+        .padding(.top, CatalogMetrics.Spacing.xs)
         .padding(.vertical, 4)
         .scrollTransition(axis: .vertical) { content, phase in
             content
@@ -609,7 +609,7 @@ struct StatChip: View {
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: CatalogSpacing.micro) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
             Text(value)
                 .font(.title2.weight(.bold))
             Text(title)
@@ -617,8 +617,8 @@ struct StatChip: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 10)
-        .padding(.horizontal, CatalogSpacing.regular)
+        .padding(.horizontal, CatalogMetrics.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: CatalogCornerRadii.tile, style: .continuous))
+        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
     }
 }

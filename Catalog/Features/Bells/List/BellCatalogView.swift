@@ -440,7 +440,7 @@ struct BellCatalogView: View {
             .foregroundStyle(catalogStyle.accentColor)
         }
         .padding(14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.medium, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous))
     }
 
     private func dashboardHeader(displayModel: BellCatalogDisplayModel, screenHeight: CGFloat) -> some View {
@@ -490,7 +490,7 @@ struct BellCatalogView: View {
                                 Text(cabinetGroup.title)
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(.secondary)
-                                    .padding(.horizontal, CatalogSpacing.micro)
+                                    .padding(.horizontal, CatalogMetrics.Spacing.xs)
 
                                 bellGridView(
                                     bells: cabinetGroup.bells,
@@ -747,7 +747,7 @@ private struct BellGroupingJumpPopover: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: CatalogSpacing.compact) {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                 ForEach(titles, id: \.self) { title in
                     Button(title) {
                         onSelect(title)
@@ -755,11 +755,11 @@ private struct BellGroupingJumpPopover: View {
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 10)
-                    .padding(.horizontal, CatalogSpacing.regular)
-                    .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
+                    .padding(.horizontal, CatalogMetrics.Spacing.md)
+                    .background(CatalogSemanticColors.groupedSurface, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
                 }
             }
-            .padding(CatalogSpacing.regular)
+            .padding(CatalogMetrics.Spacing.md)
         }
         .frame(minWidth: 220, idealWidth: 260, maxWidth: 320, minHeight: 160, idealHeight: 280, maxHeight: 360)
     }
@@ -846,9 +846,9 @@ private struct SummaryGlassCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding()
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous))
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.section, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: CatalogCornerRadii.section, style: .continuous)
+                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.section, style: .continuous)
                     .stroke(CatalogMediaContrast.glassStroke, lineWidth: 1)
             )
     }

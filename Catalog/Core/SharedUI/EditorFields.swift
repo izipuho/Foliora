@@ -218,7 +218,7 @@ private struct TagChip: View {
 
     var body: some View {
         CatalogSurfaceCapsule {
-            HStack(spacing: CatalogSpacing.compact) {
+            HStack(spacing: CatalogMetrics.Spacing.xs) {
                 Text("#\(tag)")
                     .font(.subheadline.weight(.medium))
 
@@ -255,7 +255,7 @@ struct MediaSection: View {
 
     var body: some View {
         ScrollView(.horizontal) {
-            LazyHStack(alignment: .top, spacing: CatalogSpacing.compact) {
+            LazyHStack(alignment: .top, spacing: CatalogMetrics.Spacing.xs) {
                 ForEach(sortedAssets) { asset in
                     MediaAssetGridTileView(
                         asset: asset,
@@ -434,11 +434,11 @@ private struct MediaAssetGridTileView: View {
                 }
             }
             .frame(width: 110, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
             .onTapGesture(perform: onTap)
             .overlay {
                 if isAnalysisHighlighted {
-                    RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
+                    RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
                         .stroke(
                             AngularGradient(
                                 colors: [
@@ -462,7 +462,7 @@ private struct MediaAssetGridTileView: View {
             }
             .overlay {
                 if isCover {
-                    RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
+                    RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
                         .stroke(.tint.opacity(0.75), lineWidth: 3)
                 }
             }
@@ -573,7 +573,7 @@ private struct MediaAssetThumbnailView: View {
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
     }
 
     private var previewImage: UIImage? {
@@ -597,7 +597,7 @@ private struct MediaAssetThumbnailView: View {
 
     private var documentPlaceholder: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
                 .fill(CatalogSemanticColors.groupedSurfaceElevated)
 
             VStack(spacing: 3) {
@@ -613,7 +613,7 @@ private struct MediaAssetThumbnailView: View {
 
     private func placeholder(systemImage: String) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.thumbnail, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
                 .fill(CatalogSemanticColors.groupedSurfaceElevated)
 
             Image(systemName: systemImage)

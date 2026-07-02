@@ -144,7 +144,7 @@ struct SearchTabView: View {
 
     var body: some View {
         BellGridContainerView(layoutMode: layoutMode) { cardSize, gridMetrics, cardMetrics in
-            LazyVStack(alignment: .leading, spacing: CatalogSpacing.section) {
+            LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xl) {
                 searchHeader
 
                 searchResults(
@@ -153,7 +153,7 @@ struct SearchTabView: View {
                     cardMetrics: cardMetrics
                 )
             }
-            .padding(.top, CatalogSpacing.section)
+            .padding(.top, CatalogMetrics.Spacing.xl)
         }
         .searchable(
             text: $searchState.query,
@@ -488,7 +488,7 @@ private struct SearchTokenBar: View {
                         remove(token)
                     } label: {
                         CatalogSurfaceCapsule {
-                            HStack(spacing: CatalogSpacing.compact) {
+                            HStack(spacing: CatalogMetrics.Spacing.xs) {
                                 Text(title(token))
 
                                 Image(systemName: "xmark")

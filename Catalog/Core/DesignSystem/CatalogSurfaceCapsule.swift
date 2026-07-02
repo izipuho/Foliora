@@ -9,8 +9,8 @@ struct CatalogSurfaceCapsule<Content: View>: View {
 
     var body: some View {
         content
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, CatalogMetrics.Spacing.md)
+            .padding(.vertical, CatalogMetrics.Spacing.xs)
             .background {
                 Capsule()
                     .fill(.thinMaterial)

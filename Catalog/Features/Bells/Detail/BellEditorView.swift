@@ -380,7 +380,7 @@ struct BellEditorView: View {
     @ViewBuilder
     private func sectionBackground(for section: StartSection) -> some View {
         if highlightedSection == section {
-            RoundedRectangle(cornerRadius: CatalogCornerRadii.highlight, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                 .fill(collection.backgroundStyle.accentColor.opacity(0.10))
         } else {
             Color.clear
@@ -563,7 +563,7 @@ private struct PhotoSuggestionRow: View {
                 .accessibilityLabel(String(localized: "common.apply"))
             }
         }
-        .padding(.vertical, CatalogSpacing.micro)
+        .padding(.vertical, CatalogMetrics.Spacing.xs)
     }
 
     private var confidenceLabel: String {
@@ -647,7 +647,7 @@ private struct PhotoSuggestedTagsRow: View {
                 .accessibilityLabel(String(localized: "common.apply"))
             }
         }
-        .padding(.vertical, CatalogSpacing.micro)
+        .padding(.vertical, CatalogMetrics.Spacing.xs)
     }
 }
 
