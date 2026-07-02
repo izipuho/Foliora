@@ -38,7 +38,7 @@ struct BellCatalogSelectionBottomPanel: View {
 
                 Text(selectedBellCountText)
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
                     .monospacedDigit()
@@ -48,14 +48,14 @@ struct BellCatalogSelectionBottomPanel: View {
                 Button(role: .destructive, action: onDelete) {
                     Image(systemName: "trash")
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
                         .frame(width: 48, height: 48)
                         .background {
                             Circle()
                                 .fill(.ultraThinMaterial)
                                 .overlay {
                                     Circle()
-                                        .fill(Color.red.opacity(0.10))
+                                        .fill(CatalogSemanticColors.destructive.opacity(0.10))
                                 }
                         }
                 }

@@ -259,7 +259,7 @@ struct BellEditorView: View {
                                 }
                             }
                             .buttonStyle(.plain)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(CatalogSemanticColors.destructive)
                             .accessibilityHint(String(localized: "editor.title.focus"))
                         }
 

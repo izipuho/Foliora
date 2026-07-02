@@ -81,11 +81,11 @@ private struct OriginTile: View {
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                     Label(String(localized: "common.field.origin"), systemImage: "mappin.and.ellipse")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
 
                     Text(place?.displayName ?? String(localized: "common.unassigned"))
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                         .lineLimit(2)
                 }
                 .padding(CatalogMetrics.Spacing.md)

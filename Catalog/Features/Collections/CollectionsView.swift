@@ -163,7 +163,7 @@ struct CollectionsView: View {
                                 } label: {
                                     Label(String(localized: "common.edit"), systemImage: "pencil")
                                 }
-                                .tint(.blue)
+                                .tint(CatalogSemanticColors.info)
                             }
 
                             if canManageCollection(collection.id) {

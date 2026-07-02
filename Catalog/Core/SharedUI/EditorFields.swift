@@ -279,9 +279,9 @@ struct MediaSection: View {
                     } label: {
                         Image(systemName: "plus")
                             .font(.title3.weight(.semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                             .frame(width: 38, height: 38)
-                            .background(.green, in: Circle())
+                            .background(CatalogSemanticColors.success, in: Circle())
                             .frame(width: 48, height: 110)
                     }
                     .buttonStyle(.plain)
@@ -488,7 +488,7 @@ private struct MediaAssetGridTileView: View {
             if isCover {
                 Image(systemName: "star.fill")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                     .frame(width: 20, height: 20)
                     .background(.tint, in: Circle())
                     .padding(CatalogMetrics.Spacing.xxs)

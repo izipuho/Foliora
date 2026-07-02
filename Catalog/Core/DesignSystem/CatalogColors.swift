@@ -31,6 +31,7 @@ enum CatalogMediaContrast {
     static let mapScrimBottom = Color.black.opacity(0.30)
     static let iconPaletteShadowSoft = Color.black.opacity(0.25)
     static let iconPaletteShadowStrong = Color.black.opacity(0.35)
+    static let onMediaPrimary = Color.white
 }
 
 //enum CatalogSemanticColors {

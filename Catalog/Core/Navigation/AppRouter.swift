@@ -260,7 +260,7 @@ private struct ShareInvitationStatusOverlay: View {
             statusCard {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.title)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(CatalogSemanticColors.success)
                 Text("collection.sharing.access_granted")
                     .font(.headline)
             }

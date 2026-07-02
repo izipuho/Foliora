@@ -112,7 +112,7 @@ struct BellGridView<Bell: BellCardDisplayable>: View {
             .overlay {
                 if shouldShowSelectionOverlay {
                     RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous)
-                        .fill(.black.opacity(0.22))
+                        .fill(CatalogMediaContrast.coverScrimBottom)
                         .allowsHitTesting(false)
                 }
             }
@@ -120,12 +120,12 @@ struct BellGridView<Bell: BellCardDisplayable>: View {
                 if shouldShowSelectionOverlay {
                     Image(systemName: "checkmark")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                         .frame(width: 20, height: 20)
-                        .background(Color.blue, in: Circle())
+                        .background(CatalogSemanticColors.info, in: Circle())
                         .overlay {
                             Circle()
-                                .stroke(.white, lineWidth: 2)
+                                .stroke(CatalogMediaContrast.mediaSelectionStroke, lineWidth: 2)
                         }
                         .padding(CatalogMetrics.Spacing.sm)
                 }

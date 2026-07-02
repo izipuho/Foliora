@@ -205,14 +205,14 @@ struct BellBatchAddView: View {
             if let mediaLoadErrorMessage {
                 Section(String(localized: "bell_batch_add.error.title")) {
                     Text(mediaLoadErrorMessage)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
                 }
             }
 
             if let creationErrorMessage {
                 Section(String(localized: "bell_batch_add.error.title")) {
                     Text(creationErrorMessage)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
                 }
             }
 
