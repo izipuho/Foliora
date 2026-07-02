@@ -16,7 +16,7 @@ struct CloudSyncDiagnosticsView: View {
     @State private var persistentStores: [PersistentStoreDiagnostics] = []
 
     private var diagnosticsCloudKitContainer: CKContainer {
-        CKContainer(identifier: FolioraCoreDataStack.cloudKitContainerIdentifier)
+        CKContainer.default()
     }
 
     var body: some View {
@@ -42,7 +42,6 @@ struct CloudSyncDiagnosticsView: View {
             }
 
             Section("Container") {
-                diagnosticsRow("Expected identifier", FolioraCoreDataStack.cloudKitContainerIdentifier)
                 diagnosticsRow(
                     "Diagnostics identifier",
                     diagnosticsCloudKitContainer.containerIdentifier ?? "Unavailable"
@@ -309,12 +308,12 @@ private struct PersistentStoreDiagnostics: Identifiable {
         isCloudKitEnabled ? "Yes" : "No"
     }
 
-    private static func cloudKitConfiguration(for url: URL?) -> (databaseScope: String, containerIdentifier: String)? {
+    private static func cloudKitConfiguration(for url: URL?) -> (databaseScope: String, containerIdentifier: String?)? {
         switch url?.lastPathComponent {
         case "Private.sqlite":
-            return ("Private", FolioraCoreDataStack.cloudKitContainerIdentifier)
+            return ("Private", nil)
         case "Shared.sqlite":
-            return ("Shared", FolioraCoreDataStack.cloudKitContainerIdentifier)
+            return ("Shared", nil)
         default:
             return nil
         }
