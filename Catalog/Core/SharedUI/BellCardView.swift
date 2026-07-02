@@ -396,8 +396,8 @@ struct BellCardView: View {
     private var coverScrim: some View {
         LinearGradient(
             colors: [
-                hasCoverPhoto ? CatalogMediaContrast.coverScrimBottom : .clear,
-                hasCoverPhoto ? CatalogMediaContrast.coverScrimTop : .clear
+                hasCoverPhoto ? CatalogMediaContrast.scrimMedium : .clear,
+                hasCoverPhoto ? CatalogMediaContrast.scrimClear : .clear
             ],
             startPoint: .bottom,
             endPoint: .top
@@ -417,7 +417,7 @@ struct BellCardView: View {
     }
 
     private var secondaryTextColor: Color {
-        hasCoverPhoto ? CatalogMediaContrast.overlayChipMuted : .secondary
+        hasCoverPhoto ? CatalogMediaContrast.glassFill : .secondary
     }
 }
 
@@ -601,7 +601,7 @@ private struct BellCardMetaChip: View {
             .catalogPillPadding(.compact)
             .background(
                 bright
-                    ? CatalogMediaContrast.overlayChip
+                    ? CatalogMediaContrast.glassFill
                     : CatalogSemanticColors.groupedSurface,
                 in: Capsule()
             )
@@ -683,8 +683,8 @@ struct BellCardCoverBackground: View {
             } else {
                 LinearGradient(
                     colors: [
-                        CatalogMediaContrast.previewGradientStart,
-                        CatalogMediaContrast.previewGradientEnd
+                        CatalogMediaContrast.onMediaPrimary.opacity(0.88),
+                        CatalogMediaContrast.onMediaPrimary.opacity(0.72)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing

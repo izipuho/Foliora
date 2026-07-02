@@ -69,9 +69,9 @@ private struct OriginTile: View {
 
                 LinearGradient(
                     colors: [
-                        CatalogMediaContrast.mapScrimTop,
-                        CatalogMediaContrast.mapScrimMiddle,
-                        CatalogMediaContrast.mapScrimBottom
+                        CatalogMediaContrast.scrimClear,
+                        CatalogMediaContrast.scrimWeak,
+                        CatalogMediaContrast.scrimStrong
                     ],
                     startPoint: .top,
                     endPoint: .bottom

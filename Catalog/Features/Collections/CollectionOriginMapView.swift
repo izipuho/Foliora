@@ -168,7 +168,7 @@ private struct MapBellAnnotationView: View {
                 .clipShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
-                        .stroke(isSelected ? accentColor : CatalogMediaContrast.mediaSelectionStroke, lineWidth: isSelected ? 3 : 2)
+                        .stroke(isSelected ? accentColor : CatalogMediaContrast.onMediaPrimary.opacity(0.9), lineWidth: isSelected ? 3 : 2)
                 )
 
             if bells.count > 1 {

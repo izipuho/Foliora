@@ -215,7 +215,7 @@ private struct CollectionBackgroundStyleButton: View {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(CatalogTypography.cardTitle)
                                 .symbolRenderingMode(.palette)
-                                .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowSoft)
+                                .foregroundStyle(.white, CatalogMediaContrast.scrimMedium)
                                 .padding(CatalogMetrics.Spacing.xs)
                         }
                     }

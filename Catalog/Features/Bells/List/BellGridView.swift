@@ -112,7 +112,7 @@ struct BellGridView<Bell: BellCardDisplayable>: View {
             .overlay {
                 if shouldShowSelectionOverlay {
                     RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous)
-                        .fill(CatalogMediaContrast.coverScrimBottom)
+                        .fill(CatalogMediaContrast.scrimMedium)
                         .allowsHitTesting(false)
                 }
             }
@@ -125,7 +125,7 @@ struct BellGridView<Bell: BellCardDisplayable>: View {
                         .background(CatalogSemanticColors.info, in: Circle())
                         .overlay {
                             Circle()
-                                .stroke(CatalogMediaContrast.mediaSelectionStroke, lineWidth: 2)
+                                .stroke(CatalogMediaContrast.onMediaPrimary.opacity(0.9), lineWidth: 2)
                         }
                         .padding(CatalogMetrics.Spacing.sm)
                 }

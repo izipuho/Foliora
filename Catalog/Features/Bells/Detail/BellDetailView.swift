@@ -259,8 +259,8 @@ struct BellDetailView: View {
                 } else {
                     LinearGradient(
                         colors: [
-                            CatalogMediaContrast.previewGradientStart,
-                            CatalogMediaContrast.previewGradientEnd
+                            CatalogMediaContrast.onMediaPrimary.opacity(0.88),
+                            CatalogMediaContrast.onMediaPrimary.opacity(0.72)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

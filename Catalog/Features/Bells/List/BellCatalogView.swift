@@ -782,7 +782,7 @@ private struct FilterChip: View {
                 .background(
                     isSelected
                         ? tint
-                        : CatalogMediaContrast.overlayChipMuted,
+                        : CatalogMediaContrast.glassFill,
                     in: Capsule()
                 )
                 .foregroundStyle(isSelected ? .white : .primary)
