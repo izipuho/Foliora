@@ -270,66 +270,6 @@ enum CollectionBackgroundStyle: String, CaseIterable, Hashable, Identifiable, Co
         }
     }
 
-    var colors: [Color] {
-        switch self {
-        case .amber:
-            return [
-                Color(red: 0.99, green: 0.96, blue: 0.87),
-                Color(red: 0.95, green: 0.86, blue: 0.66)
-            ]
-        case .sky:
-            return [
-                Color(red: 0.91, green: 0.97, blue: 1.0),
-                Color(red: 0.73, green: 0.86, blue: 0.98)
-            ]
-        case .mint:
-            return [
-                Color(red: 0.92, green: 0.98, blue: 0.94),
-                Color(red: 0.74, green: 0.90, blue: 0.82)
-            ]
-        case .rose:
-            return [
-                Color(red: 0.99, green: 0.93, blue: 0.94),
-                Color(red: 0.95, green: 0.78, blue: 0.82)
-            ]
-        case .slate:
-            return [
-                Color(red: 0.93, green: 0.95, blue: 0.98),
-                Color(red: 0.80, green: 0.85, blue: 0.92)
-            ]
-        }
-    }
-
-    var screenColors: [Color] {
-        switch self {
-        case .amber:
-            return [
-                Color(red: 0.98, green: 0.96, blue: 0.90),
-                Color(red: 0.95, green: 0.91, blue: 0.82)
-            ]
-        case .sky:
-            return [
-                Color(red: 0.93, green: 0.97, blue: 1.0),
-                Color(red: 0.84, green: 0.91, blue: 0.99)
-            ]
-        case .mint:
-            return [
-                Color(red: 0.94, green: 0.99, blue: 0.95),
-                Color(red: 0.84, green: 0.94, blue: 0.88)
-            ]
-        case .rose:
-            return [
-                Color(red: 0.99, green: 0.95, blue: 0.96),
-                Color(red: 0.96, green: 0.86, blue: 0.89)
-            ]
-        case .slate:
-            return [
-                Color(red: 0.95, green: 0.96, blue: 0.99),
-                Color(red: 0.88, green: 0.90, blue: 0.95)
-            ]
-        }
-    }
-
     var accentColor: Color {
         switch self {
         case .amber:

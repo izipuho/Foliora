@@ -27,6 +27,17 @@ enum CatalogBackgrounds {
         tinted(tint, scheme: scheme, strength: .medium)
     }
 
+    static func collectionPreview(_ tint: Color) -> LinearGradient {
+        LinearGradient(
+            colors: [
+                tint.opacity(0.55),
+                tint.opacity(0.22)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     private static func tinted(
         _ tint: Color,
         scheme: ColorScheme,

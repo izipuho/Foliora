@@ -44,17 +44,6 @@ struct CollectionsView: View {
                 CatalogBackgrounds.app(scheme: colorScheme)
                     .ignoresSafeArea()
             }
-            //.background(
-            //    LinearGradient(
-            //        colors: [
-            //            Color(red: 0.99, green: 0.97, blue: 0.93),
-            //            Color(red: 0.94, green: 0.92, blue: 0.86)
-            //        ],
-            //        startPoint: .topLeading,
-            //        endPoint: .bottomTrailing
-            //    )
-            //    .ignoresSafeArea()
-            //)
             .onAppear {
                 reloadCatalogSnapshot()
                 autoOpenSingleCollectionIfNeeded()

@@ -9,6 +9,7 @@ struct CollectionShellView: View {
     private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var managedObjectContext
+    @Environment(\.colorScheme) private var colorScheme
     @State private var catalogSnapshot: CatalogSnapshot?
     @State private var collection: CollectionSummary
     @State private var refreshID = UUID()
@@ -206,10 +207,9 @@ struct CollectionShellView: View {
                     primaryAction: { isPresentingAddBellOptions = true }
                 )
                 .background(
-                    LinearGradient(
-                        colors: collection.backgroundStyle.screenColors,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                    CatalogBackgrounds.collection(
+                        collection.backgroundStyle.accentColor,
+                        scheme: colorScheme
                     )
                     .ignoresSafeArea()
                 )

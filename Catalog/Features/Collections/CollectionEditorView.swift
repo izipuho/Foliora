@@ -197,16 +197,15 @@ private struct CollectionBackgroundStyleButton: View {
     let style: CollectionBackgroundStyle
     let isSelected: Bool
     let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                 RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                     .fill(
-                        LinearGradient(
-                            colors: style.colors,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                        CatalogBackgrounds.collectionPreview(
+                            style.accentColor
                         )
                     )
                     .frame(height: 64)

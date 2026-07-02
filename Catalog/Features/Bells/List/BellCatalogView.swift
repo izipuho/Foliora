@@ -101,6 +101,7 @@ struct BellCatalogView: View {
     let onBellSelected: ((UUID) -> Void)?
     let canEditCollection: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var layoutMode: BellGridLayoutMode
     @Binding var orderMode: BellOrderMode
     @Binding var filters: BellFilters
@@ -151,10 +152,6 @@ struct BellCatalogView: View {
 
     private var catalogStyle: CollectionBackgroundStyle {
         collection?.backgroundStyle ?? .slate
-    }
-
-    private var themeColors: [Color] {
-        catalogStyle.screenColors
     }
 
     private var displayModel: BellCatalogDisplayModel {
@@ -382,14 +379,21 @@ struct BellCatalogView: View {
                 )
                 .animation(.snappy(duration: 0.24), value: layoutMode)
             }
-            .background(
-                LinearGradient(
-                    colors: themeColors,
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+            .background {
+                CatalogBackgrounds.collection(
+                    catalogStyle.accentColor,
+                    scheme: colorScheme
                 )
                 .ignoresSafeArea()
-            )
+            }
+            //.background(
+            //    LinearGradient(
+            //        colors: themeColors,
+            //        startPoint: .topLeading,
+            //        endPoint: .bottomTrailing
+            //    )
+            //    .ignoresSafeArea()
+            //)
             .onChange(of: scrollRequestToken) { _, _ in
                 guard let targetID = pendingScrollTargetID else { return }
 
