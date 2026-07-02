@@ -179,14 +179,14 @@ struct BellDetailView: View {
 
                     if bell.tags.isEmpty {
                         Text(String(localized: "editor.tags.empty"))
-                            .font(.subheadline)
+                            .font(CatalogTypography.cardSubtitle)
                             .foregroundStyle(.secondary)
                     } else {
                         TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
                             ForEach(bell.tags, id: \.self) { tag in
                                 CatalogSurfaceCapsule {
                                     Text("#\(tag)")
-                                        .font(.subheadline.weight(.medium))
+                                        .font(CatalogTypography.cardSubtitle)
                                 }
                             }
                         }
@@ -220,7 +220,7 @@ struct BellDetailView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             Text(title)
-                .font(.headline)
+                .font(CatalogTypography.sectionTitle)
             content()
         }
         .padding(CatalogMetrics.Spacing.lg)

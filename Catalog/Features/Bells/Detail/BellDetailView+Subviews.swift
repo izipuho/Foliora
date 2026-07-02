@@ -62,7 +62,7 @@ private struct OriginTile: View {
                         RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
                             .fill(CatalogSemanticColors.groupedSurfaceElevated)
                         Image(systemName: "mappin.slash")
-                            .font(.title3)
+                            .font(CatalogTypography.cardTitle)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -80,11 +80,11 @@ private struct OriginTile: View {
 
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                     Label(String(localized: "common.field.origin"), systemImage: "mappin.and.ellipse")
-                        .font(.caption.weight(.semibold))
+                        .font(CatalogTypography.chipLabel)
                         .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
 
                     Text(place?.displayName ?? String(localized: "common.unassigned"))
-                        .font(.subheadline.weight(.semibold))
+                        .font(CatalogTypography.cardSubtitle)
                         .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                         .lineLimit(2)
                 }
@@ -174,12 +174,12 @@ private struct StorageTile: View {
                 .foregroundStyle(accentColor)
 
             Text(String(localized: "bell.detail.storage.assign.action"))
-                .font(.title3.weight(.semibold))
+                .font(CatalogTypography.cardTitle)
                 .foregroundStyle(accentColor)
                 .multilineTextAlignment(.center)
 
             Text(String(localized: "bell.detail.storage.placeholder"))
-                .font(.subheadline)
+                .font(CatalogTypography.cardSubtitle)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)

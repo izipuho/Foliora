@@ -8,7 +8,7 @@ struct BookLibraryPlaceholderView: View {
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                     Text(collection.name)
-                        .font(.largeTitle.bold())
+                        .font(CatalogTypography.screenTitle)
 
                     Text("Для книг будет отдельный интерфейс: полки, авторы, издания, статусы прочтения и поиск по библиотеке. Этот модуль пока только обозначен архитектурно.")
                         .foregroundStyle(.secondary)

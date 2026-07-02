@@ -557,7 +557,7 @@ private struct EditableLocationRow: View {
             if hasChildren {
                 Button(action: onToggleCollapsed) {
                     Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                        .font(.caption.weight(.semibold))
+                        .font(CatalogTypography.chipLabel)
                         .foregroundStyle(.secondary)
                         .frame(width: 20, height: 20)
                 }

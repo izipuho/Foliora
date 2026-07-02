@@ -45,7 +45,7 @@ struct CatalogEmptyStateView: View {
             VStack(spacing: CatalogMetrics.Spacing.md) {
                 Button(action: primaryAction) {
                     primaryActionLabel
-                        .font(.headline)
+                        .font(CatalogTypography.sectionTitle)
                         .frame(maxWidth: 420)
                         .frame(height: 56)
                 }
@@ -56,7 +56,7 @@ struct CatalogEmptyStateView: View {
                 if let secondaryActionTitle, let secondaryAction {
                     Button(action: secondaryAction) {
                         Text(secondaryActionTitle)
-                            .font(.headline)
+                            .font(CatalogTypography.sectionTitle)
                     }
                     .buttonStyle(.borderless)
                     .tint(primaryTint)

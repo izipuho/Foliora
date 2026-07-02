@@ -40,7 +40,7 @@ struct EnumSelectionRow<Option: Hashable>: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                    .font(CatalogTypography.chipLabel)
                     .foregroundStyle(.tertiary)
             }
         }
@@ -106,7 +106,7 @@ struct PlacePickerField: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                    .font(CatalogTypography.chipLabel)
                     .foregroundStyle(.tertiary)
             }
         }
@@ -140,7 +140,7 @@ struct LocationPickerField: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                    .font(CatalogTypography.chipLabel)
                     .foregroundStyle(.tertiary)
             }
         }
@@ -173,7 +173,7 @@ struct TagEditorSection: View {
                     addTag()
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.title3)
+                        .font(CatalogTypography.cardTitle)
                 }
                 .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityLabel(String(localized: "common.add"))
@@ -181,7 +181,7 @@ struct TagEditorSection: View {
 
             if tags.isEmpty {
                 Text(String(localized: "editor.tags.empty"))
-                    .font(.subheadline)
+                    .font(CatalogTypography.cardSubtitle)
                     .foregroundStyle(.secondary)
             } else {
                 TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
@@ -220,7 +220,7 @@ private struct TagChip: View {
         CatalogSurfaceCapsule {
             HStack(spacing: CatalogMetrics.Spacing.xxs) {
                 Text("#\(tag)")
-                    .font(.subheadline.weight(.medium))
+                    .font(CatalogTypography.cardSubtitle)
 
                 Button(action: onRemove) {
                     Image(systemName: "xmark.circle.fill")
@@ -278,7 +278,7 @@ struct MediaSection: View {
                         isPresentingAddMediaOptions = true
                     } label: {
                         Image(systemName: "plus")
-                            .font(.title3.weight(.semibold))
+                            .font(CatalogTypography.cardTitle)
                             .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                             .frame(width: 38, height: 38)
                             .background(CatalogSemanticColors.success, in: Circle())
@@ -477,7 +477,7 @@ private struct MediaAssetGridTileView: View {
             if allowsDeletion {
                 Button(action: onDelete) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.title3)
+                        .font(CatalogTypography.cardTitle)
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(CatalogMediaContrast.onMediaPrimary, CatalogMediaContrast.iconPaletteShadowStrong)
                 }
@@ -602,7 +602,7 @@ private struct MediaAssetThumbnailView: View {
 
             VStack(spacing: CatalogMetrics.Spacing.xxs) {
                 Image(systemName: "doc.fill")
-                    .font(.title3)
+                    .font(CatalogTypography.cardTitle)
                     .foregroundStyle(.secondary)
                 Text(documentExtension)
                     .font(.system(size: 10, weight: .semibold))
@@ -617,7 +617,7 @@ private struct MediaAssetThumbnailView: View {
                 .fill(CatalogSemanticColors.groupedSurfaceElevated)
 
             Image(systemName: systemImage)
-                .font(.title3)
+                .font(CatalogTypography.cardTitle)
                 .foregroundStyle(.secondary)
         }
     }
@@ -980,7 +980,7 @@ struct LocationHierarchyPickerView: View {
 
                                 if hasChildren(location) {
                                     Image(systemName: "chevron.right")
-                                        .font(.caption.weight(.semibold))
+                                        .font(CatalogTypography.chipLabel)
                                         .foregroundStyle(.tertiary)
                                 } else if selectedLocationID == location.id {
                                     Image(systemName: "checkmark")

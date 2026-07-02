@@ -256,10 +256,10 @@ private struct MetricPill: View {
                 .foregroundStyle(tint)
 
             Text(title)
-                .font(.subheadline.weight(.semibold))
+                .font(CatalogTypography.cardSubtitle)
 
             Text(value)
-                .font(.subheadline.weight(.bold))
+                .font(CatalogTypography.cardSubtitle)
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, CatalogMetrics.Spacing.sm)
@@ -287,15 +287,15 @@ private struct DashboardSharingCard: View {
             } content: {
                 VStack(alignment: .leading, spacing: Layout.textSpacing) {
                     Text(String(localized: "bell_catalog.dashboard.sharing"))
-                        .font(.headline)
+                        .font(CatalogTypography.sectionTitle)
                     Text(content.value)
-                        .font(.subheadline.weight(.semibold))
+                        .font(CatalogTypography.cardSubtitle)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
 
                     if let detail = content.detail {
                         Text(detail)
-                            .font(.caption.weight(.semibold))
+                            .font(CatalogTypography.chipLabel)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
@@ -383,13 +383,13 @@ struct DashboardDataHealthCard: View {
                         .rotationEffect(.degrees(-90))
 
                     Text(progress.formatted(.percent.precision(.fractionLength(0))))
-                        .font(.subheadline.weight(.bold))
+                        .font(CatalogTypography.cardSubtitle)
                 }
                 .frame(width: 56, height: 56)
             } content: {
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                     Text(String(localized: "bell_catalog.dashboard.health"))
-                        .font(.headline)
+                        .font(CatalogTypography.sectionTitle)
                     Text(String(localized: "bell_catalog.dashboard.health.subtitle"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -413,9 +413,9 @@ struct DashboardTopGeographyCard: View {
         } content: {
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                 Text(String(localized: "common.ui.geography"))
-                    .font(.headline)
+                    .font(CatalogTypography.sectionTitle)
                 Text(countryName)
-                    .font(.subheadline.weight(.semibold))
+                    .font(CatalogTypography.cardSubtitle)
                     .lineLimit(1)
                 Text(countText)
                     .font(.caption)
@@ -488,7 +488,7 @@ struct DataHealthPopover: View {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xxs) {
                     Text(entry.title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(CatalogTypography.cardSubtitle)
                         .foregroundStyle(.primary)
 
                     GeometryReader { proxy in
@@ -503,7 +503,7 @@ struct DataHealthPopover: View {
                                 .frame(width: proxy.size.width / 2)
 
                             Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
+                                .font(CatalogTypography.chipLabel)
                                 .foregroundStyle(.tertiary)
                         }
                     }
@@ -551,12 +551,12 @@ struct SummaryCoverageRow: View {
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                 HStack {
                     Text(title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(CatalogTypography.cardSubtitle)
 
                     Spacer()
 
                     Text("\(value)/\(total)")
-                        .font(.caption.weight(.semibold))
+                        .font(CatalogTypography.chipLabel)
                         .foregroundStyle(.secondary)
                 }
 
@@ -587,13 +587,13 @@ struct SummaryBreakdownRow: View {
         Button(action: action) {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(CatalogTypography.cardSubtitle)
                     .lineLimit(1)
 
                 Spacer()
 
                 Text("\(value)")
-                    .font(.subheadline.weight(.bold))
+                    .font(CatalogTypography.cardSubtitle)
                     .catalogPillPadding(.compact)
                     .background(tint.opacity(0.14), in: Capsule())
             }

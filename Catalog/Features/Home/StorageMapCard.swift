@@ -54,7 +54,7 @@ struct StorageMapCard: View {
         } else {
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                 Text(storageSummaryText)
-                    .font(.subheadline)
+                    .font(CatalogTypography.cardSubtitle)
                     .foregroundStyle(.secondary)
 
                 ForEach(flattenedLocations) { node in
@@ -125,11 +125,11 @@ struct StorageMapCard: View {
                 .frame(width: 8, height: 8)
 
             Text(location.name)
-                .font(.subheadline.weight(.semibold))
+                .font(CatalogTypography.cardSubtitle)
 
             if let shelfSummary = shelfSummaryText(for: location) {
                 Text(shelfSummary)
-                    .font(.subheadline)
+                    .font(CatalogTypography.cardSubtitle)
                     .foregroundStyle(.secondary)
             }
 

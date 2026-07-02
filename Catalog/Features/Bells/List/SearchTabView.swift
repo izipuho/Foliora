@@ -188,7 +188,7 @@ struct SearchTabView: View {
     private var searchHeader: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             Text("common.ui.search")
-                .font(.largeTitle.weight(.bold))
+                .font(CatalogTypography.screenTitle)
                 .foregroundStyle(.primary)
                 .padding(.horizontal, horizontalContentInset)
 
@@ -494,7 +494,7 @@ private struct SearchTokenBar: View {
                                 Image(systemName: "xmark")
                                     .foregroundStyle(.secondary)
                             }
-                            .font(.subheadline.weight(.semibold))
+                            .font(CatalogTypography.cardSubtitle)
                         }
                     }
                     .buttonStyle(.plain)
@@ -510,7 +510,7 @@ private struct SearchTokenBar: View {
                     } label: {
                         CatalogSurfaceCapsule {
                             Label(group.title, systemImage: group.systemImage)
-                                .font(.subheadline.weight(.semibold))
+                                .font(CatalogTypography.cardSubtitle)
                         }
                     }
                     .buttonStyle(.plain)

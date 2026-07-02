@@ -22,7 +22,7 @@ struct BellCatalogSelectionBottomPanel: View {
             HStack(alignment: .center, spacing: CatalogMetrics.Spacing.lg) {
                 Button(action: onMove) {
                     Image(systemName: "folder")
-                        .font(.title3.weight(.semibold))
+                        .font(CatalogTypography.cardTitle)
                         .foregroundStyle(accentColor)
                         .frame(width: 48, height: 48)
                         .background {
@@ -37,7 +37,7 @@ struct BellCatalogSelectionBottomPanel: View {
                 .buttonStyle(.plain)
 
                 Text(selectedBellCountText)
-                    .font(.title3.weight(.semibold))
+                    .font(CatalogTypography.cardTitle)
                     .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
@@ -47,7 +47,7 @@ struct BellCatalogSelectionBottomPanel: View {
 
                 Button(role: .destructive, action: onDelete) {
                     Image(systemName: "trash")
-                        .font(.title3.weight(.semibold))
+                        .font(CatalogTypography.cardTitle)
                         .foregroundStyle(CatalogSemanticColors.destructive)
                         .frame(width: 48, height: 48)
                         .background {

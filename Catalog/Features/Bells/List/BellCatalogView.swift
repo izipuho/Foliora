@@ -429,7 +429,7 @@ struct BellCatalogView: View {
                 .foregroundStyle(catalogStyle.accentColor)
 
             Text(String.localizedStringWithFormat(String(localized: "bell_catalog.items.filtered_by_tag"), filters.title ?? ""))
-                .font(.subheadline.weight(.semibold))
+                .font(CatalogTypography.cardSubtitle)
 
             Spacer()
 
@@ -719,12 +719,12 @@ private struct BellGroupedSectionHeader: View {
     private var headerContent: some View {
         HStack(spacing: CatalogMetrics.Spacing.sm) {
             Text(title)
-                .font(.headline)
+                .font(CatalogTypography.sectionTitle)
                 .foregroundStyle(.primary)
 
             if isJumpButton {
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption.weight(.semibold))
+                    .font(CatalogTypography.chipLabel)
                     .foregroundStyle(.secondary)
             }
 

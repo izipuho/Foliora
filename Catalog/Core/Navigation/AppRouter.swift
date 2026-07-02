@@ -254,7 +254,7 @@ private struct ShareInvitationStatusOverlay: View {
             statusCard {
                 ProgressView()
                 Text("collection.sharing.accepting")
-                    .font(.headline)
+                    .font(CatalogTypography.sectionTitle)
             }
         case .accepted:
             statusCard {
@@ -262,7 +262,7 @@ private struct ShareInvitationStatusOverlay: View {
                     .font(.title)
                     .foregroundStyle(CatalogSemanticColors.success)
                 Text("collection.sharing.access_granted")
-                    .font(.headline)
+                    .font(CatalogTypography.sectionTitle)
             }
         case .idle, .failed:
             EmptyView()

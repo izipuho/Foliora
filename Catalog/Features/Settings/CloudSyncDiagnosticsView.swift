@@ -26,7 +26,7 @@ struct CloudSyncDiagnosticsView: View {
                     Text("Cloud Sync Diagnostics")
                         .font(.title2.weight(.semibold))
                     Text("Temporary diagnostics screen for Core Data / CloudKit sync.")
-                        .font(.subheadline)
+                        .font(CatalogTypography.cardSubtitle)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, CatalogMetrics.Spacing.xs)
@@ -60,7 +60,7 @@ struct CloudSyncDiagnosticsView: View {
                     ForEach(persistentStores) { store in
                         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                             Text(store.title)
-                                .font(.headline)
+                                .font(CatalogTypography.sectionTitle)
                             diagnosticsRow("URL", store.url)
                             diagnosticsRow("Configuration", store.configurationName)
                             diagnosticsRow("Database scope", store.databaseScope)
@@ -81,7 +81,7 @@ struct CloudSyncDiagnosticsView: View {
                     ForEach(eventHistory) { event in
                         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                             Text(event.type)
-                                .font(.headline)
+                                .font(CatalogTypography.sectionTitle)
                             diagnosticsRow("Timestamp", event.timestampText)
                             diagnosticsRow("Type", event.type)
                             diagnosticsRow("Identifier", event.identifier)

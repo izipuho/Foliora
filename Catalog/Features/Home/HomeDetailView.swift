@@ -90,15 +90,15 @@ struct HomeIdentityHeader: View {
 
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                 Text(home.name)
-                    .font(.headline)
+                    .font(CatalogTypography.sectionTitle)
 
                 if home.notes.isEmpty {
                     Text(String(localized: "home.notes.empty"))
-                        .font(.subheadline)
+                        .font(CatalogTypography.cardSubtitle)
                         .foregroundStyle(.secondary)
                 } else {
                     Text(home.notes)
-                        .font(.subheadline)
+                        .font(CatalogTypography.cardSubtitle)
                         .foregroundStyle(.secondary)
                 }
             }

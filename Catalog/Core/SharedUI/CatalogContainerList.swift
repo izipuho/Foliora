@@ -62,11 +62,11 @@ struct CatalogContainerCard: View {
 
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                 Text(title)
-                    .font(.title3.bold())
+                    .font(CatalogTypography.cardTitle)
 
                 if let subtitle {
                     Text(subtitle)
-                        .font(.subheadline)
+                        .font(CatalogTypography.cardSubtitle)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
@@ -95,7 +95,7 @@ struct CatalogContainerCard: View {
                 .frame(width: Metrics.iconSize, height: Metrics.iconSize)
 
             Image(systemName: systemImage)
-                .font(.title3.weight(.semibold))
+                .font(CatalogTypography.cardTitle)
                 .foregroundStyle(.tint)
         }
     }

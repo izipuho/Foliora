@@ -577,7 +577,7 @@ private struct PhotoRecognizedTextBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
             Text(String(localized: "editor.photo_analysis.detected_text"))
-                .font(.caption.weight(.semibold))
+                .font(CatalogTypography.chipLabel)
                 .foregroundStyle(.secondary)
 
             TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
@@ -660,7 +660,7 @@ private struct PhotoSuggestedTagChip: View {
         Button(action: onTap) {
             CatalogSurfaceCapsule {
                 Text("#\(tag)")
-                    .font(.subheadline.weight(.medium))
+                    .font(CatalogTypography.cardSubtitle)
             }
             .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
             .overlay {

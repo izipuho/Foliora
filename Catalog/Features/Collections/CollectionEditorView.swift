@@ -213,7 +213,7 @@ private struct CollectionBackgroundStyleButton: View {
                     .overlay(alignment: .topTrailing) {
                         if isSelected {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.title3)
+                                .font(CatalogTypography.cardTitle)
                                 .symbolRenderingMode(.palette)
                                 .foregroundStyle(.white, CatalogMediaContrast.iconPaletteShadowSoft)
                                 .padding(CatalogMetrics.Spacing.xs)
