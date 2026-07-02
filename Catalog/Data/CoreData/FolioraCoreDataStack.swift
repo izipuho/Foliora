@@ -8,27 +8,32 @@ enum FolioraCoreDataStack {
 
     static func makeContainer(inMemory: Bool = false) throws -> NSPersistentCloudKitContainer {
         let model = try managedObjectModel()
-        let container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
+        var usesCloudKit = !inMemory
+        var container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
 
-        container.persistentStoreDescriptions = try storeDescriptions(inMemory: inMemory)
-        var loadError: Error?
-
-        container.loadPersistentStores { _, error in
-            if let error {
-                loadError = error
+        do {
+            try loadPersistentStores(into: container, inMemory: inMemory, usesCloudKit: usesCloudKit)
+        } catch {
+            guard usesCloudKit else {
+                throw error
             }
-        }
-
-        if let loadError {
-            throw loadError
+            usesCloudKit = false
+            container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
+            try loadPersistentStores(into: container, inMemory: inMemory, usesCloudKit: usesCloudKit)
         }
 
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
 
         #if DEBUG
-        try container.initializeCloudKitSchema(options: [])
-        print("CloudKit schema initialized successfully.")
+        if usesCloudKit {
+            do {
+                try container.initializeCloudKitSchema(options: [])
+                print("CloudKit schema initialized successfully.")
+            } catch {
+                print("CloudKit schema initialization skipped: \(error)")
+            }
+        }
         #endif
 
         return container
@@ -46,11 +51,34 @@ enum FolioraCoreDataStack {
         return model
     }
 
-    private static func storeDescriptions(inMemory: Bool) throws -> [NSPersistentStoreDescription] {
+    private static func loadPersistentStores(
+        into container: NSPersistentCloudKitContainer,
+        inMemory: Bool,
+        usesCloudKit: Bool
+    ) throws {
+        container.persistentStoreDescriptions = try storeDescriptions(
+            inMemory: inMemory,
+            usesCloudKit: usesCloudKit
+        )
+        var loadError: Error?
+
+        container.loadPersistentStores { _, error in
+            if let error {
+                loadError = error
+            }
+        }
+
+        if let loadError {
+            throw loadError
+        }
+    }
+
+    private static func storeDescriptions(inMemory: Bool, usesCloudKit: Bool) throws -> [NSPersistentStoreDescription] {
         let privateDescription = NSPersistentStoreDescription(url: try storeURL(named: "Private.sqlite"))
         configure(
             privateDescription,
             inMemory: inMemory,
+            usesCloudKit: usesCloudKit,
             databaseScope: .private,
             inMemoryName: "Private"
         )
@@ -59,6 +87,7 @@ enum FolioraCoreDataStack {
         configure(
             sharedDescription,
             inMemory: inMemory,
+            usesCloudKit: usesCloudKit,
             databaseScope: .shared,
             inMemoryName: "Shared"
         )
@@ -69,13 +98,14 @@ enum FolioraCoreDataStack {
     private static func configure(
         _ description: NSPersistentStoreDescription,
         inMemory: Bool,
+        usesCloudKit: Bool,
         databaseScope: CKDatabase.Scope,
         inMemoryName: String
     ) {
         if inMemory {
             description.type = NSInMemoryStoreType
             description.url = URL(fileURLWithPath: "/dev/null/\(inMemoryName)")
-        } else {
+        } else if usesCloudKit {
             let options = NSPersistentCloudKitContainerOptions(containerIdentifier: cloudKitContainerIdentifier)
             options.databaseScope = databaseScope
             description.cloudKitContainerOptions = options
