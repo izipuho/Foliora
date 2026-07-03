@@ -111,7 +111,7 @@ struct BellGridView<Bell: BellCardDisplayable>: View {
             )
             .overlay {
                 if shouldShowSelectionOverlay {
-                    RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous)
+                    CatalogShapes.medium
                         .fill(CatalogMediaContrast.scrimMedium)
                         .allowsHitTesting(false)
                 }

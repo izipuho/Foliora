@@ -229,7 +229,7 @@ struct BellDetailView: View {
         .padding(CatalogMetrics.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.section, style: .continuous)
+            CatalogShapes.section
                 .fill(isHighlighted ? AnyShapeStyle(tint.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
         )
         .catalogShadow(

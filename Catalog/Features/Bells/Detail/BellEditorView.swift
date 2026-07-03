@@ -380,7 +380,7 @@ struct BellEditorView: View {
     @ViewBuilder
     private func sectionBackground(for section: StartSection) -> some View {
         if highlightedSection == section {
-            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
+            CatalogShapes.tile
                 .fill(collection.backgroundStyle.accentColor.opacity(0.10))
         } else {
             Color.clear

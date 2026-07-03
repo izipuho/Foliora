@@ -9,11 +9,11 @@ extension View {
         self
             .padding(CatalogMetrics.Spacing.lg)
             .background(
-                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.section, style: .continuous)
+                CatalogShapes.section
                     .fill(.regularMaterial)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.section, style: .continuous)
+                CatalogShapes.section
                     .stroke(CatalogMediaContrast.glassStroke, lineWidth: CatalogSurfaceCardMetrics.strokeWidth)
             }
     }

@@ -165,9 +165,9 @@ private struct MapBellAnnotationView: View {
         ZStack(alignment: .topTrailing) {
             annotationImage
                 .frame(width: annotationSize.width, height: annotationSize.height)
-                .clipShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
+                .clipShape(CatalogShapes.tile)
                 .overlay(
-                    RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
+                    CatalogShapes.tile
                         .stroke(isSelected ? accentColor : CatalogMediaContrast.onMediaPrimary.opacity(0.9), lineWidth: isSelected ? 3 : 2)
                 )
 
@@ -194,7 +194,7 @@ private struct MapBellAnnotationView: View {
             )
         } else {
             ZStack {
-                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
+                CatalogShapes.tile
                     .fill(.regularMaterial)
                 Image(systemName: "bell.fill")
                     .foregroundStyle(accentColor)

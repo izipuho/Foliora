@@ -434,11 +434,11 @@ private struct MediaAssetGridTileView: View {
                 }
             }
             .frame(width: 110, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
+            .contentShape(CatalogShapes.thumbnail)
             .onTapGesture(perform: onTap)
             .overlay {
                 if isAnalysisHighlighted {
-                    RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
+                    CatalogShapes.thumbnail
                         .stroke(
                             AngularGradient(
                                 colors: [
@@ -462,7 +462,7 @@ private struct MediaAssetGridTileView: View {
             }
             .overlay {
                 if isCover {
-                    RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
+                    CatalogShapes.thumbnail
                         .stroke(.tint.opacity(0.75), lineWidth: 3)
                 }
             }
@@ -573,7 +573,7 @@ private struct MediaAssetThumbnailView: View {
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
+        .clipShape(CatalogShapes.thumbnail)
     }
 
     private var previewImage: UIImage? {
@@ -621,7 +621,7 @@ private struct MediaAssetThumbnailView: View {
     }
 
     private var placeholderBackground: some View {
-        RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
+        CatalogShapes.thumbnail
             .fill(Color(uiColor: .tertiarySystemGroupedBackground))
     }
 

@@ -444,7 +444,7 @@ struct BellCatalogView: View {
             .foregroundStyle(catalogStyle.accentColor)
         }
         .padding(CatalogMetrics.Spacing.md)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous))
+        .background(.ultraThinMaterial, in: CatalogShapes.medium)
     }
 
     private func dashboardHeader(displayModel: BellCatalogDisplayModel, screenHeight: CGFloat) -> some View {
@@ -760,7 +760,7 @@ private struct BellGroupingJumpPopover: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, CatalogMetrics.Spacing.sm)
                     .padding(.horizontal, CatalogMetrics.Spacing.md)
-                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
+                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: CatalogShapes.thumbnail)
                 }
             }
             .padding(CatalogMetrics.Spacing.md)
@@ -850,9 +850,9 @@ private struct SummaryGlassCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding()
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.section, style: .continuous))
+            .background(.ultraThinMaterial, in: CatalogShapes.section)
             .overlay(
-                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.section, style: .continuous)
+                CatalogShapes.section
                     .stroke(CatalogMediaContrast.glassStroke, lineWidth: 1)
             )
     }

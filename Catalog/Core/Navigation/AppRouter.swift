@@ -275,7 +275,7 @@ private struct ShareInvitationStatusOverlay: View {
         }
         .padding(.horizontal, CatalogMetrics.Spacing.xl)
         .padding(.vertical, CatalogMetrics.Spacing.lg)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
+        .background(.regularMaterial, in: CatalogShapes.thumbnail)
         .shadow(radius: 18)
     }
 }

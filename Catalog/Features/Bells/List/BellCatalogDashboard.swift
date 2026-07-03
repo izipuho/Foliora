@@ -458,7 +458,7 @@ private struct DashboardPopoverContainer<Entry, Content: View>: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
+                .background(.thinMaterial, in: CatalogShapes.thumbnail)
             }
         }
         .padding()
@@ -618,6 +618,6 @@ struct StatChip: View {
         .padding(.vertical, CatalogMetrics.Spacing.sm)
         .padding(.horizontal, CatalogMetrics.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous))
+        .background(tint.opacity(0.12), in: CatalogShapes.tile)
     }
 }

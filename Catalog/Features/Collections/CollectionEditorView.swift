@@ -202,7 +202,7 @@ private struct CollectionBackgroundStyleButton: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
+                CatalogShapes.tile
                     .fill(
                         CatalogBackgrounds.collectionPreview(
                             style.accentColor
