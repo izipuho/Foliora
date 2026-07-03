@@ -3,22 +3,22 @@ import SwiftUI
 struct CatalogEmptyStateView: View {
     let systemImage: String
     let title: LocalizedStringKey
-    let message: LocalizedStringKey
-    let primaryActionTitle: LocalizedStringKey
+    let message: LocalizedStringKey?
+    let primaryActionTitle: LocalizedStringKey?
     let primaryActionSystemImage: String?
     let primaryTint: Color
-    let primaryAction: () -> Void
+    let primaryAction: (() -> Void)?
     let secondaryActionTitle: LocalizedStringKey?
     let secondaryAction: (() -> Void)?
 
     init(
         systemImage: String,
         title: LocalizedStringKey,
-        message: LocalizedStringKey,
-        primaryActionTitle: LocalizedStringKey,
+        message: LocalizedStringKey? = nil,
+        primaryActionTitle: LocalizedStringKey? = nil,
         primaryActionSystemImage: String? = nil,
-        primaryTint: Color,
-        primaryAction: @escaping () -> Void,
+        primaryTint: Color = .accentColor,
+        primaryAction: (() -> Void)? = nil,
         secondaryActionTitle: LocalizedStringKey? = nil,
         secondaryAction: (() -> Void)? = nil
     ) {
@@ -35,46 +35,77 @@ struct CatalogEmptyStateView: View {
 
     var body: some View {
         VStack(spacing: CatalogMetrics.Spacing.xl) {
-            ContentUnavailableView(
-                title,
-                systemImage: systemImage,
-                description: Text(message)
-            )
-            .frame(maxWidth: .infinity)
-
             VStack(spacing: CatalogMetrics.Spacing.md) {
-                Button(action: primaryAction) {
-                    primaryActionLabel
-                        .font(CatalogTypography.sectionTitle)
-                        .frame(maxWidth: 420)
-                        .frame(height: 56)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .buttonStyle(.borderedProminent)
-                .tint(primaryTint)
+                Image(systemName: systemImage)
+                    .font(.system(size: CatalogEmptyStateMetrics.iconSize, weight: .semibold))
+                    .foregroundStyle(primaryTint)
+                    .accessibilityHidden(true)
 
-                if let secondaryActionTitle, let secondaryAction {
-                    Button(action: secondaryAction) {
-                        Text(secondaryActionTitle)
-                            .font(CatalogTypography.sectionTitle)
+                VStack(spacing: CatalogMetrics.Spacing.sm) {
+                    Text(title)
+                        .font(CatalogTypography.cardTitle)
+                        .foregroundStyle(Color.primary)
+                        .multilineTextAlignment(.center)
+
+                    if let message {
+                        Text(message)
+                            .font(CatalogTypography.cardSubtitle)
+                            .foregroundStyle(Color.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                    .buttonStyle(.borderless)
-                    .tint(primaryTint)
                 }
             }
-            .padding(.horizontal, CatalogMetrics.Spacing.lg)
+            .frame(maxWidth: .infinity)
+
+            if hasActions {
+                VStack(spacing: CatalogMetrics.Spacing.md) {
+                    if let primaryActionTitle, let primaryAction {
+                        Button(action: primaryAction) {
+                            primaryActionLabel(primaryActionTitle)
+                                .font(CatalogTypography.sectionTitle)
+                                .frame(maxWidth: CatalogEmptyStateMetrics.actionMaxWidth)
+                                .frame(height: CatalogEmptyStateMetrics.primaryActionHeight)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .buttonStyle(.borderedProminent)
+                        .tint(primaryTint)
+                    }
+
+                    if let secondaryActionTitle, let secondaryAction {
+                        Button(action: secondaryAction) {
+                            Text(secondaryActionTitle)
+                                .font(CatalogTypography.sectionTitle)
+                        }
+                        .buttonStyle(.borderless)
+                        .tint(primaryTint)
+                    }
+                }
+                .padding(.horizontal, CatalogMetrics.Spacing.lg)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .padding(.horizontal)
-        .padding(.bottom, 80)
+        .padding(.horizontal, CatalogMetrics.Insets.screen)
+        .padding(.bottom, CatalogEmptyStateMetrics.bottomPadding)
+    }
+
+    private var hasActions: Bool {
+        (primaryActionTitle != nil && primaryAction != nil)
+            || (secondaryActionTitle != nil && secondaryAction != nil)
     }
 
     @ViewBuilder
-    private var primaryActionLabel: some View {
+    private func primaryActionLabel(_ title: LocalizedStringKey) -> some View {
         if let primaryActionSystemImage {
-            Label(primaryActionTitle, systemImage: primaryActionSystemImage)
+            Label(title, systemImage: primaryActionSystemImage)
         } else {
-            Text(primaryActionTitle)
+            Text(title)
         }
     }
+}
+
+private enum CatalogEmptyStateMetrics {
+    static let iconSize: CGFloat = 44
+    static let actionMaxWidth: CGFloat = 420
+    static let primaryActionHeight: CGFloat = 56
+    static let bottomPadding: CGFloat = 80
 }

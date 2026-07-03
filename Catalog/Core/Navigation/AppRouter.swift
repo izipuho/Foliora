@@ -137,10 +137,10 @@ struct AppShellView: View {
                     }
                 )
             } else {
-                ContentUnavailableView(
-                    String(localized: "home.not_found.title"),
+                CatalogEmptyStateView(
                     systemImage: "house.slash",
-                    description: Text(String(localized: "home.not_found.description"))
+                    title: LocalizedStringKey(String(localized: "home.not_found.title")),
+                    message: LocalizedStringKey(String(localized: "home.not_found.description"))
                 )
             }
         case .editHome(let homeID):
@@ -160,10 +160,10 @@ struct AppShellView: View {
                     focusesNameOnAppear: true
                 )
             } else {
-                ContentUnavailableView(
-                    String(localized: "home.not_found.title"),
+                CatalogEmptyStateView(
                     systemImage: "house.slash",
-                    description: Text(String(localized: "home.not_found.description"))
+                    title: LocalizedStringKey(String(localized: "home.not_found.title")),
+                    message: LocalizedStringKey(String(localized: "home.not_found.description"))
                 )
             }
         }
@@ -539,7 +539,7 @@ private struct BellDetailInspectorView: View {
                         canEditCollection: false
                     )
                 } else {
-                    ContentUnavailableView("bel.not_found", systemImage: "bell.slash")
+                    CatalogEmptyStateView(systemImage: "bell.slash", title: "bel.not_found")
                 }
             }
             .toolbar {

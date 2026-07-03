@@ -350,10 +350,10 @@ struct BellCatalogView: View {
 
                     switch displayModel.layout {
                     case .empty:
-                        ContentUnavailableView(
-                            "bell_catalog.empty.title",
+                        CatalogEmptyStateView(
                             systemImage: "bell.slash",
-                            description: Text("bell_catalog.empty.description")
+                            title: "bell_catalog.empty.title",
+                            message: "bell_catalog.empty.description"
                         )
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 40)
@@ -886,7 +886,10 @@ struct BellCatalogDetailSheetContainer: View {
                     canEditCollection: canEditCollection
                 )
             } else {
-                ContentUnavailableView("bel.not_found", systemImage: "bell.slash")
+                CatalogEmptyStateView(
+                    systemImage: "bell.slash",
+                    title: "bel.not_found"
+                )
             }
         }
         .presentationBackground(.clear)

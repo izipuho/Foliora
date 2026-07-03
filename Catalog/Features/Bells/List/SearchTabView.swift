@@ -212,7 +212,11 @@ struct SearchTabView: View {
         cardMetrics: BellGridLayoutMode.CardMetrics
     ) -> some View {
         if filteredBells.isEmpty {
-            ContentUnavailableView.search
+            CatalogEmptyStateView(
+                systemImage: "magnifyingglass",
+                title: "bell_catalog.search.empty.title",
+                message: "bell_catalog.search.empty.description"
+            )
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 40)
         } else {

@@ -463,17 +463,17 @@ private struct CollectionSharingSheetLoaderView: View {
     }
 
     private var sharingLoadFailedView: some View {
-        ContentUnavailableView {
-            Label(String(localized: "collection.sharing.load_failed.title"), systemImage: "icloud.slash")
-        } description: {
-            Text(String(localized: "collection.sharing.load_failed.message"))
-        } actions: {
-            Button(String(localized: "common.retry")) {
+        CatalogEmptyStateView(
+            systemImage: "icloud.slash",
+            title: LocalizedStringKey(String(localized: "collection.sharing.load_failed.title")),
+            message: LocalizedStringKey(String(localized: "collection.sharing.load_failed.message")),
+            primaryActionTitle: LocalizedStringKey(String(localized: "common.retry")),
+            primaryAction: {
                 Task {
                     await loadSharingState()
                 }
             }
-        }
+        )
     }
 
     @MainActor

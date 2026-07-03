@@ -102,7 +102,10 @@ struct BellDetailView: View {
                     bell = updatedBell
                 }
             } else {
-                ContentUnavailableView(String(localized: "home.not_found.title"), systemImage: "folder.badge.questionmark")
+                CatalogEmptyStateView(
+                    systemImage: "folder.badge.questionmark",
+                    title: LocalizedStringKey(String(localized: "home.not_found.title"))
+                )
             }
         }
         .sheet(isPresented: $isPresentingLocationPicker) {
@@ -430,7 +433,10 @@ private struct BellDetailPreviewHost: View {
                     canEditCollection: false
                 )
             } else {
-                ContentUnavailableView(String(localized: "home.not_found.title"), systemImage: "bell.slash")
+                CatalogEmptyStateView(
+                    systemImage: "bell.slash",
+                    title: LocalizedStringKey(String(localized: "home.not_found.title"))
+                )
             }
         }
         .task {

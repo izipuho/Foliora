@@ -44,10 +44,10 @@ struct StorageMapCard: View {
 
     var body: some View {
         if locations.isEmpty {
-            ContentUnavailableView(
-                String(localized: "home.location.empty.title"),
+            CatalogEmptyStateView(
                 systemImage: "square.stack.3d.up.slash",
-                description: Text(String(localized: "home.location.empty.description"))
+                title: LocalizedStringKey(String(localized: "home.location.empty.title")),
+                message: LocalizedStringKey(String(localized: "home.location.empty.description"))
             )
             .frame(maxWidth: .infinity)
             .padding(.vertical, CatalogMetrics.Spacing.xl)

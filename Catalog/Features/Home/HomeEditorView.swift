@@ -74,10 +74,10 @@ struct HomeEditorView: View {
 
             Section(String(localized: "home.editor.section_locations")) {
                 if locations.isEmpty {
-                    ContentUnavailableView(
-                        String(localized: "home.location.empty.title"),
+                    CatalogEmptyStateView(
                         systemImage: "square.stack.3d.up.slash",
-                        description: Text(String(localized: "home.location.empty.description"))
+                        title: LocalizedStringKey(String(localized: "home.location.empty.title")),
+                        message: LocalizedStringKey(String(localized: "home.location.empty.description"))
                     )
                 } else {
                     ForEach(flattenedLocations) { node in

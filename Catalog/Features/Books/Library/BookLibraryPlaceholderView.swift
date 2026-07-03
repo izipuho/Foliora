@@ -16,10 +16,10 @@ struct BookLibraryPlaceholderView: View {
                 .padding(CatalogMetrics.Insets.screen)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.hero, style: .continuous))
 
-                ContentUnavailableView(
-                    "Модуль книг следующий в очереди",
+                CatalogEmptyStateView(
                     systemImage: "books.vertical",
-                    description: Text("Каркас приложения уже разделяет коллекции по типам и позволяет каждой из них иметь собственный UI, repository и набор сценариев.")
+                    title: "Модуль книг следующий в очереди",
+                    message: "Каркас приложения уже разделяет коллекции по типам и позволяет каждой из них иметь собственный UI, repository и набор сценариев."
                 )
                 .frame(maxWidth: .infinity)
                 .padding(.top, CatalogMetrics.Spasing.xl)
