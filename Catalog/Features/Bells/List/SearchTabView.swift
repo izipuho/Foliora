@@ -49,7 +49,6 @@ struct SearchTabView: View {
     let repository: any CatalogRepository
     let onBellSelected: ((UUID) -> Void)?
     private let initialQuery: String?
-    private let horizontalContentInset: CGFloat = 16
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Binding var layoutMode: BellGridLayoutMode
     @State private var searchSnapshot = SearchCatalogSnapshot()
@@ -190,13 +189,12 @@ struct SearchTabView: View {
             Text("common.ui.search")
                 .font(CatalogTypography.screenTitle)
                 .foregroundStyle(.primary)
-                .padding(.horizontal, horizontalContentInset)
+                .padding(.horizontal, CatalogMetrics.Insets.screen)
 
             SearchTokenBar(
                 tokens: searchState.tokens,
                 suggestedTokenGroups: suggestedTokenGroups,
                 title: searchTokenTitle,
-                contentInset: horizontalContentInset,
                 select: selectToken,
                 remove: removeToken
             )
@@ -480,7 +478,6 @@ private struct SearchTokenBar: View {
     let tokens: [SearchToken]
     let suggestedTokenGroups: [SearchTokenGroup]
     let title: (SearchToken) -> String
-    let contentInset: CGFloat
     let select: (SearchToken) -> Void
     let remove: (SearchToken) -> Void
 
@@ -520,7 +517,7 @@ private struct SearchTokenBar: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, contentInset)
+            .padding(.horizontal, CatalogMetrics.Insets.screen)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

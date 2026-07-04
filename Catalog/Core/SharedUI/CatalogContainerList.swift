@@ -12,24 +12,19 @@ struct CatalogContainerList<Content: View>: View {
     }
 }
 
-private enum Metrics {
-    static let rowVerticalInset: CGFloat = 8
-    static let rowHorizontalInset: CGFloat = 24
-
-    static let rowInsets = EdgeInsets(
-        top: rowVerticalInset,
-        leading: rowHorizontalInset,
-        bottom: rowVerticalInset,
-        trailing: rowHorizontalInset
-    )
-}
-
 private struct CatalogContainerListRowModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-            .listRowInsets(Metrics.rowInsets)
+            .listRowInsets(
+                EdgeInsets(
+                    top: CatalogMetrics.Insets.overlay,
+                    leading: CatalogMetrics.Insets.screen,
+                    bottom: CatalogMetrics.Insets.overlay,
+                    trailing: CatalogMetrics.Insets.screen
+                )
+            )
     }
 }
 
@@ -50,11 +45,6 @@ struct CatalogContainerCard: View {
     var accessory: Accessory? = nil
     var supportingText: String? = nil
     let systemImage: String
-
-    private enum Metrics {
-        static let iconCornerRadius: CGFloat = 18
-        static let iconSize: CGFloat = 52
-    }
 
     var body: some View {
         HStack(alignment: .center, spacing: CatalogMetrics.Spacing.md) {
@@ -80,7 +70,7 @@ struct CatalogContainerCard: View {
                 }
             }
 
-            Spacer(minLength: 12)
+            Spacer(minLength: CatalogMetrics.Spacing.md)
 
             trailing
         }
@@ -90,9 +80,9 @@ struct CatalogContainerCard: View {
 
     private var leading: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: Metrics.iconCornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous)
                 .fill(Color.accentColor.opacity(0.12))
-                .frame(width: Metrics.iconSize, height: Metrics.iconSize)
+                .frame(width: 52, height: 52)
 
             Image(systemName: systemImage)
                 .font(CatalogTypography.cardTitle)

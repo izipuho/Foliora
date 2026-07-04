@@ -67,7 +67,7 @@ struct CatalogEmptyStateView: View {
                                 .frame(height: CatalogEmptyStateMetrics.primaryActionHeight)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                         .tint(primaryTint)
                     }
 
