@@ -84,6 +84,7 @@ struct CatalogEmptyStateView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .padding(.horizontal, CatalogMetrics.Insets.screen)
     }
 
     private var hasActions: Bool {
