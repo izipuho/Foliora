@@ -63,7 +63,7 @@ struct CatalogEmptyStateView: View {
                         Button(action: primaryAction) {
                             primaryActionLabel(primaryActionTitle)
                                 .font(CatalogTypography.sectionTitle)
-                                .frame(maxWidth: CatalogEmptyStateMetrics.actionMaxWidth)
+                                .padding(.horizontal, CatalogMetrics.Spacing.md)
                                 .frame(height: CatalogEmptyStateMetrics.primaryActionHeight)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -84,8 +84,6 @@ struct CatalogEmptyStateView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .padding(.horizontal, CatalogMetrics.Insets.screen)
-        .padding(.bottom, CatalogEmptyStateMetrics.bottomPadding)
     }
 
     private var hasActions: Bool {
@@ -104,8 +102,6 @@ struct CatalogEmptyStateView: View {
 }
 
 private enum CatalogEmptyStateMetrics {
-    static let iconSize: CGFloat = 44
-    static let actionMaxWidth: CGFloat = 420
+    static let iconSize: CGFloat = 56
     static let primaryActionHeight: CGFloat = 56
-    static let bottomPadding: CGFloat = 80
 }
