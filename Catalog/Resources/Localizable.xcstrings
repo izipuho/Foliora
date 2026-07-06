@@ -3913,22 +3913,6 @@
         }
       }
     },
-    "editor.additional_details" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Additional Details"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Дополнительно"
-          }
-        }
-      }
-    },
     "editor.attributes" : {
       "localizations" : {
         "en" : {

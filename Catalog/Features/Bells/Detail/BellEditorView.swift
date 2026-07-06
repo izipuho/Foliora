@@ -306,23 +306,19 @@ struct BellEditorView: View {
 
                     }
 
-                    Section(String(localized: "common.field.storage")) {
-                        LocationPickerField(
-                            title: String(localized: "editor.location"),
-                            selectedLabel: selectedLocationLabel,
-                            locations: availableLocations,
-                            selectedLocationID: $selectedLocationID
-                        )
-                    }
-                    .id(StartSection.storage)
-                    .listRowBackground(sectionBackground(for: .storage))
-
-                    Section(String(localized: "editor.additional_details")) {
+                    Section(String(localized: "bell.detail.section.location")) {
                         PlacePickerField(
                             title: String(localized: "common.ui.origin"),
                             selectedLabel: selectedOriginLabel,
                             places: availablePlaces,
                             selectedPlace: $selectedOriginPlace
+                        )
+
+                        LocationPickerField(
+                            title: String(localized: "editor.location"),
+                            selectedLabel: selectedLocationLabel,
+                            locations: availableLocations,
+                            selectedLocationID: $selectedLocationID
                         )
                     }
 
