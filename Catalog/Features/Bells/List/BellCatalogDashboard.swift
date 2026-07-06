@@ -262,9 +262,7 @@ private struct MetricPill: View {
                 .font(CatalogTypography.cardSubtitle)
                 .foregroundStyle(.secondary)
         }
-        .padding(.vertical, CatalogMetrics.Spacing.sm)
-        .padding(.horizontal, CatalogMetrics.Spacing.md)
-        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+        .catalogSurfaceCapsule()
     }
 }
 
@@ -595,7 +593,7 @@ struct SummaryBreakdownRow: View {
                 Text("\(value)")
                     .font(CatalogTypography.cardSubtitle)
                     .catalogPillPadding(.compact)
-                    .background(tint.opacity(0.14), in: Capsule())
+                    .catalogSurfaceCapsule()
             }
         }
         .buttonStyle(.plain)
