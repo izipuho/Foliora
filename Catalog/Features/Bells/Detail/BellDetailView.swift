@@ -1,24 +1,6 @@
 import SwiftUI
-import UIKit
-import MapKit
-import CoreData
 
 struct BellDetailView: View {
-    private enum DetailFeedback: Equatable {
-        case success
-
-        var sensoryFeedback: SensoryFeedback {
-            switch self {
-            case .success:
-                return .success
-            }
-        }
-    }
-
-    private struct DetailFeedbackEvent: Equatable {
-        let kind: DetailFeedback
-        let token: Int
-    }
 
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
@@ -32,8 +14,6 @@ struct BellDetailView: View {
     @State private var isPresentingOriginPicker = false
     @State private var isPresentingLocationPicker = false
     @State private var isPresentingUnsavedChangesConfirmation = false
-    @State private var feedbackEvent: DetailFeedbackEvent?
-    @State private var feedbackToken = 0
 
     init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool) {
         _bell = bell
@@ -50,9 +30,6 @@ struct BellDetailView: View {
         }
         .ignoresSafeArea(edges: .top)
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-        .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
-            newValue?.kind.sensoryFeedback
-        }
         .interactiveDismissDisabled(canEditCollection && isNotesOrTagsDirty)
         .navigationTitle(bell.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -93,20 +70,15 @@ struct BellDetailView: View {
             Text(String(localized: "bell.detail.unsaved_changes.message"))
         }
         .sheet(isPresented: $isPresentingEditor) {
-            if canEditCollection, let collection = inferredCollection {
+            if canEditCollection {
                 BellEditorView(
-                    collection: collection,
+                    collection: inferredCollection,
                     repository: repository,
                     bell: bell
                 ) { updatedBell in
                     repository.saveBellRecord(updatedBell)
                     bell = updatedBell
                 }
-            } else {
-                CatalogEmptyStateView(
-                    systemImage: "folder.badge.questionmark",
-                    title: LocalizedStringKey(String(localized: "home.not_found.title"))
-                )
             }
         }
         .sheet(isPresented: $isPresentingOriginPicker) {
@@ -214,8 +186,8 @@ struct BellDetailView: View {
             LinearGradient(
                 stops: [
                     .init(color: .clear, location: 0.0),
-                    .init(color: Color(uiColor: .systemBackground).opacity(0.88), location: 0.08),
-                    .init(color: Color(uiColor: .systemBackground), location: 0.18)
+                    .init(color: Color(.systemBackground).opacity(0.88), location: 0.08),
+                    .init(color: Color(.systemBackground), location: 0.18)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -298,7 +270,7 @@ struct BellDetailView: View {
     }
 
     private var availableLocations: [Location] {
-        guard let homeID = inferredCollection?.homeID else { return [] }
+        let homeID = inferredCollection.homeID
         return lookupSnapshot.locations.filter { $0.homeID == homeID }
     }
 
@@ -306,12 +278,12 @@ struct BellDetailView: View {
         lookupSnapshot.places
     }
 
-    private var inferredCollection: CollectionSummary? {
-        lookupSnapshot.collections.first(where: { $0.id == bell.item.collectionID })?.summarySnapshot
+    private var inferredCollection: CollectionSummary {
+        lookupSnapshot.collections.first(where: { $0.id == bell.item.collectionID })!.summarySnapshot
     }
 
     private var detailAccentColor: Color {
-        inferredCollection?.backgroundStyle.accentColor ?? .accentColor
+        inferredCollection.backgroundStyle.accentColor
     }
 
     private var isNotesOrTagsDirty: Bool {
@@ -376,12 +348,6 @@ struct BellDetailView: View {
             tags: draftTags
         )
         syncDraftsFromBell()
-        emitFeedback(.success)
-    }
-
-    private func emitFeedback(_ kind: DetailFeedback) {
-        feedbackToken += 1
-        feedbackEvent = DetailFeedbackEvent(kind: kind, token: feedbackToken)
     }
 
     private func persist(
