@@ -49,54 +49,50 @@ private struct OriginTile: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-            ZStack(alignment: .bottomLeading) {
-                if let coordinate, let region {
-                    Map(initialPosition: .region(region), interactionModes: []) {
-                        Marker("", coordinate: coordinate)
-                    }
-                    .mapStyle(.standard(elevation: .flat))
-                    .clipShape(CatalogShapes.tile)
-                } else {
-                    ZStack {
-                        CatalogShapes.tile
-                            .fill(Color(uiColor: .tertiarySystemGroupedBackground))
-                        Image(systemName: "mappin.slash")
-                            .font(CatalogTypography.cardTitle)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                LinearGradient(
-                    colors: [
-                        CatalogMediaContrast.scrimClear,
-                        CatalogMediaContrast.scrimWeak,
-                        CatalogMediaContrast.scrimStrong
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
+        Group {
+            if place == nil {
+                DetailTileCTAContent(
+                    systemImage: "mappin.slash",
+                    title: "common.unknown_origin",
+                    message: "common.unassigned",
+                    accentColor: accentColor
                 )
-                .clipShape(CatalogShapes.tile)
-
-                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                    Label(String(localized: "common.field.origin"), systemImage: "mappin.and.ellipse")
-                        .font(CatalogTypography.chipLabel)
-                        .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
-
-                    Text(place?.displayName ?? String(localized: "common.unassigned"))
-                        .font(CatalogTypography.cardSubtitle)
-                        .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
-                        .lineLimit(2)
-                }
-                .padding(CatalogMetrics.Spacing.md)
+                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+                .catalogSurfaceTile()
+            } else {
+                originContent
+                    .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottomLeading)
+                    .catalogSurfaceTile {
+                        originMedia
+                    }
             }
-            .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottomLeading)
-            .overlay(
-                CatalogShapes.tile
-                    .stroke(accentColor.opacity(0.22), lineWidth: 1)
-            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var originContent: some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+            Label(String(localized: "common.field.origin"), systemImage: "mappin.and.ellipse")
+                .font(CatalogTypography.chipLabel)
+                .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
+
+            Text(place?.displayName ?? String(localized: "common.unassigned"))
+                .font(CatalogTypography.cardSubtitle)
+                .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
+                .lineLimit(2)
+        }
+    }
+
+    @ViewBuilder
+    private var originMedia: some View {
+        if let coordinate, let region {
+            Map(initialPosition: .region(region), interactionModes: []) {
+                Marker("", coordinate: coordinate)
+            }
+            .mapStyle(.standard(elevation: .flat))
+        } else {
+            Color.clear
+        }
     }
 }
 
@@ -139,46 +135,55 @@ private struct StorageTile: View {
     }
 
     private var assignedTileContent: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+            Label(String(localized: "common.field.storage"), systemImage: "square.stack.3d.up")
+                .font(CatalogTypography.chipLabel)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                 ForEach(Array(pathParts.enumerated()), id: \.offset) { index, part in
-                    HStack(spacing: CatalogMetrics.Spacing.sm) {
-                        Circle()
-                            .fill(index == pathParts.count - 1 ? accentColor.opacity(0.80) : Color(uiColor: .tertiaryLabel))
-                            .frame(width: 7, height: 7)
-
-                        Text(part)
-                            .font(index == pathParts.count - 1 ? .subheadline.weight(.semibold) : .subheadline)
-                            .foregroundStyle(index == pathParts.count - 1 ? .primary : .secondary)
-
-                        Spacer()
-                    }
+                    Text(part)
+                        .font(index == pathParts.count - 1 ? CatalogTypography.cardTitle : CatalogTypography.cardSubtitle)
+                        .foregroundStyle(index == pathParts.count - 1 ? .primary : .secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-            .padding(CatalogMetrics.Spacing.md)
-            .background(Color(uiColor: .tertiarySystemGroupedBackground), in: CatalogShapes.tile)
-            .overlay(
-                CatalogShapes.tile
-                    .stroke(accentColor.opacity(0.22), lineWidth: 1)
-            )
+
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+        .catalogSurfaceTile()
     }
 
     private var placeholderTileContent: some View {
+        DetailTileCTAContent(
+            systemImage: "square.stack.3d.up.slash",
+            title: "bell.detail.storage.assign.action",
+            message: "bell.detail.storage.placeholder",
+            accentColor: accentColor
+        )
+        .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+        .catalogSurfaceTile()
+    }
+}
+
+private struct DetailTileCTAContent: View {
+    let systemImage: String
+    let title: LocalizedStringResource
+    let message: LocalizedStringResource
+    let accentColor: Color
+
+    var body: some View {
         VStack(spacing: CatalogMetrics.Spacing.sm) {
             Spacer(minLength: 0)
 
-            Image(systemName: "square.stack.3d.up.slash")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(accentColor)
-
-            Text(String(localized: "bell.detail.storage.assign.action"))
-                .font(CatalogTypography.cardTitle)
+            Label(title, systemImage: systemImage)
+                .font(CatalogTypography.cardLabel)
                 .foregroundStyle(accentColor)
                 .multilineTextAlignment(.center)
 
-            Text(String(localized: "bell.detail.storage.placeholder"))
+            Text(message)
                 .font(CatalogTypography.cardSubtitle)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -186,13 +191,6 @@ private struct StorageTile: View {
 
             Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-        .padding(CatalogMetrics.Spacing.md)
-        .background(accentColor.opacity(0.08), in: CatalogShapes.tile)
-        .overlay(
-            CatalogShapes.tile
-                .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [6, 6]))
-                .foregroundStyle(accentColor.opacity(0.38))
-        )
+        .frame(maxWidth: .infinity)
     }
 }

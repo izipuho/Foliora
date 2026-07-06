@@ -319,7 +319,7 @@ struct BellEditorView: View {
 
                     Section(String(localized: "editor.additional_details")) {
                         PlacePickerField(
-                            title: String(localized: "common.field.origin"),
+                            title: String(localized: "common.ui.origin"),
                             selectedLabel: selectedOriginLabel,
                             places: availablePlaces,
                             selectedPlace: $selectedOriginPlace
