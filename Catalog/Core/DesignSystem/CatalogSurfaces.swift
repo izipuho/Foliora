@@ -5,7 +5,7 @@ extension View {
         self
             .padding(.horizontal, CatalogMetrics.Spacing.md)
             .padding(.vertical, CatalogMetrics.Spacing.xs)
-            .glassEffect(.clear, in: Capsule())
+            .glassEffect(.regular, in: Capsule())
     }
 
     func catalogSurfaceCard() -> some View {
