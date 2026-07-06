@@ -146,7 +146,10 @@ struct BellDetailView: View {
                     storagePath: bell.storageDisplayPath,
                     accentColor: detailAccentColor,
                     isStorageAssigned: bell.item.locationID != nil,
-                    canEditStorage: canEditCollection,
+                    canEdit: canEditCollection,
+                    onEditOrigin: {
+                        isPresentingEditor = true
+                    },
                     onEditStorage: {
                         isPresentingLocationPicker = true
                     }

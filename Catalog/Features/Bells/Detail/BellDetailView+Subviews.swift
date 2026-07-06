@@ -6,18 +6,24 @@ struct OriginStorageSection: View {
     let storagePath: String
     let accentColor: Color
     let isStorageAssigned: Bool
-    let canEditStorage: Bool
+    let canEdit: Bool
+    let onEditOrigin: () -> Void
     let onEditStorage: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-            OriginTile(place: place, accentColor: accentColor)
+            OriginTile(
+                place: place,
+                accentColor: accentColor,
+                canEditOrigin: canEdit,
+                onEditOrigin: onEditOrigin
+            )
 
             StorageTile(
                 storagePath: storagePath,
                 accentColor: accentColor,
                 isAssigned: isStorageAssigned,
-                canEditStorage: canEditStorage,
+                canEditStorage: canEdit,
                 onEditStorage: onEditStorage
             )
         }
@@ -27,12 +33,16 @@ struct OriginStorageSection: View {
 private struct OriginTile: View {
     let place: Place?
     let accentColor: Color
+    let canEditOrigin: Bool
+    let onEditOrigin: () -> Void
     private let coordinate: CLLocationCoordinate2D?
     private let region: MKCoordinateRegion?
 
-    init(place: Place?, accentColor: Color) {
+    init(place: Place?, accentColor: Color, canEditOrigin: Bool, onEditOrigin: @escaping () -> Void) {
         self.place = place
         self.accentColor = accentColor
+        self.canEditOrigin = canEditOrigin
+        self.onEditOrigin = onEditOrigin
 
         guard let latitude = place?.latitude, let longitude = place?.longitude else {
             coordinate = nil
@@ -50,6 +60,20 @@ private struct OriginTile: View {
 
     var body: some View {
         Group {
+            if canEditOrigin {
+                Button(action: onEditOrigin) {
+                    tileContent
+                }
+                .buttonStyle(.plain)
+            } else {
+                tileContent
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var tileContent: some View {
+        Group {
             if place == nil {
                 DetailTileCTAContent(
                     systemImage: "mappin.slash",
@@ -58,7 +82,7 @@ private struct OriginTile: View {
                     accentColor: accentColor
                 )
                 .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-                .catalogSurfaceTile()
+                .catalogSurfaceTile(tint: accentColor)
             } else {
                 originContent
                     .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottomLeading)
@@ -67,7 +91,6 @@ private struct OriginTile: View {
                     }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var originContent: some View {
@@ -164,7 +187,7 @@ private struct StorageTile: View {
             accentColor: accentColor
         )
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-        .catalogSurfaceTile()
+        .catalogSurfaceTile(tint: accentColor)
     }
 }
 
