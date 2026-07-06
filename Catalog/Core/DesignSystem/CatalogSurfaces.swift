@@ -2,7 +2,6 @@ import SwiftUI
 
 private enum CatalogSurfaceMetrics {
     static let strokeWidth: CGFloat = 1
-    static let ctaStrokeWidth: CGFloat = 1.5
 }
 
 struct CatalogSurfaceCapsule<Content: View>: View {
@@ -16,10 +15,7 @@ struct CatalogSurfaceCapsule<Content: View>: View {
         content
             .padding(.horizontal, CatalogMetrics.Spacing.md)
             .padding(.vertical, CatalogMetrics.Spacing.xs)
-            .background {
-                Capsule()
-                    .fill(.thinMaterial)
-            }
+            .glassEffect(.clear, in: Capsule())
             .overlay {
                 Capsule()
                     .stroke(Color(uiColor: .separator), lineWidth: 1)
@@ -31,10 +27,7 @@ extension View {
     func catalogSurfaceCard() -> some View {
         self
             .padding(CatalogMetrics.Spacing.lg)
-            .background(
-                CatalogShapes.section
-                    .fill(.regularMaterial)
-            )
+            .glassEffect(.regular, in: CatalogShapes.section)
             .overlay {
                 CatalogShapes.section
                     .stroke(CatalogMediaContrast.glassStroke, lineWidth: CatalogSurfaceMetrics.strokeWidth)
@@ -43,10 +36,10 @@ extension View {
 }
 
 extension View {
-    func catalogSurfaceTile() -> some View {
+    func catalogSurfaceTile(tint: Color? = nil) -> some View {
         self
             .padding(CatalogMetrics.Spacing.md)
-            .background(.regularMaterial, in: CatalogShapes.tile)
+            .glassEffect(Glass.regular.tint(tint), in: CatalogShapes.tile)
             .overlay {
                 CatalogShapes.tile
                     .stroke(CatalogMediaContrast.glassStroke, lineWidth: CatalogSurfaceMetrics.strokeWidth)
@@ -54,6 +47,7 @@ extension View {
     }
 
     func catalogSurfaceTile<Media: View>(
+        tint: Color? = nil,
         @ViewBuilder media: () -> Media
     ) -> some View {
         self
@@ -73,28 +67,10 @@ extension View {
                 }
                 .clipShape(CatalogShapes.tile)
             }
+            .glassEffect(Glass.regular.tint(tint), in: CatalogShapes.tile)
             .overlay {
                 CatalogShapes.tile
                     .stroke(CatalogMediaContrast.glassStroke, lineWidth: CatalogSurfaceMetrics.strokeWidth)
             }
     }
-
-    //func catalogSurfaceTileCTA(accentColor: Color) -> some View {
-    //    self
-    //        .padding(CatalogMetrics.Spacing.md)
-    //        .background(
-    //            CatalogShapes.tile
-    //                .fill(accentColor.opacity(0.08))
-    //        )
-    //        .overlay {
-    //            CatalogShapes.tile
-    //                .stroke(
-    //                    accentColor.opacity(0.38),
-    //                    style: StrokeStyle(
-    //                        lineWidth: CatalogSurfaceMetrics.ctaStrokeWidth,
-    //                        dash: [6, 6]
-    //                    )
-    //                )
-    //        }
-    //}
 }
