@@ -839,7 +839,8 @@ private struct SummaryTagCloudItem: View {
             CatalogSurfaceCapsule {
                 Text(tag)
                     .font(font)
-                    .foregroundStyle(tint.opacity(emphasis))
+                    //.foregroundStyle(tint.opacity(emphasis))
+                    .foregroundStyle(tint)
             }
         }
         .buttonStyle(.plain)
