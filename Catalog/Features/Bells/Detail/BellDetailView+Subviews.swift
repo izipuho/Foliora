@@ -203,7 +203,7 @@ private struct DetailTileCTAContent: View {
 
             Label(title, systemImage: systemImage)
                 .font(CatalogTypography.cardLabel)
-                .foregroundStyle(accentColor)
+                .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
 
             Text(message)
