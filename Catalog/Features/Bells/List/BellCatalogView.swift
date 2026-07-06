@@ -782,14 +782,8 @@ private struct FilterChip: View {
         Button(action: action) {
             Text(title)
                 .font(.footnote.weight(.semibold))
-                .catalogPillPadding(.prominent)
-                .background(
-                    isSelected
-                        ? tint
-                        : CatalogMediaContrast.glassFill,
-                    in: Capsule()
-                )
-                .foregroundStyle(isSelected ? .white : .primary)
+                //.foregroundStyle(isSelected ? .white : .primary)
+                .catalogSurfaceCapsule()
         }
     }
 }
@@ -803,47 +797,8 @@ private struct SummaryPill: View {
         Label(title, systemImage: systemImage)
             .font(.footnote.weight(.semibold))
             .lineLimit(1)
-            .catalogPillPadding(.regular)
-            .background(tint.opacity(0.12), in: Capsule())
-            .foregroundStyle(.primary)
-    }
-}
-
-private struct SummaryTagCloudItem: View {
-    let tag: String
-    let count: Int
-    let maxCount: Int
-    let tint: Color
-    let action: () -> Void
-
-    private var emphasis: Double {
-        guard maxCount > 1 else { return 1.0 }
-        return 0.45 + (Double(count - 1) / Double(maxCount - 1)) * 0.55
-    }
-
-    private var font: Font {
-        switch emphasis {
-        case 0.9...:
-            return .headline.weight(.bold)
-        case 0.75...:
-            return .subheadline.weight(.semibold)
-        case 0.6...:
-            return .footnote.weight(.semibold)
-        default:
-            return .caption.weight(.medium)
-        }
-    }
-
-    var body: some View {
-        Button(action: action) {
-            CatalogSurfaceCapsule {
-                Text(tag)
-                    .font(font)
-                    //.foregroundStyle(tint.opacity(emphasis))
-                    .foregroundStyle(tint)
-            }
-        }
-        .buttonStyle(.plain)
+            //.foregroundStyle(.primary)
+            .catalogSurfaceCapsule()
     }
 }
 

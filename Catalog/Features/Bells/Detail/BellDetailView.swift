@@ -187,10 +187,9 @@ struct BellDetailView: View {
                     } else {
                         TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
                             ForEach(bell.tags, id: \.self) { tag in
-                                CatalogSurfaceCapsule {
-                                    Text("#\(tag)")
-                                        .font(CatalogTypography.cardSubtitle)
-                                }
+                                Text("#\(tag)")
+                                    .font(CatalogTypography.cardSubtitle)
+                                    .catalogSurfaceCapsule()
                             }
                         }
                     }

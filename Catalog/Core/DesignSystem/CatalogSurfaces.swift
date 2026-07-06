@@ -1,25 +1,13 @@
 import SwiftUI
 
-private enum CatalogSurfaceMetrics {
-    static let strokeWidth: CGFloat = 1
-}
-
-struct CatalogSurfaceCapsule<Content: View>: View {
-    private let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        content
+extension View {
+    func catalogSurfaceCapsule() -> some View {
+        self
             .padding(.horizontal, CatalogMetrics.Spacing.md)
             .padding(.vertical, CatalogMetrics.Spacing.xs)
             .glassEffect(.clear, in: Capsule())
     }
-}
 
-extension View {
     func catalogSurfaceCard() -> some View {
         self
             .padding(CatalogMetrics.Spacing.lg)

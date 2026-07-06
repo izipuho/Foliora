@@ -488,15 +488,14 @@ private struct SearchTokenBar: View {
                     Button {
                         remove(token)
                     } label: {
-                        CatalogSurfaceCapsule {
-                            HStack(spacing: CatalogMetrics.Spacing.xs) {
-                                Text(title(token))
+                        HStack(spacing: CatalogMetrics.Spacing.xs) {
+                            Text(title(token))
 
-                                Image(systemName: "xmark")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .font(CatalogTypography.cardSubtitle)
+                            Image(systemName: "xmark")
+                                .foregroundStyle(.secondary)
                         }
+                        .font(CatalogTypography.cardSubtitle)
+                        .catalogSurfaceCapsule()
                     }
                     .buttonStyle(.plain)
                 }
@@ -509,10 +508,9 @@ private struct SearchTokenBar: View {
                             }
                         }
                     } label: {
-                        CatalogSurfaceCapsule {
-                            Label(group.title, systemImage: group.systemImage)
-                                .font(CatalogTypography.cardSubtitle)
-                        }
+                        Label(group.title, systemImage: group.systemImage)
+                            .font(CatalogTypography.cardSubtitle)
+                            .catalogSurfaceCapsule()
                     }
                     .buttonStyle(.plain)
                 }

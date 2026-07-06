@@ -584,8 +584,7 @@ private struct PhotoRecognizedTextBlock: View {
                 ForEach(textFeatures, id: \.self) { feature in
                     Text(feature.text)
                         .font(.caption.weight(.medium))
-                        .catalogPillPadding(.regular)
-                        .background(.thinMaterial, in: Capsule())
+                        .catalogSurfaceCapsule()
                 }
             }
         }
@@ -658,10 +657,9 @@ private struct PhotoSuggestedTagChip: View {
 
     var body: some View {
         Button(action: onTap) {
-            CatalogSurfaceCapsule {
-                Text("#\(tag)")
-                    .font(CatalogTypography.cardSubtitle)
-            }
+            Text("#\(tag)")
+                .font(CatalogTypography.cardSubtitle)
+                .catalogSurfaceCapsule()
             .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
             .overlay {
                 Capsule()
