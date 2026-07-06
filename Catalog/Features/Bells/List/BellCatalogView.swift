@@ -769,39 +769,6 @@ private struct BellGroupingJumpPopover: View {
     }
 }
 
-
-
-
-private struct FilterChip: View {
-    let title: String
-    let isSelected: Bool
-    var tint: Color = Color(red: 0.53, green: 0.31, blue: 0.14)
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.footnote.weight(.semibold))
-                //.foregroundStyle(isSelected ? .white : .primary)
-                .catalogSurfaceCapsule()
-        }
-    }
-}
-
-private struct SummaryPill: View {
-    let systemImage: String
-    let title: String
-    let tint: Color
-
-    var body: some View {
-        Label(title, systemImage: systemImage)
-            .font(.footnote.weight(.semibold))
-            .lineLimit(1)
-            //.foregroundStyle(.primary)
-            .catalogSurfaceCapsule()
-    }
-}
-
 private struct SummaryGlassCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
