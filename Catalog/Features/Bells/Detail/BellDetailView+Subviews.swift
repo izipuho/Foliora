@@ -82,7 +82,7 @@ private struct OriginTile: View {
                     accentColor: accentColor
                 )
                 .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-                .catalogSurfaceTile(tint: accentColor)
+                .catalogSurfaceCTATile(tint: accentColor)
             } else {
                 originContent
                     .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottomLeading)
@@ -187,7 +187,7 @@ private struct StorageTile: View {
             accentColor: accentColor
         )
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-        .catalogSurfaceTile(tint: accentColor)
+        .catalogSurfaceCTATile(tint: accentColor)
     }
 }
 

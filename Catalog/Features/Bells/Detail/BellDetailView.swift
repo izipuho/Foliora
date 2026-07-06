@@ -29,6 +29,7 @@ struct BellDetailView: View {
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
     @State private var isPresentingEditor = false
+    @State private var isPresentingOriginPicker = false
     @State private var isPresentingLocationPicker = false
     @State private var isPresentingUnsavedChangesConfirmation = false
     @State private var feedbackEvent: DetailFeedbackEvent?
@@ -108,6 +109,12 @@ struct BellDetailView: View {
                 )
             }
         }
+        .sheet(isPresented: $isPresentingOriginPicker) {
+            PlacePickerView(
+                places: availablePlaces,
+                selectedPlace: originPlaceBinding
+            )
+        }
         .sheet(isPresented: $isPresentingLocationPicker) {
             LocationHierarchyPickerView(
                 locations: availableLocations,
@@ -148,7 +155,7 @@ struct BellDetailView: View {
                     isStorageAssigned: bell.item.locationID != nil,
                     canEdit: canEditCollection,
                     onEditOrigin: {
-                        isPresentingEditor = true
+                        isPresentingOriginPicker = true
                     },
                     onEditStorage: {
                         isPresentingLocationPicker = true
@@ -295,6 +302,10 @@ struct BellDetailView: View {
         return lookupSnapshot.locations.filter { $0.homeID == homeID }
     }
 
+    private var availablePlaces: [Place] {
+        lookupSnapshot.places
+    }
+
     private var inferredCollection: CollectionSummary? {
         lookupSnapshot.collections.first(where: { $0.id == bell.item.collectionID })?.summarySnapshot
     }
@@ -338,6 +349,16 @@ struct BellDetailView: View {
         )
     }
 
+    private var originPlaceBinding: Binding<Place?> {
+        Binding(
+            get: { bell.originPlace },
+            set: {
+                guard canEditCollection else { return }
+                persist(originPlace: $0)
+            }
+        )
+    }
+
     private func requestDiscardNotesAndTagsChanges() {
         guard canEditCollection else { return }
         guard isNotesOrTagsDirty else { return }
@@ -367,9 +388,11 @@ struct BellDetailView: View {
         notes: String? = nil,
         tags: [String]? = nil,
         mediaAssets: [MediaAsset]? = nil,
+        originPlace: Place?? = nil,
         locationID: UUID?? = nil
     ) {
         guard canEditCollection else { return }
+        let resolvedOriginPlace = originPlace ?? bell.originPlace
         let resolvedLocationID = locationID ?? bell.item.locationID
         let location = availableLocations.first(where: { $0.id == resolvedLocationID })
         let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
@@ -392,8 +415,13 @@ struct BellDetailView: View {
                 condition: bell.item.condition,
                 acquisitionMethod: bell.item.acquisitionMethod
             ),
-            details: bell.details,
-            originPlace: bell.originPlace,
+            details: BellDetails(
+                itemID: bell.details.itemID,
+                originPlaceID: resolvedOriginPlace?.id,
+                material: bell.details.material,
+                customMaterialName: bell.details.customMaterialName
+            ),
+            originPlace: resolvedOriginPlace,
             storageLocation: location,
             storagePath: location.map { locationPath(for: $0, locationsByID: locationsByID) } ?? String(localized: "common.unassigned"),
             mediaAssets: normalizedMediaAssets,
