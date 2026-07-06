@@ -78,7 +78,7 @@ private struct OriginTile: View {
                 DetailTileCTAContent(
                     systemImage: "mappin.slash",
                     title: "common.unknown_origin",
-                    message: "common.unassigned",
+                    message: "common.ui.tap_to_assign",
                     accentColor: accentColor
                 )
                 .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
@@ -95,7 +95,7 @@ private struct OriginTile: View {
 
     private var originContent: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-            Label(String(localized: "common.field.origin"), systemImage: "mappin.and.ellipse")
+            Label(String(localized: "common.ui.origin"), systemImage: "mappin.and.ellipse")
                 .font(CatalogTypography.chipLabel)
                 .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
 
@@ -183,7 +183,7 @@ private struct StorageTile: View {
         DetailTileCTAContent(
             systemImage: "square.stack.3d.up.slash",
             title: "bell.detail.storage.assign.action",
-            message: "bell.detail.storage.placeholder",
+            message: "common.ui.tap_to_assign",
             accentColor: accentColor
         )
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)

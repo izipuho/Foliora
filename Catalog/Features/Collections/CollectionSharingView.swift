@@ -93,7 +93,7 @@ struct CollectionSharingView: View {
             )
         }
         .alert(
-            "Управление доступом недоступно",
+            "collection.sharing.not_accessible",
             isPresented: Binding(
                 get: { sharingAlert != nil },
                 set: { if !$0 { sharingAlert = nil } }
