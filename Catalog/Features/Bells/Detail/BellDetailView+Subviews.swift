@@ -199,12 +199,10 @@ private struct DetailTileCTAContent: View {
 
     var body: some View {
         VStack(spacing: CatalogMetrics.Spacing.sm) {
-            Spacer(minLength: 0)
-
             Label(title, systemImage: systemImage)
                 .font(CatalogTypography.cardLabel)
                 .foregroundStyle(.primary)
-                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(message)
                 .font(CatalogTypography.cardSubtitle)
