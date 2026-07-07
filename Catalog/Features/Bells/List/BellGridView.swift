@@ -1,21 +1,21 @@
 import SwiftUI
 
 struct BellGridContainerView<Content: View>: View {
-    let layoutMode: BellGridLayoutMode
+    let layoutMode: CatalogCardLayoutMode
     let bottomContentMargin: CGFloat?
     @ViewBuilder let content: (
         CGSize,
-        BellGridLayoutMode.GridMetrics,
-        BellGridLayoutMode.CardMetrics
+        CatalogCardLayoutMode.GridMetrics,
+        CatalogCardLayoutMode.CardMetrics
     ) -> Content
 
     init(
-        layoutMode: BellGridLayoutMode,
+        layoutMode: CatalogCardLayoutMode,
         bottomContentMargin: CGFloat? = nil,
         @ViewBuilder content: @escaping (
             CGSize,
-            BellGridLayoutMode.GridMetrics,
-            BellGridLayoutMode.CardMetrics
+            CatalogCardLayoutMode.GridMetrics,
+            CatalogCardLayoutMode.CardMetrics
         ) -> Content
     ) {
         self.layoutMode = layoutMode
@@ -27,10 +27,7 @@ struct BellGridContainerView<Content: View>: View {
         GeometryReader { proxy in
             let containerWidth = proxy.size.width
             let adaptiveGridMetrics = layoutMode.gridMetrics(forContainerWidth: containerWidth)
-            let cardWidth = layoutMode.cardWidth(
-                forContainerWidth: containerWidth,
-                gridMetrics: adaptiveGridMetrics
-            )
+            let cardWidth = layoutMode.cardWidth(forContainerWidth: containerWidth)
             let adaptiveCardMetrics = layoutMode.cardMetrics(forCardWidth: cardWidth)
             let cardSize = CGSize(width: cardWidth, height: adaptiveCardMetrics.cardHeight)
 
@@ -46,10 +43,10 @@ struct BellGridContainerView<Content: View>: View {
 
 struct BellGridView<Bell: BellCardDisplayable>: View {
     let bells: [Bell]
-    let layoutMode: BellGridLayoutMode
+    let layoutMode: CatalogCardLayoutMode
     let cardSize: CGSize
-    let gridMetrics: BellGridLayoutMode.GridMetrics
-    let cardMetrics: BellGridLayoutMode.CardMetrics
+    let gridMetrics: CatalogCardLayoutMode.GridMetrics
+    let cardMetrics: CatalogCardLayoutMode.CardMetrics
     let selectedBellIDs: Set<UUID>
     let isSelectionModeEnabled: Bool
     let onTap: (Bell) -> Void
@@ -58,10 +55,10 @@ struct BellGridView<Bell: BellCardDisplayable>: View {
 
     init(
         bells: [Bell],
-        layoutMode: BellGridLayoutMode,
+        layoutMode: CatalogCardLayoutMode,
         cardSize: CGSize,
-        gridMetrics: BellGridLayoutMode.GridMetrics,
-        cardMetrics: BellGridLayoutMode.CardMetrics,
+        gridMetrics: CatalogCardLayoutMode.GridMetrics,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics,
         selectedBellIDs: Set<UUID>,
         isSelectionModeEnabled: Bool,
         onTap: @escaping (Bell) -> Void,

@@ -102,7 +102,7 @@ struct BellCatalogView: View {
     let canEditCollection: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.colorScheme) private var colorScheme
-    @Binding var layoutMode: BellGridLayoutMode
+    @Binding var layoutMode: CatalogCardLayoutMode
     @Binding var orderMode: BellOrderMode
     @Binding var filters: BellFilters
     @State private var catalogSnapshot = BellCatalogSnapshot()
@@ -123,7 +123,7 @@ struct BellCatalogView: View {
     init(
         collection: CollectionSummary?,
         repository: any CatalogRepository,
-        layoutMode: Binding<BellGridLayoutMode> = .constant(.mini),
+        layoutMode: Binding<CatalogCardLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
         sharingState: CollectionSharingState,
@@ -176,7 +176,7 @@ struct BellCatalogView: View {
 
     private var scrollContentBottomInset: CGFloat { 120 }
 
-    private var orderedLayoutModes: [BellGridLayoutMode] {
+    private var orderedLayoutModes: [CatalogCardLayoutMode] {
         [.covers, .mini, .compact, .wide, .showcase]
     }
 
@@ -478,8 +478,8 @@ struct BellCatalogView: View {
     private func groupedBellSectionsContent(
         sections: [BellGroupedSection],
         cardSize: CGSize,
-        gridMetrics: BellGridLayoutMode.GridMetrics,
-        cardMetrics: BellGridLayoutMode.CardMetrics,
+        gridMetrics: CatalogCardLayoutMode.GridMetrics,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics,
         scrollProxy: ScrollViewProxy
     ) -> some View {
         ForEach(sections) { section in
@@ -625,8 +625,8 @@ struct BellCatalogView: View {
     private func bellGridView(
         bells: [BellListItem],
         cardSize: CGSize,
-        gridMetrics: BellGridLayoutMode.GridMetrics,
-        cardMetrics: BellGridLayoutMode.CardMetrics
+        gridMetrics: CatalogCardLayoutMode.GridMetrics,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics
     ) -> some View {
         BellGridView(
             bells: bells,

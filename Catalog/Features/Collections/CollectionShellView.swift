@@ -27,7 +27,7 @@ struct CollectionShellView: View {
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
-    private let layoutMode: Binding<BellGridLayoutMode>
+    private let layoutMode: Binding<CatalogCardLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
     @State private var isBellCatalogSelectionMode = false
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
@@ -36,7 +36,7 @@ struct CollectionShellView: View {
         collection: CollectionSummary,
         repository: any CatalogRepository,
         coreDataContainer: NSPersistentCloudKitContainer,
-        layoutMode: Binding<BellGridLayoutMode>,
+        layoutMode: Binding<CatalogCardLayoutMode>,
         onBellSelected: ((UUID) -> Void)? = nil,
         onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
@@ -74,7 +74,7 @@ struct CollectionShellView: View {
         )
     }
 
-    private var selectedLayoutModeBinding: Binding<BellGridLayoutMode> {
+    private var selectedLayoutModeBinding: Binding<CatalogCardLayoutMode> {
         layoutMode
     }
 
@@ -491,7 +491,7 @@ private extension CollectionSharingState {
 
 private struct CollectionShellToolbar: ToolbarContent {
     @Binding var selectedOrder: BellOrderMode
-    @Binding var selectedLayoutMode: BellGridLayoutMode
+    @Binding var selectedLayoutMode: CatalogCardLayoutMode
     @Binding var isPresentingAddBellOptions: Bool
     let canEditCollection: Bool
     let onEdit: () -> Void
@@ -571,7 +571,7 @@ private struct CollectionShellToolbar: ToolbarContent {
         }
     }
 
-    private var orderedLayoutModes: [BellGridLayoutMode] {
+    private var orderedLayoutModes: [CatalogCardLayoutMode] {
         [.covers, .mini, .compact, .wide, .showcase]
     }
 
@@ -606,7 +606,7 @@ private struct CollectionShellToolbar: ToolbarContent {
     }
 }
 
-private extension BellGridLayoutMode {
+private extension CatalogCardLayoutMode {
     var title: LocalizedStringResource {
         switch self {
         case .covers:

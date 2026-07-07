@@ -50,7 +50,7 @@ struct SearchTabView: View {
     let onBellSelected: ((UUID) -> Void)?
     private let initialQuery: String?
     @Environment(\.managedObjectContext) private var managedObjectContext
-    @Binding var layoutMode: BellGridLayoutMode
+    @Binding var layoutMode: CatalogCardLayoutMode
     @State private var searchSnapshot = SearchCatalogSnapshot()
     @State private var selectedBellID: UUID?
     @State private var searchState = BellCatalogSearchState()
@@ -59,7 +59,7 @@ struct SearchTabView: View {
 
     init(
         repository: any CatalogRepository,
-        layoutMode: Binding<BellGridLayoutMode>,
+        layoutMode: Binding<CatalogCardLayoutMode>,
         initialQuery: String? = nil,
         onBellSelected: ((UUID) -> Void)? = nil
     ) {
@@ -206,8 +206,8 @@ struct SearchTabView: View {
     @ViewBuilder
     private func searchResults(
         cardSize: CGSize,
-        gridMetrics: BellGridLayoutMode.GridMetrics,
-        cardMetrics: BellGridLayoutMode.CardMetrics
+        gridMetrics: CatalogCardLayoutMode.GridMetrics,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics
     ) -> some View {
         if filteredBells.isEmpty {
             CatalogEmptyStateView(

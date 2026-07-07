@@ -104,7 +104,7 @@ struct AppShellView: View {
     @ViewBuilder
     private func destinationView(
         for destination: AppDestination,
-        layoutMode: Binding<BellGridLayoutMode>,
+        layoutMode: Binding<CatalogCardLayoutMode>,
         onBellSelected: ((UUID) -> Void)?,
         onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void,
         popNavigation: @escaping () -> Void
@@ -289,23 +289,23 @@ private struct RootShellView<Destination: View>: View {
     @Binding var homesPath: NavigationPath
     @Binding var settingsPath: NavigationPath
     @Binding var searchPath: NavigationPath
-    let destination: (AppDestination, Binding<BellGridLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
+    let destination: (AppDestination, Binding<CatalogCardLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = BellGridLayoutMode.mini.rawValue
+    @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = CatalogCardLayoutMode.mini.rawValue
     @State private var searchInitialQuery: String?
     @State private var searchResetID = UUID()
     @State private var selectedBellID: UUID?
 
-    private var layoutMode: BellGridLayoutMode {
+    private var layoutMode: CatalogCardLayoutMode {
         get {
-            BellGridLayoutMode(rawValue: layoutModeRawValue) ?? .mini
+            CatalogCardLayoutMode(rawValue: layoutModeRawValue) ?? .mini
         }
         nonmutating set {
             layoutModeRawValue = newValue.rawValue
         }
     }
 
-    private var layoutModeBinding: Binding<BellGridLayoutMode> {
+    private var layoutModeBinding: Binding<CatalogCardLayoutMode> {
         Binding(
             get: { layoutMode },
             set: { layoutMode = $0 }
