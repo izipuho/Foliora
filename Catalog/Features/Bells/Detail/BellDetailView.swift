@@ -14,6 +14,7 @@ struct BellDetailView: View {
     @State private var isPresentingOriginPicker = false
     @State private var isPresentingLocationPicker = false
     @State private var isPresentingUnsavedChangesConfirmation = false
+    private let detailContentFadeHeight: CGFloat = 80
 
     init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool) {
         _bell = bell
@@ -70,9 +71,9 @@ struct BellDetailView: View {
             Text(String(localized: "bell.detail.unsaved_changes.message"))
         }
         .sheet(isPresented: $isPresentingEditor) {
-            if canEditCollection {
+            if canEditCollection, let collection = inferredCollection {
                 BellEditorView(
-                    collection: inferredCollection,
+                    collection: collection,
                     repository: repository,
                     bell: bell
                 ) { updatedBell in
@@ -118,6 +119,7 @@ struct BellDetailView: View {
                 detailRow(String(localized: "bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
                 detailRow(String(localized: "common.field.condition"), value: bell.condition.displayName)
             }
+            .padding(.horizontal, CatalogMetrics.Insets.screen)
 
             detailSection(String(localized: "bell.detail.section.location")) {
                 OriginStorageSection(
@@ -134,6 +136,7 @@ struct BellDetailView: View {
                     }
                 )
             }
+            .padding(.horizontal, CatalogMetrics.Insets.screen)
 
             detailSection(String(localized: "bell.detail.section.media")) {
                 MediaSection(
@@ -143,15 +146,12 @@ struct BellDetailView: View {
                     allowsDeletion: false
                 )
             }
+            .padding(.horizontal, CatalogMetrics.Insets.screen)
 
-            detailSection(
-                String(localized: "common.field.notes"),
-                isHighlighted: isNotesOrTagsDirty,
-                tint: detailAccentColor
-            ) {
+            detailSection(String(localized: "common.field.notes")) {
                 if canEditCollection {
                     TextField(String(localized: "editor.note_history"), text: $draftNotes, axis: .vertical)
-                        .lineLimit(6, reservesSpace: true)
+                        .lineLimit(2...6)
                         .textFieldStyle(.plain)
 
                     TagEditorSection(
@@ -177,29 +177,42 @@ struct BellDetailView: View {
                     }
                 }
             }
+            .padding(CatalogMetrics.Spacing.lg)
+            .background(
+                CatalogShapes.section
+                    .fill(isNotesOrTagsDirty ? AnyShapeStyle(detailAccentColor.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
+            )
+            .catalogShadow(
+                isNotesOrTagsDirty
+                    ? CatalogElevation.highlightedDetailSection(tint: detailAccentColor)
+                    : CatalogElevation.detailSection
+            )
         }
         .padding(.horizontal, CatalogMetrics.Insets.screen)
-        .padding(.top, CatalogMetrics.Spacing.xl)
+        .padding(.top, detailContentFadeHeight)
         .padding(.bottom, CatalogMetrics.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                stops: [
-                    .init(color: .clear, location: 0.0),
-                    .init(color: Color(.systemBackground).opacity(0.88), location: 0.08),
-                    .init(color: Color(.systemBackground), location: 0.18)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
+        .background(alignment: .top) {
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        Color(.systemBackground).opacity(0.88),
+                        Color(.systemBackground)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: detailContentFadeHeight)
+
+                Color(.systemBackground)
+            }
+        }
         .padding(.top, 240)
     }
 
     private func detailSection<Content: View>(
         _ title: String,
-        isHighlighted: Bool = false,
-        tint: Color = .clear,
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
@@ -207,17 +220,7 @@ struct BellDetailView: View {
                 .font(CatalogTypography.sectionTitle)
             content()
         }
-        .padding(CatalogMetrics.Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            CatalogShapes.section
-                .fill(isHighlighted ? AnyShapeStyle(tint.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
-        )
-        .catalogShadow(
-            isHighlighted
-                ? CatalogElevation.highlightedDetailSection(tint: tint)
-                : CatalogElevation.detailSection
-        )
     }
 
     private func detailRow(_ title: String, value: String) -> some View {
@@ -270,7 +273,7 @@ struct BellDetailView: View {
     }
 
     private var availableLocations: [Location] {
-        let homeID = inferredCollection.homeID
+        guard let homeID = inferredCollection?.homeID else { return [] }
         return lookupSnapshot.locations.filter { $0.homeID == homeID }
     }
 
@@ -278,12 +281,12 @@ struct BellDetailView: View {
         lookupSnapshot.places
     }
 
-    private var inferredCollection: CollectionSummary {
-        lookupSnapshot.collections.first(where: { $0.id == bell.item.collectionID })!.summarySnapshot
+    private var inferredCollection: CollectionSummary? {
+        lookupSnapshot.collections.first(where: { $0.id == bell.item.collectionID })?.summarySnapshot
     }
 
     private var detailAccentColor: Color {
-        inferredCollection.backgroundStyle.accentColor
+        inferredCollection?.backgroundStyle.accentColor ?? CollectionBackgroundStyle.amber.accentColor
     }
 
     private var isNotesOrTagsDirty: Bool {
