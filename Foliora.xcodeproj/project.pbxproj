@@ -356,7 +356,6 @@
 				24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */,
 				24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */,
 				C0000000000000000000002E /* AsyncThumbnailLoader.swift */,
-				C0000000000000000000001F /* BellCardView.swift */,
 				C00000000000000000000030 /* CatalogLayouts.swift */,
 				C00000000000000000000013 /* EditorFields.swift */,
 			);
@@ -462,6 +461,7 @@
 				24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */,
 				C0000000000000000000000F /* BellDetailView.swift */,
 				D00000000000000000000031 /* BellDetailView+Subviews.swift */,
+				C0000000000000000000001F /* BellCardView.swift */,
 			);
 			path = Detail;
 			sourceTree = "<group>";
