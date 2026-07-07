@@ -52,25 +52,18 @@ struct BellCardView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            if hasCoverPhoto {
-                BellCardCoverBackground(
-                    identifier: bell.coverPhotoIdentifier,
-                    thumbnailData: bell.coverPhotoThumbnailData,
-                    originalData: bell.coverPhotoOriginalData,
-                    size: cardSize
-                )
+        cardContent(in: cardSize)
+            .catalogSurfaceCard(cardMetrics: cardMetrics) {
+                if hasCoverPhoto {
+                    BellCardCoverBackground(
+                        identifier: bell.coverPhotoIdentifier,
+                        thumbnailData: bell.coverPhotoThumbnailData,
+                        originalData: bell.coverPhotoOriginalData,
+                        size: cardSize
+                    )
+                }
             }
-
-            coverScrim
-                .frame(width: cardSize.width, height: cardSize.height)
-        }
-        .frame(width: cardSize.width, height: cardSize.height)
-        .overlay(alignment: .topLeading) {
-            cardContent(in: cardSize)
-        }
-        .clipShape(cardShape)
-        .contentShape(cardShape)
+            .frame(width: cardSize.width, height: cardSize.height)
     }
 
     @ViewBuilder
@@ -101,22 +94,6 @@ struct BellCardView: View {
             }
         }
         .frame(width: contentWidth, height: contentHeight, alignment: cardMetrics.contentAlignment)
-        .padding(cardMetrics.cardPadding)
-    }
-
-    private var coverScrim: some View {
-        LinearGradient(
-            colors: [
-                hasCoverPhoto ? CatalogMediaContrast.scrimMedium : .clear,
-                hasCoverPhoto ? CatalogMediaContrast.scrimClear : .clear
-            ],
-            startPoint: .bottom,
-            endPoint: .top
-        )
-    }
-
-    private var cardShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: cardMetrics.cornerRadius, style: .continuous)
     }
 
     private var hasCoverPhoto: Bool {

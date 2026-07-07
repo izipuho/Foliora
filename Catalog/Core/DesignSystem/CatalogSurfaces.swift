@@ -8,18 +8,25 @@ extension View {
             .glassEffect(.regular, in: Capsule())
     }
 
-    func catalogSurfaceCard() -> some View {
-        self
-            .padding(CatalogMetrics.Spacing.lg)
-            .glassEffect(.regular, in: CatalogShapes.section)
+    func catalogSurfaceCard(
+        cardMetrics: CatalogCardLayoutMode.CardMetrics? = nil
+    ) -> some View {
+        let shape = catalogSurfaceCardShape(cardMetrics)
+
+        return self
+            .padding(cardMetrics?.cardPadding ?? CatalogMetrics.Spacing.lg)
+            .glassEffect(.regular, in: shape)
     }
 
     func catalogSurfaceCard<Media: View>(
         tint: Color? = nil,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics? = nil,
         @ViewBuilder media: () -> Media
     ) -> some View {
-        self
-            .padding(CatalogMetrics.Spacing.lg)
+        let shape = catalogSurfaceCardShape(cardMetrics)
+
+        return self
+            .padding(cardMetrics?.cardPadding ?? CatalogMetrics.Spacing.lg)
             .background {
                 ZStack {
                     media()
@@ -33,9 +40,19 @@ extension View {
                         endPoint: .bottom
                     )
                 }
-                .clipShape(CatalogShapes.section)
+                .clipShape(shape)
             }
-            .glassEffect(Glass.regular.tint(tint), in: CatalogShapes.section)
+            .glassEffect(Glass.regular.tint(tint), in: shape)
+    }
+
+    private func catalogSurfaceCardShape(
+        _ cardMetrics: CatalogCardLayoutMode.CardMetrics?
+    ) -> RoundedRectangle {
+        guard let cardMetrics else {
+            return CatalogShapes.section
+        }
+
+        return RoundedRectangle(cornerRadius: cardMetrics.cornerRadius, style: .continuous)
     }
 }
 
