@@ -204,7 +204,10 @@ private struct DetailTileCTAContent: View {
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(message)
+            Spacer(minLength: 0)
+
+            //Text(message)
+            Label(message, systemImage: "hand.tap")
                 .font(CatalogTypography.cardSubtitle)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
