@@ -1,46 +1,6 @@
 import SwiftUI
 import UIKit
 
-struct CatalogShadowStyle {
-    let color: Color
-    let radius: CGFloat
-    let y: CGFloat
-}
-
-enum CatalogElevation {
-    static let card = CatalogShadowStyle(
-        color: Color(uiColor: .separator).opacity(0.22),
-        radius: 12,
-        y: 6
-    )
-
-    static let floatingCard = CatalogShadowStyle(
-        color: Color(uiColor: .separator).opacity(0.22),
-        radius: 14,
-        y: 8
-    )
-
-    static let collectionCard = CatalogShadowStyle(
-        color: Color(uiColor: .separator).opacity(0.22),
-        radius: 16,
-        y: 8
-    )
-
-    static let detailSection = CatalogShadowStyle(
-        color: Color(uiColor: .separator).opacity(0.22),
-        radius: 10,
-        y: 4
-    )
-
-    static func highlightedDetailSection(tint: Color) -> CatalogShadowStyle {
-        CatalogShadowStyle(
-            color: tint.opacity(0.14),
-            radius: 14,
-            y: 4
-        )
-    }
-}
-
 enum CatalogPillPadding {
     case micro
     case compact
