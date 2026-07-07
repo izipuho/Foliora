@@ -36,7 +36,7 @@ struct BellCardView: View {
     let bell: any BellCardDisplayable
     let cardSize: CGSize
 
-    private let style: BellCardStyle
+    private let style: CatalogCardContentStyle
     private let cardMetrics: CatalogCardLayoutMode.CardMetrics
 
     init(
@@ -47,7 +47,7 @@ struct BellCardView: View {
     ) {
         self.bell = bell
         self.cardSize = cardSize
-        self.style = BellCardStyle.style(for: layoutMode)
+        self.style = CatalogCardContentStyle.style(for: layoutMode)
         self.cardMetrics = cardMetrics
     }
 
@@ -88,14 +88,14 @@ struct BellCardView: View {
                 )
             }
 
-            if style.title != nil && style.meta != nil {
+            if style.title != nil && style.accessoryRow != nil {
                 Spacer()
             }
 
-            if let metaStyle = style.meta {
-                BellCardMetaBlock(
-                    bell: bell,
-                    style: metaStyle,
+            if let accessoryRowStyle = style.accessoryRow {
+                CatalogCardAccessoryRow(
+                    accessories: accessories,
+                    style: accessoryRowStyle,
                     bright: hasCoverPhoto
                 )
             }
@@ -130,118 +130,19 @@ struct BellCardView: View {
     private var secondaryTextColor: Color {
         hasCoverPhoto ? CatalogMediaContrast.glassFill : .secondary
     }
-}
 
-private struct BellCardStyle {
-    enum MetaField: Hashable {
-        case year
-    }
+    private var accessories: [CatalogCardAccessory] {
+        guard let acquiredYear = bell.acquiredYear else {
+            return []
+        }
 
-    struct TitleBlockStyle {
-        let titleFont: Font
-        let titleLineLimit: Int
-        let showsSubtitle: Bool
-        let subtitleFont: Font
-        let subtitleLineLimit: Int
-        let spacing: CGFloat
-    }
-
-    struct MetaBlockStyle {
-        let fields: [MetaField]
-        let chipSpacing: CGFloat
-    }
-
-    let title: TitleBlockStyle?
-    let meta: MetaBlockStyle?
-
-    static let covers = BellCardStyle(
-        title: TitleBlockStyle(
-            titleFont: .caption.weight(.semibold),
-            titleLineLimit: 2,
-            showsSubtitle: false,
-            subtitleFont: .caption2,
-            subtitleLineLimit: 1,
-            spacing: CatalogMetrics.Spacing.xxs
-        ),
-        meta: nil
-    )
-
-    static let mini = BellCardStyle(
-        title: TitleBlockStyle(
-            titleFont: .subheadline.weight(.semibold),
-            titleLineLimit: 2,
-            showsSubtitle: false,
-            subtitleFont: .caption2,
-            subtitleLineLimit: 1,
-            spacing: CatalogMetrics.Spacing.xs
-        ),
-        meta: MetaBlockStyle(
-            fields: [.year],
-            chipSpacing: 8
-        )
-    )
-
-    static let compact = BellCardStyle(
-        title: TitleBlockStyle(
-            titleFont: .headline.weight(.semibold),
-            titleLineLimit: 2,
-            showsSubtitle: true,
-            subtitleFont: .caption,
-            subtitleLineLimit: 2,
-            spacing: CatalogMetrics.Spacing.xs
-        ),
-        meta: MetaBlockStyle(
-            fields: [.year],
-            chipSpacing: 8
-        )
-    )
-
-    static let wide = BellCardStyle(
-        title: TitleBlockStyle(
-            titleFont: .headline.weight(.semibold),
-            titleLineLimit: 2,
-            showsSubtitle: true,
-            subtitleFont: .caption,
-            subtitleLineLimit: 2,
-            spacing: CatalogMetrics.Spacing.xs
-        ),
-        meta: MetaBlockStyle(
-            fields: [.year],
-            chipSpacing: 8
-        )
-    )
-
-    static let showcase = BellCardStyle(
-        title: TitleBlockStyle(
-            titleFont: .title.weight(.semibold),
-            titleLineLimit: 3,
-            showsSubtitle: true,
-            subtitleFont: .body,
-            subtitleLineLimit: 2,
-            spacing: CatalogMetrics.Spacing.xs
-        ),
-        meta: MetaBlockStyle(
-            fields: [.year],
-            chipSpacing: 8
-        )
-    )
-
-    private static let registry: [CatalogCardLayoutMode: BellCardStyle] = [
-        .covers: .covers,
-        .mini: .mini,
-        .compact: .compact,
-        .wide: .wide,
-        .showcase: .showcase
-    ]
-
-    static func style(for layoutMode: CatalogCardLayoutMode) -> BellCardStyle {
-        registry[layoutMode] ?? .compact
+        return [.chip(String(acquiredYear))]
     }
 }
 
 private struct BellCardTitleBlock: View {
     let bell: any BellCardDisplayable
-    let style: BellCardStyle.TitleBlockStyle
+    let style: CatalogCardContentStyle.TitleBlockStyle
     let primaryTextColor: Color
     let secondaryTextColor: Color
 
@@ -259,65 +160,6 @@ private struct BellCardTitleBlock: View {
                     .lineLimit(style.subtitleLineLimit)
             }
         }
-    }
-}
-
-private struct BellCardMetaBlock: View {
-    let bell: any BellCardDisplayable
-    let style: BellCardStyle.MetaBlockStyle
-    let bright: Bool
-
-    private var metaItems: [BellCardMetaItem] {
-        style.fields.compactMap { field in
-            switch field {
-            case .year:
-                guard let acquiredYear = bell.acquiredYear else {
-                    return nil
-                }
-
-                return BellCardMetaItem(
-                    label: String(acquiredYear)
-                )
-            }
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: style.chipSpacing) {
-            ForEach(metaItems) { item in
-                BellCardMetaChip(
-                    label: item.label,
-                    bright: bright
-                )
-            }
-        }
-    }
-}
-
-private struct BellCardMetaItem: Identifiable {
-    let label: String
-
-    var id: String {
-        label
-    }
-}
-
-private struct BellCardMetaChip: View {
-    let label: String
-    let bright: Bool
-
-    var body: some View {
-        Text(label)
-            .font(.caption2.weight(.semibold))
-            .padding(.horizontal, CatalogMetrics.Spacing.sm)
-            .padding(.vertical, CatalogMetrics.Spacing.xs)
-            .background(
-                bright
-                    ? CatalogMediaContrast.glassFill
-                    : Color(uiColor: .secondarySystemGroupedBackground),
-                in: Capsule()
-            )
-            .foregroundStyle(bright ? CatalogMediaContrast.onMediaPrimary : .secondary)
     }
 }
 

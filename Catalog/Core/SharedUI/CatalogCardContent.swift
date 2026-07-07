@@ -2,7 +2,7 @@ import SwiftUI
 
 enum CatalogCardAccessory: Hashable, Identifiable {
     case chip(String)
-    case label(text: String, systemImage: String?)
+    case label(text: String, systemImage: String)
     case badge(CatalogCardBadge)
 
     var id: Self {
@@ -124,6 +124,60 @@ struct CatalogCardContentStyle {
             return .wide
         case .showcase:
             return .showcase
+        }
+    }
+}
+
+struct CatalogCardAccessoryRow: View {
+    let accessories: [CatalogCardAccessory]
+    let style: CatalogCardContentStyle.AccessoryRowStyle
+    let bright: Bool
+
+    var body: some View {
+        HStack(spacing: style.spacing) {
+            ForEach(accessories) { accessory in
+                switch accessory {
+                case .chip(let text):
+                    capsuleText(text)
+                case .label(let text, let systemImage):
+                    Label(text, systemImage: systemImage)
+                        .labelStyle(.titleAndIcon)
+                        .font(style.font)
+                        .lineLimit(1)
+                        .foregroundStyle(foregroundStyle)
+                case .badge(let badge):
+                    capsuleText(badge.title)
+                }
+            }
+        }
+    }
+
+    private func capsuleText(_ text: String) -> some View {
+        Text(text)
+            .font(style.font)
+            .lineLimit(1)
+            .foregroundStyle(foregroundStyle)
+            .catalogSurfaceCapsule()
+    }
+
+    private var foregroundStyle: Color {
+        bright ? CatalogMediaContrast.onMediaPrimary : .secondary
+    }
+}
+
+private extension CatalogCardBadge {
+    var title: String {
+        switch self {
+        case .shared:
+            return "Shared"
+        case .warning:
+            return "Warning"
+        case .success:
+            return "Success"
+        case .error:
+            return "Error"
+        case .custom(let text):
+            return text
         }
     }
 }
