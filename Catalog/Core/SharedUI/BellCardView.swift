@@ -71,10 +71,6 @@ extension View {
         padding(.horizontal, style.horizontal)
             .padding(.vertical, style.vertical)
     }
-
-    func catalogShadow(_ style: CatalogShadowStyle) -> some View {
-        shadow(color: style.color, radius: style.radius, y: style.y)
-    }
 }
 
 enum BellGridLayoutMode: Int, CaseIterable {
