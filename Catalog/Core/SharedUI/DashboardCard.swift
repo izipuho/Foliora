@@ -3,7 +3,7 @@ import SwiftUI
 struct DashboardCard<Leading: View, Content: View>: View {
     let leading: Leading
     let content: Content
-    let cardHeight: CGFloat = 80
+    let cardHeight: CGFloat = 72 
 
     init(
         @ViewBuilder leading: () -> Leading,
