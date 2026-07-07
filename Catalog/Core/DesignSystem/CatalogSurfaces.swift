@@ -13,6 +13,30 @@ extension View {
             .padding(CatalogMetrics.Spacing.lg)
             .glassEffect(.regular, in: CatalogShapes.section)
     }
+
+    func catalogSurfaceCard<Media: View>(
+        tint: Color? = nil,
+        @ViewBuilder media: () -> Media
+    ) -> some View {
+        self
+            .padding(CatalogMetrics.Spacing.lg)
+            .background {
+                ZStack {
+                    media()
+
+                    LinearGradient(
+                        colors: [
+                            CatalogMediaContrast.scrimMedium,
+                            CatalogMediaContrast.scrimStrong
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
+                .clipShape(CatalogShapes.section)
+            }
+            .glassEffect(Glass.regular.tint(tint), in: CatalogShapes.section)
+    }
 }
 
 extension View {
