@@ -182,11 +182,6 @@ struct BellDetailView: View {
                 CatalogShapes.section
                     .fill(isNotesOrTagsDirty ? AnyShapeStyle(detailAccentColor.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
             )
-            .catalogShadow(
-                isNotesOrTagsDirty
-                    ? CatalogElevation.highlightedDetailSection(tint: detailAccentColor)
-                    : CatalogElevation.detailSection
-            )
         }
         .padding(.horizontal, CatalogMetrics.Insets.screen)
         .padding(.top, detailContentFadeHeight)
