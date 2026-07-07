@@ -94,16 +94,19 @@ private struct OriginTile: View {
     }
 
     private var originContent: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             Label(String(localized: "common.ui.origin"), systemImage: "mappin.and.ellipse")
-                .font(CatalogTypography.chipLabel)
+                .font(CatalogTypography.cardLabel)
                 .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
+
+            Spacer(minLength: 0)
 
             Text(place?.displayName ?? String(localized: "common.unassigned"))
                 .font(CatalogTypography.cardSubtitle)
                 .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                 .lineLimit(2)
         }
+        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
     }
 
     @ViewBuilder
@@ -150,23 +153,23 @@ private struct StorageTile: View {
     private var tileContent: some View {
         Group {
             if isAssigned {
-                assignedTileContent
+                storageContent
             } else {
                 placeholderTileContent
             }
         }
     }
 
-    private var assignedTileContent: some View {
+    private var storageContent: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             Label(String(localized: "common.field.storage"), systemImage: "square.stack.3d.up")
-                .font(CatalogTypography.chipLabel)
+                .font(CatalogTypography.cardLabel)
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                 ForEach(Array(pathParts.enumerated()), id: \.offset) { index, part in
                     Text(part)
-                        .font(index == pathParts.count - 1 ? CatalogTypography.cardTitle : CatalogTypography.cardSubtitle)
+                        .font(index == pathParts.count - 1 ? CatalogTypography.cardLabel : CatalogTypography.cardSubtitle)
                         .foregroundStyle(index == pathParts.count - 1 ? .primary : .secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -206,7 +209,6 @@ private struct DetailTileCTAContent: View {
 
             Spacer(minLength: 0)
 
-            //Text(message)
             Label(message, systemImage: "hand.tap")
                 .font(CatalogTypography.cardSubtitle)
                 .foregroundStyle(.secondary)
