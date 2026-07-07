@@ -1,38 +1,6 @@
 import SwiftUI
 import UIKit
 
-enum CatalogPillPadding {
-    case micro
-    case compact
-    case regular
-    case prominent
-
-    var horizontal: CGFloat {
-        switch self {
-        case .micro: return 6
-        case .compact: return 8
-        case .regular: return 12
-        case .prominent: return 14
-        }
-    }
-
-    var vertical: CGFloat {
-        switch self {
-        case .micro: return 3
-        case .compact: return 6
-        case .regular: return 8
-        case .prominent: return 10
-        }
-    }
-}
-
-extension View {
-    func catalogPillPadding(_ style: CatalogPillPadding) -> some View {
-        padding(.horizontal, style.horizontal)
-            .padding(.vertical, style.vertical)
-    }
-}
-
 enum BellGridLayoutMode: Int, CaseIterable {
     case covers
     case mini
@@ -554,7 +522,8 @@ private struct BellCardMetaChip: View {
     var body: some View {
         Text(label)
             .font(.caption2.weight(.semibold))
-            .catalogPillPadding(.compact)
+            .padding(.horizontal, CatalogMetrics.Spacing.sm)
+            .padding(.vertical, CatalogMetrics.Spacing.xs)
             .background(
                 bright
                     ? CatalogMediaContrast.glassFill

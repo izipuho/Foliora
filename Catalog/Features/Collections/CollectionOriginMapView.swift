@@ -175,7 +175,8 @@ private struct MapBellAnnotationView: View {
                 Text("\(bells.count)")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
-                    .catalogPillPadding(.micro)
+                    .padding(.horizontal, CatalogMetrics.Spacing.xs)
+                    .padding(.vertical, CatalogMetrics.Spacing.xxs)
                     .background(accentColor, in: Capsule())
                     .offset(x: 6, y: -6)
             }

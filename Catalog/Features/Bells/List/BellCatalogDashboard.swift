@@ -592,7 +592,8 @@ struct SummaryBreakdownRow: View {
 
                 Text("\(value)")
                     .font(CatalogTypography.cardSubtitle)
-                    .catalogPillPadding(.compact)
+                    .padding(.horizontal, CatalogMetrics.Spacing.sm)
+                    .padding(.vertical, CatalogMetrics.Spacing.xs)
                     .catalogSurfaceCapsule()
             }
         }
