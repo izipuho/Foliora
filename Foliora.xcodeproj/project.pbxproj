@@ -29,6 +29,7 @@
 		24374F322FF677A900E83899 /* CatalogTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F312FF677A100E83899 /* CatalogTypography.swift */; };
 		24374F462FF7F0AA00E83899 /* CatalogShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F452FF7F0A700E83899 /* CatalogShapes.swift */; };
 		24374F482FFA652F00E83899 /* CatalogSurfaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F472FFA652700E83899 /* CatalogSurfaces.swift */; };
+		24374F4A2FFD10E300E83899 /* CatalogCardLayoutMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */; };
 		244FE0462FD7200000B4D805 /* CloudSyncDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0452FD7200000B4D805 /* CloudSyncDiagnosticsView.swift */; };
 		244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0472FB465CF00B4D805 /* SettingsView.swift */; };
 		246FD63C2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */; };
@@ -107,6 +108,7 @@
 		24374F312FF677A100E83899 /* CatalogTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTypography.swift; sourceTree = "<group>"; };
 		24374F452FF7F0A700E83899 /* CatalogShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogShapes.swift; sourceTree = "<group>"; };
 		24374F472FFA652700E83899 /* CatalogSurfaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSurfaces.swift; sourceTree = "<group>"; };
+		24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardLayoutMode.swift; sourceTree = "<group>"; };
 		244FE0452FD7200000B4D805 /* CloudSyncDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncDiagnosticsView.swift; sourceTree = "<group>"; };
 		244FE0472FB465CF00B4D805 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogSelectionBottomPanel.swift; sourceTree = "<group>"; };
@@ -346,6 +348,7 @@
 		C0000000000000000000003B /* SharedUI */ = {
 			isa = PBXGroup;
 			children = (
+				24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */,
 				24374F252FF50A0E00E83899 /* DashboardCard.swift */,
 				24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */,
 				24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */,
@@ -696,6 +699,7 @@
 				24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */,
 				24F1A54A2FDB309D00FC1717 /* FolioraApp.swift in Sources */,
 				24F1A54C2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift in Sources */,
+				24374F4A2FFD10E300E83899 /* CatalogCardLayoutMode.swift in Sources */,
 				C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */,
 				C000000000000000000000C5 /* CatalogLayouts.swift in Sources */,
 				24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */,
