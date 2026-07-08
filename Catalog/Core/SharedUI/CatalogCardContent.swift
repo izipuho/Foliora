@@ -77,7 +77,7 @@ struct CatalogCardContent: View {
     }
 
     private var secondaryTextColor: Color {
-        bright ? CatalogMediaContrast.glassFill : .secondary
+        bright ? CatalogMediaContrast.onMediaSecondary : .secondary
     }
 }
 

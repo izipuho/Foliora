@@ -16,6 +16,7 @@ enum CatalogMediaContrast {
     static let glassStroke = Color.white.opacity(0.32)
 
     static let onMediaPrimary = Color.white
+    static let onMediaSecondary = Color.white.opacity(0.72)
 }
 
 enum CatalogBackgrounds {
