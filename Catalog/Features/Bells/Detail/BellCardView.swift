@@ -29,18 +29,18 @@ struct BellCardView: View {
     let bell: BellRecord
     let cardSize: CGSize
 
-    private let layoutMode: CatalogCardLayoutMode
+    private let style: CatalogCardContentStyle
     private let cardMetrics: CatalogCardLayoutMode.CardMetrics
 
     init(
         bell: BellRecord,
-        layoutMode: CatalogCardLayoutMode,
+        style: CatalogCardContentStyle,
         cardSize: CGSize,
         cardMetrics: CatalogCardLayoutMode.CardMetrics
     ) {
         self.bell = bell
         self.cardSize = cardSize
-        self.layoutMode = layoutMode
+        self.style = style
         self.cardMetrics = cardMetrics
     }
 
@@ -69,10 +69,6 @@ struct BellCardView: View {
             cardSize: cardSize,
             cardMetrics: cardMetrics
         )
-    }
-
-    private var style: CatalogCardContentStyle {
-        CatalogCardContentStyle.style(for: layoutMode)
     }
 
     private var hasCoverPhoto: Bool {

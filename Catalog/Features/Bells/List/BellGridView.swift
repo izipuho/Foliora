@@ -59,13 +59,14 @@ struct BellGridView: View {
     ) -> some View {
         let isSelected = selectedBellIDs.contains(bell.id)
         let shouldShowSelectionOverlay = isSelectionModeEnabled && isSelected
+        let style = CatalogCardContentStyle.style(for: layoutMode)
 
         let button = Button {
             onTap(bell)
         } label: {
             BellCardView(
                 bell: record,
-                layoutMode: layoutMode,
+                style: style,
                 cardSize: cardSize,
                 cardMetrics: cardMetrics
             )

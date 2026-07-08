@@ -21,12 +21,14 @@ struct BellStripView: View {
             screenWidth: screenWidth
         ) { cardSize, cardMetrics in
             ForEach(bells, id: \.id) { bell in
+                let style = CatalogCardContentStyle.style(for: stripLayoutMode)
+
                 Button {
                     onSelect(bell)
                 } label: {
                     BellCardView(
                         bell: bell,
-                        layoutMode: stripLayoutMode,
+                        style: style,
                         cardSize: cardSize,
                         cardMetrics: cardMetrics
                     )
