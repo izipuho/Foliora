@@ -232,7 +232,7 @@ struct BellDetailView: View {
         GeometryReader { proxy in
             ZStack {
                 if bell.coverPhotoThumbnailData != nil || bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil {
-                    BellCardCoverBackground(
+                    MediaPreviewImage(
                         identifier: bell.coverPhotoIdentifier,
                         thumbnailData: bell.coverPhotoThumbnailData,
                         originalData: bell.coverPhotoOriginalData,
