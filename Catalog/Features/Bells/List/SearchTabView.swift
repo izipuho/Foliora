@@ -220,6 +220,7 @@ struct SearchTabView: View {
         } else {
             BellGridView(
                 bells: filteredBells,
+                recordFor: { searchSnapshot.recordsByID[$0.id] },
                 layoutMode: layoutMode,
                 cardSize: cardSize,
                 gridMetrics: gridMetrics,

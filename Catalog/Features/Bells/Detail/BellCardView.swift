@@ -1,16 +1,6 @@
 import SwiftUI
 
-protocol BellCardDisplayable {
-    var id: UUID { get }
-    var title: String { get }
-    var placeDisplayName: String { get }
-    var acquiredYear: Int? { get }
-    var coverPhotoIdentifier: String? { get }
-    var coverPhotoThumbnailData: Data? { get }
-    var coverPhotoOriginalData: Data? { get }
-}
-
-extension BellRecord: BellCardDisplayable {
+extension BellRecord {
     private var coverPhoto: MediaAsset? {
         mediaAssets
             .filter { $0.kind == .photo }
@@ -19,7 +9,11 @@ extension BellRecord: BellCardDisplayable {
     }
 
     var coverPhotoIdentifier: String? {
-        coverPhoto?.localIdentifier
+        guard let localIdentifier = coverPhoto?.localIdentifier, !localIdentifier.isEmpty else {
+            return nil
+        }
+
+        return localIdentifier
     }
 
     var coverPhotoThumbnailData: Data? {
@@ -32,14 +26,14 @@ extension BellRecord: BellCardDisplayable {
 }
 
 struct BellCardView: View {
-    let bell: any BellCardDisplayable
+    let bell: BellRecord
     let cardSize: CGSize
 
     private let layoutMode: CatalogCardLayoutMode
     private let cardMetrics: CatalogCardLayoutMode.CardMetrics
 
     init(
-        bell: some BellCardDisplayable,
+        bell: BellRecord,
         layoutMode: CatalogCardLayoutMode,
         cardSize: CGSize,
         cardMetrics: CatalogCardLayoutMode.CardMetrics

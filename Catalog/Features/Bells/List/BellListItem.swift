@@ -1,6 +1,6 @@
 import Foundation
 
-struct BellListItem: Identifiable, Hashable, BellCardDisplayable {
+struct BellListItem: Identifiable, Hashable {
     let id: UUID
     let title: String
     let notes: String

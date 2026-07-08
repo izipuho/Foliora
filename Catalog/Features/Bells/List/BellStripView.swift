@@ -1,14 +1,14 @@
 import SwiftUI
 
-struct BellStripView<Bell: BellCardDisplayable>: View {
-    let bells: [Bell]
+struct BellStripView: View {
+    let bells: [BellRecord]
     let screenWidth: CGFloat
-    let onSelect: (Bell) -> Void
+    let onSelect: (BellRecord) -> Void
 
     init(
-        bells: [Bell],
+        bells: [BellRecord],
         screenWidth: CGFloat,
-        onSelect: @escaping (Bell) -> Void
+        onSelect: @escaping (BellRecord) -> Void
     ) {
         self.bells = bells
         self.screenWidth = screenWidth

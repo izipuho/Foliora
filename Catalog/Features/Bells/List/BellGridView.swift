@@ -41,31 +41,34 @@ struct BellGridContainerView<Content: View>: View {
     }
 }
 
-struct BellGridView<Bell: BellCardDisplayable>: View {
-    let bells: [Bell]
+struct BellGridView: View {
+    let bells: [BellListItem]
+    let recordFor: (BellListItem) -> BellRecord?
     let layoutMode: CatalogCardLayoutMode
     let cardSize: CGSize
     let gridMetrics: CatalogCardLayoutMode.GridMetrics
     let cardMetrics: CatalogCardLayoutMode.CardMetrics
     let selectedBellIDs: Set<UUID>
     let isSelectionModeEnabled: Bool
-    let onTap: (Bell) -> Void
-    let onSelect: ((Bell) -> Void)?
-    let contextMenu: ((Bell) -> AnyView)?
+    let onTap: (BellListItem) -> Void
+    let onSelect: ((BellListItem) -> Void)?
+    let contextMenu: ((BellListItem) -> AnyView)?
 
     init(
-        bells: [Bell],
+        bells: [BellListItem],
+        recordFor: @escaping (BellListItem) -> BellRecord?,
         layoutMode: CatalogCardLayoutMode,
         cardSize: CGSize,
         gridMetrics: CatalogCardLayoutMode.GridMetrics,
         cardMetrics: CatalogCardLayoutMode.CardMetrics,
         selectedBellIDs: Set<UUID>,
         isSelectionModeEnabled: Bool,
-        onTap: @escaping (Bell) -> Void,
-        onSelect: ((Bell) -> Void)?,
-        contextMenu: ((Bell) -> AnyView)? = nil
+        onTap: @escaping (BellListItem) -> Void,
+        onSelect: ((BellListItem) -> Void)?,
+        contextMenu: ((BellListItem) -> AnyView)? = nil
     ) {
         self.bells = bells
+        self.recordFor = recordFor
         self.layoutMode = layoutMode
         self.cardSize = cardSize
         self.gridMetrics = gridMetrics
@@ -80,7 +83,9 @@ struct BellGridView<Bell: BellCardDisplayable>: View {
     var body: some View {
         LazyVGrid(columns: gridColumns, spacing: gridMetrics.spacing) {
             ForEach(bells, id: \.id) { bell in
-                bellCardButton(bell)
+                if let record = recordFor(bell) {
+                    bellCardButton(bell, record: record)
+                }
             }
         }
     }
@@ -93,7 +98,7 @@ struct BellGridView<Bell: BellCardDisplayable>: View {
     }
 
     @ViewBuilder
-    private func bellCardButton(_ bell: Bell) -> some View {
+    private func bellCardButton(_ bell: BellListItem, record: BellRecord) -> some View {
         let isSelected = selectedBellIDs.contains(bell.id)
         let shouldShowSelectionOverlay = isSelectionModeEnabled && isSelected
 
@@ -101,7 +106,7 @@ struct BellGridView<Bell: BellCardDisplayable>: View {
             onTap(bell)
         } label: {
             BellCardView(
-                bell: bell,
+                bell: record,
                 layoutMode: layoutMode,
                 cardSize: cardSize,
                 cardMetrics: cardMetrics

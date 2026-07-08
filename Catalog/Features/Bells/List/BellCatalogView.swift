@@ -630,6 +630,7 @@ struct BellCatalogView: View {
     ) -> some View {
         BellGridView(
             bells: bells,
+            recordFor: { catalogSnapshot.recordsByID[$0.id] },
             layoutMode: layoutMode,
             cardSize: cardSize,
             gridMetrics: gridMetrics,
