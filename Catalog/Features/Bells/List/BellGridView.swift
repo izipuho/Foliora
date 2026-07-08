@@ -1,53 +1,10 @@
 import SwiftUI
 
-struct BellGridContainerView<Content: View>: View {
-    let layoutMode: CatalogCardLayoutMode
-    let bottomContentMargin: CGFloat?
-    @ViewBuilder let content: (
-        CGSize,
-        CatalogCardLayoutMode.GridMetrics,
-        CatalogCardLayoutMode.CardMetrics
-    ) -> Content
-
-    init(
-        layoutMode: CatalogCardLayoutMode,
-        bottomContentMargin: CGFloat? = nil,
-        @ViewBuilder content: @escaping (
-            CGSize,
-            CatalogCardLayoutMode.GridMetrics,
-            CatalogCardLayoutMode.CardMetrics
-        ) -> Content
-    ) {
-        self.layoutMode = layoutMode
-        self.bottomContentMargin = bottomContentMargin
-        self.content = content
-    }
-
-    var body: some View {
-        GeometryReader { proxy in
-            let containerWidth = proxy.size.width
-            let adaptiveGridMetrics = layoutMode.gridMetrics(forContainerWidth: containerWidth)
-            let cardWidth = layoutMode.cardWidth(forContainerWidth: containerWidth)
-            let adaptiveCardMetrics = layoutMode.cardMetrics(forCardWidth: cardWidth)
-            let cardSize = CGSize(width: cardWidth, height: adaptiveCardMetrics.cardHeight)
-
-            ScrollView {
-                content(cardSize, adaptiveGridMetrics, adaptiveCardMetrics)
-            }
-            .contentMargins(.horizontal, nil, for: .scrollContent)
-            .contentMargins(.top, nil, for: .scrollContent)
-            .contentMargins(.bottom, bottomContentMargin, for: .scrollContent)
-        }
-    }
-}
-
 struct BellGridView: View {
     let bells: [BellListItem]
     let recordFor: (BellListItem) -> BellRecord?
     let layoutMode: CatalogCardLayoutMode
-    let cardSize: CGSize
-    let gridMetrics: CatalogCardLayoutMode.GridMetrics
-    let cardMetrics: CatalogCardLayoutMode.CardMetrics
+    let bottomContentMargin: CGFloat?
     let selectedBellIDs: Set<UUID>
     let isSelectionModeEnabled: Bool
     let onTap: (BellListItem) -> Void
@@ -58,9 +15,7 @@ struct BellGridView: View {
         bells: [BellListItem],
         recordFor: @escaping (BellListItem) -> BellRecord?,
         layoutMode: CatalogCardLayoutMode,
-        cardSize: CGSize,
-        gridMetrics: CatalogCardLayoutMode.GridMetrics,
-        cardMetrics: CatalogCardLayoutMode.CardMetrics,
+        bottomContentMargin: CGFloat? = nil,
         selectedBellIDs: Set<UUID>,
         isSelectionModeEnabled: Bool,
         onTap: @escaping (BellListItem) -> Void,
@@ -70,9 +25,7 @@ struct BellGridView: View {
         self.bells = bells
         self.recordFor = recordFor
         self.layoutMode = layoutMode
-        self.cardSize = cardSize
-        self.gridMetrics = gridMetrics
-        self.cardMetrics = cardMetrics
+        self.bottomContentMargin = bottomContentMargin
         self.selectedBellIDs = selectedBellIDs
         self.isSelectionModeEnabled = isSelectionModeEnabled
         self.onTap = onTap
@@ -81,24 +34,22 @@ struct BellGridView: View {
     }
 
     var body: some View {
-        LazyVGrid(columns: gridColumns, spacing: gridMetrics.spacing) {
+        CatalogCardGrid(layoutMode: layoutMode, bottomContentMargin: bottomContentMargin) { cardSize, _, cardMetrics in
             ForEach(bells, id: \.id) { bell in
                 if let record = recordFor(bell) {
-                    bellCardButton(bell, record: record)
+                    bellCardButton(bell, record: record, cardSize: cardSize, cardMetrics: cardMetrics)
                 }
             }
         }
     }
 
-    private var gridColumns: [GridItem] {
-        return Array(
-            repeating: GridItem(.fixed(cardSize.width), spacing: gridMetrics.spacing, alignment: .top),
-            count: gridMetrics.columnCount
-        )
-    }
-
     @ViewBuilder
-    private func bellCardButton(_ bell: BellListItem, record: BellRecord) -> some View {
+    private func bellCardButton(
+        _ bell: BellListItem,
+        record: BellRecord,
+        cardSize: CGSize,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics
+    ) -> some View {
         let isSelected = selectedBellIDs.contains(bell.id)
         let shouldShowSelectionOverlay = isSelectionModeEnabled && isSelected
 

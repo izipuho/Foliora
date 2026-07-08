@@ -334,7 +334,7 @@ struct BellCatalogView: View {
         bottomSafeAreaInset: CGFloat
     ) -> some View {
         return ScrollViewReader { scrollProxy in
-            BellGridContainerView(layoutMode: layoutMode, bottomContentMargin: scrollContentBottomInset) { cardSize, gridMetrics, cardMetrics in
+            CatalogCardGrid(layoutMode: layoutMode, bottomContentMargin: scrollContentBottomInset) { _, gridMetrics, cardMetrics in
                 LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg, pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []) {
                     Color.clear
                         .frame(height: 0)
@@ -360,20 +360,15 @@ struct BellCatalogView: View {
                     case .grouped(let sections):
                         groupedBellSectionsContent(
                             sections: sections,
-                            cardSize: cardSize,
                             gridMetrics: gridMetrics,
                             cardMetrics: cardMetrics,
                             scrollProxy: scrollProxy
                         )
                     case .flat(let bells):
-                        bellGridView(
-                            bells: bells,
-                            cardSize: cardSize,
-                            gridMetrics: gridMetrics,
-                            cardMetrics: cardMetrics
-                        )
+                        bellGridView(bells: bells, gridMetrics: gridMetrics, cardMetrics: cardMetrics)
                     }
                 }
+                .gridCellColumns(gridMetrics.columnCount)
                 .simultaneousGesture(
                     layoutMagnifyGesture()
                 )
@@ -477,7 +472,6 @@ struct BellCatalogView: View {
     @ViewBuilder
     private func groupedBellSectionsContent(
         sections: [BellGroupedSection],
-        cardSize: CGSize,
         gridMetrics: CatalogCardLayoutMode.GridMetrics,
         cardMetrics: CatalogCardLayoutMode.CardMetrics,
         scrollProxy: ScrollViewProxy
@@ -496,22 +490,12 @@ struct BellCatalogView: View {
                                     .foregroundStyle(.secondary)
                                     .padding(.horizontal, CatalogMetrics.Spacing.xs)
 
-                                bellGridView(
-                                    bells: cabinetGroup.bells,
-                                    cardSize: cardSize,
-                                    gridMetrics: gridMetrics,
-                                    cardMetrics: cardMetrics
-                                )
+                                bellGridView(bells: cabinetGroup.bells, gridMetrics: gridMetrics, cardMetrics: cardMetrics)
                             }
                         }
                     }
                 } else {
-                    bellGridView(
-                        bells: section.bells,
-                        cardSize: cardSize,
-                        gridMetrics: gridMetrics,
-                        cardMetrics: cardMetrics
-                    )
+                    bellGridView(bells: section.bells, gridMetrics: gridMetrics, cardMetrics: cardMetrics)
                 }
             } header: {
                 BellGroupedSectionHeader(
@@ -624,7 +608,6 @@ struct BellCatalogView: View {
 
     private func bellGridView(
         bells: [BellListItem],
-        cardSize: CGSize,
         gridMetrics: CatalogCardLayoutMode.GridMetrics,
         cardMetrics: CatalogCardLayoutMode.CardMetrics
     ) -> some View {
@@ -632,9 +615,6 @@ struct BellCatalogView: View {
             bells: bells,
             recordFor: { catalogSnapshot.recordsByID[$0.id] },
             layoutMode: layoutMode,
-            cardSize: cardSize,
-            gridMetrics: gridMetrics,
-            cardMetrics: cardMetrics,
             selectedBellIDs: selectedBellIDs,
             isSelectionModeEnabled: isSelectionModeEnabled,
             onTap: handleBellCardTap,
@@ -645,6 +625,20 @@ struct BellCatalogView: View {
                 AnyView(bellCardContextMenu(for: bell))
             } : nil
         )
+        .frame(height: bellGridHeight(itemCount: bells.count, gridMetrics: gridMetrics, cardMetrics: cardMetrics))
+        .scrollDisabled(true)
+    }
+
+    private func bellGridHeight(
+        itemCount: Int,
+        gridMetrics: CatalogCardLayoutMode.GridMetrics,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics
+    ) -> CGFloat {
+        guard itemCount > 0 else { return 0 }
+
+        let rowCount = (itemCount + gridMetrics.columnCount - 1) / gridMetrics.columnCount
+        return CGFloat(rowCount) * cardMetrics.cardHeight
+        + CGFloat(max(rowCount - 1, 0)) * gridMetrics.spacing
     }
 
     private func handleBellCardTap(_ bell: BellListItem) {
