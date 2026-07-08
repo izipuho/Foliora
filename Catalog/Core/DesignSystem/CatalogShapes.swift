@@ -1,6 +1,10 @@
 import SwiftUI
 
 enum CatalogShapes {
+    static var capsule: Capsule {
+        Capsule()
+    }
+
     static var tile: RoundedRectangle {
         RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
     }
