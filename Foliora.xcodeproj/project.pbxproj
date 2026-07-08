@@ -80,7 +80,6 @@
 		C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
 		C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
 		C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002D /* BellCatalogViewModel.swift */; };
-		C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002E /* AsyncThumbnailLoader.swift */; };
 		C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002F /* CatalogImportExportActor.swift */; };
 		C000000000000000000000C5 /* CatalogLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000030 /* CatalogLayouts.swift */; };
 		C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000040 /* CatalogArchiveService.swift */; };
@@ -163,7 +162,6 @@
 		C0000000000000000000002B /* PhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysis.swift; sourceTree = "<group>"; };
 		C0000000000000000000002C /* BellPhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellPhotoAnalysis.swift; sourceTree = "<group>"; };
 		C0000000000000000000002D /* BellCatalogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogViewModel.swift; sourceTree = "<group>"; };
-		C0000000000000000000002E /* AsyncThumbnailLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncThumbnailLoader.swift; sourceTree = "<group>"; };
 		C0000000000000000000002F /* CatalogImportExportActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportActor.swift; sourceTree = "<group>"; };
 		C00000000000000000000030 /* CatalogLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLayouts.swift; sourceTree = "<group>"; };
 		C00000000000000000000040 /* CatalogArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogArchiveService.swift; sourceTree = "<group>"; };
@@ -176,6 +174,11 @@
 		24349FFF2FAC6FD9005383FB /* BellRecognitionDebugML */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BellRecognitionDebugML;
+			sourceTree = "<group>";
+		};
+		24374F4F2FFE5C7E00E83899 /* Foundation */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Foundation;
 			sourceTree = "<group>";
 		};
 		246FD6602FA8BB2900B8859A /* BellRecognition */ = {
@@ -292,6 +295,7 @@
 		C00000000000000000000035 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				24374F4F2FFE5C7E00E83899 /* Foundation */,
 				24374F232FF4F93800E83899 /* DesignSystem */,
 				C0000000000000000000003A /* Navigation */,
 				C0000000000000000000004A /* PhotoAnalysis */,
@@ -358,7 +362,6 @@
 				24374F252FF50A0E00E83899 /* DashboardCard.swift */,
 				24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */,
 				24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */,
-				C0000000000000000000002E /* AsyncThumbnailLoader.swift */,
 				C00000000000000000000030 /* CatalogLayouts.swift */,
 				C00000000000000000000013 /* EditorFields.swift */,
 			);
@@ -557,6 +560,9 @@
 			);
 			buildRules = (
 			);
+			fileSystemSynchronizedGroups = (
+				24374F4F2FFE5C7E00E83899 /* Foundation */,
+			);
 			name = "Foliora Bells";
 			productName = Catalog;
 			productReference = C00000000000000000000012 /* Foliora Bells.app */;
@@ -708,7 +714,6 @@
 				24F1A54A2FDB309D00FC1717 /* FolioraApp.swift in Sources */,
 				24F1A54C2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift in Sources */,
 				24374F4A2FFD10E300E83899 /* CatalogCardLayoutMode.swift in Sources */,
-				C000000000000000000000C3 /* AsyncThumbnailLoader.swift in Sources */,
 				C000000000000000000000C5 /* CatalogLayouts.swift in Sources */,
 				24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */,
 				24374F302FF6734600E83899 /* CatalogColors.swift in Sources */,
