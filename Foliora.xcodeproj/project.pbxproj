@@ -32,6 +32,7 @@
 		24374F4A2FFD10E300E83899 /* CatalogCardLayoutMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */; };
 		24374F4C2FFD302200E83899 /* CatalogCardContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */; };
 		24374F4E2FFE270900E83899 /* CatalogCardCollectionLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */; };
+		24374F562FFE655800E83899 /* BellStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F552FFE655200E83899 /* BellStripView.swift */; };
 		244FE0462FD7200000B4D805 /* CloudSyncDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0452FD7200000B4D805 /* CloudSyncDiagnosticsView.swift */; };
 		244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0472FB465CF00B4D805 /* SettingsView.swift */; };
 		246FD63C2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */; };
@@ -112,6 +113,7 @@
 		24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardLayoutMode.swift; sourceTree = "<group>"; };
 		24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardContent.swift; sourceTree = "<group>"; };
 		24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardCollectionLayouts.swift; sourceTree = "<group>"; };
+		24374F552FFE655200E83899 /* BellStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellStripView.swift; sourceTree = "<group>"; };
 		244FE0452FD7200000B4D805 /* CloudSyncDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncDiagnosticsView.swift; sourceTree = "<group>"; };
 		244FE0472FB465CF00B4D805 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		246FD63B2FA8813800B8859A /* BellCatalogSelectionBottomPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogSelectionBottomPanel.swift; sourceTree = "<group>"; };
@@ -448,6 +450,7 @@
 		C00000000000000000000045 /* List */ = {
 			isa = PBXGroup;
 			children = (
+				24374F552FFE655200E83899 /* BellStripView.swift */,
 				249A28392FDC3A61009A0E03 /* BellCatalogSnapshot.swift */,
 				2403CED92F9F945700C63AB6 /* SearchTabView.swift */,
 				246FD6872FA8CE2A00B8859A /* BellListItem.swift */,
@@ -678,6 +681,7 @@
 				D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */,
 				24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */,
 				2403CEE52F9FCD9F00C63AB6 /* ImageMediaBuilder.swift in Sources */,
+				24374F562FFE655800E83899 /* BellStripView.swift in Sources */,
 				24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */,
 				2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */,
 				24374F462FF7F0AA00E83899 /* CatalogShapes.swift in Sources */,
@@ -1108,7 +1112,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1158,7 +1162,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;

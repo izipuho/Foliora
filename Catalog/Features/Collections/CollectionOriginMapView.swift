@@ -212,7 +212,7 @@ private struct MapSelectionPanel: View {
 
     var body: some View {
         GeometryReader { proxy in
-            BellCardStripView(
+            BellStripView(
                 bells: bells,
                 screenWidth: proxy.size.width + 32
             ) { bell in
