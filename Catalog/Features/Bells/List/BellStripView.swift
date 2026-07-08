@@ -16,15 +16,10 @@ struct BellStripView: View {
     }
 
     var body: some View {
-        let gridMetrics = stripLayoutMode.gridMetrics(forContainerWidth: screenWidth)
-        let width = stripLayoutMode.cardWidth(forContainerWidth: screenWidth)
-        let cardMetrics = stripLayoutMode.cardMetrics(forCardWidth: width)
-        let cardSize = CGSize(width: width, height: cardMetrics.cardHeight)
-
         CatalogCardStrip(
-            cardSize: cardSize,
-            spacing: gridMetrics.spacing
-        ) { cardSize in
+            layoutMode: stripLayoutMode,
+            screenWidth: screenWidth
+        ) { cardSize, cardMetrics in
             ForEach(bells, id: \.id) { bell in
                 Button {
                     onSelect(bell)

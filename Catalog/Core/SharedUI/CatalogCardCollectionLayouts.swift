@@ -79,27 +79,32 @@ struct CatalogCardGrid<Content: View>: View {
 }
 
 struct CatalogCardStrip<Content: View>: View {
-    let cardSize: CGSize
-    let spacing: CGFloat
+    let layoutMode: CatalogCardLayoutMode
+    let screenWidth: CGFloat
     let horizontalPadding: CGFloat
-    @ViewBuilder let content: (CGSize) -> Content
+    @ViewBuilder let content: (CGSize, CatalogCardLayoutMode.CardMetrics) -> Content
 
     init(
-        cardSize: CGSize,
-        spacing: CGFloat,
+        layoutMode: CatalogCardLayoutMode,
+        screenWidth: CGFloat,
         horizontalPadding: CGFloat = CatalogMetrics.Spacing.xs,
-        @ViewBuilder content: @escaping (CGSize) -> Content
+        @ViewBuilder content: @escaping (CGSize, CatalogCardLayoutMode.CardMetrics) -> Content
     ) {
-        self.cardSize = cardSize
-        self.spacing = spacing
+        self.layoutMode = layoutMode
+        self.screenWidth = screenWidth
         self.horizontalPadding = horizontalPadding
         self.content = content
     }
 
     var body: some View {
+        let gridMetrics = layoutMode.gridMetrics(forContainerWidth: screenWidth)
+        let cardWidth = layoutMode.cardWidth(forContainerWidth: screenWidth)
+        let cardMetrics = layoutMode.cardMetrics(forCardWidth: cardWidth)
+        let cardSize = CGSize(width: cardWidth, height: cardMetrics.cardHeight)
+
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: spacing) {
-                content(cardSize)
+            HStack(alignment: .top, spacing: gridMetrics.spacing) {
+                content(cardSize, cardMetrics)
             }
             .padding(.horizontal, horizontalPadding)
         }
