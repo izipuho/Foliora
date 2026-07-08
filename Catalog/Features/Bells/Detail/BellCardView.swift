@@ -36,7 +36,7 @@ struct BellCardView: View {
     let bell: any BellCardDisplayable
     let cardSize: CGSize
 
-    private let style: CatalogCardContentStyle
+    private let layoutMode: CatalogCardLayoutMode
     private let cardMetrics: CatalogCardLayoutMode.CardMetrics
 
     init(
@@ -47,12 +47,12 @@ struct BellCardView: View {
     ) {
         self.bell = bell
         self.cardSize = cardSize
-        self.style = CatalogCardContentStyle.style(for: layoutMode)
+        self.layoutMode = layoutMode
         self.cardMetrics = cardMetrics
     }
 
     var body: some View {
-        cardContent(in: cardSize)
+        catalogCardContent
             .catalogSurfaceCard(cardMetrics: cardMetrics) {
                 if hasCoverPhoto {
                     BellCardCoverBackground(
@@ -66,19 +66,10 @@ struct BellCardView: View {
             .frame(width: cardSize.width, height: cardSize.height)
     }
 
-    @ViewBuilder
-    private func cardContent(in size: CGSize) -> some View {
-        let contentWidth = max(size.width - (cardMetrics.cardPadding * 2), 0)
-        let contentHeight = max(size.height - (cardMetrics.cardPadding * 2), 0)
-
+    private var catalogCardContent: some View {
         VStack(alignment: .leading, spacing: cardMetrics.contentSpacing) {
             if let titleStyle = style.title {
-                BellCardTitleBlock(
-                    bell: bell,
-                    style: titleStyle,
-                    primaryTextColor: primaryTextColor,
-                    secondaryTextColor: secondaryTextColor
-                )
+                titleContent(style: titleStyle)
             }
 
             if style.title != nil && style.accessoryRow != nil {
@@ -93,7 +84,31 @@ struct BellCardView: View {
                 )
             }
         }
-        .frame(width: contentWidth, height: contentHeight, alignment: cardMetrics.contentAlignment)
+        .frame(
+            width: max(cardSize.width - (cardMetrics.cardPadding * 2), 0),
+            height: max(cardSize.height - (cardMetrics.cardPadding * 2), 0),
+            alignment: cardMetrics.contentAlignment
+        )
+    }
+
+    private var style: CatalogCardContentStyle {
+        CatalogCardContentStyle.style(for: layoutMode)
+    }
+
+    private func titleContent(style: CatalogCardContentStyle.TitleBlockStyle) -> some View {
+        VStack(alignment: .leading, spacing: style.spacing) {
+            Text(bell.title)
+                .font(style.titleFont)
+                .foregroundStyle(primaryTextColor)
+                .lineLimit(style.titleLineLimit)
+
+            if style.showsSubtitle {
+                Text(bell.placeDisplayName)
+                    .font(style.subtitleFont)
+                    .foregroundStyle(secondaryTextColor)
+                    .lineLimit(style.subtitleLineLimit)
+            }
+        }
     }
 
     private var hasCoverPhoto: Bool {
@@ -117,60 +132,49 @@ struct BellCardView: View {
     }
 }
 
-private struct BellCardTitleBlock: View {
-    let bell: any BellCardDisplayable
-    let style: CatalogCardContentStyle.TitleBlockStyle
-    let primaryTextColor: Color
-    let secondaryTextColor: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: style.spacing) {
-            Text(bell.title)
-                .font(style.titleFont)
-                .foregroundStyle(primaryTextColor)
-                .lineLimit(style.titleLineLimit)
-
-            if style.showsSubtitle {
-                Text(bell.placeDisplayName)
-                    .font(style.subtitleFont)
-                    .foregroundStyle(secondaryTextColor)
-                    .lineLimit(style.subtitleLineLimit)
-            }
-        }
-    }
-}
-
 struct BellCardStripView<Bell: BellCardDisplayable>: View {
     let bells: [Bell]
-    let layoutMode: CatalogCardLayoutMode
     let screenWidth: CGFloat
     let onSelect: (Bell) -> Void
 
+    init(
+        bells: [Bell],
+        screenWidth: CGFloat,
+        onSelect: @escaping (Bell) -> Void
+    ) {
+        self.bells = bells
+        self.screenWidth = screenWidth
+        self.onSelect = onSelect
+    }
+
     var body: some View {
-        let gridMetrics = layoutMode.gridMetrics(forContainerWidth: screenWidth)
-        let width = layoutMode.cardWidth(forContainerWidth: screenWidth)
-        let cardMetrics = layoutMode.cardMetrics(forCardWidth: width)
+        let gridMetrics = stripLayoutMode.gridMetrics(forContainerWidth: screenWidth)
+        let width = stripLayoutMode.cardWidth(forContainerWidth: screenWidth)
+        let cardMetrics = stripLayoutMode.cardMetrics(forCardWidth: width)
         let cardSize = CGSize(width: width, height: cardMetrics.cardHeight)
 
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: gridMetrics.spacing) {
-                ForEach(bells, id: \.id) { bell in
-                    Button {
-                        onSelect(bell)
-                    } label: {
-                        BellCardView(
-                            bell: bell,
-                            layoutMode: layoutMode,
-                            cardSize: cardSize,
-                            cardMetrics: cardMetrics
-                        )
-                    }
-                    .buttonStyle(.plain)
+        CatalogCardStrip(
+            cardSize: cardSize,
+            spacing: gridMetrics.spacing
+        ) { cardSize in
+            ForEach(bells, id: \.id) { bell in
+                Button {
+                    onSelect(bell)
+                } label: {
+                    BellCardView(
+                        bell: bell,
+                        layoutMode: stripLayoutMode,
+                        cardSize: cardSize,
+                        cardMetrics: cardMetrics
+                    )
                 }
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, CatalogMetrics.Spacing.xs)
         }
-        .frame(height: cardMetrics.cardHeight)
+    }
+
+    private var stripLayoutMode: CatalogCardLayoutMode {
+        bells.count == 1 ? .wide : .mini
     }
 }
 

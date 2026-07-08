@@ -212,24 +212,11 @@ private struct MapSelectionPanel: View {
 
     var body: some View {
         GeometryReader { proxy in
-            Group {
-                if bells.count == 1 {
-                    BellCardStripView(
-                        bells: bells,
-                        layoutMode: .wide,
-                        screenWidth: proxy.size.width + 32
-                    ) { bell in
-                        presentedBell = bell
-                    }
-                } else {
-                    BellCardStripView(
-                        bells: bells,
-                        layoutMode: .mini,
-                        screenWidth: proxy.size.width + 32
-                    ) { bell in
-                        presentedBell = bell
-                    }
-                }
+            BellCardStripView(
+                bells: bells,
+                screenWidth: proxy.size.width + 32
+            ) { bell in
+                presentedBell = bell
             }
         }
         .frame(height: bells.count == 1 ? CatalogCardLayoutMode.wide.cardMetrics.cardHeight : CatalogCardLayoutMode.mini.cardMetrics.cardHeight)
