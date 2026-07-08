@@ -5,6 +5,7 @@ struct BellGridView: View {
     let recordFor: (BellListItem) -> BellRecord?
     let layoutMode: CatalogCardLayoutMode
     let bottomContentMargin: CGFloat?
+    let layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics?
     let selectedBellIDs: Set<UUID>
     let isSelectionModeEnabled: Bool
     let onTap: (BellListItem) -> Void
@@ -16,6 +17,7 @@ struct BellGridView: View {
         recordFor: @escaping (BellListItem) -> BellRecord?,
         layoutMode: CatalogCardLayoutMode,
         bottomContentMargin: CGFloat? = nil,
+        layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics? = nil,
         selectedBellIDs: Set<UUID>,
         isSelectionModeEnabled: Bool,
         onTap: @escaping (BellListItem) -> Void,
@@ -26,6 +28,7 @@ struct BellGridView: View {
         self.recordFor = recordFor
         self.layoutMode = layoutMode
         self.bottomContentMargin = bottomContentMargin
+        self.layoutMetrics = layoutMetrics
         self.selectedBellIDs = selectedBellIDs
         self.isSelectionModeEnabled = isSelectionModeEnabled
         self.onTap = onTap
@@ -34,7 +37,11 @@ struct BellGridView: View {
     }
 
     var body: some View {
-        CatalogCardGrid(layoutMode: layoutMode, bottomContentMargin: bottomContentMargin) { cardSize, _, cardMetrics in
+        CatalogCardGrid(
+            layoutMode: layoutMode,
+            bottomContentMargin: bottomContentMargin,
+            layoutMetrics: layoutMetrics
+        ) { cardSize, _, cardMetrics in
             ForEach(bells, id: \.id) { bell in
                 if let record = recordFor(bell) {
                     bellCardButton(bell, record: record, cardSize: cardSize, cardMetrics: cardMetrics)

@@ -142,14 +142,13 @@ struct SearchTabView: View {
     }
 
     var body: some View {
-        CatalogCardGrid(layoutMode: layoutMode) { _, gridMetrics, cardMetrics in
+        CatalogCardGrid(layoutMode: layoutMode, usesGridLayout: false) { cardSize, gridMetrics, cardMetrics in
             LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xl) {
                 searchHeader
 
-                searchResults(gridMetrics: gridMetrics, cardMetrics: cardMetrics)
+                searchResults(layoutMetrics: (cardSize, gridMetrics, cardMetrics))
             }
             .padding(.top, CatalogMetrics.Spacing.xl)
-            .gridCellColumns(gridMetrics.columnCount)
         }
         .searchable(
             text: $searchState.query,
@@ -201,10 +200,7 @@ struct SearchTabView: View {
     }
 
     @ViewBuilder
-    private func searchResults(
-        gridMetrics: CatalogCardLayoutMode.GridMetrics,
-        cardMetrics: CatalogCardLayoutMode.CardMetrics
-    ) -> some View {
+    private func searchResults(layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics) -> some View {
         if filteredBells.isEmpty {
             CatalogEmptyStateView(
                 systemImage: "magnifyingglass",
@@ -218,26 +214,13 @@ struct SearchTabView: View {
                 bells: filteredBells,
                 recordFor: { searchSnapshot.recordsByID[$0.id] },
                 layoutMode: layoutMode,
+                layoutMetrics: layoutMetrics,
                 selectedBellIDs: [],
                 isSelectionModeEnabled: false,
                 onTap: openBell,
                 onSelect: nil
             )
-            .frame(height: bellGridHeight(itemCount: filteredBells.count, gridMetrics: gridMetrics, cardMetrics: cardMetrics))
-            .scrollDisabled(true)
         }
-    }
-
-    private func bellGridHeight(
-        itemCount: Int,
-        gridMetrics: CatalogCardLayoutMode.GridMetrics,
-        cardMetrics: CatalogCardLayoutMode.CardMetrics
-    ) -> CGFloat {
-        guard itemCount > 0 else { return 0 }
-
-        let rowCount = (itemCount + gridMetrics.columnCount - 1) / gridMetrics.columnCount
-        return CGFloat(rowCount) * cardMetrics.cardHeight
-        + CGFloat(max(rowCount - 1, 0)) * gridMetrics.spacing
     }
 
     private func openBell(_ bell: BellListItem) {

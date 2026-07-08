@@ -1,8 +1,12 @@
 import SwiftUI
 
 struct CatalogCardGrid<Content: View>: View {
+    typealias LayoutMetrics = (cardSize: CGSize, gridMetrics: CatalogCardLayoutMode.GridMetrics, cardMetrics: CatalogCardLayoutMode.CardMetrics)
+
     let layoutMode: CatalogCardLayoutMode
     let bottomContentMargin: CGFloat?
+    let layoutMetrics: LayoutMetrics?
+    let usesGridLayout: Bool
     @ViewBuilder let content: (
         CGSize,
         CatalogCardLayoutMode.GridMetrics,
@@ -12,6 +16,8 @@ struct CatalogCardGrid<Content: View>: View {
     init(
         layoutMode: CatalogCardLayoutMode,
         bottomContentMargin: CGFloat? = nil,
+        layoutMetrics: LayoutMetrics? = nil,
+        usesGridLayout: Bool = true,
         @ViewBuilder content: @escaping (
             CGSize,
             CatalogCardLayoutMode.GridMetrics,
@@ -20,25 +26,44 @@ struct CatalogCardGrid<Content: View>: View {
     ) {
         self.layoutMode = layoutMode
         self.bottomContentMargin = bottomContentMargin
+        self.layoutMetrics = layoutMetrics
+        self.usesGridLayout = usesGridLayout
         self.content = content
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            let containerWidth = proxy.size.width
-            let gridMetrics = layoutMode.gridMetrics(forContainerWidth: containerWidth)
-            let cardWidth = layoutMode.cardWidth(forContainerWidth: containerWidth)
-            let cardMetrics = layoutMode.cardMetrics(forCardWidth: cardWidth)
-            let cardSize = CGSize(width: cardWidth, height: cardMetrics.cardHeight)
+        if let layoutMetrics {
+            layoutContent(layoutMetrics)
+        } else {
+            GeometryReader { proxy in
+                let containerWidth = proxy.size.width
+                let gridMetrics = layoutMode.gridMetrics(forContainerWidth: containerWidth)
+                let cardWidth = layoutMode.cardWidth(forContainerWidth: containerWidth)
+                let cardMetrics = layoutMode.cardMetrics(forCardWidth: cardWidth)
+                let layoutMetrics = (
+                    cardSize: CGSize(width: cardWidth, height: cardMetrics.cardHeight),
+                    gridMetrics: gridMetrics,
+                    cardMetrics: cardMetrics
+                )
 
-            ScrollView {
-                LazyVGrid(columns: gridColumns(cardSize: cardSize, gridMetrics: gridMetrics), spacing: gridMetrics.spacing) {
-                    content(cardSize, gridMetrics, cardMetrics)
+                ScrollView {
+                    layoutContent(layoutMetrics)
                 }
+                .contentMargins(.horizontal, nil, for: .scrollContent)
+                .contentMargins(.top, nil, for: .scrollContent)
+                .contentMargins(.bottom, bottomContentMargin, for: .scrollContent)
             }
-            .contentMargins(.horizontal, nil, for: .scrollContent)
-            .contentMargins(.top, nil, for: .scrollContent)
-            .contentMargins(.bottom, bottomContentMargin, for: .scrollContent)
+        }
+    }
+
+    @ViewBuilder
+    private func layoutContent(_ metrics: LayoutMetrics) -> some View {
+        if usesGridLayout {
+            LazyVGrid(columns: gridColumns(cardSize: metrics.cardSize, gridMetrics: metrics.gridMetrics), spacing: metrics.gridMetrics.spacing) {
+                content(metrics.cardSize, metrics.gridMetrics, metrics.cardMetrics)
+            }
+        } else {
+            content(metrics.cardSize, metrics.gridMetrics, metrics.cardMetrics)
         }
     }
 
