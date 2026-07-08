@@ -16,46 +16,6 @@ struct BellCatalogDashboardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: CatalogMetrics.Spacing.sm) {
-                    MetricPill(
-                        title: String(localized: "bell_catalog.dashboard.total"),
-                        value: "\(stats.totalCount)",
-                        systemImage: "bell.fill",
-                        tint: accentColor,
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.dashboard.countries"),
-                        value: "\(stats.countryCount)",
-                        systemImage: "globe.europe.africa.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.dashboard.cities"),
-                        value: "\(stats.cityCount)",
-                        systemImage: "building.2.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.summary.materials"),
-                        value: "\(stats.materialCount)",
-                        systemImage: "cube.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.summary.tags"),
-                        value: "\(stats.tagCount)",
-                        systemImage: "tag.fill",
-                        tint: accentColor
-                    )
-                }
-            }
-            .scrollClipDisabled()
-
-            ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: CatalogMetrics.Spacing.md) {
                     sharingCard
 
@@ -98,6 +58,46 @@ struct BellCatalogDashboardView: View {
                             }
                         )
                     }
+                }
+            }
+            .scrollClipDisabled()
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: CatalogMetrics.Spacing.sm) {
+                    MetricPill(
+                        title: String(localized: "bell_catalog.dashboard.total"),
+                        value: "\(stats.totalCount)",
+                        systemImage: "bell.fill",
+                        tint: accentColor,
+                    )
+
+                    MetricPill(
+                        title: String(localized: "bell_catalog.dashboard.countries"),
+                        value: "\(stats.countryCount)",
+                        systemImage: "globe.europe.africa.fill",
+                        tint: accentColor
+                    )
+
+                    MetricPill(
+                        title: String(localized: "bell_catalog.dashboard.cities"),
+                        value: "\(stats.cityCount)",
+                        systemImage: "building.2.fill",
+                        tint: accentColor
+                    )
+
+                    MetricPill(
+                        title: String(localized: "bell_catalog.summary.materials"),
+                        value: "\(stats.materialCount)",
+                        systemImage: "cube.fill",
+                        tint: accentColor
+                    )
+
+                    MetricPill(
+                        title: String(localized: "bell_catalog.summary.tags"),
+                        value: "\(stats.tagCount)",
+                        systemImage: "tag.fill",
+                        tint: accentColor
+                    )
                 }
             }
             .scrollClipDisabled()

@@ -66,27 +66,14 @@ struct BellCardView: View {
     }
 
     private var catalogCardContent: some View {
-        VStack(alignment: .leading, spacing: cardMetrics.contentSpacing) {
-            if let titleStyle = style.title {
-                titleContent(style: titleStyle)
-            }
-
-            if style.title != nil && style.accessoryRow != nil {
-                Spacer()
-            }
-
-            if let accessoryRowStyle = style.accessoryRow {
-                CatalogCardAccessoryRow(
-                    accessories: accessories,
-                    style: accessoryRowStyle,
-                    bright: hasCoverPhoto
-                )
-            }
-        }
-        .frame(
-            width: max(cardSize.width - (cardMetrics.cardPadding * 2), 0),
-            height: max(cardSize.height - (cardMetrics.cardPadding * 2), 0),
-            alignment: cardMetrics.contentAlignment
+        CatalogCardContent(
+            title: bell.title,
+            subtitle: bell.placeDisplayName,
+            accessories: accessories,
+            style: style,
+            bright: hasCoverPhoto,
+            cardSize: cardSize,
+            cardMetrics: cardMetrics
         )
     }
 
@@ -94,32 +81,8 @@ struct BellCardView: View {
         CatalogCardContentStyle.style(for: layoutMode)
     }
 
-    private func titleContent(style: CatalogCardContentStyle.TitleBlockStyle) -> some View {
-        VStack(alignment: .leading, spacing: style.spacing) {
-            Text(bell.title)
-                .font(style.titleFont)
-                .foregroundStyle(primaryTextColor)
-                .lineLimit(style.titleLineLimit)
-
-            if style.showsSubtitle {
-                Text(bell.placeDisplayName)
-                    .font(style.subtitleFont)
-                    .foregroundStyle(secondaryTextColor)
-                    .lineLimit(style.subtitleLineLimit)
-            }
-        }
-    }
-
     private var hasCoverPhoto: Bool {
         bell.coverPhotoThumbnailData != nil || bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil
-    }
-
-    private var primaryTextColor: Color {
-        hasCoverPhoto ? CatalogMediaContrast.onMediaPrimary : .primary
-    }
-
-    private var secondaryTextColor: Color {
-        hasCoverPhoto ? CatalogMediaContrast.glassFill : .secondary
     }
 
     private var accessories: [CatalogCardAccessory] {

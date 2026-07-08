@@ -22,6 +22,65 @@ enum CatalogCardBadge: Hashable, Identifiable {
     }
 }
 
+struct CatalogCardContent: View {
+    let title: String
+    let subtitle: String
+    let accessories: [CatalogCardAccessory]
+    let style: CatalogCardContentStyle
+    let bright: Bool
+    let cardSize: CGSize
+    let cardMetrics: CatalogCardLayoutMode.CardMetrics
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: cardMetrics.contentSpacing) {
+            if let titleStyle = style.title {
+                titleContent(style: titleStyle)
+            }
+
+            if style.title != nil && style.accessoryRow != nil {
+                Spacer()
+            }
+
+            if let accessoryRowStyle = style.accessoryRow {
+                CatalogCardAccessoryRow(
+                    accessories: accessories,
+                    style: accessoryRowStyle,
+                    bright: bright
+                )
+            }
+        }
+        .frame(
+            width: max(cardSize.width - (cardMetrics.cardPadding * 2), 0),
+            height: max(cardSize.height - (cardMetrics.cardPadding * 2), 0),
+            alignment: cardMetrics.contentAlignment
+        )
+    }
+
+    private func titleContent(style: CatalogCardContentStyle.TitleBlockStyle) -> some View {
+        VStack(alignment: .leading, spacing: style.spacing) {
+            Text(title)
+                .font(style.titleFont)
+                .foregroundStyle(primaryTextColor)
+                .lineLimit(style.titleLineLimit)
+
+            if style.showsSubtitle {
+                Text(subtitle)
+                    .font(style.subtitleFont)
+                    .foregroundStyle(secondaryTextColor)
+                    .lineLimit(style.subtitleLineLimit)
+            }
+        }
+    }
+
+    private var primaryTextColor: Color {
+        bright ? CatalogMediaContrast.onMediaPrimary : .primary
+    }
+
+    private var secondaryTextColor: Color {
+        bright ? CatalogMediaContrast.glassFill : .secondary
+    }
+}
+
 struct CatalogCardContentStyle {
     struct TitleBlockStyle {
         let titleFont: Font
@@ -128,7 +187,7 @@ struct CatalogCardContentStyle {
     }
 }
 
-struct CatalogCardAccessoryRow: View {
+private struct CatalogCardAccessoryRow: View {
     let accessories: [CatalogCardAccessory]
     let style: CatalogCardContentStyle.AccessoryRowStyle
     let bright: Bool
