@@ -11,9 +11,11 @@ extension View {
     func catalogSurfaceCard(
         cardMetrics: CatalogCardLayoutMode.CardMetrics? = nil
     ) -> some View {
-        self
+        let shape = cardMetrics.map { CatalogShapes.card(cornerRadius: $0.cornerRadius) } ?? CatalogShapes.section
+
+        return self
             .padding(cardMetrics?.cardPadding ?? CatalogMetrics.Spacing.lg)
-            .glassEffect(.regular.interactive(), in: CatalogShapes.section)
+            .glassEffect(.regular.interactive(), in: shape)
     }
 
     func catalogSurfaceCard<Media: View>(
@@ -21,7 +23,9 @@ extension View {
         cardMetrics: CatalogCardLayoutMode.CardMetrics? = nil,
         @ViewBuilder media: () -> Media
     ) -> some View {
-        self
+        let shape = cardMetrics.map { CatalogShapes.card(cornerRadius: $0.cornerRadius) } ?? CatalogShapes.section
+
+        return self
             .padding(cardMetrics?.cardPadding ?? CatalogMetrics.Spacing.lg)
             .background {
                 ZStack {
@@ -36,9 +40,9 @@ extension View {
                         endPoint: .bottom
                     )
                 }
-                .clipShape(CatalogShapes.section)
+                .clipShape(shape)
             }
-            .glassEffect(Glass.regular.tint(tint).interactive(), in: CatalogShapes.section)
+            .glassEffect(Glass.regular.tint(tint).interactive(), in: shape)
     }
 }
 

@@ -5,6 +5,10 @@ enum CatalogShapes {
         Capsule()
     }
 
+    static func card(cornerRadius: CGFloat) -> RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    }
+
     static var tile: RoundedRectangle {
         RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.tile, style: .continuous)
     }
