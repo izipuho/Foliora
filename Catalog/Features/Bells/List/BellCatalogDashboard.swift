@@ -456,7 +456,6 @@ private struct DashboardPopoverContainer<Entry, Content: View>: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.thinMaterial, in: CatalogShapes.thumbnail)
             }
         }
         .padding()
