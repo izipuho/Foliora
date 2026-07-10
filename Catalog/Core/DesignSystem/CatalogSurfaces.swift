@@ -5,7 +5,7 @@ extension View {
         self
             .padding(.horizontal, CatalogMetrics.Spacing.md)
             .padding(.vertical, CatalogMetrics.Spacing.xs)
-            .glassEffect(.regular, in: CatalogShapes.capsule)
+            .glassEffect(.regular.interactive(), in: CatalogShapes.capsule)
     }
 
     func catalogSurfaceCard(
@@ -13,7 +13,7 @@ extension View {
     ) -> some View {
         self
             .padding(cardMetrics?.cardPadding ?? CatalogMetrics.Spacing.lg)
-            .glassEffect(.regular, in: CatalogShapes.section)
+            .glassEffect(.regular.interactive(), in: CatalogShapes.section)
     }
 
     func catalogSurfaceCard<Media: View>(
