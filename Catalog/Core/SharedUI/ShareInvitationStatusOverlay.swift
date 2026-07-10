@@ -28,9 +28,6 @@ struct ShareInvitationStatusOverlay: View {
         VStack(spacing: CatalogMetrics.Spacing.md) {
             content()
         }
-        .padding(.horizontal, CatalogMetrics.Spacing.xl)
-        .padding(.vertical, CatalogMetrics.Spacing.lg)
-        .background(.regularMaterial, in: CatalogShapes.thumbnail)
-        .shadow(radius: 18)
+        .catalogSurfaceTile()
     }
 }
