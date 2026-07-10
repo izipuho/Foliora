@@ -540,6 +540,7 @@
       }
     },
     "bell_catalog.selection.selected_count" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -571,7 +572,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Выбрано %#@count@"
+            "value" : "%#@count@"
           },
           "substitutions" : {
             "count" : {
@@ -581,25 +582,25 @@
                   "few" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "%arg колокольчика"
+                      "value" : "Выбрано %arg колокольчика"
                     }
                   },
                   "many" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "%arg колокольчиков"
+                      "value" : "Выбрано %arg колокольчиков"
                     }
                   },
                   "one" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "%arg колокольчик"
+                      "value" : "Выбран %arg колокольчик"
                     }
                   },
                   "other" : {
                     "stringUnit" : {
                       "state" : "translated",
-                      "value" : "%arg колокольчика"
+                      "value" : "Выбрано %arg колокольчика"
                     }
                   }
                 }

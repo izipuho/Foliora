@@ -240,8 +240,7 @@ struct BellCatalogView: View {
         GeometryReader { proxy in
             unifiedFeedContent(
                 displayModel: displayModel,
-                screenHeight: proxy.size.height,
-                bottomSafeAreaInset: proxy.safeAreaInsets.bottom
+                screenHeight: proxy.size.height
             )
         }
         .sheet(item: $bellPendingMove) { bell in
@@ -294,6 +293,46 @@ struct BellCatalogView: View {
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
             }
+
+            if canEditCollection && isSelectionModeEnabled && !selectedVisibleBellIDs.isEmpty {
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        bellPendingMove = selectedBells.first
+                    } label: {
+                        Image(systemName: "folder")
+                    }
+                    .tint(catalogStyle.accentColor)
+                }
+
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+                
+                ToolbarItem(placement: .status) {
+                    Text(
+                        String.localizedStringWithFormat(
+                            //String(localized: "bell_catalog.selection.selected_count"), //Dunno how to place long text
+                            String(localized: "%lld"),
+                            selectedVisibleBellIDs.count
+                        )
+                    )
+                    .lineLimit(1)
+                    //.minimumScaleFactor(0.75)
+                    //.monospacedDigit()
+                    .contentTransition(.numericText())
+                }
+                .sharedBackgroundVisibility(.hidden)
+
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+
+                ToolbarItem(placement: .bottomBar) {
+                    Button(role: .destructive) {
+                        bellPendingDeletion = selectedBells.first
+                        isPresentingDeleteConfirmation = bellPendingDeletion != nil
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .tint(CatalogSemanticColors.destructive)
+                }
+            }
         }
         .onAppear {
             reloadCatalogSnapshot()
@@ -330,8 +369,7 @@ struct BellCatalogView: View {
 
     private func unifiedFeedContent(
         displayModel: BellCatalogDisplayModel,
-        screenHeight: CGFloat,
-        bottomSafeAreaInset: CGFloat
+        screenHeight: CGFloat
     ) -> some View {
         return ScrollViewReader { scrollProxy in
             CatalogCardGrid(layoutMode: layoutMode, bottomContentMargin: scrollContentBottomInset, usesGridLayout: false) { cardSize, gridMetrics, cardMetrics in
@@ -396,27 +434,6 @@ struct BellCatalogView: View {
 
                 pendingScrollTargetID = nil
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if canEditCollection && isSelectionModeEnabled && !selectedVisibleBellIDs.isEmpty {
-                    BellCatalogSelectionBottomPanel(
-                        selectedCount: selectedVisibleBellIDs.count,
-                        accentColor: catalogStyle.accentColor,
-                        bottomSafeAreaInset: bottomSafeAreaInset,
-                        onMove: {
-                            bellPendingMove = selectedBells.first
-                        },
-                        onDelete: {
-                            bellPendingDeletion = selectedBells.first
-                            isPresentingDeleteConfirmation = bellPendingDeletion != nil
-                        }
-                    )
-                        .frame(maxWidth: .infinity, minHeight: 112, maxHeight: 112, alignment: .bottom)
-                        .ignoresSafeArea(edges: .bottom)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-            }
-            .animation(.easeInOut(duration: 0.22), value: isSelectionModeEnabled)
-            .animation(.easeInOut(duration: 0.22), value: selectedVisibleBellIDs.isEmpty)
         }
     }
 
