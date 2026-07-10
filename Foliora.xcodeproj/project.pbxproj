@@ -35,6 +35,7 @@
 		24374F562FFE655800E83899 /* BellStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F552FFE655200E83899 /* BellStripView.swift */; };
 		244FE0462FD7200000B4D805 /* CloudSyncDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0452FD7200000B4D805 /* CloudSyncDiagnosticsView.swift */; };
 		244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0472FB465CF00B4D805 /* SettingsView.swift */; };
+		246D3FC530011A26000515FD /* ShareInvitationStatusOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */; };
 		246FD6772FA8BF6300B8859A /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
 		246FD67B2FA8BF8600B8859A /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
 		246FD6812FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */; };
@@ -115,6 +116,7 @@
 		24374F552FFE655200E83899 /* BellStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellStripView.swift; sourceTree = "<group>"; };
 		244FE0452FD7200000B4D805 /* CloudSyncDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSyncDiagnosticsView.swift; sourceTree = "<group>"; };
 		244FE0472FB465CF00B4D805 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareInvitationStatusOverlay.swift; sourceTree = "<group>"; };
 		246FD65F2FA8BB2900B8859A /* BellRecognition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognition.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedFieldValue.swift; sourceTree = "<group>"; };
 		246FD6842FA8CE2A00B8859A /* BellGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellGridView.swift; sourceTree = "<group>"; };
@@ -356,6 +358,7 @@
 		C0000000000000000000003B /* SharedUI */ = {
 			isa = PBXGroup;
 			children = (
+				246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */,
 				24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */,
 				24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */,
 				24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */,
@@ -690,6 +693,7 @@
 				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
 				E00000000000000000000006 /* Foliora.xcdatamodeld in Sources */,
 				24374F2C2FF6596800E83899 /* CatalogMetrics.swift in Sources */,
+				246D3FC530011A26000515FD /* ShareInvitationStatusOverlay.swift in Sources */,
 				E00000000000000000000005 /* FolioraCoreDataStack.swift in Sources */,
 				2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */,
 				24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */,
