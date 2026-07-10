@@ -315,8 +315,6 @@ struct BellCatalogView: View {
                         )
                     )
                     .lineLimit(1)
-                    //.minimumScaleFactor(0.75)
-                    //.monospacedDigit()
                     .contentTransition(.numericText())
                 }
                 .sharedBackgroundVisibility(.hidden)
@@ -761,24 +759,6 @@ private struct BellGroupingJumpPopover: View {
             .padding(CatalogMetrics.Spacing.md)
         }
         .frame(minWidth: 220, idealWidth: 260, maxWidth: 320, minHeight: 160, idealHeight: 280, maxHeight: 360)
-    }
-}
-
-private struct SummaryGlassCardModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding()
-            .background(.ultraThinMaterial, in: CatalogShapes.section)
-            .overlay(
-                CatalogShapes.section
-                    .stroke(CatalogMediaContrast.glassStroke, lineWidth: 1)
-            )
-    }
-}
-
-private extension View {
-    func summaryGlassCard() -> some View {
-        modifier(SummaryGlassCardModifier())
     }
 }
 
