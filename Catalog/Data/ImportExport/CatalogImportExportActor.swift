@@ -1,6 +1,11 @@
 import CoreData
 import Foundation
 
+enum CatalogExportSelection {
+    case collections(Set<UUID>)
+    case homes(Set<UUID>)
+}
+
 @MainActor
 final class CatalogImportExportActor {
     struct ImportResult: Sendable {
@@ -13,7 +18,7 @@ final class CatalogImportExportActor {
         self.context = context
     }
 
-    func exportArchiveData() throws -> Data {
+    func exportArchiveData(selection: CatalogExportSelection) throws -> Data {
         let fileManager = FileManager.default
         let workDirectory = fileManager.temporaryDirectory
             .appendingPathComponent("catalog-export-\(UUID().uuidString)", isDirectory: true)
@@ -22,7 +27,7 @@ final class CatalogImportExportActor {
         let mediaDirectory = workDirectory.appendingPathComponent("Media", isDirectory: true)
         try fileManager.createDirectory(at: mediaDirectory, withIntermediateDirectories: true)
 
-        let bundle = try exportBundle()
+        let bundle = try exportBundle(selection: selection)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(bundle).write(to: workDirectory.appendingPathComponent("catalog.json"), options: .atomic)
@@ -78,7 +83,7 @@ final class CatalogImportExportActor {
         return ImportResult(missingMediaIdentifiers: missing)
     }
 
-    private func exportBundle() throws -> CatalogTransferBundle {
+    private func exportBundle(selection: CatalogExportSelection) throws -> CatalogTransferBundle {
         let homeEntities = try fetchEntities(named: "HomeEntity", sortKey: "name")
         let locationEntities = try fetchEntities(named: "LocationEntity", sortKey: "name")
         let collectionEntities = try fetchEntities(named: "CollectionEntity", sortKey: "title")
@@ -87,8 +92,53 @@ final class CatalogImportExportActor {
             NSSortDescriptor(key: "createdAt", ascending: false)
         ])
 
-        let bellItems = bellEntities.map { bell in
-            let record = bellRecord(from: bell)
+        let exportedHomeEntities: [NSManagedObject]
+        let exportedLocationEntities: [NSManagedObject]
+        let exportedCollectionEntities: [NSManagedObject]
+        let exportedPlaceEntities: [NSManagedObject]
+        let exportedBellRecords: [BellRecord]
+
+        switch selection {
+        case .collections(let ids):
+            exportedCollectionEntities = collectionEntities.filter {
+                ids.contains(uuidValue($0, "id"))
+            }
+            let collectionIDs = Set(exportedCollectionEntities.map { uuidValue($0, "id") })
+            let homeIDs = Set(exportedCollectionEntities.map(collectionHomeID))
+
+            exportedHomeEntities = homeEntities.filter {
+                homeIDs.contains(uuidValue($0, "id"))
+            }
+            exportedLocationEntities = locationEntities.filter {
+                homeIDs.contains(locationHomeID(from: $0))
+            }
+            exportedBellRecords = bellEntities
+                .filter {
+                    guard let collection = $0.value(forKey: "collection") as? NSManagedObject else { return false }
+                    return collectionIDs.contains(uuidValue(collection, "id"))
+                }
+                .map(bellRecord)
+
+            let placeIDs = Set(exportedBellRecords.compactMap(\.details.originPlaceID))
+            exportedPlaceEntities = placeEntities.filter {
+                placeIDs.contains(uuidValue($0, "id"))
+            }
+
+        case .homes(let ids):
+            exportedHomeEntities = homeEntities.filter {
+                ids.contains(uuidValue($0, "id"))
+            }
+            let homeIDs = Set(exportedHomeEntities.map { uuidValue($0, "id") })
+
+            exportedLocationEntities = locationEntities.filter {
+                homeIDs.contains(locationHomeID(from: $0))
+            }
+            exportedCollectionEntities = []
+            exportedPlaceEntities = []
+            exportedBellRecords = []
+        }
+
+        let bellItems = exportedBellRecords.map { record in
             return BellTransferItem(
                 item: record.item,
                 details: record.details,
@@ -99,10 +149,10 @@ final class CatalogImportExportActor {
         }
 
         return CatalogTransferBundle(
-            homes: homeEntities.map(home),
-            locations: locationEntities.map(location),
-            collections: collectionEntities.map(collection),
-            places: placeEntities.map(place),
+            homes: exportedHomeEntities.map(home),
+            locations: exportedLocationEntities.map(location),
+            collections: exportedCollectionEntities.map(collection),
+            places: exportedPlaceEntities.map(place),
             bellItems: bellItems
         )
     }

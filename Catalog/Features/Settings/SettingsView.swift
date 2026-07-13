@@ -8,13 +8,10 @@ struct SettingsView: View {
 
     @Environment(\.managedObjectContext) private var managedObjectContext
 
-    @State private var exportDocument: CatalogTransferDocument?
-    @State private var isExportingDocument = false
     @State private var isImportingDocument = false
+    @State private var importPresentation: CatalogImportPresentation?
     @State private var isImportExportRunning = false
     @State private var importErrorMessage: String?
-    @State private var importWarningMessage: String?
-    @State private var exportErrorMessage: String?
     @State private var isShowingPurgeConfirmation = false
     @State private var isPurgingCloudData = false
     @State private var purgeStatusMessage: String?
@@ -27,17 +24,17 @@ struct SettingsView: View {
     var body: some View {
         List {
             Section {
-                Button {
-                    exportCurrentBackup()
+                NavigationLink {
+                    CatalogExportView()
                 } label: {
-                    Label("settings.data.export", systemImage: "square.and.arrow.up")
+                    Label("catalog.export.title", systemImage: "square.and.arrow.up")
                 }
                 .disabled(isImportExportRunning)
 
                 Button {
                     isImportingDocument = true
                 } label: {
-                    Label("settings.data.import", systemImage: "square.and.arrow.down")
+                    Label("catalog.import.title", systemImage: "square.and.arrow.down")
                 }
                 .disabled(isImportExportRunning)
             } header: {
@@ -86,33 +83,18 @@ struct SettingsView: View {
         .task {
             refreshCloudStatus()
         }
-        .fileExporter(
-            isPresented: $isExportingDocument,
-            document: exportDocument,
-            contentType: .zip,
-            defaultFilename: "catalog-export"
-        ) { result in
-            if case .failure(let error) = result {
-                exportErrorMessage = error.localizedDescription
-            }
-        }
         .fileImporter(
             isPresented: $isImportingDocument,
             allowedContentTypes: [.zip]
         ) { result in
             handleImport(result)
         }
-        .alert("settings.export.error_title", isPresented: Binding(
-            get: { exportErrorMessage != nil },
-            set: { newValue in
-                if !newValue {
-                    exportErrorMessage = nil
+        .sheet(item: $importPresentation) { presentation in
+            NavigationStack {
+                CatalogImportView(bundle: presentation.bundle) { selectedCollectionIDs in
+                    handleImportSelection(selectedCollectionIDs)
                 }
             }
-        )) {
-            Button("common.ok", role: .cancel) {}
-        } message: {
-            Text(exportErrorMessage ?? "")
         }
         .alert("settings.import.error_title", isPresented: Binding(
             get: { importErrorMessage != nil },
@@ -125,18 +107,6 @@ struct SettingsView: View {
             Button("common.ok", role: .cancel) {}
         } message: {
             Text(importErrorMessage ?? "")
-        }
-        .alert("settings.import.warning_title", isPresented: Binding(
-            get: { importWarningMessage != nil },
-            set: { newValue in
-                if !newValue {
-                    importWarningMessage = nil
-                }
-            }
-        )) {
-            Button("common.ok", role: .cancel) {}
-        } message: {
-            Text(importWarningMessage ?? "")
         }
         .confirmationDialog(
             "Purge Cloud Data?",
@@ -195,27 +165,6 @@ struct SettingsView: View {
         }
     }
 
-    private func exportCurrentBackup() {
-        isImportExportRunning = true
-        Task {
-            do {
-                let data = try await CatalogJSONPort.exportArchiveData(
-                    context: managedObjectContext
-                )
-                await MainActor.run {
-                    exportDocument = CatalogTransferDocument(data: data)
-                    isExportingDocument = true
-                    isImportExportRunning = false
-                }
-            } catch {
-                await MainActor.run {
-                    exportErrorMessage = error.localizedDescription
-                    isImportExportRunning = false
-                }
-            }
-        }
-    }
-
     private func handleImport(_ result: Result<URL, Error>) {
         switch result {
         case .success(let url):
@@ -229,15 +178,10 @@ struct SettingsView: View {
                 }
 
                 do {
-                    let importResult = try await CatalogJSONPort.importArchive(
-                        from: url,
-                        context: managedObjectContext
-                    )
+                    let bundle = try readCatalogTransferBundle(from: url)
 
                     await MainActor.run {
-                        if !importResult.missingMediaIdentifiers.isEmpty {
-                            importWarningMessage = String(localized: "settings.import.warning.missing_media")
-                        }
+                        importPresentation = CatalogImportPresentation(bundle: bundle)
                         isImportExportRunning = false
                     }
                 } catch {
@@ -250,6 +194,27 @@ struct SettingsView: View {
         case .failure(let error):
             importErrorMessage = error.localizedDescription
         }
+    }
+
+    private func readCatalogTransferBundle(from archiveURL: URL) throws -> CatalogTransferBundle {
+        let fileManager = FileManager.default
+        let workDirectory = fileManager.temporaryDirectory
+            .appendingPathComponent("catalog-import-preview-\(UUID().uuidString)", isDirectory: true)
+        defer { try? fileManager.removeItem(at: workDirectory) }
+
+        try CatalogArchiveService().extractArchive(at: archiveURL, to: workDirectory)
+
+        let catalogURL = workDirectory.appendingPathComponent("catalog.json")
+        guard fileManager.fileExists(atPath: catalogURL.path) else {
+            throw CatalogArchiveService.ArchiveError.missingCatalogJSON
+        }
+
+        let data = try Data(contentsOf: catalogURL)
+        return try JSONDecoder().decode(CatalogTransferBundle.self, from: data)
+    }
+
+    private func handleImportSelection(_ selectedCollectionIDs: Set<CollectionID>) {
+        _ = selectedCollectionIDs
     }
 
     private func purgeCloudData() {
@@ -306,4 +271,9 @@ private struct SettingsInfoRow: View {
                 .textSelection(.enabled)
         }
     }
+}
+
+private struct CatalogImportPresentation: Identifiable {
+    let id = UUID()
+    let bundle: CatalogTransferBundle
 }

@@ -3,9 +3,12 @@ import Foundation
 
 enum CatalogJSONPort {
     @MainActor
-    static func exportArchiveData(context: NSManagedObjectContext) async throws -> Data {
+    static func exportArchiveData(
+        context: NSManagedObjectContext,
+        selection: CatalogExportSelection
+    ) async throws -> Data {
         let actor = CatalogImportExportActor(context: context)
-        return try actor.exportArchiveData()
+        return try actor.exportArchiveData(selection: selection)
     }
 
     @MainActor
