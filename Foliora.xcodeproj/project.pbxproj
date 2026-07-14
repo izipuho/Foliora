@@ -14,8 +14,6 @@
 		2403CEDC2F9F954D00C63AB6 /* CollectionOriginMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */; };
 		2403CEDF2F9FA3A900C63AB6 /* CollectionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */; };
 		2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */; };
-		2403CEE32F9FA83A00C63AB6 /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE12F9FA83A00C63AB6 /* CameraPicker.swift */; };
-		2403CEE52F9FCD9F00C63AB6 /* ImageMediaBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE42F9FCD9F00C63AB6 /* ImageMediaBuilder.swift */; };
 		2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */; };
 		2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */; };
 		24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
@@ -98,8 +96,6 @@
 		2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionOriginMapView.swift; sourceTree = "<group>"; };
 		2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionEditorView.swift; sourceTree = "<group>"; };
 		2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionsView.swift; sourceTree = "<group>"; };
-		2403CEE12F9FA83A00C63AB6 /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
-		2403CEE42F9FCD9F00C63AB6 /* ImageMediaBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageMediaBuilder.swift; sourceTree = "<group>"; };
 		2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionShellView.swift; sourceTree = "<group>"; };
 		2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingView.swift; sourceTree = "<group>"; };
 		24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticPhotoFeatureExtractor.swift; sourceTree = "<group>"; };
@@ -211,15 +207,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		2403CEE22F9FA83A00C63AB6 /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				2403CEE42F9FCD9F00C63AB6 /* ImageMediaBuilder.swift */,
-				2403CEE12F9FA83A00C63AB6 /* CameraPicker.swift */,
-			);
-			path = Shared;
-			sourceTree = "<group>";
-		};
 		24374F232FF4F93800E83899 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
@@ -271,7 +258,6 @@
 				C00000000000000000000038 /* Features */,
 				C00000000000000000000039 /* Resources */,
 				C00000000000000000000016 /* Catalog.entitlements */,
-				2403CEE22F9FA83A00C63AB6 /* Shared */,
 			);
 			path = Catalog;
 			sourceTree = "<group>";
@@ -683,7 +669,6 @@
 				C000000000000000000000AF /* BellDetailView.swift in Sources */,
 				D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */,
 				24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */,
-				2403CEE52F9FCD9F00C63AB6 /* ImageMediaBuilder.swift in Sources */,
 				24374F562FFE655800E83899 /* BellStripView.swift in Sources */,
 				24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */,
 				2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */,
@@ -715,7 +700,6 @@
 				2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */,
 				24374F4C2FFD302200E83899 /* CatalogCardContent.swift in Sources */,
 				2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */,
-				2403CEE32F9FA83A00C63AB6 /* CameraPicker.swift in Sources */,
 				C000000000000000000000B9 /* BellCardView.swift in Sources */,
 				24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */,
 				24374F4E2FFE270900E83899 /* CatalogCardCollectionLayouts.swift in Sources */,
