@@ -1,7 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct CatalogTransferDocument: FileDocument {
+struct CatalogTransferDocumennt: FileDocument {
     static var readableContentTypes: [UTType] { [.zip] }
 
     var data: Data

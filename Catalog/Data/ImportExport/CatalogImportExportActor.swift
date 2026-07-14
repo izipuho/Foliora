@@ -87,7 +87,6 @@ final class CatalogImportExportActor {
         let homeEntities = try fetchEntities(named: "HomeEntity", sortKey: "name")
         let locationEntities = try fetchEntities(named: "LocationEntity", sortKey: "name")
         let collectionEntities = try fetchEntities(named: "CollectionEntity", sortKey: "title")
-        let placeEntities = try fetchEntities(named: "PlaceEntity", sortKey: "displayName")
         let bellEntities = try fetchEntities(named: "BellEntity", sortDescriptors: [
             NSSortDescriptor(key: "createdAt", ascending: false)
         ])
@@ -95,7 +94,6 @@ final class CatalogImportExportActor {
         let exportedHomeEntities: [NSManagedObject]
         let exportedLocationEntities: [NSManagedObject]
         let exportedCollectionEntities: [NSManagedObject]
-        let exportedPlaceEntities: [NSManagedObject]
         let exportedBellRecords: [BellRecord]
 
         switch selection {
@@ -119,11 +117,6 @@ final class CatalogImportExportActor {
                 }
                 .map(bellRecord)
 
-            let placeIDs = Set(exportedBellRecords.compactMap(\.details.originPlaceID))
-            exportedPlaceEntities = placeEntities.filter {
-                placeIDs.contains(uuidValue($0, "id"))
-            }
-
         case .homes(let ids):
             exportedHomeEntities = homeEntities.filter {
                 ids.contains(uuidValue($0, "id"))
@@ -134,7 +127,6 @@ final class CatalogImportExportActor {
                 homeIDs.contains(locationHomeID(from: $0))
             }
             exportedCollectionEntities = []
-            exportedPlaceEntities = []
             exportedBellRecords = []
         }
 
@@ -142,6 +134,7 @@ final class CatalogImportExportActor {
             return BellTransferItem(
                 item: record.item,
                 details: record.details,
+                originPlace: record.originPlace.flatMap(OriginPlaceTransferValue.init),
                 mediaAssets: record.mediaAssets,
                 createdBy: record.createdBy,
                 tags: record.tags
@@ -152,7 +145,7 @@ final class CatalogImportExportActor {
             homes: exportedHomeEntities.map(home),
             locations: exportedLocationEntities.map(location),
             collections: exportedCollectionEntities.map(collection),
-            places: exportedPlaceEntities.map(place),
+            places: [],
             bellItems: bellItems
         )
     }
@@ -164,7 +157,6 @@ final class CatalogImportExportActor {
         var locationEntities: [UUID: NSManagedObject] = [:]
         var collectionEntities: [UUID: NSManagedObject] = [:]
         var collectionLocationEntities: [UUID: [UUID: NSManagedObject]] = [:]
-        var placeEntities: [UUID: NSManagedObject] = [:]
 
         for home in bundle.homes {
             let entity = makeEntity(named: "HomeEntity")
@@ -229,17 +221,17 @@ final class CatalogImportExportActor {
             }
         }
 
-        for place in bundle.places {
+        var placeEntitiesByOriginPlace: [OriginPlaceTransferValue: NSManagedObject] = [:]
+
+        for originPlace in bundle.bellItems.compactMap(\.originPlace) {
+            guard placeEntitiesByOriginPlace[originPlace] == nil else { continue }
+
             let entity = makeEntity(named: "PlaceEntity")
-            entity.setValue(place.id, forKey: "id")
-            entity.setValue(place.displayName, forKey: "displayName")
-            entity.setValue(place.countryCode, forKey: "countryCode")
-            entity.setValue(place.countryName, forKey: "countryName")
-            entity.setValue(place.regionName, forKey: "regionName")
-            entity.setValue(place.cityName, forKey: "cityName")
-            entity.setValue(place.latitude, forKey: "latitude")
-            entity.setValue(place.longitude, forKey: "longitude")
-            placeEntities[place.id] = entity
+            entity.setValue(UUID(), forKey: "id")
+            entity.setValue(originPlace.displayName, forKey: "displayName")
+            entity.setValue(originPlace.latitude, forKey: "latitude")
+            entity.setValue(originPlace.longitude, forKey: "longitude")
+            placeEntitiesByOriginPlace[originPlace] = entity
         }
 
         var tagEntitiesByCollectionAndName: [UUID: [String: NSManagedObject]] = [:]
@@ -259,7 +251,7 @@ final class CatalogImportExportActor {
             entity.setValue(collectionEntities[bell.item.collectionID], forKey: "collection")
             entity.setValue(bell.item.locationID.flatMap { collectionLocationEntities[bell.item.collectionID]?[$0] }, forKey: "collectionLocation")
             entity.setValue(bell.item.locationID.flatMap { locationEntities[$0] }, forKey: "location")
-            entity.setValue(bell.details.originPlaceID.flatMap { placeEntities[$0] }, forKey: "originPlace")
+            entity.setValue(bell.originPlace.flatMap { placeEntitiesByOriginPlace[$0] }, forKey: "originPlace")
 
             let mediaEntities = bell.mediaAssets.map { asset in
                 let mediaEntity = makeEntity(named: "MediaAssetEntity")
