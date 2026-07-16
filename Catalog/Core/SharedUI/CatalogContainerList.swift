@@ -75,6 +75,7 @@ struct CatalogContainerCard: View {
             trailing
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .catalogSurfaceCard()
     }
 
