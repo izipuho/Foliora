@@ -243,21 +243,7 @@ struct CollectionsView: View {
 
         repository.saveCollection(collection)
         reloadCatalogSnapshot()
-        navigate?(
-            .collection(
-                CollectionSummary(
-                    id: collection.id,
-                    homeID: collection.homeID,
-                    kind: collection.kind,
-                    name: collection.title,
-                    subtitle: collection.notes,
-                    backgroundStyle: collection.backgroundStyle,
-                    itemCount: 0,
-                    status: .active,
-                    sharingSummary: ""
-                )
-            )
-        )
+        navigate?(.collection(collection.id))
     }
 
     private func selectCollection(_ collection: CollectionSummary) {
@@ -266,7 +252,7 @@ struct CollectionsView: View {
             return
         }
 
-        navigate?(.collection(collection))
+        navigate?(.collection(collection.id))
     }
 
     private func deleteCollection(_ collectionID: UUID) {
@@ -343,7 +329,7 @@ struct CollectionsView: View {
         guard let collection = collections.first else { return }
 
         didAutoOpenSingleCollection = true
-        navigate?(.collection(collection))
+        navigate?(.collection(collection.id))
     }
 
     private func reloadCatalogSnapshot() {

@@ -13,7 +13,7 @@ struct CatalogExportView: View {
 
     @State private var selectedCollectionIDs: Set<CollectionID> = []
     @State private var didPrepareInitialSelection = false
-    @State private var exportDocument: CatalogTransferDocument?
+    @State private var exportDocument: CatalogTransferDocumennt?
     @State private var isExportingDocument = false
     @State private var isPreparingExport = false
     @State private var exportErrorMessage: String?
@@ -162,7 +162,7 @@ struct CatalogExportView: View {
                 )
 
                 await MainActor.run {
-                    exportDocument = CatalogTransferDocument(data: data)
+                    exportDocument = CatalogTransferDocumennt(data: data)
                     isExportingDocument = true
                     isPreparingExport = false
                 }

@@ -2,7 +2,7 @@ import SwiftUI
 import CoreData
 
 enum AppDestination: Hashable {
-    case collection(CollectionSummary)
+    case collection(UUID)
     case home(UUID)
     case editHome(UUID)
 }
@@ -47,9 +47,9 @@ struct AppShellView: View {
     let coreDataContainer: NSPersistentCloudKitContainer
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var navigationSnapshot: CatalogSnapshot?
-    @State private var collectionsPath = NavigationPath()
-    @State private var homesPath = NavigationPath()
-    @State private var settingsPath = NavigationPath()
+    @State private var collectionsPath: [AppDestination] = []
+    @State private var homesPath: [AppDestination] = []
+    @State private var settingsPath: [AppDestination] = []
     @State private var searchPath = NavigationPath()
     @State private var selectedRootTab: RootTab = .collections
     @State private var shareInvitationFailureMessage: String?
@@ -110,15 +110,23 @@ struct AppShellView: View {
         popNavigation: @escaping () -> Void
     ) -> some View {
         switch destination {
-        case .collection(let collection):
-            CollectionShellView(
-                collection: collection,
-                repository: repository,
-                coreDataContainer: coreDataContainer,
-                layoutMode: layoutMode,
-                onBellSelected: onBellSelected,
-                onBatchAddComplete: onBatchAddComplete
-            )
+        case .collection(let collectionID):
+            if let collection = collectionSummary(for: collectionID) {
+                CollectionShellView(
+                    collection: collection,
+                    repository: repository,
+                    coreDataContainer: coreDataContainer,
+                    layoutMode: layoutMode,
+                    onBellSelected: onBellSelected,
+                    onBatchAddComplete: onBatchAddComplete
+                )
+            } else {
+                CatalogEmptyStateView(
+                    systemImage: "square.grid.2x2",
+                    title: "Collection not found",
+                    message: "This collection is no longer available."
+                )
+            }
         case .home(let homeID):
             if let homeBinding = binding(for: homeID) {
                 HomeDetailView(
@@ -202,6 +210,29 @@ struct AppShellView: View {
         navigationSnapshot?.collectionCountsByHomeID[homeID] ?? 0
     }
 
+    private func collectionSummary(for collectionID: UUID) -> CollectionSummary? {
+        guard
+            let snapshot = navigationSnapshot,
+            let collection = snapshot.collections.first(where: { $0.id == collectionID })
+        else {
+            return nil
+        }
+
+        let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
+
+        return CollectionSummary(
+            id: collection.id,
+            homeID: collection.homeID,
+            kind: collection.kind,
+            name: collection.title,
+            subtitle: collection.notes,
+            backgroundStyle: collection.backgroundStyle,
+            itemCount: collection.kind == .bells ? itemCount : 0,
+            status: collection.kind == .bells ? .active : .planned,
+            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+        )
+    }
+
     private func saveHome(_ homeID: UUID) {
         guard let home = homes.first(where: { $0.id == homeID }) else { return }
         repository.saveHome(home)
@@ -232,7 +263,7 @@ struct AppShellView: View {
             managedObjectContext.refreshAllObjects()
             reloadNavigationSnapshot()
             selectedRootTab = .collections
-            collectionsPath = NavigationPath()
+            collectionsPath = []
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(1.5))
                 if shareInvitationController.state == .accepted {
@@ -250,9 +281,9 @@ private struct RootShellView<Destination: View>: View {
     let navigationSnapshot: CatalogSnapshot?
     let reloadNavigationSnapshot: () -> Void
     @Binding var selectedRootTab: RootTab
-    @Binding var collectionsPath: NavigationPath
-    @Binding var homesPath: NavigationPath
-    @Binding var settingsPath: NavigationPath
+    @Binding var collectionsPath: [AppDestination]
+    @Binding var homesPath: [AppDestination]
+    @Binding var settingsPath: [AppDestination]
     @Binding var searchPath: NavigationPath
     let destination: (AppDestination, Binding<CatalogCardLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -389,7 +420,7 @@ private struct RootShellView<Destination: View>: View {
     }
 
     private func homesStack(
-        path: Binding<NavigationPath>,
+        path: Binding<[AppDestination]>,
         onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
@@ -407,7 +438,7 @@ private struct RootShellView<Destination: View>: View {
     }
 
     private func collectionsStack(
-        path: Binding<NavigationPath>,
+        path: Binding<[AppDestination]>,
         onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
@@ -423,7 +454,7 @@ private struct RootShellView<Destination: View>: View {
     }
 
     private func settingsStack(
-        path: Binding<NavigationPath>,
+        path: Binding<[AppDestination]>,
         onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {

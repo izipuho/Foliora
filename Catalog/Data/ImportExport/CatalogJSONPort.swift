@@ -14,9 +14,13 @@ enum CatalogJSONPort {
     @MainActor
     static func importArchive(
         from url: URL,
+        selectedCollectionIDs: Set<UUID>,
         context: NSManagedObjectContext
     ) async throws -> CatalogImportExportActor.ImportResult {
         let actor = CatalogImportExportActor(context: context)
-        return try actor.importArchive(from: url)
+        return try actor.importArchive(
+            from: url,
+            selectedCollectionIDs: selectedCollectionIDs
+        )
     }
 }

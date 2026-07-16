@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var importPresentation: CatalogImportPresentation?
     @State private var isImportExportRunning = false
     @State private var importErrorMessage: String?
+    @State private var importResultMessage: String?
     @State private var isShowingPurgeConfirmation = false
     @State private var isPurgingCloudData = false
     @State private var purgeStatusMessage: String?
@@ -92,9 +93,21 @@ struct SettingsView: View {
         .sheet(item: $importPresentation) { presentation in
             NavigationStack {
                 CatalogImportView(bundle: presentation.bundle) { selectedCollectionIDs in
-                    handleImportSelection(selectedCollectionIDs)
+                    handleImportSelection(selectedCollectionIDs, from: presentation.archiveURL)
                 }
             }
+        }
+        .alert("Import Completed", isPresented: Binding(
+            get: { importResultMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    importResultMessage = nil
+                }
+            }
+        )) {
+            Button("common.ok", role: .cancel) {}
+        } message: {
+            Text(importResultMessage ?? "")
         }
         .alert("settings.import.error_title", isPresented: Binding(
             get: { importErrorMessage != nil },
@@ -181,7 +194,10 @@ struct SettingsView: View {
                     let bundle = try readCatalogTransferBundle(from: url)
 
                     await MainActor.run {
-                        importPresentation = CatalogImportPresentation(bundle: bundle)
+                        importPresentation = CatalogImportPresentation(
+                            archiveURL: url,
+                            bundle: bundle
+                        )
                         isImportExportRunning = false
                     }
                 } catch {
@@ -213,8 +229,44 @@ struct SettingsView: View {
         return try JSONDecoder().decode(CatalogTransferBundle.self, from: data)
     }
 
-    private func handleImportSelection(_ selectedCollectionIDs: Set<CollectionID>) {
-        _ = selectedCollectionIDs
+    private func handleImportSelection(
+        _ selectedCollectionIDs: Set<CollectionID>,
+        from archiveURL: URL
+    ) {
+        isImportExportRunning = true
+        importErrorMessage = nil
+        importResultMessage = nil
+
+        Task {
+            let accessed = archiveURL.startAccessingSecurityScopedResource()
+            defer {
+                if accessed {
+                    archiveURL.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            do {
+                let result = try await CatalogJSONPort.importArchive(
+                    from: archiveURL,
+                    selectedCollectionIDs: selectedCollectionIDs,
+                    context: managedObjectContext
+                )
+
+                await MainActor.run {
+                    if result.missingMediaIdentifiers.isEmpty {
+                        importResultMessage = "Selected archive content was imported."
+                    } else {
+                        importResultMessage = "Selected archive content was imported. Some media files were not found in the backup."
+                    }
+                    isImportExportRunning = false
+                }
+            } catch {
+                await MainActor.run {
+                    importErrorMessage = error.localizedDescription
+                    isImportExportRunning = false
+                }
+            }
+        }
     }
 
     private func purgeCloudData() {
@@ -275,5 +327,6 @@ private struct SettingsInfoRow: View {
 
 private struct CatalogImportPresentation: Identifiable {
     let id = UUID()
+    let archiveURL: URL
     let bundle: CatalogTransferBundle
 }
