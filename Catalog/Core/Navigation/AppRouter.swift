@@ -47,9 +47,9 @@ struct AppShellView: View {
     let coreDataContainer: NSPersistentCloudKitContainer
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var navigationSnapshot: CatalogSnapshot?
-    @State private var collectionsPath: [AppDestination] = []
-    @State private var homesPath: [AppDestination] = []
-    @State private var settingsPath: [AppDestination] = []
+    @State private var collectionsPath = NavigationPath()
+    @State private var homesPath = NavigationPath()
+    @State private var settingsPath = NavigationPath()
     @State private var searchPath = NavigationPath()
     @State private var selectedRootTab: RootTab = .collections
     @State private var shareInvitationFailureMessage: String?
@@ -263,7 +263,7 @@ struct AppShellView: View {
             managedObjectContext.refreshAllObjects()
             reloadNavigationSnapshot()
             selectedRootTab = .collections
-            collectionsPath = []
+            collectionsPath = NavigationPath()
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(1.5))
                 if shareInvitationController.state == .accepted {
@@ -281,9 +281,9 @@ private struct RootShellView<Destination: View>: View {
     let navigationSnapshot: CatalogSnapshot?
     let reloadNavigationSnapshot: () -> Void
     @Binding var selectedRootTab: RootTab
-    @Binding var collectionsPath: [AppDestination]
-    @Binding var homesPath: [AppDestination]
-    @Binding var settingsPath: [AppDestination]
+    @Binding var collectionsPath: NavigationPath
+    @Binding var homesPath: NavigationPath
+    @Binding var settingsPath: NavigationPath
     @Binding var searchPath: NavigationPath
     let destination: (AppDestination, Binding<CatalogCardLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -420,7 +420,7 @@ private struct RootShellView<Destination: View>: View {
     }
 
     private func homesStack(
-        path: Binding<[AppDestination]>,
+        path: Binding<NavigationPath>,
         onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
@@ -438,7 +438,7 @@ private struct RootShellView<Destination: View>: View {
     }
 
     private func collectionsStack(
-        path: Binding<[AppDestination]>,
+        path: Binding<NavigationPath>,
         onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
@@ -454,7 +454,7 @@ private struct RootShellView<Destination: View>: View {
     }
 
     private func settingsStack(
-        path: Binding<[AppDestination]>,
+        path: Binding<NavigationPath>,
         onBellSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
