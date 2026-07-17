@@ -262,7 +262,7 @@ struct BellCatalogView: View {
             titleVisibility: .visible,
             presenting: bellPendingDeletion
         ) { bell in
-            Button(String(localized: "bell.context.delete.confirm"), role: .destructive) {
+            Button(String(localized: "common.delete"), role: .destructive) {
                 let bells = isSelectionModeEnabled ? selectedBells : [bell]
                 deleteBells(bells)
                 if isSelectionModeEnabled {

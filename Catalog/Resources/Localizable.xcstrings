@@ -1300,22 +1300,6 @@
         }
       }
     },
-    "bell.context.delete.confirm" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Bell"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Удалить колокольчик"
-          }
-        }
-      }
-    },
     "bell.context.delete.message" : {
       "localizations" : {
         "en" : {
