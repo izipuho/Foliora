@@ -11,6 +11,8 @@ struct CatalogExportView: View {
     @FetchRequest private var homeEntities: FetchedResults<NSManagedObject>
     @FetchRequest private var collectionEntities: FetchedResults<NSManagedObject>
 
+    let onExportSuccess: (Int) -> Void
+
     @State private var selectedCollectionIDs: Set<CollectionID> = []
     @State private var didPrepareInitialSelection = false
     @State private var exportDocument: CatalogTransferDocumennt?
@@ -18,7 +20,8 @@ struct CatalogExportView: View {
     @State private var isPreparingExport = false
     @State private var exportErrorMessage: String?
 
-    init() {
+    init(onExportSuccess: @escaping (Int) -> Void = { _ in }) {
+        self.onExportSuccess = onExportSuccess
         _homeEntities = FetchRequest(fetchRequest: Self.homeFetchRequest)
         _collectionEntities = FetchRequest(fetchRequest: Self.collectionFetchRequest)
     }
@@ -178,6 +181,7 @@ struct CatalogExportView: View {
     private func handleExportResult(_ result: Result<URL, any Error>) {
         switch result {
         case .success:
+            onExportSuccess(selectedCollectionIDs.count)
             dismiss()
         case .failure(let error):
             exportErrorMessage = error.localizedDescription

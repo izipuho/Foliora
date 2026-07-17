@@ -13,6 +13,7 @@ struct SettingsView: View {
     @State private var isImportExportRunning = false
     @State private var importErrorMessage: String?
     @State private var importResultMessage: String?
+    @State private var exportResultMessage: String?
     @State private var isShowingPurgeConfirmation = false
     @State private var isPurgingCloudData = false
     @State private var purgeStatusMessage: String?
@@ -26,7 +27,12 @@ struct SettingsView: View {
         List {
             Section {
                 NavigationLink {
-                    CatalogExportView()
+                    CatalogExportView { exportedCollectionCount in
+                        exportResultMessage = String.localizedStringWithFormat(
+                            String(localized: "settings.export.result.message"),
+                            exportedCollectionCount
+                        )
+                    }
                 } label: {
                     Label("catalog.export.title", systemImage: "square.and.arrow.up")
                 }
@@ -93,11 +99,15 @@ struct SettingsView: View {
         .sheet(item: $importPresentation) { presentation in
             NavigationStack {
                 CatalogImportView(bundle: presentation.bundle) { selectedCollectionIDs in
-                    handleImportSelection(selectedCollectionIDs, from: presentation.archiveURL)
+                    handleImportSelection(
+                        selectedCollectionIDs,
+                        from: presentation.archiveURL,
+                        bundle: presentation.bundle
+                    )
                 }
             }
         }
-        .alert("Import Completed", isPresented: Binding(
+        .alert("settings.import.completed", isPresented: Binding(
             get: { importResultMessage != nil },
             set: { newValue in
                 if !newValue {
@@ -108,6 +118,18 @@ struct SettingsView: View {
             Button("common.ok", role: .cancel) {}
         } message: {
             Text(importResultMessage ?? "")
+        }
+        .alert("settings.export.completed", isPresented: Binding(
+            get: { exportResultMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    exportResultMessage = nil
+                }
+            }
+        )) {
+            Button("common.ok", role: .cancel) {}
+        } message: {
+            Text(exportResultMessage ?? "")
         }
         .alert("settings.import.error_title", isPresented: Binding(
             get: { importErrorMessage != nil },
@@ -231,11 +253,16 @@ struct SettingsView: View {
 
     private func handleImportSelection(
         _ selectedCollectionIDs: Set<CollectionID>,
-        from archiveURL: URL
+        from archiveURL: URL,
+        bundle: CatalogTransferBundle
     ) {
         isImportExportRunning = true
         importErrorMessage = nil
         importResultMessage = nil
+        let importSummary = importSummary(
+            in: bundle,
+            selectedCollectionIDs: selectedCollectionIDs
+        )
 
         Task {
             let accessed = archiveURL.startAccessingSecurityScopedResource()
@@ -253,11 +280,18 @@ struct SettingsView: View {
                 )
 
                 await MainActor.run {
-                    if result.missingMediaIdentifiers.isEmpty {
-                        importResultMessage = "Selected archive content was imported."
-                    } else {
-                        importResultMessage = "Selected archive content was imported. Some media files were not found in the backup."
+                    var message = String(
+                        format: String(localized: "settings.import.result.message"),
+                        importSummary
+                    )
+                    if !result.missingMediaIdentifiers.isEmpty {
+                        message += "\n\n"
+                        message += String.localizedStringWithFormat(
+                            String(localized: "settings.import.result.missing_media"),
+                            result.missingMediaIdentifiers.count
+                        )
                     }
+                    importResultMessage = message
                     isImportExportRunning = false
                 }
             } catch {
@@ -267,6 +301,39 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private func importSummary(
+        in bundle: CatalogTransferBundle,
+        selectedCollectionIDs: Set<CollectionID>
+    ) -> String {
+        let collections = bundle.collections.filter {
+            selectedCollectionIDs.contains($0.id)
+        }
+        let collectionIDs = Set(collections.map(\.id))
+        let homeIDs = Set(collections.map(\.homeID))
+        let homes = bundle.homes.filter { homeIDs.contains($0.id) }
+        let bellItems = bundle.bellItems.filter {
+            collectionIDs.contains($0.item.collectionID)
+        }
+        let parts = [
+            importSummaryPart(count: homes.count, key: "settings.import.result.homes"),
+            importSummaryPart(count: collections.count, key: "settings.import.result.collections"),
+            importSummaryPart(count: bellItems.count, key: "settings.import.result.bells")
+        ].compactMap { $0 }
+
+        return parts.joined(separator: ", ")
+    }
+
+    private func importSummaryPart(
+        count: Int,
+        key: String.LocalizationValue
+    ) -> String? {
+        guard count > 0 else {
+            return nil
+        }
+
+        return String.localizedStringWithFormat(String(localized: key), count)
     }
 
     private func purgeCloudData() {
