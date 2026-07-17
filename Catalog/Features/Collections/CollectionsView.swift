@@ -13,7 +13,6 @@ struct CollectionsView: View {
     @State private var collectionSharingStatuses: [UUID: CollectionCardSharingStatus] = [:]
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
-    @State private var isPresentingDeleteConfirmation = false
     @State private var collectionIDPendingDeletion: UUID?
     @State private var collectionPendingSharing: CollectionSummary?
     @State private var collectionPendingEdit: CollectionSummary?
@@ -39,7 +38,9 @@ struct CollectionsView: View {
     }
 
     var body: some View {
-        collectionsRoot
+        VStack(spacing: 0) {
+            collectionsRoot
+        }
             .background {
                 CatalogBackgrounds.app(scheme: colorScheme)
                     .ignoresSafeArea()
@@ -91,25 +92,35 @@ struct CollectionsView: View {
                     )
                 }
             }
-            .confirmationDialog(
+            .alert(
                 Text(deleteConfirmationTitle(for: collectionIDPendingDeletion)),
-                isPresented: $isPresentingDeleteConfirmation,
-                titleVisibility: .visible,
-                presenting: collectionIDPendingDeletion
-            ) { collectionID in
-                let action = deleteActionPresentation(for: collectionID)
+                isPresented: Binding(
+                    get: { collectionIDPendingDeletion != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            collectionIDPendingDeletion = nil
+                        }
+                    }
+                )
+            ) {
+                if let collectionID = collectionIDPendingDeletion {
+                    let action = deleteActionPresentation(for: collectionID)
 
-                Button(action.title, role: .destructive) {
-                    deleteCollection(collectionID)
-                    collectionIDPendingDeletion = nil
+                    Button(action.title, role: .destructive) {
+                        guard let collectionID = collectionIDPendingDeletion else { return }
+                        deleteCollection(collectionID)
+                        collectionIDPendingDeletion = nil
+                    }
                 }
 
-                Button("Cancel", role: .cancel) {
+                Button("common.cancel", role: .cancel) {
                     collectionIDPendingDeletion = nil
                 }
-            } message: { collectionID in
-                Text(deleteConfirmationMessage(for: collectionID))
-        }
+            } message: {
+                if let collectionID = collectionIDPendingDeletion {
+                    Text(deleteConfirmationMessage(for: collectionID))
+                }
+            }
     }
 
     private func deleteConfirmationTitle(for collectionID: UUID?) -> String {
@@ -145,7 +156,7 @@ struct CollectionsView: View {
                         .catalogContainerListRow()
                         .swipeActions {
                             Button(role: .destructive) {
-                                confirmDeleteCollection(collection.id)
+                                collectionIDPendingDeletion = collection.id
                             } label: {
                                 let action = deleteActionPresentation(for: collection.id)
                                 Label(action.title, systemImage: action.systemImage)
@@ -258,11 +269,6 @@ struct CollectionsView: View {
     private func deleteCollection(_ collectionID: UUID) {
         repository.deleteCollection(collectionID: collectionID)
         reloadCatalogSnapshot()
-    }
-
-    private func confirmDeleteCollection(_ collectionID: UUID) {
-        collectionIDPendingDeletion = collectionID
-        isPresentingDeleteConfirmation = true
     }
 
     private func canManageCollection(_ collectionID: UUID) -> Bool {

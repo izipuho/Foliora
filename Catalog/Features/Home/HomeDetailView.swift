@@ -66,7 +66,7 @@ struct HomeDetailView: View {
             isPresented: $isPresentingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button(String(localized: "home.delete.confirm"), role: .destructive) {
+            Button(String(localized: "common.delete"), role: .destructive) {
                 onDelete()
                 dismiss()
             }

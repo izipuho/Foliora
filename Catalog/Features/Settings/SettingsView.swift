@@ -151,7 +151,7 @@ struct SettingsView: View {
             Button("Purge", role: .destructive) {
                 purgeCloudData()
             }
-            Button("Cancel", role: .cancel) {}
+            Button("common.cancel", role: .cancel) {}
         } message: {
             Text("This will delete all Foliora Bells data from this device and sync deletions to iCloud for this Apple ID.")
         }

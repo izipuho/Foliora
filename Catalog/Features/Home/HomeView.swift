@@ -14,8 +14,7 @@ struct HomeView: View {
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
     @State private var draftLocations: [Location] = []
     @State private var isPresentingCreateHomeEditor = false
-    @State private var pendingDeleteHomeID: UUID?
-    @State private var isPresentingDeleteConfirmation = false
+    @State private var homeIDPendingDeletion: UUID?
 
     init(
         repository: any CatalogRepository,
@@ -33,6 +32,30 @@ struct HomeView: View {
 
     var body: some View {
         homeContent
+            .alert(
+                String(localized: "home.delete.title"),
+                isPresented: Binding(
+                    get: { homeIDPendingDeletion != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            homeIDPendingDeletion = nil
+                        }
+                    }
+                )
+            ) {
+                Button(String(localized: "common.delete"), role: .destructive) {
+                    if let homeID = homeIDPendingDeletion {
+                        deleteHome(homeID)
+                    }
+                    homeIDPendingDeletion = nil
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {
+                    homeIDPendingDeletion = nil
+                }
+            } message: {
+                Text(String(localized: "home.delete.message"))
+            }
     }
 
     private var homes: [Home] {
@@ -69,21 +92,6 @@ struct HomeView: View {
                     Image(systemName: "plus")
                 }
             }
-        }
-        .confirmationDialog(
-            String(localized: "home.delete.title"),
-            isPresented: $isPresentingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(String(localized: "home.delete.confirm"), role: .destructive) {
-                confirmDeleteHome()
-            }
-
-            Button(String(localized: "common.cancel"), role: .cancel) {
-                pendingDeleteHomeID = nil
-            }
-        } message: {
-            Text(String(localized: "home.delete.message"))
         }
         .sheet(isPresented: $isPresentingCreateHomeEditor) {
             HomeEditorView(
@@ -129,7 +137,7 @@ struct HomeView: View {
         .catalogContainerListRow()
         .swipeActions {
             Button(role: .destructive) {
-                requestDeleteHome(home.id)
+                homeIDPendingDeletion = home.id
             } label: {
                 Label(String(localized: "common.delete"), systemImage: "trash")
             }
@@ -157,17 +165,6 @@ struct HomeView: View {
         repository.saveHome(draftHome)
         repository.saveLocations(draftLocations, in: draftHome.id)
         reloadNavigationSnapshot()
-    }
-
-    private func requestDeleteHome(_ homeID: UUID) {
-        pendingDeleteHomeID = homeID
-        isPresentingDeleteConfirmation = true
-    }
-
-    private func confirmDeleteHome() {
-        guard let homeID = pendingDeleteHomeID else { return }
-        deleteHome(homeID)
-        pendingDeleteHomeID = nil
     }
 
     private func deleteHome(_ homeID: UUID) {
