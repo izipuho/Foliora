@@ -2976,8 +2976,8 @@
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Редактор"
+            "state" : "translated",
+            "value" : "Совладелец"
           }
         }
       }
