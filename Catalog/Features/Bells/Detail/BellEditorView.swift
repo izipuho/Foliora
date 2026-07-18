@@ -275,7 +275,7 @@ struct BellEditorView: View {
                         )
 
                         EnumSelectionRow(
-                            title: String(localized: "editor.acquisition"),
+                            title: String(localized: "bell.detail.aquisition"),
                             selectedLabel: acquisitionMethod.displayName,
                             options: AcquisitionMethod.allCases,
                             selection: $acquisitionMethod,
