@@ -1,3 +1,6 @@
+---
+title: Privacy Policy
+---
 # Privacy Policy for Foliora Bells
 
 _Last updated: June 2026_
