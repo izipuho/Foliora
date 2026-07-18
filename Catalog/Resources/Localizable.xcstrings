@@ -5367,7 +5367,7 @@
       }
     },
     "home.list.collections.count" : {
-      "comment" : "Home detail collection count\nHome list collection count",
+      "comment" : "Home list collection count",
       "localizations" : {
         "en" : {
           "variations" : {

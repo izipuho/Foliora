@@ -316,7 +316,7 @@ private struct DashboardSharingCard: View {
         case .contributor:
             return DashboardSharingCardContent(
                 systemImage: "person.crop.circle.badge.checkmark",
-                value: String(localized: "collection.sharing.role.editor"),
+                value: String(localized: "collection.sharing.role.coowner"),
                 detail: nil
             )
         case .viewer:
