@@ -103,8 +103,13 @@ struct CatalogSnapshot {
             id: uuidValue(entity, "id"),
             name: stringValue(entity, "name"),
             iconName: stringValue(entity, "iconName", default: "house.fill"),
-            notes: stringValue(entity, "notes")
+            notes: stringValue(entity, "notes"),
+            isShared: isSharedStoreEntity(entity)
         )
+    }
+
+    private static func isSharedStoreEntity(_ entity: NSManagedObject) -> Bool {
+        entity.objectID.persistentStore?.url?.lastPathComponent == "Shared.sqlite"
     }
 
     private static func collection(from entity: NSManagedObject) -> Collection {

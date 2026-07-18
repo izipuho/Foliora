@@ -207,6 +207,7 @@ private struct HomeListCard: View {
         CatalogContainerCard(
             title: home.name,
             subtitle: subtitle,
+            accessory: home.isShared ? .icon("link") : nil,
             systemImage: home.iconName
         )
     }
