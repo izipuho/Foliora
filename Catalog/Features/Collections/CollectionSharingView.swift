@@ -133,7 +133,7 @@ struct CollectionSharingView: View {
         case .owner:
             String(localized: "collection.sharing.role.owner")
         case .contributor:
-            String(localized: "collection.sharing.role.editor")
+            String(localized: "collection.sharing.role.coowner")
         case .viewer:
             String(localized: "collection.sharing.role.viewer")
         }
