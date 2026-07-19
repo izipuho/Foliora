@@ -300,6 +300,7 @@ struct MediaSection: View {
             CameraPickerView { image in
                 addCapturedPhoto(image)
             }
+            .ignoresSafeArea()
         }
         .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresentingAddMediaOptions, titleVisibility: .visible) {
             Button(String(localized: "editor.media.photo_library")) {
