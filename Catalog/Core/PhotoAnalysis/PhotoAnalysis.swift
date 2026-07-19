@@ -104,15 +104,12 @@ private enum PhotoAnalysisNormalization {
 
 private enum PhotoAnalysisTagBuilder {
     nonisolated static func allTags(
-        recognizedText: [RecognizedTextFeature],
         visionFeatures: [VisionFeature],
         animalHints: [PhotoAnimalHint],
         excludedLabels: Set<String>
     ) -> [PhotoTag] {
         let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
-        let tags = recognizedText.map {
-            PhotoTag(label: $0.text, confidence: $0.confidence)
-        } + visionFeatures.map {
+        let tags = visionFeatures.map {
             PhotoTag(label: $0.label, confidence: $0.confidence)
         } + animalHints.map {
             PhotoTag(label: $0.label, confidence: Double($0.confidence))
@@ -367,7 +364,6 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             )
         }
         let allTags = PhotoAnalysisTagBuilder.allTags(
-            recognizedText: textLines,
             visionFeatures: labels,
             animalHints: animalLabels,
             excludedLabels: excludedLabels
