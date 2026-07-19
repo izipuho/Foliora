@@ -1430,23 +1430,6 @@
         }
       }
     },
-    "bell.detail.models" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3D Models"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3D-модели"
-          }
-        }
-      }
-    },
     "bell.detail.photos" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4183,23 +4166,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Обложка"
-          }
-        }
-      }
-    },
-    "editor.media.empty.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add photos or 3D models."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Добавь фотографии или 3D-модели."
           }
         }
       }
