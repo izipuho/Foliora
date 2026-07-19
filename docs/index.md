@@ -1,5 +1,0 @@
---
-title: Index
----
-
-Hello world!
