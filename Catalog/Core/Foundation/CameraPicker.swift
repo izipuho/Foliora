@@ -34,10 +34,14 @@ struct CameraPicker: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.onImagePicked(image)
+            guard let image = info[.originalImage] as? UIImage else {
+                parent.dismiss()
+                return
             }
-            parent.dismiss()
+
+            picker.dismiss(animated: true) {
+                self.parent.onImagePicked(image)
+            }
         }
     }
 }
