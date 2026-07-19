@@ -313,9 +313,11 @@ struct MediaSection: View {
                 }
             }
 
-            //Button(String(localized: "editor.media.model")) {
-            //    isShowingModelPlaceholder = true
-            //}
+            #if DEBUG
+            Button(String(localized: "editor.media.add_model3d")) {
+                isShowingModelPlaceholder = true
+            }
+            #endif
 
             Button(String(localized: "common.cancel"), role: .cancel) {}
         }
