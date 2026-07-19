@@ -1,17 +1,12 @@
 # Foliora
 
+## Bells
+
+![Foliora Bells icon](Catalog/Resources/Assets.xcassets/MedalionBell.imageset/Medalion Bell.png)
+
 Foliora is a native SwiftUI iOS app for cataloging home collections. The active product target is **Foliora Bells**: an offline-first catalog for bell collections with homes, storage locations, photos, search, import/export, and iCloud sharing built on Core Data + CloudKit.
 
 The repository also contains a small bell-recognition/debug target and a local PyTorch-to-Core ML training pipeline for experimenting with bell tag decisions.
-
-## Current State
-
-- SwiftUI app target: `Foliora Bells`.
-- Persistence: Core Data through `NSPersistentCloudKitContainer`.
-- Sync/sharing: private and shared CloudKit stores using container `iCloud.com.izipuho.FolioraBells`.
-- Main feature area: bells catalog.
-- Supporting areas: homes, storage maps/locations, collections, settings, import/export, CloudKit diagnostics.
-- Experimental areas: standalone bell-recognition/debug apps and local ML training utilities.
 
 ## Product Features
 
@@ -114,30 +109,6 @@ It trains in PyTorch and exports a Core ML `.mlpackage`. See `ml/README.md` for 
 - Xcode with iOS 26 SDK support.
 - An Apple developer team with iCloud/CloudKit capabilities for device or CloudKit testing.
 - Python 3 for the optional ML tools.
-
-### Open the App
-
-```sh
-open Foliora.xcodeproj
-```
-
-Select the `Foliora Bells` scheme and run on a simulator or device.
-
-### Useful Checks
-
-```sh
-xcodebuild -project Foliora.xcodeproj -scheme "Foliora Bells" -destination 'platform=iOS Simulator,name=iPhone 17' build
-```
-
-For ML tooling:
-
-```sh
-python3 -m venv .venv-ml
-source .venv-ml/bin/activate
-pip install -r ml/requirements.txt
-python ml/train.py --dataset-dir "Example photos/dataset"
-python ml/export_coreml.py
-```
 
 ## Notes
 
