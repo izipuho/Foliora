@@ -1,8 +1,9 @@
 # Foliora
 
 ## Bells
-
-![Foliora Bells icon](Catalog/Resources/Assets.xcassets/MedalionBell.imageset/Medalion Bell.png)
+<img src="Catalog/Resources/Assets.xcassets/MedalionBell.imageset/Medalion%20Bell.png"
+     alt="Foliora Bells icon"
+     width="128">
 
 Foliora is a native SwiftUI iOS app for cataloging home collections. The active product target is **Foliora Bells**: an offline-first catalog for bell collections with homes, storage locations, photos, search, import/export, and iCloud sharing built on Core Data + CloudKit.
 
