@@ -93,6 +93,9 @@ struct BellGridView: View {
             }
         }
         .buttonStyle(.plain)
+        .frame(width: cardSize.width, height: cardSize.height)
+        .contentShape(Rectangle())
+        //.clipped()
 
         if let contextMenu {
             button
