@@ -67,17 +67,25 @@ struct BellPhotoAnalysisDebugInfo: Sendable {
 }
 
 protocol BellPhotoSuggestionMapping: Sendable {
-    func map(analysis: PhotoAnalysisResult) async -> BellPhotoSuggestions
+    func map(
+        analysis: PhotoAnalysisResult,
+        semanticFeatures: SemanticPhotoFeatures
+    ) async -> BellPhotoSuggestions
 }
 
 struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
     init() {}
 
-    func map(analysis: PhotoAnalysisResult) async -> BellPhotoSuggestions {
+    func map(
+        analysis: PhotoAnalysisResult,
+        semanticFeatures: SemanticPhotoFeatures
+    ) async -> BellPhotoSuggestions {
         let recognizedText = analysis.main.recognizedText
-        let analysisTags = makeAnalysisTags(from: analysis)
-        let visualKeywords = makeVisualKeywords(from: analysisTags)
-        let suggestedTags = analysisTags.map { SuggestedFieldValue(value: $0.label, confidence: $0.confidence) }
+        let visualFeatures = semanticFeatures.rawVisualKeywords
+        let visualKeywords = makeVisualKeywords(from: visualFeatures)
+        let suggestedTags = visualFeatures.map {
+            SuggestedFieldValue(value: $0.label, confidence: $0.confidence)
+        }
         let tags = suggestedTags.map(\.value)
 
         return BellPhotoSuggestions(
@@ -96,36 +104,12 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         )
     }
 
-
-    private func makeAnalysisTags(from analysis: PhotoAnalysisResult) -> [PhotoTag] {
-        deduplicateTags(analysis.main.allTags)
-            .sorted { lhs, rhs in
-                lhs.confidence > rhs.confidence
-            }
-    }
-
-    private func deduplicateTags(_ tags: [PhotoTag]) -> [PhotoTag] {
-        var bestByLabel: [String: PhotoTag] = [:]
-
-        for tag in tags {
-            let label = tag.label.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !label.isEmpty else { continue }
-
-            let key = label.lowercased()
-            if let existing = bestByLabel[key], existing.confidence >= tag.confidence {
-                continue
-            }
-
-            bestByLabel[key] = PhotoTag(label: label, confidence: tag.confidence)
-        }
-
-        return Array(bestByLabel.values)
-    }
-
-    private func makeVisualKeywords(from analysisTags: [PhotoTag]) -> [VisualKeyword] {
-        analysisTags
+    private func makeVisualKeywords(from visualFeatures: [SemanticPhotoFeature]) -> [VisualKeyword] {
+        visualFeatures
             .filter { $0.confidence >= 0.28 }
-            .map { VisualKeyword(value: $0.label, confidence: $0.confidence) }
+            .map {
+                VisualKeyword(value: $0.label, confidence: $0.confidence)
+            }
     }
 }
 
@@ -147,15 +131,22 @@ final class BellPhotoAnalysisController {
     private(set) var suggestions: BellPhotoSuggestions = .empty
 
     private let service: any PhotoAnalysisService
+    private let semanticExtractor: any SemanticPhotoFeatureExtracting
     private let mapper: any BellPhotoSuggestionMapping
 
     init() {
         self.service = DefaultPhotoAnalysisService()
+        self.semanticExtractor = SemanticPhotoFeatureExtractor()
         self.mapper = DefaultBellPhotoSuggestionMapper()
     }
 
-    init(service: any PhotoAnalysisService, mapper: any BellPhotoSuggestionMapping) {
+    init(
+        service: any PhotoAnalysisService,
+        semanticExtractor: any SemanticPhotoFeatureExtracting,
+        mapper: any BellPhotoSuggestionMapping
+    ) {
         self.service = service
+        self.semanticExtractor = semanticExtractor
         self.mapper = mapper
     }
 
@@ -173,7 +164,11 @@ final class BellPhotoAnalysisController {
 
         Task {
             let analysis = await service.analyze(image: cgImage)
-            let mapped = await mapper.map(analysis: analysis)
+            let semanticFeatures = await semanticExtractor.extractFeatures(from: analysis)
+            let mapped = await mapper.map(
+                analysis: analysis,
+                semanticFeatures: semanticFeatures
+            )
             await MainActor.run {
                 self.suggestions = mapped
                 self.isAnalyzing = false

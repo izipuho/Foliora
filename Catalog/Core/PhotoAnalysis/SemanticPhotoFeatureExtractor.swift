@@ -35,9 +35,14 @@ enum SemanticPhotoFeatureSource: Hashable, Sendable {
     case vlm
 }
 
+struct SemanticPhotoVisualFeature: Hashable, Sendable {
+    let label: String
+    let confidence: Double
+}
+
 struct SemanticPhotoVLMInput: Sendable {
     let mainObjectImage: CGImage?
-    let allTags: [PhotoTag]
+    let visualFeatures: [SemanticPhotoVisualFeature]
     let recognizedText: [RecognizedTextFeature]
 }
 
@@ -64,11 +69,11 @@ protocol SemanticPhotoVLMExtracting: Sendable {
 }
 
 protocol SemanticPhotoTagFiltering: Sendable {
-    func filterTags(_ tags: [PhotoTag]) async -> [PhotoTag]
+    func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature]
 }
 
 struct PassthroughSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
-    func filterTags(_ tags: [PhotoTag]) async -> [PhotoTag] {
+    func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature] {
         tags
     }
 }
@@ -105,7 +110,7 @@ struct LocalLLMSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
         self.client = client
     }
 
-    func filterTags(_ tags: [PhotoTag]) async -> [PhotoTag] {
+    func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature] {
         guard !tags.isEmpty else {
             return []
         }
@@ -147,7 +152,7 @@ struct LocalLLMSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
         """
     }
 
-    private func userPrompt(for tags: [PhotoTag]) -> String {
+    private func userPrompt(for tags: [SemanticPhotoVisualFeature]) -> String {
         let promptItems = tags.map {
             LocalLLMTagFilterPromptItem(
                 tag: $0.label,
@@ -186,13 +191,15 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
     }
 
     func extractFeatures(from analysis: PhotoAnalysisResult) async -> SemanticPhotoFeatures {
-        let allTags = analysis.main.allTags + analysis.background.allTags
+        let visualFeatures =
+            visualFeatures(from: analysis.main) +
+            visualFeatures(from: analysis.background)
         let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
-        let semanticTags = await tagFilter.filterTags(allTags)
+        let semanticTags = await tagFilter.filterTags(visualFeatures)
         let vlmOutput = await vlmExtractor?.extractFeatures(
             from: SemanticPhotoVLMInput(
                 mainObjectImage: analysis.mainObjectImage,
-                allTags: semanticTags,
+                visualFeatures: semanticTags,
                 recognizedText: recognizedText
             )
         ) ?? .empty
@@ -204,7 +211,7 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
             placeHints: vlmOutput.placeHints,
             textEntities: vlmOutput.textEntities,
             styleHints: vlmOutput.styleHints,
-            rawVisualKeywords: allTags.map {
+            rawVisualKeywords: visualFeatures.map {
                 SemanticPhotoFeature(
                     label: $0.label,
                     confidence: $0.confidence,
@@ -219,5 +226,23 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
                 )
             }
         )
+    }
+
+    private func visualFeatures(
+        from scope: PhotoAnalysisFeatureScope
+    ) -> [SemanticPhotoVisualFeature] {
+        scope.classifications.map {
+            SemanticPhotoVisualFeature(
+                label: $0.label,
+                confidence: $0.confidence
+            )
+        } + scope.recognizedObjects.flatMap { object in
+            object.labels.map {
+                SemanticPhotoVisualFeature(
+                    label: $0.label,
+                    confidence: $0.confidence
+                )
+            }
+        }
     }
 }
