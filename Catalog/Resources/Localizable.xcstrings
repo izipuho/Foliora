@@ -4188,6 +4188,7 @@
       }
     },
     "editor.media.model" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
