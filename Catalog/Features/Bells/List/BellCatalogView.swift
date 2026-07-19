@@ -117,6 +117,10 @@ struct BellCatalogView: View {
     @State private var feedbackToken = 0
     @State private var scrollRequestToken = 0
     @State private var didEndActivePinchGesture = false
+    @State private var isPresentingHomeEditor = false
+    @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+    @State private var draftHomeLocations: [Location] = []
+    @State private var bellPendingMoveAfterHomeEditor: BellListItem?
     @StateObject private var viewModel: BellCatalogViewModel
     @Namespace private var bellGridTransitionNamespace
 
@@ -244,17 +248,35 @@ struct BellCatalogView: View {
             )
         }
         .sheet(item: $bellPendingMove) { bell in
-            BellQuickMoveSheet(
-                bell: bell,
-                locations: availableLocations,
-                locationPathByID: locationPathByID
-            ) { locationID in
-                let bells = isSelectionModeEnabled ? selectedBells : [bell]
-                moveBells(bells, to: locationID)
-                if isSelectionModeEnabled {
-                    cancelSelectionMode()
+            if let collection {
+                BellQuickMoveSheet(
+                    bell: bell,
+                    locations: availableLocations,
+                    locationPathByID: locationPathByID,
+                    onManageLocations: {
+                        presentHomeEditor(for: collection.homeID, thenMove: bell)
+                    }
+                ) { locationID in
+                    let bells = isSelectionModeEnabled ? selectedBells : [bell]
+                    moveBells(bells, to: locationID)
+                    if isSelectionModeEnabled {
+                        cancelSelectionMode()
+                    }
                 }
             }
+        }
+        .sheet(isPresented: $isPresentingHomeEditor) {
+            HomeEditorView(
+                home: $draftHome,
+                locations: $draftHomeLocations,
+                onSave: {
+                    repository.saveHome(draftHome)
+                    repository.saveLocations(draftHomeLocations, in: draftHome.id)
+                    reloadCatalogSnapshot()
+                    continueQuickMoveIfNeeded()
+                },
+                onDelete: nil
+            )
         }
         .confirmationDialog(
             String(localized: "bell.context.delete.title"),
@@ -561,6 +583,24 @@ struct BellCatalogView: View {
         pruneSelectionToVisibleBells()
     }
 
+    private func presentHomeEditor(for homeID: UUID, thenMove bell: BellListItem) {
+        let snapshot = CatalogSnapshot.load(from: managedObjectContext)
+        guard let home = snapshot.homes.first(where: { $0.id == homeID }) else { return }
+        draftHome = home
+        draftHomeLocations = snapshot.locationsByHomeID[homeID] ?? []
+        bellPendingMoveAfterHomeEditor = bell
+        isPresentingHomeEditor = true
+    }
+
+    private func continueQuickMoveIfNeeded() {
+        guard let bell = bellPendingMoveAfterHomeEditor else { return }
+        bellPendingMoveAfterHomeEditor = nil
+        isPresentingHomeEditor = false
+        DispatchQueue.main.async {
+            bellPendingMove = bell
+        }
+    }
+
     private var visibleBells: [BellListItem] {
         switch displayModel.layout {
         case .empty:
@@ -825,6 +865,7 @@ private struct BellQuickMoveSheet: View {
     let bell: BellListItem
     let locations: [Location]
     let locationPathByID: [UUID: String]
+    let onManageLocations: () -> Void
     let onSave: (UUID?) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -834,11 +875,13 @@ private struct BellQuickMoveSheet: View {
         bell: BellListItem,
         locations: [Location],
         locationPathByID: [UUID: String],
+        onManageLocations: @escaping () -> Void,
         onSave: @escaping (UUID?) -> Void
     ) {
         self.bell = bell
         self.locations = locations
         self.locationPathByID = locationPathByID
+        self.onManageLocations = onManageLocations
         self.onSave = onSave
         _selectedLocationID = State(initialValue: bell.locationID)
     }
@@ -851,6 +894,13 @@ private struct BellQuickMoveSheet: View {
                         title: String(localized: "editor.location"),
                         selectedLabel: selectedLocationLabel,
                         locations: domainLocations,
+                        onManageLocations: {
+                            dismiss()
+                            DispatchQueue.main.async {
+                                onManageLocations()
+                            }
+                        },
+                        presentationToken: 0,
                         selectedLocationID: $selectedLocationID
                     )
                 }

@@ -95,7 +95,13 @@ struct CatalogEmptyStateView: View {
     @ViewBuilder
     private func primaryActionLabel(_ title: LocalizedStringKey) -> some View {
         if let primaryActionSystemImage {
-            Label(title, systemImage: primaryActionSystemImage)
+            HStack(spacing: CatalogMetrics.Spacing.sm) {
+                Image(systemName: primaryActionSystemImage)
+                    .font(.body.weight(.semibold))
+
+                Text(title)
+                    .multilineTextAlignment(.center)
+            }
         } else {
             Text(title)
         }
