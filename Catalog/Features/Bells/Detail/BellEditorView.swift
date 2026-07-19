@@ -149,10 +149,6 @@ struct BellEditorView: View {
                                         .foregroundStyle(.secondary)
                                 }
                             } else {
-                                if !photoAnalysis.suggestions.recognizedText.isEmpty {
-                                    PhotoRecognizedTextBlock(textFeatures: photoAnalysis.suggestions.recognizedText)
-                                }
-
                                 if let titleSuggestion = photoAnalysis.suggestions.title {
                                     PhotoSuggestionRow(
                                         title: String(localized: "editor.photo_analysis.title"),
@@ -603,26 +599,6 @@ private struct PhotoSuggestionRow: View {
 
     private var confidenceLabel: String {
         "\(Int((confidence * 100).rounded()))%"
-    }
-}
-
-private struct PhotoRecognizedTextBlock: View {
-    let textFeatures: [RecognizedTextFeature]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-            Text(String(localized: "editor.photo_analysis.detected_text"))
-                .font(CatalogTypography.chipLabel)
-                .foregroundStyle(.secondary)
-
-            TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
-                ForEach(textFeatures, id: \.self) { feature in
-                    Text(feature.text)
-                        .font(.caption.weight(.medium))
-                        .catalogSurfaceCapsule()
-                }
-            }
-        }
     }
 }
 

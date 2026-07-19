@@ -4354,6 +4354,7 @@
       }
     },
     "editor.photo_analysis.detected_text" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
