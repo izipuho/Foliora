@@ -103,7 +103,7 @@ struct SearchTabView: View {
                 tokens: uniqueConditions.map(SearchToken.condition)
             ),
             SearchTokenGroup(
-                title: String(localized: "editor.acquisition"),
+                title: String(localized: "bell.detail.aquisition"),
                 systemImage: "tray.and.arrow.down",
                 tokens: uniqueAcquisitionMethods.map(SearchToken.acquisitionMethod)
             )

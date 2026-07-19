@@ -180,7 +180,7 @@ struct CollectionEditorView: View {
                 isPresented: $isPresentingDeleteConfirmation,
                 titleVisibility: .visible
             ) {
-                Button(String(localized: "collection.delete.confirm"), role: .destructive) {
+                Button(String(localized: "common.delete"), role: .destructive) {
                     onDelete?()
                     dismiss()
                 }

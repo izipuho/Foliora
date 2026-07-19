@@ -6,17 +6,20 @@ struct Home: Identifiable, Hashable, Codable {
     var name: String
     var iconName: String
     var notes: String
+    var isShared: Bool
 
     init(
         id: UUID,
         name: String,
         iconName: String = "house.fill",
-        notes: String
+        notes: String,
+        isShared: Bool = false
     ) {
         self.id = id
         self.name = name
         self.iconName = iconName
         self.notes = notes
+        self.isShared = isShared
     }
 
     enum CodingKeys: String, CodingKey {
@@ -24,6 +27,7 @@ struct Home: Identifiable, Hashable, Codable {
         case name
         case iconName
         case notes
+        case isShared
     }
 
     init(from decoder: Decoder) throws {
@@ -32,6 +36,7 @@ struct Home: Identifiable, Hashable, Codable {
         name = try container.decode(String.self, forKey: .name)
         iconName = try container.decodeIfPresent(String.self, forKey: .iconName) ?? "house.fill"
         notes = try container.decode(String.self, forKey: .notes)
+        isShared = try container.decodeIfPresent(Bool.self, forKey: .isShared) ?? false
     }
 }
 

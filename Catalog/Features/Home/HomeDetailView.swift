@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreData
 
 struct HomeDetailView: View {
     @Binding var home: Home
@@ -6,9 +7,27 @@ struct HomeDetailView: View {
     let collectionCount: Int
     let onSave: (Home, [Location]) -> Void
     let onDelete: () -> Void
+    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
+    @State private var catalogSnapshot: CatalogSnapshot?
     @State private var isPresentingEditor = false
     @State private var isPresentingDeleteConfirmation = false
+
+    private var homeCollections: [Collection] {
+        (catalogSnapshot?.collections ?? [])
+            .filter { $0.homeID == home.id }
+    }
+
+    private var collectionCountText: LocalizedStringResource {
+        if collectionCount == 0 {
+            return "home.list.collections.empty"
+        }
+
+        return LocalizedStringResource(
+            "home.list.collections.count",
+            defaultValue: "\(collectionCount, specifier: "%d")"
+        )
+    }
 
     var body: some View {
         List {
@@ -18,27 +37,39 @@ struct HomeDetailView: View {
                 Text(String(localized: "home.details"))
             }
 
-            Section(String(localized: "home.metric.collections")) {
-                if collectionCount == 0 {
+            Section(String(localized: "home.storage_map")) {
+                StorageMapCard(locations: locations)
+            }
+
+            Section {
+                if homeCollections.isEmpty {
                     Text(String(localized: "home.list.collections.empty"))
                         .foregroundStyle(.secondary)
                 } else {
-                    Text(
-                        String.localizedStringWithFormat(
-                            NSLocalizedString("home.list.collections.count", comment: "Home detail collection count"),
-                            collectionCount
-                        )
-                    )
+                    ForEach(homeCollections) { collection in
+                        NavigationLink(value: AppDestination.collection(collection.id)) {
+                            Label(collection.title, systemImage: collection.kind.systemImage)
+                        }
+                    }
                 }
-            }
-
-            Section(String(localized: "home.storage_map")) {
-                StorageMapCard(locations: locations)
+            } header: {
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                    Text(String(localized: "home.metric.collections"))
+                    Text(collectionCountText)
+                        .font(.caption)
+                }
             }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(home.name)
         .navigationBarTitleDisplayMode(.large)
+        .onAppear(perform: reloadCatalogSnapshot)
+        .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextObjectsDidChange,
+            object: managedObjectContext
+        )) { _ in
+            reloadCatalogSnapshot()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -66,7 +97,7 @@ struct HomeDetailView: View {
             isPresented: $isPresentingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button(String(localized: "home.delete.confirm"), role: .destructive) {
+            Button(String(localized: "common.delete"), role: .destructive) {
                 onDelete()
                 dismiss()
             }
@@ -75,6 +106,10 @@ struct HomeDetailView: View {
         } message: {
             Text(String(localized: "home.delete.message"))
         }
+    }
+
+    private func reloadCatalogSnapshot() {
+        catalogSnapshot = CatalogSnapshot.load(from: managedObjectContext)
     }
 }
 
@@ -107,4 +142,89 @@ struct HomeIdentityHeader: View {
         }
         .padding(.vertical, CatalogMetrics.Spacing.xs)
     }
+}
+
+#Preview {
+    NavigationStack {
+        HomeDetailView(
+            home: .constant(HomeDetailPreviewData.home),
+            locations: .constant(HomeDetailPreviewData.locations),
+            collectionCount: HomeDetailPreviewData.collectionCount,
+            onSave: { _, _ in },
+            onDelete: {}
+        )
+        .environment(\.managedObjectContext, HomeDetailPreviewData.context)
+    }
+}
+
+private enum HomeDetailPreviewData {
+    static let home = Home(
+        id: UUID(),
+        name: "Lake House",
+        iconName: "house.fill",
+        notes: "Summer storage and display shelves."
+    )
+
+    static let locations = [
+        Location(
+            id: UUID(),
+            homeID: home.id,
+            parentLocationID: nil,
+            kind: .floor,
+            name: "First Floor",
+            notes: ""
+        ),
+        Location(
+            id: UUID(),
+            homeID: home.id,
+            parentLocationID: nil,
+            kind: .room,
+            name: "Study",
+            notes: ""
+        )
+    ]
+
+    static let collectionCount = 3
+
+    @MainActor
+    static let context: NSManagedObjectContext = {
+        do {
+            let container = try FolioraCoreDataStack.makeContainer(inMemory: true)
+            let repository = CoreDataCatalogRepository(
+                context: container.viewContext,
+                persistentContainer: nil
+            )
+
+            repository.saveHome(home)
+            repository.saveLocations(locations, in: home.id)
+            repository.saveCollection(Collection(
+                id: UUID(),
+                homeID: home.id,
+                kind: .bells,
+                title: "Travel Bells",
+                notes: "",
+                backgroundStyle: .amber
+            ))
+            repository.saveCollection(Collection(
+                id: UUID(),
+                homeID: home.id,
+                kind: .bells,
+                title: "Family Gifts",
+                notes: "",
+                backgroundStyle: .mint
+            ))
+            repository.saveCollection(Collection(
+                id: UUID(),
+                homeID: home.id,
+                kind: .books,
+                title: "Reference Books",
+                notes: "",
+                backgroundStyle: .slate
+            ))
+
+            return container.viewContext
+        } catch {
+            fatalError("Failed to create HomeDetailView preview data: \(error)")
+        }
+    }()
 }

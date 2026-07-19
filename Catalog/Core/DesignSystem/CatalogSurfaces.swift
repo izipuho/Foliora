@@ -44,9 +44,7 @@ extension View {
             }
             .glassEffect(Glass.regular.tint(tint).interactive(), in: shape)
     }
-}
 
-extension View {
     func catalogSurfaceTile() -> some View {
         self
             .padding(CatalogMetrics.Spacing.md)
@@ -61,7 +59,7 @@ extension View {
                     .opacity(0.12)
                     .clipShape(CatalogShapes.tile)
             }
-            .glassEffect(.regular, in: CatalogShapes.tile)
+            .glassEffect(.regular.interactive(), in: CatalogShapes.tile)
     }
 
     func catalogSurfaceTile<Media: View>(

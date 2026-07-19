@@ -1,6 +1,11 @@
 import CoreData
 import Foundation
 
+enum CatalogExportSelection {
+    case collections(Set<UUID>)
+    case homes(Set<UUID>)
+}
+
 @MainActor
 final class CatalogImportExportActor {
     struct ImportResult: Sendable {
@@ -13,7 +18,7 @@ final class CatalogImportExportActor {
         self.context = context
     }
 
-    func exportArchiveData() throws -> Data {
+    func exportArchiveData(selection: CatalogExportSelection) throws -> Data {
         let fileManager = FileManager.default
         let workDirectory = fileManager.temporaryDirectory
             .appendingPathComponent("catalog-export-\(UUID().uuidString)", isDirectory: true)
@@ -22,18 +27,18 @@ final class CatalogImportExportActor {
         let mediaDirectory = workDirectory.appendingPathComponent("Media", isDirectory: true)
         try fileManager.createDirectory(at: mediaDirectory, withIntermediateDirectories: true)
 
-        let bundle = try exportBundle()
+        let bundle = try exportBundle(selection: selection)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        try encoder.encode(bundle).write(to: workDirectory.appendingPathComponent("catalog.json"), options: .atomic)
+        try encoder.encode(jsonBundle(from: bundle)).write(
+            to: workDirectory.appendingPathComponent("catalog.json"),
+            options: .atomic
+        )
 
-        let mediaStore = LocalMediaFileStore.shared
-        for identifier in mediaIdentifiers(in: bundle) {
-            guard let sourceURL = mediaStore.exportFileURL(for: identifier) else { continue }
-            try fileManager.copyItem(
-                at: sourceURL,
-                to: mediaDirectory.appendingPathComponent(identifier)
-            )
+        for asset in mediaAssets(in: bundle) {
+            let identifier = asset.localIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !identifier.isEmpty, let originalData = asset.originalData else { continue }
+            try originalData.write(to: mediaDirectory.appendingPathComponent(identifier), options: .atomic)
         }
 
         let archiveURL = fileManager.temporaryDirectory
@@ -45,7 +50,14 @@ final class CatalogImportExportActor {
     }
 
     @discardableResult
-    func importArchive(from archiveURL: URL) throws -> ImportResult {
+    func importArchive(
+        from archiveURL: URL,
+        selectedCollectionIDs: Set<UUID>
+    ) throws -> ImportResult {
+        guard !selectedCollectionIDs.isEmpty else {
+            throw ImportError.emptySelection
+        }
+
         let fileManager = FileManager.default
         let workDirectory = fileManager.temporaryDirectory
             .appendingPathComponent("catalog-import-\(UUID().uuidString)", isDirectory: true)
@@ -61,37 +73,87 @@ final class CatalogImportExportActor {
         let data = try Data(contentsOf: catalogURL)
         let decoder = JSONDecoder()
         let bundle = try decoder.decode(CatalogTransferBundle.self, from: data)
-        try replaceAllData(with: bundle)
+        let filteredBundle = filteredBundle(from: bundle, selectedCollectionIDs: selectedCollectionIDs)
+        try mergeData(from: filteredBundle)
 
         let mediaStore = LocalMediaFileStore.shared
         let mediaDirectory = workDirectory.appendingPathComponent("Media", isDirectory: true)
-        for identifier in mediaIdentifiers(in: bundle) {
+        for identifier in mediaIdentifiers(in: filteredBundle) {
             let sourceURL = mediaDirectory.appendingPathComponent(identifier)
             guard fileManager.fileExists(atPath: sourceURL.path) else { continue }
             try mediaStore.restoreFile(from: sourceURL, identifier: identifier)
         }
-        try restoreMediaData(for: bundle, mediaStore: mediaStore)
+        try restoreMediaData(for: filteredBundle, mediaStore: mediaStore)
 
-        let missing = mediaIdentifiers(in: bundle).filter {
+        let missing = mediaIdentifiers(in: filteredBundle).filter {
             mediaStore.fileURL(for: $0) == nil
         }
         return ImportResult(missingMediaIdentifiers: missing)
     }
 
-    private func exportBundle() throws -> CatalogTransferBundle {
+    private enum ImportError: LocalizedError {
+        case emptySelection
+
+        var errorDescription: String? {
+            switch self {
+            case .emptySelection:
+                return "Select at least one collection to import."
+            }
+        }
+    }
+
+    private func exportBundle(selection: CatalogExportSelection) throws -> CatalogTransferBundle {
         let homeEntities = try fetchEntities(named: "HomeEntity", sortKey: "name")
         let locationEntities = try fetchEntities(named: "LocationEntity", sortKey: "name")
         let collectionEntities = try fetchEntities(named: "CollectionEntity", sortKey: "title")
-        let placeEntities = try fetchEntities(named: "PlaceEntity", sortKey: "displayName")
         let bellEntities = try fetchEntities(named: "BellEntity", sortDescriptors: [
             NSSortDescriptor(key: "createdAt", ascending: false)
         ])
 
-        let bellItems = bellEntities.map { bell in
-            let record = bellRecord(from: bell)
+        let exportedHomeEntities: [NSManagedObject]
+        let exportedLocationEntities: [NSManagedObject]
+        let exportedCollectionEntities: [NSManagedObject]
+        let exportedBellRecords: [BellRecord]
+
+        switch selection {
+        case .collections(let ids):
+            exportedCollectionEntities = collectionEntities.filter {
+                ids.contains(uuidValue($0, "id"))
+            }
+            let collectionIDs = Set(exportedCollectionEntities.map { uuidValue($0, "id") })
+            let homeIDs = Set(exportedCollectionEntities.map(collectionHomeID))
+
+            exportedHomeEntities = homeEntities.filter {
+                homeIDs.contains(uuidValue($0, "id"))
+            }
+            exportedLocationEntities = locationEntities.filter {
+                homeIDs.contains(locationHomeID(from: $0))
+            }
+            exportedBellRecords = bellEntities
+                .filter {
+                    guard let collection = $0.value(forKey: "collection") as? NSManagedObject else { return false }
+                    return collectionIDs.contains(uuidValue(collection, "id"))
+                }
+                .map(bellRecord)
+
+        case .homes(let ids):
+            exportedHomeEntities = homeEntities.filter {
+                ids.contains(uuidValue($0, "id"))
+            }
+            let homeIDs = Set(exportedHomeEntities.map { uuidValue($0, "id") })
+
+            exportedLocationEntities = locationEntities.filter {
+                homeIDs.contains(locationHomeID(from: $0))
+            }
+            exportedCollectionEntities = []
+            exportedBellRecords = []
+        }
+
+        let bellItems = exportedBellRecords.map { record in
             return BellTransferItem(
                 item: record.item,
                 details: record.details,
+                originPlace: record.originPlace.flatMap(OriginPlaceTransferValue.init),
                 mediaAssets: record.mediaAssets,
                 createdBy: record.createdBy,
                 tags: record.tags
@@ -99,12 +161,33 @@ final class CatalogImportExportActor {
         }
 
         return CatalogTransferBundle(
-            homes: homeEntities.map(home),
-            locations: locationEntities.map(location),
-            collections: collectionEntities.map(collection),
-            places: placeEntities.map(place),
+            homes: exportedHomeEntities.map(home),
+            locations: exportedLocationEntities.map(location),
+            collections: exportedCollectionEntities.map(collection),
+            places: [],
             bellItems: bellItems
         )
+    }
+
+    private func filteredBundle(
+        from bundle: CatalogTransferBundle,
+        selectedCollectionIDs: Set<UUID>
+    ) -> CatalogTransferBundle {
+        let collections = bundle.collections.filter {
+            selectedCollectionIDs.contains($0.id)
+        }
+        let collectionIDs = Set(collections.map(\.id))
+        let homeIDs = Set(collections.map(\.homeID))
+        let bellItems = bundle.bellItems.filter {
+            collectionIDs.contains($0.item.collectionID)
+        }
+
+        var copy = bundle
+        copy.homes = bundle.homes.filter { homeIDs.contains($0.id) }
+        copy.locations = bundle.locations.filter { homeIDs.contains($0.homeID) }
+        copy.collections = collections
+        copy.bellItems = bellItems
+        return copy
     }
 
     private func replaceAllData(with bundle: CatalogTransferBundle) throws {
@@ -114,7 +197,6 @@ final class CatalogImportExportActor {
         var locationEntities: [UUID: NSManagedObject] = [:]
         var collectionEntities: [UUID: NSManagedObject] = [:]
         var collectionLocationEntities: [UUID: [UUID: NSManagedObject]] = [:]
-        var placeEntities: [UUID: NSManagedObject] = [:]
 
         for home in bundle.homes {
             let entity = makeEntity(named: "HomeEntity")
@@ -179,17 +261,17 @@ final class CatalogImportExportActor {
             }
         }
 
-        for place in bundle.places {
+        var placeEntitiesByOriginPlace: [OriginPlaceTransferValue: NSManagedObject] = [:]
+
+        for originPlace in bundle.bellItems.compactMap(\.originPlace) {
+            guard placeEntitiesByOriginPlace[originPlace] == nil else { continue }
+
             let entity = makeEntity(named: "PlaceEntity")
-            entity.setValue(place.id, forKey: "id")
-            entity.setValue(place.displayName, forKey: "displayName")
-            entity.setValue(place.countryCode, forKey: "countryCode")
-            entity.setValue(place.countryName, forKey: "countryName")
-            entity.setValue(place.regionName, forKey: "regionName")
-            entity.setValue(place.cityName, forKey: "cityName")
-            entity.setValue(place.latitude, forKey: "latitude")
-            entity.setValue(place.longitude, forKey: "longitude")
-            placeEntities[place.id] = entity
+            entity.setValue(UUID(), forKey: "id")
+            entity.setValue(originPlace.displayName, forKey: "displayName")
+            entity.setValue(originPlace.latitude, forKey: "latitude")
+            entity.setValue(originPlace.longitude, forKey: "longitude")
+            placeEntitiesByOriginPlace[originPlace] = entity
         }
 
         var tagEntitiesByCollectionAndName: [UUID: [String: NSManagedObject]] = [:]
@@ -209,7 +291,7 @@ final class CatalogImportExportActor {
             entity.setValue(collectionEntities[bell.item.collectionID], forKey: "collection")
             entity.setValue(bell.item.locationID.flatMap { collectionLocationEntities[bell.item.collectionID]?[$0] }, forKey: "collectionLocation")
             entity.setValue(bell.item.locationID.flatMap { locationEntities[$0] }, forKey: "location")
-            entity.setValue(bell.details.originPlaceID.flatMap { placeEntities[$0] }, forKey: "originPlace")
+            entity.setValue(bell.originPlace.flatMap { placeEntitiesByOriginPlace[$0] }, forKey: "originPlace")
 
             let mediaEntities = bell.mediaAssets.map { asset in
                 let mediaEntity = makeEntity(named: "MediaAssetEntity")
@@ -258,13 +340,250 @@ final class CatalogImportExportActor {
         try context.save()
     }
 
+    func mergeData(from bundle: CatalogTransferBundle) throws {
+        var homeEntitiesByName = indexed(try fetchEntities(named: "HomeEntity", sortKey: "name")) {
+            normalizedName(stringValue($0, "name"))
+        }
+        var homeEntities: [UUID: NSManagedObject] = [:]
+        for home in bundle.homes {
+            let key = normalizedName(home.name)
+            let entity = homeEntitiesByName[key] ?? makeEntity(named: "HomeEntity")
+            ensureID(entity)
+            entity.setValue(home.name, forKey: "name")
+            entity.setValue(home.iconName, forKey: "iconName")
+            entity.setValue(home.notes, forKey: "notes")
+            homeEntitiesByName[key] = entity
+            homeEntities[home.id] = entity
+        }
+
+        var locationEntitiesByKey = indexed(try fetchEntities(named: "LocationEntity", sortKey: "name")) {
+            locationKey(for: $0)
+        }
+        var locationEntities: [UUID: NSManagedObject] = [:]
+        for location in bundle.locations {
+            guard let homeEntity = homeEntities[location.homeID] else { continue }
+            let key = locationKey(for: location, localHomeID: uuidValue(homeEntity, "id"))
+            let entity = locationEntitiesByKey[key] ?? makeEntity(named: "LocationEntity")
+            ensureID(entity)
+            entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+            entity.setValue(location.name, forKey: "name")
+            entity.setValue(location.notes, forKey: "notes")
+            entity.setValue(homeEntity, forKey: "home")
+            locationEntitiesByKey[key] = entity
+            locationEntities[location.id] = entity
+        }
+
+        for location in bundle.locations {
+            guard let entity = locationEntities[location.id] else { continue }
+            if let parentPath = location.fullPath?.dropLast(), !parentPath.isEmpty {
+                let localHomeID = (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID()
+                let parentKey = locationKey(
+                    homeID: localHomeID,
+                    kindRaw: parentPath.last?.kind.rawValue ?? LocationKind.room.rawValue,
+                    path: parentPath.map(locationPathComponentKey)
+                )
+                entity.setValue(locationEntitiesByKey[parentKey], forKey: "parent")
+            } else {
+                entity.setValue(location.parentLocationID.flatMap { locationEntities[$0] }, forKey: "parent")
+            }
+        }
+
+        var collectionEntitiesByKey = indexed(try fetchEntities(named: "CollectionEntity", sortKey: "title")) {
+            collectionKey(
+                homeID: collectionHomeID(from: $0),
+                kindRaw: stringValue($0, "kindRaw", default: CollectionKind.bells.rawValue),
+                title: stringValue($0, "title")
+            )
+        }
+        var collectionEntities: [UUID: NSManagedObject] = [:]
+        for collection in bundle.collections {
+            guard let homeEntity = homeEntities[collection.homeID] else { continue }
+            let key = collectionKey(
+                homeID: uuidValue(homeEntity, "id"),
+                kindRaw: collection.kind.rawValue,
+                title: collection.title
+            )
+            let entity = collectionEntitiesByKey[key] ?? makeEntity(named: "CollectionEntity")
+            ensureID(entity)
+            entity.setValue(collection.kind.rawValue, forKey: "kindRaw")
+            entity.setValue(collection.title, forKey: "title")
+            entity.setValue(collection.notes, forKey: "notes")
+            entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyleRaw")
+            entity.setValue(homeEntity, forKey: "home")
+            entity.setValue(homeEntity.value(forKey: "id"), forKey: "homeID")
+            entity.setValue(homeEntity.value(forKey: "name"), forKey: "homeName")
+            entity.setValue(homeEntity.value(forKey: "iconName"), forKey: "homeIconName")
+            collectionEntitiesByKey[key] = entity
+            collectionEntities[collection.id] = entity
+        }
+
+        var collectionLocationEntitiesByKey: [CollectionLocationKey: NSManagedObject] = indexed(try fetchEntities(named: "CollectionLocationEntity")) { entity in
+            guard
+                let collection = entity.value(forKey: "collection") as? NSManagedObject,
+                let sourceLocationID = entity.value(forKey: "sourceLocationID") as? UUID
+            else { return nil }
+            return CollectionLocationKey(collectionID: uuidValue(collection, "id"), sourceLocationID: sourceLocationID)
+        }
+        var collectionLocationEntities: [UUID: [UUID: NSManagedObject]] = [:]
+        for collection in bundle.collections {
+            guard let collectionEntity = collectionEntities[collection.id] else { continue }
+            let collectionLocations = bundle.locations.filter { $0.homeID == collection.homeID }
+
+            for (sortOrder, location) in collectionLocations.enumerated() {
+                guard let sourceLocation = locationEntities[location.id] else { continue }
+                let localLocationID = uuidValue(sourceLocation, "id")
+                let key = CollectionLocationKey(collectionID: uuidValue(collectionEntity, "id"), sourceLocationID: localLocationID)
+                let entity = collectionLocationEntitiesByKey[key] ?? makeEntity(named: "CollectionLocationEntity")
+                ensureID(entity)
+                entity.setValue(localLocationID, forKey: "sourceLocationID")
+                entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+                entity.setValue(location.name, forKey: "name")
+                entity.setValue(location.notes, forKey: "notes")
+                entity.setValue(sortOrder, forKey: "sortOrder")
+                entity.setValue(false, forKey: "isArchived")
+                entity.setValue(collectionEntity, forKey: "collection")
+                collectionLocationEntitiesByKey[key] = entity
+                collectionLocationEntities[collection.id, default: [:]][location.id] = entity
+            }
+
+            for location in collectionLocations {
+                guard let entity = collectionLocationEntities[collection.id]?[location.id] else { continue }
+                entity.setValue(location.parentLocationID.flatMap { collectionLocationEntities[collection.id]?[$0] }, forKey: "parent")
+            }
+        }
+
+        var placeEntitiesByCoordinate: [PlaceKey: NSManagedObject] = indexed(try fetchEntities(named: "PlaceEntity")) { entity in
+            guard
+                let latitude = optionalDoubleValue(entity, "latitude"),
+                let longitude = optionalDoubleValue(entity, "longitude")
+            else { return nil }
+            return PlaceKey(latitude: latitude, longitude: longitude)
+        }
+
+        for originPlace in bundle.bellItems.compactMap(\.originPlace) {
+            let key = PlaceKey(latitude: originPlace.latitude, longitude: originPlace.longitude)
+            guard placeEntitiesByCoordinate[key] == nil else { continue }
+
+            let entity = makeEntity(named: "PlaceEntity")
+            ensureID(entity)
+            entity.setValue(originPlace.displayName, forKey: "displayName")
+            entity.setValue(originPlace.latitude, forKey: "latitude")
+            entity.setValue(originPlace.longitude, forKey: "longitude")
+            placeEntitiesByCoordinate[key] = entity
+        }
+
+        var tagEntitiesByCollectionAndName: [UUID: [String: NSManagedObject]] = [:]
+        for entity in try fetchEntities(named: "BellTagEntity") {
+            guard let collection = entity.value(forKey: "collection") as? NSManagedObject else { continue }
+            let normalizedName = stringValue(entity, "normalizedName", default: normalizedTagName(stringValue(entity, "value")))
+            tagEntitiesByCollectionAndName[uuidValue(collection, "id"), default: [:]][normalizedName] = entity
+        }
+
+        var bellEntitiesByCollectionAndID: [UUID: [UUID: NSManagedObject]] = [:]
+        for entity in try fetchEntities(named: "BellEntity") {
+            guard let collection = entity.value(forKey: "collection") as? NSManagedObject else { continue }
+            bellEntitiesByCollectionAndID[uuidValue(collection, "id"), default: [:]][uuidValue(entity, "id")] = entity
+        }
+
+        for bell in bundle.bellItems {
+            guard let collectionEntity = collectionEntities[bell.item.collectionID] else { continue }
+            let localCollectionID = uuidValue(collectionEntity, "id")
+            let entity = bellEntitiesByCollectionAndID[localCollectionID]?[bell.item.id] ?? makeEntity(named: "BellEntity")
+            let originPlace = bell.originPlace.flatMap {
+                placeEntitiesByCoordinate[PlaceKey(latitude: $0.latitude, longitude: $0.longitude)]
+            }
+            entity.setValue(bell.item.id, forKey: "id")
+            entity.setValue(bell.item.title, forKey: "title")
+            entity.setValue(bell.item.notes, forKey: "notes")
+            entity.setValue(bell.item.acquiredYear, forKey: "acquiredYear")
+            entity.setValue(bell.item.createdAt, forKey: "createdAt")
+            entity.setValue(bell.item.condition.rawValue, forKey: "conditionRaw")
+            entity.setValue(bell.item.acquisitionMethod.rawValue, forKey: "acquisitionMethodRaw")
+            entity.setValue(bell.details.material.rawValue, forKey: "materialRaw")
+            entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
+            entity.setValue(bell.createdBy, forKey: "createdBy")
+            entity.setValue(collectionEntity, forKey: "collection")
+            entity.setValue(bell.item.locationID.flatMap { collectionLocationEntities[bell.item.collectionID]?[$0] }, forKey: "collectionLocation")
+            entity.setValue(bell.item.locationID.flatMap { locationEntities[$0] }, forKey: "location")
+            entity.setValue(originPlace, forKey: "originPlace")
+            bellEntitiesByCollectionAndID[localCollectionID, default: [:]][bell.item.id] = entity
+
+            var mediaEntitiesByID = indexed((entity.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []) {
+                uuidValue($0, "id")
+            }
+            for asset in bell.mediaAssets {
+                let mediaEntity = mediaEntitiesByID[asset.id] ?? makeEntity(named: "MediaAssetEntity")
+                mediaEntity.setValue(asset.id, forKey: "id")
+                mediaEntity.setValue(asset.kind.rawValue, forKey: "kindRaw")
+                mediaEntity.setValue(asset.localIdentifier, forKey: "localIdentifier")
+                mediaEntity.setValue(asset.displayName, forKey: "displayName")
+                mediaEntity.setValue(asset.sortOrder, forKey: "sortOrder")
+                mediaEntity.setValue(asset.fileName, forKey: "fileName")
+                mediaEntity.setValue(asset.mimeType, forKey: "mimeType")
+                mediaEntity.setValue(asset.byteSize, forKey: "byteSize")
+                mediaEntity.setValue(asset.checksum, forKey: "checksum")
+                mediaEntity.setValue(asset.width, forKey: "width")
+                mediaEntity.setValue(asset.height, forKey: "height")
+                mediaEntity.setValue(asset.duration, forKey: "duration")
+                mediaEntity.setValue(asset.metadataJSON, forKey: "metadataJSON")
+                mediaEntity.setValue(nil, forKey: "thumbnailData")
+                mediaEntity.setValue(nil, forKey: "originalData")
+                mediaEntity.setValue(entity, forKey: "bell")
+                mediaEntitiesByID[asset.id] = mediaEntity
+            }
+
+            var seenNormalizedNames = Set<String>()
+            let tagEntities = bell.tags.enumerated().compactMap { index, tag -> NSManagedObject? in
+                let normalizedName = normalizedTagName(tag)
+                guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
+
+                let existingTagEntity = tagEntitiesByCollectionAndName[localCollectionID]?[normalizedName]
+                let tagEntity = existingTagEntity ?? makeEntity(named: "BellTagEntity")
+                ensureID(tagEntity)
+                tagEntity.setValue(normalizedName, forKey: "normalizedName")
+                tagEntity.setValue(tag, forKey: "value")
+                tagEntity.setValue(index, forKey: "sortOrder")
+                tagEntity.setValue(collectionEntity, forKey: "collection")
+                tagEntitiesByCollectionAndName[localCollectionID, default: [:]][normalizedName] = tagEntity
+                return tagEntity
+            }
+            entity.setValue(Set(tagEntities), forKey: "tags")
+        }
+
+        try context.save()
+    }
+
     private func mediaIdentifiers(in bundle: CatalogTransferBundle) -> [String] {
-        let identifiers = bundle.bellItems
-            .flatMap(\.mediaAssets)
+        let identifiers = mediaAssets(in: bundle)
             .map(\.localIdentifier)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         return Array(Set(identifiers)).sorted()
+    }
+
+    private func mediaAssets(in bundle: CatalogTransferBundle) -> [MediaAsset] {
+        var seenIdentifiers = Set<String>()
+        return bundle.bellItems
+            .flatMap(\.mediaAssets)
+            .filter { asset in
+                let identifier = asset.localIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
+                return !identifier.isEmpty && seenIdentifiers.insert(identifier).inserted
+            }
+    }
+
+    private func jsonBundle(from bundle: CatalogTransferBundle) -> CatalogTransferBundle {
+        var copy = bundle
+        copy.bellItems = copy.bellItems.map { bell in
+            var bell = bell
+            bell.mediaAssets = bell.mediaAssets.map { asset in
+                asset.with { asset in
+                    asset.thumbnailData = nil
+                    asset.originalData = nil
+                }
+            }
+            return bell
+        }
+        return copy
     }
 
     private func restoreMediaData(
@@ -451,7 +770,7 @@ final class CatalogImportExportActor {
             duration: optionalDoubleValue(entity, "duration"),
             metadataJSON: entity.value(forKey: "metadataJSON") as? String,
             thumbnailData: nil,
-            originalData: nil
+            originalData: entity.value(forKey: "originalData") as? Data
         )
     }
 
@@ -465,6 +784,109 @@ final class CatalogImportExportActor {
         }
 
         return parts.joined(separator: " / ")
+    }
+
+    private struct LocationKey: Hashable {
+        var homeID: UUID
+        var kindRaw: String
+        var path: [LocationPathComponentKey]
+    }
+
+    private struct LocationPathComponentKey: Hashable {
+        var kindRaw: String
+        var name: String
+    }
+
+    private struct CollectionKey: Hashable {
+        var homeID: UUID
+        var kindRaw: String
+        var title: String
+    }
+
+    private struct CollectionLocationKey: Hashable {
+        var collectionID: UUID
+        var sourceLocationID: UUID
+    }
+
+    private struct PlaceKey: Hashable {
+        var latitude: Double
+        var longitude: Double
+    }
+
+    private func locationKey(for entity: NSManagedObject) -> LocationKey? {
+        guard let home = entity.value(forKey: "home") as? NSManagedObject else { return nil }
+        return LocationKey(
+            homeID: uuidValue(home, "id"),
+            kindRaw: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue),
+            path: locationPathComponentKeys(for: entity)
+        )
+    }
+
+    private func locationKey(for location: LocationTransferRecord, localHomeID: UUID) -> LocationKey {
+        let path = location.fullPath ?? [StoragePath.Component(kind: location.kind, name: location.name)]
+        return LocationKey(
+            homeID: localHomeID,
+            kindRaw: location.kind.rawValue,
+            path: path.map(locationPathComponentKey)
+        )
+    }
+
+    private func locationKey(
+        homeID: UUID,
+        kindRaw: String,
+        path: [LocationPathComponentKey]
+    ) -> LocationKey {
+        LocationKey(homeID: homeID, kindRaw: kindRaw, path: path)
+    }
+
+    private func locationPathComponentKeys(for entity: NSManagedObject) -> [LocationPathComponentKey] {
+        var path: [LocationPathComponentKey] = []
+        var current: NSManagedObject? = entity
+        var visitedObjectIDs = Set<NSManagedObjectID>()
+
+        while let location = current, visitedObjectIDs.insert(location.objectID).inserted {
+            path.insert(
+                locationPathComponentKey(
+                    kindRaw: stringValue(location, "kindRaw", default: LocationKind.room.rawValue),
+                    name: stringValue(location, "name")
+                ),
+                at: 0
+            )
+            current = location.value(forKey: "parent") as? NSManagedObject
+        }
+
+        return path
+    }
+
+    private func locationPathComponentKey(for component: StoragePath.Component) -> LocationPathComponentKey {
+        locationPathComponentKey(kindRaw: component.kind.rawValue, name: component.name)
+    }
+
+    private func locationPathComponentKey(kindRaw: String, name: String) -> LocationPathComponentKey {
+        LocationPathComponentKey(kindRaw: kindRaw, name: normalizedName(name))
+    }
+
+    private func collectionKey(homeID: UUID, kindRaw: String, title: String) -> CollectionKey {
+        CollectionKey(homeID: homeID, kindRaw: kindRaw, title: normalizedName(title))
+    }
+
+    private func normalizedName(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    private func indexed<Key: Hashable, Entities: Sequence>(
+        _ entities: Entities,
+        _ key: (NSManagedObject) -> Key?
+    ) -> [Key: NSManagedObject] where Entities.Element == NSManagedObject {
+        entities.reduce(into: [:]) { result, entity in key(entity).map { result[$0] = entity } }
+    }
+
+    private func ensureID(_ entity: NSManagedObject) {
+        if entity.value(forKey: "id") == nil {
+            entity.setValue(UUID(), forKey: "id")
+        }
     }
 
     private func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {

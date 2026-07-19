@@ -2,7 +2,7 @@ import SwiftUI
 import CoreData
 
 enum AppDestination: Hashable {
-    case collection(CollectionSummary)
+    case collection(UUID)
     case home(UUID)
     case editHome(UUID)
 }
@@ -110,15 +110,23 @@ struct AppShellView: View {
         popNavigation: @escaping () -> Void
     ) -> some View {
         switch destination {
-        case .collection(let collection):
-            CollectionShellView(
-                collection: collection,
-                repository: repository,
-                coreDataContainer: coreDataContainer,
-                layoutMode: layoutMode,
-                onBellSelected: onBellSelected,
-                onBatchAddComplete: onBatchAddComplete
-            )
+        case .collection(let collectionID):
+            if let collection = collectionSummary(for: collectionID) {
+                CollectionShellView(
+                    collection: collection,
+                    repository: repository,
+                    coreDataContainer: coreDataContainer,
+                    layoutMode: layoutMode,
+                    onBellSelected: onBellSelected,
+                    onBatchAddComplete: onBatchAddComplete
+                )
+            } else {
+                CatalogEmptyStateView(
+                    systemImage: "square.grid.2x2",
+                    title: "Collection not found",
+                    message: "This collection is no longer available."
+                )
+            }
         case .home(let homeID):
             if let homeBinding = binding(for: homeID) {
                 HomeDetailView(
@@ -202,6 +210,29 @@ struct AppShellView: View {
         navigationSnapshot?.collectionCountsByHomeID[homeID] ?? 0
     }
 
+    private func collectionSummary(for collectionID: UUID) -> CollectionSummary? {
+        guard
+            let snapshot = navigationSnapshot,
+            let collection = snapshot.collections.first(where: { $0.id == collectionID })
+        else {
+            return nil
+        }
+
+        let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
+
+        return CollectionSummary(
+            id: collection.id,
+            homeID: collection.homeID,
+            kind: collection.kind,
+            name: collection.title,
+            subtitle: collection.notes,
+            backgroundStyle: collection.backgroundStyle,
+            itemCount: collection.kind == .bells ? itemCount : 0,
+            status: collection.kind == .bells ? .active : .planned,
+            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+        )
+    }
+
     private func saveHome(_ homeID: UUID) {
         guard let home = homes.first(where: { $0.id == homeID }) else { return }
         repository.saveHome(home)
@@ -242,41 +273,6 @@ struct AppShellView: View {
         case .failed(let message):
             shareInvitationFailureMessage = message
         }
-    }
-}
-
-private struct ShareInvitationStatusOverlay: View {
-    let state: CloudKitShareInvitationAcceptanceState
-
-    var body: some View {
-        switch state {
-        case .accepting:
-            statusCard {
-                ProgressView()
-                Text("collection.sharing.accepting")
-                    .font(CatalogTypography.sectionTitle)
-            }
-        case .accepted:
-            statusCard {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(CatalogSemanticColors.success)
-                Text("collection.sharing.access_granted")
-                    .font(CatalogTypography.sectionTitle)
-            }
-        case .idle, .failed:
-            EmptyView()
-        }
-    }
-
-    private func statusCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(spacing: CatalogMetrics.Spacing.md) {
-            content()
-        }
-        .padding(.horizontal, CatalogMetrics.Spacing.xl)
-        .padding(.vertical, CatalogMetrics.Spacing.lg)
-        .background(.regularMaterial, in: CatalogShapes.thumbnail)
-        .shadow(radius: 18)
     }
 }
 
