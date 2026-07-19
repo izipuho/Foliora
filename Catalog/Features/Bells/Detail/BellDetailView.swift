@@ -13,6 +13,10 @@ struct BellDetailView: View {
     @State private var isPresentingEditor = false
     @State private var isPresentingOriginPicker = false
     @State private var isPresentingLocationPicker = false
+    @State private var isPresentingHomeEditor = false
+    @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+    @State private var draftHomeLocations: [Location] = []
+    @State private var shouldPresentLocationPickerAfterHomeEditor = false
     @State private var isPresentingUnsavedChangesConfirmation = false
     private let detailContentFadeHeight: CGFloat = 80
 
@@ -94,6 +98,19 @@ struct BellDetailView: View {
                 selectedLocationID: locationIDBinding
             )
         }
+        .sheet(isPresented: $isPresentingHomeEditor) {
+            HomeEditorView(
+                home: $draftHome,
+                locations: $draftHomeLocations,
+                onSave: {
+                    repository.saveHome(draftHome)
+                    repository.saveLocations(draftHomeLocations, in: draftHome.id)
+                    reloadLookupSnapshot()
+                    continueLocationSelectionIfNeeded()
+                },
+                onDelete: nil
+            )
+        }
         .task {
             reloadLookupSnapshot()
         }
@@ -132,7 +149,11 @@ struct BellDetailView: View {
                         isPresentingOriginPicker = true
                     },
                     onEditStorage: {
-                        isPresentingLocationPicker = true
+                        if availableLocations.isEmpty, let inferredCollection {
+                            presentHomeEditor(for: inferredCollection.homeID)
+                        } else {
+                            isPresentingLocationPicker = true
+                        }
                     }
                 )
             }
@@ -297,6 +318,23 @@ struct BellDetailView: View {
     private func reloadLookupSnapshot() {
         lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
             .loadSnapshot(collectionID: bell.item.collectionID, homeID: nil)
+    }
+
+    private func presentHomeEditor(for homeID: UUID) {
+        guard let home = lookupSnapshot.homes.first(where: { $0.id == homeID }) else { return }
+        draftHome = home
+        draftHomeLocations = availableLocations
+        shouldPresentLocationPickerAfterHomeEditor = true
+        isPresentingHomeEditor = true
+    }
+
+    private func continueLocationSelectionIfNeeded() {
+        guard shouldPresentLocationPickerAfterHomeEditor else { return }
+        shouldPresentLocationPickerAfterHomeEditor = false
+        isPresentingHomeEditor = false
+        DispatchQueue.main.async {
+            isPresentingLocationPicker = true
+        }
     }
 
     private var mediaAssetsBinding: Binding<[MediaAsset]> {

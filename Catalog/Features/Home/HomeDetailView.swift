@@ -38,7 +38,22 @@ struct HomeDetailView: View {
             }
 
             Section(String(localized: "home.storage_map")) {
-                StorageMapCard(locations: locations)
+                if locations.isEmpty {
+                    CatalogEmptyStateView(
+                        systemImage: "square.stack.3d.up.slash",
+                        title: LocalizedStringKey(String(localized: "home.location.empty.title")),
+                        message: LocalizedStringKey(String(localized: "home.location.empty.description")),
+                        primaryActionTitle: LocalizedStringKey(String(localized: "home.location.add")),
+                        primaryActionSystemImage: "plus.circle.fill",
+                        primaryAction: {
+                            isPresentingEditor = true
+                        }
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, CatalogMetrics.Spacing.xl)
+                } else {
+                    StorageMapCard(locations: locations)
+                }
             }
 
             Section {

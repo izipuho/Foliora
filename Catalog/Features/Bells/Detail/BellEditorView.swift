@@ -56,6 +56,11 @@ struct BellEditorView: View {
     @State private var analysisFeedbackToken = 0
     @State private var photoAnalysis = BellPhotoAnalysisController()
     @State private var didStartInitialAnalysis = false
+    @State private var isPresentingHomeEditor = false
+    @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+    @State private var draftHomeLocations: [Location] = []
+    @State private var shouldPresentLocationPickerAfterHomeEditor = false
+    @State private var locationPickerPresentationToken = 0
     private let existingBellID: UUID?
     private let existingCreatedAt: Date?
     private let editorItemID: UUID
@@ -318,6 +323,10 @@ struct BellEditorView: View {
                             title: String(localized: "editor.location"),
                             selectedLabel: selectedLocationLabel,
                             locations: availableLocations,
+                            onManageLocations: {
+                                presentHomeEditor()
+                            },
+                            presentationToken: locationPickerPresentationToken,
                             selectedLocationID: $selectedLocationID
                         )
                     }
@@ -369,6 +378,19 @@ struct BellEditorView: View {
                 .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
                     reloadLookupSnapshot()
                 }
+                .sheet(isPresented: $isPresentingHomeEditor) {
+                    HomeEditorView(
+                        home: $draftHome,
+                        locations: $draftHomeLocations,
+                        onSave: {
+                            repository.saveHome(draftHome)
+                            repository.saveLocations(draftHomeLocations, in: draftHome.id)
+                            reloadLookupSnapshot()
+                            continueLocationSelectionIfNeeded()
+                        },
+                        onDelete: nil
+                    )
+                }
             }
         }
     }
@@ -407,6 +429,23 @@ struct BellEditorView: View {
     private func reloadLookupSnapshot() {
         lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
             .loadSnapshot(collectionID: collection.id, homeID: collection.homeID)
+    }
+
+    private func presentHomeEditor() {
+        guard let home = lookupSnapshot.homes.first(where: { $0.id == collection.homeID }) else { return }
+        draftHome = home
+        draftHomeLocations = availableLocations
+        shouldPresentLocationPickerAfterHomeEditor = true
+        isPresentingHomeEditor = true
+    }
+
+    private func continueLocationSelectionIfNeeded() {
+        guard shouldPresentLocationPickerAfterHomeEditor else { return }
+        shouldPresentLocationPickerAfterHomeEditor = false
+        isPresentingHomeEditor = false
+        DispatchQueue.main.async {
+            locationPickerPresentationToken += 1
+        }
     }
 
     private func requestSave() {
