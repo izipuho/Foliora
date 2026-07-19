@@ -124,13 +124,19 @@ struct LocationPickerField: View {
     let title: String
     let selectedLabel: String
     let locations: [Location]
+    let onManageLocations: () -> Void
+    let presentationToken: Int
     @Binding var selectedLocationID: UUID?
 
     @State private var isPresentingPicker = false
 
     var body: some View {
         Button {
-            isPresentingPicker = true
+            if locations.isEmpty {
+                onManageLocations()
+            } else {
+                isPresentingPicker = true
+            }
         } label: {
             HStack {
                 Text(title)
@@ -150,6 +156,10 @@ struct LocationPickerField: View {
                 locations: locations,
                 selectedLocationID: $selectedLocationID
             )
+        }
+        .onChange(of: presentationToken) { _, _ in
+            guard !locations.isEmpty else { return }
+            isPresentingPicker = true
         }
     }
 }
