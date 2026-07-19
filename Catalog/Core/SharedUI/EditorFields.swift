@@ -310,6 +310,7 @@ struct MediaSection: View {
             CameraPickerView { image in
                 addCapturedPhoto(image)
             }
+            .ignoresSafeArea()
         }
         .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresentingAddMediaOptions, titleVisibility: .visible) {
             Button(String(localized: "editor.media.photo_library")) {
@@ -322,9 +323,11 @@ struct MediaSection: View {
                 }
             }
 
-            Button(String(localized: "editor.media.model")) {
+            #if DEBUG
+            Button(String(localized: "editor.media.add_model3d")) {
                 isShowingModelPlaceholder = true
             }
+            #endif
 
             Button(String(localized: "common.cancel"), role: .cancel) {}
         }
