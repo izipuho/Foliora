@@ -146,6 +146,27 @@ struct SemanticPhotoVLMGeneratedResponse {
     @Guide(description: "Visible style, pattern, color, or decorative hints.")
     let styleHints: [SemanticPhotoVLMGeneratedFeature]
 }
+
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+@Generable
+struct SemanticPhotoTagFilterGeneratedItem {
+    @Guide(description: "One exact tag copied from the input tags.")
+    let tag: String
+
+    @Guide(description: "Confidence from 0 to 1.", .range(0.0...1.0))
+    let confidence: Double
+}
+
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+@Generable
+struct SemanticPhotoTagFilterGeneratedResponse {
+    @Guide(description: "Filtered subset of the input tags. Do not include tags that were not provided.")
+    let tags: [SemanticPhotoTagFilterGeneratedItem]
+}
 #endif
 
 #if canImport(FoundationModels) && compiler(>=6.4)
@@ -278,83 +299,62 @@ protocol SemanticPhotoTagFiltering: Sendable {
     func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature]
 }
 
-protocol LocalLLMClient: Sendable {
-    func complete(_ request: LocalLLMRequest) async throws -> LocalLLMResponse
-}
-
-struct LocalLLMRequest: Sendable {
-    let systemPrompt: String
-    let userPrompt: String
-    let temperature: Double
-    let maxTokens: Int
-}
-
-struct LocalLLMResponse: Sendable {
-    let text: String
-}
-
-struct LocalLLMTagFilterItem: Decodable, Sendable {
+private struct SemanticPhotoTagFilterPromptItem: Encodable {
     let tag: String
     let confidence: Double
 }
 
-private struct LocalLLMTagFilterPromptItem: Encodable {
-    let tag: String
-    let confidence: Double
-}
-
-struct LocalLLMSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
-    private let client: any LocalLLMClient
-
-    init(client: any LocalLLMClient) {
-        self.client = client
-    }
-
+#if canImport(FoundationModels) && compiler(>=6.4)
+struct AppleFoundationModelsSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
     func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature] {
         guard !tags.isEmpty else {
             return []
         }
 
+        guard #available(iOS 26.0, macOS 26.0, visionOS 26.0, *) else {
+            return tags
+        }
+
         do {
-            let response = try await client.complete(
-                LocalLLMRequest(
-                    systemPrompt: systemPrompt,
-                    userPrompt: userPrompt(for: tags),
-                    temperature: 0.0,
-                    maxTokens: 512
-                )
+            let model = SystemLanguageModel.default
+            guard model.isAvailable else {
+                return tags
+            }
+
+            let session = LanguageModelSession(
+                model: model,
+                instructions: instructions
             )
-            let items = try JSONDecoder().decode(
-                [LocalLLMTagFilterItem].self,
-                from: Data(response.text.utf8)
-            )
+            let response = try await session.respond(
+                generating: SemanticPhotoTagFilterGeneratedResponse.self,
+                options: GenerationOptions(sampling: .greedy)
+            ) {
+                userPrompt(for: tags)
+            }
             let acceptedTags = Set(
-                items
-                    .filter { $0.confidence >= 0.5 }
+                response.content.tags
                     .map { Self.normalizedLabel($0.tag) }
             )
-            let filteredTags = tags.filter { acceptedTags.contains(Self.normalizedLabel($0.label)) }
 
-            return filteredTags
+            return tags.filter { acceptedTags.contains(Self.normalizedLabel($0.label)) }
         } catch {
-            return []
+            return tags
         }
     }
 
-    private var systemPrompt: String {
+    private var instructions: String {
         """
         You filter visual recognition tags for semantic photo analysis.
         Remove noisy, overly generic, background, and technical tags.
         Keep only tags useful for describing visible photo content.
-        Return only a JSON array without markdown or explanations.
-        Each returned item must use exactly one input tag and a confidence from 0 to 1.
+        Return only a subset of the provided input tags.
         Do not invent new tags.
         """
     }
 
     private func userPrompt(for tags: [SemanticPhotoVisualFeature]) -> String {
         let promptItems = tags.map {
-            LocalLLMTagFilterPromptItem(
+            SemanticPhotoTagFilterPromptItem(
                 tag: $0.label,
                 confidence: $0.confidence
             )
@@ -367,9 +367,11 @@ struct LocalLLMSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
         \(encodedTags)
 
         Return a subset in this exact JSON format:
-        [
-          { "tag": "ceramic", "confidence": 0.95 }
-        ]
+        {
+          "tags": [
+            { "tag": "ceramic", "confidence": 0.95 }
+          ]
+        }
         """
     }
 
@@ -377,6 +379,13 @@ struct LocalLLMSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
         label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 }
+#else
+struct AppleFoundationModelsSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
+    func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature] {
+        tags
+    }
+}
+#endif
 
 protocol SemanticPhotoFeatureExtracting: Sendable {
     func extractFeatures(from analysis: PhotoAnalysisResult) async -> SemanticPhotoFeatures
@@ -387,7 +396,7 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
     private let vlmExtractor: any SemanticPhotoVLMExtracting
 
     init(
-        tagFilter: any SemanticPhotoTagFiltering,
+        tagFilter: any SemanticPhotoTagFiltering = AppleFoundationModelsSemanticPhotoTagFilter(),
         vlmExtractor: any SemanticPhotoVLMExtracting = AppleFoundationModelsSemanticPhotoVLMExtractor()
     ) {
         self.tagFilter = tagFilter
