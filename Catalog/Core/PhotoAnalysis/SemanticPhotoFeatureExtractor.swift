@@ -111,33 +111,6 @@ protocol SemanticPhotoTagFiltering: Sendable {
     func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature]
 }
 
-struct PassthroughSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
-    func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature] {
-        var seenLabels = Set<String>()
-
-        return tags.compactMap { tag in
-            guard tag.confidence > 0 else {
-                return nil
-            }
-
-            let trimmedLabel = tag.label.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmedLabel.isEmpty else {
-                return nil
-            }
-
-            let normalizedLabel = trimmedLabel.lowercased()
-            guard seenLabels.insert(normalizedLabel).inserted else {
-                return nil
-            }
-
-            return SemanticPhotoVisualFeature(
-                label: trimmedLabel,
-                confidence: tag.confidence
-            )
-        }
-    }
-}
-
 protocol LocalLLMClient: Sendable {
     func complete(_ request: LocalLLMRequest) async throws -> LocalLLMResponse
 }
@@ -191,13 +164,13 @@ struct LocalLLMSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
             let acceptedTags = Set(
                 items
                     .filter { $0.confidence >= 0.5 }
-                    .map(\.tag)
+                    .map { Self.normalizedLabel($0.tag) }
             )
-            let filteredTags = tags.filter { acceptedTags.contains($0.label) }
+            let filteredTags = tags.filter { acceptedTags.contains(Self.normalizedLabel($0.label)) }
 
-            return filteredTags.isEmpty ? tags : filteredTags
+            return filteredTags
         } catch {
-            return tags
+            return []
         }
     }
 
@@ -232,6 +205,10 @@ struct LocalLLMSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
         ]
         """
     }
+
+    private static func normalizedLabel(_ label: String) -> String {
+        label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
 }
 
 protocol SemanticPhotoFeatureExtracting: Sendable {
@@ -243,7 +220,7 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
     private let vlmExtractor: (any SemanticPhotoVLMExtracting)?
 
     init(
-        tagFilter: any SemanticPhotoTagFiltering = PassthroughSemanticPhotoTagFilter(),
+        tagFilter: any SemanticPhotoTagFiltering,
         vlmExtractor: (any SemanticPhotoVLMExtracting)? = nil
     ) {
         self.tagFilter = tagFilter
