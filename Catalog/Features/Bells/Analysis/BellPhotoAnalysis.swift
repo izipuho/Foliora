@@ -81,22 +81,54 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         semanticFeatures: SemanticPhotoFeatures
     ) async -> BellPhotoSuggestions {
         let recognizedText = analysis.main.recognizedText
-        let visualFeatures = semanticFeatures.rawVisualKeywords
+        let visualFeatures = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.visualKeyword]
+        )
         let visualKeywords = makeVisualKeywords(from: visualFeatures)
-        let suggestedTags = visualFeatures.map {
-            SuggestedFieldValue(value: $0.label, confidence: $0.confidence)
+        let title = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.subject]
+        ).first.map {
+            SuggestedFieldValue(value: $0.value, confidence: $0.confidence)
         }
+        let suggestedTags = makeSuggestedTags(from: semanticFeatures)
         let tags = suggestedTags.map(\.value)
+        let materialFeature = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.material]
+        ).first
+        let material = materialFeature.map {
+            SuggestedFieldValue(value: mapMaterial($0.value), confidence: $0.confidence)
+        }
+        let customMaterialName = materialFeature.flatMap { feature -> SuggestedFieldValue<String>? in
+            mapMaterial(feature.value) == .other
+                ? SuggestedFieldValue(value: feature.value, confidence: feature.confidence)
+                : nil
+        }
+        let condition = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.condition]
+        ).first.flatMap { feature in
+            mapCondition(feature.value).map { condition in
+                SuggestedFieldValue(value: condition, confidence: feature.confidence)
+            }
+        }
+        let notesFeatures = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.style, .text]
+        )
+        let notes = makeNotes(from: notesFeatures)
 
         return BellPhotoSuggestions(
             tags: tags,
             recognizedText: recognizedText,
             visualKeywords: visualKeywords,
-            title: nil,
-            notes: nil,
-            material: nil,
-            condition: nil,
-            customMaterialName: nil,
+            title: title,
+            notes: notes,
+            material: material,
+            condition: condition,
+            customMaterialName: customMaterialName,
             suggestedYear: nil,
             suggestedGeo: nil,
             suggestedTags: suggestedTags,
@@ -108,8 +140,91 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         visualFeatures
             .filter { $0.confidence >= 0.28 }
             .map {
-                VisualKeyword(value: $0.label, confidence: $0.confidence)
+                VisualKeyword(value: $0.value, confidence: $0.confidence)
             }
+    }
+
+    private func makeSuggestedTags(from semanticFeatures: SemanticPhotoFeatures) -> [SuggestedFieldValue<String>] {
+        sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.subject, .style, .place, .text, .visualKeyword]
+        ).map {
+            SuggestedFieldValue(value: $0.value, confidence: $0.confidence)
+        }
+    }
+
+    private func makeNotes(from features: [SemanticPhotoFeature]) -> SuggestedFieldValue<String>? {
+        let values = features.map(\.value)
+        guard !values.isEmpty else {
+            return nil
+        }
+
+        return SuggestedFieldValue(
+            value: values.joined(separator: ", "),
+            confidence: features.map(\.confidence).max() ?? 0
+        )
+    }
+
+    private func sortedNonEmptyFeatures(
+        from semanticFeatures: SemanticPhotoFeatures,
+        ofKinds kinds: Set<SemanticPhotoFeatureKind>
+    ) -> [SemanticPhotoFeature] {
+        semanticFeatures.features
+            .compactMap { feature -> SemanticPhotoFeature? in
+                let value = feature.value.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard kinds.contains(feature.kind), !value.isEmpty else {
+                    return nil
+                }
+
+                return SemanticPhotoFeature(
+                    kind: feature.kind,
+                    value: value,
+                    confidence: feature.confidence,
+                    source: feature.source
+                )
+            }
+            .sorted { $0.confidence > $1.confidence }
+    }
+
+    private func mapMaterial(_ value: String) -> BellMaterial {
+        switch normalizedEnumValue(value) {
+        case BellMaterial.metall.rawValue, "metal":
+            return .metall
+        case BellMaterial.brass.rawValue:
+            return .brass
+        case BellMaterial.bronze.rawValue:
+            return .bronze
+        case BellMaterial.silver.rawValue:
+            return .silver
+        case BellMaterial.gold.rawValue:
+            return .gold
+        case BellMaterial.ceramic.rawValue:
+            return .ceramic
+        case BellMaterial.porcelain.rawValue:
+            return .porcelain
+        case BellMaterial.glass.rawValue:
+            return .glass
+        case BellMaterial.wood.rawValue:
+            return .wood
+        default:
+            return .other
+        }
+    }
+
+    private func mapCondition(_ value: String) -> ItemCondition? {
+        let normalizedValue = normalizedEnumValue(value)
+
+        return ItemCondition.allCases.first {
+            normalizedEnumValue($0.rawValue) == normalizedValue
+                || normalizedEnumValue(String(describing: $0)) == normalizedValue
+            }
+    }
+
+    private func normalizedEnumValue(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .filter { $0.isLetter || $0.isNumber }
     }
 }
 
