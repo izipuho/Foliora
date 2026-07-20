@@ -184,7 +184,7 @@ struct LocalLLMSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
         """
         You filter visual recognition tags for semantic photo analysis.
         Remove noisy, overly generic, background, and technical tags.
-        Keep only tags useful for describing a souvenir bell: material, shape, objects, characters, animals, plants, geography, culture, symbols, and inscriptions.
+        Keep only tags useful for describing visible photo content.
         Return only a JSON array without markdown or explanations.
         Each returned item must use exactly one input tag and a confidence from 0 to 1.
         Do not invent new tags.
