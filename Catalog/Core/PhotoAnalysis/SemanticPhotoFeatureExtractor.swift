@@ -1,26 +1,18 @@
 import CoreGraphics
 import Foundation
 
-struct SemanticPhotoFeatures: Sendable {
-    let subjects: [SemanticPhotoFeature]
-    let materialHints: [SemanticPhotoFeature]
-    let conditionHints: [SemanticPhotoFeature]
-    let placeHints: [SemanticPhotoFeature]
-    let textEntities: [SemanticPhotoFeature]
-    let styleHints: [SemanticPhotoFeature]
-    let rawVisualKeywords: [SemanticPhotoFeature]
-    let rawRecognizedText: [SemanticPhotoFeature]
+struct SemanticPhotoFeatures: Hashable, Sendable, Codable {
+    let features: [SemanticPhotoFeature]
 
-    static let empty = SemanticPhotoFeatures(
-        subjects: [],
-        materialHints: [],
-        conditionHints: [],
-        placeHints: [],
-        textEntities: [],
-        styleHints: [],
-        rawVisualKeywords: [],
-        rawRecognizedText: []
-    )
+    static let empty = SemanticPhotoFeatures(features: [])
+
+    init(features: [SemanticPhotoFeature]) {
+        self.features = features
+    }
+
+    func features(ofKind kind: SemanticPhotoFeatureKind) -> [SemanticPhotoFeature] {
+        features.filter { $0.kind == kind }
+    }
 }
 
 enum SemanticPhotoFeatureKind: String, Hashable, Sendable, Codable {
@@ -251,28 +243,29 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
             )
         ) ?? .empty
 
-        return SemanticPhotoFeatures(
-            subjects: vlmOutput.subjects,
-            materialHints: vlmOutput.materialHints,
-            conditionHints: vlmOutput.conditionHints,
-            placeHints: vlmOutput.placeHints,
-            textEntities: vlmOutput.textEntities,
-            styleHints: vlmOutput.styleHints,
-            rawVisualKeywords: visualFeatures.map {
+        let features =
+            vlmOutput.subjects +
+            vlmOutput.materialHints +
+            vlmOutput.conditionHints +
+            vlmOutput.placeHints +
+            vlmOutput.textEntities +
+            vlmOutput.styleHints +
+            visualFeatures.map {
                 SemanticPhotoFeature(
                     label: $0.label,
                     confidence: $0.confidence,
                     source: .vision
                 )
-            },
-            rawRecognizedText: recognizedText.map {
+            } +
+            recognizedText.map {
                 SemanticPhotoFeature(
                     label: $0.text,
                     confidence: $0.confidence,
                     source: .ocr
                 )
             }
-        )
+
+        return SemanticPhotoFeatures(features: features)
     }
 
     private func visualFeatures(
