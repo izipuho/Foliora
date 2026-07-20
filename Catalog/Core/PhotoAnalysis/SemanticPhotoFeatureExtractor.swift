@@ -113,7 +113,28 @@ protocol SemanticPhotoTagFiltering: Sendable {
 
 struct PassthroughSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
     func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature] {
-        tags
+        var seenLabels = Set<String>()
+
+        return tags.compactMap { tag in
+            guard tag.confidence > 0 else {
+                return nil
+            }
+
+            let trimmedLabel = tag.label.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedLabel.isEmpty else {
+                return nil
+            }
+
+            let normalizedLabel = trimmedLabel.lowercased()
+            guard seenLabels.insert(normalizedLabel).inserted else {
+                return nil
+            }
+
+            return SemanticPhotoVisualFeature(
+                label: trimmedLabel,
+                confidence: tag.confidence
+            )
+        }
     }
 }
 
@@ -250,7 +271,7 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
             vlmOutput.placeHints +
             vlmOutput.textEntities +
             vlmOutput.styleHints +
-            visualFeatures.map {
+            semanticTags.map {
                 SemanticPhotoFeature(
                     label: $0.label,
                     confidence: $0.confidence,
