@@ -251,59 +251,91 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
     }
 
     func extractFeatures(from analysis: PhotoAnalysisResult) async -> SemanticPhotoFeatures {
-        let visualFeatures =
-            visualFeatures(from: analysis.main) +
-            visualFeatures(from: analysis.background)
+        let visionFeatures =
+            visionFeatures(from: analysis.main) +
+            visionFeatures(from: analysis.background)
         let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
-        let semanticTags = await tagFilter.filterTags(visualFeatures)
+        let filteredVisionFeatures = await filterVisionFeatures(visionFeatures)
+        let ocrFeatures = recognizedText.map {
+            SemanticPhotoFeature(
+                kind: .recognizedText,
+                value: $0.text,
+                confidence: $0.confidence,
+                source: .ocr
+            )
+        }
         let vlmOutput = await vlmExtractor?.extractFeatures(
             from: SemanticPhotoVLMInput(
                 mainObjectImage: analysis.mainObjectImage,
-                visualFeatures: semanticTags,
+                visualFeatures: vlmVisualFeatures(from: filteredVisionFeatures),
                 recognizedText: recognizedText
             )
         ) ?? .empty
+        let vlmFeatures = features(from: vlmOutput)
 
         let features =
-            vlmOutput.subjects +
-            vlmOutput.materialHints +
-            vlmOutput.conditionHints +
-            vlmOutput.placeHints +
-            vlmOutput.textEntities +
-            vlmOutput.styleHints +
-            semanticTags.map {
-                SemanticPhotoFeature(
-                    label: $0.label,
-                    confidence: $0.confidence,
-                    source: .vision
-                )
-            } +
-            recognizedText.map {
-                SemanticPhotoFeature(
-                    label: $0.text,
-                    confidence: $0.confidence,
-                    source: .ocr
-                )
-            }
+            filteredVisionFeatures +
+            ocrFeatures +
+            vlmFeatures
 
         return SemanticPhotoFeatures(features: features)
     }
 
-    private func visualFeatures(
+    private func visionFeatures(
         from scope: PhotoAnalysisFeatureScope
-    ) -> [SemanticPhotoVisualFeature] {
+    ) -> [SemanticPhotoFeature] {
         scope.classifications.map {
-            SemanticPhotoVisualFeature(
-                label: $0.label,
-                confidence: $0.confidence
+            SemanticPhotoFeature(
+                kind: .visualKeyword,
+                value: $0.label,
+                confidence: $0.confidence,
+                source: .vision
             )
         } + scope.recognizedObjects.flatMap { object in
             object.labels.map {
-                SemanticPhotoVisualFeature(
-                    label: $0.label,
-                    confidence: $0.confidence
+                SemanticPhotoFeature(
+                    kind: .visualKeyword,
+                    value: $0.label,
+                    confidence: $0.confidence,
+                    source: .vision
                 )
             }
         }
+    }
+
+    private func filterVisionFeatures(
+        _ features: [SemanticPhotoFeature]
+    ) async -> [SemanticPhotoFeature] {
+        let visualFeatures = vlmVisualFeatures(from: features)
+        let filteredVisualFeatures = await tagFilter.filterTags(visualFeatures)
+
+        return filteredVisualFeatures.map {
+            SemanticPhotoFeature(
+                kind: .visualKeyword,
+                value: $0.label,
+                confidence: $0.confidence,
+                source: .vision
+            )
+        }
+    }
+
+    private func vlmVisualFeatures(
+        from features: [SemanticPhotoFeature]
+    ) -> [SemanticPhotoVisualFeature] {
+        features.map {
+            SemanticPhotoVisualFeature(
+                label: $0.value,
+                confidence: $0.confidence
+            )
+        }
+    }
+
+    private func features(from output: SemanticPhotoVLMOutput) -> [SemanticPhotoFeature] {
+        output.subjects +
+        output.materialHints +
+        output.conditionHints +
+        output.placeHints +
+        output.textEntities +
+        output.styleHints
     }
 }
