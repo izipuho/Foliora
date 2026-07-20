@@ -384,11 +384,11 @@ protocol SemanticPhotoFeatureExtracting: Sendable {
 
 struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
     private let tagFilter: any SemanticPhotoTagFiltering
-    private let vlmExtractor: (any SemanticPhotoVLMExtracting)?
+    private let vlmExtractor: any SemanticPhotoVLMExtracting
 
     init(
         tagFilter: any SemanticPhotoTagFiltering,
-        vlmExtractor: (any SemanticPhotoVLMExtracting)? = nil
+        vlmExtractor: any SemanticPhotoVLMExtracting = AppleFoundationModelsSemanticPhotoVLMExtractor()
     ) {
         self.tagFilter = tagFilter
         self.vlmExtractor = vlmExtractor
@@ -408,13 +408,13 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
                 source: .ocr
             )
         }
-        let vlmOutput = await vlmExtractor?.extractFeatures(
+        let vlmOutput = await vlmExtractor.extractFeatures(
             from: SemanticPhotoVLMInput(
                 mainObjectImage: analysis.mainObjectImage,
                 visualFeatures: vlmVisualFeatures(from: filteredVisionFeatures),
                 recognizedText: recognizedText
             )
-        ) ?? .empty
+        )
         let vlmFeatures = features(from: vlmOutput)
 
         let features =
