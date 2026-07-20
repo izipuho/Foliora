@@ -23,13 +23,60 @@ struct SemanticPhotoFeatures: Sendable {
     )
 }
 
-struct SemanticPhotoFeature: Hashable, Sendable {
-    let label: String
-    let confidence: Double
-    let source: SemanticPhotoFeatureSource
+enum SemanticPhotoFeatureKind: String, Hashable, Sendable, Codable {
+    case subject
+    case material
+    case condition
+    case place
+    case text
+    case style
+    case visualKeyword
+    case recognizedText
 }
 
-enum SemanticPhotoFeatureSource: Hashable, Sendable {
+struct SemanticPhotoFeature: Hashable, Sendable, Codable {
+    let kind: SemanticPhotoFeatureKind
+    let value: String
+    let confidence: Double
+    let source: SemanticPhotoFeatureSource
+
+    var label: String {
+        value
+    }
+
+    init(
+        kind: SemanticPhotoFeatureKind,
+        value: String,
+        confidence: Double,
+        source: SemanticPhotoFeatureSource
+    ) {
+        self.kind = kind
+        self.value = value
+        self.confidence = confidence
+        self.source = source
+    }
+
+    init(label: String, confidence: Double, source: SemanticPhotoFeatureSource) {
+        let kind: SemanticPhotoFeatureKind
+        switch source {
+        case .vision:
+            kind = .visualKeyword
+        case .ocr:
+            kind = .recognizedText
+        case .vlm:
+            kind = .subject
+        }
+
+        self.init(
+            kind: kind,
+            value: label,
+            confidence: confidence,
+            source: source
+        )
+    }
+}
+
+enum SemanticPhotoFeatureSource: String, Hashable, Sendable, Codable {
     case vision
     case ocr
     case vlm
