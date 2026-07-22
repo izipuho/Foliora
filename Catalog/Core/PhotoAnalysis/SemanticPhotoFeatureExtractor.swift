@@ -55,7 +55,7 @@ struct SemanticPhotoFeature: Hashable, Sendable, Codable {
             kind = .visualKeyword
         case .ocr:
             kind = .recognizedText
-        case .vlm:
+        case .semanticModel:
             kind = .subject
         }
 
@@ -71,7 +71,7 @@ struct SemanticPhotoFeature: Hashable, Sendable, Codable {
 enum SemanticPhotoFeatureSource: String, Hashable, Sendable, Codable {
     case vision
     case ocr
-    case vlm
+    case semanticModel = "vlm"
 }
 
 struct SemanticPhotoVisualFeature: Hashable, Sendable {
@@ -79,12 +79,12 @@ struct SemanticPhotoVisualFeature: Hashable, Sendable {
     let confidence: Double
 }
 
-struct SemanticPhotoVLMInput: Sendable {
+struct SemanticPhotoSemanticInput: Sendable {
     let visualFeatures: [SemanticPhotoVisualFeature]
     let recognizedText: [RecognizedTextFeature]
 }
 
-struct SemanticPhotoVLMOutput: Sendable {
+struct SemanticPhotoSemanticOutput: Sendable {
     let subjects: [SemanticPhotoFeature]
     let materialHints: [SemanticPhotoFeature]
     let conditionHints: [SemanticPhotoFeature]
@@ -92,7 +92,7 @@ struct SemanticPhotoVLMOutput: Sendable {
     let textEntities: [SemanticPhotoFeature]
     let styleHints: [SemanticPhotoFeature]
 
-    static let empty = SemanticPhotoVLMOutput(
+    static let empty = SemanticPhotoSemanticOutput(
         subjects: [],
         materialHints: [],
         conditionHints: [],
@@ -102,15 +102,15 @@ struct SemanticPhotoVLMOutput: Sendable {
     )
 }
 
-protocol SemanticPhotoVLMExtracting: Sendable {
-    func extractFeatures(from input: SemanticPhotoVLMInput) async -> SemanticPhotoVLMOutput
+protocol SemanticPhotoSemanticExtracting: Sendable {
+    func extractFeatures(from input: SemanticPhotoSemanticInput) async -> SemanticPhotoSemanticOutput
 }
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 @Generable
-struct SemanticPhotoVLMGeneratedFeature {
+struct SemanticPhotoGeneratedFeature {
     @Guide(description: "A concise, universal semantic fact visible in the image or confirmed by input context.")
     let value: String
 
@@ -122,24 +122,24 @@ struct SemanticPhotoVLMGeneratedFeature {
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 @Generable
-struct SemanticPhotoVLMGeneratedResponse {
+struct SemanticPhotoGeneratedResponse {
     @Guide(description: "Visible subjects or object categories.")
-    let subjects: [SemanticPhotoVLMGeneratedFeature]
+    let subjects: [SemanticPhotoGeneratedFeature]
 
     @Guide(description: "Visible or context-confirmed material hints.")
-    let materialHints: [SemanticPhotoVLMGeneratedFeature]
+    let materialHints: [SemanticPhotoGeneratedFeature]
 
     @Guide(description: "Visible or context-confirmed condition hints.")
-    let conditionHints: [SemanticPhotoVLMGeneratedFeature]
+    let conditionHints: [SemanticPhotoGeneratedFeature]
 
     @Guide(description: "Visible or context-confirmed place or origin hints.")
-    let placeHints: [SemanticPhotoVLMGeneratedFeature]
+    let placeHints: [SemanticPhotoGeneratedFeature]
 
     @Guide(description: "Text entities visible in OCR context or the image.")
-    let textEntities: [SemanticPhotoVLMGeneratedFeature]
+    let textEntities: [SemanticPhotoGeneratedFeature]
 
     @Guide(description: "Visible style, pattern, color, or decorative hints.")
-    let styleHints: [SemanticPhotoVLMGeneratedFeature]
+    let styleHints: [SemanticPhotoGeneratedFeature]
 }
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
@@ -163,8 +163,8 @@ struct SemanticPhotoTagFilterGeneratedResponse {
     let tags: [SemanticPhotoTagFilterGeneratedItem]
 }
 
-struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtracting {
-    func extractFeatures(from input: SemanticPhotoVLMInput) async -> SemanticPhotoVLMOutput {
+struct AppleFoundationModelsSemanticPhotoExtractor: SemanticPhotoSemanticExtracting {
+    func extractFeatures(from input: SemanticPhotoSemanticInput) async -> SemanticPhotoSemanticOutput {
         guard #available(iOS 26.0, macOS 26.0, visionOS 26.0, *) else {
             return .empty
         }
@@ -180,7 +180,7 @@ struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtractin
                 instructions: instructions
             )
             let response = try await session.respond(
-                generating: SemanticPhotoVLMGeneratedResponse.self,
+                generating: SemanticPhotoGeneratedResponse.self,
                 options: GenerationOptions(sampling: .greedy)
             ) {
                 promptText(for: input)
@@ -204,7 +204,7 @@ struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtractin
         """
     }
 
-    private func promptText(for input: SemanticPhotoVLMInput) -> String {
+    private func promptText(for input: SemanticPhotoSemanticInput) -> String {
         """
         Analyze these already-collected results from system Vision and OCR APIs.
         Do not run or assume any additional Vision or OCR analysis.
@@ -219,7 +219,7 @@ struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtractin
 
     private func encodedVisualFeatures(_ features: [SemanticPhotoVisualFeature]) -> String {
         let promptItems = features.map {
-            SemanticPhotoVLMPromptFeature(
+            SemanticPhotoPromptFeature(
                 value: $0.label,
                 confidence: $0.confidence
             )
@@ -230,7 +230,7 @@ struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtractin
 
     private func encodedRecognizedText(_ text: [RecognizedTextFeature]) -> String {
         let promptItems = text.map {
-            SemanticPhotoVLMPromptFeature(
+            SemanticPhotoPromptFeature(
                 value: $0.text,
                 confidence: $0.confidence
             )
@@ -244,8 +244,8 @@ struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtractin
             .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
     }
 
-    private func output(from response: SemanticPhotoVLMGeneratedResponse) -> SemanticPhotoVLMOutput {
-        SemanticPhotoVLMOutput(
+    private func output(from response: SemanticPhotoGeneratedResponse) -> SemanticPhotoSemanticOutput {
+        SemanticPhotoSemanticOutput(
             subjects: features(from: response.subjects, kind: .subject),
             materialHints: features(from: response.materialHints, kind: .material),
             conditionHints: features(from: response.conditionHints, kind: .condition),
@@ -256,7 +256,7 @@ struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtractin
     }
 
     private func features(
-        from generatedFeatures: [SemanticPhotoVLMGeneratedFeature],
+        from generatedFeatures: [SemanticPhotoGeneratedFeature],
         kind: SemanticPhotoFeatureKind
     ) -> [SemanticPhotoFeature] {
         generatedFeatures.compactMap { generatedFeature in
@@ -269,13 +269,13 @@ struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtractin
                 kind: kind,
                 value: value,
                 confidence: min(max(generatedFeature.confidence, 0), 1),
-                source: .vlm
+                source: .semanticModel
             )
         }
     }
 }
 
-private struct SemanticPhotoVLMPromptFeature: Encodable {
+private struct SemanticPhotoPromptFeature: Encodable {
     let value: String
     let confidence: Double
 }
@@ -370,14 +370,14 @@ protocol SemanticPhotoFeatureExtracting: Sendable {
 
 struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
     private let tagFilter: any SemanticPhotoTagFiltering
-    private let vlmExtractor: any SemanticPhotoVLMExtracting
+    private let semanticExtractor: any SemanticPhotoSemanticExtracting
 
     init(
         tagFilter: any SemanticPhotoTagFiltering = AppleFoundationModelsSemanticPhotoTagFilter(),
-        vlmExtractor: any SemanticPhotoVLMExtracting = AppleFoundationModelsSemanticPhotoVLMExtractor()
+        semanticExtractor: any SemanticPhotoSemanticExtracting = AppleFoundationModelsSemanticPhotoExtractor()
     ) {
         self.tagFilter = tagFilter
-        self.vlmExtractor = vlmExtractor
+        self.semanticExtractor = semanticExtractor
     }
 
     func extractFeatures(from analysis: PhotoAnalysisResult) async -> SemanticPhotoFeatures {
@@ -394,18 +394,18 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
                 source: .ocr
             )
         }
-        let vlmOutput = await vlmExtractor.extractFeatures(
-            from: SemanticPhotoVLMInput(
-                visualFeatures: vlmVisualFeatures(from: filteredVisionFeatures),
+        let semanticOutput = await semanticExtractor.extractFeatures(
+            from: SemanticPhotoSemanticInput(
+                visualFeatures: semanticVisualFeatures(from: filteredVisionFeatures),
                 recognizedText: recognizedText
             )
         )
-        let vlmFeatures = features(from: vlmOutput)
+        let semanticFeatures = features(from: semanticOutput)
 
         let features =
             filteredVisionFeatures +
             ocrFeatures +
-            vlmFeatures
+            semanticFeatures
 
         return SemanticPhotoFeatures(features: features)
     }
@@ -435,7 +435,7 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
     private func filterVisionFeatures(
         _ features: [SemanticPhotoFeature]
     ) async -> [SemanticPhotoFeature] {
-        let visualFeatures = vlmVisualFeatures(from: features)
+        let visualFeatures = semanticVisualFeatures(from: features)
         let filteredVisualFeatures = await tagFilter.filterTags(visualFeatures)
 
         return filteredVisualFeatures.map {
@@ -448,7 +448,7 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
         }
     }
 
-    private func vlmVisualFeatures(
+    private func semanticVisualFeatures(
         from features: [SemanticPhotoFeature]
     ) -> [SemanticPhotoVisualFeature] {
         features.map {
@@ -459,7 +459,7 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
         }
     }
 
-    private func features(from output: SemanticPhotoVLMOutput) -> [SemanticPhotoFeature] {
+    private func features(from output: SemanticPhotoSemanticOutput) -> [SemanticPhotoFeature] {
         output.subjects +
         output.materialHints +
         output.conditionHints +
