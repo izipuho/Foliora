@@ -25,6 +25,13 @@ struct BellEditorView: View {
         let token: Int
     }
 
+    private struct LocalizedPhotoSuggestions {
+        var title: String?
+        var notes: String?
+        var customMaterialName: String?
+        var suggestedTags: [String]
+    }
+
     private enum FocusedField: Hashable {
         case title
     }
@@ -55,6 +62,7 @@ struct BellEditorView: View {
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
     @State private var photoAnalysis = BellPhotoAnalysisController()
+    @State private var localizedPhotoSuggestions: LocalizedPhotoSuggestions?
     @State private var didStartInitialAnalysis = false
     @State private var isPresentingHomeEditor = false
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
@@ -165,10 +173,11 @@ struct BellEditorView: View {
                                 if let titleSuggestion = photoAnalysis.suggestions.title {
                                     PhotoSuggestionRow(
                                         title: String(localized: "editor.photo_analysis.title"),
-                                        suggestedValue: titleSuggestion.value,
+                                        suggestedValue: localizedPhotoSuggestions?.title ?? titleSuggestion.value,
                                         confidence: titleSuggestion.confidence,
                                         onAccept: {
                                             title = titleSuggestion.value
+                                            localizedPhotoSuggestions?.title = nil
                                             photoAnalysis.dismiss(.title)
                                         }
                                     )
@@ -177,10 +186,11 @@ struct BellEditorView: View {
                                 if let notesSuggestion = photoAnalysis.suggestions.notes {
                                     PhotoSuggestionRow(
                                         title: String(localized: "editor.photo_analysis.notes"),
-                                        suggestedValue: notesSuggestion.value,
+                                        suggestedValue: localizedPhotoSuggestions?.notes ?? notesSuggestion.value,
                                         confidence: notesSuggestion.confidence,
                                         onAccept: {
                                             notes = notesSuggestion.value
+                                            localizedPhotoSuggestions?.notes = nil
                                             photoAnalysis.dismiss(.notes)
                                         }
                                     )
@@ -195,6 +205,7 @@ struct BellEditorView: View {
                                             material = materialSuggestion.value
                                             if materialSuggestion.value == .other {
                                                 customMaterialName = photoAnalysis.suggestions.customMaterialName?.value ?? ""
+                                                localizedPhotoSuggestions?.customMaterialName = nil
                                                 photoAnalysis.dismiss(.customMaterialName)
                                             } else {
                                                 customMaterialName = ""
@@ -244,10 +255,12 @@ struct BellEditorView: View {
                                     PhotoSuggestedTagsRow(
                                         title: String(localized: "editor.photo_analysis.tags"),
                                         suggestions: photoAnalysis.suggestions.suggestedTags,
+                                        localizedSuggestions: localizedPhotoSuggestions?.suggestedTags,
                                         onAccept: { newValues in
                                             for value in newValues where !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
                                                 tags.append(value)
                                             }
+                                            localizedPhotoSuggestions?.suggestedTags = []
                                             photoAnalysis.dismiss(.suggestedTags)
                                         }
                                     )
@@ -432,6 +445,7 @@ struct BellEditorView: View {
     private func startInitialPhotoAnalysisIfNeeded() {
         guard !didStartInitialAnalysis, existingBellID == nil, let initialAnalysisImage else { return }
         didStartInitialAnalysis = true
+        localizedPhotoSuggestions = nil
         photoAnalysis.analyze(image: initialAnalysisImage)
     }
 
@@ -566,7 +580,7 @@ struct BellEditorView: View {
 
     private func materialSuggestionLabel(_ suggestion: SuggestedFieldValue<BellMaterial>) -> String {
         if suggestion.value == .other,
-           let customMaterial = photoAnalysis.suggestions.customMaterialName?.value,
+           let customMaterial = localizedPhotoSuggestions?.customMaterialName ?? photoAnalysis.suggestions.customMaterialName?.value,
            !customMaterial.isEmpty {
             return customMaterial
         }
@@ -618,6 +632,7 @@ private struct PhotoSuggestionRow: View {
 private struct PhotoSuggestedTagsRow: View {
     let title: String
     let suggestions: [SuggestedFieldValue<String>]
+    let localizedSuggestions: [String]?
     let onAccept: ([String]) -> Void
 
     @State private var selectedValues: Set<String>
@@ -625,10 +640,12 @@ private struct PhotoSuggestedTagsRow: View {
     init(
         title: String,
         suggestions: [SuggestedFieldValue<String>],
+        localizedSuggestions: [String]? = nil,
         onAccept: @escaping ([String]) -> Void
     ) {
         self.title = title
         self.suggestions = suggestions
+        self.localizedSuggestions = localizedSuggestions
         self.onAccept = onAccept
         _selectedValues = State(initialValue: [])
     }
@@ -644,7 +661,7 @@ private struct PhotoSuggestedTagsRow: View {
             TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
                 ForEach(suggestions, id: \.value) { suggestion in
                     PhotoSuggestedTagChip(
-                        tag: suggestion.value,
+                        tag: localizedTag(for: suggestion),
                         isSelected: selectedValues.contains(suggestion.value)
                     ) {
                         if selectedValues.contains(suggestion.value) {
@@ -671,6 +688,16 @@ private struct PhotoSuggestedTagsRow: View {
             }
         }
         .padding(.vertical, CatalogMetrics.Spacing.xs)
+    }
+
+    private func localizedTag(for suggestion: SuggestedFieldValue<String>) -> String {
+        guard let suggestionIndex = suggestions.firstIndex(where: { $0.value == suggestion.value }),
+              let localizedSuggestions,
+              localizedSuggestions.indices.contains(suggestionIndex) else {
+            return suggestion.value
+        }
+
+        return localizedSuggestions[suggestionIndex]
     }
 }
 
