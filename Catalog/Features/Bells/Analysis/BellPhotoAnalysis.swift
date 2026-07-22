@@ -76,7 +76,11 @@ protocol BellPhotoSuggestionMapping: Sendable {
 }
 
 struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
-    init() {}
+    private let textTranslator: TextTranslator
+
+    init() {
+        self.textTranslator = TextTranslator()
+    }
 
     func map(
         analysis: PhotoAnalysisResult,
@@ -95,7 +99,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         ).first.map {
             SuggestedFieldValue(value: $0.value, confidence: $0.confidence)
         }
-        let suggestedTags = makeSuggestedTags(from: semanticFeatures)
+        let suggestedTags = await localizeSuggestedTags(makeSuggestedTags(from: semanticFeatures))
         let tags = suggestedTags.map(\.value)
         let materialFeature = sortedNonEmptyFeatures(
             from: semanticFeatures,
@@ -174,6 +178,28 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             ofKinds: [.subject, .style, .place, .text, .visualKeyword]
         ).map {
             SuggestedFieldValue(value: $0.value, confidence: $0.confidence)
+        }
+    }
+
+    private func localizeSuggestedTags(
+        _ suggestedTags: [SuggestedFieldValue<String>]
+    ) async -> [SuggestedFieldValue<String>] {
+        guard let targetLanguage = Locale.Language.systemLanguages.first else {
+            return suggestedTags
+        }
+
+        let translatedTags = await textTranslator.translate(
+            suggestedTags.map(\.value),
+            from: Locale.Language(languageCode: "en"),
+            to: targetLanguage
+        )
+
+        guard translatedTags.count == suggestedTags.count else {
+            return suggestedTags
+        }
+
+        return zip(suggestedTags, translatedTags).map { suggestedTag, translatedTag in
+            SuggestedFieldValue(value: translatedTag, confidence: suggestedTag.confidence)
         }
     }
 
