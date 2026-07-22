@@ -26,9 +26,9 @@ struct PhotoAnalysisSettingsView: View {
                         prepareTranslation()
                     } label: {
                         if isPreparingTranslation {
-                            Label("Downloading Model", systemImage: "arrow.down.circle")
+                            Label("photo_analysis.model.downloading", systemImage: "arrow.down.circle")
                         } else {
-                            Label("Download Model", systemImage: "arrow.down.circle")
+                            Label("photo_analysis.model.download", systemImage: "arrow.down.circle")
                         }
                     }
                     .disabled(isPreparingTranslation)
@@ -41,7 +41,7 @@ struct PhotoAnalysisSettingsView: View {
                 }
             }
         }
-        .navigationTitle("Photo Analysis")
+        .navigationTitle("photo_analysis.title")
         .task {
             await refreshPreparationState()
         }
@@ -113,13 +113,13 @@ private extension TranslationPreparationState {
     var settingsStatusText: String {
         switch self {
         case .ready:
-            return String(localized: "Ready")
+            return String(localized: "photo_analysis.model.ready")
         case .needsDownload:
-            return String(localized: "Needs Download")
+            return String(localized: "photo_analysis.model.needs_download")
         case .unsupported:
-            return String(localized: "Unsupported")
+            return String(localized: "photo_analysis.model.unsupported")
         case .notRequired:
-            return String(localized: "Not Required")
+            return String(localized: "photo_analysis.model.not_required")
         }
     }
 }
