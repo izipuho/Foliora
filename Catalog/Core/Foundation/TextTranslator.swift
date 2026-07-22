@@ -7,8 +7,47 @@ public enum TranslationAvailability: Sendable {
     case unsupported
 }
 
+public enum TranslationPreparationState: Sendable, Equatable {
+    case notRequired
+    case ready
+    case needsDownload
+    case unsupported
+}
+
 public actor TextTranslator {
-    public init() {}
+    public let sourceLanguage: Locale.Language
+
+    public init(
+        sourceLanguage: Locale.Language = .english
+    ) {
+        self.sourceLanguage = sourceLanguage
+    }
+
+    public func targetLanguage() -> Locale.Language {
+        guard let preferredLanguage = Locale.preferredLanguages.first else {
+            return .english
+        }
+
+        let language = Locale.Language(identifier: preferredLanguage)
+        return language.languageCode == nil ? .english : language
+    }
+
+    public func preparationState() async -> TranslationPreparationState {
+        let targetLanguage = targetLanguage()
+
+        if sourceLanguage.isEquivalent(to: targetLanguage) {
+            return .notRequired
+        }
+
+        switch await availability(from: sourceLanguage, to: targetLanguage) {
+        case .available:
+            return .ready
+        case .supportedButNotInstalled:
+            return .needsDownload
+        case .unsupported:
+            return .unsupported
+        }
+    }
 
     public func availability(
         from source: Locale.Language,
