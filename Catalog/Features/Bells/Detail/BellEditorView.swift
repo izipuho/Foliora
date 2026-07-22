@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreData
+import Translation
 
 struct BellEditorView: View {
     enum StartSection: Hashable {
@@ -32,6 +33,13 @@ struct BellEditorView: View {
         var suggestedTags: [String]
     }
 
+    private enum PhotoSuggestionTranslationTarget {
+        case title
+        case notes
+        case customMaterialName
+        case suggestedTag(Int)
+    }
+
     private enum FocusedField: Hashable {
         case title
     }
@@ -44,6 +52,7 @@ struct BellEditorView: View {
 
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @FocusState private var focusedField: FocusedField?
     @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var title = ""
@@ -63,6 +72,7 @@ struct BellEditorView: View {
     @State private var analysisFeedbackToken = 0
     @State private var photoAnalysis = BellPhotoAnalysisController()
     @State private var localizedPhotoSuggestions: LocalizedPhotoSuggestions?
+    @State private var translationConfiguration: TranslationSession.Configuration?
     @State private var didStartInitialAnalysis = false
     @State private var isPresentingHomeEditor = false
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
@@ -397,6 +407,10 @@ struct BellEditorView: View {
                     guard wasAnalyzing, !isAnalyzing else { return }
                     handlePhotoAnalysisCompletion()
                 }
+                .translationTask(translationConfiguration) { session in
+                    let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
+                    await translatePhotoSuggestions(using: session, translator: translator)
+                }
                 .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
                     reloadLookupSnapshot()
                 }
@@ -435,6 +449,10 @@ struct BellEditorView: View {
     private func handlePhotoAnalysisCompletion() {
         if photoAnalysis.suggestions.hasSuggestions {
             emitAnalysisFeedback(.success)
+            translationConfiguration = TranslationSession.Configuration(
+                source: Locale.Language(identifier: "en"),
+                target: locale.language
+            )
         }
 
         // Keep failures / empty results silent by default.
@@ -446,7 +464,107 @@ struct BellEditorView: View {
         guard !didStartInitialAnalysis, existingBellID == nil, let initialAnalysisImage else { return }
         didStartInitialAnalysis = true
         localizedPhotoSuggestions = nil
+        translationConfiguration = nil
         photoAnalysis.analyze(image: initialAnalysisImage)
+    }
+
+    private func translatePhotoSuggestions(
+        using session: TranslationSession,
+        translator: TextTranslator
+    ) async {
+        let suggestions = photoAnalysis.suggestions
+        guard !translator.sourceLanguage.isEquivalent(to: locale.language) else {
+            localizedPhotoSuggestions = nil
+            return
+        }
+
+        var targets: [PhotoSuggestionTranslationTarget] = []
+        var texts: [String] = []
+
+        if let title = suggestions.title?.value {
+            targets.append(.title)
+            texts.append(title)
+        }
+
+        if let notes = suggestions.notes?.value {
+            targets.append(.notes)
+            texts.append(notes)
+        }
+
+        if let customMaterialName = suggestions.customMaterialName?.value {
+            targets.append(.customMaterialName)
+            texts.append(customMaterialName)
+        }
+
+        for (index, tag) in suggestions.suggestedTags.enumerated() {
+            targets.append(.suggestedTag(index))
+            texts.append(tag.value)
+        }
+
+        nonisolated(unsafe) let translationSession = session
+        let translatedTexts = await translate(texts, using: translationSession, fallbackTexts: texts)
+        guard !Task.isCancelled else { return }
+
+        var localizedSuggestions = LocalizedPhotoSuggestions(
+            title: nil,
+            notes: nil,
+            customMaterialName: nil,
+            suggestedTags: suggestions.suggestedTags.map(\.value)
+        )
+
+        for (target, translatedText) in zip(targets, translatedTexts) {
+            switch target {
+            case .title:
+                localizedSuggestions.title = translatedText
+            case .notes:
+                localizedSuggestions.notes = translatedText
+            case .customMaterialName:
+                localizedSuggestions.customMaterialName = translatedText
+            case .suggestedTag(let index):
+                if localizedSuggestions.suggestedTags.indices.contains(index) {
+                    localizedSuggestions.suggestedTags[index] = translatedText
+                }
+            }
+        }
+
+        localizedPhotoSuggestions = localizedSuggestions
+    }
+
+    nonisolated private func translate(
+        _ texts: [String],
+        using session: TranslationSession,
+        fallbackTexts: [String]
+    ) async -> [String] {
+        guard !texts.isEmpty else { return [] }
+
+        do {
+            let requests = texts.enumerated().map { index, text in
+                TranslationSession.Request(
+                    sourceText: text,
+                    clientIdentifier: String(index)
+                )
+            }
+            let responses = try await session.translations(from: requests)
+            var translatedTexts = Array<String?>(repeating: nil, count: texts.count)
+
+            for response in responses {
+                guard
+                    let clientIdentifier = response.clientIdentifier,
+                    let index = Int(clientIdentifier),
+                    texts.indices.contains(index)
+                else {
+                    return fallbackTexts
+                }
+
+                translatedTexts[index] = response.targetText
+            }
+
+            return translatedTexts.enumerated().map { index, translatedText in
+                translatedText ?? fallbackTexts[index]
+            }
+        } catch {
+            return fallbackTexts
+        }
     }
 
     private func reloadLookupSnapshot() {
