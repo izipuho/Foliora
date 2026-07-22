@@ -405,7 +405,9 @@ struct BellEditorView: View {
                 }
                 .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
                     guard wasAnalyzing, !isAnalyzing else { return }
-                    handlePhotoAnalysisCompletion()
+                    Task {
+                        await handlePhotoAnalysisCompletion()
+                    }
                 }
                 .translationTask(translationConfiguration) { session in
                     let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
@@ -446,11 +448,18 @@ struct BellEditorView: View {
         analysisFeedbackEvent = AnalysisFeedbackEvent(kind: kind, token: analysisFeedbackToken)
     }
 
-    private func handlePhotoAnalysisCompletion() {
+    private func handlePhotoAnalysisCompletion() async {
         if photoAnalysis.suggestions.hasSuggestions {
             emitAnalysisFeedback(.success)
+            let sourceLanguage = Locale.Language(identifier: "en")
+            let translator = TextTranslator(sourceLanguage: sourceLanguage)
+            guard await translator.preparationState() == .ready else {
+                translationConfiguration = nil
+                return
+            }
+
             translationConfiguration = TranslationSession.Configuration(
-                source: Locale.Language(identifier: "en"),
+                source: sourceLanguage,
                 target: locale.language
             )
         }
