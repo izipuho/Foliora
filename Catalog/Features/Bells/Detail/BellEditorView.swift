@@ -149,6 +149,19 @@ struct BellEditorView: View {
                                         .foregroundStyle(.secondary)
                                 }
                             } else {
+                                if !photoAnalysis.suggestions.isBellDetected {
+                                    Label {
+                                        Text("editor.analysis.bell_not_found")
+                                            .font(.footnote)
+                                            .foregroundStyle(.primary)
+                                    } icon: {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .foregroundStyle(.orange)
+                                    }
+                                    .padding(.vertical, CatalogMetrics.Spacing.xs)
+                                    .listRowBackground(collection.backgroundStyle.accentColor.opacity(0.10))
+                                }
+
                                 if let titleSuggestion = photoAnalysis.suggestions.title {
                                     PhotoSuggestionRow(
                                         title: String(localized: "editor.photo_analysis.title"),

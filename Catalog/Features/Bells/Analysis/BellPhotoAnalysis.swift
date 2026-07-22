@@ -11,6 +11,7 @@ struct BellPhotoSuggestions: Sendable {
     let tags: [String]
     let recognizedText: [RecognizedTextFeature]
     let visualKeywords: [VisualKeyword]
+    let isBellDetected: Bool
     let title: SuggestedFieldValue<String>?
     let notes: SuggestedFieldValue<String>?
     let material: SuggestedFieldValue<BellMaterial>?
@@ -25,6 +26,7 @@ struct BellPhotoSuggestions: Sendable {
         tags: [],
         recognizedText: [],
         visualKeywords: [],
+        isBellDetected: false,
         title: nil,
         notes: nil,
         material: nil,
@@ -86,6 +88,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             ofKinds: [.visualKeyword]
         )
         let visualKeywords = makeVisualKeywords(from: visualFeatures)
+        let isBellDetected = isBellDetected(in: semanticFeatures.rawVisualKeywords)
         let title = sortedNonEmptyFeatures(
             from: semanticFeatures,
             ofKinds: [.subject]
@@ -135,6 +138,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             tags: tags,
             recognizedText: recognizedText,
             visualKeywords: visualKeywords,
+            isBellDetected: isBellDetected,
             title: title,
             notes: notes,
             material: material,
@@ -153,6 +157,15 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             .map {
                 VisualKeyword(value: $0.value, confidence: $0.confidence)
             }
+    }
+
+    private func isBellDetected(in rawVisualKeywords: [String]) -> Bool {
+        rawVisualKeywords.contains { keyword in
+            keyword
+                .lowercased()
+                .split { !$0.isLetter }
+                .contains("bell")
+        }
     }
 
     private func makeSuggestedTags(from semanticFeatures: SemanticPhotoFeatures) -> [SuggestedFieldValue<String>] {
@@ -239,6 +252,12 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
     }
 }
 
+private extension SemanticPhotoFeatures {
+    var rawVisualKeywords: [String] {
+        features(ofKind: .visualKeyword).map(\.value)
+    }
+}
+
 @MainActor
 @Observable
 final class BellPhotoAnalysisController {
@@ -307,6 +326,7 @@ final class BellPhotoAnalysisController {
             tags: suggestions.tags,
             recognizedText: suggestions.recognizedText,
             visualKeywords: suggestions.visualKeywords,
+            isBellDetected: suggestions.isBellDetected,
             title: field == .title ? nil : suggestions.title,
             notes: field == .notes ? nil : suggestions.notes,
             material: field == .material ? nil : suggestions.material,

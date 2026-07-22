@@ -826,7 +826,7 @@ struct BellCatalogDetailSheetContainer: View {
             } else {
                 CatalogEmptyStateView(
                     systemImage: "bell.slash",
-                    title: "bel.not_found"
+                    title: "bell.not_found"
                 )
             }
         }
