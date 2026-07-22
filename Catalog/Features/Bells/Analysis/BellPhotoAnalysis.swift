@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import Translation
 import UIKit
 
 struct VisualKeyword: Hashable, Sendable {
@@ -72,22 +71,14 @@ struct BellPhotoAnalysisDebugInfo: Sendable {
 protocol BellPhotoSuggestionMapping: Sendable {
     func map(
         analysis: PhotoAnalysisResult,
-        semanticFeatures: SemanticPhotoFeatures,
-        translationSession: TranslationSession?
+        semanticFeatures: SemanticPhotoFeatures
     ) async -> BellPhotoSuggestions
 }
 
 struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
-    private let textTranslator: TextTranslator
-
-    init() {
-        self.textTranslator = TextTranslator()
-    }
-
     func map(
         analysis: PhotoAnalysisResult,
-        semanticFeatures: SemanticPhotoFeatures,
-        translationSession: TranslationSession?
+        semanticFeatures: SemanticPhotoFeatures
     ) async -> BellPhotoSuggestions {
         let recognizedText = analysis.main.recognizedText
         let visualFeatures = sortedNonEmptyFeatures(
@@ -102,10 +93,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         ).first.map {
             SuggestedFieldValue(value: $0.value, confidence: $0.confidence)
         }
-        let suggestedTags = await localizeSuggestedTags(
-            makeSuggestedTags(from: semanticFeatures),
-            translationSession: translationSession
-        )
+        let suggestedTags = makeSuggestedTags(from: semanticFeatures)
         let tags = suggestedTags.map(\.value)
         let materialFeature = sortedNonEmptyFeatures(
             from: semanticFeatures,
@@ -184,28 +172,6 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             ofKinds: [.subject, .style, .place, .text, .visualKeyword]
         ).map {
             SuggestedFieldValue(value: $0.value, confidence: $0.confidence)
-        }
-    }
-
-    private func localizeSuggestedTags(
-        _ suggestedTags: [SuggestedFieldValue<String>],
-        translationSession: TranslationSession?
-    ) async -> [SuggestedFieldValue<String>] {
-        guard let translationSession else {
-            return suggestedTags
-        }
-
-        let translatedTags = await textTranslator.translate(
-            suggestedTags.map(\.value),
-            using: translationSession
-        )
-
-        guard translatedTags.count == suggestedTags.count else {
-            return suggestedTags
-        }
-
-        return zip(suggestedTags, translatedTags).map { suggestedTag, translatedTag in
-            SuggestedFieldValue(value: translatedTag, confidence: suggestedTag.confidence)
         }
     }
 
@@ -331,10 +297,7 @@ final class BellPhotoAnalysisController {
         isAnalyzing || suggestions.hasSuggestions
     }
 
-    func analyze(
-        image: UIImage,
-        translationSession: TranslationSession? = nil
-    ) {
+    func analyze(image: UIImage) {
         guard let cgImage = image.cgImage else {
             isAnalyzing = false
             return
@@ -347,8 +310,7 @@ final class BellPhotoAnalysisController {
             let semanticFeatures = await semanticExtractor.extractFeatures(from: analysis)
             let mapped = await mapper.map(
                 analysis: analysis,
-                semanticFeatures: semanticFeatures,
-                translationSession: translationSession
+                semanticFeatures: semanticFeatures
             )
             await MainActor.run {
                 self.suggestions = mapped

@@ -14,22 +14,22 @@ public enum TranslationPreparationState: Sendable, Equatable {
     case unsupported
 }
 
-public actor TextTranslator {
+public struct TextTranslator: Sendable {
     public let sourceLanguage: Locale.Language
 
     public init(
-        sourceLanguage: Locale.Language = .english
+        sourceLanguage: Locale.Language = Locale.Language(identifier: "en")
     ) {
         self.sourceLanguage = sourceLanguage
     }
 
     public func targetLanguage() -> Locale.Language {
         guard let preferredLanguage = Locale.preferredLanguages.first else {
-            return .english
+            return Locale.Language(identifier: "en")
         }
 
         let language = Locale.Language(identifier: preferredLanguage)
-        return language.languageCode == nil ? .english : language
+        return language.languageCode == nil ? Locale.Language(identifier: "en") : language
     }
 
     public func preparationState() async -> TranslationPreparationState {

@@ -4369,23 +4369,6 @@
         }
       }
     },
-    "editor.photo_analysis.detected_text" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detected text"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Распознанный текст"
-          }
-        }
-      }
-    },
     "editor.photo_analysis.material" : {
       "localizations" : {
         "en" : {
