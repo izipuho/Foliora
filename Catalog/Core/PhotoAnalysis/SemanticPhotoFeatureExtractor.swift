@@ -1,8 +1,5 @@
-import CoreGraphics
 import Foundation
-#if canImport(FoundationModels)
 import FoundationModels
-#endif
 
 struct SemanticPhotoFeatures: Hashable, Sendable, Codable {
     let features: [SemanticPhotoFeature]
@@ -83,7 +80,6 @@ struct SemanticPhotoVisualFeature: Hashable, Sendable {
 }
 
 struct SemanticPhotoVLMInput: Sendable {
-    let mainObjectImage: CGImage?
     let visualFeatures: [SemanticPhotoVisualFeature]
     let recognizedText: [RecognizedTextFeature]
 }
@@ -110,7 +106,6 @@ protocol SemanticPhotoVLMExtracting: Sendable {
     func extractFeatures(from input: SemanticPhotoVLMInput) async -> SemanticPhotoVLMOutput
 }
 
-#if canImport(FoundationModels)
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
@@ -167,13 +162,10 @@ struct SemanticPhotoTagFilterGeneratedResponse {
     @Guide(description: "Filtered subset of the input tags. Do not include tags that were not provided.")
     let tags: [SemanticPhotoTagFilterGeneratedItem]
 }
-#endif
 
-#if canImport(FoundationModels) && compiler(>=6.4)
 struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtracting {
     func extractFeatures(from input: SemanticPhotoVLMInput) async -> SemanticPhotoVLMOutput {
-        guard #available(iOS 26.0, macOS 26.0, visionOS 26.0, *),
-              let image = input.mainObjectImage else {
+        guard #available(iOS 26.0, macOS 26.0, visionOS 26.0, *) else {
             return .empty
         }
 
@@ -192,7 +184,6 @@ struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtractin
                 options: GenerationOptions(sampling: .greedy)
             ) {
                 promptText(for: input)
-                Attachment(image)
             }
 
             return output(from: response.content)
@@ -203,18 +194,19 @@ struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtractin
 
     private var instructions: String {
         """
-        Extract universal semantic facts from a photo.
-        Use only facts that are visible in the image or confirmed by the provided Vision features or OCR context.
-        Do not infer, guess, or invent unknown details.
+        Extract universal semantic facts from system Vision and OCR results.
+        You receive only the results of Vision and OCR APIs, not the original photo.
+        Do not claim that any feature is directly visible to you.
+        Create universal semantic facts only from the provided input features.
+        Do not add details that are not confirmed by the input context.
         Return general semantic facts only.
-        Do not use any knowledge of bell cards, bell-specific fields, catalog autofill, or app data-entry needs.
         Every confidence value must be in the range 0...1.
         """
     }
 
     private func promptText(for input: SemanticPhotoVLMInput) -> String {
         """
-        Analyze the attached main object image together with this already-filtered context.
+        Analyze these already-collected results from system Vision and OCR APIs.
         Do not run or assume any additional Vision or OCR analysis.
 
         Vision features:
@@ -282,13 +274,6 @@ struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtractin
         }
     }
 }
-#else
-struct AppleFoundationModelsSemanticPhotoVLMExtractor: SemanticPhotoVLMExtracting {
-    func extractFeatures(from input: SemanticPhotoVLMInput) async -> SemanticPhotoVLMOutput {
-        .empty
-    }
-}
-#endif
 
 private struct SemanticPhotoVLMPromptFeature: Encodable {
     let value: String
@@ -304,7 +289,6 @@ private struct SemanticPhotoTagFilterPromptItem: Encodable {
     let confidence: Double
 }
 
-#if canImport(FoundationModels) && compiler(>=6.4)
 struct AppleFoundationModelsSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
     func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature] {
         guard !tags.isEmpty else {
@@ -379,13 +363,6 @@ struct AppleFoundationModelsSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
         label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 }
-#else
-struct AppleFoundationModelsSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
-    func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature] {
-        tags
-    }
-}
-#endif
 
 protocol SemanticPhotoFeatureExtracting: Sendable {
     func extractFeatures(from analysis: PhotoAnalysisResult) async -> SemanticPhotoFeatures
@@ -419,7 +396,6 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
         }
         let vlmOutput = await vlmExtractor.extractFeatures(
             from: SemanticPhotoVLMInput(
-                mainObjectImage: analysis.mainObjectImage,
                 visualFeatures: vlmVisualFeatures(from: filteredVisionFeatures),
                 recognizedText: recognizedText
             )
