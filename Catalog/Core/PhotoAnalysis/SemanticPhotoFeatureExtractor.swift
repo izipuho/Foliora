@@ -372,10 +372,8 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
     }
 
     func extractFeatures(from analysis: PhotoAnalysisResult) async -> SemanticPhotoFeatures {
-        let visionFeatures =
-            visionFeatures(from: analysis.main) +
-            visionFeatures(from: analysis.background)
-        let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
+        let visionFeatures = visionFeatures(from: analysis.main)
+        let recognizedText = analysis.main.recognizedText
         let filteredVisionFeatures = await filterVisionFeatures(visionFeatures)
         let ocrFeatures = recognizedText.map {
             SemanticPhotoFeature(
