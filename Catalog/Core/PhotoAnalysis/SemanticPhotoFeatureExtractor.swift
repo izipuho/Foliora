@@ -3,11 +3,19 @@ import FoundationModels
 
 struct SemanticPhotoFeatures: Hashable, Sendable, Codable {
     let features: [SemanticPhotoFeature]
+    let suggestedYear: SemanticPhotoYearEstimate?
+    let suggestedGeo: SemanticPhotoGeoEstimate?
 
     static let empty = SemanticPhotoFeatures(features: [])
 
-    init(features: [SemanticPhotoFeature]) {
+    init(
+        features: [SemanticPhotoFeature],
+        suggestedYear: SemanticPhotoYearEstimate? = nil,
+        suggestedGeo: SemanticPhotoGeoEstimate? = nil
+    ) {
         self.features = features
+        self.suggestedYear = suggestedYear
+        self.suggestedGeo = suggestedGeo
     }
 
     func features(ofKind kind: SemanticPhotoFeatureKind) -> [SemanticPhotoFeature] {
@@ -74,6 +82,16 @@ enum SemanticPhotoFeatureSource: String, Hashable, Sendable, Codable {
     case semanticModel = "vlm"
 }
 
+struct SemanticPhotoYearEstimate: Hashable, Sendable, Codable {
+    let year: Int?
+    let confidence: Double
+}
+
+struct SemanticPhotoGeoEstimate: Hashable, Sendable, Codable {
+    let value: String
+    let confidence: Double
+}
+
 struct SemanticPhotoVisualFeature: Hashable, Sendable {
     let label: String
     let confidence: Double
@@ -91,6 +109,8 @@ struct SemanticPhotoSemanticOutput: Sendable {
     let placeHints: [SemanticPhotoFeature]
     let textEntities: [SemanticPhotoFeature]
     let styleHints: [SemanticPhotoFeature]
+    let suggestedYear: SemanticPhotoYearEstimate?
+    let suggestedGeo: SemanticPhotoGeoEstimate?
 
     static let empty = SemanticPhotoSemanticOutput(
         subjects: [],
@@ -98,7 +118,9 @@ struct SemanticPhotoSemanticOutput: Sendable {
         conditionHints: [],
         placeHints: [],
         textEntities: [],
-        styleHints: []
+        styleHints: [],
+        suggestedYear: nil,
+        suggestedGeo: nil
     )
 }
 
@@ -112,6 +134,30 @@ protocol SemanticPhotoSemanticExtracting: Sendable {
 @Generable
 struct SemanticPhotoGeneratedFeature {
     @Guide(description: "A concise, universal semantic fact visible in the image or confirmed by input context.")
+    let value: String
+
+    @Guide(description: "Confidence from 0 to 1.", .range(0.0...1.0))
+    let confidence: Double
+}
+
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+@Generable
+struct SemanticPhotoGeneratedYearEstimate {
+    @Guide(description: "A single year when the item was acquired or received by the owner. Return nil for date ranges, production years, historical periods, event years, copyright years, or any other year type.")
+    let year: Int?
+
+    @Guide(description: "Confidence from 0 to 1.", .range(0.0...1.0))
+    let confidence: Double
+}
+
+@available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
+@available(tvOS, unavailable)
+@available(watchOS, unavailable)
+@Generable
+struct SemanticPhotoGeneratedGeoEstimate {
+    @Guide(description: "A likely country, region, or city supported by the input context.")
     let value: String
 
     @Guide(description: "Confidence from 0 to 1.", .range(0.0...1.0))
@@ -140,6 +186,12 @@ struct SemanticPhotoGeneratedResponse {
 
     @Guide(description: "Visible style, pattern, color, or decorative hints.")
     let styleHints: [SemanticPhotoGeneratedFeature]
+
+    @Guide(description: "Likely acquisition or received year supported by any provided Vision tags, objects, animals, semantic hints, or OCR text. Return nil unless the input clearly indicates when the owner acquired or received the item. Return nil for date ranges, event years, production years, manufacturing years, historical periods, and copyright years.")
+    let suggestedYear: SemanticPhotoGeneratedYearEstimate?
+
+    @Guide(description: "Likely country, region, or city supported by any provided Vision tags, objects, animals, semantic hints, or OCR text. Return nil unless there is enough evidence.")
+    let suggestedGeo: SemanticPhotoGeneratedGeoEstimate?
 }
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
@@ -193,6 +245,9 @@ struct AppleFoundationModelsSemanticPhotoExtractor: SemanticPhotoSemanticExtract
         Extract universal semantic facts from system Vision and OCR results.
         Do not claim that any feature is directly visible to you.
         Create universal semantic facts only from the provided input features.
+        Estimate geography only when the provided Vision or OCR context gives enough evidence.
+        Estimate a year only when the input clearly supports the year when the owner acquired or received the item.
+        Return nil for year ranges, production years, manufacturing years, historical periods, event years, copyright years, and other non-acquisition years.
         Do not add details that are not confirmed by the input context.
         Return general semantic facts only.
         Every confidence value must be in the range 0...1.
@@ -246,7 +301,38 @@ struct AppleFoundationModelsSemanticPhotoExtractor: SemanticPhotoSemanticExtract
             conditionHints: features(from: response.conditionHints, kind: .condition),
             placeHints: features(from: response.placeHints, kind: .place),
             textEntities: features(from: response.textEntities, kind: .text),
-            styleHints: features(from: response.styleHints, kind: .style)
+            styleHints: features(from: response.styleHints, kind: .style),
+            suggestedYear: yearEstimate(from: response.suggestedYear),
+            suggestedGeo: geoEstimate(from: response.suggestedGeo)
+        )
+    }
+
+    private func yearEstimate(
+        from generatedEstimate: SemanticPhotoGeneratedYearEstimate?
+    ) -> SemanticPhotoYearEstimate? {
+        generatedEstimate.map {
+            SemanticPhotoYearEstimate(
+                year: $0.year,
+                confidence: min(max($0.confidence, 0), 1)
+            )
+        }
+    }
+
+    private func geoEstimate(
+        from generatedEstimate: SemanticPhotoGeneratedGeoEstimate?
+    ) -> SemanticPhotoGeoEstimate? {
+        guard let generatedEstimate else {
+            return nil
+        }
+
+        let value = generatedEstimate.value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else {
+            return nil
+        }
+
+        return SemanticPhotoGeoEstimate(
+            value: value,
+            confidence: min(max(generatedEstimate.confidence, 0), 1)
         )
     }
 
@@ -396,7 +482,11 @@ struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
             ocrFeatures +
             semanticFeatures
 
-        return SemanticPhotoFeatures(features: features)
+        return SemanticPhotoFeatures(
+            features: features,
+            suggestedYear: semanticOutput.suggestedYear,
+            suggestedGeo: semanticOutput.suggestedGeo
+        )
     }
 
     private func visionFeatures(

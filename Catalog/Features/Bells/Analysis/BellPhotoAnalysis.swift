@@ -119,6 +119,17 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             ofKinds: [.style, .text]
         )
         let notes = makeNotes(from: notesFeatures)
+        let suggestedYear = semanticFeatures.suggestedYear.flatMap { estimate in
+            estimate.year.map {
+                SuggestedFieldValue(value: $0, confidence: estimate.confidence)
+            }
+        }
+        let suggestedGeo = semanticFeatures.suggestedGeo.map {
+            SuggestedFieldValue(
+                value: GeoPoint(label: $0.value, name: $0.value, coordinate: nil),
+                confidence: $0.confidence
+            )
+        }
 
         return BellPhotoSuggestions(
             tags: tags,
@@ -129,8 +140,8 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             material: material,
             condition: condition,
             customMaterialName: customMaterialName,
-            suggestedYear: nil,
-            suggestedGeo: nil,
+            suggestedYear: suggestedYear,
+            suggestedGeo: suggestedGeo,
             suggestedTags: suggestedTags,
             debugInfo: nil
         )
