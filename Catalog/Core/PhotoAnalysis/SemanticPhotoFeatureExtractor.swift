@@ -165,10 +165,6 @@ struct SemanticPhotoTagFilterGeneratedResponse {
 
 struct AppleFoundationModelsSemanticPhotoExtractor: SemanticPhotoSemanticExtracting {
     func extractFeatures(from input: SemanticPhotoSemanticInput) async -> SemanticPhotoSemanticOutput {
-        guard #available(iOS 26.0, macOS 26.0, visionOS 26.0, *) else {
-            return .empty
-        }
-
         do {
             let model = SystemLanguageModel.default
             guard model.isAvailable else {
@@ -292,10 +288,6 @@ struct AppleFoundationModelsSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
     func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature] {
         guard !tags.isEmpty else {
             return []
-        }
-
-        guard #available(iOS 26.0, macOS 26.0, visionOS 26.0, *) else {
-            return tags
         }
 
         do {
