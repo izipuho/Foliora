@@ -195,7 +195,6 @@ struct AppleFoundationModelsSemanticPhotoExtractor: SemanticPhotoSemanticExtract
     private var instructions: String {
         """
         Extract universal semantic facts from system Vision and OCR results.
-        You receive only the results of Vision and OCR APIs, not the original photo.
         Do not claim that any feature is directly visible to you.
         Create universal semantic facts only from the provided input features.
         Do not add details that are not confirmed by the input context.
