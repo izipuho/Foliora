@@ -815,7 +815,7 @@ private struct PhotoSuggestedTagsRow: View {
                 Spacer()
 
                 Button {
-                    onAccept(displaySuggestions.map(\.suggestion.value).filter(selectedValues.contains))
+                    onAccept(displaySuggestions.filter { selectedValues.contains($0.suggestion.value) }.map(\.localizedTag))
                 } label: {
                     Image(systemName: "checkmark")
                 }
