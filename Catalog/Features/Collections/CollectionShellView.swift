@@ -173,10 +173,9 @@ struct CollectionShellView: View {
             }
             .sheet(isPresented: isBellDetailPresented) {
                 if let selectedBellID {
-                    BellCatalogDetailSheetContainer(
+                    BellDetailContainer(
                         bellID: selectedBellID,
-                        repository: repository,
-                        canEditCollection: canEditCollection
+                        repository: repository
                     )
                         .presentationDragIndicator(.visible)
                 }
