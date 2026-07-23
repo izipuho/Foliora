@@ -66,7 +66,7 @@ struct BellDetailView: View {
                     Button { toggleFavorite() } label: {
                         Image(systemName: isFavorite ? "star.fill" : "star")
                     }
-                    .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+                    .accessibilityLabel(isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
                 }
             }
         }
