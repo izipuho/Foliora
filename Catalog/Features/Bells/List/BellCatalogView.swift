@@ -90,6 +90,12 @@ private extension BellFilters {
     }
 }
 
+private extension BellCatalogSnapshot {
+    var bellRecords: [BellRecord] {
+        bells.compactMap { recordsByID[$0.id] }
+    }
+}
+
 
 
 struct BellCatalogView: View {
@@ -121,6 +127,7 @@ struct BellCatalogView: View {
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
     @State private var draftHomeLocations: [Location] = []
     @State private var bellPendingMoveAfterHomeEditor: BellListItem?
+    @State private var isFavoritesCollapsed = false
     @StateObject private var viewModel: BellCatalogViewModel
     @Namespace private var bellGridTransitionNamespace
 
@@ -164,6 +171,10 @@ struct BellCatalogView: View {
 
     private var hasActiveFilter: Bool {
         !filters.isEmpty
+    }
+
+    private var favoriteBells: [BellRecord] {
+        catalogSnapshot.bellRecords.filter(\.isFavorite)
     }
 
     private func setFilter(_ filter: BellPresenceFilter) {
@@ -402,6 +413,15 @@ struct BellCatalogView: View {
                         dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
                     }
 
+                    if !favoriteBells.isEmpty {
+                        favoritesSection(
+                            bells: favoriteBells,
+                            screenWidth: stripScreenWidth(cardSize: cardSize, gridMetrics: gridMetrics)
+                        )
+
+                        catalogSectionHeader
+                    }
+
                     if hasActiveFilter {
                         activeSummaryFilterSection
                     }
@@ -492,6 +512,47 @@ struct BellCatalogView: View {
             }
         )
         .frame(maxHeight: min(max(screenHeight * 0.36, 220), 320), alignment: .top)
+    }
+
+    private func favoritesSection(bells: [BellRecord], screenWidth: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+            BellCollapsibleSectionHeader(
+                title: String(localized: "bell.catalog.favorites"),
+                isCollapsed: isFavoritesCollapsed
+            ) {
+                withAnimation(.snappy(duration: 0.2)) {
+                    isFavoritesCollapsed.toggle()
+                }
+            }
+
+            if !isFavoritesCollapsed {
+                BellStripView(
+                    bells: bells,
+                    screenWidth: screenWidth
+                ) { bell in
+                    onBellSelected?(bell.id)
+                }
+                .padding(.horizontal, CatalogMetrics.Insets.screen)
+            }
+        }
+    }
+
+    private var catalogSectionHeader: some View {
+        BellGroupedSectionHeader(
+            title: String(localized: "bell.catalog.title"),
+            tint: catalogStyle.accentColor,
+            isJumpButton: false,
+            action: {}
+        )
+        //.padding(.horizontal, CatalogMetrics.Insets.screen)
+    }
+
+    private func stripScreenWidth(
+        cardSize: CGSize,
+        gridMetrics: CatalogCardLayoutMode.GridMetrics
+    ) -> CGFloat {
+        let totalSpacing = gridMetrics.spacing * CGFloat(max(gridMetrics.columnCount - 1, 0))
+        return cardSize.width * CGFloat(gridMetrics.columnCount) + totalSpacing + CatalogCardLayoutMode.screenHorizontalPadding * 2
     }
 
     private func focusGeography(country: String) {
@@ -778,6 +839,37 @@ private struct BellGroupedSectionHeader: View {
     }
 }
 
+private struct BellCollapsibleSectionHeader: View {
+    let title: String
+    let isCollapsed: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: CatalogMetrics.Spacing.sm) {
+                Text(title)
+                    .font(CatalogTypography.sectionTitle)
+                    .foregroundStyle(.primary)
+
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+            }
+            .padding(.vertical, CatalogMetrics.Spacing.sm)
+            .padding(.horizontal, CatalogMetrics.Spacing.md)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Color(uiColor: .separator))
+                    .frame(height: 0.5)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct BellGroupingJumpPopover: View {
     let titles: [String]
     let onSelect: (String) -> Void
@@ -821,7 +913,8 @@ struct BellDetailContainer: View {
                 BellDetailView(
                     bell: bellBinding,
                     repository: repository,
-                    canEditCollection: canEditCollection
+                    canEditCollection: canEditCollection,
+                    canChangeFavorite: canChangeFavorite
                 )
             } else {
                 CatalogEmptyStateView(
@@ -849,6 +942,17 @@ struct BellDetailContainer: View {
         case .owner, .contributor:
             return true
         case .viewer, nil:
+            return false
+        }
+    }
+
+    private var canChangeFavorite: Bool {
+        guard collectionSharingLoadError == nil else { return false }
+
+        switch collectionSharingState?.currentUserRole {
+        case .owner:
+            return true
+        case .contributor, .viewer, nil:
             return false
         }
     }

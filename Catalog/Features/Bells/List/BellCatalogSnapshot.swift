@@ -91,6 +91,7 @@ struct BellCatalogSnapshot {
             mediaAssets: relatedObjects(entity, "mediaAssets")
                 .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
                 .map { mediaAsset(from: $0, itemID: id) },
+            isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
             createdBy: stringValue(entity, "createdBy"),
             tags: tags
         )

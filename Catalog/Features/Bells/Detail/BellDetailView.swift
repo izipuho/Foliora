@@ -5,6 +5,7 @@ struct BellDetailView: View {
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
     let canEditCollection: Bool
+    let canChangeFavorite: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var draftNotes = ""
@@ -20,10 +21,11 @@ struct BellDetailView: View {
     @State private var isPresentingUnsavedChangesConfirmation = false
     private let detailContentFadeHeight: CGFloat = 80
 
-    init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool) {
+    init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool, canChangeFavorite: Bool = false) {
         _bell = bell
         self.repository = repository
         self.canEditCollection = canEditCollection
+        self.canChangeFavorite = canChangeFavorite
     }
 
     var body: some View {
@@ -40,6 +42,15 @@ struct BellDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
+            if canChangeFavorite {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { toggleFavorite() } label: {
+                        Image(systemName: bell.isFavorite ? "star.fill" : "star")
+                    }
+                    .accessibilityLabel(bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
+                }
+            }
+
             if canEditCollection && isNotesOrTagsDirty {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
@@ -386,6 +397,24 @@ struct BellDetailView: View {
         syncDraftsFromBell()
     }
 
+    private func toggleFavorite() {
+        guard canChangeFavorite else { return }
+        let updatedBell = BellRecord(
+            item: bell.item,
+            details: bell.details,
+            originPlace: bell.originPlace,
+            storageLocation: bell.storageLocation,
+            storagePath: bell.storagePath,
+            mediaAssets: bell.mediaAssets,
+            isFavorite: !bell.isFavorite,
+            createdBy: bell.createdBy,
+            tags: bell.tags
+        )
+
+        bell = updatedBell
+        repository.saveBellRecord(updatedBell)
+    }
+
     private func persist(
         notes: String? = nil,
         tags: [String]? = nil,
@@ -427,6 +456,7 @@ struct BellDetailView: View {
             storageLocation: location,
             storagePath: location.map { locationPath(for: $0, locationsByID: locationsByID) } ?? String(localized: "common.unassigned"),
             mediaAssets: normalizedMediaAssets,
+            isFavorite: bell.isFavorite,
             createdBy: bell.createdBy,
             tags: tags ?? bell.tags
         )
@@ -462,7 +492,8 @@ private struct BellDetailPreviewHost: View {
                 BellDetailView(
                     bell: binding,
                     repository: repository,
-                    canEditCollection: false
+                    canEditCollection: false,
+                    canChangeFavorite: false
                 )
             } else {
                 CatalogEmptyStateView(
