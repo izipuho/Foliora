@@ -417,6 +417,8 @@ struct BellCatalogView: View {
                             bells: favoriteBells,
                             screenWidth: stripScreenWidth(cardSize: cardSize, gridMetrics: gridMetrics)
                         )
+
+                        catalogSectionHeader
                     }
 
                     if hasActiveFilter {
@@ -526,8 +528,18 @@ struct BellCatalogView: View {
             ) { bell in
                 onBellSelected?(bell.id)
             }
+            .padding(.horizontal, CatalogMetrics.Insets.screen)
         }
-        .padding(.horizontal, CatalogMetrics.Insets.screen)
+    }
+
+    private var catalogSectionHeader: some View {
+        BellGroupedSectionHeader(
+            title: String(localized: "bell.catalog.title"),
+            tint: catalogStyle.accentColor,
+            isJumpButton: false,
+            action: {}
+        )
+        //.padding(.horizontal, CatalogMetrics.Insets.screen)
     }
 
     private func stripScreenWidth(
