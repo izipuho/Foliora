@@ -42,6 +42,15 @@ struct BellDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
+            if canChangeFavorite {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { toggleFavorite() } label: {
+                        Image(systemName: bell.isFavorite ? "star.fill" : "star")
+                    }
+                    .accessibilityLabel(bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
+                }
+            }
+
             if canEditCollection && isNotesOrTagsDirty {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
@@ -56,15 +65,6 @@ struct BellDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
                     .accessibilityLabel(String(localized: "common.edit"))
-                }
-            }
-
-            if canChangeFavorite {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { toggleFavorite() } label: {
-                        Image(systemName: bell.isFavorite ? "star.fill" : "star")
-                    }
-                    .accessibilityLabel(bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
                 }
             }
         }
