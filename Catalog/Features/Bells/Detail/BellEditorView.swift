@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreData
+import Translation
 
 struct BellEditorView: View {
     enum StartSection: Hashable {
@@ -25,6 +26,20 @@ struct BellEditorView: View {
         let token: Int
     }
 
+    private struct LocalizedPhotoSuggestions {
+        var title: String?
+        var notes: String?
+        var customMaterialName: String?
+        var suggestedTags: [String]
+    }
+
+    private enum PhotoSuggestionTranslationTarget {
+        case title
+        case notes
+        case customMaterialName
+        case suggestedTag(Int)
+    }
+
     private enum FocusedField: Hashable {
         case title
     }
@@ -37,6 +52,7 @@ struct BellEditorView: View {
 
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @FocusState private var focusedField: FocusedField?
     @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var title = ""
@@ -55,6 +71,10 @@ struct BellEditorView: View {
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
     @State private var photoAnalysis = BellPhotoAnalysisController()
+    @State private var localizedPhotoSuggestions: LocalizedPhotoSuggestions?
+    @State private var pendingPhotoSuggestionsForTranslation: BellPhotoSuggestions?
+    @State private var isLocalizingPhotoSuggestions = false
+    @State private var translationConfiguration: TranslationSession.Configuration?
     @State private var didStartInitialAnalysis = false
     @State private var isPresentingHomeEditor = false
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
@@ -89,13 +109,15 @@ struct BellEditorView: View {
 
     private var shouldShowPhotoAnalysisSection: Bool {
         photoAnalysis.isAnalyzing
-        || photoAnalysis.suggestions.title != nil
-        || photoAnalysis.suggestions.notes != nil
-        || photoAnalysis.suggestions.material != nil
-        || photoAnalysis.suggestions.condition != nil
-        || photoAnalysis.suggestions.suggestedYear != nil
-        || photoAnalysis.suggestions.suggestedGeo != nil
-        || !photoAnalysis.suggestions.suggestedTags.isEmpty
+        || (!isLocalizingPhotoSuggestions && (
+            photoAnalysis.suggestions.title != nil
+            || photoAnalysis.suggestions.notes != nil
+            || photoAnalysis.suggestions.material != nil
+            || photoAnalysis.suggestions.condition != nil
+            || photoAnalysis.suggestions.suggestedYear != nil
+            || photoAnalysis.suggestions.suggestedGeo != nil
+            || !photoAnalysis.suggestions.suggestedTags.isEmpty
+        ))
     }
 
     init(
@@ -149,17 +171,27 @@ struct BellEditorView: View {
                                         .foregroundStyle(.secondary)
                                 }
                             } else {
-                                if !photoAnalysis.suggestions.recognizedText.isEmpty {
-                                    PhotoRecognizedTextBlock(textFeatures: photoAnalysis.suggestions.recognizedText)
+                                if !photoAnalysis.suggestions.isBellDetected {
+                                    Label {
+                                        Text("editor.analysis.bell_not_found")
+                                            .font(.footnote)
+                                            .foregroundStyle(.primary)
+                                    } icon: {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .foregroundStyle(.orange)
+                                    }
+                                    .padding(.vertical, CatalogMetrics.Spacing.xs)
+                                    .listRowBackground(collection.backgroundStyle.accentColor.opacity(0.10))
                                 }
 
                                 if let titleSuggestion = photoAnalysis.suggestions.title {
                                     PhotoSuggestionRow(
                                         title: String(localized: "editor.photo_analysis.title"),
-                                        suggestedValue: titleSuggestion.value,
+                                        suggestedValue: localizedPhotoSuggestions?.title ?? titleSuggestion.value,
                                         confidence: titleSuggestion.confidence,
                                         onAccept: {
                                             title = titleSuggestion.value
+                                            localizedPhotoSuggestions?.title = nil
                                             photoAnalysis.dismiss(.title)
                                         }
                                     )
@@ -168,10 +200,11 @@ struct BellEditorView: View {
                                 if let notesSuggestion = photoAnalysis.suggestions.notes {
                                     PhotoSuggestionRow(
                                         title: String(localized: "editor.photo_analysis.notes"),
-                                        suggestedValue: notesSuggestion.value,
+                                        suggestedValue: localizedPhotoSuggestions?.notes ?? notesSuggestion.value,
                                         confidence: notesSuggestion.confidence,
                                         onAccept: {
                                             notes = notesSuggestion.value
+                                            localizedPhotoSuggestions?.notes = nil
                                             photoAnalysis.dismiss(.notes)
                                         }
                                     )
@@ -186,6 +219,7 @@ struct BellEditorView: View {
                                             material = materialSuggestion.value
                                             if materialSuggestion.value == .other {
                                                 customMaterialName = photoAnalysis.suggestions.customMaterialName?.value ?? ""
+                                                localizedPhotoSuggestions?.customMaterialName = nil
                                                 photoAnalysis.dismiss(.customMaterialName)
                                             } else {
                                                 customMaterialName = ""
@@ -235,10 +269,12 @@ struct BellEditorView: View {
                                     PhotoSuggestedTagsRow(
                                         title: String(localized: "editor.photo_analysis.tags"),
                                         suggestions: photoAnalysis.suggestions.suggestedTags,
+                                        localizedSuggestions: localizedPhotoSuggestions?.suggestedTags,
                                         onAccept: { newValues in
                                             for value in newValues where !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
                                                 tags.append(value)
                                             }
+                                            localizedPhotoSuggestions?.suggestedTags = []
                                             photoAnalysis.dismiss(.suggestedTags)
                                         }
                                     )
@@ -373,7 +409,13 @@ struct BellEditorView: View {
                 }
                 .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
                     guard wasAnalyzing, !isAnalyzing else { return }
-                    handlePhotoAnalysisCompletion()
+                    Task {
+                        await handlePhotoAnalysisCompletion()
+                    }
+                }
+                .translationTask(translationConfiguration) { session in
+                    let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
+                    await translatePhotoSuggestions(using: session, translator: translator)
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
                     reloadLookupSnapshot()
@@ -410,9 +452,32 @@ struct BellEditorView: View {
         analysisFeedbackEvent = AnalysisFeedbackEvent(kind: kind, token: analysisFeedbackToken)
     }
 
-    private func handlePhotoAnalysisCompletion() {
+    private func handlePhotoAnalysisCompletion() async {
         if photoAnalysis.suggestions.hasSuggestions {
             emitAnalysisFeedback(.success)
+            let suggestions = photoAnalysis.suggestions
+            let sourceLanguage = Locale.Language(identifier: "en")
+            let translator = TextTranslator(sourceLanguage: sourceLanguage)
+
+            switch await translator.preparationState() {
+            case .ready:
+                pendingPhotoSuggestionsForTranslation = suggestions
+            case .needsDownload, .unsupported, .notRequired:
+                localizedPhotoSuggestions = localizedPhotoSuggestions(from: suggestions)
+                pendingPhotoSuggestionsForTranslation = nil
+                isLocalizingPhotoSuggestions = false
+                translationConfiguration = nil
+                return
+            }
+
+            translationConfiguration = TranslationSession.Configuration(
+                source: sourceLanguage,
+                target: locale.language
+            )
+        } else {
+            isLocalizingPhotoSuggestions = false
+            pendingPhotoSuggestionsForTranslation = nil
+            translationConfiguration = nil
         }
 
         // Keep failures / empty results silent by default.
@@ -423,7 +488,88 @@ struct BellEditorView: View {
     private func startInitialPhotoAnalysisIfNeeded() {
         guard !didStartInitialAnalysis, existingBellID == nil, let initialAnalysisImage else { return }
         didStartInitialAnalysis = true
+        isLocalizingPhotoSuggestions = true
+        localizedPhotoSuggestions = nil
+        pendingPhotoSuggestionsForTranslation = nil
+        translationConfiguration = nil
         photoAnalysis.analyze(image: initialAnalysisImage)
+    }
+
+    private func translatePhotoSuggestions(
+        using session: TranslationSession,
+        translator: TextTranslator
+    ) async {
+        guard let suggestions = pendingPhotoSuggestionsForTranslation else {
+            isLocalizingPhotoSuggestions = false
+            translationConfiguration = nil
+            return
+        }
+
+        guard !translator.sourceLanguage.isEquivalent(to: locale.language) else {
+            localizedPhotoSuggestions = localizedPhotoSuggestions(from: suggestions)
+            pendingPhotoSuggestionsForTranslation = nil
+            isLocalizingPhotoSuggestions = false
+            translationConfiguration = nil
+            return
+        }
+
+        var targets: [PhotoSuggestionTranslationTarget] = []
+        var texts: [String] = []
+
+        if let title = suggestions.title?.value {
+            targets.append(.title)
+            texts.append(title)
+        }
+
+        if let notes = suggestions.notes?.value {
+            targets.append(.notes)
+            texts.append(notes)
+        }
+
+        if let customMaterialName = suggestions.customMaterialName?.value {
+            targets.append(.customMaterialName)
+            texts.append(customMaterialName)
+        }
+
+        for (index, tag) in suggestions.suggestedTags.enumerated() {
+            targets.append(.suggestedTag(index))
+            texts.append(tag.value)
+        }
+
+        nonisolated(unsafe) let translationSession = session
+        let translatedTexts = await translator.translate(texts, using: translationSession)
+        guard !Task.isCancelled else { return }
+
+        var localizedSuggestions = localizedPhotoSuggestions(from: suggestions)
+
+        for (target, translatedText) in zip(targets, translatedTexts) {
+            switch target {
+            case .title:
+                localizedSuggestions.title = translatedText
+            case .notes:
+                localizedSuggestions.notes = translatedText
+            case .customMaterialName:
+                localizedSuggestions.customMaterialName = translatedText
+            case .suggestedTag(let index):
+                if localizedSuggestions.suggestedTags.indices.contains(index) {
+                    localizedSuggestions.suggestedTags[index] = translatedText.lowercased(with: locale)
+                }
+            }
+        }
+
+        localizedPhotoSuggestions = localizedSuggestions
+        pendingPhotoSuggestionsForTranslation = nil
+        isLocalizingPhotoSuggestions = false
+        translationConfiguration = nil
+    }
+
+    private func localizedPhotoSuggestions(from suggestions: BellPhotoSuggestions) -> LocalizedPhotoSuggestions {
+        LocalizedPhotoSuggestions(
+            title: suggestions.title?.value,
+            notes: suggestions.notes?.value,
+            customMaterialName: suggestions.customMaterialName?.value,
+            suggestedTags: suggestions.suggestedTags.map(\.value)
+        )
     }
 
     private func reloadLookupSnapshot() {
@@ -557,7 +703,7 @@ struct BellEditorView: View {
 
     private func materialSuggestionLabel(_ suggestion: SuggestedFieldValue<BellMaterial>) -> String {
         if suggestion.value == .other,
-           let customMaterial = photoAnalysis.suggestions.customMaterialName?.value,
+           let customMaterial = localizedPhotoSuggestions?.customMaterialName ?? photoAnalysis.suggestions.customMaterialName?.value,
            !customMaterial.isEmpty {
             return customMaterial
         }
@@ -606,29 +752,22 @@ private struct PhotoSuggestionRow: View {
     }
 }
 
-private struct PhotoRecognizedTextBlock: View {
-    let textFeatures: [RecognizedTextFeature]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-            Text(String(localized: "editor.photo_analysis.detected_text"))
-                .font(CatalogTypography.chipLabel)
-                .foregroundStyle(.secondary)
-
-            TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
-                ForEach(textFeatures, id: \.self) { feature in
-                    Text(feature.text)
-                        .font(.caption.weight(.medium))
-                        .catalogSurfaceCapsule()
-                }
-            }
-        }
-    }
-}
-
 private struct PhotoSuggestedTagsRow: View {
+    private struct DisplaySuggestion: Identifiable {
+        let suggestion: SuggestedFieldValue<String>
+        let localizedTag: String
+        let opacity: Double
+
+        var id: String { suggestion.value }
+    }
+
+    private let minimumVisibleConfidence = 0.02
+    private let highConfidenceThreshold = 0.75
+    private let mediumConfidenceOpacity = 0.75
+
     let title: String
     let suggestions: [SuggestedFieldValue<String>]
+    let localizedSuggestions: [String]?
     let onAccept: ([String]) -> Void
 
     @State private var selectedValues: Set<String>
@@ -636,10 +775,12 @@ private struct PhotoSuggestedTagsRow: View {
     init(
         title: String,
         suggestions: [SuggestedFieldValue<String>],
+        localizedSuggestions: [String]? = nil,
         onAccept: @escaping ([String]) -> Void
     ) {
         self.title = title
         self.suggestions = suggestions
+        self.localizedSuggestions = localizedSuggestions
         self.onAccept = onAccept
         _selectedValues = State(initialValue: [])
     }
@@ -653,10 +794,13 @@ private struct PhotoSuggestedTagsRow: View {
             }
 
             TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
-                ForEach(suggestions, id: \.value) { suggestion in
+                ForEach(displaySuggestions) { displaySuggestion in
+                    let suggestion = displaySuggestion.suggestion
+
                     PhotoSuggestedTagChip(
-                        tag: suggestion.value,
-                        isSelected: selectedValues.contains(suggestion.value)
+                        tag: displaySuggestion.localizedTag,
+                        isSelected: selectedValues.contains(suggestion.value),
+                        opacity: displaySuggestion.opacity
                     ) {
                         if selectedValues.contains(suggestion.value) {
                             selectedValues.remove(suggestion.value)
@@ -671,7 +815,7 @@ private struct PhotoSuggestedTagsRow: View {
                 Spacer()
 
                 Button {
-                    onAccept(suggestions.map(\.value).filter(selectedValues.contains))
+                    onAccept(displaySuggestions.filter { selectedValues.contains($0.suggestion.value) }.map(\.localizedTag))
                 } label: {
                     Image(systemName: "checkmark")
                 }
@@ -683,11 +827,36 @@ private struct PhotoSuggestedTagsRow: View {
         }
         .padding(.vertical, CatalogMetrics.Spacing.xs)
     }
+
+    private var displaySuggestions: [DisplaySuggestion] {
+        suggestions.enumerated()
+            .compactMap { index, suggestion in
+                guard suggestion.confidence >= minimumVisibleConfidence else {
+                    return nil
+                }
+
+                let localizedTag: String
+                if let localizedSuggestions,
+                   localizedSuggestions.indices.contains(index) {
+                    localizedTag = localizedSuggestions[index]
+                } else {
+                    localizedTag = suggestion.value
+                }
+
+                return DisplaySuggestion(
+                    suggestion: suggestion,
+                    localizedTag: localizedTag,
+                    opacity: suggestion.confidence >= highConfidenceThreshold ? 1 : mediumConfidenceOpacity
+                )
+            }
+            .sorted { $0.suggestion.confidence > $1.suggestion.confidence }
+    }
 }
 
 private struct PhotoSuggestedTagChip: View {
     let tag: String
     let isSelected: Bool
+    let opacity: Double
     let onTap: () -> Void
 
     var body: some View {
@@ -703,5 +872,6 @@ private struct PhotoSuggestedTagChip: View {
             .shadow(color: isSelected ? Color.accentColor.opacity(0.18) : .clear, radius: 4, y: 1)
         }
         .buttonStyle(.plain)
+        .opacity(opacity)
     }
 }

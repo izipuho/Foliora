@@ -27,6 +27,14 @@ struct SettingsView: View {
         List {
             Section {
                 NavigationLink {
+                    PhotoAnalysisSettingsView()
+                } label: {
+                    Label("photo_analysis.title", systemImage: "photo.on.rectangle.angled")
+                }
+            }
+
+            Section {
+                NavigationLink {
                     CatalogExportView { exportedCollectionCount in
                         exportResultMessage = String.localizedStringWithFormat(
                             String(localized: "settings.export.result.message"),

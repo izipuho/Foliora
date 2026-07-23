@@ -4,23 +4,27 @@ import Vision
 
 struct PhotoAnalysisResult: Sendable {
     let mainObjectImage: CGImage?
+    let mainObjectRegion: ImageRegionFeature?
     let main: PhotoAnalysisFeatureScope
     let background: PhotoAnalysisFeatureScope
 
     static let empty = PhotoAnalysisResult(
         mainObjectImage: nil,
+        mainObjectRegion: nil,
         main: .empty,
         background: .empty
     )
 }
 
 struct PhotoAnalysisFeatureScope: Sendable {
+    let classifications: [VisionFeature]
     let recognizedText: [RecognizedTextFeature]
-    let allTags: [PhotoTag]
+    let recognizedObjects: [RecognizedObjectFeature]
 
     static let empty = PhotoAnalysisFeatureScope(
+        classifications: [],
         recognizedText: [],
-        allTags: []
+        recognizedObjects: []
     )
 }
 
@@ -29,14 +33,15 @@ struct VisionFeature: Hashable, Sendable {
     let confidence: Double
 }
 
-struct PhotoAnimalHint: Hashable, Sendable {
-    let label: String
-    let confidence: Float
+enum RecognizedObjectKind: Hashable, Sendable {
+    case animal
 }
 
-struct PhotoTag: Hashable, Sendable {
-    let label: String
+struct RecognizedObjectFeature: Hashable, Sendable {
+    let kind: RecognizedObjectKind
+    let labels: [VisionFeature]
     let confidence: Double
+    let boundingBox: CGRect
 }
 
 struct RecognizedTextFeature: Hashable, Sendable {
@@ -99,35 +104,6 @@ private enum PhotoAnalysisNormalization {
             }
             return tieBreaker(lhs).localizedCaseInsensitiveCompare(tieBreaker(rhs)) == .orderedAscending
         }
-    }
-}
-
-private enum PhotoAnalysisTagBuilder {
-    nonisolated static func allTags(
-        recognizedText: [RecognizedTextFeature],
-        visionFeatures: [VisionFeature],
-        animalHints: [PhotoAnimalHint],
-        excludedLabels: Set<String>
-    ) -> [PhotoTag] {
-        let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
-        let tags = recognizedText.map {
-            PhotoTag(label: $0.text, confidence: $0.confidence)
-        } + visionFeatures.map {
-            PhotoTag(label: $0.label, confidence: $0.confidence)
-        } + animalHints.map {
-            PhotoTag(label: $0.label, confidence: Double($0.confidence))
-        }
-
-        return PhotoAnalysisNormalization.deduplicatedByBestConfidence(
-            tags.compactMap { tag in
-                let label = PhotoAnalysisNormalization.normalizedLabel(tag.label)
-                guard !label.isEmpty, !excludedLabels.contains(label) else { return nil }
-                return tag
-            },
-            key: { PhotoAnalysisNormalization.normalizedLabel($0.label) },
-            confidence: \.confidence
-        )
-        .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.label))
     }
 }
 
@@ -223,15 +199,14 @@ private struct VisionAnalyzer: Sendable {
             .map { $0 }
     }
 
-    func recognizeAnimals(image: CGImage) async throws -> [PhotoAnimalHint] {
+    func recognizeAnimals(image: CGImage) async throws -> [RecognizedObjectFeature] {
         let maxResults = 8
 
         var requestError: Error?
-        var classifications: [VNClassificationObservation] = []
+        var observations: [VNRecognizedObjectObservation] = []
         let request = VNRecognizeAnimalsRequest { request, error in
             requestError = error
-            let observations = request.results as? [VNRecognizedObjectObservation] ?? []
-            classifications = observations.flatMap(\.labels)
+            observations = request.results as? [VNRecognizedObjectObservation] ?? []
         }
 
         let handler = makeHandler(for: image)
@@ -241,16 +216,34 @@ private struct VisionAnalyzer: Sendable {
             throw requestError
         }
 
-        let hints = classifications.compactMap { observation -> PhotoAnimalHint? in
-            let label = PhotoAnalysisNormalization.normalizedLabel(observation.identifier)
-            guard !label.isEmpty else { return nil }
+        let objects = observations.compactMap { observation -> RecognizedObjectFeature? in
+            let labels = observation.labels.compactMap { labelObservation -> VisionFeature? in
+                let label = PhotoAnalysisNormalization.normalizedLabel(labelObservation.identifier)
+                guard !label.isEmpty else { return nil }
 
-            return PhotoAnimalHint(label: label, confidence: observation.confidence)
+                return VisionFeature(
+                    label: label,
+                    confidence: PhotoAnalysisNormalization.normalizedConfidence(Double(labelObservation.confidence))
+                )
+            }
+            guard !labels.isEmpty else { return nil }
+
+            return RecognizedObjectFeature(
+                kind: .animal,
+                labels: labels,
+                confidence: labels.map(\.confidence).max() ?? 0,
+                boundingBox: observation.boundingBox
+            )
         }
 
-        return PhotoAnalysisNormalization
-            .deduplicatedByBestConfidence(hints, key: \.label, confidence: \.confidence)
-            .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.label))
+        return objects
+            .sorted {
+                if $0.confidence != $1.confidence {
+                    return $0.confidence > $1.confidence
+                }
+                return ($0.labels.first?.label ?? "")
+                    .localizedCaseInsensitiveCompare($1.labels.first?.label ?? "") == .orderedAscending
+            }
             .prefix(maxResults)
             .map { $0 }
     }
@@ -263,41 +256,45 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         async let extractedFeatures = try? vision.classify(image: image)
         async let extractedText = try? vision.recognizeText(image: image)
         async let extractedSaliencyRegions = try? vision.detectSaliency(image: image)
-        async let extractedAnimalHints = try? vision.recognizeAnimals(image: image)
+        async let extractedRecognizedObjects = try? vision.recognizeAnimals(image: image)
 
         let textFeatures = await extractedText ?? []
         let saliencyRegions = await extractedSaliencyRegions ?? []
         let backgroundVisionFeatures = await extractedFeatures ?? []
-        let animalHints = await extractedAnimalHints ?? []
+        let backgroundRecognizedObjects = await extractedRecognizedObjects ?? []
 
-        let mainObject = detectMainObject(
+        let mainObjectRegion = detectMainObject(
             saliencyRegions: saliencyRegions
         )
-        let mainObjectImage = mainObject.flatMap {
-            crop(image: image, to: $0.insetBy(dx: -0.04, dy: -0.04))
+        let mainObjectImage = mainObjectRegion.flatMap {
+            crop(image: image, to: $0.boundingBox.insetBy(dx: -0.04, dy: -0.04))
         }
-        let splitRecognizedText = splitText(textFeatures, mainObject: mainObject)
+        let splitRecognizedText = splitText(textFeatures, mainObject: mainObjectRegion?.boundingBox)
         let mainVisionFeatures: [VisionFeature]
+        let mainRecognizedObjects: [RecognizedObjectFeature]
         if let mainObjectImage {
             mainVisionFeatures = (try? await vision.classify(image: mainObjectImage)) ?? []
+            mainRecognizedObjects = (try? await vision.recognizeAnimals(image: mainObjectImage)) ?? []
         } else {
             mainVisionFeatures = []
+            mainRecognizedObjects = []
         }
         let mainScope = makeScope(
             visionFeatures: mainVisionFeatures,
             textFeatures: splitRecognizedText.main,
-            animalHints: animalHints,
+            recognizedObjects: mainRecognizedObjects,
             excludedLabels: []
         )
         let backgroundScope = makeScope(
             visionFeatures: backgroundVisionFeatures,
             textFeatures: splitRecognizedText.background,
-            animalHints: [],
+            recognizedObjects: backgroundRecognizedObjects,
             excludedLabels: Set(mainVisionFeatures.map(\.label))
         )
 
         return PhotoAnalysisResult(
             mainObjectImage: mainObjectImage,
+            mainObjectRegion: mainObjectRegion,
             main: mainScope,
             background: backgroundScope
         )
@@ -305,8 +302,8 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
 
     private func detectMainObject(
         saliencyRegions: [ImageRegionFeature]
-    ) -> CGRect? {
-        saliencyRegions.first?.boundingBox
+    ) -> ImageRegionFeature? {
+        saliencyRegions.first
     }
 
     private func splitText(
@@ -334,7 +331,7 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
     private func makeScope(
         visionFeatures: [VisionFeature],
         textFeatures: [RecognizedTextFeature],
-        animalHints: [PhotoAnimalHint],
+        recognizedObjects: [RecognizedObjectFeature],
         excludedLabels: Set<String>
     ) -> PhotoAnalysisFeatureScope {
         let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
@@ -357,25 +354,30 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
                 boundingBox: feature.boundingBox
             )
         }
-        let animalLabels = animalHints.compactMap { hint -> PhotoAnimalHint? in
-            let label = PhotoAnalysisNormalization.normalizedLabel(hint.label)
-            guard !label.isEmpty, !excludedLabels.contains(label) else { return nil }
+        let objects = recognizedObjects.compactMap { object -> RecognizedObjectFeature? in
+            let labels = object.labels.compactMap { feature -> VisionFeature? in
+                let label = PhotoAnalysisNormalization.normalizedLabel(feature.label)
+                guard !label.isEmpty, !excludedLabels.contains(label) else { return nil }
 
-            return PhotoAnimalHint(
-                label: label,
-                confidence: Float(PhotoAnalysisNormalization.normalizedConfidence(Double(hint.confidence)))
+                return VisionFeature(
+                    label: label,
+                    confidence: PhotoAnalysisNormalization.normalizedConfidence(feature.confidence)
+                )
+            }
+            guard !labels.isEmpty else { return nil }
+
+            return RecognizedObjectFeature(
+                kind: object.kind,
+                labels: labels,
+                confidence: PhotoAnalysisNormalization.normalizedConfidence(object.confidence),
+                boundingBox: object.boundingBox
             )
         }
-        let allTags = PhotoAnalysisTagBuilder.allTags(
-            recognizedText: textLines,
-            visionFeatures: labels,
-            animalHints: animalLabels,
-            excludedLabels: excludedLabels
-        )
 
         return PhotoAnalysisFeatureScope(
+            classifications: labels,
             recognizedText: textLines,
-            allTags: allTags
+            recognizedObjects: objects
         )
     }
 

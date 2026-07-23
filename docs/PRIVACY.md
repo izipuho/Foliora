@@ -20,7 +20,11 @@ When iCloud synchronization or sharing is enabled, Apple may process catalog dat
 
 ## Photos, Camera, and Photo Library
 
-Foliora Bells may request access to the camera or photo library so the user can attach photos to catalog items. Photos are used only for catalog features selected by the user, including local photo analysis that suggests item details from images. Photo analysis runs on the device and is not used for advertising or cross-app tracking.
+Foliora Bells may request access to the camera or photo library so the user can attach photos to catalog items. Photos are used only for catalog features selected by the user, including local photo analysis that suggests item details from images.
+
+Photo analysis uses Apple system frameworks on the device to inspect the selected image, recognize visible text and objects, and generate suggested catalog values such as tags, title, notes, material, condition, acquisition year, or origin hints. These suggestions are shown for user review and are not saved unless the user accepts them.
+
+When the app translates photo-analysis suggestions into the user's language, it uses Apple's Translation framework. The app may prompt the user to download the required Apple language model. Foliora Bells does not send photos, catalog contents, or generated suggestions to a Foliora server for analysis or translation, and these features are not used for advertising or cross-app tracking.
 
 ## Import and Export
 

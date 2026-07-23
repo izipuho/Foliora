@@ -11,6 +11,7 @@ struct BellPhotoSuggestions: Sendable {
     let tags: [String]
     let recognizedText: [RecognizedTextFeature]
     let visualKeywords: [VisualKeyword]
+    let isBellDetected: Bool
     let title: SuggestedFieldValue<String>?
     let notes: SuggestedFieldValue<String>?
     let material: SuggestedFieldValue<BellMaterial>?
@@ -25,6 +26,7 @@ struct BellPhotoSuggestions: Sendable {
         tags: [],
         recognizedText: [],
         visualKeywords: [],
+        isBellDetected: false,
         title: nil,
         notes: nil,
         material: nil,
@@ -67,65 +69,190 @@ struct BellPhotoAnalysisDebugInfo: Sendable {
 }
 
 protocol BellPhotoSuggestionMapping: Sendable {
-    func map(analysis: PhotoAnalysisResult) async -> BellPhotoSuggestions
+    func map(
+        analysis: PhotoAnalysisResult,
+        semanticFeatures: SemanticPhotoFeatures
+    ) async -> BellPhotoSuggestions
 }
 
 struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
-    init() {}
-
-    func map(analysis: PhotoAnalysisResult) async -> BellPhotoSuggestions {
+    func map(
+        analysis: PhotoAnalysisResult,
+        semanticFeatures: SemanticPhotoFeatures
+    ) async -> BellPhotoSuggestions {
         let recognizedText = analysis.main.recognizedText
-        let analysisTags = makeAnalysisTags(from: analysis)
-        let visualKeywords = makeVisualKeywords(from: analysisTags)
-        let suggestedTags = analysisTags.map { SuggestedFieldValue(value: $0.label, confidence: $0.confidence) }
+        let visualFeatures = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.visualKeyword]
+        )
+        let visualKeywords = makeVisualKeywords(from: visualFeatures)
+        let isBellDetected = isBellDetected(in: semanticFeatures.rawVisualKeywords)
+        let title = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.subject]
+        ).first.map {
+            SuggestedFieldValue(value: $0.value, confidence: $0.confidence)
+        }
+        let suggestedTags = makeSuggestedTags(from: semanticFeatures)
         let tags = suggestedTags.map(\.value)
+        let materialFeature = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.material]
+        ).first
+        let material = materialFeature.map {
+            SuggestedFieldValue(value: mapMaterial($0.value), confidence: $0.confidence)
+        }
+        let customMaterialName = materialFeature.flatMap { feature -> SuggestedFieldValue<String>? in
+            mapMaterial(feature.value) == .other
+                ? SuggestedFieldValue(value: feature.value, confidence: feature.confidence)
+                : nil
+        }
+        let condition = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.condition]
+        ).first.flatMap { feature in
+            mapCondition(feature.value).map { condition in
+                SuggestedFieldValue(value: condition, confidence: feature.confidence)
+            }
+        }
+        let notesFeatures = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.style, .text]
+        )
+        let notes = makeNotes(from: notesFeatures)
+        let suggestedYear = semanticFeatures.suggestedYear.flatMap { estimate in
+            estimate.year.map {
+                SuggestedFieldValue(value: $0, confidence: estimate.confidence)
+            }
+        }
+        let suggestedGeo = semanticFeatures.suggestedGeo.map {
+            SuggestedFieldValue(
+                value: GeoPoint(label: $0.value, name: $0.value, coordinate: nil),
+                confidence: $0.confidence
+            )
+        }
 
         return BellPhotoSuggestions(
             tags: tags,
             recognizedText: recognizedText,
             visualKeywords: visualKeywords,
-            title: nil,
-            notes: nil,
-            material: nil,
-            condition: nil,
-            customMaterialName: nil,
-            suggestedYear: nil,
-            suggestedGeo: nil,
+            isBellDetected: isBellDetected,
+            title: title,
+            notes: notes,
+            material: material,
+            condition: condition,
+            customMaterialName: customMaterialName,
+            suggestedYear: suggestedYear,
+            suggestedGeo: suggestedGeo,
             suggestedTags: suggestedTags,
             debugInfo: nil
         )
     }
 
-
-    private func makeAnalysisTags(from analysis: PhotoAnalysisResult) -> [PhotoTag] {
-        deduplicateTags(analysis.main.allTags)
-            .sorted { lhs, rhs in
-                lhs.confidence > rhs.confidence
+    private func makeVisualKeywords(from visualFeatures: [SemanticPhotoFeature]) -> [VisualKeyword] {
+        visualFeatures
+            .filter { $0.confidence >= 0.28 }
+            .map {
+                VisualKeyword(value: $0.value, confidence: $0.confidence)
             }
     }
 
-    private func deduplicateTags(_ tags: [PhotoTag]) -> [PhotoTag] {
-        var bestByLabel: [String: PhotoTag] = [:]
+    private func isBellDetected(in rawVisualKeywords: [String]) -> Bool {
+        rawVisualKeywords.contains { keyword in
+            keyword
+                .lowercased()
+                .split { !$0.isLetter }
+                .contains("bell")
+        }
+    }
 
-        for tag in tags {
-            let label = tag.label.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !label.isEmpty else { continue }
+    private func makeSuggestedTags(from semanticFeatures: SemanticPhotoFeatures) -> [SuggestedFieldValue<String>] {
+        sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.subject, .style, .place, .text, .visualKeyword]
+        ).map {
+            SuggestedFieldValue(value: $0.value, confidence: $0.confidence)
+        }
+    }
 
-            let key = label.lowercased()
-            if let existing = bestByLabel[key], existing.confidence >= tag.confidence {
-                continue
-            }
-
-            bestByLabel[key] = PhotoTag(label: label, confidence: tag.confidence)
+    private func makeNotes(from features: [SemanticPhotoFeature]) -> SuggestedFieldValue<String>? {
+        let values = features.map(\.value)
+        guard !values.isEmpty else {
+            return nil
         }
 
-        return Array(bestByLabel.values)
+        return SuggestedFieldValue(
+            value: values.joined(separator: ", "),
+            confidence: features.map(\.confidence).max() ?? 0
+        )
     }
 
-    private func makeVisualKeywords(from analysisTags: [PhotoTag]) -> [VisualKeyword] {
-        analysisTags
-            .filter { $0.confidence >= 0.28 }
-            .map { VisualKeyword(value: $0.label, confidence: $0.confidence) }
+    private func sortedNonEmptyFeatures(
+        from semanticFeatures: SemanticPhotoFeatures,
+        ofKinds kinds: Set<SemanticPhotoFeatureKind>
+    ) -> [SemanticPhotoFeature] {
+        semanticFeatures.features
+            .compactMap { feature -> SemanticPhotoFeature? in
+                let value = feature.value.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard kinds.contains(feature.kind), !value.isEmpty else {
+                    return nil
+                }
+
+                return SemanticPhotoFeature(
+                    kind: feature.kind,
+                    value: value,
+                    confidence: feature.confidence,
+                    source: feature.source
+                )
+            }
+            .sorted { $0.confidence > $1.confidence }
+    }
+
+    private func mapMaterial(_ value: String) -> BellMaterial {
+        switch normalizedEnumValue(value) {
+        case BellMaterial.metall.rawValue, "metal":
+            return .metall
+        case BellMaterial.brass.rawValue:
+            return .brass
+        case BellMaterial.bronze.rawValue:
+            return .bronze
+        case BellMaterial.silver.rawValue:
+            return .silver
+        case BellMaterial.gold.rawValue:
+            return .gold
+        case BellMaterial.ceramic.rawValue:
+            return .ceramic
+        case BellMaterial.porcelain.rawValue:
+            return .porcelain
+        case BellMaterial.glass.rawValue:
+            return .glass
+        case BellMaterial.wood.rawValue:
+            return .wood
+        default:
+            return .other
+        }
+    }
+
+    private func mapCondition(_ value: String) -> ItemCondition? {
+        let normalizedValue = normalizedEnumValue(value)
+
+        return ItemCondition.allCases.first {
+            normalizedEnumValue($0.rawValue) == normalizedValue
+                || normalizedEnumValue(String(describing: $0)) == normalizedValue
+            }
+    }
+
+    private func normalizedEnumValue(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .filter { $0.isLetter || $0.isNumber }
+    }
+}
+
+private extension SemanticPhotoFeatures {
+    var rawVisualKeywords: [String] {
+        features(ofKind: .visualKeyword).map(\.value)
     }
 }
 
@@ -147,15 +274,22 @@ final class BellPhotoAnalysisController {
     private(set) var suggestions: BellPhotoSuggestions = .empty
 
     private let service: any PhotoAnalysisService
+    private let semanticExtractor: any SemanticPhotoFeatureExtracting
     private let mapper: any BellPhotoSuggestionMapping
 
     init() {
         self.service = DefaultPhotoAnalysisService()
+        self.semanticExtractor = SemanticPhotoFeatureExtractor()
         self.mapper = DefaultBellPhotoSuggestionMapper()
     }
 
-    init(service: any PhotoAnalysisService, mapper: any BellPhotoSuggestionMapping) {
+    init(
+        service: any PhotoAnalysisService,
+        semanticExtractor: any SemanticPhotoFeatureExtracting,
+        mapper: any BellPhotoSuggestionMapping
+    ) {
         self.service = service
+        self.semanticExtractor = semanticExtractor
         self.mapper = mapper
     }
 
@@ -173,7 +307,11 @@ final class BellPhotoAnalysisController {
 
         Task {
             let analysis = await service.analyze(image: cgImage)
-            let mapped = await mapper.map(analysis: analysis)
+            let semanticFeatures = await semanticExtractor.extractFeatures(from: analysis)
+            let mapped = await mapper.map(
+                analysis: analysis,
+                semanticFeatures: semanticFeatures
+            )
             await MainActor.run {
                 self.suggestions = mapped
                 self.isAnalyzing = false
@@ -186,6 +324,7 @@ final class BellPhotoAnalysisController {
             tags: suggestions.tags,
             recognizedText: suggestions.recognizedText,
             visualKeywords: suggestions.visualKeywords,
+            isBellDetected: suggestions.isBellDetected,
             title: field == .title ? nil : suggestions.title,
             notes: field == .notes ? nil : suggestions.notes,
             material: field == .material ? nil : suggestions.material,

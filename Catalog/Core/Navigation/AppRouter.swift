@@ -535,7 +535,7 @@ private struct BellDetailInspectorView: View {
                         canEditCollection: false
                     )
                 } else {
-                    CatalogEmptyStateView(systemImage: "bell.slash", title: "bel.not_found")
+                    CatalogEmptyStateView(systemImage: "bell.slash", title: "bell.not_found")
                 }
             }
             .toolbar {
