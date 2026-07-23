@@ -512,8 +512,6 @@ private struct BellDetailInspectorView: View {
     let bellID: UUID
     let repository: any CatalogRepository
     let onClose: () -> Void
-    @Environment(\.managedObjectContext) private var managedObjectContext
-    @State private var bell: BellRecord?
 
     init(
         bellID: UUID,
@@ -527,17 +525,10 @@ private struct BellDetailInspectorView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if let bellBinding {
-                    BellDetailView(
-                        bell: bellBinding,
-                        repository: repository,
-                        canEditCollection: false
-                    )
-                } else {
-                    CatalogEmptyStateView(systemImage: "bell.slash", title: "bell.not_found")
-                }
-            }
+            BellDetailContainer(
+                bellID: bellID,
+                repository: repository
+            )
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: onClose) {
@@ -546,33 +537,6 @@ private struct BellDetailInspectorView: View {
                 }
             }
         }
-        .task(id: bellID) {
-            reloadBell()
-        }
-        .onReceive(NotificationCenter.default.publisher(
-            for: .NSManagedObjectContextObjectsDidChange,
-            object: managedObjectContext
-        )) { _ in
-            reloadBell()
-        }
-    }
-
-    private var bellBinding: Binding<BellRecord>? {
-        guard let currentBell = bell else { return nil }
-
-        return Binding(
-            get: {
-                bell ?? currentBell
-            },
-            set: {
-                bell = $0
-            }
-        )
-    }
-
-    private func reloadBell() {
-        let snapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext).loadSnapshot()
-        bell = snapshot.bells.first { $0.id == bellID }
     }
 }
 

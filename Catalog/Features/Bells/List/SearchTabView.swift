@@ -170,10 +170,9 @@ struct SearchTabView: View {
         }
         .sheet(isPresented: isBellDetailPresented) {
             if let selectedBellID {
-                BellCatalogDetailSheetContainer(
+                BellDetailContainer(
                     bellID: selectedBellID,
-                    repository: repository,
-                    canEditCollection: false
+                    repository: repository
                 )
                     .presentationDragIndicator(.visible)
             }

@@ -802,17 +802,17 @@ private struct BellGroupingJumpPopover: View {
     }
 }
 
-struct BellCatalogDetailSheetContainer: View {
+struct BellDetailContainer: View {
     let bellID: UUID
     let repository: any CatalogRepository
-    let canEditCollection: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var bell: BellRecord?
+    @State private var collectionSharingState: CollectionSharingState?
+    @State private var collectionSharingLoadError: Error?
 
-    init(bellID: UUID, repository: any CatalogRepository, canEditCollection: Bool) {
+    init(bellID: UUID, repository: any CatalogRepository) {
         self.bellID = bellID
         self.repository = repository
-        self.canEditCollection = canEditCollection
     }
 
     var body: some View {
@@ -830,15 +830,26 @@ struct BellCatalogDetailSheetContainer: View {
                 )
             }
         }
-        .presentationBackground(.clear)
         .task(id: bellID) {
             reloadBell()
+            await loadCollectionSharingState()
         }
         .onReceive(NotificationCenter.default.publisher(
             for: .NSManagedObjectContextObjectsDidChange,
             object: managedObjectContext
         )) { _ in
             reloadBell()
+        }
+    }
+
+    private var canEditCollection: Bool {
+        guard collectionSharingLoadError == nil else { return false }
+
+        switch collectionSharingState?.currentUserRole {
+        case .owner, .contributor:
+            return true
+        case .viewer, nil:
+            return false
         }
     }
 
@@ -858,6 +869,25 @@ struct BellCatalogDetailSheetContainer: View {
     private func reloadBell() {
         let snapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext).loadSnapshot()
         bell = snapshot.bells.first { $0.id == bellID }
+    }
+
+    @MainActor
+    private func loadCollectionSharingState() async {
+        collectionSharingState = nil
+        collectionSharingLoadError = nil
+
+        guard let collectionID = bell?.item.collectionID,
+              let persistentContainer = FolioraAppDelegate.coreDataContainer else {
+            return
+        }
+
+        do {
+            collectionSharingState = try await CloudKitCollectionSharingService(
+                persistentContainer: persistentContainer
+            ).sharingState(for: collectionID)
+        } catch {
+            collectionSharingLoadError = error
+        }
     }
 }
 
