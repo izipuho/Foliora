@@ -59,7 +59,7 @@ struct BellRecord: Identifiable, Hashable {
     let storageLocation: Location?
     let storagePath: String
     let mediaAssets: [MediaAsset]
-    let isFavorite: Bool = false
+    var isFavorite: Bool = false
     let createdBy: String
     let tags: [String]
 

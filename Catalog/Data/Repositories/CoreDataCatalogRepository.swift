@@ -182,6 +182,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(bell.item.acquisitionMethod.rawValue, forKey: "acquisitionMethodRaw")
         entity.setValue(bell.details.material.rawValue, forKey: "materialRaw")
         entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
+        entity.setValue(bell.isFavorite, forKey: "isFavorite")
         entity.setValue(bell.createdBy, forKey: "createdBy")
     }
 
@@ -313,6 +314,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
             storageLocation: locationEntity.map(location),
             storagePath: locationEntity.map(storagePath) ?? "",
             mediaAssets: mediaAssets,
+            isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
             createdBy: stringValue(entity, "createdBy"),
             tags: tags
         )
