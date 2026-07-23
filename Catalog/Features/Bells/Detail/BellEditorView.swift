@@ -761,7 +761,7 @@ private struct PhotoSuggestedTagsRow: View {
         var id: String { suggestion.value }
     }
 
-    private let minimumVisibleConfidence = 0.30
+    private let minimumVisibleConfidence = 0.02
     private let highConfidenceThreshold = 0.75
     private let mediumConfidenceOpacity = 0.75
 
