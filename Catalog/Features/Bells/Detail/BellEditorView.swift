@@ -753,6 +753,18 @@ private struct PhotoSuggestionRow: View {
 }
 
 private struct PhotoSuggestedTagsRow: View {
+    private struct DisplaySuggestion: Identifiable {
+        let suggestion: SuggestedFieldValue<String>
+        let localizedTag: String
+        let opacity: Double
+
+        var id: String { suggestion.value }
+    }
+
+    private let minimumVisibleConfidence = 0.45
+    private let highConfidenceThreshold = 0.75
+    private let mediumConfidenceOpacity = 0.75
+
     let title: String
     let suggestions: [SuggestedFieldValue<String>]
     let localizedSuggestions: [String]?
@@ -782,10 +794,13 @@ private struct PhotoSuggestedTagsRow: View {
             }
 
             TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
-                ForEach(suggestions, id: \.value) { suggestion in
+                ForEach(displaySuggestions) { displaySuggestion in
+                    let suggestion = displaySuggestion.suggestion
+
                     PhotoSuggestedTagChip(
-                        tag: localizedTag(for: suggestion),
-                        isSelected: selectedValues.contains(suggestion.value)
+                        tag: displaySuggestion.localizedTag,
+                        isSelected: selectedValues.contains(suggestion.value),
+                        opacity: displaySuggestion.opacity
                     ) {
                         if selectedValues.contains(suggestion.value) {
                             selectedValues.remove(suggestion.value)
@@ -800,7 +815,7 @@ private struct PhotoSuggestedTagsRow: View {
                 Spacer()
 
                 Button {
-                    onAccept(suggestions.map(\.value).filter(selectedValues.contains))
+                    onAccept(displaySuggestions.map(\.suggestion.value).filter(selectedValues.contains))
                 } label: {
                     Image(systemName: "checkmark")
                 }
@@ -813,20 +828,35 @@ private struct PhotoSuggestedTagsRow: View {
         .padding(.vertical, CatalogMetrics.Spacing.xs)
     }
 
-    private func localizedTag(for suggestion: SuggestedFieldValue<String>) -> String {
-        guard let suggestionIndex = suggestions.firstIndex(where: { $0.value == suggestion.value }),
-              let localizedSuggestions,
-              localizedSuggestions.indices.contains(suggestionIndex) else {
-            return suggestion.value
-        }
+    private var displaySuggestions: [DisplaySuggestion] {
+        suggestions.enumerated()
+            .compactMap { index, suggestion in
+                guard suggestion.confidence >= minimumVisibleConfidence else {
+                    return nil
+                }
 
-        return localizedSuggestions[suggestionIndex]
+                let localizedTag: String
+                if let localizedSuggestions,
+                   localizedSuggestions.indices.contains(index) {
+                    localizedTag = localizedSuggestions[index]
+                } else {
+                    localizedTag = suggestion.value
+                }
+
+                return DisplaySuggestion(
+                    suggestion: suggestion,
+                    localizedTag: localizedTag,
+                    opacity: suggestion.confidence >= highConfidenceThreshold ? 1 : mediumConfidenceOpacity
+                )
+            }
+            .sorted { $0.suggestion.confidence > $1.suggestion.confidence }
     }
 }
 
 private struct PhotoSuggestedTagChip: View {
     let tag: String
     let isSelected: Bool
+    let opacity: Double
     let onTap: () -> Void
 
     var body: some View {
@@ -842,5 +872,6 @@ private struct PhotoSuggestedTagChip: View {
             .shadow(color: isSelected ? Color.accentColor.opacity(0.18) : .clear, radius: 4, y: 1)
         }
         .buttonStyle(.plain)
+        .opacity(opacity)
     }
 }
