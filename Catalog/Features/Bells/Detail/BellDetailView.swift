@@ -5,7 +5,9 @@ struct BellDetailView: View {
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
     let canEditCollection: Bool
+    let canChangeFavorite: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
+    @State private var isFavorite: Bool
     @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
@@ -20,10 +22,12 @@ struct BellDetailView: View {
     @State private var isPresentingUnsavedChangesConfirmation = false
     private let detailContentFadeHeight: CGFloat = 80
 
-    init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool) {
+    init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool, canChangeFavorite: Bool = false) {
         _bell = bell
         self.repository = repository
         self.canEditCollection = canEditCollection
+        self.canChangeFavorite = canChangeFavorite
+        _isFavorite = State(initialValue: bell.wrappedValue.isFavorite)
     }
 
     var body: some View {
@@ -54,6 +58,15 @@ struct BellDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
                     .accessibilityLabel(String(localized: "common.edit"))
+                }
+            }
+
+            if canChangeFavorite {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { toggleFavorite() } label: {
+                        Image(systemName: isFavorite ? "star.fill" : "star")
+                    }
+                    .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
                 }
             }
         }
@@ -120,6 +133,7 @@ struct BellDetailView: View {
         .onChange(of: bell) { _, _ in
             guard !isNotesOrTagsDirty else { return }
             syncDraftsFromBell()
+            isFavorite = bell.isFavorite
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
             reloadLookupSnapshot()
@@ -386,6 +400,25 @@ struct BellDetailView: View {
         syncDraftsFromBell()
     }
 
+    private func toggleFavorite() {
+        guard canChangeFavorite else { return }
+        let updatedBell = BellRecord(
+            item: bell.item,
+            details: bell.details,
+            originPlace: bell.originPlace,
+            storageLocation: bell.storageLocation,
+            storagePath: bell.storagePath,
+            mediaAssets: bell.mediaAssets,
+            isFavorite: !isFavorite,
+            createdBy: bell.createdBy,
+            tags: bell.tags
+        )
+
+        repository.saveBellRecord(updatedBell)
+        bell = updatedBell
+        isFavorite = updatedBell.isFavorite
+    }
+
     private func persist(
         notes: String? = nil,
         tags: [String]? = nil,
@@ -463,7 +496,8 @@ private struct BellDetailPreviewHost: View {
                 BellDetailView(
                     bell: binding,
                     repository: repository,
-                    canEditCollection: false
+                    canEditCollection: false,
+                    canChangeFavorite: false
                 )
             } else {
                 CatalogEmptyStateView(
