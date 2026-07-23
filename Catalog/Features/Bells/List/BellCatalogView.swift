@@ -527,6 +527,7 @@ struct BellCatalogView: View {
                 onBellSelected?(bell.id)
             }
         }
+        .padding(.horizontal, CatalogMetrics.Insets.screen)
     }
 
     private func stripScreenWidth(
