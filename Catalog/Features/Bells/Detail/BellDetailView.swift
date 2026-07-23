@@ -427,6 +427,7 @@ struct BellDetailView: View {
             storageLocation: location,
             storagePath: location.map { locationPath(for: $0, locationsByID: locationsByID) } ?? String(localized: "common.unassigned"),
             mediaAssets: normalizedMediaAssets,
+            isFavorite: bell.isFavorite,
             createdBy: bell.createdBy,
             tags: tags ?? bell.tags
         )
