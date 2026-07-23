@@ -72,6 +72,8 @@ struct BellEditorView: View {
     @State private var analysisFeedbackToken = 0
     @State private var photoAnalysis = BellPhotoAnalysisController()
     @State private var localizedPhotoSuggestions: LocalizedPhotoSuggestions?
+    @State private var pendingPhotoSuggestionsForTranslation: BellPhotoSuggestions?
+    @State private var isLocalizingPhotoSuggestions = false
     @State private var translationConfiguration: TranslationSession.Configuration?
     @State private var didStartInitialAnalysis = false
     @State private var isPresentingHomeEditor = false
@@ -107,13 +109,15 @@ struct BellEditorView: View {
 
     private var shouldShowPhotoAnalysisSection: Bool {
         photoAnalysis.isAnalyzing
-        || photoAnalysis.suggestions.title != nil
-        || photoAnalysis.suggestions.notes != nil
-        || photoAnalysis.suggestions.material != nil
-        || photoAnalysis.suggestions.condition != nil
-        || photoAnalysis.suggestions.suggestedYear != nil
-        || photoAnalysis.suggestions.suggestedGeo != nil
-        || !photoAnalysis.suggestions.suggestedTags.isEmpty
+        || (!isLocalizingPhotoSuggestions && (
+            photoAnalysis.suggestions.title != nil
+            || photoAnalysis.suggestions.notes != nil
+            || photoAnalysis.suggestions.material != nil
+            || photoAnalysis.suggestions.condition != nil
+            || photoAnalysis.suggestions.suggestedYear != nil
+            || photoAnalysis.suggestions.suggestedGeo != nil
+            || !photoAnalysis.suggestions.suggestedTags.isEmpty
+        ))
     }
 
     init(
@@ -451,9 +455,17 @@ struct BellEditorView: View {
     private func handlePhotoAnalysisCompletion() async {
         if photoAnalysis.suggestions.hasSuggestions {
             emitAnalysisFeedback(.success)
+            let suggestions = photoAnalysis.suggestions
             let sourceLanguage = Locale.Language(identifier: "en")
             let translator = TextTranslator(sourceLanguage: sourceLanguage)
-            guard await translator.preparationState() == .ready else {
+
+            switch await translator.preparationState() {
+            case .ready:
+                pendingPhotoSuggestionsForTranslation = suggestions
+            case .needsDownload, .unsupported, .notRequired:
+                localizedPhotoSuggestions = localizedPhotoSuggestions(from: suggestions)
+                pendingPhotoSuggestionsForTranslation = nil
+                isLocalizingPhotoSuggestions = false
                 translationConfiguration = nil
                 return
             }
@@ -462,6 +474,10 @@ struct BellEditorView: View {
                 source: sourceLanguage,
                 target: locale.language
             )
+        } else {
+            isLocalizingPhotoSuggestions = false
+            pendingPhotoSuggestionsForTranslation = nil
+            translationConfiguration = nil
         }
 
         // Keep failures / empty results silent by default.
@@ -472,7 +488,9 @@ struct BellEditorView: View {
     private func startInitialPhotoAnalysisIfNeeded() {
         guard !didStartInitialAnalysis, existingBellID == nil, let initialAnalysisImage else { return }
         didStartInitialAnalysis = true
+        isLocalizingPhotoSuggestions = true
         localizedPhotoSuggestions = nil
+        pendingPhotoSuggestionsForTranslation = nil
         translationConfiguration = nil
         photoAnalysis.analyze(image: initialAnalysisImage)
     }
@@ -481,9 +499,17 @@ struct BellEditorView: View {
         using session: TranslationSession,
         translator: TextTranslator
     ) async {
-        let suggestions = photoAnalysis.suggestions
+        guard let suggestions = pendingPhotoSuggestionsForTranslation else {
+            isLocalizingPhotoSuggestions = false
+            translationConfiguration = nil
+            return
+        }
+
         guard !translator.sourceLanguage.isEquivalent(to: locale.language) else {
-            localizedPhotoSuggestions = nil
+            localizedPhotoSuggestions = localizedPhotoSuggestions(from: suggestions)
+            pendingPhotoSuggestionsForTranslation = nil
+            isLocalizingPhotoSuggestions = false
+            translationConfiguration = nil
             return
         }
 
@@ -511,15 +537,10 @@ struct BellEditorView: View {
         }
 
         nonisolated(unsafe) let translationSession = session
-        let translatedTexts = await translate(texts, using: translationSession, fallbackTexts: texts)
+        let translatedTexts = await translator.translate(texts, using: translationSession)
         guard !Task.isCancelled else { return }
 
-        var localizedSuggestions = LocalizedPhotoSuggestions(
-            title: nil,
-            notes: nil,
-            customMaterialName: nil,
-            suggestedTags: suggestions.suggestedTags.map(\.value)
-        )
+        var localizedSuggestions = localizedPhotoSuggestions(from: suggestions)
 
         for (target, translatedText) in zip(targets, translatedTexts) {
             switch target {
@@ -537,43 +558,18 @@ struct BellEditorView: View {
         }
 
         localizedPhotoSuggestions = localizedSuggestions
+        pendingPhotoSuggestionsForTranslation = nil
+        isLocalizingPhotoSuggestions = false
+        translationConfiguration = nil
     }
 
-    nonisolated private func translate(
-        _ texts: [String],
-        using session: TranslationSession,
-        fallbackTexts: [String]
-    ) async -> [String] {
-        guard !texts.isEmpty else { return [] }
-
-        do {
-            let requests = texts.enumerated().map { index, text in
-                TranslationSession.Request(
-                    sourceText: text,
-                    clientIdentifier: String(index)
-                )
-            }
-            let responses = try await session.translations(from: requests)
-            var translatedTexts = Array<String?>(repeating: nil, count: texts.count)
-
-            for response in responses {
-                guard
-                    let clientIdentifier = response.clientIdentifier,
-                    let index = Int(clientIdentifier),
-                    texts.indices.contains(index)
-                else {
-                    return fallbackTexts
-                }
-
-                translatedTexts[index] = response.targetText
-            }
-
-            return translatedTexts.enumerated().map { index, translatedText in
-                translatedText ?? fallbackTexts[index]
-            }
-        } catch {
-            return fallbackTexts
-        }
+    private func localizedPhotoSuggestions(from suggestions: BellPhotoSuggestions) -> LocalizedPhotoSuggestions {
+        LocalizedPhotoSuggestions(
+            title: suggestions.title?.value,
+            notes: suggestions.notes?.value,
+            customMaterialName: suggestions.customMaterialName?.value,
+            suggestedTags: suggestions.suggestedTags.map(\.value)
+        )
     }
 
     private func reloadLookupSnapshot() {
