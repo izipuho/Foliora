@@ -37,6 +37,7 @@ struct BellStripView: View {
                 .buttonStyle(.plain)
             }
         }
+        .scrollClipDisabled()
     }
 
     private var stripLayoutMode: CatalogCardLayoutMode {
