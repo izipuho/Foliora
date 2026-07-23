@@ -90,6 +90,12 @@ private extension BellFilters {
     }
 }
 
+private extension BellCatalogSnapshot {
+    var bellRecords: [BellRecord] {
+        bells.compactMap { recordsByID[$0.id] }
+    }
+}
+
 
 
 struct BellCatalogView: View {
@@ -164,6 +170,10 @@ struct BellCatalogView: View {
 
     private var hasActiveFilter: Bool {
         !filters.isEmpty
+    }
+
+    private var favoriteBells: [BellRecord] {
+        catalogSnapshot.bellRecords.filter(\.isFavorite)
     }
 
     private func setFilter(_ filter: BellPresenceFilter) {
@@ -402,6 +412,13 @@ struct BellCatalogView: View {
                         dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
                     }
 
+                    if !favoriteBells.isEmpty {
+                        favoritesSection(
+                            bells: favoriteBells,
+                            screenWidth: stripScreenWidth(cardSize: cardSize, gridMetrics: gridMetrics)
+                        )
+                    }
+
                     if hasActiveFilter {
                         activeSummaryFilterSection
                     }
@@ -492,6 +509,32 @@ struct BellCatalogView: View {
             }
         )
         .frame(maxHeight: min(max(screenHeight * 0.36, 220), 320), alignment: .top)
+    }
+
+    private func favoritesSection(bells: [BellRecord], screenWidth: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+            BellGroupedSectionHeader(
+                title: "Favorites",
+                tint: catalogStyle.accentColor,
+                isJumpButton: false,
+                action: {}
+            )
+
+            BellStripView(
+                bells: bells,
+                screenWidth: screenWidth
+            ) { bell in
+                onBellSelected?(bell.id)
+            }
+        }
+    }
+
+    private func stripScreenWidth(
+        cardSize: CGSize,
+        gridMetrics: CatalogCardLayoutMode.GridMetrics
+    ) -> CGFloat {
+        let totalSpacing = gridMetrics.spacing * CGFloat(max(gridMetrics.columnCount - 1, 0))
+        return cardSize.width * CGFloat(gridMetrics.columnCount) + totalSpacing + CatalogCardLayoutMode.screenHorizontalPadding * 2
     }
 
     private func focusGeography(country: String) {
