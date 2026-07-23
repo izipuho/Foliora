@@ -821,7 +821,8 @@ struct BellDetailContainer: View {
                 BellDetailView(
                     bell: bellBinding,
                     repository: repository,
-                    canEditCollection: canEditCollection
+                    canEditCollection: canEditCollection,
+                    canChangeFavorite: canChangeFavorite
                 )
             } else {
                 CatalogEmptyStateView(
@@ -849,6 +850,17 @@ struct BellDetailContainer: View {
         case .owner, .contributor:
             return true
         case .viewer, nil:
+            return false
+        }
+    }
+
+    private var canChangeFavorite: Bool {
+        guard collectionSharingLoadError == nil else { return false }
+
+        switch collectionSharingState?.currentUserRole {
+        case .owner:
+            return true
+        case .contributor, .viewer, nil:
             return false
         }
     }
