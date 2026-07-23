@@ -514,7 +514,7 @@ struct BellCatalogView: View {
     private func favoritesSection(bells: [BellRecord], screenWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             BellGroupedSectionHeader(
-                title: "Favorites",
+                title: String(localized: "bell.catalog.favorites"),
                 tint: catalogStyle.accentColor,
                 isJumpButton: false,
                 action: {}
