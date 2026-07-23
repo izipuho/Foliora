@@ -7,7 +7,6 @@ struct BellDetailView: View {
     let canEditCollection: Bool
     let canChangeFavorite: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
-    @State private var isFavorite: Bool
     @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
@@ -27,7 +26,6 @@ struct BellDetailView: View {
         self.repository = repository
         self.canEditCollection = canEditCollection
         self.canChangeFavorite = canChangeFavorite
-        _isFavorite = State(initialValue: bell.wrappedValue.isFavorite)
     }
 
     var body: some View {
@@ -64,9 +62,9 @@ struct BellDetailView: View {
             if canChangeFavorite {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { toggleFavorite() } label: {
-                        Image(systemName: isFavorite ? "star.fill" : "star")
+                        Image(systemName: bell.isFavorite ? "star.fill" : "star")
                     }
-                    .accessibilityLabel(isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
+                    .accessibilityLabel(bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
                 }
             }
         }
@@ -133,7 +131,6 @@ struct BellDetailView: View {
         .onChange(of: bell) { _, _ in
             guard !isNotesOrTagsDirty else { return }
             syncDraftsFromBell()
-            isFavorite = bell.isFavorite
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
             reloadLookupSnapshot()
@@ -409,14 +406,13 @@ struct BellDetailView: View {
             storageLocation: bell.storageLocation,
             storagePath: bell.storagePath,
             mediaAssets: bell.mediaAssets,
-            isFavorite: !isFavorite,
+            isFavorite: !bell.isFavorite,
             createdBy: bell.createdBy,
             tags: bell.tags
         )
 
-        repository.saveBellRecord(updatedBell)
         bell = updatedBell
-        isFavorite = updatedBell.isFavorite
+        repository.saveBellRecord(updatedBell)
     }
 
     private func persist(
