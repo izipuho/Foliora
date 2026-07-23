@@ -127,6 +127,7 @@ struct BellCatalogView: View {
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
     @State private var draftHomeLocations: [Location] = []
     @State private var bellPendingMoveAfterHomeEditor: BellListItem?
+    @State private var isFavoritesCollapsed = false
     @StateObject private var viewModel: BellCatalogViewModel
     @Namespace private var bellGridTransitionNamespace
 
@@ -515,20 +516,24 @@ struct BellCatalogView: View {
 
     private func favoritesSection(bells: [BellRecord], screenWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            BellGroupedSectionHeader(
+            BellCollapsibleSectionHeader(
                 title: String(localized: "bell.catalog.favorites"),
-                tint: catalogStyle.accentColor,
-                isJumpButton: false,
-                action: {}
-            )
-
-            BellStripView(
-                bells: bells,
-                screenWidth: screenWidth
-            ) { bell in
-                onBellSelected?(bell.id)
+                isCollapsed: isFavoritesCollapsed
+            ) {
+                withAnimation(.snappy(duration: 0.2)) {
+                    isFavoritesCollapsed.toggle()
+                }
             }
-            .padding(.horizontal, CatalogMetrics.Insets.screen)
+
+            if !isFavoritesCollapsed {
+                BellStripView(
+                    bells: bells,
+                    screenWidth: screenWidth
+                ) { bell in
+                    onBellSelected?(bell.id)
+                }
+                .padding(.horizontal, CatalogMetrics.Insets.screen)
+            }
         }
     }
 
@@ -831,6 +836,37 @@ private struct BellGroupedSectionHeader: View {
                 .fill(Color(uiColor: .separator))
                 .frame(height: 0.5)
         }
+    }
+}
+
+private struct BellCollapsibleSectionHeader: View {
+    let title: String
+    let isCollapsed: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: CatalogMetrics.Spacing.sm) {
+                Text(title)
+                    .font(CatalogTypography.sectionTitle)
+                    .foregroundStyle(.primary)
+
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+            }
+            .padding(.vertical, CatalogMetrics.Spacing.sm)
+            .padding(.horizontal, CatalogMetrics.Spacing.md)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Color(uiColor: .separator))
+                    .frame(height: 0.5)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 
