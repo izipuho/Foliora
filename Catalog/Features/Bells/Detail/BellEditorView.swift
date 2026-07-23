@@ -552,7 +552,7 @@ struct BellEditorView: View {
                 localizedSuggestions.customMaterialName = translatedText
             case .suggestedTag(let index):
                 if localizedSuggestions.suggestedTags.indices.contains(index) {
-                    localizedSuggestions.suggestedTags[index] = translatedText
+                    localizedSuggestions.suggestedTags[index] = translatedText.lowercased(with: locale)
                 }
             }
         }
