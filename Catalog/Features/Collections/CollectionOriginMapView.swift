@@ -214,10 +214,11 @@ private struct MapSelectionPanel: View {
         GeometryReader { proxy in
             BellStripView(
                 bells: bells,
-                screenWidth: proxy.size.width + 32
+                screenWidth: proxy.size.width
             ) { bell in
                 presentedBell = bell
             }
+            .padding(.horizontal, CatalogMetrics.Insets.screen)
         }
         .frame(height: bells.count == 1 ? CatalogCardLayoutMode.wide.cardMetrics.cardHeight : CatalogCardLayoutMode.mini.cardMetrics.cardHeight)
         .sheet(item: $presentedBell) { bell in

@@ -18,7 +18,8 @@ struct BellStripView: View {
     var body: some View {
         CatalogCardStrip(
             layoutMode: stripLayoutMode,
-            screenWidth: screenWidth
+            screenWidth: screenWidth,
+            horizontalPadding: 0
         ) { cardSize, cardMetrics in
             ForEach(bells, id: \.id) { bell in
                 let style = CatalogCardContentStyle.style(for: stripLayoutMode)
