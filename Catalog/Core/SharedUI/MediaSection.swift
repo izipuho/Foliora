@@ -43,8 +43,8 @@ struct MediaSection: View {
                                 pendingDeletionAssetID = asset.id
                             }
                         )
-                        .confirmationDialog("editor.delete_media.action", isPresented: deleteConfirmationBinding(for: asset.id), titleVisibility: .visible) {
-                            Button("editor.delete_media.title", role: .destructive) {
+                        .confirmationDialog("editor.media.delete_action", isPresented: deleteConfirmationBinding(for: asset.id), titleVisibility: .visible) {
+                            Button("editor.media.delete_title", role: .destructive) {
                                 confirmDeletion(of: asset.id)
                             }
 

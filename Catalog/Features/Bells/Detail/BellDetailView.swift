@@ -172,7 +172,7 @@ struct BellDetailView: View {
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)
 
-            detailSection(String(localized: "bell.detail.section.media")) {
+            detailSection(String(localized: "bell.media")) {
                 MediaSection(
                     itemID: bell.id,
                     mediaAssets: mediaAssetsBinding,
