@@ -58,35 +58,6 @@ struct SettingsView: View {
                 Text("settings.data.footer")
             }
 
-            #if DEBUG
-            Section {
-                NavigationLink {
-                    CloudSyncDiagnosticsView()
-                } label: {
-                    Label("Cloud Sync Diagnostics", systemImage: "icloud")
-                }
-
-                Button(role: .destructive) {
-                    isShowingPurgeConfirmation = true
-                } label: {
-                    if isPurgingCloudData {
-                        Label("Purging…", systemImage: "trash")
-                    } else {
-                        Label("Purge Cloud Data", systemImage: "trash")
-                    }
-                }
-                .disabled(isPurgingCloudData)
-
-                if let purgeStatusMessage {
-                    Text(purgeStatusMessage)
-                        .font(.footnote)
-                        .foregroundStyle(purgeStatusMessage.hasPrefix("Purge failed") ? .red : .secondary)
-                }
-            } header: {
-                Text("Developer Tools")
-            }
-            #endif
-
             Text("common.version \(appVersion) (\(buildNumber))")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
