@@ -29,111 +29,113 @@ struct BellDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            ZStack(alignment: .top) {
-                heroHeader
-                detailContent
+        MediaQuickLookPresenter(mediaAssets: bell.mediaAssets) { preview in
+            ScrollView {
+                ZStack(alignment: .top) {
+                    heroHeader(preview: preview)
+                    detailContent
+                }
             }
-        }
-        .ignoresSafeArea(edges: .top)
-        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-        .interactiveDismissDisabled(canEditCollection && isNotesOrTagsDirty)
-        .navigationTitle(bell.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbar {
-            if canChangeFavorite {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { toggleFavorite() } label: {
-                        Image(systemName: bell.isFavorite ? "star.fill" : "star")
+            .ignoresSafeArea(edges: .top)
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            .interactiveDismissDisabled(canEditCollection && isNotesOrTagsDirty)
+            .navigationTitle(bell.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                if canChangeFavorite {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { toggleFavorite() } label: {
+                            Image(systemName: bell.isFavorite ? "star.fill" : "star")
+                        }
+                        .accessibilityLabel(bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
                     }
-                    .accessibilityLabel(bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
-                }
-            }
-
-            if canEditCollection && isNotesOrTagsDirty {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
-                    .accessibilityLabel(String(localized: "common.cancel"))
                 }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { saveNotesAndTagsChanges() } label: { Image(systemName: "checkmark") }
-                    .accessibilityLabel(String(localized: "common.save"))
-                }
-            } else if canEditCollection {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
-                    .accessibilityLabel(String(localized: "common.edit"))
-                }
-            }
-        }
-        .confirmationDialog(
-            String(localized: "bell.detail.unsaved_changes.title"),
-            isPresented: $isPresentingUnsavedChangesConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(String(localized: "common.save")) {
-                saveNotesAndTagsChanges()
-            }
+                if canEditCollection && isNotesOrTagsDirty {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
+                        .accessibilityLabel(String(localized: "common.cancel"))
+                    }
 
-            Button(String(localized: "bell.detail.unsaved_changes.discard"), role: .destructive) {
-                discardNotesAndTagsChanges()
-            }
-
-            Button(String(localized: "common.cancel"), role: .cancel) {}
-        } message: {
-            Text(String(localized: "bell.detail.unsaved_changes.message"))
-        }
-        .sheet(isPresented: $isPresentingEditor) {
-            if canEditCollection, let collection = inferredCollection {
-                BellEditorView(
-                    collection: collection,
-                    repository: repository,
-                    bell: bell
-                ) { updatedBell in
-                    repository.saveBellRecord(updatedBell)
-                    bell = updatedBell
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { saveNotesAndTagsChanges() } label: { Image(systemName: "checkmark") }
+                        .accessibilityLabel(String(localized: "common.save"))
+                    }
+                } else if canEditCollection {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
+                        .accessibilityLabel(String(localized: "common.edit"))
+                    }
                 }
             }
-        }
-        .sheet(isPresented: $isPresentingOriginPicker) {
-            PlacePickerView(
-                places: availablePlaces,
-                selectedPlace: originPlaceBinding
-            )
-        }
-        .sheet(isPresented: $isPresentingLocationPicker) {
-            LocationHierarchyPickerView(
-                locations: availableLocations,
-                selectedLocationID: locationIDBinding
-            )
-        }
-        .sheet(isPresented: $isPresentingHomeEditor) {
-            HomeEditorView(
-                home: $draftHome,
-                locations: $draftHomeLocations,
-                onSave: {
-                    repository.saveHome(draftHome)
-                    repository.saveLocations(draftHomeLocations, in: draftHome.id)
-                    reloadLookupSnapshot()
-                    continueLocationSelectionIfNeeded()
-                },
-                onDelete: nil
-            )
-        }
-        .task {
-            reloadLookupSnapshot()
-        }
-        .onAppear {
-            syncDraftsFromBell()
-        }
-        .onChange(of: bell) { _, _ in
-            guard !isNotesOrTagsDirty else { return }
-            syncDraftsFromBell()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
-            reloadLookupSnapshot()
+            .confirmationDialog(
+                String(localized: "bell.detail.unsaved_changes.title"),
+                isPresented: $isPresentingUnsavedChangesConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "common.save")) {
+                    saveNotesAndTagsChanges()
+                }
+
+                Button(String(localized: "bell.detail.unsaved_changes.discard"), role: .destructive) {
+                    discardNotesAndTagsChanges()
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "bell.detail.unsaved_changes.message"))
+            }
+            .sheet(isPresented: $isPresentingEditor) {
+                if canEditCollection, let collection = inferredCollection {
+                    BellEditorView(
+                        collection: collection,
+                        repository: repository,
+                        bell: bell
+                    ) { updatedBell in
+                        repository.saveBellRecord(updatedBell)
+                        bell = updatedBell
+                    }
+                }
+            }
+            .sheet(isPresented: $isPresentingOriginPicker) {
+                PlacePickerView(
+                    places: availablePlaces,
+                    selectedPlace: originPlaceBinding
+                )
+            }
+            .sheet(isPresented: $isPresentingLocationPicker) {
+                LocationHierarchyPickerView(
+                    locations: availableLocations,
+                    selectedLocationID: locationIDBinding
+                )
+            }
+            .sheet(isPresented: $isPresentingHomeEditor) {
+                HomeEditorView(
+                    home: $draftHome,
+                    locations: $draftHomeLocations,
+                    onSave: {
+                        repository.saveHome(draftHome)
+                        repository.saveLocations(draftHomeLocations, in: draftHome.id)
+                        reloadLookupSnapshot()
+                        continueLocationSelectionIfNeeded()
+                    },
+                    onDelete: nil
+                )
+            }
+            .task {
+                reloadLookupSnapshot()
+            }
+            .onAppear {
+                syncDraftsFromBell()
+            }
+            .onChange(of: bell) { _, _ in
+                guard !isNotesOrTagsDirty else { return }
+                syncDraftsFromBell()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
+                reloadLookupSnapshot()
+            }
         }
     }
 
@@ -260,16 +262,20 @@ struct BellDetailView: View {
         }
     }
 
-    private var heroHeader: some View {
+    private func heroHeader(preview: @escaping (MediaAsset) -> Void) -> some View {
         GeometryReader { proxy in
             ZStack {
-                if bell.coverPhotoThumbnailData != nil || bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil {
+                if let coverPhoto = heroPhotoAsset {
                     MediaPreviewImage(
-                        identifier: bell.coverPhotoIdentifier,
-                        thumbnailData: bell.coverPhotoThumbnailData,
-                        originalData: bell.coverPhotoOriginalData,
+                        identifier: coverPhoto.localIdentifier.isEmpty ? nil : coverPhoto.localIdentifier,
+                        thumbnailData: coverPhoto.thumbnailData,
+                        originalData: coverPhoto.originalData,
                         size: CGSize(width: proxy.size.width, height: 320)
                     )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        preview(coverPhoto)
+                    }
                 } else {
                     LinearGradient(
                         colors: [
@@ -297,6 +303,13 @@ struct BellDetailView: View {
         }
         .frame(height: 320)
         .ignoresSafeArea(edges: .top)
+    }
+
+    private var heroPhotoAsset: MediaAsset? {
+        bell.mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .first
     }
 
     private var availableLocations: [Location] {
