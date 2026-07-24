@@ -20,96 +20,88 @@ struct MediaSection: View {
     @State private var isPresentingCamera = false
     @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
-    @State private var previewTarget: MediaPreviewTarget?
 
     var body: some View {
-        ScrollView(.horizontal) {
-            LazyHStack(alignment: .top, spacing: CatalogMetrics.Spacing.xs) {
-                ForEach(sortedAssets) { asset in
-                    MediaAssetGridTileView(
-                        asset: asset,
-                        isCover: asset.id == coverPhotoID,
-                        isAnalysisHighlighted: asset.id == analysisHighlightedAssetID,
-                        allowsDeletion: allowsDeletion,
-                        onTap: {
-                            preview(asset)
-                        },
-                        onDelete: {
-                            mediaStore.deleteFile(for: asset.localIdentifier)
-                            mediaAssets.removeAll { $0.id == asset.id }
-                            reindexAssets()
-                        }
-                    )
-                }
-
-                if allowsAdding {
-                    Button {
-                        isPresentingAddMediaOptions = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(CatalogTypography.cardTitle)
-                            .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
-                            .frame(width: 38, height: 38)
-                            .background(CatalogSemanticColors.success, in: Circle())
-                            .frame(width: 48, height: 110)
+        MediaQuickLookPresenter { preview in
+            ScrollView(.horizontal) {
+                LazyHStack(alignment: .top, spacing: CatalogMetrics.Spacing.xs) {
+                    ForEach(sortedAssets) { asset in
+                        MediaAssetGridTileView(
+                            asset: asset,
+                            isCover: asset.id == coverPhotoID,
+                            isAnalysisHighlighted: asset.id == analysisHighlightedAssetID,
+                            allowsDeletion: allowsDeletion,
+                            onTap: {
+                                preview(asset)
+                            },
+                            onDelete: {
+                                mediaStore.deleteFile(for: asset.localIdentifier)
+                                mediaAssets.removeAll { $0.id == asset.id }
+                                reindexAssets()
+                            }
+                        )
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(String(localized: "editor.media.add"))
+
+                    if allowsAdding {
+                        Button {
+                            isPresentingAddMediaOptions = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(CatalogTypography.cardTitle)
+                                .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
+                                .frame(width: 38, height: 38)
+                                .background(CatalogSemanticColors.success, in: Circle())
+                                .frame(width: 48, height: 110)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(String(localized: "editor.media.add"))
+                    }
+                }
+            }
+            .scrollIndicators(.hidden)
+            .photosPicker(
+                isPresented: $isPresentingPhotoPicker,
+                selection: $selectedPhotoItems,
+                maxSelectionCount: nil,
+                matching: .images,
+                photoLibrary: .shared()
+            )
+            .fullScreenCover(isPresented: $isPresentingCamera) {
+                CameraPickerView { image in
+                    addCapturedPhoto(image)
+                }
+                .ignoresSafeArea()
+            }
+            .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresentingAddMediaOptions, titleVisibility: .visible) {
+                Button(String(localized: "editor.media.photo_library")) {
+                    isPresentingPhotoPicker = true
+                }
+
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button(String(localized: "editor.media.camera")) {
+                        isPresentingCamera = true
+                    }
+                }
+
+                #if DEBUG
+                Button(String(localized: "editor.media.add_model3d")) {
+                    isShowingModelPlaceholder = true
+                }
+                #endif
+
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+            }
+            .alert(String(localized: "editor.media.model.placeholder_title"), isPresented: $isShowingModelPlaceholder) {
+                Button(String(localized: "common.ok"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "editor.media.model.placeholder_message"))
+            }
+            .onChange(of: selectedPhotoItems) { _, newItems in
+                Task {
+                    await addPhotos(from: newItems)
                 }
             }
         }
-        .scrollIndicators(.hidden)
-        .photosPicker(
-            isPresented: $isPresentingPhotoPicker,
-            selection: $selectedPhotoItems,
-            maxSelectionCount: nil,
-            matching: .images,
-            photoLibrary: .shared()
-        )
-        .fullScreenCover(isPresented: $isPresentingCamera) {
-            CameraPickerView { image in
-                addCapturedPhoto(image)
-            }
-            .ignoresSafeArea()
-        }
-        .confirmationDialog(String(localized: "editor.media.add"), isPresented: $isPresentingAddMediaOptions, titleVisibility: .visible) {
-            Button(String(localized: "editor.media.photo_library")) {
-                isPresentingPhotoPicker = true
-            }
-
-            if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button(String(localized: "editor.media.camera")) {
-                    isPresentingCamera = true
-                }
-            }
-
-            #if DEBUG
-            Button(String(localized: "editor.media.add_model3d")) {
-                isShowingModelPlaceholder = true
-            }
-            #endif
-
-            Button(String(localized: "common.cancel"), role: .cancel) {}
-        }
-        .alert(String(localized: "editor.media.model.placeholder_title"), isPresented: $isShowingModelPlaceholder) {
-            Button(String(localized: "common.ok"), role: .cancel) {}
-        } message: {
-            Text(String(localized: "editor.media.model.placeholder_message"))
-        }
-        .sheet(item: $previewTarget) { target in
-            QuickLookPreview(url: target.url)
-        }
-        .onChange(of: selectedPhotoItems) { _, newItems in
-            Task {
-                await addPhotos(from: newItems)
-            }
-        }
-    }
-
-    private func preview(_ asset: MediaAsset) {
-        guard asset.kind == .photo || asset.kind == .document else { return }
-        guard let url = mediaStore.fileURL(for: asset.localIdentifier) else { return }
-        previewTarget = MediaPreviewTarget(url: url)
     }
 
     private var sortedAssets: [MediaAsset] {
@@ -178,6 +170,29 @@ struct MediaSection: View {
             .map { index, asset in
                 asset.with(sortOrder: index)
             }
+    }
+}
+
+struct MediaQuickLookPresenter<Content: View>: View {
+    private let mediaStore = LocalMediaFileStore.shared
+    private let content: (@escaping (MediaAsset) -> Void) -> Content
+    @State private var previewTarget: MediaPreviewTarget?
+
+    init(@ViewBuilder content: @escaping (@escaping (MediaAsset) -> Void) -> Content) {
+        self.content = content
+    }
+
+    var body: some View {
+        content(preview)
+            .sheet(item: $previewTarget) { target in
+                QuickLookPreview(url: target.url)
+            }
+    }
+
+    private func preview(_ asset: MediaAsset) {
+        guard asset.kind == .photo || asset.kind == .document else { return }
+        guard let url = mediaStore.fileURL(for: asset.localIdentifier) else { return }
+        previewTarget = MediaPreviewTarget(url: url)
     }
 }
 
