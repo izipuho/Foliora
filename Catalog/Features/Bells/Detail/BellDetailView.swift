@@ -29,7 +29,7 @@ struct BellDetailView: View {
     }
 
     var body: some View {
-        MediaQuickLookPresenter { preview in
+        MediaQuickLookPresenter(mediaAssets: bell.mediaAssets) { preview in
             ScrollView {
                 ZStack(alignment: .top) {
                     heroHeader(preview: preview)

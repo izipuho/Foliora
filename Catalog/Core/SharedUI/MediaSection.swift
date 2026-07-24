@@ -22,7 +22,7 @@ struct MediaSection: View {
     @State private var isPresentingAddMediaOptions = false
 
     var body: some View {
-        MediaQuickLookPresenter { preview in
+        MediaQuickLookPresenter(mediaAssets: mediaAssets) { preview in
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: CatalogMetrics.Spacing.xs) {
                     ForEach(sortedAssets) { asset in
@@ -174,11 +174,16 @@ struct MediaSection: View {
 }
 
 struct MediaQuickLookPresenter<Content: View>: View {
+    let mediaAssets: [MediaAsset]
     private let mediaStore = LocalMediaFileStore.shared
     private let content: (@escaping (MediaAsset) -> Void) -> Content
     @State private var previewTarget: MediaPreviewTarget?
 
-    init(@ViewBuilder content: @escaping (@escaping (MediaAsset) -> Void) -> Content) {
+    init(
+        mediaAssets: [MediaAsset],
+        @ViewBuilder content: @escaping (@escaping (MediaAsset) -> Void) -> Content
+    ) {
+        self.mediaAssets = mediaAssets
         self.content = content
     }
 
@@ -189,9 +194,23 @@ struct MediaQuickLookPresenter<Content: View>: View {
             }
     }
 
+    private var sortedPhotoAssets: [MediaAsset] {
+        mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { lhs, rhs in
+                if lhs.sortOrder == rhs.sortOrder {
+                    return lhs.localIdentifier < rhs.localIdentifier
+                }
+
+                return lhs.sortOrder < rhs.sortOrder
+            }
+    }
+
     private func preview(_ asset: MediaAsset) {
         guard asset.kind == .photo || asset.kind == .document else { return }
-        guard let url = mediaStore.fileURL(for: asset.localIdentifier) else { return }
+        guard let selectedAsset = mediaAssets.first(where: { $0.id == asset.id }) else { return }
+        _ = sortedPhotoAssets
+        guard let url = mediaStore.fileURL(for: selectedAsset.localIdentifier) else { return }
         previewTarget = MediaPreviewTarget(url: url)
     }
 }
