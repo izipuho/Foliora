@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import UIKit
 import QuickLook
+import UniformTypeIdentifiers
 
 struct MediaSection: View {
     let itemID: UUID
@@ -20,6 +21,7 @@ struct MediaSection: View {
     @State private var isPresentingCamera = false
     @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
+    @State private var draggedAssetID: MediaAsset.ID?
 
     var body: some View {
         MediaQuickLookPresenter(mediaAssets: mediaAssets) { preview in
@@ -30,6 +32,9 @@ struct MediaSection: View {
                             asset: asset,
                             isAnalysisHighlighted: asset.id == analysisHighlightedAssetID,
                             allowsDeletion: allowsDeletion,
+                            isReorderingEnabled: isEditing && asset.kind == .photo,
+                            draggedAssetID: $draggedAssetID,
+                            moveAsset: moveAsset,
                             onTap: {
                                 preview(asset)
                             },
@@ -112,6 +117,10 @@ struct MediaSection: View {
         }
     }
 
+    private var isEditing: Bool {
+        allowsDeletion
+    }
+
     @MainActor
     private func addPhotos(from items: [PhotosPickerItem]) async {
         guard allowsAdding else { return }
@@ -180,6 +189,14 @@ struct MediaSection: View {
         updateMediaAssets { assets in
             assets = reorderedAssets
         }
+    }
+
+    private func moveAsset(withID sourceID: MediaAsset.ID, to destinationID: MediaAsset.ID) {
+        let assets = sortedAssets
+        guard let sourceIndex = assets.firstIndex(where: { $0.id == sourceID }) else { return }
+        guard let destinationIndex = assets.firstIndex(where: { $0.id == destinationID }) else { return }
+
+        moveAssets(from: sourceIndex, to: destinationIndex)
     }
 
     private func updateMediaAssets(_ update: (inout [MediaAsset]) -> Void) {
@@ -264,6 +281,9 @@ private struct MediaAssetGridTileView: View {
     let asset: MediaAsset
     let isAnalysisHighlighted: Bool
     let allowsDeletion: Bool
+    let isReorderingEnabled: Bool
+    @Binding var draggedAssetID: MediaAsset.ID?
+    let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
     let onTap: () -> Void
     let onDelete: () -> Void
     @State private var highlightPulse = false
@@ -275,6 +295,11 @@ private struct MediaAssetGridTileView: View {
                     asset: asset,
                     size: asset.kind == .photo ? 110 : 88
                 )
+                .draggableMediaAsset(
+                    asset,
+                    isEnabled: isReorderingEnabled,
+                    draggedAssetID: $draggedAssetID
+                )
 
                 if asset.kind != .photo {
                     Text(mediaTitle)
@@ -285,6 +310,12 @@ private struct MediaAssetGridTileView: View {
             }
             .frame(width: 110, alignment: .leading)
             .contentShape(CatalogShapes.thumbnail)
+            .droppableMediaAsset(
+                asset,
+                isEnabled: isReorderingEnabled,
+                draggedAssetID: $draggedAssetID,
+                moveAsset: moveAsset
+            )
             .onTapGesture(perform: onTap)
             .overlay {
                 if isAnalysisHighlighted {
@@ -342,6 +373,70 @@ private struct MediaAssetGridTileView: View {
             .lastPathComponent
             .replacingOccurrences(of: "-", with: " ")
             .capitalized
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func draggableMediaAsset(
+        _ asset: MediaAsset,
+        isEnabled: Bool,
+        draggedAssetID: Binding<MediaAsset.ID?>
+    ) -> some View {
+        if isEnabled {
+            self
+                .onDrag {
+                    draggedAssetID.wrappedValue = asset.id
+                    return NSItemProvider(object: asset.id.uuidString as NSString)
+                } preview: {
+                    self
+                }
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func droppableMediaAsset(
+        _ asset: MediaAsset,
+        isEnabled: Bool,
+        draggedAssetID: Binding<MediaAsset.ID?>,
+        moveAsset: @escaping (MediaAsset.ID, MediaAsset.ID) -> Void
+    ) -> some View {
+        if isEnabled {
+            self
+                .onDrop(
+                    of: [UTType.text.identifier],
+                    delegate: MediaAssetReorderDropDelegate(
+                        asset: asset,
+                        draggedAssetID: draggedAssetID,
+                        moveAsset: moveAsset
+                    )
+                )
+        } else {
+            self
+        }
+    }
+}
+
+private struct MediaAssetReorderDropDelegate: DropDelegate {
+    let asset: MediaAsset
+    @Binding var draggedAssetID: MediaAsset.ID?
+    let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggedAssetID else { return }
+        guard draggedAssetID != asset.id else { return }
+        moveAsset(draggedAssetID, asset.id)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedAssetID = nil
+        return true
     }
 }
 

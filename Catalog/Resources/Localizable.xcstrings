@@ -324,23 +324,6 @@
         }
       }
     },
-    "bell_catalog.filter.all" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Все"
-          }
-        }
-      }
-    },
     "bell_catalog.items.filtered_by_tag" : {
       "localizations" : {
         "en" : {
@@ -449,23 +432,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Широкий"
-          }
-        }
-      }
-    },
-    "bell_catalog.order.menu" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Order by"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Упорядочить"
           }
         }
       }
@@ -4224,6 +4190,7 @@
       }
     },
     "editor.media" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
