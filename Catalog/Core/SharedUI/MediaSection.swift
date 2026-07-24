@@ -28,7 +28,6 @@ struct MediaSection: View {
                     ForEach(sortedAssets) { asset in
                         MediaAssetGridTileView(
                             asset: asset,
-                            isCover: asset.id == coverPhotoID,
                             isAnalysisHighlighted: asset.id == analysisHighlightedAssetID,
                             allowsDeletion: allowsDeletion,
                             onTap: {
@@ -112,12 +111,6 @@ struct MediaSection: View {
 
             return lhs.sortOrder < rhs.sortOrder
         }
-    }
-
-    private var coverPhotoID: UUID? {
-        let photoAssets = sortedAssets.filter { $0.kind == .photo }
-        guard photoAssets.count > 1 else { return nil }
-        return photoAssets.first?.id
     }
 
     @MainActor
@@ -238,7 +231,6 @@ struct MediaQuickLookPresenter<Content: View>: View {
 
 private struct MediaAssetGridTileView: View {
     let asset: MediaAsset
-    let isCover: Bool
     let isAnalysisHighlighted: Bool
     let allowsDeletion: Bool
     let onTap: () -> Void
@@ -287,12 +279,6 @@ private struct MediaAssetGridTileView: View {
                         )
                 }
             }
-            .overlay {
-                if isCover {
-                    CatalogShapes.thumbnail
-                        .stroke(.tint.opacity(0.75), lineWidth: 3)
-                }
-            }
             .onAppear {
                 guard isAnalysisHighlighted else { return }
                 highlightPulse = true
@@ -312,15 +298,6 @@ private struct MediaAssetGridTileView: View {
                 .offset(x: 6, y: -6)
             }
 
-            if isCover {
-                Image(systemName: "star.fill")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
-                    .frame(width: 20, height: 20)
-                    .background(.tint, in: Circle())
-                    .padding(CatalogMetrics.Spacing.xxs)
-                    .frame(width: 110, height: 110, alignment: .bottomLeading)
-            }
         }
     }
 
