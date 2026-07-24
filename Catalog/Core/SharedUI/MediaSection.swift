@@ -177,7 +177,8 @@ struct MediaQuickLookPresenter<Content: View>: View {
     let mediaAssets: [MediaAsset]
     private let mediaStore = LocalMediaFileStore.shared
     private let content: (@escaping (MediaAsset) -> Void) -> Content
-    @State private var previewTarget: MediaPreviewTarget?
+    @State private var documentPreviewTarget: MediaPreviewTarget?
+    @State private var photoGalleryTarget: MediaPhotoGalleryTarget?
 
     init(
         mediaAssets: [MediaAsset],
@@ -189,8 +190,17 @@ struct MediaQuickLookPresenter<Content: View>: View {
 
     var body: some View {
         content(preview)
-            .sheet(item: $previewTarget) { target in
+            .sheet(item: $documentPreviewTarget) { target in
                 QuickLookPreview(url: target.url)
+            }
+            .sheet(item: $photoGalleryTarget) { target in
+                MediaPhotoGallery(
+                    assets: target.assets,
+                    initialAssetID: target.initialAssetID
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(.black)
             }
     }
 
@@ -207,11 +217,22 @@ struct MediaQuickLookPresenter<Content: View>: View {
     }
 
     private func preview(_ asset: MediaAsset) {
-        guard asset.kind == .photo || asset.kind == .document else { return }
         guard let selectedAsset = mediaAssets.first(where: { $0.id == asset.id }) else { return }
-        _ = sortedPhotoAssets
-        guard let url = mediaStore.fileURL(for: selectedAsset.localIdentifier) else { return }
-        previewTarget = MediaPreviewTarget(url: url)
+
+        switch selectedAsset.kind {
+        case .photo:
+            let photoAssets = sortedPhotoAssets
+            guard photoAssets.contains(where: { $0.id == selectedAsset.id }) else { return }
+            photoGalleryTarget = MediaPhotoGalleryTarget(
+                assets: photoAssets,
+                initialAssetID: selectedAsset.id
+            )
+        case .document:
+            guard let url = mediaStore.fileURL(for: selectedAsset.localIdentifier) else { return }
+            documentPreviewTarget = MediaPreviewTarget(url: url)
+        case .model3D:
+            return
+        }
     }
 }
 
@@ -319,6 +340,260 @@ private struct MediaAssetGridTileView: View {
 private struct MediaPreviewTarget: Identifiable {
     let id = UUID()
     let url: URL
+}
+
+private struct MediaPhotoGalleryTarget: Identifiable {
+    let id = UUID()
+    let assets: [MediaAsset]
+    let initialAssetID: MediaAsset.ID
+}
+
+private struct MediaPhotoGallery: View {
+    let assets: [MediaAsset]
+    let initialAssetID: MediaAsset.ID
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedAssetID: MediaAsset.ID
+
+    init(assets: [MediaAsset], initialAssetID: MediaAsset.ID) {
+        self.assets = assets
+        self.initialAssetID = initialAssetID
+        _selectedAssetID = State(initialValue: initialAssetID)
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black
+                .ignoresSafeArea()
+
+            TabView(selection: $selectedAssetID) {
+                ForEach(assets) { asset in
+                    MediaPhotoGalleryPage(asset: asset)
+                        .tag(asset.id)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+        }
+        .safeAreaInset(edge: .top) {
+            ZStack {
+                if assets.count > 1 {
+                    Text(counterText)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(.black.opacity(0.55), in: Capsule())
+                }
+
+                HStack {
+                    Spacer()
+
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("common.close")
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+        }
+        .onAppear {
+            guard assets.contains(where: { $0.id == selectedAssetID }) else { return }
+            selectedAssetID = initialAssetID
+        }
+    }
+
+    private var counterText: String {
+        let index = assets.firstIndex { $0.id == selectedAssetID } ?? 0
+        return "\(index + 1) / \(assets.count)"
+    }
+}
+
+private struct MediaPhotoGalleryPage: View {
+    let asset: MediaAsset
+    private let mediaStore = LocalMediaFileStore.shared
+
+    @State private var image: UIImage?
+    @State private var isLoading = true
+    @State private var didFail = false
+
+    var body: some View {
+        ZStack {
+            Color.black
+
+            if let image {
+                ZoomableMediaImage(image: image)
+            } else if isLoading {
+                ProgressView()
+                    .tint(.white)
+            } else if didFail {
+                Image(systemName: "photo")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.white.opacity(0.65))
+            }
+        }
+        .task(id: asset.id) {
+            await loadImage()
+        }
+    }
+
+    @MainActor
+    private func loadImage() async {
+        image = nil
+        didFail = false
+        isLoading = true
+
+        let localIdentifier = asset.localIdentifier
+        let originalData = asset.originalData
+        let localURL = mediaStore.fileURL(for: localIdentifier)
+
+        let loadTask = Task<Data?, Never>.detached(priority: .userInitiated) {
+            if let localURL,
+               let data = try? Data(contentsOf: localURL) {
+                return data
+            }
+
+            if let originalData {
+                return originalData
+            }
+
+            return nil
+        }
+        let loadedData = await loadTask.value
+
+        guard !Task.isCancelled else { return }
+        let loadedImage = loadedData.flatMap(UIImage.init(data:))
+        image = loadedImage
+        didFail = loadedImage == nil
+        isLoading = false
+    }
+}
+
+private struct ZoomableMediaImage: UIViewRepresentable {
+    let image: UIImage
+
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = ZoomableImageScrollView()
+        scrollView.onLayout = { [weak coordinator = context.coordinator, weak scrollView] in
+            guard let scrollView else { return }
+            coordinator?.updateImageFrame(in: scrollView, resettingZoom: false)
+        }
+        scrollView.delegate = context.coordinator
+        scrollView.minimumZoomScale = 1
+        scrollView.maximumZoomScale = 4
+        scrollView.bouncesZoom = true
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.backgroundColor = .black
+        scrollView.contentInsetAdjustmentBehavior = .never
+
+        let imageView = context.coordinator.imageView
+        imageView.contentMode = .scaleAspectFit
+        imageView.isUserInteractionEnabled = true
+        imageView.image = image
+        scrollView.addSubview(imageView)
+
+        let doubleTap = UITapGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleDoubleTap(_:))
+        )
+        doubleTap.numberOfTapsRequired = 2
+        scrollView.addGestureRecognizer(doubleTap)
+
+        return scrollView
+    }
+
+    func updateUIView(_ scrollView: UIScrollView, context: Context) {
+        context.coordinator.imageView.image = image
+        context.coordinator.updateImageFrame(in: scrollView, resettingZoom: true)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    final class Coordinator: NSObject, UIScrollViewDelegate {
+        let imageView = UIImageView()
+        private var laidOutSize: CGSize = .zero
+
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            imageView
+        }
+
+        func scrollViewDidZoom(_ scrollView: UIScrollView) {
+            centerImage(in: scrollView)
+            updatePanState(in: scrollView)
+        }
+
+        func updateImageFrame(in scrollView: UIScrollView, resettingZoom: Bool) {
+            guard scrollView.bounds.size != .zero else { return }
+            guard resettingZoom || laidOutSize != scrollView.bounds.size else { return }
+            laidOutSize = scrollView.bounds.size
+
+            if resettingZoom {
+                scrollView.zoomScale = 1
+            } else if scrollView.zoomScale > scrollView.minimumZoomScale {
+                return
+            }
+
+            imageView.frame = CGRect(origin: .zero, size: scrollView.bounds.size)
+            scrollView.contentSize = imageView.bounds.size
+            centerImage(in: scrollView)
+            updatePanState(in: scrollView)
+        }
+
+        @objc
+        func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
+            guard let scrollView = recognizer.view as? UIScrollView else { return }
+
+            if scrollView.zoomScale > scrollView.minimumZoomScale {
+                scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
+            } else {
+                let point = recognizer.location(in: imageView)
+                let zoomScale = min(2.5, scrollView.maximumZoomScale)
+                let width = scrollView.bounds.width / zoomScale
+                let height = scrollView.bounds.height / zoomScale
+                let rect = CGRect(
+                    x: point.x - width / 2,
+                    y: point.y - height / 2,
+                    width: width,
+                    height: height
+                )
+                scrollView.zoom(to: rect, animated: true)
+            }
+        }
+
+        private func centerImage(in scrollView: UIScrollView) {
+            let horizontalInset = max((scrollView.bounds.width - scrollView.contentSize.width) / 2, 0)
+            let verticalInset = max((scrollView.bounds.height - scrollView.contentSize.height) / 2, 0)
+            scrollView.contentInset = UIEdgeInsets(
+                top: verticalInset,
+                left: horizontalInset,
+                bottom: verticalInset,
+                right: horizontalInset
+            )
+        }
+
+        private func updatePanState(in scrollView: UIScrollView) {
+            scrollView.panGestureRecognizer.isEnabled = scrollView.zoomScale > scrollView.minimumZoomScale
+        }
+    }
+
+    final class ZoomableImageScrollView: UIScrollView {
+        var onLayout: (() -> Void)?
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            onLayout?()
+        }
+    }
 }
 
 private struct QuickLookPreview: UIViewControllerRepresentable {
