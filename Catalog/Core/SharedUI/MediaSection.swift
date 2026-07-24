@@ -53,7 +53,7 @@ struct MediaSection: View {
                                 .font(CatalogTypography.cardTitle)
                                 .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                                 .frame(width: 38, height: 38)
-                                .background(CatalogSemanticColors.success, in: Circle())
+                                .glassEffect(.regular.tint(CatalogSemanticColors.success).interactive(), in: Circle())
                                 .frame(width: 48, height: 110)
                         }
                         .buttonStyle(.plain)
