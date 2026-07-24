@@ -22,6 +22,7 @@ struct MediaSection: View {
     @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
     @State private var draggedAssetID: MediaAsset.ID?
+    @State private var pendingDeletionAssetID: MediaAsset.ID?
 
     var body: some View {
         MediaQuickLookPresenter(mediaAssets: mediaAssets) { preview in
@@ -39,10 +40,18 @@ struct MediaSection: View {
                                 preview(asset)
                             },
                             onDelete: {
-                                mediaStore.deleteFile(for: asset.localIdentifier)
-                                removeAsset(withID: asset.id)
+                                pendingDeletionAssetID = asset.id
                             }
                         )
+                        .confirmationDialog("editor.delete_media.action", isPresented: deleteConfirmationBinding(for: asset.id), titleVisibility: .visible) {
+                            Button("editor.delete_media.title", role: .destructive) {
+                                confirmDeletion(of: asset.id)
+                            }
+
+                            Button(String(localized: "common.cancel"), role: .cancel) {
+                                pendingDeletionAssetID = nil
+                            }
+                        }
                     }
 
                     if allowsAdding {
@@ -121,6 +130,17 @@ struct MediaSection: View {
         allowsDeletion
     }
 
+    private func deleteConfirmationBinding(for assetID: MediaAsset.ID) -> Binding<Bool> {
+        Binding(
+            get: { pendingDeletionAssetID == assetID },
+            set: { isPresented in
+                if !isPresented {
+                    pendingDeletionAssetID = nil
+                }
+            }
+        )
+    }
+
     @MainActor
     private func addPhotos(from items: [PhotosPickerItem]) async {
         guard allowsAdding else { return }
@@ -174,6 +194,14 @@ struct MediaSection: View {
             assets = assets.sorted { $0.sortOrder < $1.sortOrder }
             normalizeSortOrder(in: &assets)
         }
+    }
+
+    private func confirmDeletion(of assetID: MediaAsset.ID) {
+        defer { pendingDeletionAssetID = nil }
+        guard let asset = mediaAssets.first(where: { $0.id == assetID }) else { return }
+
+        mediaStore.deleteFile(for: asset.localIdentifier)
+        removeAsset(withID: assetID)
     }
 
     private func moveAssets(from sourceIndex: Int, to destinationIndex: Int) {
