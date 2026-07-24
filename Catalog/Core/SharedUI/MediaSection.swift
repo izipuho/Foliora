@@ -289,77 +289,31 @@ private struct MediaAssetGridTileView: View {
     @State private var highlightPulse = false
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                MediaAssetThumbnailView(
-                    asset: asset,
-                    size: asset.kind == .photo ? 110 : 88
-                )
-                .draggableMediaAsset(
-                    asset,
-                    isEnabled: isReorderingEnabled,
-                    draggedAssetID: $draggedAssetID
-                )
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+            thumbnail
 
-                if asset.kind != .photo {
-                    Text(mediaTitle)
-                        .font(.caption)
-                        .lineLimit(2)
-                        .foregroundStyle(.primary)
-                }
+            if asset.kind != .photo {
+                Text(mediaTitle)
+                    .font(.caption)
+                    .lineLimit(2)
+                    .foregroundStyle(.primary)
             }
-            .frame(width: 110, alignment: .leading)
-            .contentShape(CatalogShapes.thumbnail)
-            .droppableMediaAsset(
-                asset,
-                isEnabled: isReorderingEnabled,
-                draggedAssetID: $draggedAssetID,
-                moveAsset: moveAsset
-            )
-            .onTapGesture(perform: onTap)
-            .overlay {
-                if isAnalysisHighlighted {
-                    CatalogShapes.thumbnail
-                        .stroke(
-                            AngularGradient(
-                                colors: [
-                                    .cyan,
-                                    .blue,
-                                    .purple,
-                                    .pink,
-                                    .cyan
-                                ],
-                                center: .center
-                            ),
-                            lineWidth: highlightPulse ? 4 : 2
-                        )
-                        .opacity(highlightPulse ? 1 : 0.45)
-                        .scaleEffect(highlightPulse ? 1.035 : 0.99)
-                        .animation(
-                            .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
-                            value: highlightPulse
-                        )
-                }
-            }
-            .onAppear {
-                guard isAnalysisHighlighted else { return }
-                highlightPulse = true
-            }
-            .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
-                highlightPulse = isHighlighted
-            }
-
-            if allowsDeletion {
-                Button(action: onDelete) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(CatalogTypography.cardTitle)
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(CatalogMediaContrast.onMediaPrimary, CatalogMediaContrast.scrimStrong)
-                }
-                .buttonStyle(.plain)
-                .offset(x: 6, y: -6)
-            }
-
+        }
+        .frame(width: 110, alignment: .leading)
+        .contentShape(CatalogShapes.thumbnail)
+        .droppableMediaAsset(
+            asset,
+            isEnabled: isReorderingEnabled,
+            draggedAssetID: $draggedAssetID,
+            moveAsset: moveAsset
+        )
+        .onTapGesture(perform: onTap)
+        .onAppear {
+            guard isAnalysisHighlighted else { return }
+            highlightPulse = true
+        }
+        .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
+            highlightPulse = isHighlighted
         }
     }
 
@@ -373,6 +327,72 @@ private struct MediaAssetGridTileView: View {
             .lastPathComponent
             .replacingOccurrences(of: "-", with: " ")
             .capitalized
+    }
+
+    private var thumbnailSize: CGFloat {
+        asset.kind == .photo ? 110 : 88
+    }
+
+    @ViewBuilder
+    private var thumbnail: some View {
+        ZStack(alignment: .topTrailing) {
+            thumbnailImage
+
+            if allowsDeletion {
+                deleteButton
+            }
+        }
+        .padding(.top, allowsDeletion ? 6 : 0)
+        .padding(.trailing, allowsDeletion ? 6 : 0)
+        .contentShape(CatalogShapes.thumbnail)
+    }
+
+    private var thumbnailImage: some View {
+        MediaAssetThumbnailView(asset: asset, size: thumbnailSize)
+            .overlay {
+                if isAnalysisHighlighted {
+                    analysisHighlight
+                }
+            }
+            .draggableMediaAsset(
+                asset,
+                isEnabled: isReorderingEnabled,
+                draggedAssetID: $draggedAssetID
+            )
+    }
+
+    private var deleteButton: some View {
+        Button(action: onDelete) {
+            Image(systemName: "xmark.circle.fill")
+                .font(CatalogTypography.cardTitle)
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(CatalogMediaContrast.onMediaPrimary, CatalogMediaContrast.scrimStrong)
+        }
+        .buttonStyle(.plain)
+        .offset(x: 6, y: -6)
+    }
+
+    private var analysisHighlight: some View {
+        CatalogShapes.thumbnail
+            .stroke(
+                AngularGradient(
+                    colors: [
+                        .cyan,
+                        .blue,
+                        .purple,
+                        .pink,
+                        .cyan
+                    ],
+                    center: .center
+                ),
+                lineWidth: highlightPulse ? 4 : 2
+            )
+            .opacity(highlightPulse ? 1 : 0.45)
+            .scaleEffect(highlightPulse ? 1.035 : 0.99)
+            .animation(
+                .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
+                value: highlightPulse
+            )
     }
 }
 
