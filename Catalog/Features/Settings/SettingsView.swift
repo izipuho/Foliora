@@ -119,18 +119,6 @@ struct SettingsView: View {
         } message: {
             Text(importErrorMessage ?? "")
         }
-        .confirmationDialog(
-            "Purge Cloud Data?",
-            isPresented: $isShowingPurgeConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Purge", role: .destructive) {
-                purgeCloudData()
-            }
-            Button("common.cancel", role: .cancel) {}
-        } message: {
-            Text("This will delete all Foliora Bells data from this device and sync deletions to iCloud for this Apple ID.")
-        }
     }
 
     private var appVersion: String {
