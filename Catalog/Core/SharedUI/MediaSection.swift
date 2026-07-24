@@ -35,8 +35,7 @@ struct MediaSection: View {
                             },
                             onDelete: {
                                 mediaStore.deleteFile(for: asset.localIdentifier)
-                                mediaAssets.removeAll { $0.id == asset.id }
-                                reindexAssets()
+                                removeAsset(withID: asset.id)
                             }
                         )
                     }
@@ -129,9 +128,11 @@ struct MediaSection: View {
                 mimeType: contentType?.preferredMIMEType
             ) else { continue }
 
-            mediaAssets.append(
-                media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
-            )
+            updateMediaAssets { assets in
+                assets.append(
+                    media.asset.with(itemID: itemID, sortOrder: assets.count)
+                )
+            }
 
             onPhotoAdded?(image)
         }
@@ -149,16 +150,46 @@ struct MediaSection: View {
             mimeType: "image/jpeg"
         ) else { return }
 
-        mediaAssets.append(
-            media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
-        )
+        updateMediaAssets { assets in
+            assets.append(
+                media.asset.with(itemID: itemID, sortOrder: assets.count)
+            )
+        }
 
         onPhotoAdded?(image)
     }
 
-    private func reindexAssets() {
-        mediaAssets = mediaAssets
-            .sorted { $0.sortOrder < $1.sortOrder }
+    private func removeAsset(withID assetID: MediaAsset.ID) {
+        updateMediaAssets { assets in
+            assets.removeAll { $0.id == assetID }
+            assets = assets.sorted { $0.sortOrder < $1.sortOrder }
+            normalizeSortOrder(in: &assets)
+        }
+    }
+
+    private func moveAssets(from sourceIndex: Int, to destinationIndex: Int) {
+        var reorderedAssets = sortedAssets
+        guard reorderedAssets.indices.contains(sourceIndex) else { return }
+        guard reorderedAssets.indices.contains(destinationIndex) else { return }
+        guard sourceIndex != destinationIndex else { return }
+
+        let asset = reorderedAssets.remove(at: sourceIndex)
+        reorderedAssets.insert(asset, at: destinationIndex)
+        normalizeSortOrder(in: &reorderedAssets)
+
+        updateMediaAssets { assets in
+            assets = reorderedAssets
+        }
+    }
+
+    private func updateMediaAssets(_ update: (inout [MediaAsset]) -> Void) {
+        var updatedAssets = mediaAssets
+        update(&updatedAssets)
+        mediaAssets = updatedAssets
+    }
+
+    private func normalizeSortOrder(in assets: inout [MediaAsset]) {
+        assets = assets
             .enumerated()
             .map { index, asset in
                 asset.with(sortOrder: index)
