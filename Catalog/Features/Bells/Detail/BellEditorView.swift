@@ -107,6 +107,24 @@ struct BellEditorView: View {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var mediaSectionDeleteButtonAllowance: CGFloat {
+        6
+    }
+
+    private var mediaSectionPhotoTileSize: CGFloat {
+        110
+    }
+
+    private var mediaSectionNonPhotoLabelAllowance: CGFloat {
+        CatalogMetrics.Spacing.lg
+    }
+
+    private var mediaSectionHeight: CGFloat {
+        mediaSectionPhotoTileSize
+        + mediaSectionDeleteButtonAllowance
+        + (mediaAssets.contains { $0.kind != .photo } ? mediaSectionNonPhotoLabelAllowance : 0)
+    }
+
     private var shouldShowPhotoAnalysisSection: Bool {
         photoAnalysis.isAnalyzing
         || (!isLocalizingPhotoSuggestions && (
@@ -154,13 +172,19 @@ struct BellEditorView: View {
         NavigationStack {
             ScrollViewReader { scrollProxy in
                 VStack(spacing: 0) {
-                    MediaSection(
-                        itemID: editorItemID,
-                        mediaAssets: $mediaAssets,
-                        analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
-                    )
-                    .padding(.top, 6)
-                    .frame(height: mediaAssets.contains { $0.kind != .photo } ? 132 : 116, alignment: .top)
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                        Text(String(localized: "bell.media"))
+                            .font(CatalogTypography.sectionTitle)
+
+                        MediaSection(
+                            itemID: editorItemID,
+                            mediaAssets: $mediaAssets,
+                            analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
+                        )
+                        .padding(.top, mediaSectionDeleteButtonAllowance)
+                        .frame(height: mediaSectionHeight, alignment: .top)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, CatalogMetrics.Insets.screen)
                     .padding(.vertical, CatalogMetrics.Spacing.xs)
 
@@ -378,6 +402,7 @@ struct BellEditorView: View {
                         }
                     }
                 }
+                .background(Color(uiColor: .systemGroupedBackground))
                 .navigationTitle(existingBellID == nil ? String(localized: "editor.bell.add") : String(localized: "editor.bell.edit"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
