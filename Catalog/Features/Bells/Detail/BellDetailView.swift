@@ -230,10 +230,10 @@ struct BellDetailView: View {
         .background(alignment: .top) {
             VStack(spacing: 0) {
                 LinearGradient(
-                    colors: [
-                        .clear,
-                        Color(.systemBackground).opacity(0.88),
-                        Color(.systemBackground)
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .clear, location: 0.65),
+                        .init(color: Color(.systemBackground), location: 1)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
