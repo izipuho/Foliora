@@ -159,7 +159,7 @@ struct BellEditorView: View {
             ScrollViewReader { scrollProxy in
                 VStack(spacing: 0) {
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        Text(String(localized: "bell.media"))
+                        Text(String(localized: "editor.docs_and_media"))
                             .font(.headline)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, CatalogMetrics.Insets.screen)
