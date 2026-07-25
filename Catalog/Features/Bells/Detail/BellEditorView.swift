@@ -107,6 +107,10 @@ struct BellEditorView: View {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var mediaSectionCardVerticalPadding: CGFloat {
+        CatalogMetrics.Spacing.md
+    }
+
     private var shouldShowPhotoAnalysisSection: Bool {
         photoAnalysis.isAnalyzing
         || (!isLocalizingPhotoSuggestions && (
@@ -153,225 +157,244 @@ struct BellEditorView: View {
     var body: some View {
         NavigationStack {
             ScrollViewReader { scrollProxy in
-                Form {
-                    Section(String(localized: "editor.media")) {
+                VStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                        Text(String(localized: "editor.docs_and_media"))
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, CatalogMetrics.Insets.screen)
+
                         MediaSection(
                             itemID: editorItemID,
                             mediaAssets: $mediaAssets,
                             analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
                         )
+                        .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, mediaSectionCardVerticalPadding)
+                        .background(
+                            CatalogShapes.section
+                                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                        )
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, CatalogMetrics.Insets.screen)
+                    .padding(.vertical, CatalogMetrics.Spacing.xs)
+                    .background(Color(uiColor: .systemGroupedBackground))
 
-                    if shouldShowPhotoAnalysisSection {
-                        Section(String(localized: "editor.photo_analysis.section")) {
-                            if photoAnalysis.isAnalyzing {
-                                HStack(spacing: CatalogMetrics.Spacing.sm) {
-                                    ProgressView()
-                                    Text(String(localized: "editor.photo_analysis.analyzing"))
-                                        .foregroundStyle(.secondary)
-                                }
-                            } else {
-                                if !photoAnalysis.suggestions.isBellDetected {
-                                    Label {
-                                        Text("editor.analysis.bell_not_found")
-                                            .font(.footnote)
-                                            .foregroundStyle(.primary)
-                                    } icon: {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundStyle(.orange)
+                    Form {
+                        if shouldShowPhotoAnalysisSection {
+                            Section(String(localized: "editor.photo_analysis.section")) {
+                                if photoAnalysis.isAnalyzing {
+                                    HStack(spacing: CatalogMetrics.Spacing.sm) {
+                                        ProgressView()
+                                        Text(String(localized: "editor.photo_analysis.analyzing"))
+                                            .foregroundStyle(.secondary)
                                     }
-                                    .padding(.vertical, CatalogMetrics.Spacing.xs)
-                                    .listRowBackground(collection.backgroundStyle.accentColor.opacity(0.10))
-                                }
-
-                                if let titleSuggestion = photoAnalysis.suggestions.title {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.title"),
-                                        suggestedValue: localizedPhotoSuggestions?.title ?? titleSuggestion.value,
-                                        confidence: titleSuggestion.confidence,
-                                        onAccept: {
-                                            title = titleSuggestion.value
-                                            localizedPhotoSuggestions?.title = nil
-                                            photoAnalysis.dismiss(.title)
+                                } else {
+                                    if !photoAnalysis.suggestions.isBellDetected {
+                                        Label {
+                                            Text("editor.analysis.bell_not_found")
+                                                .font(.footnote)
+                                                .foregroundStyle(.primary)
+                                        } icon: {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .foregroundStyle(.orange)
                                         }
-                                    )
-                                }
+                                        .padding(.vertical, CatalogMetrics.Spacing.xs)
+                                        .listRowBackground(collection.backgroundStyle.accentColor.opacity(0.10))
+                                    }
 
-                                if let notesSuggestion = photoAnalysis.suggestions.notes {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.notes"),
-                                        suggestedValue: localizedPhotoSuggestions?.notes ?? notesSuggestion.value,
-                                        confidence: notesSuggestion.confidence,
-                                        onAccept: {
-                                            notes = notesSuggestion.value
-                                            localizedPhotoSuggestions?.notes = nil
-                                            photoAnalysis.dismiss(.notes)
-                                        }
-                                    )
-                                }
-
-                                if let materialSuggestion = photoAnalysis.suggestions.material {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.material"),
-                                        suggestedValue: materialSuggestionLabel(materialSuggestion),
-                                        confidence: materialSuggestion.confidence,
-                                        onAccept: {
-                                            material = materialSuggestion.value
-                                            if materialSuggestion.value == .other {
-                                                customMaterialName = photoAnalysis.suggestions.customMaterialName?.value ?? ""
-                                                localizedPhotoSuggestions?.customMaterialName = nil
-                                                photoAnalysis.dismiss(.customMaterialName)
-                                            } else {
-                                                customMaterialName = ""
+                                    if let titleSuggestion = photoAnalysis.suggestions.title {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "editor.photo_analysis.title"),
+                                            suggestedValue: localizedPhotoSuggestions?.title ?? titleSuggestion.value,
+                                            confidence: titleSuggestion.confidence,
+                                            onAccept: {
+                                                title = titleSuggestion.value
+                                                localizedPhotoSuggestions?.title = nil
+                                                photoAnalysis.dismiss(.title)
                                             }
-                                            photoAnalysis.dismiss(.material)
-                                        }
-                                    )
-                                }
+                                        )
+                                    }
 
-                                if let conditionSuggestion = photoAnalysis.suggestions.condition {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.condition"),
-                                        suggestedValue: conditionSuggestion.value.displayName,
-                                        confidence: conditionSuggestion.confidence,
-                                        onAccept: {
-                                            condition = conditionSuggestion.value
-                                            photoAnalysis.dismiss(.condition)
-                                        }
-                                    )
-                                }
-
-                                if let yearSuggestion = photoAnalysis.suggestions.suggestedYear {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.year"),
-                                        suggestedValue: String(yearSuggestion.value),
-                                        confidence: yearSuggestion.confidence,
-                                        onAccept: {
-                                            selectedAcquiredYearOption = String(yearSuggestion.value)
-                                            photoAnalysis.dismiss(.suggestedYear)
-                                        }
-                                    )
-                                }
-
-                                if let geoSuggestion = photoAnalysis.suggestions.suggestedGeo {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "common.ui.origin"),
-                                        suggestedValue: geoSuggestion.value.name,
-                                        confidence: geoSuggestion.confidence,
-                                        onAccept: {
-                                            selectedOriginPlace = place(from: geoSuggestion.value)
-                                            photoAnalysis.dismiss(.suggestedGeo)
-                                        }
-                                    )
-                                }
-
-                                if !photoAnalysis.suggestions.suggestedTags.isEmpty {
-                                    PhotoSuggestedTagsRow(
-                                        title: String(localized: "editor.photo_analysis.tags"),
-                                        suggestions: photoAnalysis.suggestions.suggestedTags,
-                                        localizedSuggestions: localizedPhotoSuggestions?.suggestedTags,
-                                        onAccept: { newValues in
-                                            for value in newValues where !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
-                                                tags.append(value)
+                                    if let notesSuggestion = photoAnalysis.suggestions.notes {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "editor.photo_analysis.notes"),
+                                            suggestedValue: localizedPhotoSuggestions?.notes ?? notesSuggestion.value,
+                                            confidence: notesSuggestion.confidence,
+                                            onAccept: {
+                                                notes = notesSuggestion.value
+                                                localizedPhotoSuggestions?.notes = nil
+                                                photoAnalysis.dismiss(.notes)
                                             }
-                                            localizedPhotoSuggestions?.suggestedTags = []
-                                            photoAnalysis.dismiss(.suggestedTags)
-                                        }
-                                    )
+                                        )
+                                    }
+
+                                    if let materialSuggestion = photoAnalysis.suggestions.material {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "editor.photo_analysis.material"),
+                                            suggestedValue: materialSuggestionLabel(materialSuggestion),
+                                            confidence: materialSuggestion.confidence,
+                                            onAccept: {
+                                                material = materialSuggestion.value
+                                                if materialSuggestion.value == .other {
+                                                    customMaterialName = photoAnalysis.suggestions.customMaterialName?.value ?? ""
+                                                    localizedPhotoSuggestions?.customMaterialName = nil
+                                                    photoAnalysis.dismiss(.customMaterialName)
+                                                } else {
+                                                    customMaterialName = ""
+                                                }
+                                                photoAnalysis.dismiss(.material)
+                                            }
+                                        )
+                                    }
+
+                                    if let conditionSuggestion = photoAnalysis.suggestions.condition {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "editor.photo_analysis.condition"),
+                                            suggestedValue: conditionSuggestion.value.displayName,
+                                            confidence: conditionSuggestion.confidence,
+                                            onAccept: {
+                                                condition = conditionSuggestion.value
+                                                photoAnalysis.dismiss(.condition)
+                                            }
+                                        )
+                                    }
+
+                                    if let yearSuggestion = photoAnalysis.suggestions.suggestedYear {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "editor.photo_analysis.year"),
+                                            suggestedValue: String(yearSuggestion.value),
+                                            confidence: yearSuggestion.confidence,
+                                            onAccept: {
+                                                selectedAcquiredYearOption = String(yearSuggestion.value)
+                                                photoAnalysis.dismiss(.suggestedYear)
+                                            }
+                                        )
+                                    }
+
+                                    if let geoSuggestion = photoAnalysis.suggestions.suggestedGeo {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "common.ui.origin"),
+                                            suggestedValue: geoSuggestion.value.name,
+                                            confidence: geoSuggestion.confidence,
+                                            onAccept: {
+                                                selectedOriginPlace = place(from: geoSuggestion.value)
+                                                photoAnalysis.dismiss(.suggestedGeo)
+                                            }
+                                        )
+                                    }
+
+                                    if !photoAnalysis.suggestions.suggestedTags.isEmpty {
+                                        PhotoSuggestedTagsRow(
+                                            title: String(localized: "editor.photo_analysis.tags"),
+                                            suggestions: photoAnalysis.suggestions.suggestedTags,
+                                            localizedSuggestions: localizedPhotoSuggestions?.suggestedTags,
+                                            onAccept: { newValues in
+                                                for value in newValues where !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
+                                                    tags.append(value)
+                                                }
+                                                localizedPhotoSuggestions?.suggestedTags = []
+                                                photoAnalysis.dismiss(.suggestedTags)
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    Section(String(localized: "common.field.description")) {
-                        TextField(String(localized: "editor.short_description"), text: $title)
-                            .focused($focusedField, equals: .title)
+                        Section(String(localized: "common.field.description")) {
+                            TextField(String(localized: "editor.short_description"), text: $title)
+                                .focused($focusedField, equals: .title)
 
-                        if !isTitleValid {
-                            Button {
-                                focusTitleValidation()
-                            } label: {
-                                Label {
-                                    Text(String(localized: "editor.title.required"))
-                                        .font(.footnote)
-                                } icon: {
-                                    Image(systemName: "exclamationmark.circle.fill")
-                                        .font(.footnote)
+                            if !isTitleValid {
+                                Button {
+                                    focusTitleValidation()
+                                } label: {
+                                    Label {
+                                        Text(String(localized: "editor.title.required"))
+                                            .font(.footnote)
+                                    } icon: {
+                                        Image(systemName: "exclamationmark.circle.fill")
+                                            .font(.footnote)
+                                    }
                                 }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(CatalogSemanticColors.destructive)
+                                .accessibilityHint(String(localized: "editor.title.focus"))
                             }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(CatalogSemanticColors.destructive)
-                            .accessibilityHint(String(localized: "editor.title.focus"))
+
+                            TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
+                                .lineLimit(4, reservesSpace: true)
                         }
 
-                        TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
-                            .lineLimit(4, reservesSpace: true)
-                    }
+                        Section(String(localized: "editor.acquisition_details")) {
+                            YearPickerField(
+                                title: String(localized: "common.field.acquired_year"),
+                                selection: $selectedAcquiredYearOption,
+                                options: acquiredYearOptions
+                            )
 
-                    Section(String(localized: "editor.acquisition_details")) {
-                        YearPickerField(
-                            title: String(localized: "common.field.acquired_year"),
-                            selection: $selectedAcquiredYearOption,
-                            options: acquiredYearOptions
-                        )
-
-                        EnumSelectionRow(
-                            title: String(localized: "bell.detail.aquisition"),
-                            selectedLabel: acquisitionMethod.displayName,
-                            options: AcquisitionMethod.allCases,
-                            selection: $acquisitionMethod,
-                            optionTitle: \.displayName
-                        )
-                    }
-
-                    Section(String(localized: "editor.attributes")) {
-                        EnumSelectionRow(
-                            title: String(localized: "common.field.condition"),
-                            selectedLabel: condition.displayName,
-                            options: ItemCondition.allCases,
-                            selection: $condition,
-                            optionTitle: \.displayName
-                        )
-
-                        EnumSelectionRow(
-                            title: String(localized: "common.field.material"),
-                            selectedLabel: material.displayName,
-                            options: BellMaterial.allCases,
-                            selection: $material,
-                            optionTitle: \.displayName
-                        )
-
-                        if material == .other {
-                            TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
+                            EnumSelectionRow(
+                                title: String(localized: "bell.detail.aquisition"),
+                                selectedLabel: acquisitionMethod.displayName,
+                                options: AcquisitionMethod.allCases,
+                                selection: $acquisitionMethod,
+                                optionTitle: \.displayName
+                            )
                         }
 
-                    }
+                        Section(String(localized: "editor.attributes")) {
+                            EnumSelectionRow(
+                                title: String(localized: "common.field.condition"),
+                                selectedLabel: condition.displayName,
+                                options: ItemCondition.allCases,
+                                selection: $condition,
+                                optionTitle: \.displayName
+                            )
 
-                    Section(String(localized: "bell.detail.section.location")) {
-                        PlacePickerField(
-                            title: String(localized: "common.ui.origin"),
-                            selectedLabel: selectedOriginLabel,
-                            places: availablePlaces,
-                            selectedPlace: $selectedOriginPlace
-                        )
+                            EnumSelectionRow(
+                                title: String(localized: "common.field.material"),
+                                selectedLabel: material.displayName,
+                                options: BellMaterial.allCases,
+                                selection: $material,
+                                optionTitle: \.displayName
+                            )
 
-                        LocationPickerField(
-                            title: String(localized: "editor.location"),
-                            selectedLabel: selectedLocationLabel,
-                            locations: availableLocations,
-                            onManageLocations: {
-                                presentHomeEditor()
-                            },
-                            presentationToken: locationPickerPresentationToken,
-                            selectedLocationID: $selectedLocationID
-                        )
-                    }
+                            if material == .other {
+                                TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
+                            }
 
-                    Section(String(localized: "common.field.tags")) {
-                        TagEditorSection(
-                            tagInput: $tagInput,
-                            tags: $tags
-                        )
+                        }
+
+                        Section(String(localized: "bell.detail.section.location")) {
+                            PlacePickerField(
+                                title: String(localized: "common.ui.origin"),
+                                selectedLabel: selectedOriginLabel,
+                                places: availablePlaces,
+                                selectedPlace: $selectedOriginPlace
+                            )
+
+                            LocationPickerField(
+                                title: String(localized: "editor.location"),
+                                selectedLabel: selectedLocationLabel,
+                                locations: availableLocations,
+                                onManageLocations: {
+                                    presentHomeEditor()
+                                },
+                                presentationToken: locationPickerPresentationToken,
+                                selectedLocationID: $selectedLocationID
+                            )
+                        }
+
+                        Section(String(localized: "common.field.tags")) {
+                            TagEditorSection(
+                                tagInput: $tagInput,
+                                tags: $tags
+                            )
+                        }
                     }
                 }
                 .navigationTitle(existingBellID == nil ? String(localized: "editor.bell.add") : String(localized: "editor.bell.edit"))

@@ -47,7 +47,7 @@ struct CatalogExportView: View {
                 handleExportResult(result)
             }
             .alert("catalog.export.failed", isPresented: exportErrorBinding) {
-                Button("OK", role: .cancel) {}
+                Button("common.ok", role: .cancel) {}
             } message: {
                 Text(exportErrorMessage ?? "")
             }

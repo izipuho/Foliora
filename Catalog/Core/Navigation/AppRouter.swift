@@ -92,7 +92,7 @@ struct AppShellView: View {
             "collection.sharing.accept_failed",
             isPresented: shareInvitationFailureAlertBinding
         ) {
-            Button("OK") {
+            Button("common.ok") {
                 shareInvitationFailureMessage = nil
                 shareInvitationController.reset()
             }

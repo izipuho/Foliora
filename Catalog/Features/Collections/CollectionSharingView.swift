@@ -99,7 +99,7 @@ struct CollectionSharingView: View {
                 set: { if !$0 { sharingAlert = nil } }
             )
         ) {
-            Button("OK", role: .cancel) {}
+            Button("common.ok", role: .cancel) {}
         } message: {
             Text(sharingAlert?.message ?? "")
         }

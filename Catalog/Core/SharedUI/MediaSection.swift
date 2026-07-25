@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import UIKit
 import QuickLook
+import UniformTypeIdentifiers
 
 struct MediaSection: View {
     let itemID: UUID
@@ -20,6 +21,8 @@ struct MediaSection: View {
     @State private var isPresentingCamera = false
     @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
+    @State private var draggedAssetID: MediaAsset.ID?
+    @State private var pendingDeletionAssetID: MediaAsset.ID?
 
     var body: some View {
         MediaQuickLookPresenter(mediaAssets: mediaAssets) { preview in
@@ -28,18 +31,27 @@ struct MediaSection: View {
                     ForEach(sortedAssets) { asset in
                         MediaAssetGridTileView(
                             asset: asset,
-                            isCover: asset.id == coverPhotoID,
                             isAnalysisHighlighted: asset.id == analysisHighlightedAssetID,
                             allowsDeletion: allowsDeletion,
+                            isReorderingEnabled: isEditing && asset.kind == .photo,
+                            draggedAssetID: $draggedAssetID,
+                            moveAsset: moveAsset,
                             onTap: {
                                 preview(asset)
                             },
                             onDelete: {
-                                mediaStore.deleteFile(for: asset.localIdentifier)
-                                mediaAssets.removeAll { $0.id == asset.id }
-                                reindexAssets()
+                                pendingDeletionAssetID = asset.id
                             }
                         )
+                        .confirmationDialog("editor.media.delete_action", isPresented: deleteConfirmationBinding(for: asset.id), titleVisibility: .visible) {
+                            Button("editor.media.delete_title", role: .destructive) {
+                                confirmDeletion(of: asset.id)
+                            }
+
+                            Button(String(localized: "common.cancel"), role: .cancel) {
+                                pendingDeletionAssetID = nil
+                            }
+                        }
                     }
 
                     if allowsAdding {
@@ -50,7 +62,7 @@ struct MediaSection: View {
                                 .font(CatalogTypography.cardTitle)
                                 .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
                                 .frame(width: 38, height: 38)
-                                .background(CatalogSemanticColors.success, in: Circle())
+                                .glassEffect(.regular.tint(CatalogSemanticColors.success).interactive(), in: Circle())
                                 .frame(width: 48, height: 110)
                         }
                         .buttonStyle(.plain)
@@ -114,10 +126,19 @@ struct MediaSection: View {
         }
     }
 
-    private var coverPhotoID: UUID? {
-        let photoAssets = sortedAssets.filter { $0.kind == .photo }
-        guard photoAssets.count > 1 else { return nil }
-        return photoAssets.first?.id
+    private var isEditing: Bool {
+        allowsDeletion
+    }
+
+    private func deleteConfirmationBinding(for assetID: MediaAsset.ID) -> Binding<Bool> {
+        Binding(
+            get: { pendingDeletionAssetID == assetID },
+            set: { isPresented in
+                if !isPresented {
+                    pendingDeletionAssetID = nil
+                }
+            }
+        )
     }
 
     @MainActor
@@ -136,9 +157,11 @@ struct MediaSection: View {
                 mimeType: contentType?.preferredMIMEType
             ) else { continue }
 
-            mediaAssets.append(
-                media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
-            )
+            updateMediaAssets { assets in
+                assets.append(
+                    media.asset.with(itemID: itemID, sortOrder: assets.count)
+                )
+            }
 
             onPhotoAdded?(image)
         }
@@ -156,16 +179,62 @@ struct MediaSection: View {
             mimeType: "image/jpeg"
         ) else { return }
 
-        mediaAssets.append(
-            media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
-        )
+        updateMediaAssets { assets in
+            assets.append(
+                media.asset.with(itemID: itemID, sortOrder: assets.count)
+            )
+        }
 
         onPhotoAdded?(image)
     }
 
-    private func reindexAssets() {
-        mediaAssets = mediaAssets
-            .sorted { $0.sortOrder < $1.sortOrder }
+    private func removeAsset(withID assetID: MediaAsset.ID) {
+        updateMediaAssets { assets in
+            assets.removeAll { $0.id == assetID }
+            assets = assets.sorted { $0.sortOrder < $1.sortOrder }
+            normalizeSortOrder(in: &assets)
+        }
+    }
+
+    private func confirmDeletion(of assetID: MediaAsset.ID) {
+        defer { pendingDeletionAssetID = nil }
+        guard let asset = mediaAssets.first(where: { $0.id == assetID }) else { return }
+
+        mediaStore.deleteFile(for: asset.localIdentifier)
+        removeAsset(withID: assetID)
+    }
+
+    private func moveAssets(from sourceIndex: Int, to destinationIndex: Int) {
+        var reorderedAssets = sortedAssets
+        guard reorderedAssets.indices.contains(sourceIndex) else { return }
+        guard reorderedAssets.indices.contains(destinationIndex) else { return }
+        guard sourceIndex != destinationIndex else { return }
+
+        let asset = reorderedAssets.remove(at: sourceIndex)
+        reorderedAssets.insert(asset, at: destinationIndex)
+        normalizeSortOrder(in: &reorderedAssets)
+
+        updateMediaAssets { assets in
+            assets = reorderedAssets
+        }
+    }
+
+    private func moveAsset(withID sourceID: MediaAsset.ID, to destinationID: MediaAsset.ID) {
+        let assets = sortedAssets
+        guard let sourceIndex = assets.firstIndex(where: { $0.id == sourceID }) else { return }
+        guard let destinationIndex = assets.firstIndex(where: { $0.id == destinationID }) else { return }
+
+        moveAssets(from: sourceIndex, to: destinationIndex)
+    }
+
+    private func updateMediaAssets(_ update: (inout [MediaAsset]) -> Void) {
+        var updatedAssets = mediaAssets
+        update(&updatedAssets)
+        mediaAssets = updatedAssets
+    }
+
+    private func normalizeSortOrder(in assets: inout [MediaAsset]) {
+        assets = assets
             .enumerated()
             .map { index, asset in
                 asset.with(sortOrder: index)
@@ -238,89 +307,41 @@ struct MediaQuickLookPresenter<Content: View>: View {
 
 private struct MediaAssetGridTileView: View {
     let asset: MediaAsset
-    let isCover: Bool
     let isAnalysisHighlighted: Bool
     let allowsDeletion: Bool
+    let isReorderingEnabled: Bool
+    @Binding var draggedAssetID: MediaAsset.ID?
+    let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
     let onTap: () -> Void
     let onDelete: () -> Void
     @State private var highlightPulse = false
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                MediaAssetThumbnailView(
-                    asset: asset,
-                    size: asset.kind == .photo ? 110 : 88
-                )
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+            thumbnail
 
-                if asset.kind != .photo {
-                    Text(mediaTitle)
-                        .font(.caption)
-                        .lineLimit(2)
-                        .foregroundStyle(.primary)
-                }
+            if asset.kind != .photo {
+                Text(mediaTitle)
+                    .font(.caption)
+                    .lineLimit(2)
+                    .foregroundStyle(.primary)
             }
-            .frame(width: 110, alignment: .leading)
-            .contentShape(CatalogShapes.thumbnail)
-            .onTapGesture(perform: onTap)
-            .overlay {
-                if isAnalysisHighlighted {
-                    CatalogShapes.thumbnail
-                        .stroke(
-                            AngularGradient(
-                                colors: [
-                                    .cyan,
-                                    .blue,
-                                    .purple,
-                                    .pink,
-                                    .cyan
-                                ],
-                                center: .center
-                            ),
-                            lineWidth: highlightPulse ? 4 : 2
-                        )
-                        .opacity(highlightPulse ? 1 : 0.45)
-                        .scaleEffect(highlightPulse ? 1.035 : 0.99)
-                        .animation(
-                            .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
-                            value: highlightPulse
-                        )
-                }
-            }
-            .overlay {
-                if isCover {
-                    CatalogShapes.thumbnail
-                        .stroke(.tint.opacity(0.75), lineWidth: 3)
-                }
-            }
-            .onAppear {
-                guard isAnalysisHighlighted else { return }
-                highlightPulse = true
-            }
-            .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
-                highlightPulse = isHighlighted
-            }
-
-            if allowsDeletion {
-                Button(action: onDelete) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(CatalogTypography.cardTitle)
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(CatalogMediaContrast.onMediaPrimary, CatalogMediaContrast.scrimStrong)
-                }
-                .buttonStyle(.plain)
-                .offset(x: 6, y: -6)
-            }
-
-            if isCover {
-                Image(systemName: "star.fill")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
-                    .frame(width: 20, height: 20)
-                    .background(.tint, in: Circle())
-                    .padding(CatalogMetrics.Spacing.xxs)
-                    .frame(width: 110, height: 110, alignment: .bottomLeading)
-            }
+        }
+        .frame(width: 110, alignment: .leading)
+        .contentShape(CatalogShapes.thumbnail)
+        .droppableMediaAsset(
+            asset,
+            isEnabled: isReorderingEnabled,
+            draggedAssetID: $draggedAssetID,
+            moveAsset: moveAsset
+        )
+        .onTapGesture(perform: onTap)
+        .onAppear {
+            guard isAnalysisHighlighted else { return }
+            highlightPulse = true
+        }
+        .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
+            highlightPulse = isHighlighted
         }
     }
 
@@ -334,6 +355,136 @@ private struct MediaAssetGridTileView: View {
             .lastPathComponent
             .replacingOccurrences(of: "-", with: " ")
             .capitalized
+    }
+
+    private var thumbnailSize: CGFloat {
+        asset.kind == .photo ? 110 : 88
+    }
+
+    @ViewBuilder
+    private var thumbnail: some View {
+        ZStack(alignment: .topTrailing) {
+            thumbnailImage
+
+            if allowsDeletion {
+                deleteButton
+            }
+        }
+        .padding(.top, allowsDeletion ? 6 : 0)
+        .padding(.trailing, allowsDeletion ? 6 : 0)
+        .contentShape(CatalogShapes.thumbnail)
+    }
+
+    private var thumbnailImage: some View {
+        MediaAssetThumbnailView(asset: asset, size: thumbnailSize)
+            .overlay {
+                if isAnalysisHighlighted {
+                    analysisHighlight
+                }
+            }
+            .draggableMediaAsset(
+                asset,
+                isEnabled: isReorderingEnabled,
+                draggedAssetID: $draggedAssetID
+            )
+    }
+
+    private var deleteButton: some View {
+        Button(action: onDelete) {
+            Image(systemName: "xmark.circle.fill")
+                .font(CatalogTypography.cardTitle)
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(CatalogMediaContrast.onMediaPrimary, CatalogMediaContrast.scrimStrong)
+        }
+        .buttonStyle(.plain)
+        .offset(x: 6, y: -6)
+    }
+
+    private var analysisHighlight: some View {
+        CatalogShapes.thumbnail
+            .stroke(
+                AngularGradient(
+                    colors: [
+                        .cyan,
+                        .blue,
+                        .purple,
+                        .pink,
+                        .cyan
+                    ],
+                    center: .center
+                ),
+                lineWidth: highlightPulse ? 4 : 2
+            )
+            .opacity(highlightPulse ? 1 : 0.45)
+            .scaleEffect(highlightPulse ? 1.035 : 0.99)
+            .animation(
+                .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
+                value: highlightPulse
+            )
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func draggableMediaAsset(
+        _ asset: MediaAsset,
+        isEnabled: Bool,
+        draggedAssetID: Binding<MediaAsset.ID?>
+    ) -> some View {
+        if isEnabled {
+            self
+                .onDrag {
+                    draggedAssetID.wrappedValue = asset.id
+                    return NSItemProvider(object: asset.id.uuidString as NSString)
+                } preview: {
+                    self
+                }
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func droppableMediaAsset(
+        _ asset: MediaAsset,
+        isEnabled: Bool,
+        draggedAssetID: Binding<MediaAsset.ID?>,
+        moveAsset: @escaping (MediaAsset.ID, MediaAsset.ID) -> Void
+    ) -> some View {
+        if isEnabled {
+            self
+                .onDrop(
+                    of: [UTType.text.identifier],
+                    delegate: MediaAssetReorderDropDelegate(
+                        asset: asset,
+                        draggedAssetID: draggedAssetID,
+                        moveAsset: moveAsset
+                    )
+                )
+        } else {
+            self
+        }
+    }
+}
+
+private struct MediaAssetReorderDropDelegate: DropDelegate {
+    let asset: MediaAsset
+    @Binding var draggedAssetID: MediaAsset.ID?
+    let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let draggedAssetID else { return }
+        guard draggedAssetID != asset.id else { return }
+        moveAsset(draggedAssetID, asset.id)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedAssetID = nil
+        return true
     }
 }
 

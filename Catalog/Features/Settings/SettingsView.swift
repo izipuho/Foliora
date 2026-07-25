@@ -66,9 +66,6 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(RootTab.settings.title)
-        .task {
-            refreshCloudStatus()
-        }
         .fileImporter(
             isPresented: $isImportingDocument,
             allowedContentTypes: [.zip]
@@ -122,18 +119,6 @@ struct SettingsView: View {
         } message: {
             Text(importErrorMessage ?? "")
         }
-        .confirmationDialog(
-            "Purge Cloud Data?",
-            isPresented: $isShowingPurgeConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Purge", role: .destructive) {
-                purgeCloudData()
-            }
-            Button("common.cancel", role: .cancel) {}
-        } message: {
-            Text("This will delete all Foliora Bells data from this device and sync deletions to iCloud for this Apple ID.")
-        }
     }
 
     private var appVersion: String {
@@ -146,37 +131,6 @@ struct SettingsView: View {
 
     private var bundleIdentifier: String {
         Bundle.main.bundleIdentifier ?? "Unknown"
-    }
-
-    private func refreshCloudStatus() {
-        guard !isRefreshingCloudStatus else {
-            return
-        }
-
-        isRefreshingCloudStatus = true
-        cloudStatusErrorMessage = nil
-
-        Task {
-            let container = CKContainer.default()
-
-            do {
-                let status = try await container.accountStatus()
-                let userRecordID = try await container.userRecordID()
-
-                await MainActor.run {
-                    cloudAccountStatusText = status.diagnosticsText
-                    cloudUserRecordIDText = userRecordID.recordName
-                    cloudStatusLastRefreshText = Date.now.formatted(date: .abbreviated, time: .standard)
-                    isRefreshingCloudStatus = false
-                }
-            } catch {
-                await MainActor.run {
-                    cloudStatusErrorMessage = error.localizedDescription
-                    cloudStatusLastRefreshText = Date.now.formatted(date: .abbreviated, time: .standard)
-                    isRefreshingCloudStatus = false
-                }
-            }
-        }
     }
 
     private func handleImport(_ result: Result<URL, Error>) {
