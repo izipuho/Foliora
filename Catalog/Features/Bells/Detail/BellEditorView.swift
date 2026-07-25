@@ -107,22 +107,8 @@ struct BellEditorView: View {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var mediaSectionDeleteButtonAllowance: CGFloat {
-        6
-    }
-
-    private var mediaSectionPhotoTileSize: CGFloat {
-        110
-    }
-
-    private var mediaSectionNonPhotoLabelAllowance: CGFloat {
-        CatalogMetrics.Spacing.lg
-    }
-
-    private var mediaSectionHeight: CGFloat {
-        mediaSectionPhotoTileSize
-        + mediaSectionDeleteButtonAllowance * 2
-        + (mediaAssets.contains { $0.kind != .photo } ? mediaSectionNonPhotoLabelAllowance : 0)
+    private var mediaSectionCardVerticalPadding: CGFloat {
+        CatalogMetrics.Spacing.md
     }
 
     private var shouldShowPhotoAnalysisSection: Bool {
@@ -174,19 +160,27 @@ struct BellEditorView: View {
                 VStack(spacing: 0) {
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                         Text(String(localized: "bell.media"))
-                            .font(CatalogTypography.sectionTitle)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, CatalogMetrics.Insets.screen)
 
                         MediaSection(
                             itemID: editorItemID,
                             mediaAssets: $mediaAssets,
                             analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
                         )
-                        .padding(.top, mediaSectionDeleteButtonAllowance)
-                        .frame(height: mediaSectionHeight, alignment: .top)
+                        .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, mediaSectionCardVerticalPadding)
+                        .background(
+                            CatalogShapes.section
+                                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                        )
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, CatalogMetrics.Insets.screen)
                     .padding(.vertical, CatalogMetrics.Spacing.xs)
+                    .background(Color(uiColor: .systemGroupedBackground))
 
                     Form {
                         if shouldShowPhotoAnalysisSection {
@@ -401,10 +395,6 @@ struct BellEditorView: View {
                             )
                         }
                     }
-                }
-                .background {
-                    Color(uiColor: .systemGroupedBackground)
-                        .ignoresSafeArea()
                 }
                 .navigationTitle(existingBellID == nil ? String(localized: "editor.bell.add") : String(localized: "editor.bell.edit"))
                 .navigationBarTitleDisplayMode(.inline)
