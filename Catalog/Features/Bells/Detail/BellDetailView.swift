@@ -178,15 +178,17 @@ struct BellDetailView: View {
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)
 
-            detailSection(String(localized: "editor.docs_and_media")) {
-                MediaSection(
-                    itemID: bell.id,
-                    mediaAssets: mediaAssetsBinding,
-                    allowsAdding: canEditCollection,
-                    allowsDeletion: false
-                )
+            if !detailMediaAssets.isEmpty || canEditCollection {
+                detailSection(String(localized: "editor.docs_and_media")) {
+                    MediaSection(
+                        itemID: bell.id,
+                        mediaAssets: detailMediaAssetsBinding,
+                        allowsAdding: canEditCollection,
+                        allowsDeletion: false
+                    )
+                }
+                .padding(.horizontal, CatalogMetrics.Insets.screen)
             }
-            .padding(.horizontal, CatalogMetrics.Insets.screen)
 
             detailSection(String(localized: "common.field.notes")) {
                 if canEditCollection {
@@ -334,6 +336,11 @@ struct BellDetailView: View {
         heroPhotoAssets.map(\.id)
     }
 
+    private var detailMediaAssets: [MediaAsset] {
+        let heroPhotoAssetIDs = Set(heroPhotoAssetIDs)
+        return bell.mediaAssets.filter { !heroPhotoAssetIDs.contains($0.id) }
+    }
+
     private var selectedHeroPhoto: MediaAsset? {
         heroPhotoAssets.first { $0.id == selectedHeroPhotoID } ?? heroPhotoAssets.first
     }
@@ -398,12 +405,14 @@ struct BellDetailView: View {
         }
     }
 
-    private var mediaAssetsBinding: Binding<[MediaAsset]> {
+    private var detailMediaAssetsBinding: Binding<[MediaAsset]> {
         Binding(
-            get: { bell.mediaAssets },
+            get: { detailMediaAssets },
             set: {
                 guard canEditCollection else { return }
-                persist(mediaAssets: $0)
+                let detailMediaAssetIDs = Set(detailMediaAssets.map(\.id))
+                let heroAndUnchangedAssets = bell.mediaAssets.filter { !detailMediaAssetIDs.contains($0.id) }
+                persist(mediaAssets: heroAndUnchangedAssets + $0)
             }
         )
     }
