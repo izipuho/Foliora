@@ -160,7 +160,7 @@ struct BellEditorView: View {
                 VStack(spacing: 0) {
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                         Text(String(localized: "bell.media"))
-                            .font(.title3.weight(.semibold))
+                            .font(.headline)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, CatalogMetrics.Insets.screen)
 
@@ -170,6 +170,7 @@ struct BellEditorView: View {
                             analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
                         )
                         .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, mediaSectionCardVerticalPadding)
                         .background(
