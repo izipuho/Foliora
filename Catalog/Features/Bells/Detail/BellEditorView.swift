@@ -121,7 +121,7 @@ struct BellEditorView: View {
 
     private var mediaSectionHeight: CGFloat {
         mediaSectionPhotoTileSize
-        + mediaSectionDeleteButtonAllowance
+        + mediaSectionDeleteButtonAllowance * 2
         + (mediaAssets.contains { $0.kind != .photo } ? mediaSectionNonPhotoLabelAllowance : 0)
     }
 
@@ -402,7 +402,10 @@ struct BellEditorView: View {
                         }
                     }
                 }
-                .background(Color(uiColor: .systemGroupedBackground))
+                .background {
+                    Color(uiColor: .systemGroupedBackground)
+                        .ignoresSafeArea()
+                }
                 .navigationTitle(existingBellID == nil ? String(localized: "editor.bell.add") : String(localized: "editor.bell.edit"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
