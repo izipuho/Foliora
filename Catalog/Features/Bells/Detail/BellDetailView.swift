@@ -19,10 +19,12 @@ struct BellDetailView: View {
     @State private var draftHomeLocations: [Location] = []
     @State private var shouldPresentLocationPickerAfterHomeEditor = false
     @State private var isPresentingUnsavedChangesConfirmation = false
+    @State private var selectedHeroPhotoID: UUID?
     private let detailContentFadeHeight: CGFloat = 80
 
     init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool, canChangeFavorite: Bool = false) {
         _bell = bell
+        _selectedHeroPhotoID = State(initialValue: Self.heroPhotoAssets(in: bell.wrappedValue).first?.id)
         self.repository = repository
         self.canEditCollection = canEditCollection
         self.canChangeFavorite = canChangeFavorite
@@ -128,10 +130,14 @@ struct BellDetailView: View {
             }
             .onAppear {
                 syncDraftsFromBell()
+                syncSelectedHeroPhoto()
             }
             .onChange(of: bell) { _, _ in
                 guard !isNotesOrTagsDirty else { return }
                 syncDraftsFromBell()
+            }
+            .onChange(of: heroPhotoAssetIDs) { _, _ in
+                syncSelectedHeroPhoto()
             }
             .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
                 reloadLookupSnapshot()
@@ -265,16 +271,25 @@ struct BellDetailView: View {
     private func heroHeader(preview: @escaping (MediaAsset) -> Void) -> some View {
         GeometryReader { proxy in
             ZStack {
-                if let coverPhoto = heroPhotoAsset {
-                    MediaPreviewImage(
-                        identifier: coverPhoto.localIdentifier.isEmpty ? nil : coverPhoto.localIdentifier,
-                        thumbnailData: coverPhoto.thumbnailData,
-                        originalData: coverPhoto.originalData,
-                        size: CGSize(width: proxy.size.width, height: 320)
-                    )
+                if !heroPhotoAssets.isEmpty {
+                    TabView(selection: $selectedHeroPhotoID) {
+                        ForEach(heroPhotoAssets) { asset in
+                            MediaPreviewImage(
+                                identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
+                                thumbnailData: asset.thumbnailData,
+                                originalData: asset.originalData,
+                                size: CGSize(width: proxy.size.width, height: 320)
+                            )
+                            .frame(width: proxy.size.width, height: 320)
+                            .tag(Optional(asset.id))
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: heroPhotoAssets.count > 1 ? .automatic : .never))
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        preview(coverPhoto)
+                        if let selectedHeroPhoto {
+                            preview(selectedHeroPhoto)
+                        }
                     }
                 } else {
                     LinearGradient(
@@ -305,11 +320,33 @@ struct BellDetailView: View {
         .ignoresSafeArea(edges: .top)
     }
 
-    private var heroPhotoAsset: MediaAsset? {
+    private var heroPhotoAssets: [MediaAsset] {
+        Self.heroPhotoAssets(in: bell)
+    }
+
+    private static func heroPhotoAssets(in bell: BellRecord) -> [MediaAsset] {
         bell.mediaAssets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
-            .first
+    }
+
+    private var heroPhotoAssetIDs: [UUID] {
+        heroPhotoAssets.map(\.id)
+    }
+
+    private var selectedHeroPhoto: MediaAsset? {
+        heroPhotoAssets.first { $0.id == selectedHeroPhotoID } ?? heroPhotoAssets.first
+    }
+
+    private func syncSelectedHeroPhoto() {
+        guard !heroPhotoAssets.isEmpty else {
+            selectedHeroPhotoID = nil
+            return
+        }
+
+        if selectedHeroPhotoID.map({ heroPhotoAssetIDs.contains($0) }) != true {
+            selectedHeroPhotoID = heroPhotoAssets.first?.id
+        }
     }
 
     private var availableLocations: [Location] {
