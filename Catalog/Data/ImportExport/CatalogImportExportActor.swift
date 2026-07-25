@@ -323,7 +323,7 @@ final class CatalogImportExportActor {
                 guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
 
                 let existingTagEntity = tagEntitiesByCollectionAndName[bell.item.collectionID]?[normalizedName]
-                let tagEntity = existingTagEntity ?? makeEntity(named: "BellTagEntity")
+                let tagEntity = existingTagEntity ?? makeEntity(named: "ItemTagEntity")
                 if tagEntity.value(forKey: "id") == nil {
                     tagEntity.setValue(UUID(), forKey: "id")
                 }
@@ -473,7 +473,7 @@ final class CatalogImportExportActor {
         }
 
         var tagEntitiesByCollectionAndName: [UUID: [String: NSManagedObject]] = [:]
-        for entity in try fetchEntities(named: "BellTagEntity") {
+        for entity in try fetchEntities(named: "ItemTagEntity") {
             guard let collection = entity.value(forKey: "collection") as? NSManagedObject else { continue }
             let normalizedName = stringValue(entity, "normalizedName", default: normalizedTagName(stringValue(entity, "value")))
             tagEntitiesByCollectionAndName[uuidValue(collection, "id"), default: [:]][normalizedName] = entity
@@ -538,7 +538,7 @@ final class CatalogImportExportActor {
                 guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
 
                 let existingTagEntity = tagEntitiesByCollectionAndName[localCollectionID]?[normalizedName]
-                let tagEntity = existingTagEntity ?? makeEntity(named: "BellTagEntity")
+                let tagEntity = existingTagEntity ?? makeEntity(named: "ItemTagEntity")
                 ensureID(tagEntity)
                 tagEntity.setValue(normalizedName, forKey: "normalizedName")
                 tagEntity.setValue(tag, forKey: "value")
@@ -614,7 +614,7 @@ final class CatalogImportExportActor {
 
     private func deleteExistingData() throws {
         try deleteEntities(named: "MediaAssetEntity")
-        try deleteEntities(named: "BellTagEntity")
+        try deleteEntities(named: "ItemTagEntity")
         try deleteEntities(named: "BellEntity")
         try deleteEntities(named: "CollectionLocationEntity")
         try deleteEntities(named: "CollectionEntity")
