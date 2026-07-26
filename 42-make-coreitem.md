@@ -1,135 +1,41 @@
 # План миграции на общую модель `Item`
 
-## [ ] Этап 1. Переименовать `BellTagEntity` в `ItemTagEntity`
+## [ ] Этап 1. Привести Core Data к целевой модели
 
 **Меняется:**
 
 - `Foliora.xcdatamodeld`
-- `CoreDataCatalogRepository.swift`
-- `CatalogImportExportActor.swift`
 
-В Core Data:
+Сразу привести модель к финальному виду:
 
-- переименовать entity `BellTagEntity` → `ItemTagEntity`;
-- установить `Renaming ID = BellTagEntity`;
-- отношения пока оставить прежними:
-  - `bells`;
-  - `collection`.
+- создать абстрактную `ItemEntity`;
+- сделать `BellEntity` её наследником;
+- перенести в `ItemEntity` все общие attributes и relationships;
+- заменить `BellTagEntity` на `ItemTagEntity`;
+- сразу использовать общие relationship'ы (`items`, `item`);
+- задать `Renaming ID` там, где это поддерживает lightweight migration.
 
-В коде заменить только строковые обращения:
-
-```swift
-"BellTagEntity" → "ItemTagEntity"
-```
-
-Функции `cleanupBellTags`, `deleteOrphanBellTags`, `tagEntity` на этом шаге можно не переименовывать. Это отдельная косметическая операция.
-
-Сейчас `BellTagEntity` напрямую используется и репозиторием, и импортом/экспортом.
+После этого Core Data должна соответствовать архитектуре, под которую дальше будет переводиться код.
 
 ---
 
-## [ ] Этап 2. Перенести `originPlaceID` из `BellDetails` в `Item`
+## [ ] Этап 2. Привести доменную модель к общей структуре
 
 **Меняется:**
 
 - `ItemModels.swift`
 - `BellItem.swift`
-- `CatalogSnapshot.swift`
-- `BellLookupSnapshot.swift`
-- `CoreDataCatalogRepository.swift`
-- `CatalogImportExportActor.swift`
 
-Целевая модель:
+Выполнить одновременно:
 
-```swift
-struct Item {
-    let id: UUID
-    let collectionID: UUID
-    let locationID: UUID?
-    let originPlaceID: UUID?
-    // остальные общие поля
-}
-
-struct BellDetails {
-    let itemID: UUID
-    let material: BellMaterial
-    let customMaterialName: String?
-}
-```
-
-Все конструкторы `Item` должны получать:
-
-```swift
-originPlaceID: originPlaceEntity.map { uuidValue($0, "id") }
-```
-
-Из всех конструкторов `BellDetails` этот аргумент удаляется.
-
-На уровне Core Data пока ничего не меняется: relationship `originPlace` остаётся в `BellEntity`. Меняется только доменная принадлежность свойства.
-
-Сейчас `originPlaceID` собирается внутри `BellDetails` сразу в трёх независимых mapper-реализациях и в импорте/экспорте.
+- перенести `originPlaceID` из `BellDetails` в `Item`;
+- выделить `ItemRecord`;
+- сделать `BellRecord` композицией из `ItemRecord` и `BellDetails`;
+- сохранить прокси-свойства, чтобы не менять UI.
 
 ---
 
-## [ ] Этап 3. Выделить `ItemRecord`
-
-**Меняется:**
-
-- `BellItem.swift`
-- вероятно `ItemModels.swift`, в зависимости от текущего расположения presentation-моделей.
-
-Целевая структура:
-
-```swift
-struct ItemRecord {
-    var item: Item
-    var originPlace: Place?
-    var storageLocation: Location?
-    var storagePath: String
-    var mediaAssets: [MediaAsset]
-    var isFavorite: Bool
-    var createdBy: String
-    var tags: [String]
-}
-
-struct BellRecord {
-    var itemRecord: ItemRecord
-    var details: BellDetails
-}
-```
-
-`BellRecord` должен проксировать используемые свойства, чтобы не менять весь UI одновременно:
-
-```swift
-extension BellRecord {
-    var item: Item {
-        get { itemRecord.item }
-        set { itemRecord.item = newValue }
-    }
-
-    var originPlace: Place? {
-        get { itemRecord.originPlace }
-        set { itemRecord.originPlace = newValue }
-    }
-
-    // аналогично для mediaAssets, isFavorite, createdBy, tags
-}
-```
-
-Это позволит сохранить текущие вызовы вроде:
-
-```swift
-bell.item
-bell.mediaAssets
-bell.tags
-bell.isFavorite
-```
-
-и не смешивать архитектурную миграцию с массовой правкой UI.
-
----
-
-## [ ] Этап 4. Перевести mapper-ы на `ItemRecord`
+## [ ] Этап 3. Перевести все mapper'ы на `ItemRecord`
 
 **Меняется:**
 
@@ -138,125 +44,51 @@ bell.isFavorite
 - `CoreDataCatalogRepository.swift`
 - `CatalogImportExportActor.swift`
 
-Вместо:
-
-```swift
-BellRecord(
-    item: ...,
-    details: ...,
-    originPlace: ...,
-    storageLocation: ...,
-    ...
-)
-```
-
-формировать:
-
-```swift
-BellRecord(
-    itemRecord: ItemRecord(
-        item: ...,
-        originPlace: ...,
-        storageLocation: ...,
-        storagePath: ...,
-        mediaAssets: ...,
-        isFavorite: ...,
-        createdBy: ...,
-        tags: ...
-    ),
-    details: ...
-)
-```
-
-Это нужно сделать отдельным этапом до изменения Core Data, поскольку сейчас логика сборки `BellRecord` дублируется в четырёх файлах.
-
-## [ ] Этап 5. Добавить абстрактную `ItemEntity`
-
-**Меняется:**
-
-- `Foliora.xcdatamodeld`
-
-Создать абстрактную сущность:
+Во всех местах формировать:
 
 ```text
-ItemEntity
-Abstract = YES
+BellRecord
+├── ItemRecord
+└── BellDetails
 ```
 
-Сделать `BellEntity` её наследником и перенести в `ItemEntity` все общие attributes и relationships.
-
-В `ItemEntity` должны находиться:
-
-- `id`
-- `title`
-- `notes`
-- `acquiredYear`
-- `createdAt`
-- `conditionRaw`
-- `acquisitionMethodRaw`
-- `isFavorite`
-- `createdBy`
-- `collection`
-- `location`
-- `collectionLocation`
-- `originPlace`
-- `mediaAssets`
-- `tags`
-
-В `BellEntity` оставить только:
-
-- `materialRaw`
-- `customMaterialName`
-
-При необходимости задать `Renaming ID` для корректной lightweight migration.
-
-## [ ] Этап 7. Обобщить отношения Core Data
-
-**Меняется:**
-
-- `Foliora.xcdatamodeld`
-- `CoreDataCatalogRepository.swift`
-- `CatalogSnapshot.swift`
-- `BellLookupSnapshot.swift`
-- `CatalogImportExportActor.swift`
-
-Переименовать обратные отношения:
-
-```text
-CollectionEntity.bells → items
-CollectionLocationEntity.bells → items
-ItemTagEntity.bells → items
-MediaAssetEntity.bell → item
-```
-
-Для каждого переименованного relationship установить старое имя в `Renaming ID`.
-
-После этого заменить обращения:
-
-```swift
-relatedObjects(collection, "bells")
-→ relatedObjects(collection, "items")
-
-relatedObjects(tag, "bells")
-→ relatedObjects(tag, "items")
-
-entity.setValue(bell, forKey: "bell")
-→ entity.setValue(item, forKey: "item")
-```
-
-На этом же этапе переименовать внутренние функции:
-
-```swift
-cleanupBellTags → cleanupItemTags
-deleteOrphanBellTags → deleteOrphanItemTags
-backfillBellCollectionLocations → backfillItemCollectionLocations
-```
-
-Сейчас строковые зависимости `bells` и `bell` находятся в репозитории и импорте/экспорте.
+Использовать новую структуру модели без изменения поведения приложения.
 
 ---
 
-## [ ] Этап 8. Обобщить контракт репозитория
+## [ ] Этап 4. Разделить запись общей и предметной частей
+
+**Меняется:**
+
+- `CoreDataCatalogRepository.swift`
+
+Разделить запись на два независимых mapper'а:
+
+```swift
+apply(_ itemRecord: ItemRecord, to:)
+apply(_ details: BellDetails, to:)
+```
+
+Общий mapper должен работать только с полями `ItemEntity`, предметный — только с полями `BellEntity`.
+
+---
+
+## [ ] Этап 5. Разделить чтение общей и предметной частей
+
+**Меняется:**
+
+- `BellEntity+Mapping.swift`
+
+Выделить независимые преобразования:
+
+- `ItemEntity ⇄ ItemRecord`;
+- `BellEntity ⇄ BellDetails`.
+
+`BellRecord` должен собираться композиционно.
+
+---
+
+## [ ] Этап 6. Обобщить контракт репозитория
 
 **Меняется:**
 
@@ -266,148 +98,52 @@ backfillBellCollectionLocations → backfillItemCollectionLocations
 Сохранение оставить предметным:
 
 ```swift
-func saveBellRecord(_ bell: BellRecord)
+saveBellRecord(_:)
 ```
 
 Удаление сделать общим:
 
 ```swift
-func deleteItemRecord(itemID: UUID)
+deleteItemRecord(itemID:)
 ```
-
-`saveItemRecord(_:)` пока не вводить, поскольку `ItemRecord` не содержит `BellDetails` и не может полностью описать `BellEntity`.
-
-## [ ] Этап 9. Разделить `apply(_:to:)` на общую и предметную части
-
-**Меняется:**
-
-- `CoreDataCatalogRepository.swift`
-
-Целевая структура:
-
-```swift
-private func apply(
-    _ itemRecord: ItemRecord,
-    to entity: NSManagedObject
-)
-
-private func apply(
-    _ details: BellDetails,
-    to entity: NSManagedObject
-)
-```
-
-Общий mapper отвечает за:
-
-- `id`
-- `title`
-- `notes`
-- `acquiredYear`
-- `createdAt`
-- `conditionRaw`
-- `acquisitionMethodRaw`
-- `isFavorite`
-- `createdBy`
-- `collection`
-- `location`
-- `collectionLocation`
-- `originPlace`
-- `mediaAssets`
-- `tags`
-
-Предметный mapper отвечает только за:
-
-- `materialRaw`
-- `customMaterialName`
-
-Сохранение колокольчика:
-
-```swift
-apply(bell.itemRecord, to: entity)
-apply(bell.details, to: entity)
-```
-
-Это позволит следующим типам предметов переиспользовать общую запись без копирования всей логики.
 
 ---
 
-## [ ] Этап 10. Разделить общие и предметные мапперы
-
-**Меняется:**
-
-- `BellEntity+Mapping.swift`
-
-Выделить два независимых слоя преобразования:
-
-- `ItemEntity ⇄ ItemRecord`
-- `BellEntity ⇄ BellDetails`
-
-Маппинг `BellRecord` должен строиться композиционно:
-
-```text
-BellRecord
-├── ItemRecord
-└── BellDetails
-```
-
-Логика чтения и записи общих полей должна находиться только в мапперах `ItemEntity ⇄ ItemRecord`.
-
-Мапперы `BellEntity ⇄ BellDetails` должны работать только со специфичными для колокольчиков полями.
-
-## [ ] Этап 11. Обновить формат импорта и экспорта
+## [ ] Этап 7. Обновить формат импорта и экспорта
 
 **Меняется:**
 
 - `CatalogImportExportActor.swift`
 
-Разделить transfer-модель колокольчика на общую и предметную части:
+Разделить transfer-модель:
 
 ```text
 BellTransferRecord
-├── item: ItemTransferRecord
-└── details: BellDetailsTransferRecord
+├── item
+└── details
 ```
 
-В `ItemTransferRecord` перенести все общие поля предмета.
-
-В `BellDetailsTransferRecord` оставить только поля, специфичные для колокольчиков:
-
-- `materialRaw`
-- `customMaterialName`
-
-Экспорт должен формировать новый вложенный формат.
+Экспорт должен формировать новый формат.
 
 Импорт должен поддерживать:
 
-- новый вложенный формат;
-- старый плоский формат для обратной совместимости.
+- новый формат;
+- старый формат для обратной совместимости.
 
-После декодирования оба формата должны преобразовываться в один `BellRecord`.
+---
 
-## [ ] Этап 12. Адаптировать загрузку каталога и поиск
+## [ ] Этап 8. Адаптировать загрузку каталога и поиск
 
 **Меняется:**
 
 - `CatalogSnapshot.swift`
 - `BellLookupSnapshot.swift`
 
-Сохранить загрузку колокольчиков через `BellEntity`, но собирать `BellRecord` через новые общие и предметные мапперы.
+Сохранить загрузку через `BellEntity`, но использовать новые общие и предметные mapper'ы без дублирования логики.
 
-В `CatalogSnapshot`:
+---
 
-- загружать `BellEntity`;
-- преобразовывать каждую сущность в `BellRecord`;
-- не дублировать чтение общих полей предмета.
-
-В `BellLookupSnapshot`:
-
-- оставить поиск по `BellEntity`;
-- использовать общий маппинг `ItemEntity ⇄ ItemRecord`;
-- добавлять `BellDetails` только при формировании итогового `BellRecord`.
-
-Переход на выборку непосредственно через `ItemEntity` отложить до появления второго типа предметов.
-
-## [ ] Этап 13. Финальная проверка
+## [ ] Этап 9. Финальная проверка
 
 **Проверяются:**
 
@@ -424,5 +160,3 @@ BellTransferRecord
 - создание, редактирование и удаление колокольчиков;
 - импорт и экспорт каталога;
 - отсутствие потери данных и появления дубликатов.
-
-После успешной проверки миграцию можно считать завершённой.
