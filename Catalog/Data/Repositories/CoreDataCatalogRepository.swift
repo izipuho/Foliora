@@ -17,6 +17,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         self.persistentContainer = persistentContainer
         cleanupBellTags()
         saveContext()
+        migrateExistingBellsToItems()
     }
 
     func saveHome(_ home: Home) {
@@ -434,6 +435,47 @@ final class CoreDataCatalogRepository: CatalogRepository {
         }
 
         deleteOrphanBellTags()
+    }
+
+    private func migrateExistingBellsToItems() {
+        let bells = fetchEntities(named: "BellEntity", predicate: NSPredicate(format: "item == nil"))
+        guard !bells.isEmpty else { return }
+
+        for bell in bells {
+            let item = makeEntity(named: "ItemEntity")
+            copyCommonAttributes(from: bell, to: item)
+            bell.setValue(item, forKey: "item")
+            fillInverseRelationship(from: bell, relationshipName: "item", with: item)
+        }
+
+        saveContext()
+    }
+
+    private func copyCommonAttributes(from source: NSManagedObject, to destination: NSManagedObject) {
+        let destinationAttributes = destination.entity.attributesByName
+
+        for attributeName in source.entity.attributesByName.keys where destinationAttributes[attributeName] != nil {
+            destination.setValue(source.value(forKey: attributeName), forKey: attributeName)
+        }
+    }
+
+    private func fillInverseRelationship(
+        from source: NSManagedObject,
+        relationshipName: String,
+        with destination: NSManagedObject
+    ) {
+        guard
+            let inverseName = source.entity.relationshipsByName[relationshipName]?.inverseRelationship?.name,
+            let inverseRelationship = destination.entity.relationshipsByName[inverseName]
+        else {
+            return
+        }
+
+        if inverseRelationship.isToMany {
+            destination.mutableSetValue(forKey: inverseName).add(source)
+        } else {
+            destination.setValue(source, forKey: inverseName)
+        }
     }
 
     private func deleteOrphanBellTags() {
