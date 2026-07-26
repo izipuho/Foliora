@@ -387,10 +387,10 @@ final class CoreDataCatalogRepository: CatalogRepository {
         sortOrder: Int
     ) -> NSManagedObject {
         let entity = fetchEntities(
-            named: "ItemTagEntity",
+            named: "BellTagEntity",
             predicate: NSPredicate(format: "normalizedName == %@ AND collection == %@", normalizedName, collection),
             fetchLimit: 1
-        ).first ?? makeEntity(named: "ItemTagEntity")
+        ).first ?? makeEntity(named: "BellTagEntity")
 
         if entity.value(forKey: "id") == nil {
             entity.setValue(UUID(), forKey: "id")
@@ -403,7 +403,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func cleanupBellTags() {
-        for tag in fetchEntities(named: "ItemTagEntity") {
+        for tag in fetchEntities(named: "BellTagEntity") {
             let normalizedName = normalizedTagName(stringValue(tag, "value"))
             tag.setValue(normalizedName, forKey: "normalizedName")
         }
@@ -437,7 +437,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func deleteOrphanBellTags() {
-        for tag in fetchEntities(named: "ItemTagEntity") where relatedObjects(tag, "bells").isEmpty {
+        for tag in fetchEntities(named: "BellTagEntity") where relatedObjects(tag, "bells").isEmpty {
             context.delete(tag)
         }
     }
