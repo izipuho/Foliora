@@ -1,162 +1,124 @@
 # План миграции на общую модель `Item`
 
-## [ ] Этап 1. Привести Core Data к целевой модели
+## [ ] 1. Расширить Core Data новой моделью
 
 **Меняется:**
 
 - `Foliora.xcdatamodeld`
 
-Сразу привести модель к финальному виду:
+Добавить новую модель, не изменяя и не удаляя существующую CloudKit-схему:
 
-- создать абстрактную `ItemEntity`;
-- сделать `BellEntity` её наследником;
-- перенести в `ItemEntity` все общие attributes и relationships;
-- заменить `BellTagEntity` на `ItemTagEntity`;
-- сразу использовать общие relationship'ы (`items`, `item`);
-- задать `Renaming ID` там, где это поддерживает lightweight migration.
+- создать `ItemEntity`;
+- создать `ItemTagEntity`;
+- добавить в `BellEntity` optional relationship `item`;
+- добавить в `ItemEntity` обратный relationship `bell`;
+- добавить в `ItemEntity` общие attributes и relationships;
+- добавить общие обратные relationships `items` в связанных сущностях.
 
-После этого Core Data должна соответствовать архитектуре, под которую дальше будет переводиться код.
+`BellEntity` не наследуется от `ItemEntity`.
+
+Все существующие поля и relationships `BellEntity`, `BellTagEntity` и связанные с ними обратные relationships остаются в модели.
 
 ---
 
-## [ ] Этап 2. Привести доменную модель к общей структуре
+## [ ] 2. Привести доменную модель к общей структуре
 
 **Меняется:**
 
 - `ItemModels.swift`
 - `BellItem.swift`
 
-Выполнить одновременно:
+Перейти к композиции:
 
-- перенести `originPlaceID` из `BellDetails` в `Item`;
 - выделить `ItemRecord`;
 - сделать `BellRecord` композицией из `ItemRecord` и `BellDetails`;
-- сохранить прокси-свойства, чтобы не менять UI.
+- перенести общие свойства в `ItemRecord`;
+- сохранить совместимость существующего UI через прокси-свойства.
 
 ---
 
-## [ ] Этап 3. Перевести все mapper'ы на `ItemRecord`
-
-**Меняется:**
-
-- `CatalogSnapshot.swift`
-- `BellLookupSnapshot.swift`
-- `CoreDataCatalogRepository.swift`
-- `CatalogImportExportActor.swift`
-
-Во всех местах формировать:
-
-```text
-BellRecord
-├── ItemRecord
-└── BellDetails
-```
-
-Использовать новую структуру модели без изменения поведения приложения.
-
----
-
-## [ ] Этап 4. Разделить запись общей и предметной частей
+## [ ] 3. Реализовать миграцию существующих данных
 
 **Меняется:**
 
 - `CoreDataCatalogRepository.swift`
 
-Разделить запись на два независимых mapper'а:
+При сохранении существующих данных автоматически создавать и заполнять `ItemEntity`, связывая его с `BellEntity`.
 
-```swift
-apply(_ itemRecord: ItemRecord, to:)
-apply(_ details: BellDetails, to:)
-```
-
-Общий mapper должен работать только с полями `ItemEntity`, предметный — только с полями `BellEntity`.
+Для уже существующих записей без `ItemEntity` создавать его при первом сохранении.
 
 ---
 
-## [ ] Этап 5. Разделить чтение общей и предметной частей
+## [ ] 4. Разделить mapper'ы
 
 **Меняется:**
 
-- `BellEntity+Mapping.swift`
-
-Выделить независимые преобразования:
-
-- `ItemEntity ⇄ ItemRecord`;
-- `BellEntity ⇄ BellDetails`.
-
-`BellRecord` должен собираться композиционно.
-
----
-
-## [ ] Этап 6. Обобщить контракт репозитория
-
-**Меняется:**
-
-- `CatalogRepository.swift`
 - `CoreDataCatalogRepository.swift`
 
-Сохранение оставить предметным:
+Разделить преобразование:
 
-```swift
-saveBellRecord(_:)
-```
+- `ItemRecord ↔ ItemEntity`;
+- `BellRecord ↔ BellEntity`.
 
-Удаление сделать общим:
-
-```swift
-deleteItemRecord(itemID:)
-```
+Общие поля должны обрабатываться только mapper'ом `Item`.
 
 ---
 
-## [ ] Этап 7. Обновить формат импорта и экспорта
+## [ ] 5. Перевести чтение на новую модель
 
 **Меняется:**
 
-- `CatalogImportExportActor.swift`
+- загрузчики Core Data;
+- snapshot loader'ы;
+- lookup loader'ы.
 
-Разделить transfer-модель:
-
-```text
-BellTransferRecord
-├── item
-└── details
-```
-
-Экспорт должен формировать новый формат.
-
-Импорт должен поддерживать:
-
-- новый формат;
-- старый формат для обратной совместимости.
+Все общие данные должны читаться из `ItemEntity`.
 
 ---
 
-## [ ] Этап 8. Адаптировать загрузку каталога и поиск
+## [ ] 6. Перевести запись на новую модель
 
 **Меняется:**
 
-- `CatalogSnapshot.swift`
-- `BellLookupSnapshot.swift`
-
-Сохранить загрузку через `BellEntity`, но использовать новые общие и предметные mapper'ы без дублирования логики.
-
----
-
-## [ ] Этап 9. Финальная проверка
-
-**Проверяются:**
-
-- `Foliora.xcdatamodeld`
 - `CoreDataCatalogRepository.swift`
-- `CatalogSnapshot.swift`
-- `BellLookupSnapshot.swift`
-- `CatalogImportExportActor.swift`
+
+Все общие данные должны записываться только в `ItemEntity`.
+
+Поля `BellEntity` больше не обновляются.
+
+---
+
+## [ ] 7. Обновить импорт и экспорт
+
+**Меняется:**
+
+- импорт;
+- экспорт;
+- резервное копирование (если используется).
+
+Работа должна происходить через новую структуру `ItemRecord`.
+
+---
+
+## [ ] 8. Перестать использовать старую модель
+
+Удалить из кода обращения к:
+
+- старым полям `BellEntity`;
+- `BellTagEntity`;
+- старым mapper'ам и вспомогательному коду.
+
+Старая часть модели остаётся только для совместимости CloudKit.
+
+---
+
+## [ ] 9. Финальная проверка
 
 Проверить:
 
-- lightweight migration существующей базы;
-- работу private и shared stores;
-- создание, редактирование и удаление колокольчиков;
-- импорт и экспорт каталога;
-- отсутствие потери данных и появления дубликатов.
+- создание новых объектов;
+- открытие существующих объектов;
+- импорт;
+- экспорт;
+- синхронизацию через CloudKit;
+- отсутствие обращений к устаревшим полям.
