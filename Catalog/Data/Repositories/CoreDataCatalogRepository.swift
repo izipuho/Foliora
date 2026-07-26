@@ -293,30 +293,30 @@ final class CoreDataCatalogRepository: CatalogRepository {
             .map { mediaAsset(from: $0, itemID: uuidValue(entity, "id")) }
 
         return BellRecord(
-            item: Item(
+            item: ItemRecord(
                 id: uuidValue(entity, "id"),
                 collectionID: (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
                 locationID: locationEntity.map { uuidValue($0, "id") },
+                originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
                 createdAt: dateValue(entity, "createdAt"),
+                createdBy: stringValue(entity, "createdBy"),
                 title: stringValue(entity, "title"),
                 notes: stringValue(entity, "notes"),
                 acquiredYear: entity.value(forKey: "acquiredYear") as? Int,
                 condition: itemCondition(from: stringValue(entity, "conditionRaw", default: ItemCondition.good.rawValue)),
-                acquisitionMethod: acquisitionMethod(from: stringValue(entity, "acquisitionMethodRaw", default: AcquisitionMethod.bought.rawValue))
+                acquisitionMethod: acquisitionMethod(from: stringValue(entity, "acquisitionMethodRaw", default: AcquisitionMethod.bought.rawValue)),
+                isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
+                tags: tags,
+                originPlace: originPlaceEntity.map(place),
+                storageLocation: locationEntity.map(location),
+                storagePath: locationEntity.map(storagePath) ?? "",
+                mediaAssets: mediaAssets
             ),
             details: BellDetails(
                 itemID: uuidValue(entity, "id"),
-                originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
                 material: bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)),
                 customMaterialName: entity.value(forKey: "customMaterialName") as? String
-            ),
-            originPlace: originPlaceEntity.map(place),
-            storageLocation: locationEntity.map(location),
-            storagePath: locationEntity.map(storagePath) ?? "",
-            mediaAssets: mediaAssets,
-            isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
-            createdBy: stringValue(entity, "createdBy"),
-            tags: tags
+            )
         )
     }
 

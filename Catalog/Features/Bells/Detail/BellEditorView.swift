@@ -83,6 +83,7 @@ struct BellEditorView: View {
     @State private var locationPickerPresentationToken = 0
     private let existingBellID: UUID?
     private let existingCreatedAt: Date?
+    private let existingIsFavorite: Bool
     private let editorItemID: UUID
 
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -140,6 +141,7 @@ struct BellEditorView: View {
         self.onSave = onSave
         self.existingBellID = bell?.id
         self.existingCreatedAt = bell?.createdAt
+        self.existingIsFavorite = bell?.isFavorite ?? false
         self.editorItemID = bell?.id ?? UUID()
         _title = State(initialValue: bell?.title ?? "")
         _notes = State(initialValue: bell?.notes ?? "")
@@ -657,29 +659,30 @@ struct BellEditorView: View {
         }
 
         let newBell = BellRecord(
-            item: Item(
+            item: ItemRecord(
                 id: itemID,
                 collectionID: collection.id,
                 locationID: selectedLocationID,
+                originPlaceID: selectedOriginPlace?.id,
                 createdAt: existingCreatedAt ?? .now,
+                createdBy: "You",
                 title: trimmedTitle,
                 notes: trimmedNotes,
                 acquiredYear: selectedAcquiredYearOption == String(localized: "common.none") ? nil : Int(selectedAcquiredYearOption),
                 condition: condition,
-                acquisitionMethod: acquisitionMethod
+                acquisitionMethod: acquisitionMethod,
+                isFavorite: existingIsFavorite,
+                tags: tags,
+                originPlace: originPlace,
+                storageLocation: location,
+                storagePath: location.map(locationPath(for:)) ?? String(localized: "common.unassigned"),
+                mediaAssets: normalizedMediaAssets
             ),
             details: BellDetails(
                 itemID: itemID,
-                originPlaceID: selectedOriginPlace?.id,
                 material: material,
                 customMaterialName: material == .other ? trimmedCustomMaterial : nil
-            ),
-            originPlace: originPlace,
-            storageLocation: location,
-            storagePath: location.map(locationPath(for:)) ?? String(localized: "common.unassigned"),
-            mediaAssets: normalizedMediaAssets,
-            createdBy: "You",
-            tags: tags
+            )
         )
 
         onSave(newBell)

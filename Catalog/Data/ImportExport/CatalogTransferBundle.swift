@@ -145,7 +145,7 @@ struct OriginPlaceTransferValue: Hashable, Codable {
 }
 
 struct BellTransferItem: Codable {
-    var item: Item
+    var item: ItemRecord
     var details: BellDetails
     var originPlace: OriginPlaceTransferValue?
     var mediaAssets: [MediaAsset]
@@ -153,7 +153,7 @@ struct BellTransferItem: Codable {
     var tags: [String]
 
     init(
-        item: Item,
+        item: ItemRecord,
         details: BellDetails,
         originPlace: OriginPlaceTransferValue?,
         mediaAssets: [MediaAsset],

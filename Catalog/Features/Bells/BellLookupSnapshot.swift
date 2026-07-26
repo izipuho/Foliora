@@ -115,32 +115,32 @@ struct CoreDataBellLookupSnapshotLoader: BellLookupSnapshotLoading {
             .map { stringValue($0, "value") }
 
         return BellRecord(
-            item: Item(
+            item: ItemRecord(
                 id: id,
                 collectionID: (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
                 locationID: locationEntity.map { uuidValue($0, "id") },
+                originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
                 createdAt: dateValue(entity, "createdAt"),
+                createdBy: stringValue(entity, "createdBy"),
                 title: stringValue(entity, "title"),
                 notes: stringValue(entity, "notes"),
                 acquiredYear: optionalIntValue(entity, "acquiredYear"),
                 condition: itemCondition(from: stringValue(entity, "conditionRaw", default: ItemCondition.good.rawValue)),
-                acquisitionMethod: acquisitionMethod(from: stringValue(entity, "acquisitionMethodRaw", default: AcquisitionMethod.bought.rawValue))
+                acquisitionMethod: acquisitionMethod(from: stringValue(entity, "acquisitionMethodRaw", default: AcquisitionMethod.bought.rawValue)),
+                isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
+                tags: tags,
+                originPlace: originPlaceEntity.map(place),
+                storageLocation: locationEntity.map(location),
+                storagePath: locationEntity.map(locationPath) ?? "",
+                mediaAssets: relatedObjects(entity, "mediaAssets")
+                    .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+                    .map { mediaAsset(from: $0, itemID: id) }
             ),
             details: BellDetails(
                 itemID: id,
-                originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
                 material: bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)),
                 customMaterialName: entity.value(forKey: "customMaterialName") as? String
-            ),
-            originPlace: originPlaceEntity.map(place),
-            storageLocation: locationEntity.map(location),
-            storagePath: locationEntity.map(locationPath) ?? "",
-            mediaAssets: relatedObjects(entity, "mediaAssets")
-                .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-                .map { mediaAsset(from: $0, itemID: id) },
-            isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
-            createdBy: stringValue(entity, "createdBy"),
-            tags: tags
+            )
         )
     }
 

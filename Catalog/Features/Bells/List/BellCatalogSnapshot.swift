@@ -68,32 +68,32 @@ struct BellCatalogSnapshot {
             .map { stringValue($0, "value") }
 
         return BellRecord(
-            item: Item(
+            item: ItemRecord(
                 id: id,
                 collectionID: collectionID,
                 locationID: locationEntity.map { uuidValue($0, "id") },
+                originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
                 createdAt: dateValue(entity, "createdAt"),
+                createdBy: stringValue(entity, "createdBy"),
                 title: stringValue(entity, "title"),
                 notes: stringValue(entity, "notes"),
                 acquiredYear: optionalIntValue(entity, "acquiredYear"),
                 condition: itemCondition(from: stringValue(entity, "conditionRaw", default: ItemCondition.good.rawValue)),
-                acquisitionMethod: acquisitionMethod(from: stringValue(entity, "acquisitionMethodRaw", default: AcquisitionMethod.bought.rawValue))
+                acquisitionMethod: acquisitionMethod(from: stringValue(entity, "acquisitionMethodRaw", default: AcquisitionMethod.bought.rawValue)),
+                isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
+                tags: tags,
+                originPlace: originPlaceEntity.map(place),
+                storageLocation: locationEntity.map(location),
+                storagePath: locationEntity.map(locationPath) ?? "",
+                mediaAssets: relatedObjects(entity, "mediaAssets")
+                    .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+                    .map { mediaAsset(from: $0, itemID: id) }
             ),
             details: BellDetails(
                 itemID: id,
-                originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
                 material: bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)),
                 customMaterialName: entity.value(forKey: "customMaterialName") as? String
-            ),
-            originPlace: originPlaceEntity.map(place),
-            storageLocation: locationEntity.map(location),
-            storagePath: locationEntity.map(locationPath) ?? "",
-            mediaAssets: relatedObjects(entity, "mediaAssets")
-                .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-                .map { mediaAsset(from: $0, itemID: id) },
-            isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
-            createdBy: stringValue(entity, "createdBy"),
-            tags: tags
+            )
         )
     }
 
@@ -293,24 +293,26 @@ struct BellCatalogSnapshot {
 extension BellRecord {
     func moving(to location: Location?, path: String) -> BellRecord {
         BellRecord(
-            item: Item(
+            item: ItemRecord(
                 id: item.id,
                 collectionID: item.collectionID,
                 locationID: location?.id,
+                originPlaceID: item.originPlaceID,
                 createdAt: item.createdAt,
+                createdBy: createdBy,
                 title: item.title,
                 notes: item.notes,
                 acquiredYear: item.acquiredYear,
                 condition: item.condition,
-                acquisitionMethod: item.acquisitionMethod
+                acquisitionMethod: item.acquisitionMethod,
+                isFavorite: isFavorite,
+                tags: tags,
+                originPlace: originPlace,
+                storageLocation: location,
+                storagePath: path,
+                mediaAssets: mediaAssets
             ),
-            details: details,
-            originPlace: originPlace,
-            storageLocation: location,
-            storagePath: path,
-            mediaAssets: mediaAssets,
-            createdBy: createdBy,
-            tags: tags
+            details: details
         )
     }
 }

@@ -725,31 +725,32 @@ final class CatalogImportExportActor {
             .map { mediaAsset(from: $0, itemID: uuidValue(entity, "id")) }
 
         return BellRecord(
-            item: Item(
+            item: ItemRecord(
                 id: uuidValue(entity, "id"),
                 collectionID: (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
                 locationID: locationEntity.map { uuidValue($0, "id") },
+                originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
                 createdAt: dateValue(entity, "createdAt"),
+                createdBy: stringValue(entity, "createdBy"),
                 title: stringValue(entity, "title"),
                 notes: stringValue(entity, "notes"),
                 acquiredYear: optionalIntValue(entity, "acquiredYear"),
                 condition: ItemCondition(rawValue: stringValue(entity, "conditionRaw", default: ItemCondition.good.rawValue)) ?? .good,
                 acquisitionMethod: AcquisitionMethod(
                     rawValue: stringValue(entity, "acquisitionMethodRaw", default: AcquisitionMethod.bought.rawValue)
-                ) ?? .other
+                ) ?? .other,
+                isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
+                tags: tags,
+                originPlace: originPlaceEntity.map(place),
+                storageLocation: locationEntity.map(location),
+                storagePath: locationEntity.map(storagePath) ?? "",
+                mediaAssets: mediaAssets
             ),
             details: BellDetails(
                 itemID: uuidValue(entity, "id"),
-                originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
                 material: BellMaterial(rawValue: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)) ?? .unknown,
                 customMaterialName: entity.value(forKey: "customMaterialName") as? String
-            ),
-            originPlace: originPlaceEntity.map(place),
-            storageLocation: locationEntity.map(location),
-            storagePath: locationEntity.map(storagePath) ?? "",
-            mediaAssets: mediaAssets,
-            createdBy: stringValue(entity, "createdBy"),
-            tags: tags
+            )
         )
     }
 
