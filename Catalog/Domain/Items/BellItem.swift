@@ -2,7 +2,6 @@ import Foundation
 
 struct BellDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
-    let originPlaceID: UUID?
     var material: BellMaterial
     var customMaterialName: String?
 
@@ -53,23 +52,24 @@ enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
 }
 
 struct BellRecord: Identifiable, Hashable {
-    let item: Item
+    let item: ItemRecord
     let details: BellDetails
     let originPlace: Place?
     let storageLocation: Location?
     let storagePath: String
     let mediaAssets: [MediaAsset]
-    var isFavorite: Bool = false
-    let createdBy: String
-    let tags: [String]
 
     var id: UUID { item.id }
     var title: String { item.title }
+    var originPlaceID: UUID? { item.originPlaceID }
     var createdAt: Date { item.createdAt }
     var acquiredYear: Int? { item.acquiredYear }
     var condition: ItemCondition { item.condition }
     var acquisitionMethod: AcquisitionMethod { item.acquisitionMethod }
     var notes: String { item.notes }
+    var isFavorite: Bool { item.isFavorite }
+    var createdBy: String { item.createdBy }
+    var tags: [String] { item.tags }
     var placeDisplayName: String { originPlace?.displayName ?? String(localized: "common.unknown_origin") }
     var countryName: String { originPlace?.countryName ?? "" }
     var cityName: String { originPlace?.cityName ?? "" }
