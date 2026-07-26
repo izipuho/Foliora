@@ -54,10 +54,6 @@ enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
 struct BellRecord: Identifiable, Hashable {
     let item: ItemRecord
     let details: BellDetails
-    let originPlace: Place?
-    let storageLocation: Location?
-    let storagePath: String
-    let mediaAssets: [MediaAsset]
 
     var id: UUID { item.id }
     var title: String { item.title }
@@ -70,6 +66,10 @@ struct BellRecord: Identifiable, Hashable {
     var isFavorite: Bool { item.isFavorite }
     var createdBy: String { item.createdBy }
     var tags: [String] { item.tags }
+    var originPlace: Place? { item.originPlace }
+    var storageLocation: Location? { item.storageLocation }
+    var storagePath: String { item.storagePath }
+    var mediaAssets: [MediaAsset] { item.mediaAssets }
     var placeDisplayName: String { originPlace?.displayName ?? String(localized: "common.unknown_origin") }
     var countryName: String { originPlace?.countryName ?? "" }
     var cityName: String { originPlace?.cityName ?? "" }

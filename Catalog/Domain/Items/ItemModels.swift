@@ -14,6 +14,10 @@ struct ItemRecord: Identifiable, Hashable, Codable {
     var acquisitionMethod: AcquisitionMethod
     var isFavorite: Bool
     var tags: [String]
+    var originPlace: Place?
+    var storageLocation: Location?
+    var storagePath: String
+    var mediaAssets: [MediaAsset]
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -44,7 +48,11 @@ struct ItemRecord: Identifiable, Hashable, Codable {
         condition: ItemCondition,
         acquisitionMethod: AcquisitionMethod,
         isFavorite: Bool,
-        tags: [String]
+        tags: [String],
+        originPlace: Place?,
+        storageLocation: Location?,
+        storagePath: String,
+        mediaAssets: [MediaAsset]
     ) {
         self.id = id
         self.collectionID = collectionID
@@ -59,6 +67,10 @@ struct ItemRecord: Identifiable, Hashable, Codable {
         self.acquisitionMethod = acquisitionMethod
         self.isFavorite = isFavorite
         self.tags = tags
+        self.originPlace = originPlace
+        self.storageLocation = storageLocation
+        self.storagePath = storagePath
+        self.mediaAssets = mediaAssets
     }
 
     init(from decoder: Decoder) throws {
@@ -76,6 +88,10 @@ struct ItemRecord: Identifiable, Hashable, Codable {
         acquisitionMethod = try container.decode(AcquisitionMethod.self, forKey: .acquisitionMethod)
         isFavorite = try container.decode(Bool.self, forKey: .isFavorite)
         tags = try container.decode([String].self, forKey: .tags)
+        originPlace = nil
+        storageLocation = nil
+        storagePath = ""
+        mediaAssets = []
     }
 
     func encode(to encoder: Encoder) throws {
