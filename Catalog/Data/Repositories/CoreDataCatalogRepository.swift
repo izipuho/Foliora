@@ -438,27 +438,41 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func migrateExistingBellsToItems() {
-        let bells = fetchEntities(named: "BellEntity", predicate: NSPredicate(format: "item == nil"))
-        guard !bells.isEmpty else { return }
+        let bells = fetchEntities(named: "BellEntity")
+        var didChange = false
 
         for bell in bells {
-            let item = makeEntity(named: "ItemEntity")
-            copyCommonAttributes(from: bell, to: item)
-            copyRelationships(["collection", "collectionLocation", "location", "originPlace", "mediaAssets"], from: bell, to: item)
-            migrateTags(from: bell, to: item)
-            bell.setValue(item, forKey: "item")
-            fillInverseRelationship(from: bell, relationshipName: "item", with: item)
+            let item: NSManagedObject
+            if let existingItem = bell.value(forKey: "item") as? NSManagedObject {
+                item = existingItem
+            } else {
+                item = fetchEntity(named: "ItemEntity", by: uuidValue(bell, "id")) ?? makeEntity(named: "ItemEntity")
+                copyCommonAttributes(from: bell, to: item)
+                bell.setValue(item, forKey: "item")
+                fillInverseRelationship(from: bell, relationshipName: "item", with: item)
+                didChange = true
+            }
+
+            didChange = fillMissingRelationships(
+                ["collection", "collectionLocation", "location", "originPlace", "mediaAssets"],
+                from: bell,
+                to: item
+            ) || didChange
+            didChange = migrateTags(from: bell, to: item) || didChange
         }
 
-        saveContext()
+        if didChange {
+            saveContext()
+        }
     }
 
-    private func migrateTags(from bell: NSManagedObject, to item: NSManagedObject) {
-        guard item.entity.relationshipsByName["tags"] != nil else { return }
+    private func migrateTags(from bell: NSManagedObject, to item: NSManagedObject) -> Bool {
+        guard item.entity.relationshipsByName["tags"] != nil else { return false }
 
         var existingValues = Set(relatedObjects(item, "tags").map { stringValue($0, "value") })
         let tags = relatedObjects(bell, "tags")
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+        var didChange = false
 
         for tag in tags {
             let value = stringValue(tag, "value")
@@ -472,7 +486,10 @@ final class CoreDataCatalogRepository: CatalogRepository {
             itemTag.setValue(tag.value(forKey: "collection"), forKey: "collection")
             item.mutableSetValue(forKey: "tags").add(itemTag)
             fillInverseRelationship(from: item, relationshipName: "tags", with: itemTag)
+            didChange = true
         }
+
+        return didChange
     }
 
     private func copyCommonAttributes(from source: NSManagedObject, to destination: NSManagedObject) {
@@ -490,6 +507,34 @@ final class CoreDataCatalogRepository: CatalogRepository {
         where source.entity.relationshipsByName[relationshipName] != nil && destinationRelationships[relationshipName] != nil {
             destination.setValue(source.value(forKey: relationshipName), forKey: relationshipName)
         }
+    }
+
+    private func fillMissingRelationships(
+        _ relationshipNames: [String],
+        from source: NSManagedObject,
+        to destination: NSManagedObject
+    ) -> Bool {
+        let destinationRelationships = destination.entity.relationshipsByName
+        var didChange = false
+
+        for relationshipName in relationshipNames
+        where source.entity.relationshipsByName[relationshipName] != nil && destinationRelationships[relationshipName] != nil {
+            let relationship = destinationRelationships[relationshipName]
+            if relationship?.isToMany == true {
+                let sourceObjects = relatedObjects(source, relationshipName)
+                let destinationSet = destination.mutableSetValue(forKey: relationshipName)
+                for object in sourceObjects where !destinationSet.contains(object) {
+                    destinationSet.add(object)
+                    didChange = true
+                }
+            } else if destination.value(forKey: relationshipName) == nil,
+                      let value = source.value(forKey: relationshipName) {
+                destination.setValue(value, forKey: relationshipName)
+                didChange = true
+            }
+        }
+
+        return didChange
     }
 
     private func fillInverseRelationship(
