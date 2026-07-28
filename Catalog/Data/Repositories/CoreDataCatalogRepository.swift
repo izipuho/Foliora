@@ -445,11 +445,34 @@ final class CoreDataCatalogRepository: CatalogRepository {
             let item = makeEntity(named: "ItemEntity")
             copyCommonAttributes(from: bell, to: item)
             copyRelationships(["collection", "collectionLocation", "location", "originPlace", "mediaAssets"], from: bell, to: item)
+            migrateTags(from: bell, to: item)
             bell.setValue(item, forKey: "item")
             fillInverseRelationship(from: bell, relationshipName: "item", with: item)
         }
 
         saveContext()
+    }
+
+    private func migrateTags(from bell: NSManagedObject, to item: NSManagedObject) {
+        guard item.entity.relationshipsByName["tags"] != nil else { return }
+
+        var existingValues = Set(relatedObjects(item, "tags").map { stringValue($0, "value") })
+        let tags = relatedObjects(bell, "tags")
+            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+
+        for tag in tags {
+            let value = stringValue(tag, "value")
+            guard existingValues.insert(value).inserted else { continue }
+
+            let itemTag = makeEntity(named: "ItemTagEntity")
+            itemTag.setValue(UUID(), forKey: "id")
+            itemTag.setValue(value, forKey: "value")
+            itemTag.setValue(tag.value(forKey: "normalizedName"), forKey: "normalizedName")
+            itemTag.setValue(tag.value(forKey: "sortOrder"), forKey: "sortOrder")
+            itemTag.setValue(tag.value(forKey: "collection"), forKey: "collection")
+            item.mutableSetValue(forKey: "tags").add(itemTag)
+            fillInverseRelationship(from: item, relationshipName: "tags", with: itemTag)
+        }
     }
 
     private func copyCommonAttributes(from source: NSManagedObject, to destination: NSManagedObject) {
