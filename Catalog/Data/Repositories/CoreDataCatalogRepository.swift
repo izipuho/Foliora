@@ -174,17 +174,36 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func apply(_ bell: BellRecord, to entity: NSManagedObject) {
-        entity.setValue(bell.id, forKey: "id")
-        entity.setValue(bell.item.title, forKey: "title")
-        entity.setValue(bell.item.notes, forKey: "notes")
-        entity.setValue(bell.item.acquiredYear, forKey: "acquiredYear")
-        entity.setValue(bell.item.createdAt, forKey: "createdAt")
-        entity.setValue(bell.item.condition.rawValue, forKey: "conditionRaw")
-        entity.setValue(bell.item.acquisitionMethod.rawValue, forKey: "acquisitionMethodRaw")
+        apply(bell.item, to: entity)
         entity.setValue(bell.details.material.rawValue, forKey: "materialRaw")
         entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
-        entity.setValue(bell.isFavorite, forKey: "isFavorite")
-        entity.setValue(bell.createdBy, forKey: "createdBy")
+    }
+
+    private func apply(_ item: ItemRecord, to entity: NSManagedObject) {
+        entity.setValue(item.id, forKey: "id")
+        entity.setValue(item.title, forKey: "title")
+        entity.setValue(item.notes, forKey: "notes")
+        entity.setValue(item.createdAt, forKey: "createdAt")
+        entity.setValue(item.createdBy, forKey: "createdBy")
+        entity.setValue(item.isFavorite, forKey: "isFavorite")
+
+        if entity.entity.attributesByName["acquiredYear"] != nil {
+            entity.setValue(item.acquiredYear, forKey: "acquiredYear")
+        } else {
+            entity.setValue(item.acquiredYear, forKey: "acquisitionYear")
+        }
+
+        if entity.entity.attributesByName["conditionRaw"] != nil {
+            entity.setValue(item.condition.rawValue, forKey: "conditionRaw")
+        } else {
+            entity.setValue(item.condition.rawValue, forKey: "condition")
+        }
+
+        if entity.entity.attributesByName["acquisitionMethodRaw"] != nil {
+            entity.setValue(item.acquisitionMethod.rawValue, forKey: "acquisitionMethodRaw")
+        } else {
+            entity.setValue(item.acquisitionMethod.rawValue, forKey: "acquisitionMethod")
+        }
     }
 
     private func upsertPlace(_ place: Place) -> NSManagedObject {
@@ -283,6 +302,20 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func bellRecord(from entity: NSManagedObject) -> BellRecord {
+        let itemEntity = entity.value(forKey: "item") as? NSManagedObject ?? entity
+
+        return BellRecord(
+            item: itemRecord(from: itemEntity),
+            details: BellDetails(
+                itemID: uuidValue(entity, "id"),
+                material: bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)),
+                customMaterialName: entity.value(forKey: "customMaterialName") as? String
+            )
+        )
+    }
+
+    private func itemRecord(from entity: NSManagedObject) -> ItemRecord {
+        let id = uuidValue(entity, "id")
         let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
             ?? entity.value(forKey: "location") as? NSManagedObject
         let originPlaceEntity = entity.value(forKey: "originPlace") as? NSManagedObject
@@ -291,33 +324,31 @@ final class CoreDataCatalogRepository: CatalogRepository {
             .map { stringValue($0, "value") }
         let mediaAssets = ((entity.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? [])
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-            .map { mediaAsset(from: $0, itemID: uuidValue(entity, "id")) }
+            .map { mediaAsset(from: $0, itemID: id) }
+        let acquiredYearKey = entity.entity.attributesByName["acquiredYear"] == nil ? "acquisitionYear" : "acquiredYear"
+        let conditionKey = entity.entity.attributesByName["conditionRaw"] == nil ? "condition" : "conditionRaw"
+        let acquisitionMethodKey = entity.entity.attributesByName["acquisitionMethodRaw"] == nil
+            ? "acquisitionMethod"
+            : "acquisitionMethodRaw"
 
-        return BellRecord(
-            item: ItemRecord(
-                id: uuidValue(entity, "id"),
-                collectionID: (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
-                locationID: locationEntity.map { uuidValue($0, "id") },
-                originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
-                createdAt: dateValue(entity, "createdAt"),
-                createdBy: stringValue(entity, "createdBy"),
-                title: stringValue(entity, "title"),
-                notes: stringValue(entity, "notes"),
-                acquiredYear: entity.value(forKey: "acquiredYear") as? Int,
-                condition: itemCondition(from: stringValue(entity, "conditionRaw", default: ItemCondition.good.rawValue)),
-                acquisitionMethod: acquisitionMethod(from: stringValue(entity, "acquisitionMethodRaw", default: AcquisitionMethod.bought.rawValue)),
-                isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
-                tags: tags,
-                originPlace: originPlaceEntity.map(place),
-                storageLocation: locationEntity.map(location),
-                storagePath: locationEntity.map(storagePath) ?? "",
-                mediaAssets: mediaAssets
-            ),
-            details: BellDetails(
-                itemID: uuidValue(entity, "id"),
-                material: bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)),
-                customMaterialName: entity.value(forKey: "customMaterialName") as? String
-            )
+        return ItemRecord(
+            id: id,
+            collectionID: (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            locationID: locationEntity.map { uuidValue($0, "id") },
+            originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
+            createdAt: dateValue(entity, "createdAt"),
+            createdBy: stringValue(entity, "createdBy"),
+            title: stringValue(entity, "title"),
+            notes: stringValue(entity, "notes"),
+            acquiredYear: optionalIntValue(entity, acquiredYearKey),
+            condition: itemCondition(from: stringValue(entity, conditionKey, default: ItemCondition.good.rawValue)),
+            acquisitionMethod: acquisitionMethod(from: stringValue(entity, acquisitionMethodKey, default: AcquisitionMethod.bought.rawValue)),
+            isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
+            tags: tags,
+            originPlace: originPlaceEntity.map(place),
+            storageLocation: locationEntity.map(location),
+            storagePath: locationEntity.map(storagePath) ?? "",
+            mediaAssets: mediaAssets
         )
     }
 
