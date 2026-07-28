@@ -444,6 +444,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         for bell in bells {
             let item = makeEntity(named: "ItemEntity")
             copyCommonAttributes(from: bell, to: item)
+            copyRelationships(["collection", "collectionLocation", "location", "originPlace", "mediaAssets"], from: bell, to: item)
             bell.setValue(item, forKey: "item")
             fillInverseRelationship(from: bell, relationshipName: "item", with: item)
         }
@@ -456,6 +457,15 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
         for attributeName in source.entity.attributesByName.keys where destinationAttributes[attributeName] != nil {
             destination.setValue(source.value(forKey: attributeName), forKey: attributeName)
+        }
+    }
+
+    private func copyRelationships(_ relationshipNames: [String], from source: NSManagedObject, to destination: NSManagedObject) {
+        let destinationRelationships = destination.entity.relationshipsByName
+
+        for relationshipName in relationshipNames
+        where source.entity.relationshipsByName[relationshipName] != nil && destinationRelationships[relationshipName] != nil {
+            destination.setValue(source.value(forKey: relationshipName), forKey: relationshipName)
         }
     }
 
