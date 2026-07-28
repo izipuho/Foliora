@@ -500,15 +500,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
         }
     }
 
-    private func copyRelationships(_ relationshipNames: [String], from source: NSManagedObject, to destination: NSManagedObject) {
-        let destinationRelationships = destination.entity.relationshipsByName
-
-        for relationshipName in relationshipNames
-        where source.entity.relationshipsByName[relationshipName] != nil && destinationRelationships[relationshipName] != nil {
-            destination.setValue(source.value(forKey: relationshipName), forKey: relationshipName)
-        }
-    }
-
     private func fillMissingRelationships(
         _ relationshipNames: [String],
         from source: NSManagedObject,
