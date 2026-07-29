@@ -69,6 +69,21 @@
 
 Подготовить эти функции для последующего использования другими типами объектов (`CoinRecord`, `RecordRecord` и т.д.).
 
+## [ ] 4.5. Централизация преобразования Core Data в доменные модели
+
+Перед переводом чтения на `ItemEntity` устранить дублирование преобразования Core Data-объектов в доменные модели.
+
+Необходимо выделить существующую логику построения `ItemRecord` и `BellRecord` из `CoreDataCatalogRepository` в общий компонент и перевести на него все места чтения данных без изменения поведения приложения.
+
+Изменяемые файлы:
+
+- `Catalog/Data/Repositories/CoreDataCatalogRepository.swift`
+- `Catalog/Features/Bells/List/BellCatalogSnapshot.swift`
+- `Catalog/Features/Bells/BellLookupSnapshot.swift`
+- `Catalog/Data/Repositories/CatalogSnapshot.swift`
+- `Catalog/Data/ImportExport/CatalogImportExportActor.swift`
+- новый общий файл с преобразованием Core Data → доменные модели
+
 ## [ ] 5. Перевести чтение на новую модель
 
 **Меняется:**
