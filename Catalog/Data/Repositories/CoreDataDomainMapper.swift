@@ -7,12 +7,16 @@ import Foundation
 /// snapshot loaders, and import/export.
 enum CoreDataDomainMapper {
     static func bellRecord(from entity: NSManagedObject) -> BellRecord {
-        let itemEntity = entity.value(forKey: "item") as? NSManagedObject ?? entity
+        guard let itemEntity = entity.value(forKey: "item") as? NSManagedObject else {
+            preconditionFailure("BellEntity is missing its migrated ItemEntity relationship.")
+        }
+
+        let itemRecord = itemRecord(from: itemEntity)
 
         return BellRecord(
-            item: itemRecord(from: itemEntity),
+            item: itemRecord,
             details: BellDetails(
-                itemID: uuidValue(entity, "id"),
+                itemID: itemRecord.id,
                 material: bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)),
                 customMaterialName: entity.value(forKey: "customMaterialName") as? String
             )
@@ -20,9 +24,10 @@ enum CoreDataDomainMapper {
     }
 
     static func itemRecord(from entity: NSManagedObject) -> ItemRecord {
+        precondition(entity.entity.name == "ItemEntity", "CoreDataDomainMapper.itemRecord(from:) expects ItemEntity.")
+
         let id = uuidValue(entity, "id")
-        let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
-            ?? entity.value(forKey: "location") as? NSManagedObject
+        let locationEntity = entity.value(forKey: "collectionLocation") as? NSManagedObject
         let originPlaceEntity = entity.value(forKey: "originPlace") as? NSManagedObject
         let tags = relatedObjects(entity, "tags")
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
@@ -30,11 +35,6 @@ enum CoreDataDomainMapper {
         let mediaAssets = relatedObjects(entity, "mediaAssets")
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
             .map { mediaAsset(from: $0, itemID: id) }
-        let acquiredYearKey = entity.entity.attributesByName["acquiredYear"] == nil ? "acquisitionYear" : "acquiredYear"
-        let conditionKey = entity.entity.attributesByName["conditionRaw"] == nil ? "condition" : "conditionRaw"
-        let acquisitionMethodKey = entity.entity.attributesByName["acquisitionMethodRaw"] == nil
-            ? "acquisitionMethod"
-            : "acquisitionMethodRaw"
 
         return ItemRecord(
             id: id,
@@ -45,9 +45,9 @@ enum CoreDataDomainMapper {
             createdBy: stringValue(entity, "createdBy"),
             title: stringValue(entity, "title"),
             notes: stringValue(entity, "notes"),
-            acquiredYear: optionalIntValue(entity, acquiredYearKey),
-            condition: itemCondition(from: stringValue(entity, conditionKey, default: ItemCondition.good.rawValue)),
-            acquisitionMethod: acquisitionMethod(from: stringValue(entity, acquisitionMethodKey, default: AcquisitionMethod.bought.rawValue)),
+            acquiredYear: optionalIntValue(entity, "acquisitionYear"),
+            condition: itemCondition(from: stringValue(entity, "condition", default: ItemCondition.good.rawValue)),
+            acquisitionMethod: acquisitionMethod(from: stringValue(entity, "acquisitionMethod", default: AcquisitionMethod.bought.rawValue)),
             isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
             tags: tags,
             originPlace: originPlaceEntity.map(place),
