@@ -14,14 +14,6 @@ struct SettingsView: View {
     @State private var importErrorMessage: String?
     @State private var importResultMessage: String?
     @State private var exportResultMessage: String?
-    @State private var isShowingPurgeConfirmation = false
-    @State private var isPurgingCloudData = false
-    @State private var purgeStatusMessage: String?
-    @State private var isRefreshingCloudStatus = false
-    @State private var cloudAccountStatusText = "Not checked"
-    @State private var cloudUserRecordIDText = "Not checked"
-    @State private var cloudStatusLastRefreshText = "Never"
-    @State private var cloudStatusErrorMessage: String?
 
     var body: some View {
         List {
@@ -127,10 +119,6 @@ struct SettingsView: View {
 
     private var buildNumber: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
-    }
-
-    private var bundleIdentifier: String {
-        Bundle.main.bundleIdentifier ?? "Unknown"
     }
 
     private func handleImport(_ result: Result<URL, Error>) {
@@ -269,44 +257,6 @@ struct SettingsView: View {
         return String.localizedStringWithFormat(String(localized: key), count)
     }
 
-    private func purgeCloudData() {
-        guard !isPurgingCloudData else {
-            return
-        }
-
-        isPurgingCloudData = true
-        purgeStatusMessage = "Purging…"
-
-        Task { @MainActor in
-            await Task.yield()
-
-            do {
-                try deleteAllCatalogEntities()
-                purgeStatusMessage = "Purge completed"
-            } catch {
-                purgeStatusMessage = "Purge failed: \(error.localizedDescription)"
-            }
-
-            isPurgingCloudData = false
-        }
-    }
-
-    private func deleteAllCatalogEntities() throws {
-        try deleteCoreDataEntities(named: "MediaAssetEntity")
-        try deleteCoreDataEntities(named: "BellTagEntity")
-        try deleteCoreDataEntities(named: "BellEntity")
-        try deleteCoreDataEntities(named: "CollectionLocationEntity")
-        try deleteCoreDataEntities(named: "CollectionEntity")
-        try deleteCoreDataEntities(named: "LocationEntity")
-        try deleteCoreDataEntities(named: "PlaceEntity")
-        try deleteCoreDataEntities(named: "HomeEntity")
-        try managedObjectContext.save()
-    }
-
-    private func deleteCoreDataEntities(named entityName: String) throws {
-        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
-        try managedObjectContext.fetch(request).forEach(managedObjectContext.delete)
-    }
 }
 
 private struct SettingsInfoRow: View {
