@@ -6,6 +6,19 @@ import Foundation
 /// Centralizes all Core Data → domain mapping used by repositories,
 /// snapshot loaders, and import/export.
 enum CoreDataDomainMapper {
+    static func bellRecord(from entity: NSManagedObject) -> BellRecord {
+        let itemEntity = entity.value(forKey: "item") as? NSManagedObject ?? entity
+
+        return BellRecord(
+            item: itemRecord(from: itemEntity),
+            details: BellDetails(
+                itemID: uuidValue(entity, "id"),
+                material: bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)),
+                customMaterialName: entity.value(forKey: "customMaterialName") as? String
+            )
+        )
+    }
+
     static func itemRecord(from entity: NSManagedObject) -> ItemRecord {
         let id = uuidValue(entity, "id")
         let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
@@ -159,6 +172,10 @@ enum CoreDataDomainMapper {
 
     private static func acquisitionMethod(from rawValue: String) -> AcquisitionMethod {
         AcquisitionMethod(rawValue: rawValue) ?? .other
+    }
+
+    private static func bellMaterial(from rawValue: String) -> BellMaterial {
+        BellMaterial(rawValue: rawValue) ?? .unknown
     }
 
     private static func mediaKind(from rawValue: String) -> MediaKind {
