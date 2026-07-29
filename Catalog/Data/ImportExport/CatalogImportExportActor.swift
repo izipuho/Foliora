@@ -107,7 +107,7 @@ final class CatalogImportExportActor {
         let locationEntities = try fetchEntities(named: "LocationEntity", sortKey: "name")
         let collectionEntities = try fetchEntities(named: "CollectionEntity", sortKey: "title")
         let bellEntities = try fetchEntities(named: "BellEntity", sortDescriptors: [
-            NSSortDescriptor(key: "createdAt", ascending: false)
+            NSSortDescriptor(key: "item.createdAt", ascending: false)
         ])
 
         let exportedHomeEntities: [NSManagedObject]
@@ -131,7 +131,10 @@ final class CatalogImportExportActor {
             }
             exportedBellRecords = bellEntities
                 .filter {
-                    guard let collection = $0.value(forKey: "collection") as? NSManagedObject else { return false }
+                    guard
+                        let item = $0.value(forKey: "item") as? NSManagedObject,
+                        let collection = item.value(forKey: "collection") as? NSManagedObject
+                    else { return false }
                     return collectionIDs.contains(uuidValue(collection, "id"))
                 }
                 .map(CoreDataDomainMapper.bellRecord)
@@ -277,43 +280,26 @@ final class CatalogImportExportActor {
         var tagEntitiesByCollectionAndName: [UUID: [String: NSManagedObject]] = [:]
 
         for bell in bundle.bellItems {
-            let entity = makeEntity(named: "BellEntity")
-            entity.setValue(bell.item.id, forKey: "id")
-            entity.setValue(bell.item.title, forKey: "title")
-            entity.setValue(bell.item.notes, forKey: "notes")
-            entity.setValue(bell.item.acquiredYear, forKey: "acquiredYear")
-            entity.setValue(bell.item.createdAt, forKey: "createdAt")
-            entity.setValue(bell.item.condition.rawValue, forKey: "conditionRaw")
-            entity.setValue(bell.item.acquisitionMethod.rawValue, forKey: "acquisitionMethodRaw")
-            entity.setValue(bell.details.material.rawValue, forKey: "materialRaw")
-            entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
-            entity.setValue(bell.createdBy, forKey: "createdBy")
-            entity.setValue(collectionEntities[bell.item.collectionID], forKey: "collection")
-            entity.setValue(bell.item.locationID.flatMap { collectionLocationEntities[bell.item.collectionID]?[$0] }, forKey: "collectionLocation")
-            entity.setValue(bell.item.locationID.flatMap { locationEntities[$0] }, forKey: "location")
-            entity.setValue(bell.originPlace.flatMap { placeEntitiesByOriginPlace[$0] }, forKey: "originPlace")
+            let itemEntity = makeEntity(named: "ItemEntity")
+            updateItemEntity(
+                itemEntity,
+                with: bell,
+                collection: collectionEntities[bell.item.collectionID],
+                collectionLocation: bell.item.locationID.flatMap { collectionLocationEntities[bell.item.collectionID]?[$0] },
+                location: bell.item.locationID.flatMap { locationEntities[$0] },
+                originPlace: bell.originPlace.flatMap { placeEntitiesByOriginPlace[$0] }
+            )
+
+            let bellEntity = makeEntity(named: "BellEntity")
+            updateBellEntity(bellEntity, with: bell)
+            bellEntity.setValue(itemEntity, forKey: "item")
 
             let mediaEntities = bell.mediaAssets.map { asset in
                 let mediaEntity = makeEntity(named: "MediaAssetEntity")
-                mediaEntity.setValue(asset.id, forKey: "id")
-                mediaEntity.setValue(asset.kind.rawValue, forKey: "kindRaw")
-                mediaEntity.setValue(asset.localIdentifier, forKey: "localIdentifier")
-                mediaEntity.setValue(asset.displayName, forKey: "displayName")
-                mediaEntity.setValue(asset.sortOrder, forKey: "sortOrder")
-                mediaEntity.setValue(asset.fileName, forKey: "fileName")
-                mediaEntity.setValue(asset.mimeType, forKey: "mimeType")
-                mediaEntity.setValue(asset.byteSize, forKey: "byteSize")
-                mediaEntity.setValue(asset.checksum, forKey: "checksum")
-                mediaEntity.setValue(asset.width, forKey: "width")
-                mediaEntity.setValue(asset.height, forKey: "height")
-                mediaEntity.setValue(asset.duration, forKey: "duration")
-                mediaEntity.setValue(asset.metadataJSON, forKey: "metadataJSON")
-                mediaEntity.setValue(nil, forKey: "thumbnailData")
-                mediaEntity.setValue(nil, forKey: "originalData")
-                mediaEntity.setValue(entity, forKey: "bell")
+                updateMediaEntity(mediaEntity, with: asset, item: itemEntity)
                 return mediaEntity
             }
-            entity.setValue(Set(mediaEntities), forKey: "mediaAssets")
+            itemEntity.setValue(Set(mediaEntities), forKey: "mediaAssets")
 
             var seenNormalizedNames = Set<String>()
             let tagEntities = bell.tags.enumerated().compactMap { index, tag -> NSManagedObject? in
@@ -323,18 +309,12 @@ final class CatalogImportExportActor {
                 guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
 
                 let existingTagEntity = tagEntitiesByCollectionAndName[bell.item.collectionID]?[normalizedName]
-                let tagEntity = existingTagEntity ?? makeEntity(named: "BellTagEntity")
-                if tagEntity.value(forKey: "id") == nil {
-                    tagEntity.setValue(UUID(), forKey: "id")
-                }
-                tagEntity.setValue(normalizedName, forKey: "normalizedName")
-                tagEntity.setValue(tag, forKey: "value")
-                tagEntity.setValue(index, forKey: "sortOrder")
-                tagEntity.setValue(collectionEntity, forKey: "collection")
+                let tagEntity = existingTagEntity ?? makeEntity(named: "ItemTagEntity")
+                updateItemTagEntity(tagEntity, value: tag, normalizedName: normalizedName, sortOrder: index, collection: collectionEntity)
                 tagEntitiesByCollectionAndName[bell.item.collectionID, default: [:]][normalizedName] = tagEntity
                 return tagEntity
             }
-            entity.setValue(Set(tagEntities), forKey: "tags")
+            itemEntity.setValue(Set(tagEntities), forKey: "tags")
         }
 
         try context.save()
@@ -473,64 +453,50 @@ final class CatalogImportExportActor {
         }
 
         var tagEntitiesByCollectionAndName: [UUID: [String: NSManagedObject]] = [:]
-        for entity in try fetchEntities(named: "BellTagEntity") {
+        for entity in try fetchEntities(named: "ItemTagEntity") {
             guard let collection = entity.value(forKey: "collection") as? NSManagedObject else { continue }
             let normalizedName = stringValue(entity, "normalizedName", default: normalizedTagName(stringValue(entity, "value")))
             tagEntitiesByCollectionAndName[uuidValue(collection, "id"), default: [:]][normalizedName] = entity
         }
 
-        var bellEntitiesByCollectionAndID: [UUID: [UUID: NSManagedObject]] = [:]
-        for entity in try fetchEntities(named: "BellEntity") {
+        var itemEntitiesByCollectionAndID: [UUID: [UUID: NSManagedObject]] = [:]
+        for entity in try fetchEntities(named: "ItemEntity") {
             guard let collection = entity.value(forKey: "collection") as? NSManagedObject else { continue }
-            bellEntitiesByCollectionAndID[uuidValue(collection, "id"), default: [:]][uuidValue(entity, "id")] = entity
+            itemEntitiesByCollectionAndID[uuidValue(collection, "id"), default: [:]][uuidValue(entity, "id")] = entity
         }
 
         for bell in bundle.bellItems {
             guard let collectionEntity = collectionEntities[bell.item.collectionID] else { continue }
             let localCollectionID = uuidValue(collectionEntity, "id")
-            let entity = bellEntitiesByCollectionAndID[localCollectionID]?[bell.item.id] ?? makeEntity(named: "BellEntity")
             let originPlace = bell.originPlace.flatMap {
                 placeEntitiesByCoordinate[PlaceKey(latitude: $0.latitude, longitude: $0.longitude)]
             }
-            entity.setValue(bell.item.id, forKey: "id")
-            entity.setValue(bell.item.title, forKey: "title")
-            entity.setValue(bell.item.notes, forKey: "notes")
-            entity.setValue(bell.item.acquiredYear, forKey: "acquiredYear")
-            entity.setValue(bell.item.createdAt, forKey: "createdAt")
-            entity.setValue(bell.item.condition.rawValue, forKey: "conditionRaw")
-            entity.setValue(bell.item.acquisitionMethod.rawValue, forKey: "acquisitionMethodRaw")
-            entity.setValue(bell.details.material.rawValue, forKey: "materialRaw")
-            entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
-            entity.setValue(bell.createdBy, forKey: "createdBy")
-            entity.setValue(collectionEntity, forKey: "collection")
-            entity.setValue(bell.item.locationID.flatMap { collectionLocationEntities[bell.item.collectionID]?[$0] }, forKey: "collectionLocation")
-            entity.setValue(bell.item.locationID.flatMap { locationEntities[$0] }, forKey: "location")
-            entity.setValue(originPlace, forKey: "originPlace")
-            bellEntitiesByCollectionAndID[localCollectionID, default: [:]][bell.item.id] = entity
+            let itemEntity = itemEntitiesByCollectionAndID[localCollectionID]?[bell.item.id] ?? makeEntity(named: "ItemEntity")
+            updateItemEntity(
+                itemEntity,
+                with: bell,
+                collection: collectionEntity,
+                collectionLocation: bell.item.locationID.flatMap { collectionLocationEntities[bell.item.collectionID]?[$0] },
+                location: bell.item.locationID.flatMap { locationEntities[$0] },
+                originPlace: originPlace
+            )
+            itemEntitiesByCollectionAndID[localCollectionID, default: [:]][bell.item.id] = itemEntity
 
-            var mediaEntitiesByID = indexed((entity.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []) {
+            let bellEntity = (itemEntity.value(forKey: "bell") as? NSManagedObject)
+                ?? fetchBellEntity(for: itemEntity)
+                ?? makeEntity(named: "BellEntity")
+            updateBellEntity(bellEntity, with: bell)
+            bellEntity.setValue(itemEntity, forKey: "item")
+
+            var mediaEntitiesByID = indexed((itemEntity.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []) {
                 uuidValue($0, "id")
             }
             for asset in bell.mediaAssets {
                 let mediaEntity = mediaEntitiesByID[asset.id] ?? makeEntity(named: "MediaAssetEntity")
-                mediaEntity.setValue(asset.id, forKey: "id")
-                mediaEntity.setValue(asset.kind.rawValue, forKey: "kindRaw")
-                mediaEntity.setValue(asset.localIdentifier, forKey: "localIdentifier")
-                mediaEntity.setValue(asset.displayName, forKey: "displayName")
-                mediaEntity.setValue(asset.sortOrder, forKey: "sortOrder")
-                mediaEntity.setValue(asset.fileName, forKey: "fileName")
-                mediaEntity.setValue(asset.mimeType, forKey: "mimeType")
-                mediaEntity.setValue(asset.byteSize, forKey: "byteSize")
-                mediaEntity.setValue(asset.checksum, forKey: "checksum")
-                mediaEntity.setValue(asset.width, forKey: "width")
-                mediaEntity.setValue(asset.height, forKey: "height")
-                mediaEntity.setValue(asset.duration, forKey: "duration")
-                mediaEntity.setValue(asset.metadataJSON, forKey: "metadataJSON")
-                mediaEntity.setValue(nil, forKey: "thumbnailData")
-                mediaEntity.setValue(nil, forKey: "originalData")
-                mediaEntity.setValue(entity, forKey: "bell")
+                updateMediaEntity(mediaEntity, with: asset, item: itemEntity)
                 mediaEntitiesByID[asset.id] = mediaEntity
             }
+            itemEntity.setValue(Set(mediaEntitiesByID.values), forKey: "mediaAssets")
 
             var seenNormalizedNames = Set<String>()
             let tagEntities = bell.tags.enumerated().compactMap { index, tag -> NSManagedObject? in
@@ -538,16 +504,12 @@ final class CatalogImportExportActor {
                 guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
 
                 let existingTagEntity = tagEntitiesByCollectionAndName[localCollectionID]?[normalizedName]
-                let tagEntity = existingTagEntity ?? makeEntity(named: "BellTagEntity")
-                ensureID(tagEntity)
-                tagEntity.setValue(normalizedName, forKey: "normalizedName")
-                tagEntity.setValue(tag, forKey: "value")
-                tagEntity.setValue(index, forKey: "sortOrder")
-                tagEntity.setValue(collectionEntity, forKey: "collection")
+                let tagEntity = existingTagEntity ?? makeEntity(named: "ItemTagEntity")
+                updateItemTagEntity(tagEntity, value: tag, normalizedName: normalizedName, sortOrder: index, collection: collectionEntity)
                 tagEntitiesByCollectionAndName[localCollectionID, default: [:]][normalizedName] = tagEntity
                 return tagEntity
             }
-            entity.setValue(Set(tagEntities), forKey: "tags")
+            itemEntity.setValue(Set(tagEntities), forKey: "tags")
         }
 
         try context.save()
@@ -616,6 +578,8 @@ final class CatalogImportExportActor {
         try deleteEntities(named: "MediaAssetEntity")
         try deleteEntities(named: "BellTagEntity")
         try deleteEntities(named: "BellEntity")
+        try deleteEntities(named: "ItemTagEntity")
+        try deleteEntities(named: "ItemEntity")
         try deleteEntities(named: "CollectionLocationEntity")
         try deleteEntities(named: "CollectionEntity")
         try deleteEntities(named: "LocationEntity")
@@ -790,6 +754,81 @@ final class CatalogImportExportActor {
         if entity.value(forKey: "id") == nil {
             entity.setValue(UUID(), forKey: "id")
         }
+    }
+
+    private func updateItemEntity(
+        _ entity: NSManagedObject,
+        with bell: BellTransferItem,
+        collection: NSManagedObject?,
+        collectionLocation: NSManagedObject?,
+        location: NSManagedObject?,
+        originPlace: NSManagedObject?
+    ) {
+        entity.setValue(bell.item.id, forKey: "id")
+        entity.setValue(bell.item.title, forKey: "title")
+        entity.setValue(bell.item.notes, forKey: "notes")
+        entity.setValue(bell.item.acquiredYear, forKey: "acquisitionYear")
+        entity.setValue(bell.item.createdAt, forKey: "createdAt")
+        entity.setValue(bell.item.createdBy, forKey: "createdBy")
+        entity.setValue(bell.item.condition.rawValue, forKey: "condition")
+        entity.setValue(bell.item.acquisitionMethod.rawValue, forKey: "acquisitionMethod")
+        entity.setValue(bell.item.isFavorite, forKey: "isFavorite")
+        entity.setValue(collection, forKey: "collection")
+        entity.setValue(collectionLocation, forKey: "collectionLocation")
+        entity.setValue(location, forKey: "location")
+        entity.setValue(originPlace, forKey: "originPlace")
+    }
+
+    private func updateBellEntity(_ entity: NSManagedObject, with bell: BellTransferItem) {
+        entity.setValue(bell.details.material.rawValue, forKey: "materialRaw")
+        entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
+    }
+
+    private func updateMediaEntity(
+        _ entity: NSManagedObject,
+        with asset: MediaAsset,
+        item: NSManagedObject
+    ) {
+        entity.setValue(asset.id, forKey: "id")
+        entity.setValue(asset.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
+        entity.setValue(asset.displayName, forKey: "displayName")
+        entity.setValue(asset.sortOrder, forKey: "sortOrder")
+        entity.setValue(asset.fileName, forKey: "fileName")
+        entity.setValue(asset.mimeType, forKey: "mimeType")
+        entity.setValue(asset.byteSize, forKey: "byteSize")
+        entity.setValue(asset.checksum, forKey: "checksum")
+        entity.setValue(asset.width, forKey: "width")
+        entity.setValue(asset.height, forKey: "height")
+        entity.setValue(asset.duration, forKey: "duration")
+        entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
+        entity.setValue(nil, forKey: "thumbnailData")
+        entity.setValue(nil, forKey: "originalData")
+        if entity.entity.attributesByName["itemID"] != nil {
+            entity.setValue(item.value(forKey: "id"), forKey: "itemID")
+        }
+        entity.setValue(item, forKey: "item")
+    }
+
+    private func updateItemTagEntity(
+        _ entity: NSManagedObject,
+        value: String,
+        normalizedName: String,
+        sortOrder: Int,
+        collection: NSManagedObject
+    ) {
+        ensureID(entity)
+        entity.setValue(normalizedName, forKey: "normalizedName")
+        entity.setValue(value, forKey: "value")
+        entity.setValue(sortOrder, forKey: "sortOrder")
+        entity.setValue(collection, forKey: "collection")
+    }
+
+    private func fetchBellEntity(for item: NSManagedObject) -> NSManagedObject? {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "BellEntity")
+        request.predicate = NSPredicate(format: "item == %@", item)
+        request.fetchLimit = 1
+        return try? context.fetch(request).first
     }
 
     private func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
