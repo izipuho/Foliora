@@ -576,7 +576,6 @@ final class CatalogImportExportActor {
 
     private func deleteExistingData() throws {
         try deleteEntities(named: "MediaAssetEntity")
-        try deleteEntities(named: "BellTagEntity")
         try deleteEntities(named: "BellEntity")
         try deleteEntities(named: "ItemTagEntity")
         try deleteEntities(named: "ItemEntity")
