@@ -15,7 +15,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
     ) {
         self.context = context
         self.persistentContainer = persistentContainer
-        cleanupBellTags()
         saveContext()
         migrateExistingBellsToItems()
     }
@@ -110,28 +109,23 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     func saveBellRecord(_ bell: BellRecord) {
-        guard let collection = fetchEntity(named: "CollectionEntity", by: bell.item.collectionID) else { return }
-
-        let entity = fetchEntity(named: "BellEntity", by: bell.id) ?? makeEntity(named: "BellEntity")
-        apply(bell, to: entity)
-        entity.setValue(collection, forKey: "collection")
-        let collectionLocation = bell.item.locationID.flatMap { fetchCollectionLocation(in: collection, by: $0) }
-        let sourceLocationID = collectionLocation?.value(forKey: "sourceLocationID") as? UUID
-        entity.setValue(collectionLocation, forKey: "collectionLocation")
-        entity.setValue(sourceLocationID.flatMap { fetchEntity(named: "LocationEntity", by: $0) }, forKey: "location")
-        entity.setValue(bell.originPlace.map(upsertPlace), forKey: "originPlace")
-        replaceMediaAssets(bell.mediaAssets, for: entity)
-        replaceTags(bell.tags, for: entity)
+        saveBellRecordWithoutSavingContext(bell)
         saveContext()
     }
 
     func saveBellRecords(_ bells: [BellRecord]) {
-        bells.forEach(saveBellRecord)
+        bells.forEach(saveBellRecordWithoutSavingContext)
+        saveContext()
     }
 
     func deleteBellRecord(bellID: UUID) {
-        guard let entity = fetchEntity(named: "BellEntity", by: bellID) else { return }
-        context.delete(entity)
+        guard let entity = fetchBellEntity(by: bellID) else { return }
+        if let item = entity.value(forKey: "item") as? NSManagedObject {
+            context.delete(item)
+            deleteOrphanItemTags()
+        } else {
+            context.delete(entity)
+        }
         saveContext()
     }
 
@@ -174,7 +168,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func apply(_ bell: BellRecord, to entity: NSManagedObject) {
-        apply(bell.item, to: entity)
         entity.setValue(bell.details.material.rawValue, forKey: "materialRaw")
         entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
     }
@@ -206,6 +199,31 @@ final class CoreDataCatalogRepository: CatalogRepository {
         }
     }
 
+    private func saveBellRecordWithoutSavingContext(_ bell: BellRecord) {
+        guard let collection = fetchEntity(named: "CollectionEntity", by: bell.item.collectionID) else { return }
+
+        let item = upsertItemEntity(for: bell.item, in: collection)
+        let entity = fetchBellEntity(by: bell.id) ?? makeEntity(named: "BellEntity")
+        apply(bell, to: entity)
+        entity.setValue(item, forKey: "item")
+        fillInverseRelationship(from: entity, relationshipName: "item", with: item)
+    }
+
+    private func upsertItemEntity(for item: ItemRecord, in collection: NSManagedObject) -> NSManagedObject {
+        let entity = fetchEntity(named: "ItemEntity", by: item.id) ?? makeEntity(named: "ItemEntity")
+        apply(item, to: entity)
+        entity.setValue(collection, forKey: "collection")
+
+        let collectionLocation = item.locationID.flatMap { fetchCollectionLocation(in: collection, by: $0) }
+        let sourceLocationID = collectionLocation?.value(forKey: "sourceLocationID") as? UUID
+        entity.setValue(collectionLocation, forKey: "collectionLocation")
+        entity.setValue(sourceLocationID.flatMap { fetchEntity(named: "LocationEntity", by: $0) }, forKey: "location")
+        entity.setValue(item.originPlace.map(upsertPlace), forKey: "originPlace")
+        replaceMediaAssets(item.mediaAssets, for: entity)
+        replaceTags(item.tags, for: entity)
+        return entity
+    }
+
     private func upsertPlace(_ place: Place) -> NSManagedObject {
         let entity = fetchEntity(named: "PlaceEntity", by: place.id) ?? makeEntity(named: "PlaceEntity")
         entity.setValue(place.id, forKey: "id")
@@ -219,9 +237,9 @@ final class CoreDataCatalogRepository: CatalogRepository {
         return entity
     }
 
-    private func replaceTags(_ tags: [String], for bell: NSManagedObject) {
-        guard let collection = bell.value(forKey: "collection") as? NSManagedObject else {
-            bell.setValue(Set<NSManagedObject>(), forKey: "tags")
+    private func replaceTags(_ tags: [String], for item: NSManagedObject) {
+        guard let collection = item.value(forKey: "collection") as? NSManagedObject else {
+            item.setValue(Set<NSManagedObject>(), forKey: "tags")
             return
         }
 
@@ -230,7 +248,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
             let normalizedName = normalizedTagName(tag)
             guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
 
-            let entity = tagEntity(named: tag, normalizedName: normalizedName, in: collection, sortOrder: index)
+            let entity = itemTagEntity(named: tag, normalizedName: normalizedName, in: collection, sortOrder: index)
             guard entity.value(forKey: "collection") as? NSManagedObject == collection else {
                 logger.error("Cross-collection tag detected: \(tag)")
                 return nil
@@ -238,12 +256,12 @@ final class CoreDataCatalogRepository: CatalogRepository {
             return entity
         }
 
-        bell.setValue(Set(newTags), forKey: "tags")
-        deleteOrphanBellTags()
+        item.setValue(Set(newTags), forKey: "tags")
+        deleteOrphanItemTags()
     }
 
-    private func replaceMediaAssets(_ mediaAssets: [MediaAsset], for bell: NSManagedObject) {
-        let existingAssets = (bell.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []
+    private func replaceMediaAssets(_ mediaAssets: [MediaAsset], for item: NSManagedObject) {
+        let existingAssets = (item.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []
         existingAssets.forEach(context.delete)
 
         let newAssets = mediaAssets.map { asset in
@@ -263,11 +281,14 @@ final class CoreDataCatalogRepository: CatalogRepository {
             entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
             entity.setValue(asset.thumbnailData, forKey: "thumbnailData")
             entity.setValue(asset.originalData, forKey: "originalData")
-            entity.setValue(bell, forKey: "bell")
+            if entity.entity.attributesByName["itemID"] != nil {
+                entity.setValue(item.value(forKey: "id"), forKey: "itemID")
+            }
+            entity.setValue(item, forKey: "item")
             return entity
         }
 
-        bell.setValue(Set(newAssets), forKey: "mediaAssets")
+        item.setValue(Set(newAssets), forKey: "mediaAssets")
     }
 
     private func home(from entity: NSManagedObject) -> Home {
@@ -304,17 +325,25 @@ final class CoreDataCatalogRepository: CatalogRepository {
         }
     }
 
-    private func tagEntity(
+    private func fetchBellEntity(by itemID: UUID) -> NSManagedObject? {
+        fetchEntities(
+            named: "BellEntity",
+            predicate: NSPredicate(format: "item.id == %@ OR id == %@", itemID as NSUUID, itemID as NSUUID),
+            fetchLimit: 1
+        ).first
+    }
+
+    private func itemTagEntity(
         named value: String,
         normalizedName: String,
         in collection: NSManagedObject,
         sortOrder: Int
     ) -> NSManagedObject {
         let entity = fetchEntities(
-            named: "BellTagEntity",
+            named: "ItemTagEntity",
             predicate: NSPredicate(format: "normalizedName == %@ AND collection == %@", normalizedName, collection),
             fetchLimit: 1
-        ).first ?? makeEntity(named: "BellTagEntity")
+        ).first ?? makeEntity(named: "ItemTagEntity")
 
         if entity.value(forKey: "id") == nil {
             entity.setValue(UUID(), forKey: "id")
@@ -324,40 +353,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(sortOrder, forKey: "sortOrder")
         entity.setValue(collection, forKey: "collection")
         return entity
-    }
-
-    private func cleanupBellTags() {
-        for tag in fetchEntities(named: "BellTagEntity") {
-            let normalizedName = normalizedTagName(stringValue(tag, "value"))
-            tag.setValue(normalizedName, forKey: "normalizedName")
-        }
-
-        for bell in fetchEntities(named: "BellEntity") {
-            guard let collection = bell.value(forKey: "collection") as? NSManagedObject else { continue }
-
-            var seenNormalizedNames = Set<String>()
-            let scopedTags = relatedObjects(bell, "tags").compactMap { tag -> NSManagedObject? in
-                let value = stringValue(tag, "value")
-                let normalizedName = normalizedTagName(value)
-                guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
-
-                if tag.value(forKey: "collection") as? NSManagedObject == collection {
-                    return tag
-                }
-
-                logger.error("Cross-collection tag detected: \(value)")
-                return tagEntity(
-                    named: value,
-                    normalizedName: normalizedName,
-                    in: collection,
-                    sortOrder: intValue(tag, "sortOrder")
-                )
-            }
-
-            bell.setValue(Set(scopedTags), forKey: "tags")
-        }
-
-        deleteOrphanBellTags()
     }
 
     private func migrateExistingBellsToItems() {
@@ -470,8 +465,8 @@ final class CoreDataCatalogRepository: CatalogRepository {
         }
     }
 
-    private func deleteOrphanBellTags() {
-        for tag in fetchEntities(named: "BellTagEntity") where relatedObjects(tag, "bells").isEmpty {
+    private func deleteOrphanItemTags() {
+        for tag in fetchEntities(named: "ItemTagEntity") where relatedObjects(tag, "items").isEmpty {
             context.delete(tag)
         }
     }
@@ -533,7 +528,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
                 continue
             }
 
-            if relatedObjects(entity, "bells").isEmpty {
+            if relatedObjects(entity, "bells").isEmpty && relatedObjects(entity, "items").isEmpty {
                 context.delete(entity)
             } else {
                 entity.setValue(true, forKey: "isArchived")
@@ -541,20 +536,20 @@ final class CoreDataCatalogRepository: CatalogRepository {
             }
         }
 
-        backfillBellCollectionLocations(in: collection)
+        backfillItemCollectionLocations(in: collection)
     }
 
-    private func backfillBellCollectionLocations(in collection: NSManagedObject) {
-        for bell in relatedObjects(collection, "bells") {
-            guard bell.value(forKey: "collectionLocation") == nil else { continue }
-            guard let location = bell.value(forKey: "location") as? NSManagedObject else { continue }
-            bell.setValue(fetchCollectionLocation(in: collection, by: uuidValue(location, "id")), forKey: "collectionLocation")
+    private func backfillItemCollectionLocations(in collection: NSManagedObject) {
+        for item in relatedObjects(collection, "items") {
+            guard item.value(forKey: "collectionLocation") == nil else { continue }
+            guard let location = item.value(forKey: "location") as? NSManagedObject else { continue }
+            item.setValue(fetchCollectionLocation(in: collection, by: uuidValue(location, "id")), forKey: "collectionLocation")
         }
     }
 
     private func clearCollectionLocations(in collection: NSManagedObject) {
-        for bell in relatedObjects(collection, "bells") {
-            bell.setValue(nil, forKey: "collectionLocation")
+        for item in relatedObjects(collection, "items") {
+            item.setValue(nil, forKey: "collectionLocation")
         }
 
         relatedObjects(collection, "collectionLocations").forEach(context.delete)
