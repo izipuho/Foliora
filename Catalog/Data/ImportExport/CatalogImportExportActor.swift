@@ -134,7 +134,7 @@ final class CatalogImportExportActor {
                     guard let collection = $0.value(forKey: "collection") as? NSManagedObject else { return false }
                     return collectionIDs.contains(uuidValue(collection, "id"))
                 }
-                .map(bellRecord)
+                .map(CoreDataDomainMapper.bellRecord)
 
         case .homes(let ids):
             exportedHomeEntities = homeEntities.filter {
@@ -162,7 +162,7 @@ final class CatalogImportExportActor {
 
         return CatalogTransferBundle(
             homes: exportedHomeEntities.map(home),
-            locations: exportedLocationEntities.map(location),
+            locations: exportedLocationEntities.map(CoreDataDomainMapper.location),
             collections: exportedCollectionEntities.map(collection),
             places: [],
             bellItems: bellItems
@@ -656,17 +656,6 @@ final class CatalogImportExportActor {
         )
     }
 
-    private func location(from entity: NSManagedObject) -> Location {
-        Location(
-            id: uuidValue(entity, "id"),
-            homeID: locationHomeID(from: entity),
-            parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
-            kind: LocationKind(rawValue: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)) ?? .room,
-            name: stringValue(entity, "name"),
-            notes: stringValue(entity, "notes")
-        )
-    }
-
     private func collection(from entity: NSManagedObject) -> Collection {
         Collection(
             id: uuidValue(entity, "id"),
@@ -698,93 +687,6 @@ final class CatalogImportExportActor {
         }
 
         return UUID()
-    }
-
-    private func place(from entity: NSManagedObject) -> Place {
-        Place(
-            id: uuidValue(entity, "id"),
-            displayName: stringValue(entity, "displayName"),
-            countryCode: stringValue(entity, "countryCode"),
-            countryName: stringValue(entity, "countryName"),
-            regionName: entity.value(forKey: "regionName") as? String,
-            cityName: entity.value(forKey: "cityName") as? String,
-            latitude: optionalDoubleValue(entity, "latitude"),
-            longitude: optionalDoubleValue(entity, "longitude")
-        )
-    }
-
-    private func bellRecord(from entity: NSManagedObject) -> BellRecord {
-        let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
-            ?? entity.value(forKey: "location") as? NSManagedObject
-        let originPlaceEntity = entity.value(forKey: "originPlace") as? NSManagedObject
-        let tags = ((entity.value(forKey: "tags") as? Set<NSManagedObject>) ?? [])
-            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-            .map { stringValue($0, "value") }
-        let mediaAssets = ((entity.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? [])
-            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-            .map { mediaAsset(from: $0, itemID: uuidValue(entity, "id")) }
-
-        return BellRecord(
-            item: ItemRecord(
-                id: uuidValue(entity, "id"),
-                collectionID: (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
-                locationID: locationEntity.map { uuidValue($0, "id") },
-                originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
-                createdAt: dateValue(entity, "createdAt"),
-                createdBy: stringValue(entity, "createdBy"),
-                title: stringValue(entity, "title"),
-                notes: stringValue(entity, "notes"),
-                acquiredYear: optionalIntValue(entity, "acquiredYear"),
-                condition: ItemCondition(rawValue: stringValue(entity, "conditionRaw", default: ItemCondition.good.rawValue)) ?? .good,
-                acquisitionMethod: AcquisitionMethod(
-                    rawValue: stringValue(entity, "acquisitionMethodRaw", default: AcquisitionMethod.bought.rawValue)
-                ) ?? .other,
-                isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
-                tags: tags,
-                originPlace: originPlaceEntity.map(place),
-                storageLocation: locationEntity.map(location),
-                storagePath: locationEntity.map(storagePath) ?? "",
-                mediaAssets: mediaAssets
-            ),
-            details: BellDetails(
-                itemID: uuidValue(entity, "id"),
-                material: BellMaterial(rawValue: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)) ?? .unknown,
-                customMaterialName: entity.value(forKey: "customMaterialName") as? String
-            )
-        )
-    }
-
-    private func mediaAsset(from entity: NSManagedObject, itemID: UUID) -> MediaAsset {
-        MediaAsset(
-            id: uuidValue(entity, "id"),
-            itemID: itemID,
-            kind: MediaKind(rawValue: stringValue(entity, "kindRaw", default: MediaKind.photo.rawValue)) ?? .photo,
-            localIdentifier: stringValue(entity, "localIdentifier"),
-            displayName: entity.value(forKey: "displayName") as? String,
-            sortOrder: intValue(entity, "sortOrder"),
-            fileName: entity.value(forKey: "fileName") as? String,
-            mimeType: entity.value(forKey: "mimeType") as? String,
-            byteSize: optionalIntValue(entity, "byteSize"),
-            checksum: entity.value(forKey: "checksum") as? String,
-            width: optionalIntValue(entity, "width"),
-            height: optionalIntValue(entity, "height"),
-            duration: optionalDoubleValue(entity, "duration"),
-            metadataJSON: entity.value(forKey: "metadataJSON") as? String,
-            thumbnailData: nil,
-            originalData: entity.value(forKey: "originalData") as? Data
-        )
-    }
-
-    private func storagePath(from entity: NSManagedObject) -> String {
-        var parts: [String] = []
-        var current: NSManagedObject? = entity
-
-        while let location = current {
-            parts.insert(stringValue(location, "name"), at: 0)
-            current = location.value(forKey: "parent") as? NSManagedObject
-        }
-
-        return parts.joined(separator: " / ")
     }
 
     private struct LocationKey: Hashable {
@@ -904,27 +806,11 @@ final class CatalogImportExportActor {
             .lowercased()
     }
 
-    private func intValue(_ entity: NSManagedObject, _ key: String) -> Int {
-        optionalIntValue(entity, key) ?? 0
-    }
-
-    private func optionalIntValue(_ entity: NSManagedObject, _ key: String) -> Int? {
-        if let value = entity.value(forKey: key) as? Int {
-            return value
-        }
-
-        return (entity.value(forKey: key) as? NSNumber)?.intValue
-    }
-
     private func optionalDoubleValue(_ entity: NSManagedObject, _ key: String) -> Double? {
         if let value = entity.value(forKey: key) as? Double {
             return value
         }
 
         return (entity.value(forKey: key) as? NSNumber)?.doubleValue
-    }
-
-    private func dateValue(_ entity: NSManagedObject, _ key: String) -> Date {
-        entity.value(forKey: key) as? Date ?? Date()
     }
 }
