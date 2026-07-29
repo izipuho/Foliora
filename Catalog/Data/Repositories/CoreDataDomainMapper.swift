@@ -6,6 +6,44 @@ import Foundation
 /// Centralizes all Core Data → domain mapping used by repositories,
 /// snapshot loaders, and import/export.
 enum CoreDataDomainMapper {
+    static func itemRecord(from entity: NSManagedObject) -> ItemRecord {
+        let id = uuidValue(entity, "id")
+        let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
+            ?? entity.value(forKey: "location") as? NSManagedObject
+        let originPlaceEntity = entity.value(forKey: "originPlace") as? NSManagedObject
+        let tags = relatedObjects(entity, "tags")
+            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+            .map { stringValue($0, "value") }
+        let mediaAssets = relatedObjects(entity, "mediaAssets")
+            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+            .map { mediaAsset(from: $0, itemID: id) }
+        let acquiredYearKey = entity.entity.attributesByName["acquiredYear"] == nil ? "acquisitionYear" : "acquiredYear"
+        let conditionKey = entity.entity.attributesByName["conditionRaw"] == nil ? "condition" : "conditionRaw"
+        let acquisitionMethodKey = entity.entity.attributesByName["acquisitionMethodRaw"] == nil
+            ? "acquisitionMethod"
+            : "acquisitionMethodRaw"
+
+        return ItemRecord(
+            id: id,
+            collectionID: (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            locationID: locationEntity.map { uuidValue($0, "id") },
+            originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
+            createdAt: dateValue(entity, "createdAt"),
+            createdBy: stringValue(entity, "createdBy"),
+            title: stringValue(entity, "title"),
+            notes: stringValue(entity, "notes"),
+            acquiredYear: optionalIntValue(entity, acquiredYearKey),
+            condition: itemCondition(from: stringValue(entity, conditionKey, default: ItemCondition.good.rawValue)),
+            acquisitionMethod: acquisitionMethod(from: stringValue(entity, acquisitionMethodKey, default: AcquisitionMethod.bought.rawValue)),
+            isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
+            tags: tags,
+            originPlace: originPlaceEntity.map(place),
+            storageLocation: locationEntity.map(location),
+            storagePath: locationEntity.map(storagePath) ?? "",
+            mediaAssets: mediaAssets
+        )
+    }
+
     static func place(from entity: NSManagedObject) -> Place {
         Place(
             id: uuidValue(entity, "id"),
@@ -115,7 +153,27 @@ enum CoreDataDomainMapper {
         LocationKind(rawValue: rawValue) ?? .room
     }
 
+    private static func itemCondition(from rawValue: String) -> ItemCondition {
+        ItemCondition(rawValue: rawValue) ?? .good
+    }
+
+    private static func acquisitionMethod(from rawValue: String) -> AcquisitionMethod {
+        AcquisitionMethod(rawValue: rawValue) ?? .other
+    }
+
     private static func mediaKind(from rawValue: String) -> MediaKind {
         MediaKind(rawValue: rawValue) ?? .photo
+    }
+
+    private static func storagePath(from entity: NSManagedObject) -> String {
+        var parts: [String] = []
+        var current: NSManagedObject? = entity
+
+        while let location = current {
+            parts.insert(stringValue(location, "name"), at: 0)
+            current = location.value(forKey: "parent") as? NSManagedObject
+        }
+
+        return parts.joined(separator: " / ")
     }
 }
