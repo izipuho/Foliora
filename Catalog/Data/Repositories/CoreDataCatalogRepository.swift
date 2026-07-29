@@ -279,17 +279,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
         )
     }
 
-    private func location(from entity: NSManagedObject) -> Location {
-        Location(
-            id: uuidValue(entity, "id"),
-            homeID: locationHomeID(from: entity),
-            parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
-            kind: locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)),
-            name: stringValue(entity, "name"),
-            notes: stringValue(entity, "notes")
-        )
-    }
-
     private func collection(from entity: NSManagedObject) -> Collection {
         Collection(
             id: uuidValue(entity, "id"),
@@ -299,103 +288,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
             notes: stringValue(entity, "notes"),
             backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyleRaw", default: CollectionBackgroundStyle.amber.rawValue))
         )
-    }
-
-    private func bellRecord(from entity: NSManagedObject) -> BellRecord {
-        let itemEntity = entity.value(forKey: "item") as? NSManagedObject ?? entity
-
-        return BellRecord(
-            item: itemRecord(from: itemEntity),
-            details: BellDetails(
-                itemID: uuidValue(entity, "id"),
-                material: bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)),
-                customMaterialName: entity.value(forKey: "customMaterialName") as? String
-            )
-        )
-    }
-
-    private func itemRecord(from entity: NSManagedObject) -> ItemRecord {
-        let id = uuidValue(entity, "id")
-        let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
-            ?? entity.value(forKey: "location") as? NSManagedObject
-        let originPlaceEntity = entity.value(forKey: "originPlace") as? NSManagedObject
-        let tags = ((entity.value(forKey: "tags") as? Set<NSManagedObject>) ?? [])
-            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-            .map { stringValue($0, "value") }
-        let mediaAssets = ((entity.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? [])
-            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-            .map { mediaAsset(from: $0, itemID: id) }
-        let acquiredYearKey = entity.entity.attributesByName["acquiredYear"] == nil ? "acquisitionYear" : "acquiredYear"
-        let conditionKey = entity.entity.attributesByName["conditionRaw"] == nil ? "condition" : "conditionRaw"
-        let acquisitionMethodKey = entity.entity.attributesByName["acquisitionMethodRaw"] == nil
-            ? "acquisitionMethod"
-            : "acquisitionMethodRaw"
-
-        return ItemRecord(
-            id: id,
-            collectionID: (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
-            locationID: locationEntity.map { uuidValue($0, "id") },
-            originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
-            createdAt: dateValue(entity, "createdAt"),
-            createdBy: stringValue(entity, "createdBy"),
-            title: stringValue(entity, "title"),
-            notes: stringValue(entity, "notes"),
-            acquiredYear: optionalIntValue(entity, acquiredYearKey),
-            condition: itemCondition(from: stringValue(entity, conditionKey, default: ItemCondition.good.rawValue)),
-            acquisitionMethod: acquisitionMethod(from: stringValue(entity, acquisitionMethodKey, default: AcquisitionMethod.bought.rawValue)),
-            isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
-            tags: tags,
-            originPlace: originPlaceEntity.map(place),
-            storageLocation: locationEntity.map(location),
-            storagePath: locationEntity.map(storagePath) ?? "",
-            mediaAssets: mediaAssets
-        )
-    }
-
-    private func place(from entity: NSManagedObject) -> Place {
-        Place(
-            id: uuidValue(entity, "id"),
-            displayName: stringValue(entity, "displayName"),
-            countryCode: stringValue(entity, "countryCode"),
-            countryName: stringValue(entity, "countryName"),
-            regionName: entity.value(forKey: "regionName") as? String,
-            cityName: entity.value(forKey: "cityName") as? String,
-            latitude: entity.value(forKey: "latitude") as? Double,
-            longitude: entity.value(forKey: "longitude") as? Double
-        )
-    }
-
-    private func mediaAsset(from entity: NSManagedObject, itemID: UUID) -> MediaAsset {
-        MediaAsset(
-            id: uuidValue(entity, "id"),
-            itemID: itemID,
-            kind: mediaKind(from: stringValue(entity, "kindRaw", default: MediaKind.photo.rawValue)),
-            localIdentifier: stringValue(entity, "localIdentifier"),
-            displayName: entity.value(forKey: "displayName") as? String,
-            sortOrder: intValue(entity, "sortOrder"),
-            fileName: entity.value(forKey: "fileName") as? String,
-            mimeType: entity.value(forKey: "mimeType") as? String,
-            byteSize: optionalIntValue(entity, "byteSize"),
-            checksum: entity.value(forKey: "checksum") as? String,
-            width: optionalIntValue(entity, "width"),
-            height: optionalIntValue(entity, "height"),
-            duration: optionalDoubleValue(entity, "duration"),
-            metadataJSON: entity.value(forKey: "metadataJSON") as? String,
-            thumbnailData: entity.value(forKey: "thumbnailData") as? Data,
-            originalData: entity.value(forKey: "originalData") as? Data
-        )
-    }
-
-    private func storagePath(from entity: NSManagedObject) -> String {
-        var parts: [String] = []
-        var current: NSManagedObject? = entity
-
-        while let location = current {
-            parts.insert(stringValue(location, "name"), at: 0)
-            current = location.value(forKey: "parent") as? NSManagedObject
-        }
-
-        return parts.joined(separator: " / ")
     }
 
     private func makeEntity(named entityName: String) -> NSManagedObject {
@@ -596,23 +488,9 @@ final class CoreDataCatalogRepository: CatalogRepository {
             ?? UUID()
     }
 
-    private func locationHomeID(from entity: NSManagedObject) -> UUID {
-        if entity.entity.name == "LocationEntity",
-           let home = entity.value(forKey: "home") as? NSManagedObject {
-            return uuidValue(home, "id")
-        }
-
-        if entity.entity.name == "CollectionLocationEntity",
-           let collection = entity.value(forKey: "collection") as? NSManagedObject {
-            return collectionHomeID(from: collection)
-        }
-
-        return UUID()
-    }
-
     private func locations(in home: NSManagedObject) -> [Location] {
         relatedObjects(home, "locations")
-            .map(location)
+            .map { CoreDataDomainMapper.location(from: $0) }
             .sorted { lhs, rhs in
                 lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
             }
@@ -751,44 +629,12 @@ final class CoreDataCatalogRepository: CatalogRepository {
         return (entity.value(forKey: key) as? NSNumber)?.intValue
     }
 
-    private func optionalDoubleValue(_ entity: NSManagedObject, _ key: String) -> Double? {
-        if let value = entity.value(forKey: key) as? Double {
-            return value
-        }
-
-        return (entity.value(forKey: key) as? NSNumber)?.doubleValue
-    }
-
-    private func dateValue(_ entity: NSManagedObject, _ key: String) -> Date {
-        entity.value(forKey: key) as? Date ?? Date()
-    }
-
-    private func locationKind(from rawValue: String) -> LocationKind {
-        LocationKind(rawValue: rawValue) ?? .room
-    }
-
     private func collectionKind(from rawValue: String) -> CollectionKind {
         CollectionKind(rawValue: rawValue) ?? .bells
     }
 
     private func collectionBackgroundStyle(from rawValue: String) -> CollectionBackgroundStyle {
         CollectionBackgroundStyle(rawValue: rawValue) ?? .amber
-    }
-
-    private func itemCondition(from rawValue: String) -> ItemCondition {
-        ItemCondition(rawValue: rawValue) ?? .good
-    }
-
-    private func acquisitionMethod(from rawValue: String) -> AcquisitionMethod {
-        AcquisitionMethod(rawValue: rawValue) ?? .other
-    }
-
-    private func bellMaterial(from rawValue: String) -> BellMaterial {
-        BellMaterial(rawValue: rawValue) ?? .unknown
-    }
-
-    private func mediaKind(from rawValue: String) -> MediaKind {
-        MediaKind(rawValue: rawValue) ?? .photo
     }
 
     private func saveContext() {
