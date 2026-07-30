@@ -130,16 +130,9 @@ enum FolioraCoreDataStack {
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
 
-        var result: Result<Void, Error> = .success(())
-        context.performAndWait {
-            do {
-                try migrateExistingBellsToItems(in: context)
-                result = .success(())
-            } catch {
-                result = .failure(error)
-            }
+        try context.performAndWait {
+            try migrateExistingBellsToItems(in: context)
         }
-        try result.get()
     }
 
     private static func migrateExistingBellsToItems(in context: NSManagedObjectContext) throws {
