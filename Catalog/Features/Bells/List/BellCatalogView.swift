@@ -325,6 +325,17 @@ struct BellCatalogView: View {
                     }
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
+
+                ToolbarItem(placement: .principal) {
+                    Text(
+                        String.localizedStringWithFormat(
+                            String(localized: "bell_catalog.selection.selected_count"),
+                            selectedVisibleBellIDs.count
+                        )
+                    )
+                    .lineLimit(1)
+                    .contentTransition(.numericText())
+                }
             }
 
             if canEditCollection && isSelectionModeEnabled && !selectedVisibleBellIDs.isEmpty {
@@ -339,21 +350,6 @@ struct BellCatalogView: View {
 
                 ToolbarSpacer(.flexible, placement: .bottomBar)
                 
-                ToolbarItem(placement: .status) {
-                    Text(
-                        String.localizedStringWithFormat(
-                            //String(localized: "bell_catalog.selection.selected_count"), //Dunno how to place long text
-                            String(localized: "%lld"),
-                            selectedVisibleBellIDs.count
-                        )
-                    )
-                    .lineLimit(1)
-                    .contentTransition(.numericText())
-                }
-                .sharedBackgroundVisibility(.hidden)
-
-                ToolbarSpacer(.flexible, placement: .bottomBar)
-
                 ToolbarItem(placement: .bottomBar) {
                     Button(role: .destructive) {
                         bellPendingDeletion = selectedBells.first

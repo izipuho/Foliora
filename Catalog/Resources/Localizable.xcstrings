@@ -488,7 +488,6 @@
       }
     },
     "bell_catalog.selection.selected_count" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
