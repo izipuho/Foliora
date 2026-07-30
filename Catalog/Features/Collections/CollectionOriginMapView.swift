@@ -212,25 +212,29 @@ private struct MapSelectionPanel: View {
 
     var body: some View {
         GeometryReader { proxy in
-            CatalogCardStrip(
-                layoutMode: .mini,
-                screenWidth: proxy.size.width,
-                horizontalPadding: CatalogMetrics.Insets.screen
-            ) { cardSize, cardMetrics in
-                ForEach(bells, id: \.id) { bell in
-                    let style = CatalogCardContentStyle.style(for: .mini)
+            VStack {
+                Spacer(minLength: 0)
 
-                    Button {
-                        presentedBell = bell
-                    } label: {
-                        BellCardView(
-                            bell: bell,
-                            style: style,
-                            cardSize: cardSize,
-                            cardMetrics: cardMetrics
-                        )
+                CatalogCardStrip(
+                    layoutMode: .mini,
+                    screenWidth: proxy.size.width,
+                    horizontalPadding: CatalogMetrics.Insets.screen
+                ) { cardSize, cardMetrics in
+                    ForEach(bells, id: \.id) { bell in
+                        let style = CatalogCardContentStyle.style(for: .mini)
+
+                        Button {
+                            presentedBell = bell
+                        } label: {
+                            BellCardView(
+                                bell: bell,
+                                style: style,
+                                cardSize: cardSize,
+                                cardMetrics: cardMetrics
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
