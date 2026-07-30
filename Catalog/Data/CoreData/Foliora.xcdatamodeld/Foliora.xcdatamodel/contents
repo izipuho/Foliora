@@ -134,4 +134,11 @@
         <relationship name="bells" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BellEntity" inverseName="originPlace" inverseEntity="BellEntity"/>
         <relationship name="items" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="originPlace" inverseEntity="ItemEntity"/>
     </entity>
+    <entity name="UserSortOrderEntity" representedClassName="UserSortOrderEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="itemID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="scope" optional="YES" attributeType="String"/>
+        <attribute name="sortOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
 </model>
