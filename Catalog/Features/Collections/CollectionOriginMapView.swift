@@ -212,15 +212,29 @@ private struct MapSelectionPanel: View {
 
     var body: some View {
         GeometryReader { proxy in
-            BellStripView(
-                bells: bells,
-                screenWidth: proxy.size.width
-            ) { bell in
-                presentedBell = bell
+            CatalogCardStrip(
+                layoutMode: .mini,
+                screenWidth: proxy.size.width,
+                horizontalPadding: CatalogMetrics.Insets.screen
+            ) { cardSize, cardMetrics in
+                ForEach(bells, id: \.id) { bell in
+                    let style = CatalogCardContentStyle.style(for: .mini)
+
+                    Button {
+                        presentedBell = bell
+                    } label: {
+                        BellCardView(
+                            bell: bell,
+                            style: style,
+                            cardSize: cardSize,
+                            cardMetrics: cardMetrics
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .padding(.horizontal, CatalogMetrics.Insets.screen)
         }
-        .frame(height: bells.count == 1 ? CatalogCardLayoutMode.wide.cardMetrics.cardHeight : CatalogCardLayoutMode.mini.cardMetrics.cardHeight)
+        .frame(height: CatalogCardLayoutMode.mini.cardMetrics.cardHeight)
         .sheet(item: $presentedBell) { bell in
             BellDetailSheetContainer(bell: bell, repository: repository)
                 .presentationDragIndicator(.visible)
