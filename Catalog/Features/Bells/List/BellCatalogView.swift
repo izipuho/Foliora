@@ -526,13 +526,27 @@ struct BellCatalogView: View {
             }
 
             if !isFavoritesCollapsed {
-                BellStripView(
-                    bells: bells,
-                    screenWidth: screenWidth
-                ) { bell in
-                    onBellSelected?(bell.id)
+                CatalogCardStrip(
+                    layoutMode: layoutMode,
+                    screenWidth: screenWidth,
+                    horizontalPadding: CatalogMetrics.Insets.screen
+                ) { cardSize, cardMetrics in
+                    ForEach(bells, id: \.id) { bell in
+                        let style = CatalogCardContentStyle.style(for: layoutMode)
+
+                        Button {
+                            onBellSelected?(bell.id)
+                        } label: {
+                            BellCardView(
+                                bell: bell,
+                                style: style,
+                                cardSize: cardSize,
+                                cardMetrics: cardMetrics
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .padding(.horizontal, CatalogMetrics.Insets.screen)
             }
         }
     }

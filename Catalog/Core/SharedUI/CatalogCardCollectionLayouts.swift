@@ -108,6 +108,7 @@ struct CatalogCardStrip<Content: View>: View {
             }
             .padding(.horizontal, horizontalPadding)
         }
+        .scrollClipDisabled()
         .frame(height: cardSize.height)
     }
 }

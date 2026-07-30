@@ -30,7 +30,6 @@
 		24374F4A2FFD10E300E83899 /* CatalogCardLayoutMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */; };
 		24374F4C2FFD302200E83899 /* CatalogCardContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */; };
 		24374F4E2FFE270900E83899 /* CatalogCardCollectionLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */; };
-		24374F562FFE655800E83899 /* BellStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F552FFE655200E83899 /* BellStripView.swift */; };
 		244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0472FB465CF00B4D805 /* SettingsView.swift */; };
 		246D3FC530011A26000515FD /* ShareInvitationStatusOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */; };
 		246D3FC9300508F7000515FD /* CatalogImportExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246D3FC8300508ED000515FD /* CatalogImportExportView.swift */; };
@@ -112,7 +111,6 @@
 		24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardLayoutMode.swift; sourceTree = "<group>"; };
 		24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardContent.swift; sourceTree = "<group>"; };
 		24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardCollectionLayouts.swift; sourceTree = "<group>"; };
-		24374F552FFE655200E83899 /* BellStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellStripView.swift; sourceTree = "<group>"; };
 		244FE0472FB465CF00B4D805 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareInvitationStatusOverlay.swift; sourceTree = "<group>"; };
 		246D3FC8300508ED000515FD /* CatalogImportExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportView.swift; sourceTree = "<group>"; };
@@ -445,7 +443,6 @@
 		C00000000000000000000045 /* List */ = {
 			isa = PBXGroup;
 			children = (
-				24374F552FFE655200E83899 /* BellStripView.swift */,
 				249A28392FDC3A61009A0E03 /* BellCatalogSnapshot.swift */,
 				2403CED92F9F945700C63AB6 /* SearchTabView.swift */,
 				246FD6872FA8CE2A00B8859A /* BellListItem.swift */,
@@ -674,7 +671,6 @@
 				C000000000000000000000AF /* BellDetailView.swift in Sources */,
 				D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */,
 				24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */,
-				24374F562FFE655800E83899 /* BellStripView.swift in Sources */,
 				24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */,
 				2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */,
 				24374F462FF7F0AA00E83899 /* CatalogShapes.swift in Sources */,
