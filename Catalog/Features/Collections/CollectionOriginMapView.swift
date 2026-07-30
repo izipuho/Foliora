@@ -234,7 +234,6 @@ private struct MapSelectionPanel: View {
                 }
             }
         }
-        .frame(height: CatalogCardLayoutMode.mini.cardMetrics.cardHeight)
         .sheet(item: $presentedBell) { bell in
             BellDetailSheetContainer(bell: bell, repository: repository)
                 .presentationDragIndicator(.visible)
