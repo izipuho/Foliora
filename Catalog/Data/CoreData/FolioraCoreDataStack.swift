@@ -5,8 +5,6 @@ import Foundation
 enum FolioraCoreDataStack {
     static let modelName = "Foliora"
     static let cloudKitContainerIdentifier = "iCloud.com.izipuho.FolioraBells"
-    private static let cloudKitEnvironmentKey = "CLOUDKIT_ENVIRONMENT"
-    private static let lastCloudKitEnvironmentKey = "FolioraCoreDataStack.lastCloudKitEnvironment"
 
     static func makeContainer(inMemory: Bool = false) throws -> NSPersistentCloudKitContainer {
         let model = try managedObjectModel()
@@ -58,10 +56,6 @@ enum FolioraCoreDataStack {
         inMemory: Bool,
         usesCloudKit: Bool
     ) throws {
-        if !inMemory && usesCloudKit {
-            try clearLocalStoresIfNeeded(for: container)
-        }
-
         container.persistentStoreDescriptions = try storeDescriptions(
             inMemory: inMemory,
             usesCloudKit: usesCloudKit
@@ -129,61 +123,15 @@ enum FolioraCoreDataStack {
         try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
         return baseURL.appendingPathComponent(fileName)
     }
-
-    private static func clearLocalStoresIfNeeded(for container: NSPersistentCloudKitContainer) throws {
-        let currentEnvironment = try currentCloudKitEnvironment()
-        let defaults = UserDefaults.standard
-        let previousEnvironment = defaults.string(forKey: lastCloudKitEnvironmentKey)
-
-        guard let previousEnvironment else {
-            defaults.set(currentEnvironment, forKey: lastCloudKitEnvironmentKey)
-            return
-        }
-
-        guard previousEnvironment != currentEnvironment else {
-            return
-        }
-
-        let coordinator = NSPersistentStoreCoordinator(managedObjectModel: container.managedObjectModel)
-        let descriptions = try storeDescriptions(inMemory: false, usesCloudKit: true)
-
-        for description in descriptions {
-            guard let url = description.url, FileManager.default.fileExists(atPath: url.path) else {
-                continue
-            }
-
-            try coordinator.destroyPersistentStore(
-                at: url,
-                ofType: description.type,
-                options: description.options
-            )
-        }
-
-        defaults.set(currentEnvironment, forKey: lastCloudKitEnvironmentKey)
-    }
-
-    private static func currentCloudKitEnvironment() throws -> String {
-        let environment = Bundle.main.object(forInfoDictionaryKey: cloudKitEnvironmentKey) as? String
-
-        guard let environment = environment?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !environment.isEmpty else {
-            throw FolioraCoreDataStackError.missingCloudKitEnvironment(cloudKitEnvironmentKey)
-        }
-
-        return environment
-    }
 }
 
 enum FolioraCoreDataStackError: LocalizedError {
     case modelNotFound(String)
-    case missingCloudKitEnvironment(String)
 
     var errorDescription: String? {
         switch self {
         case .modelNotFound(let modelName):
             "Core Data model \(modelName).momd was not found."
-        case .missingCloudKitEnvironment(let key):
-            "Missing required CloudKit environment build setting \(key)."
         }
     }
 }
