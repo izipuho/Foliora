@@ -16,8 +16,8 @@ struct PhotoAnalysisSettingsView: View {
     var body: some View {
         Form {
             Section {
-                settingsRow("Translation Language", targetLanguageName)
-                settingsRow("Language Model Status", preparationStateText)
+                settingsRow(String(localized: "translation.language"), targetLanguageName)
+                settingsRow(String(localized: "translation.model_status"), preparationStateText)
             }
 
             if preparationState == .needsDownload {

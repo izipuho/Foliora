@@ -48,6 +48,7 @@
 		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
 		24D9EB9030115CE8009DB654 /* PhotoAnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */; };
 		24D9EBC630138F2D009DB654 /* MediaSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EBC530138F28009DB654 /* MediaSection.swift */; };
+		24D9EC173019D7B6009DB654 /* CoreDataDomainMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */; };
 		24F1A4542FD6B4CF00FC1717 /* LaunchScreenBells.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4532FD6B4CF00FC1717 /* LaunchScreenBells.storyboard */; };
 		24F1A4662FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4652FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard */; };
 		24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */; };
@@ -127,6 +128,7 @@
 		24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogDashboard.swift; sourceTree = "<group>"; };
 		24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysisSettingsView.swift; sourceTree = "<group>"; };
 		24D9EBC530138F28009DB654 /* MediaSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSection.swift; sourceTree = "<group>"; };
+		24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataDomainMapper.swift; sourceTree = "<group>"; };
 		24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Bells.entitlements"; sourceTree = "<group>"; };
 		24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Bells-Info.plist"; sourceTree = "<group>"; };
 		24F1A4532FD6B4CF00FC1717 /* LaunchScreenBells.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreenBells.storyboard; sourceTree = "<group>"; };
@@ -394,6 +396,7 @@
 		C0000000000000000000003F /* Repositories */ = {
 			isa = PBXGroup;
 			children = (
+				24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */,
 				24374F292FF5A53700E83899 /* CatalogSnapshot.swift */,
 				249A28272FDC1940009A0E03 /* CoreDataCatalogRepository.swift */,
 				C0000000000000000000000B /* CatalogRepository.swift */,
@@ -684,6 +687,7 @@
 				246D3FC9300508F7000515FD /* CatalogImportExportView.swift in Sources */,
 				E00000000000000000000006 /* Foliora.xcdatamodeld in Sources */,
 				24374F2C2FF6596800E83899 /* CatalogMetrics.swift in Sources */,
+				24D9EC173019D7B6009DB654 /* CoreDataDomainMapper.swift in Sources */,
 				246D3FC530011A26000515FD /* ShareInvitationStatusOverlay.swift in Sources */,
 				E00000000000000000000005 /* FolioraCoreDataStack.swift in Sources */,
 				2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */,
@@ -1104,7 +1108,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1129,7 +1133,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.9;
+				MARKETING_VERSION = 0.10.1;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.FolioraBells;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1154,7 +1158,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1179,7 +1183,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.9;
+				MARKETING_VERSION = 0.10.1;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.FolioraBells;
 				PRODUCT_NAME = "$(TARGET_NAME)";

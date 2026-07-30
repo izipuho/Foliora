@@ -458,16 +458,11 @@ struct BellDetailView: View {
 
     private func toggleFavorite() {
         guard canChangeFavorite else { return }
+        var updatedItem = bell.item
+        updatedItem.isFavorite.toggle()
         let updatedBell = BellRecord(
-            item: bell.item,
-            details: bell.details,
-            originPlace: bell.originPlace,
-            storageLocation: bell.storageLocation,
-            storagePath: bell.storagePath,
-            mediaAssets: bell.mediaAssets,
-            isFavorite: !bell.isFavorite,
-            createdBy: bell.createdBy,
-            tags: bell.tags
+            item: updatedItem,
+            details: bell.details
         )
 
         bell = updatedBell
@@ -491,33 +486,33 @@ struct BellDetailView: View {
             .enumerated()
             .map { index, asset in
                 asset.with(itemID: bell.id, sortOrder: index)
-            }
+        }
 
         let updatedBell = BellRecord(
-            item: Item(
+            item: ItemRecord(
                 id: bell.item.id,
                 collectionID: bell.item.collectionID,
                 locationID: resolvedLocationID,
+                originPlaceID: resolvedOriginPlace?.id,
                 createdAt: bell.item.createdAt,
+                createdBy: bell.createdBy,
                 title: bell.item.title,
                 notes: notes ?? bell.notes,
                 acquiredYear: bell.item.acquiredYear,
                 condition: bell.item.condition,
-                acquisitionMethod: bell.item.acquisitionMethod
+                acquisitionMethod: bell.item.acquisitionMethod,
+                isFavorite: bell.isFavorite,
+                tags: tags ?? bell.tags,
+                originPlace: resolvedOriginPlace,
+                storageLocation: location,
+                storagePath: location.map { locationPath(for: $0, locationsByID: locationsByID) } ?? String(localized: "common.unassigned"),
+                mediaAssets: normalizedMediaAssets
             ),
             details: BellDetails(
                 itemID: bell.details.itemID,
-                originPlaceID: resolvedOriginPlace?.id,
                 material: bell.details.material,
                 customMaterialName: bell.details.customMaterialName
-            ),
-            originPlace: resolvedOriginPlace,
-            storageLocation: location,
-            storagePath: location.map { locationPath(for: $0, locationsByID: locationsByID) } ?? String(localized: "common.unassigned"),
-            mediaAssets: normalizedMediaAssets,
-            isFavorite: bell.isFavorite,
-            createdBy: bell.createdBy,
-            tags: tags ?? bell.tags
+            )
         )
 
         repository.saveBellRecord(updatedBell)

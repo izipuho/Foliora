@@ -411,29 +411,30 @@ struct BellBatchAddView: View {
         let bells = mediaPayloads.enumerated().map { index, mediaAsset in
             let bellID = UUID()
             return BellRecord(
-                item: Item(
+                item: ItemRecord(
                     id: bellID,
                     collectionID: collection.id,
                     locationID: selectedLocationID,
+                    originPlaceID: selectedOriginPlace?.id,
                     createdAt: now,
+                    createdBy: "me",
                     title: names[index],
                     notes: "",
                     acquiredYear: selectedAcquiredYear,
                     condition: .good,
-                    acquisitionMethod: .other
+                    acquisitionMethod: .other,
+                    isFavorite: false,
+                    tags: tags,
+                    originPlace: selectedOriginPlace,
+                    storageLocation: selectedLocation,
+                    storagePath: selectedLocation.map(locationPath(for:)) ?? "",
+                    mediaAssets: [mediaAsset.with(itemID: bellID, sortOrder: 0)]
                 ),
                 details: BellDetails(
                     itemID: bellID,
-                    originPlaceID: selectedOriginPlace?.id,
                     material: material,
                     customMaterialName: material == .other ? customMaterialName : nil
-                ),
-                originPlace: selectedOriginPlace,
-                storageLocation: selectedLocation,
-                storagePath: selectedLocation.map(locationPath(for:)) ?? "",
-                mediaAssets: [mediaAsset.with(itemID: bellID, sortOrder: 0)],
-                createdBy: "me",
-                tags: tags
+                )
             )
         }
 
