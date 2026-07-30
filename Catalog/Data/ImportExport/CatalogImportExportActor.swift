@@ -165,7 +165,7 @@ final class CatalogImportExportActor {
 
         return CatalogTransferBundle(
             homes: exportedHomeEntities.map(home),
-            locations: exportedLocationEntities.map(CoreDataDomainMapper.location),
+            locations: exportedLocationEntities.map { CoreDataDomainMapper.location(from: $0) },
             collections: exportedCollectionEntities.map(collection),
             places: [],
             bellItems: bellItems

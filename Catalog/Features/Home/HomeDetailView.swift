@@ -187,7 +187,8 @@ private enum HomeDetailPreviewData {
             parentLocationID: nil,
             kind: .floor,
             name: "First Floor",
-            notes: ""
+            notes: "",
+            sortOrder: nil
         ),
         Location(
             id: UUID(),
@@ -195,7 +196,8 @@ private enum HomeDetailPreviewData {
             parentLocationID: nil,
             kind: .room,
             name: "Study",
-            notes: ""
+            notes: "",
+            sortOrder: nil
         )
     ]
 

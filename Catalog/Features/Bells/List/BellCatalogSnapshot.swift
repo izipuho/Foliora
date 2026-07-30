@@ -118,7 +118,8 @@ struct BellCatalogSnapshot {
             parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
             kind: locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)),
             name: stringValue(entity, "name"),
-            notes: stringValue(entity, "notes")
+            notes: stringValue(entity, "notes"),
+            sortOrder: nil
         )
     }
 

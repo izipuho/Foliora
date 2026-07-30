@@ -47,6 +47,7 @@ struct Location: Identifiable, Hashable, Codable {
     var kind: LocationKind
     var name: String
     var notes: String
+    var sortOrder: Int?
 }
 
 struct StoragePath: Hashable, Codable {
