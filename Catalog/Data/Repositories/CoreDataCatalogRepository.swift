@@ -128,6 +128,32 @@ final class CoreDataCatalogRepository: CatalogRepository {
         saveContext()
     }
 
+    func saveUserSortOrder(itemIDs: [UUID], scope: String) {
+        guard let privateStore = context.persistentStoreCoordinator?.persistentStores.first(where: {
+            $0.url?.lastPathComponent == "Private.sqlite"
+        }) else { return }
+
+        let updatedAt = Date()
+        for (sortOrder, itemID) in itemIDs.enumerated() {
+            let entity = fetchEntities(
+                named: "UserSortOrderEntity",
+                predicate: NSPredicate(format: "itemID == %@ AND scope == %@", itemID as NSUUID, scope),
+                fetchLimit: 1,
+                affectedStores: [privateStore]
+            ).first ?? makeEntity(named: "UserSortOrderEntity")
+            if entity.objectID.persistentStore == nil {
+                context.assign(entity, to: privateStore)
+                entity.setValue(UUID(), forKey: "id")
+            }
+            entity.setValue(itemID, forKey: "itemID")
+            entity.setValue(scope, forKey: "scope")
+            entity.setValue(sortOrder, forKey: "sortOrder")
+            entity.setValue(updatedAt, forKey: "updatedAt")
+        }
+
+        saveContext()
+    }
+
     private func apply(_ home: Home, to entity: NSManagedObject) {
         entity.setValue(home.id, forKey: "id")
         entity.setValue(home.name, forKey: "name")
@@ -504,11 +530,13 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func fetchEntities(
         named entityName: String,
         predicate: NSPredicate? = nil,
-        fetchLimit: Int = 0
+        fetchLimit: Int = 0,
+        affectedStores: [NSPersistentStore]? = nil
     ) -> [NSManagedObject] {
         let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
         request.predicate = predicate
         request.fetchLimit = fetchLimit
+        request.affectedStores = affectedStores
         return (try? context.fetch(request)) ?? []
     }
 
