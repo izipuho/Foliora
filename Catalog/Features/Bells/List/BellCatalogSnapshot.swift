@@ -13,8 +13,8 @@ struct BellCatalogSnapshot {
         let bellEntities = Self.fetchEntities(
             named: "BellEntity",
             in: context,
-            predicate: collectionID.map { NSPredicate(format: "collection.id == %@", $0 as NSUUID) },
-            sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)]
+            predicate: collectionID.map { NSPredicate(format: "item.collection.id == %@", $0 as NSUUID) },
+            sortDescriptors: [NSSortDescriptor(key: "item.createdAt", ascending: false)]
         )
         let collectionEntities = Self.fetchEntities(
             named: "CollectionEntity",
@@ -39,9 +39,9 @@ struct BellCatalogSnapshot {
             )
         }
         let records = bellEntities.map(CoreDataDomainMapper.bellRecord)
-        bells = bellEntities.map(Self.bellListItem)
+        bells = records.map(Self.bellListItem)
         recordsByID = Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) })
-        locations = locationEntities.map(CoreDataDomainMapper.location)
+        locations = locationEntities.map(Self.location)
         locationPathByID = Dictionary(uniqueKeysWithValues: locationEntities.map { (Self.uuidValue($0, "id"), Self.locationPath(from: $0)) })
     }
 
@@ -57,11 +57,8 @@ struct BellCatalogSnapshot {
         return (try? context.fetch(request)) ?? []
     }
 
-    private static func bellListItem(from entity: NSManagedObject) -> BellListItem {
-        let record = CoreDataDomainMapper.bellRecord(from: entity)
-        let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
-            ?? entity.value(forKey: "location") as? NSManagedObject
-        let storageComponents = locationEntity.map(storageComponents) ?? [:]
+    private static func bellListItem(from record: BellRecord) -> BellListItem {
+        let storageComponents = storageComponents(from: record)
         let coverPhoto = record.mediaAssets
             .sorted { $0.sortOrder < $1.sortOrder }
             .first { $0.kind == .photo }
@@ -96,6 +93,35 @@ struct BellCatalogSnapshot {
         )
     }
 
+    private static func storageComponents(from record: BellRecord) -> [LocationKind: String] {
+        guard let storageLocation = record.item.storageLocation else { return [:] }
+
+        let pathComponents = record.item.storagePath
+            .split(separator: "/")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let names = pathComponents.isEmpty ? [storageLocation.name] : pathComponents
+        let kinds: [LocationKind] = [.floor, .room, .cabinet, .shelf]
+        guard let leafIndex = kinds.firstIndex(of: storageLocation.kind) else {
+            return [storageLocation.kind: storageLocation.name]
+        }
+
+        let startIndex = max(0, leafIndex - names.count + 1)
+        let pathKinds = kinds[startIndex...leafIndex]
+        return Dictionary(uniqueKeysWithValues: zip(pathKinds, names))
+    }
+
+    private static func location(from entity: NSManagedObject) -> Location {
+        Location(
+            id: uuidValue(entity, "id"),
+            homeID: locationHomeID(from: entity),
+            parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
+            kind: locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)),
+            name: stringValue(entity, "name"),
+            notes: stringValue(entity, "notes")
+        )
+    }
+
     private static func locationPath(from entity: NSManagedObject) -> String {
         var parts: [String] = []
         var current: NSManagedObject? = entity
@@ -108,22 +134,6 @@ struct BellCatalogSnapshot {
         return parts.joined(separator: " / ")
     }
 
-    private static func storageComponents(from entity: NSManagedObject) -> [LocationKind: String] {
-        var components: [LocationKind: String] = [:]
-        var current: NSManagedObject? = entity
-
-        while let location = current {
-            let kind = locationKind(from: stringValue(location, "kindRaw", default: LocationKind.room.rawValue))
-            let name = stringValue(location, "name").trimmingCharacters(in: .whitespacesAndNewlines)
-            if !name.isEmpty, components[kind] == nil {
-                components[kind] = name
-            }
-            current = location.value(forKey: "parent") as? NSManagedObject
-        }
-
-        return components
-    }
-
     private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
         entity.value(forKey: key) as? UUID ?? UUID()
     }
@@ -132,6 +142,20 @@ struct BellCatalogSnapshot {
         (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
             ?? entity.value(forKey: "homeID") as? UUID
             ?? UUID()
+    }
+
+    private static func locationHomeID(from entity: NSManagedObject) -> UUID {
+        if entity.entity.name == "LocationEntity",
+           let home = entity.value(forKey: "home") as? NSManagedObject {
+            return uuidValue(home, "id")
+        }
+
+        if entity.entity.name == "CollectionLocationEntity",
+           let collection = entity.value(forKey: "collection") as? NSManagedObject {
+            return collectionHomeID(from: collection)
+        }
+
+        return UUID()
     }
 
     private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
