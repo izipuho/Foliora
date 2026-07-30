@@ -409,7 +409,7 @@ struct BellCatalogView: View {
                         dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
                     }
 
-                    if !favoriteBells.isEmpty {
+                    if !isSelectionModeEnabled && !favoriteBells.isEmpty {
                         favoritesSection(
                             bells: favoriteBells,
                             screenWidth: stripScreenWidth(cardSize: cardSize, gridMetrics: gridMetrics)
