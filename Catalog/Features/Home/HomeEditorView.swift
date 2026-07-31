@@ -1,4 +1,3 @@
-import CoreData
 import SwiftUI
 
 struct HomeEditorView: View {
@@ -8,7 +7,6 @@ struct HomeEditorView: View {
     let onDelete: (() -> Void)?
     let embedsNavigation: Bool
     let focusesNameOnAppear: Bool
-    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
     @State private var editMode: EditMode = .active
@@ -17,7 +15,6 @@ struct HomeEditorView: View {
     @State private var editingLocationID: UUID?
     @State private var addingChildContext: AddChildContext?
     @State private var collapsedLocationIDs: Set<UUID> = []
-    @State private var pendingLocationSortOrderIDGroups: [[UUID]] = []
 
     private var flattenedLocations: [EditableLocationNode] {
         let roots = locations
@@ -114,7 +111,7 @@ struct HomeEditorView: View {
                             }
                         }
                     }
-                    .onMove(perform: moveLocations)
+                    .onMove { _, _ in }
                 }
 
                 Button {
@@ -154,7 +151,6 @@ struct HomeEditorView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     locations = normalizedLocations()
-                    savePendingLocationSortOrder()
                     onSave()
                     dismiss()
                 } label: {
@@ -362,103 +358,6 @@ struct HomeEditorView: View {
         }
     }
 
-    private func moveLocations(from sourceOffsets: IndexSet, to destination: Int) {
-        let flatBefore = flattenedLocations
-        var flatAfter = flatBefore
-        flatAfter.move(fromOffsets: sourceOffsets, toOffset: destination)
-
-        let movedIDs = sourceOffsets.compactMap { flatBefore.indices.contains($0) ? flatBefore[$0].location.id : nil }
-        guard movedIDs.count == 1,
-              let movedID = movedIDs.first,
-              let movedLocation = locations.first(where: { $0.id == movedID }) else {
-            return
-        }
-
-        let oldParentID = movedLocation.parentLocationID
-        guard let targetParent = targetParent(in: flatAfter, movedID: movedID) else {
-            return
-        }
-        let targetParentID = targetParent.id
-        guard canMove(movedLocation, toParentID: targetParentID) else {
-            return
-        }
-
-        var affectedParentIDs = [oldParentID]
-        if targetParentID != oldParentID {
-            affectedParentIDs.append(targetParentID)
-        }
-        let flatOrderIDs = flatAfter.map(\.location.id)
-        let updatedLocations = locations.map { location in
-            guard location.id == movedID else { return location }
-
-            var copy = location
-            copy.parentLocationID = targetParentID
-            return copy
-        }
-
-        let sortOrderByID = affectedParentIDs.reduce(into: [UUID: Int]()) { result, parentID in
-            let siblingIDs = flatOrderIDs.filter { id in
-                updatedLocations.first(where: { $0.id == id })?.parentLocationID == parentID
-            }
-
-            siblingIDs.enumerated().forEach { index, id in
-                result[id] = index
-            }
-
-            if !siblingIDs.isEmpty {
-                pendingLocationSortOrderIDGroups.append(siblingIDs)
-            }
-        }
-
-        locations = updatedLocations.map { location in
-            guard let sortOrder = sortOrderByID[location.id] else { return location }
-
-            var copy = location
-            copy.sortOrder = sortOrder
-            return copy
-        }
-    }
-
-    private func targetParent(in flatAfter: [EditableLocationNode], movedID: UUID) -> LocationParent? {
-        guard let movedIndex = flatAfter.firstIndex(where: { $0.location.id == movedID }) else {
-            return nil
-        }
-
-        let movedDepth = flatAfter[movedIndex].depth
-        guard movedDepth > 0 else {
-            return LocationParent(id: nil)
-        }
-
-        guard movedIndex > flatAfter.startIndex else {
-            return nil
-        }
-
-        let parentDepth = movedDepth - 1
-        for index in stride(from: movedIndex - 1, through: flatAfter.startIndex, by: -1) {
-            let candidate = flatAfter[index]
-            if candidate.depth == parentDepth {
-                return LocationParent(id: candidate.location.id)
-            }
-        }
-
-        return nil
-    }
-
-    private func canMove(_ location: Location, toParentID parentID: UUID?) -> Bool {
-        guard let parentID else { return true }
-        guard let parent = locations.first(where: { $0.id == parentID }) else { return false }
-        return isValidParent(parent, for: location)
-    }
-
-    private func savePendingLocationSortOrder() {
-        guard !pendingLocationSortOrderIDGroups.isEmpty else { return }
-        let repository = CoreDataCatalogRepository(context: managedObjectContext)
-        pendingLocationSortOrderIDGroups.forEach {
-            repository.saveUserSortOrder(itemIDs: $0, scope: "Location")
-        }
-        pendingLocationSortOrderIDGroups = []
-    }
-
     private func defaultChildKind(for location: Location) -> LocationKind? {
         switch location.kind {
         case .floor:
@@ -657,10 +556,6 @@ private struct EditableLocationNode: Identifiable {
     let depth: Int
 
     var id: UUID { location.id }
-}
-
-private struct LocationParent {
-    let id: UUID?
 }
 
 private struct AddChildContext: Identifiable {
