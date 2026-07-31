@@ -154,8 +154,8 @@ struct HomeEditorView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     locations = normalizedLocations()
-                    onSave()
                     savePendingLocationSortOrder()
+                    onSave()
                     dismiss()
                 } label: {
                     Image(systemName: "checkmark")
@@ -377,17 +377,18 @@ struct HomeEditorView: View {
             .filter { $0.parentLocationID == sourceParentID }
             .sorted(by: locationSort)
         let siblingIDs = Set(siblingBefore.map(\.id))
+        var siblingAfter = siblingBefore.filter { !sourceIDs.contains($0.id) }
 
         guard let siblingDestination = siblingDestination(
             in: flatWithoutSources,
             destination: destination,
             parentID: sourceParentID,
-            siblingIDs: siblingIDs
+            siblingIDs: siblingIDs,
+            siblings: siblingAfter
         ) else {
             return
         }
 
-        var siblingAfter = siblingBefore.filter { !sourceIDs.contains($0.id) }
         siblingAfter.insert(contentsOf: sourceNodes.map(\.location), at: siblingDestination)
 
         let sortOrderByID = Dictionary(uniqueKeysWithValues: siblingAfter.enumerated().map { ($0.element.id, $0.offset) })
@@ -407,14 +408,15 @@ struct HomeEditorView: View {
         in flatWithoutSources: [EditableLocationNode],
         destination: Int,
         parentID: UUID?,
-        siblingIDs: Set<UUID>
+        siblingIDs: Set<UUID>,
+        siblings: [Location]
     ) -> Int? {
         guard destination <= flatWithoutSources.count else { return nil }
 
         if destination < flatWithoutSources.count {
             let destinationLocation = flatWithoutSources[destination].location
             if destinationLocation.parentLocationID == parentID {
-                return siblingIndex(before: destinationLocation.id, parentID: parentID)
+                return siblings.firstIndex { $0.id == destinationLocation.id }
             }
         }
 
@@ -426,7 +428,7 @@ struct HomeEditorView: View {
             return nil
         }
 
-        return siblingIndex(after: previousSiblingID, parentID: parentID)
+        return siblings.firstIndex { $0.id == previousSiblingID }.map { $0 + 1 }
     }
 
     private func topSiblingID(for location: Location, parentID: UUID?, siblingIDs: Set<UUID>) -> UUID? {
@@ -455,23 +457,13 @@ struct HomeEditorView: View {
         ) != siblingID
     }
 
-    private func siblingIndex(before siblingID: UUID, parentID: UUID?) -> Int? {
-        locations
-            .filter { $0.parentLocationID == parentID }
-            .sorted(by: locationSort)
-            .firstIndex { $0.id == siblingID }
-    }
-
-    private func siblingIndex(after siblingID: UUID, parentID: UUID?) -> Int? {
-        siblingIndex(before: siblingID, parentID: parentID).map { $0 + 1 }
-    }
-
     private func savePendingLocationSortOrder() {
         guard !pendingLocationSortOrderIDGroups.isEmpty else { return }
         let repository = CoreDataCatalogRepository(context: managedObjectContext)
         pendingLocationSortOrderIDGroups.forEach {
             repository.saveUserSortOrder(itemIDs: $0, scope: "Location")
         }
+        pendingLocationSortOrderIDGroups = []
     }
 
     private func defaultChildKind(for location: Location) -> LocationKind? {
