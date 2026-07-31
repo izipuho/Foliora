@@ -53,7 +53,7 @@ struct HomeEditorView: View {
     }
 
     private var editorContent: some View {
-        Form {
+        List {
             Section(String(localized: "home.editor.section_home")) {
                 TextField(
                     String(localized: "common.name"),
@@ -134,6 +134,7 @@ struct HomeEditorView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle(String(localized: "home.screen.single_title"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
