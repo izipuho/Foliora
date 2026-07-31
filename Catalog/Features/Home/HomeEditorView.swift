@@ -368,13 +368,17 @@ struct HomeEditorView: View {
         flatAfter.move(fromOffsets: sourceOffsets, toOffset: destination)
 
         let movedIDs = sourceOffsets.compactMap { flatBefore.indices.contains($0) ? flatBefore[$0].location.id : nil }
-        guard let movedID = movedIDs.first,
+        guard movedIDs.count == 1,
+              let movedID = movedIDs.first,
               let movedLocation = locations.first(where: { $0.id == movedID }) else {
             return
         }
 
         let oldParentID = movedLocation.parentLocationID
-        let targetParentID = targetParentID(in: flatBefore, sourceOffsets: sourceOffsets, destination: destination)
+        guard let targetParent = targetParent(in: flatAfter, movedID: movedID) else {
+            return
+        }
+        let targetParentID = targetParent.id
         guard canMove(movedLocation, toParentID: targetParentID) else {
             return
         }
@@ -415,17 +419,26 @@ struct HomeEditorView: View {
         }
     }
 
-    private func targetParentID(in flatBefore: [EditableLocationNode], sourceOffsets: IndexSet, destination: Int) -> UUID? {
-        let flatWithoutSources = flatBefore.enumerated()
-            .filter { !sourceOffsets.contains($0.offset) }
-            .map(\.element)
-
-        if destination < flatWithoutSources.count {
-            return flatWithoutSources[destination].location.parentLocationID
+    private func targetParent(in flatAfter: [EditableLocationNode], movedID: UUID) -> LocationParent? {
+        guard let movedIndex = flatAfter.firstIndex(where: { $0.location.id == movedID }) else {
+            return nil
         }
 
-        if destination > 0, destination - 1 < flatWithoutSources.count {
-            return flatWithoutSources[destination - 1].location.parentLocationID
+        let movedDepth = flatAfter[movedIndex].depth
+        guard movedDepth > 0 else {
+            return LocationParent(id: nil)
+        }
+
+        guard movedIndex > flatAfter.startIndex else {
+            return nil
+        }
+
+        let parentDepth = movedDepth - 1
+        for index in stride(from: movedIndex - 1, through: flatAfter.startIndex, by: -1) {
+            let candidate = flatAfter[index]
+            if candidate.depth == parentDepth {
+                return LocationParent(id: candidate.location.id)
+            }
         }
 
         return nil
@@ -644,6 +657,10 @@ private struct EditableLocationNode: Identifiable {
     let depth: Int
 
     var id: UUID { location.id }
+}
+
+private struct LocationParent {
+    let id: UUID?
 }
 
 private struct AddChildContext: Identifiable {
