@@ -375,11 +375,27 @@ struct HomeEditorView: View {
         print("Location onMove rowBeforeDestination:", debugRow(destination > 0 ? row(in: flatWithoutSources, at: destination - 1) : nil))
         print("Location onMove rowAtDestination:", debugRow(row(in: flatWithoutSources, at: destination)))
         print("Location onMove flatAfter:", debugRows(flatAfter))
+        print("Location onMove moveIntent:", resolveLocationMoveIntent(in: flatWithoutSources, destination: destination))
     }
 
     private func row(in rows: [EditableLocationNode], at index: Int) -> EditableLocationNode? {
         guard rows.indices.contains(index) else { return nil }
         return rows[index]
+    }
+
+    private func resolveLocationMoveIntent(
+        in flatWithoutSources: [EditableLocationNode],
+        destination: Int
+    ) -> LocationMoveIntent {
+        guard destination > 0,
+              let rowBeforeDestination = row(in: flatWithoutSources, at: destination - 1),
+              let rowAtDestination = row(in: flatWithoutSources, at: destination),
+              rowAtDestination.location.parentLocationID == rowBeforeDestination.location.id,
+              rowAtDestination.depth == rowBeforeDestination.depth + 1 else {
+            return .unresolved
+        }
+
+        return .firstChild(parentID: rowBeforeDestination.location.id)
     }
 
     private func debugRows(_ rows: [EditableLocationNode]) -> [String] {
@@ -596,6 +612,20 @@ private struct EditableLocationNode: Identifiable {
     let depth: Int
 
     var id: UUID { location.id }
+}
+
+private enum LocationMoveIntent: CustomStringConvertible {
+    case firstChild(parentID: UUID)
+    case unresolved
+
+    var description: String {
+        switch self {
+        case .firstChild(let parentID):
+            return "firstChild parent:\(String(parentID.uuidString.prefix(8))) insertIndex:0"
+        case .unresolved:
+            return "unresolved"
+        }
+    }
 }
 
 private struct AddChildContext: Identifiable {
