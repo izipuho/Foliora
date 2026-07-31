@@ -1,3 +1,4 @@
+import CoreData
 import SwiftUI
 
 struct HomeEditorView: View {
@@ -7,6 +8,7 @@ struct HomeEditorView: View {
     let onDelete: (() -> Void)?
     let embedsNavigation: Bool
     let focusesNameOnAppear: Bool
+    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
     @State private var isPresentingDeleteConfirmation = false
@@ -14,6 +16,7 @@ struct HomeEditorView: View {
     @State private var editingLocationID: UUID?
     @State private var addingChildContext: AddChildContext?
     @State private var collapsedLocationIDs: Set<UUID> = []
+    @State private var pendingLocationSortOrderIDGroups: [[UUID]] = []
 
     private var flattenedLocations: [EditableLocationNode] {
         let roots = locations
@@ -104,6 +107,14 @@ struct HomeEditorView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .draggable(node.location.id.uuidString)
+                        .dropDestination(for: String.self) { itemIDs, location in
+                            guard let itemID = itemIDs.compactMap(UUID.init(uuidString:)).first else {
+                                return false
+                            }
+
+                            return moveLocation(itemID, to: node.location.id, at: location)
+                        }
                         .swipeActions {
                             Button(String(localized: "common.delete"), role: .destructive) {
                                 deleteLocation(node.location.id)
@@ -149,6 +160,7 @@ struct HomeEditorView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     locations = normalizedLocations()
+                    savePendingLocationSortOrder()
                     onSave()
                     dismiss()
                 } label: {
@@ -355,6 +367,127 @@ struct HomeEditorView: View {
         }
     }
 
+    private func moveLocation(_ movedID: UUID, to targetID: UUID, at point: CGPoint) -> Bool {
+        guard movedID != targetID,
+              let movedLocation = locations.first(where: { $0.id == movedID }),
+              let targetLocation = locations.first(where: { $0.id == targetID }) else {
+            return false
+        }
+
+        let placement = LocationDropPlacement(y: point.y)
+        let moveTarget = resolvedMoveTarget(
+            movedLocation: movedLocation,
+            targetLocation: targetLocation,
+            placement: placement
+        )
+        guard canMove(movedLocation, toParentID: moveTarget.parentID) else {
+            return false
+        }
+
+        let oldParentID = movedLocation.parentLocationID
+        let updatedLocations = locations.map { location in
+            guard location.id == movedID else { return location }
+
+            var copy = location
+            copy.parentLocationID = moveTarget.parentID
+            return copy
+        }
+
+        var affectedParentIDs = [oldParentID]
+        if moveTarget.parentID != oldParentID {
+            affectedParentIDs.append(moveTarget.parentID)
+        }
+
+        var sortOrderByID: [UUID: Int] = [:]
+        for parentID in affectedParentIDs {
+            let siblingIDs = reorderedSiblingIDs(
+                parentID: parentID,
+                movedID: movedID,
+                moveTarget: moveTarget,
+                in: updatedLocations
+            )
+
+            siblingIDs.enumerated().forEach { index, id in
+                sortOrderByID[id] = index
+            }
+            pendingLocationSortOrderIDGroups.append(siblingIDs)
+        }
+
+        locations = updatedLocations.map { location in
+            guard let sortOrder = sortOrderByID[location.id] else { return location }
+
+            var copy = location
+            copy.sortOrder = sortOrder
+            return copy
+        }
+
+        return true
+    }
+
+    private func resolvedMoveTarget(
+        movedLocation: Location,
+        targetLocation: Location,
+        placement: LocationDropPlacement
+    ) -> LocationMoveTarget {
+        switch placement {
+        case .before:
+            return LocationMoveTarget(parentID: targetLocation.parentLocationID, targetID: targetLocation.id, position: .before)
+        case .after:
+            return LocationMoveTarget(parentID: targetLocation.parentLocationID, targetID: targetLocation.id, position: .after)
+        case .inside:
+            if isValidParent(targetLocation, for: movedLocation) {
+                return LocationMoveTarget(parentID: targetLocation.id, targetID: nil, position: .firstChild)
+            }
+
+            return LocationMoveTarget(parentID: targetLocation.parentLocationID, targetID: targetLocation.id, position: .after)
+        }
+    }
+
+    private func canMove(_ location: Location, toParentID parentID: UUID?) -> Bool {
+        guard let parentID else { return true }
+        guard let parent = locations.first(where: { $0.id == parentID }) else { return false }
+        return isValidParent(parent, for: location)
+    }
+
+    private func reorderedSiblingIDs(
+        parentID: UUID?,
+        movedID: UUID,
+        moveTarget: LocationMoveTarget,
+        in updatedLocations: [Location]
+    ) -> [UUID] {
+        var siblingIDs = updatedLocations
+            .filter { $0.parentLocationID == parentID }
+            .sorted(by: locationSort)
+            .map(\.id)
+            .filter { $0 != movedID }
+
+        if parentID == moveTarget.parentID {
+            let insertIndex: Int
+            switch moveTarget.position {
+            case .firstChild:
+                insertIndex = 0
+            case .before:
+                insertIndex = moveTarget.targetID.flatMap { siblingIDs.firstIndex(of: $0) } ?? siblingIDs.count
+            case .after:
+                insertIndex = moveTarget.targetID.flatMap { siblingIDs.firstIndex(of: $0).map { $0 + 1 } } ?? siblingIDs.count
+            }
+
+            siblingIDs.insert(movedID, at: min(insertIndex, siblingIDs.count))
+        }
+
+        return siblingIDs
+    }
+
+    private func savePendingLocationSortOrder() {
+        guard !pendingLocationSortOrderIDGroups.isEmpty else { return }
+
+        let repository = CoreDataCatalogRepository(context: managedObjectContext)
+        pendingLocationSortOrderIDGroups.forEach {
+            repository.saveUserSortOrder(itemIDs: $0, scope: "Location")
+        }
+        pendingLocationSortOrderIDGroups = []
+    }
+
     private func defaultChildKind(for location: Location) -> LocationKind? {
         switch location.kind {
         case .floor:
@@ -553,6 +686,34 @@ private struct EditableLocationNode: Identifiable {
     let depth: Int
 
     var id: UUID { location.id }
+}
+
+private enum LocationDropPlacement {
+    case before
+    case inside
+    case after
+
+    init(y: CGFloat) {
+        if y < 28 {
+            self = .before
+        } else if y > 56 {
+            self = .after
+        } else {
+            self = .inside
+        }
+    }
+}
+
+private struct LocationMoveTarget {
+    enum Position {
+        case before
+        case firstChild
+        case after
+    }
+
+    let parentID: UUID?
+    let targetID: UUID?
+    let position: Position
 }
 
 private struct AddChildContext: Identifiable {
