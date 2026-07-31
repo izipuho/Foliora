@@ -84,37 +84,20 @@ struct HomeEditorView: View {
                         message: LocalizedStringKey(String(localized: "home.location.empty.description"))
                     )
                 } else {
-                    ForEach(flattenedLocations) { node in
-                        Button {
-                            editingLocationID = node.location.id
-                        } label: {
-                            EditableLocationRow(
-                                location: node.location,
-                                depth: node.depth,
-                                hasChildren: !children(of: node.location).isEmpty,
-                                isCollapsed: collapsedLocationIDs.contains(node.location.id),
-                                showsAddChildAction: defaultChildKind(for: node.location) != nil,
-                                onToggleCollapsed: {
-                                    toggleCollapsed(node.location.id)
-                                },
-                                onAddChild: {
-                                    if let childKind = defaultChildKind(for: node.location) {
-                                        addingChildContext = AddChildContext(
-                                            parentID: node.location.id,
-                                            childKind: childKind
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .swipeActions {
-                            Button(String(localized: "common.delete"), role: .destructive) {
-                                deleteLocation(node.location.id)
-                            }
-                        }
-                    }
-                    .onMove(perform: moveLocations)
+                    EditableLocationRows(
+                        parentID: nil,
+                        depth: 0,
+                        locations: locations,
+                        collapsedLocationIDs: collapsedLocationIDs,
+                        locationSort: locationSort,
+                        onEdit: { editingLocationID = $0 },
+                        onToggleCollapsed: toggleCollapsed,
+                        onAddChild: { parentID, childKind in
+                            addingChildContext = AddChildContext(parentID: parentID, childKind: childKind)
+                        },
+                        onDelete: deleteLocation,
+                        onMove: moveLocations
+                    )
                 }
 
                 Button {
@@ -331,8 +314,12 @@ struct HomeEditorView: View {
     }
 
     private func children(of location: Location) -> [Location] {
+        locations(parentID: location.id)
+    }
+
+    private func locations(parentID: UUID?) -> [Location] {
         locations
-            .filter { $0.parentLocationID == location.id }
+            .filter { $0.parentLocationID == parentID }
             .sorted(by: locationSort)
     }
 
@@ -358,38 +345,9 @@ struct HomeEditorView: View {
         }
     }
 
-    private func moveLocations(from sourceOffsets: IndexSet, to destination: Int) {
-        let flatBefore = flattenedLocations
-        let sourceNodes = sourceOffsets.compactMap { flatBefore.indices.contains($0) ? flatBefore[$0] : nil }
-        let sourceIDs = sourceNodes.map(\.location.id)
-        let flatWithoutSources = flatBefore.enumerated()
-            .filter { !sourceOffsets.contains($0.offset) }
-            .map(\.element)
-
-        guard let firstSourceNode = sourceNodes.first else {
-            return
-        }
-
-        let sourceParentID = firstSourceNode.location.parentLocationID
-        guard sourceNodes.allSatisfy({ $0.location.parentLocationID == sourceParentID }) else { return }
-
-        let siblingBefore = locations
-            .filter { $0.parentLocationID == sourceParentID }
-            .sorted(by: locationSort)
-        let siblingIDs = Set(siblingBefore.map(\.id))
-        var siblingAfter = siblingBefore.filter { !sourceIDs.contains($0.id) }
-
-        guard let siblingDestination = siblingDestination(
-            in: flatWithoutSources,
-            destination: destination,
-            parentID: sourceParentID,
-            siblingIDs: siblingIDs,
-            siblings: siblingAfter
-        ) else {
-            return
-        }
-
-        siblingAfter.insert(contentsOf: sourceNodes.map(\.location), at: siblingDestination)
+    private func moveLocations(parentID: UUID?, from sourceOffsets: IndexSet, to destination: Int) {
+        var siblingAfter = locations(parentID: parentID)
+        siblingAfter.move(fromOffsets: sourceOffsets, toOffset: destination)
 
         let sortOrderByID = Dictionary(uniqueKeysWithValues: siblingAfter.enumerated().map { ($0.element.id, $0.offset) })
         locations = locations.map { location in
@@ -402,59 +360,6 @@ struct HomeEditorView: View {
 
         let pendingLocationSortOrderIDs = siblingAfter.map(\.id)
         pendingLocationSortOrderIDGroups.append(pendingLocationSortOrderIDs)
-    }
-
-    private func siblingDestination(
-        in flatWithoutSources: [EditableLocationNode],
-        destination: Int,
-        parentID: UUID?,
-        siblingIDs: Set<UUID>,
-        siblings: [Location]
-    ) -> Int? {
-        guard destination <= flatWithoutSources.count else { return nil }
-
-        if destination < flatWithoutSources.count {
-            let destinationLocation = flatWithoutSources[destination].location
-            if destinationLocation.parentLocationID == parentID {
-                return siblings.firstIndex { $0.id == destinationLocation.id }
-            }
-        }
-
-        guard destination > 0 else { return flatWithoutSources.isEmpty ? 0 : nil }
-
-        let previousLocation = flatWithoutSources[destination - 1].location
-        guard let previousSiblingID = topSiblingID(for: previousLocation, parentID: parentID, siblingIDs: siblingIDs),
-              isSubtreeBoundary(after: previousSiblingID, in: flatWithoutSources, destination: destination) else {
-            return nil
-        }
-
-        return siblings.firstIndex { $0.id == previousSiblingID }.map { $0 + 1 }
-    }
-
-    private func topSiblingID(for location: Location, parentID: UUID?, siblingIDs: Set<UUID>) -> UUID? {
-        var current = location
-
-        while true {
-            if siblingIDs.contains(current.id), current.parentLocationID == parentID {
-                return current.id
-            }
-
-            guard let parentID = current.parentLocationID,
-                  let parent = locations.first(where: { $0.id == parentID }) else {
-                return nil
-            }
-
-            current = parent
-        }
-    }
-
-    private func isSubtreeBoundary(after siblingID: UUID, in flatWithoutSources: [EditableLocationNode], destination: Int) -> Bool {
-        guard destination < flatWithoutSources.count else { return true }
-        return topSiblingID(
-            for: flatWithoutSources[destination].location,
-            parentID: locations.first(where: { $0.id == siblingID })?.parentLocationID,
-            siblingIDs: [siblingID]
-        ) != siblingID
     }
 
     private func savePendingLocationSortOrder() {
@@ -671,6 +576,96 @@ private struct AddChildContext: Identifiable {
     let childKind: LocationKind
 
     var id: UUID { parentID }
+}
+
+private struct EditableLocationRows: View {
+    let parentID: UUID?
+    let depth: Int
+    let locations: [Location]
+    let collapsedLocationIDs: Set<UUID>
+    let locationSort: (Location, Location) -> Bool
+    let onEdit: (UUID) -> Void
+    let onToggleCollapsed: (UUID) -> Void
+    let onAddChild: (UUID, LocationKind) -> Void
+    let onDelete: (UUID) -> Void
+    let onMove: (UUID?, IndexSet, Int) -> Void
+
+    private var siblings: [Location] {
+        locations
+            .filter { $0.parentLocationID == parentID }
+            .sorted(by: locationSort)
+    }
+
+    var body: some View {
+        ForEach(siblings) { location in
+            locationRow(location)
+
+            if !collapsedLocationIDs.contains(location.id) {
+                EditableLocationRows(
+                    parentID: location.id,
+                    depth: depth + 1,
+                    locations: locations,
+                    collapsedLocationIDs: collapsedLocationIDs,
+                    locationSort: locationSort,
+                    onEdit: onEdit,
+                    onToggleCollapsed: onToggleCollapsed,
+                    onAddChild: onAddChild,
+                    onDelete: onDelete,
+                    onMove: onMove
+                )
+            }
+        }
+        .onMove { sourceOffsets, destination in
+            onMove(parentID, sourceOffsets, destination)
+        }
+    }
+
+    private func locationRow(_ location: Location) -> some View {
+        Button {
+            onEdit(location.id)
+        } label: {
+            EditableLocationRow(
+                location: location,
+                depth: depth,
+                hasChildren: !children(of: location).isEmpty,
+                isCollapsed: collapsedLocationIDs.contains(location.id),
+                showsAddChildAction: defaultChildKind(for: location) != nil,
+                onToggleCollapsed: {
+                    onToggleCollapsed(location.id)
+                },
+                onAddChild: {
+                    if let childKind = defaultChildKind(for: location) {
+                        onAddChild(location.id, childKind)
+                    }
+                }
+            )
+        }
+        .buttonStyle(.plain)
+        .swipeActions {
+            Button(String(localized: "common.delete"), role: .destructive) {
+                onDelete(location.id)
+            }
+        }
+    }
+
+    private func children(of location: Location) -> [Location] {
+        locations
+            .filter { $0.parentLocationID == location.id }
+            .sorted(by: locationSort)
+    }
+
+    private func defaultChildKind(for location: Location) -> LocationKind? {
+        switch location.kind {
+        case .floor:
+            return .room
+        case .room:
+            return .cabinet
+        case .cabinet:
+            return .shelf
+        case .shelf:
+            return nil
+        }
+    }
 }
 
 private struct EditableLocationRow: View {
