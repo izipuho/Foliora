@@ -111,7 +111,7 @@ struct HomeEditorView: View {
                             }
                         }
                     }
-                    .onMove { _, _ in }
+                    .onMove(perform: debugLocationMove)
                 }
 
                 Button {
@@ -357,6 +357,46 @@ struct HomeEditorView: View {
             return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
     }
+
+    #if DEBUG
+    private func debugLocationMove(from sourceOffsets: IndexSet, to destination: Int) {
+        let flatBefore = flattenedLocations
+        let flatWithoutSources = flatBefore.enumerated()
+            .filter { !sourceOffsets.contains($0.offset) }
+            .map(\.element)
+        var flatAfter = flatBefore
+        flatAfter.move(fromOffsets: sourceOffsets, toOffset: destination)
+
+        print("Location onMove sourceOffsets:", Array(sourceOffsets))
+        print("Location onMove destination:", destination)
+        print("Location onMove flatBefore:", debugRows(flatBefore))
+        print("Location onMove movedRows:", debugRows(sourceOffsets.compactMap { flatBefore.indices.contains($0) ? flatBefore[$0] : nil }))
+        print("Location onMove flatWithoutSources:", debugRows(flatWithoutSources))
+        print("Location onMove rowBeforeDestination:", debugRow(destination > 0 ? row(in: flatWithoutSources, at: destination - 1) : nil))
+        print("Location onMove rowAtDestination:", debugRow(row(in: flatWithoutSources, at: destination)))
+        print("Location onMove flatAfter:", debugRows(flatAfter))
+    }
+
+    private func row(in rows: [EditableLocationNode], at index: Int) -> EditableLocationNode? {
+        guard rows.indices.contains(index) else { return nil }
+        return rows[index]
+    }
+
+    private func debugRows(_ rows: [EditableLocationNode]) -> [String] {
+        rows.indices.map { index in
+            debugRow(rows[index], index: index)
+        }
+    }
+
+    private func debugRow(_ row: EditableLocationNode?, index: Int? = nil) -> String {
+        guard let row else { return "nil" }
+
+        let prefix = index.map { "\($0):" } ?? ""
+        let id = String(row.location.id.uuidString.prefix(8))
+        let parentID = row.location.parentLocationID.map { String($0.uuidString.prefix(8)) } ?? "nil"
+        return "\(prefix)d\(row.depth) \(row.location.name) id:\(id) parent:\(parentID)"
+    }
+    #endif
 
     private func defaultChildKind(for location: Location) -> LocationKind? {
         switch location.kind {
