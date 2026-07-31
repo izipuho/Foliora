@@ -1,3 +1,4 @@
+import CoreData
 import SwiftUI
 
 struct HomeEditorView: View {
@@ -7,13 +8,16 @@ struct HomeEditorView: View {
     let onDelete: (() -> Void)?
     let embedsNavigation: Bool
     let focusesNameOnAppear: Bool
+    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
+    @State private var editMode: EditMode = .active
     @State private var isPresentingDeleteConfirmation = false
     @State private var isPresentingAddLocationSheet = false
     @State private var editingLocationID: UUID?
     @State private var addingChildContext: AddChildContext?
     @State private var collapsedLocationIDs: Set<UUID> = []
+    @State private var pendingLocationSortOrderIDGroups: [[UUID]] = []
 
     private var flattenedLocations: [EditableLocationNode] {
         let roots = locations
@@ -110,6 +114,7 @@ struct HomeEditorView: View {
                             }
                         }
                     }
+                    .onMove(perform: moveLocations)
                 }
 
                 Button {
@@ -149,6 +154,7 @@ struct HomeEditorView: View {
                 Button {
                     locations = normalizedLocations()
                     onSave()
+                    savePendingLocationSortOrder()
                     dismiss()
                 } label: {
                     Image(systemName: "checkmark")
@@ -169,6 +175,7 @@ struct HomeEditorView: View {
         } message: {
             Text(String(localized: "home.delete.message"))
         }
+        .environment(\.editMode, $editMode)
         .sheet(isPresented: $isPresentingAddLocationSheet) {
             AddLocationSheet(
                 homeID: home.id,
@@ -330,11 +337,139 @@ struct HomeEditorView: View {
 
     private var locationSort: (Location, Location) -> Bool {
         { lhs, rhs in
+            if let lhsSortOrder = lhs.sortOrder, let rhsSortOrder = rhs.sortOrder, lhsSortOrder != rhsSortOrder {
+                return lhsSortOrder < rhsSortOrder
+            }
+
+            if lhs.sortOrder != nil {
+                return true
+            }
+
+            if rhs.sortOrder != nil {
+                return false
+            }
+
             if lhs.kind != rhs.kind {
                 return lhs.kind.sortRank < rhs.kind.sortRank
             }
 
             return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    private func moveLocations(from sourceOffsets: IndexSet, to destination: Int) {
+        let flatBefore = flattenedLocations
+        let sourceNodes = sourceOffsets.compactMap { flatBefore.indices.contains($0) ? flatBefore[$0] : nil }
+        let sourceIDs = sourceNodes.map(\.location.id)
+        let flatWithoutSources = flatBefore.enumerated()
+            .filter { !sourceOffsets.contains($0.offset) }
+            .map(\.element)
+
+        guard let firstSourceNode = sourceNodes.first else {
+            return
+        }
+
+        let sourceParentID = firstSourceNode.location.parentLocationID
+        guard sourceNodes.allSatisfy({ $0.location.parentLocationID == sourceParentID }) else { return }
+
+        let siblingBefore = locations
+            .filter { $0.parentLocationID == sourceParentID }
+            .sorted(by: locationSort)
+        let siblingIDs = Set(siblingBefore.map(\.id))
+
+        guard let siblingDestination = siblingDestination(
+            in: flatWithoutSources,
+            destination: destination,
+            parentID: sourceParentID,
+            siblingIDs: siblingIDs
+        ) else {
+            return
+        }
+
+        var siblingAfter = siblingBefore.filter { !sourceIDs.contains($0.id) }
+        siblingAfter.insert(contentsOf: sourceNodes.map(\.location), at: siblingDestination)
+
+        let sortOrderByID = Dictionary(uniqueKeysWithValues: siblingAfter.enumerated().map { ($0.element.id, $0.offset) })
+        locations = locations.map { location in
+            guard let sortOrder = sortOrderByID[location.id] else { return location }
+
+            var copy = location
+            copy.sortOrder = sortOrder
+            return copy
+        }
+
+        let pendingLocationSortOrderIDs = siblingAfter.map(\.id)
+        pendingLocationSortOrderIDGroups.append(pendingLocationSortOrderIDs)
+    }
+
+    private func siblingDestination(
+        in flatWithoutSources: [EditableLocationNode],
+        destination: Int,
+        parentID: UUID?,
+        siblingIDs: Set<UUID>
+    ) -> Int? {
+        guard destination <= flatWithoutSources.count else { return nil }
+
+        if destination < flatWithoutSources.count {
+            let destinationLocation = flatWithoutSources[destination].location
+            if destinationLocation.parentLocationID == parentID {
+                return siblingIndex(before: destinationLocation.id, parentID: parentID)
+            }
+        }
+
+        guard destination > 0 else { return flatWithoutSources.isEmpty ? 0 : nil }
+
+        let previousLocation = flatWithoutSources[destination - 1].location
+        guard let previousSiblingID = topSiblingID(for: previousLocation, parentID: parentID, siblingIDs: siblingIDs),
+              isSubtreeBoundary(after: previousSiblingID, in: flatWithoutSources, destination: destination) else {
+            return nil
+        }
+
+        return siblingIndex(after: previousSiblingID, parentID: parentID)
+    }
+
+    private func topSiblingID(for location: Location, parentID: UUID?, siblingIDs: Set<UUID>) -> UUID? {
+        var current = location
+
+        while true {
+            if siblingIDs.contains(current.id), current.parentLocationID == parentID {
+                return current.id
+            }
+
+            guard let parentID = current.parentLocationID,
+                  let parent = locations.first(where: { $0.id == parentID }) else {
+                return nil
+            }
+
+            current = parent
+        }
+    }
+
+    private func isSubtreeBoundary(after siblingID: UUID, in flatWithoutSources: [EditableLocationNode], destination: Int) -> Bool {
+        guard destination < flatWithoutSources.count else { return true }
+        return topSiblingID(
+            for: flatWithoutSources[destination].location,
+            parentID: locations.first(where: { $0.id == siblingID })?.parentLocationID,
+            siblingIDs: [siblingID]
+        ) != siblingID
+    }
+
+    private func siblingIndex(before siblingID: UUID, parentID: UUID?) -> Int? {
+        locations
+            .filter { $0.parentLocationID == parentID }
+            .sorted(by: locationSort)
+            .firstIndex { $0.id == siblingID }
+    }
+
+    private func siblingIndex(after siblingID: UUID, parentID: UUID?) -> Int? {
+        siblingIndex(before: siblingID, parentID: parentID).map { $0 + 1 }
+    }
+
+    private func savePendingLocationSortOrder() {
+        guard !pendingLocationSortOrderIDGroups.isEmpty else { return }
+        let repository = CoreDataCatalogRepository(context: managedObjectContext)
+        pendingLocationSortOrderIDGroups.forEach {
+            repository.saveUserSortOrder(itemIDs: $0, scope: "Location")
         }
     }
 
