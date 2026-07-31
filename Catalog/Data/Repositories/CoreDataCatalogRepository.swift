@@ -27,13 +27,20 @@ final class CoreDataCatalogRepository: CatalogRepository {
     func saveLocations(_ locations: [Location], in homeID: UUID) {
         guard let home = fetchEntity(named: "HomeEntity", by: homeID) else { return }
 
-        fetchEntities(named: "LocationEntity", predicate: NSPredicate(format: "home.id == %@", homeID as NSUUID))
-            .forEach(context.delete)
-
+        let existingLocations = fetchEntities(
+            named: "LocationEntity",
+            predicate: NSPredicate(format: "home.id == %@", homeID as NSUUID)
+        )
+        let incomingIDs = Set(locations.map(\.id))
         var entitiesByID: [UUID: NSManagedObject] = [:]
 
+        for entity in existingLocations {
+            guard let locationID = entity.value(forKey: "id") as? UUID else { continue }
+            entitiesByID[locationID] = entitiesByID[locationID] ?? entity
+        }
+
         for location in locations {
-            let entity = makeEntity(named: "LocationEntity")
+            let entity = entitiesByID[location.id] ?? makeEntity(named: "LocationEntity")
             apply(location, to: entity)
             entity.setValue(home, forKey: "home")
             entitiesByID[location.id] = entity
@@ -42,6 +49,17 @@ final class CoreDataCatalogRepository: CatalogRepository {
         for location in locations {
             guard let entity = entitiesByID[location.id] else { continue }
             entity.setValue(location.parentLocationID.flatMap { entitiesByID[$0] }, forKey: "parent")
+        }
+
+        for entity in existingLocations {
+            guard
+                let locationID = entity.value(forKey: "id") as? UUID,
+                !incomingIDs.contains(locationID)
+            else {
+                continue
+            }
+
+            context.delete(entity)
         }
 
         syncCollectionLocations(from: locations, in: homeID)
