@@ -9,7 +9,6 @@ struct HomeEditorView: View {
     let focusesNameOnAppear: Bool
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
-    @State private var editMode: EditMode = .active
     @State private var isPresentingDeleteConfirmation = false
     @State private var isPresentingAddLocationSheet = false
     @State private var editingLocationID: UUID?
@@ -111,7 +110,6 @@ struct HomeEditorView: View {
                             }
                         }
                     }
-                    .onMove(perform: debugLocationMove)
                 }
 
                 Button {
@@ -172,7 +170,6 @@ struct HomeEditorView: View {
         } message: {
             Text(String(localized: "home.delete.message"))
         }
-        .environment(\.editMode, $editMode)
         .sheet(isPresented: $isPresentingAddLocationSheet) {
             AddLocationSheet(
                 homeID: home.id,
@@ -357,80 +354,6 @@ struct HomeEditorView: View {
             return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
     }
-
-    #if DEBUG
-    private func debugLocationMove(from sourceOffsets: IndexSet, to destination: Int) {
-        let flatBefore = flattenedLocations
-        let flatWithoutSources = flatBefore.enumerated()
-            .filter { !sourceOffsets.contains($0.offset) }
-            .map(\.element)
-        var flatAfter = flatBefore
-        flatAfter.move(fromOffsets: sourceOffsets, toOffset: destination)
-
-        print("Location onMove sourceOffsets:", Array(sourceOffsets))
-        print("Location onMove destination:", destination)
-        print("Location onMove flatBefore:", debugRows(flatBefore))
-        print("Location onMove movedRows:", debugRows(sourceOffsets.compactMap { flatBefore.indices.contains($0) ? flatBefore[$0] : nil }))
-        print("Location onMove flatWithoutSources:", debugRows(flatWithoutSources))
-        print("Location onMove rowBeforeDestination:", debugRow(destination > 0 ? row(in: flatWithoutSources, at: destination - 1) : nil))
-        print("Location onMove rowAtDestination:", debugRow(row(in: flatWithoutSources, at: destination)))
-        print("Location onMove flatAfter:", debugRows(flatAfter))
-        print("Location onMove moveIntent:", resolveLocationMoveIntent(in: flatWithoutSources, destination: destination))
-    }
-
-    private func row(in rows: [EditableLocationNode], at index: Int) -> EditableLocationNode? {
-        guard rows.indices.contains(index) else { return nil }
-        return rows[index]
-    }
-
-    private func resolveLocationMoveIntent(
-        in flatWithoutSources: [EditableLocationNode],
-        destination: Int
-    ) -> LocationMoveIntent {
-        guard destination > 0,
-              let rowBeforeDestination = row(in: flatWithoutSources, at: destination - 1),
-              let rowAtDestination = row(in: flatWithoutSources, at: destination) else {
-            return .unresolved
-        }
-
-        if rowAtDestination.location.parentLocationID == rowBeforeDestination.location.id,
-           rowAtDestination.depth == rowBeforeDestination.depth + 1 {
-            return .firstChild(parentID: rowBeforeDestination.location.id)
-        }
-
-        if rowBeforeDestination.location.parentLocationID == rowAtDestination.location.parentLocationID,
-           rowBeforeDestination.depth == rowAtDestination.depth {
-            let parentID = rowBeforeDestination.location.parentLocationID
-            let insertIndex = siblingIndex(
-                before: destination,
-                parentID: parentID,
-                in: flatWithoutSources
-            )
-            return .betweenSiblings(parentID: parentID, insertIndex: insertIndex)
-        }
-
-        return .unresolved
-    }
-
-    private func siblingIndex(before destination: Int, parentID: UUID?, in rows: [EditableLocationNode]) -> Int {
-        rows[..<destination].filter { $0.location.parentLocationID == parentID }.count
-    }
-
-    private func debugRows(_ rows: [EditableLocationNode]) -> [String] {
-        rows.indices.map { index in
-            debugRow(rows[index], index: index)
-        }
-    }
-
-    private func debugRow(_ row: EditableLocationNode?, index: Int? = nil) -> String {
-        guard let row else { return "nil" }
-
-        let prefix = index.map { "\($0):" } ?? ""
-        let id = String(row.location.id.uuidString.prefix(8))
-        let parentID = row.location.parentLocationID.map { String($0.uuidString.prefix(8)) } ?? "nil"
-        return "\(prefix)d\(row.depth) \(row.location.name) id:\(id) parent:\(parentID)"
-    }
-    #endif
 
     private func defaultChildKind(for location: Location) -> LocationKind? {
         switch location.kind {
@@ -630,24 +553,6 @@ private struct EditableLocationNode: Identifiable {
     let depth: Int
 
     var id: UUID { location.id }
-}
-
-private enum LocationMoveIntent: CustomStringConvertible {
-    case firstChild(parentID: UUID)
-    case betweenSiblings(parentID: UUID?, insertIndex: Int)
-    case unresolved
-
-    var description: String {
-        switch self {
-        case .firstChild(let parentID):
-            return "firstChild parent:\(String(parentID.uuidString.prefix(8))) insertIndex:0"
-        case .betweenSiblings(let parentID, let insertIndex):
-            let parentDescription = parentID.map { String($0.uuidString.prefix(8)) } ?? "nil"
-            return "betweenSiblings parent:\(parentDescription) insertIndex:\(insertIndex)"
-        case .unresolved:
-            return "unresolved"
-        }
-    }
 }
 
 private struct AddChildContext: Identifiable {
