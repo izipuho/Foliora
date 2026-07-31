@@ -389,13 +389,31 @@ struct HomeEditorView: View {
     ) -> LocationMoveIntent {
         guard destination > 0,
               let rowBeforeDestination = row(in: flatWithoutSources, at: destination - 1),
-              let rowAtDestination = row(in: flatWithoutSources, at: destination),
-              rowAtDestination.location.parentLocationID == rowBeforeDestination.location.id,
-              rowAtDestination.depth == rowBeforeDestination.depth + 1 else {
+              let rowAtDestination = row(in: flatWithoutSources, at: destination) else {
             return .unresolved
         }
 
-        return .firstChild(parentID: rowBeforeDestination.location.id)
+        if rowAtDestination.location.parentLocationID == rowBeforeDestination.location.id,
+           rowAtDestination.depth == rowBeforeDestination.depth + 1 {
+            return .firstChild(parentID: rowBeforeDestination.location.id)
+        }
+
+        if rowBeforeDestination.location.parentLocationID == rowAtDestination.location.parentLocationID,
+           rowBeforeDestination.depth == rowAtDestination.depth {
+            let parentID = rowBeforeDestination.location.parentLocationID
+            let insertIndex = siblingIndex(
+                before: destination,
+                parentID: parentID,
+                in: flatWithoutSources
+            )
+            return .betweenSiblings(parentID: parentID, insertIndex: insertIndex)
+        }
+
+        return .unresolved
+    }
+
+    private func siblingIndex(before destination: Int, parentID: UUID?, in rows: [EditableLocationNode]) -> Int {
+        rows[..<destination].filter { $0.location.parentLocationID == parentID }.count
     }
 
     private func debugRows(_ rows: [EditableLocationNode]) -> [String] {
@@ -616,12 +634,16 @@ private struct EditableLocationNode: Identifiable {
 
 private enum LocationMoveIntent: CustomStringConvertible {
     case firstChild(parentID: UUID)
+    case betweenSiblings(parentID: UUID?, insertIndex: Int)
     case unresolved
 
     var description: String {
         switch self {
         case .firstChild(let parentID):
             return "firstChild parent:\(String(parentID.uuidString.prefix(8))) insertIndex:0"
+        case .betweenSiblings(let parentID, let insertIndex):
+            let parentDescription = parentID.map { String($0.uuidString.prefix(8)) } ?? "nil"
+            return "betweenSiblings parent:\(parentDescription) insertIndex:\(insertIndex)"
         case .unresolved:
             return "unresolved"
         }
