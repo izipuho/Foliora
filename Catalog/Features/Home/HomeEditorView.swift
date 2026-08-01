@@ -389,7 +389,8 @@ struct AddLocationSheet: View {
             parentLocationID: parentLocationID,
             kind: kind,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? defaultName(for: kind) : name,
-            notes: notes
+            notes: notes,
+            sortOrder: nil
         )
     }
 
@@ -506,7 +507,8 @@ struct AddLocationSheet: View {
                         NSLocalizedString("home.location.shelf_default_name", comment: "Default generated shelf name"),
                         index
                     ),
-                    notes: ""
+                    notes: "",
+                    sortOrder: nil
                 )
             })
         }

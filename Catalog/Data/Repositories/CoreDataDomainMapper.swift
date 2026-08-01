@@ -51,7 +51,7 @@ enum CoreDataDomainMapper {
             isFavorite: entity.value(forKey: "isFavorite") as? Bool ?? false,
             tags: tags,
             originPlace: originPlaceEntity.map(place),
-            storageLocation: locationEntity.map(location),
+            storageLocation: locationEntity.map { location(from: $0) },
             storagePath: locationEntity.map(storagePath) ?? "",
             mediaAssets: mediaAssets
         )
@@ -70,14 +70,15 @@ enum CoreDataDomainMapper {
         )
     }
 
-    static func location(from entity: NSManagedObject) -> Location {
+    static func location(from entity: NSManagedObject, sortOrder: Int? = nil) -> Location {
         Location(
             id: uuidValue(entity, "id"),
             homeID: locationHomeID(from: entity),
             parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
             kind: locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)),
             name: stringValue(entity, "name"),
-            notes: stringValue(entity, "notes")
+            notes: stringValue(entity, "notes"),
+            sortOrder: sortOrder
         )
     }
 

@@ -27,13 +27,20 @@ final class CoreDataCatalogRepository: CatalogRepository {
     func saveLocations(_ locations: [Location], in homeID: UUID) {
         guard let home = fetchEntity(named: "HomeEntity", by: homeID) else { return }
 
-        fetchEntities(named: "LocationEntity", predicate: NSPredicate(format: "home.id == %@", homeID as NSUUID))
-            .forEach(context.delete)
-
+        let existingLocations = fetchEntities(
+            named: "LocationEntity",
+            predicate: NSPredicate(format: "home.id == %@", homeID as NSUUID)
+        )
+        let incomingIDs = Set(locations.map(\.id))
         var entitiesByID: [UUID: NSManagedObject] = [:]
 
+        for entity in existingLocations {
+            guard let locationID = entity.value(forKey: "id") as? UUID else { continue }
+            entitiesByID[locationID] = entitiesByID[locationID] ?? entity
+        }
+
         for location in locations {
-            let entity = makeEntity(named: "LocationEntity")
+            let entity = entitiesByID[location.id] ?? makeEntity(named: "LocationEntity")
             apply(location, to: entity)
             entity.setValue(home, forKey: "home")
             entitiesByID[location.id] = entity
@@ -42,6 +49,17 @@ final class CoreDataCatalogRepository: CatalogRepository {
         for location in locations {
             guard let entity = entitiesByID[location.id] else { continue }
             entity.setValue(location.parentLocationID.flatMap { entitiesByID[$0] }, forKey: "parent")
+        }
+
+        for entity in existingLocations {
+            guard
+                let locationID = entity.value(forKey: "id") as? UUID,
+                !incomingIDs.contains(locationID)
+            else {
+                continue
+            }
+
+            context.delete(entity)
         }
 
         syncCollectionLocations(from: locations, in: homeID)
@@ -125,6 +143,32 @@ final class CoreDataCatalogRepository: CatalogRepository {
         } else {
             context.delete(entity)
         }
+        saveContext()
+    }
+
+    func saveUserSortOrder(itemIDs: [UUID], scope: String) {
+        guard let privateStore = context.persistentStoreCoordinator?.persistentStores.first(where: {
+            $0.url?.lastPathComponent == "Private.sqlite"
+        }) else { return }
+
+        let updatedAt = Date()
+        for (sortOrder, itemID) in itemIDs.enumerated() {
+            let entity = fetchEntities(
+                named: "UserSortOrderEntity",
+                predicate: NSPredicate(format: "itemID == %@ AND scope == %@", itemID as NSUUID, scope),
+                fetchLimit: 1,
+                affectedStores: [privateStore]
+            ).first ?? makeEntity(named: "UserSortOrderEntity")
+            if entity.objectID.persistentStore == nil {
+                context.assign(entity, to: privateStore)
+                entity.setValue(UUID(), forKey: "id")
+            }
+            entity.setValue(itemID, forKey: "itemID")
+            entity.setValue(scope, forKey: "scope")
+            entity.setValue(sortOrder, forKey: "sortOrder")
+            entity.setValue(updatedAt, forKey: "updatedAt")
+        }
+
         saveContext()
     }
 
@@ -504,11 +548,13 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func fetchEntities(
         named entityName: String,
         predicate: NSPredicate? = nil,
-        fetchLimit: Int = 0
+        fetchLimit: Int = 0,
+        affectedStores: [NSPersistentStore]? = nil
     ) -> [NSManagedObject] {
         let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
         request.predicate = predicate
         request.fetchLimit = fetchLimit
+        request.affectedStores = affectedStores
         return (try? context.fetch(request)) ?? []
     }
 

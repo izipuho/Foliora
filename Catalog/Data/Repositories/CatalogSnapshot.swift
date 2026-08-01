@@ -49,25 +49,38 @@ struct CatalogSnapshot {
             in: context,
             sortDescriptors: [NSSortDescriptor(key: "displayName", ascending: true)]
         )
+        let privateStore = context.persistentStoreCoordinator?.persistentStores.first {
+            $0.url?.lastPathComponent == "Private.sqlite"
+        }
+        let userSortOrderEntities = privateStore.map {
+            fetchEntities(named: "UserSortOrderEntity", in: context, affectedStores: [$0])
+        } ?? []
+        let sortOrderByItemID = Dictionary(
+            userSortOrderEntities.compactMap { entity -> (UUID, Int)? in
+                guard let itemID = entity.value(forKey: "itemID") as? UUID else { return nil }
+                return (itemID, CoreDataDomainMapper.intValue(entity, "sortOrder"))
+            },
+            uniquingKeysWith: { _, latest in latest }
+        )
         let records = bellEntities.map { CoreDataDomainMapper.bellRecord(from: $0) }
 
         var snapshot = CatalogSnapshot()
         snapshot.homes = homeEntities.map(home)
-        snapshot.locations = locationEntities.map { CoreDataDomainMapper.location(from: $0) }
-        snapshot.collectionLocations = collectionLocationEntities.map { CoreDataDomainMapper.location(from: $0) }
+        snapshot.locations = locationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: sortOrderByItemID[uuidValue($0, "id")]) }
+        snapshot.collectionLocations = collectionLocationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: sortOrderByItemID[uuidValue($0, "id")]) }
         snapshot.collections = collectionEntities.map(collection)
         snapshot.bells = bellEntities.map(bellListItem)
         snapshot.bellRecords = records
         snapshot.places = placeEntities.map { CoreDataDomainMapper.place(from: $0) }
         snapshot.recordsByID = Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) })
-        snapshot.locationsByHomeID = Dictionary(grouping: locationEntities.compactMap(locationRow), by: \.0)
+        snapshot.locationsByHomeID = Dictionary(grouping: locationEntities.compactMap { locationRow(from: $0, sortOrderByItemID: sortOrderByItemID) }, by: \.0)
             .mapValues { rows in
                 rows.map(\.1).sorted { lhs, rhs in
                     lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
                 }
             }
         snapshot.collectionLocationsByCollectionID = Dictionary(
-            grouping: collectionLocationEntities.compactMap(collectionLocationRow),
+            grouping: collectionLocationEntities.compactMap { collectionLocationRow(from: $0, sortOrderByItemID: sortOrderByItemID) },
             by: \.0
         )
         .mapValues { rows in rows.map(\.1) }
@@ -90,11 +103,13 @@ struct CatalogSnapshot {
         named entityName: String,
         in context: NSManagedObjectContext,
         predicate: NSPredicate? = nil,
-        sortDescriptors: [NSSortDescriptor] = []
+        sortDescriptors: [NSSortDescriptor] = [],
+        affectedStores: [NSPersistentStore]? = nil
     ) -> [NSManagedObject] {
         let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
         request.predicate = predicate
         request.sortDescriptors = sortDescriptors
+        request.affectedStores = affectedStores
         return (try? context.fetch(request)) ?? []
     }
 
@@ -123,16 +138,16 @@ struct CatalogSnapshot {
         )
     }
 
-    private static func locationRow(from entity: NSManagedObject) -> (UUID, Location)? {
+    private static func locationRow(from entity: NSManagedObject, sortOrderByItemID: [UUID: Int]) -> (UUID, Location)? {
         guard let home = entity.value(forKey: "home") as? NSManagedObject else { return nil }
         let homeID = uuidValue(home, "id")
 
-        return (homeID, CoreDataDomainMapper.location(from: entity))
+        return (homeID, CoreDataDomainMapper.location(from: entity, sortOrder: sortOrderByItemID[uuidValue(entity, "id")]))
     }
 
-    private static func collectionLocationRow(from entity: NSManagedObject) -> (UUID, Location)? {
+    private static func collectionLocationRow(from entity: NSManagedObject, sortOrderByItemID: [UUID: Int]) -> (UUID, Location)? {
         guard let collectionID = collectionLocationCollectionID(from: entity) else { return nil }
-        return (collectionID, CoreDataDomainMapper.location(from: entity))
+        return (collectionID, CoreDataDomainMapper.location(from: entity, sortOrder: sortOrderByItemID[uuidValue(entity, "id")]))
     }
 
     private static func collectionLocationPathRow(from entity: NSManagedObject) -> (UUID, (UUID, String))? {
