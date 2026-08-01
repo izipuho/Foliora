@@ -1,16 +1,24 @@
 import CoreData
 
+enum PreviewScenario {
+    case empty
+    case minimal
+}
+
 @MainActor
 enum PreviewContainer {
-    static let container: NSPersistentCloudKitContainer = {
+    static func make(_ scenario: PreviewScenario) -> NSPersistentCloudKitContainer {
         do {
-            return try FolioraCoreDataStack.makeContainer(inMemory: true)
+            let container = try FolioraCoreDataStack.makeContainer(inMemory: true)
+
+            switch scenario {
+            case .empty:
+                return container
+            case .minimal:
+                return container
+            }
         } catch {
             fatalError("Failed to create preview container: \(error)")
         }
-    }()
-
-    static var context: NSManagedObjectContext {
-        container.viewContext
     }
 }
