@@ -16,6 +16,8 @@
 		2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */; };
 		2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */; };
 		2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */; };
+		24056E9A301E68BE00601C22 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E98301E68BE00601C22 /* PreviewContainer.swift */; };
+		24056E9C301E68D200601C22 /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E9B301E68CC00601C22 /* PreviewData.swift */; };
 		24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
@@ -99,6 +101,8 @@
 		2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionsView.swift; sourceTree = "<group>"; };
 		2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionShellView.swift; sourceTree = "<group>"; };
 		2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingView.swift; sourceTree = "<group>"; };
+		24056E98301E68BE00601C22 /* PreviewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContainer.swift; sourceTree = "<group>"; };
+		24056E9B301E68CC00601C22 /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
 		24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticPhotoFeatureExtractor.swift; sourceTree = "<group>"; };
 		24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognitionDebugML.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		24374F252FF50A0E00E83899 /* DashboardCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCard.swift; sourceTree = "<group>"; };
@@ -209,6 +213,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		24056E99301E68BE00601C22 /* PreviewData */ = {
+			isa = PBXGroup;
+			children = (
+				24056E9B301E68CC00601C22 /* PreviewData.swift */,
+				24056E98301E68BE00601C22 /* PreviewContainer.swift */,
+			);
+			path = PreviewData;
+			sourceTree = "<group>";
+		};
 		24374F232FF4F93800E83899 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
@@ -310,6 +323,7 @@
 		C00000000000000000000037 /* Data */ = {
 			isa = PBXGroup;
 			children = (
+				24056E99301E68BE00601C22 /* PreviewData */,
 				C0000000000000000000003F /* Repositories */,
 				E00000000000000000000001 /* CoreData */,
 				C00000000000000000000049 /* ImportExport */,
@@ -673,6 +687,7 @@
 				24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */,
 				24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */,
 				2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */,
+				24056E9C301E68D200601C22 /* PreviewData.swift in Sources */,
 				24374F462FF7F0AA00E83899 /* CatalogShapes.swift in Sources */,
 				24374F262FF50A0E00E83899 /* DashboardCard.swift in Sources */,
 				249A28282FDC1940009A0E03 /* CoreDataCatalogRepository.swift in Sources */,
@@ -681,6 +696,7 @@
 				2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */,
 				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
 				246D3FC9300508F7000515FD /* CatalogImportExportView.swift in Sources */,
+				24056E9A301E68BE00601C22 /* PreviewContainer.swift in Sources */,
 				E00000000000000000000006 /* Foliora.xcdatamodeld in Sources */,
 				24374F2C2FF6596800E83899 /* CatalogMetrics.swift in Sources */,
 				24D9EC173019D7B6009DB654 /* CoreDataDomainMapper.swift in Sources */,

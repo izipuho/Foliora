@@ -15,6 +15,7 @@ enum PreviewContainer {
             case .empty:
                 return container
             case .minimal:
+                PreviewData.populateMinimal(context: container.viewContext)
                 return container
             }
         } catch {
