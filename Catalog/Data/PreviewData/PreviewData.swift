@@ -3,46 +3,151 @@ import Foundation
 
 @MainActor
 enum PreviewData {
+    struct CoreMinimal {
+        let home: Home
+        let locations: [Location]
+        let collection: Collection
+        let items: [ItemRecord]
+    }
+
     static func populateMinimal(context: NSManagedObjectContext) {
         let repository = CoreDataCatalogRepository(
             context: context,
             persistentContainer: nil
         )
+        let core = makeCoreMinimal(collectionKind: .bells)
+        let bells = makeMinimalBells(from: core)
 
+        repository.saveHome(core.home)
+        repository.saveLocations(core.locations, in: core.home.id)
+        repository.saveCollection(core.collection)
+        repository.saveBellRecords(bells)
+    }
+
+    static func makeCoreMinimal(collectionKind: CollectionKind) -> CoreMinimal {
         let homeID = UUID()
-        let locationID = UUID()
+        let floorID = UUID()
+        let roomID = UUID()
+        let cabinetID = UUID()
+        let firstShelfID = UUID()
+        let secondShelfID = UUID()
         let collectionID = UUID()
-        let itemID = UUID()
 
         let home = Home(
             id: homeID,
             name: "Home",
             notes: ""
         )
-        let location = Location(
-            id: locationID,
+        let floor = Location(
+            id: floorID,
             homeID: homeID,
             parentLocationID: nil,
-            kind: .shelf,
-            name: "Shelf",
+            kind: .floor,
+            name: "First Floor",
             notes: "",
-            sortOrder: nil
+            sortOrder: 0
+        )
+        let room = Location(
+            id: roomID,
+            homeID: homeID,
+            parentLocationID: floorID,
+            kind: .room,
+            name: "Living Room",
+            notes: "",
+            sortOrder: 0
+        )
+        let cabinet = Location(
+            id: cabinetID,
+            homeID: homeID,
+            parentLocationID: roomID,
+            kind: .cabinet,
+            name: "Cabinet",
+            notes: "",
+            sortOrder: 0
+        )
+        let firstShelf = Location(
+            id: firstShelfID,
+            homeID: homeID,
+            parentLocationID: cabinetID,
+            kind: .shelf,
+            name: "Top Shelf",
+            notes: "",
+            sortOrder: 0
+        )
+        let secondShelf = Location(
+            id: secondShelfID,
+            homeID: homeID,
+            parentLocationID: cabinetID,
+            kind: .shelf,
+            name: "Bottom Shelf",
+            notes: "",
+            sortOrder: 1
         )
         let collection = Collection(
             id: collectionID,
             homeID: homeID,
-            kind: .bells,
-            title: "Bells",
+            kind: collectionKind,
+            title: collectionKind.title,
             notes: ""
         )
-        let item = ItemRecord(
-            id: itemID,
+        let items = [
+            makeItem(
+                title: "First Item",
+                collectionID: collectionID,
+                location: firstShelf,
+                storagePath: "First Floor / Living Room / Cabinet / Top Shelf"
+            ),
+            makeItem(
+                title: "Second Item",
+                collectionID: collectionID,
+                location: secondShelf,
+                storagePath: "First Floor / Living Room / Cabinet / Bottom Shelf"
+            ),
+            makeItem(
+                title: "Third Item",
+                collectionID: collectionID,
+                location: nil,
+                storagePath: ""
+            )
+        ]
+
+        return CoreMinimal(
+            home: home,
+            locations: [floor, room, cabinet, firstShelf, secondShelf],
+            collection: collection,
+            items: items
+        )
+    }
+
+    static func makeMinimalBells(from core: CoreMinimal) -> [BellRecord] {
+        let materials: [BellMaterial] = [.unknown, .brass, .ceramic]
+
+        return zip(core.items, materials).map { item, material in
+            BellRecord(
+                item: item,
+                details: BellDetails(
+                    itemID: item.id,
+                    material: material,
+                    customMaterialName: nil
+                )
+            )
+        }
+    }
+
+    private static func makeItem(
+        title: String,
+        collectionID: UUID,
+        location: Location?,
+        storagePath: String
+    ) -> ItemRecord {
+        ItemRecord(
+            id: UUID(),
             collectionID: collectionID,
-            locationID: locationID,
+            locationID: location?.id,
             originPlaceID: nil,
             createdAt: Date(timeIntervalSince1970: 0),
             createdBy: "",
-            title: "Bell",
+            title: title,
             notes: "",
             acquiredYear: nil,
             condition: .good,
@@ -51,21 +156,8 @@ enum PreviewData {
             tags: [],
             originPlace: nil,
             storageLocation: location,
-            storagePath: location.name,
+            storagePath: storagePath,
             mediaAssets: []
         )
-        let bell = BellRecord(
-            item: item,
-            details: BellDetails(
-                itemID: itemID,
-                material: .unknown,
-                customMaterialName: nil
-            )
-        )
-
-        repository.saveHome(home)
-        repository.saveLocations([location], in: homeID)
-        repository.saveCollection(collection)
-        repository.saveBellRecord(bell)
     }
 }
