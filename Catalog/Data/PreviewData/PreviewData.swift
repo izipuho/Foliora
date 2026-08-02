@@ -35,8 +35,8 @@ enum PreviewData {
 
         let home = Home(
             id: homeID,
-            name: "Home",
-            notes: ""
+            name: "Lake House",
+            notes: "My cozy house at the lake shore. I have small collection here."
         )
         let floor = Location(
             id: floorID,
@@ -88,7 +88,7 @@ enum PreviewData {
             homeID: homeID,
             kind: collectionKind,
             title: collectionKind.title,
-            notes: ""
+            notes: "My favorite collection at my lake house."
         )
         let items = [
             makeItem(
