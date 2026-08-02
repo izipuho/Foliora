@@ -161,37 +161,14 @@ struct HomeIdentityHeader: View {
 
 #Preview {
     let container = PreviewContainer.make(.minimal)
-    let home = Home(
-        id: UUID(),
-        name: "Lake House",
-        iconName: "house.fill",
-        notes: "Summer storage and display shelves."
-    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+    let home = snapshot.homes[0]
 
     NavigationStack {
         HomeDetailView(
             home: .constant(home),
-            locations: .constant([
-                Location(
-                    id: UUID(),
-                    homeID: home.id,
-                    parentLocationID: nil,
-                    kind: .floor,
-                    name: "First Floor",
-                    notes: "",
-                    sortOrder: nil
-                ),
-                Location(
-                    id: UUID(),
-                    homeID: home.id,
-                    parentLocationID: nil,
-                    kind: .room,
-                    name: "Study",
-                    notes: "",
-                    sortOrder: nil
-                )
-            ]),
-            collectionCount: 3,
+            locations: .constant(snapshot.locationsByHomeID[home.id] ?? []),
+            collectionCount: snapshot.collectionCountsByHomeID[home.id] ?? 0,
             onSave: { _, _ in },
             onDelete: {}
         )
