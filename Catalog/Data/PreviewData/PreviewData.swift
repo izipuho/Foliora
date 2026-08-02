@@ -1,10 +1,3 @@
-//
-//  PreviewData.swift
-//  Foliora
-//
-//  Created by Ivan Zipuho on 01.08.2026.
-//
-
 import CoreData
 import Foundation
 
