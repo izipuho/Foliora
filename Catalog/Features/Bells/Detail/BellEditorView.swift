@@ -901,3 +901,37 @@ private struct PhotoSuggestedTagChip: View {
         .opacity(opacity)
     }
 }
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.make(.minimal)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+    let collection = snapshot.collections.first { $0.kind == .bells }!
+    let bell = snapshot.bellRecords.first { $0.item.collectionID == collection.id && $0.mediaAssets.count == 2 }
+    let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
+    let summary = CollectionSummary(
+        id: collection.id,
+        homeID: collection.homeID,
+        kind: collection.kind,
+        name: collection.title,
+        subtitle: collection.notes,
+        backgroundStyle: collection.backgroundStyle,
+        itemCount: itemCount,
+        status: .active,
+        sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+    )
+
+    BellEditorView(
+        collection: summary,
+        repository: repository,
+        bell: bell
+    ) { updatedBell in
+        repository.saveBellRecord(updatedBell)
+    }
+    .environment(\.managedObjectContext, container.viewContext)
+}
+#endif

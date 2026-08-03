@@ -125,6 +125,16 @@ final class CoreDataCatalogRepository: CatalogRepository {
         }
     }
 
+    func saveItemRecord(_ item: ItemRecord) {
+        saveItemRecordWithoutSavingContext(item)
+        saveContext()
+    }
+
+    func saveItemRecords(_ items: [ItemRecord]) {
+        items.forEach { saveItemRecordWithoutSavingContext($0) }
+        saveContext()
+    }
+
     func saveBellRecord(_ bell: BellRecord) {
         saveBellRecordWithoutSavingContext(bell)
         saveContext()
@@ -243,13 +253,18 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func saveBellRecordWithoutSavingContext(_ bell: BellRecord) {
-        guard let collection = fetchEntity(named: "CollectionEntity", by: bell.item.collectionID) else { return }
+        guard let item = saveItemRecordWithoutSavingContext(bell.item) else { return }
 
-        let item = upsertItemEntity(for: bell.item, in: collection)
         let entity = fetchBellEntity(by: bell.id) ?? makeEntity(named: "BellEntity")
         apply(bell, to: entity)
         entity.setValue(item, forKey: "item")
         fillInverseRelationship(from: entity, relationshipName: "item", with: item)
+    }
+
+    @discardableResult
+    private func saveItemRecordWithoutSavingContext(_ item: ItemRecord) -> NSManagedObject? {
+        guard let collection = fetchEntity(named: "CollectionEntity", by: item.collectionID) else { return nil }
+        return upsertItemEntity(for: item, in: collection)
     }
 
     private func upsertItemEntity(for item: ItemRecord, in collection: NSManagedObject) -> NSManagedObject {

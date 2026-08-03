@@ -534,56 +534,46 @@ struct BellDetailView: View {
 }
 
 private struct BellDetailPreviewHost: View {
-    let collectionID: UUID
+    let initialBell: BellRecord
     let repository: any CatalogRepository
-    @Environment(\.managedObjectContext) private var managedObjectContext
-    @State private var lookupSnapshot = BellLookupSnapshot()
-    @State private var bell: BellRecord?
+    @State private var bell: BellRecord
+
+    init(bell: BellRecord, repository: any CatalogRepository) {
+        self.initialBell = bell
+        self.repository = repository
+        _bell = State(initialValue: bell)
+    }
 
     var body: some View {
-        Group {
-            if let binding = bellBinding {
-                BellDetailView(
-                    bell: binding,
-                    repository: repository,
-                    canEditCollection: false,
-                    canChangeFavorite: false
-                )
-            } else {
-                CatalogEmptyStateView(
-                    systemImage: "bell.slash",
-                    title: LocalizedStringKey(String(localized: "home.not_found.title"))
-                )
-            }
-        }
-        .task {
-            reloadLookupSnapshot()
-            syncBellIfNeeded()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
-            reloadLookupSnapshot()
-            syncBellIfNeeded()
-        }
-    }
-
-    private var bellBinding: Binding<BellRecord>? {
-        guard bell != nil else { return nil }
-        return Binding(
-            get: { bell! },
-            set: { bell = $0 }
+        BellDetailView(
+            bell: $bell,
+            repository: repository,
+            canEditCollection: false,
+            canChangeFavorite: false
         )
     }
+}
 
-    private func syncBellIfNeeded() {
-        guard bell == nil else { return }
-        bell = lookupSnapshot.bells.first(where: { $0.item.collectionID == collectionID })
-    }
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.make(.minimal)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+    let collection = snapshot.collections.first { $0.kind == .bells }!
+    let bell = snapshot.bellRecords.first { $0.item.collectionID == collection.id && $0.mediaAssets.count == 2 }!
 
-    private func reloadLookupSnapshot() {
-        lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
-            .loadSnapshot(collectionID: collectionID, homeID: nil)
+    NavigationStack {
+        BellDetailPreviewHost(
+            bell: bell,
+            repository: repository
+        )
+        .environment(\.managedObjectContext, container.viewContext)
     }
 }
+#endif
 
 private extension Collection {
     var summarySnapshot: CollectionSummary {

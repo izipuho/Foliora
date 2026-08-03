@@ -1087,3 +1087,40 @@ private struct BellQuickMoveSheet: View {
         locations
     }
 }
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.make(.minimal)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+    let collection = snapshot.collections.first { $0.kind == .bells }!
+    let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
+    let summary = CollectionSummary(
+        id: collection.id,
+        homeID: collection.homeID,
+        kind: collection.kind,
+        name: collection.title,
+        subtitle: collection.notes,
+        backgroundStyle: collection.backgroundStyle,
+        itemCount: itemCount,
+        status: .active,
+        sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+    )
+
+    NavigationStack {
+        BellCatalogView(
+            collection: summary,
+            repository: repository,
+            sharingState: CollectionSharingState(
+                currentUserRole: .owner,
+                participants: []
+            ),
+            canEditCollection: true
+        )
+        .environment(\.managedObjectContext, container.viewContext)
+    }
+}
+#endif

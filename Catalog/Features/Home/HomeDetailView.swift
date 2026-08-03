@@ -160,88 +160,18 @@ struct HomeIdentityHeader: View {
 }
 
 #Preview {
+    let container = PreviewContainer.make(.minimal)
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+    let home = snapshot.homes[0]
+
     NavigationStack {
         HomeDetailView(
-            home: .constant(HomeDetailPreviewData.home),
-            locations: .constant(HomeDetailPreviewData.locations),
-            collectionCount: HomeDetailPreviewData.collectionCount,
+            home: .constant(home),
+            locations: .constant(snapshot.locationsByHomeID[home.id] ?? []),
+            collectionCount: snapshot.collectionCountsByHomeID[home.id] ?? 0,
             onSave: { _, _ in },
             onDelete: {}
         )
-        .environment(\.managedObjectContext, HomeDetailPreviewData.context)
+        .environment(\.managedObjectContext, container.viewContext)
     }
-}
-
-private enum HomeDetailPreviewData {
-    static let home = Home(
-        id: UUID(),
-        name: "Lake House",
-        iconName: "house.fill",
-        notes: "Summer storage and display shelves."
-    )
-
-    static let locations = [
-        Location(
-            id: UUID(),
-            homeID: home.id,
-            parentLocationID: nil,
-            kind: .floor,
-            name: "First Floor",
-            notes: "",
-            sortOrder: nil
-        ),
-        Location(
-            id: UUID(),
-            homeID: home.id,
-            parentLocationID: nil,
-            kind: .room,
-            name: "Study",
-            notes: "",
-            sortOrder: nil
-        )
-    ]
-
-    static let collectionCount = 3
-
-    @MainActor
-    static let context: NSManagedObjectContext = {
-        do {
-            let container = try FolioraCoreDataStack.makeContainer(inMemory: true)
-            let repository = CoreDataCatalogRepository(
-                context: container.viewContext,
-                persistentContainer: nil
-            )
-
-            repository.saveHome(home)
-            repository.saveLocations(locations, in: home.id)
-            repository.saveCollection(Collection(
-                id: UUID(),
-                homeID: home.id,
-                kind: .bells,
-                title: "Travel Bells",
-                notes: "",
-                backgroundStyle: .amber
-            ))
-            repository.saveCollection(Collection(
-                id: UUID(),
-                homeID: home.id,
-                kind: .bells,
-                title: "Family Gifts",
-                notes: "",
-                backgroundStyle: .mint
-            ))
-            repository.saveCollection(Collection(
-                id: UUID(),
-                homeID: home.id,
-                kind: .books,
-                title: "Reference Books",
-                notes: "",
-                backgroundStyle: .slate
-            ))
-
-            return container.viewContext
-        } catch {
-            fatalError("Failed to create HomeDetailView preview data: \(error)")
-        }
-    }()
 }
