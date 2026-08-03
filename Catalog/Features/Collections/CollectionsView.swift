@@ -496,6 +496,21 @@ private enum CollectionCardSharingStatus {
     case unknown
 }
 
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.make(.minimal)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+
+    NavigationStack {
+        CollectionsView(repository: repository)
+            .environment(\.managedObjectContext, container.viewContext)
+    }
+}
+#endif
+
 private struct CollectionCard: View {
     let collection: CollectionSummary
     let sharingStatus: CollectionCardSharingStatus

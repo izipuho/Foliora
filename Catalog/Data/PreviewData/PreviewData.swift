@@ -8,6 +8,7 @@ enum PreviewData {
         let home: Home
         let locations: [Location]
         let collection: Collection
+        let secondaryCollection: Collection
         let items: [ItemRecord]
     }
 
@@ -22,6 +23,7 @@ enum PreviewData {
         repository.saveHome(core.home)
         repository.saveLocations(core.locations, in: core.home.id)
         repository.saveCollection(core.collection)
+        repository.saveCollection(core.secondaryCollection)
         repository.saveBellRecords(bells)
     }
 
@@ -33,6 +35,7 @@ enum PreviewData {
         let firstShelfID = UUID()
         let secondShelfID = UUID()
         let collectionID = UUID()
+        let secondaryCollectionID = UUID()
 
         let home = Home(
             id: homeID,
@@ -89,7 +92,16 @@ enum PreviewData {
             homeID: homeID,
             kind: collectionKind,
             title: collectionKind.title,
-            notes: "My favorite collection at my lake house."
+            notes: "My favorite collection at my lake house.",
+            backgroundStyle: .amber
+        )
+        let secondaryCollection = Collection(
+            id: secondaryCollectionID,
+            homeID: homeID,
+            kind: collectionKind,
+            title: "Travel Finds",
+            notes: "Pieces waiting to be cataloged from recent trips.",
+            backgroundStyle: .sky
         )
         let items = [
             makeItem(
@@ -116,6 +128,7 @@ enum PreviewData {
             home: home,
             locations: [floor, room, cabinet, firstShelf, secondShelf],
             collection: collection,
+            secondaryCollection: secondaryCollection,
             items: items
         )
     }
