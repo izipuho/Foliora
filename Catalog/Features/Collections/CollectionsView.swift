@@ -172,11 +172,17 @@ struct CollectionsView: View {
             .contentMargins(.bottom, 120, for: .scrollContent)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(isSortingCollections ? "Done" : "Sort") {
+                    Button {
                         if isSortingCollections {
                             stopSortingCollections()
                         } else {
                             startSortingCollections()
+                        }
+                    } label: {
+                        if isSortingCollections {
+                            Image(systemName: "checkmark")
+                        } else {
+                            Image(systemName: "line.3.horizontal.decrease")
                         }
                     }
                 }
