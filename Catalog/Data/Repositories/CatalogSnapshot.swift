@@ -65,7 +65,7 @@ struct CatalogSnapshot {
         let collectionSortOrderByItemID = Dictionary(
             userSortOrderEntities.compactMap { entity -> (UUID, Int)? in
                 guard
-                    stringValue(entity, "scope") == "collections",
+                    stringValue(entity, "scope") == "Collection",
                     let itemID = entity.value(forKey: "itemID") as? UUID
                 else { return nil }
                 return (itemID, CoreDataDomainMapper.intValue(entity, "sortOrder"))

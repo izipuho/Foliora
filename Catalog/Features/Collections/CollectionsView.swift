@@ -300,7 +300,7 @@ struct CollectionsView: View {
         var itemIDs = displayedCollections.map(\.id)
         itemIDs.move(fromOffsets: source, toOffset: destination)
         collectionSortOrderIDs = itemIDs
-        repository.saveUserSortOrder(itemIDs: itemIDs, scope: "collections")
+        repository.saveUserSortOrder(itemIDs: itemIDs, scope: "Collection")
     }
 
     private func addCollection(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
