@@ -130,11 +130,12 @@ enum PreviewData {
             switch index {
             case 0:
                 item.mediaAssets = [
-                    makePreviewPhoto(itemID: item.id, resourceName: "PreviewBell1", sortOrder: 0)
+                    makePreviewPhoto(itemID: item.id, resourceName: "IMG_8938", sortOrder: 0)
                 ]
             case 2:
                 item.mediaAssets = [
-                    makePreviewPhoto(itemID: item.id, resourceName: "PreviewBell2", sortOrder: 0)
+                    makePreviewPhoto(itemID: item.id, resourceName: "IMG_8934", sortOrder: 0),
+                    makePreviewPhoto(itemID: item.id, resourceName: "IMG_8937", sortOrder: 1)
                 ]
             default:
                 item.mediaAssets = []
