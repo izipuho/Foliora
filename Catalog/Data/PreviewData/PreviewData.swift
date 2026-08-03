@@ -1,5 +1,6 @@
 import CoreData
 import Foundation
+import UIKit
 
 @MainActor
 enum PreviewData {
@@ -122,8 +123,24 @@ enum PreviewData {
     static func makeMinimalBells(from core: CoreMinimal) -> [BellRecord] {
         let materials: [BellMaterial] = [.unknown, .brass, .ceramic]
 
-        return zip(core.items, materials).map { item, material in
-            BellRecord(
+        return zip(core.items, materials).enumerated().map { index, pair in
+            var item = pair.0
+            let material = pair.1
+
+            switch index {
+            case 0:
+                item.mediaAssets = [
+                    makePreviewPhoto(itemID: item.id, resourceName: "PreviewBell1", sortOrder: 0)
+                ]
+            case 2:
+                item.mediaAssets = [
+                    makePreviewPhoto(itemID: item.id, resourceName: "PreviewBell2", sortOrder: 0)
+                ]
+            default:
+                item.mediaAssets = []
+            }
+
+            return BellRecord(
                 item: item,
                 details: BellDetails(
                     itemID: item.id,
@@ -132,6 +149,64 @@ enum PreviewData {
                 )
             )
         }
+    }
+
+    static func makePreviewPhoto(itemID: UUID, resourceName: String, sortOrder: Int) -> MediaAsset {
+        guard let image = UIImage(named: resourceName) else {
+            fatalError("Preview image resource not found: \(resourceName)")
+        }
+        guard let originalData = image.jpegData(compressionQuality: 0.92),
+              let thumbnailData = thumbnailData(for: image) else {
+            fatalError("Preview image data could not be created: \(resourceName)")
+        }
+
+        return MediaAsset(
+            id: UUID(),
+            itemID: itemID,
+            kind: .photo,
+            localIdentifier: "",
+            displayName: nil,
+            sortOrder: sortOrder,
+            fileName: "\(resourceName).jpg",
+            mimeType: "image/jpeg",
+            byteSize: originalData.count,
+            width: pixelWidth(for: image),
+            height: pixelHeight(for: image),
+            thumbnailData: thumbnailData,
+            originalData: originalData
+        )
+    }
+
+    private static func pixelWidth(for image: UIImage) -> Int {
+        image.cgImage?.width ?? Int((image.size.width * image.scale).rounded())
+    }
+
+    private static func pixelHeight(for image: UIImage) -> Int {
+        image.cgImage?.height ?? Int((image.size.height * image.scale).rounded())
+    }
+
+    private static func thumbnailData(for image: UIImage) -> Data? {
+        let maxPixelSize: CGFloat = 700
+        let pixelSize = CGSize(
+            width: image.size.width * image.scale,
+            height: image.size.height * image.scale
+        )
+        let longestSide = max(pixelSize.width, pixelSize.height)
+        guard longestSide > 0 else { return nil }
+
+        let scale = min(1, maxPixelSize / longestSide)
+        let targetSize = CGSize(
+            width: max(1, (pixelSize.width * scale).rounded()),
+            height: max(1, (pixelSize.height * scale).rounded())
+        )
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+
+        return UIGraphicsImageRenderer(size: targetSize, format: format)
+            .image { _ in
+                image.draw(in: CGRect(origin: .zero, size: targetSize))
+            }
+            .jpegData(compressionQuality: 0.82)
     }
 
     private static func makeItem(
