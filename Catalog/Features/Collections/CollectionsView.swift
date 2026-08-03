@@ -17,7 +17,7 @@ struct CollectionsView: View {
     @State private var collectionPendingSharing: CollectionSummary?
     @State private var collectionPendingEdit: CollectionSummary?
     @State private var isSortingCollections = false
-    @State private var collectionSortOrderIDs: [UUID] = []
+    @State private var sortingCollections: [CollectionSummary] = []
 
     init(
         repository: any CatalogRepository,
@@ -36,14 +36,7 @@ struct CollectionsView: View {
     }
 
     private var displayedCollections: [CollectionSummary] {
-        guard isSortingCollections else { return collections }
-
-        let collectionsByID = Dictionary(uniqueKeysWithValues: collections.map { ($0.id, $0) })
-        let orderedCollections = collectionSortOrderIDs.compactMap { collectionsByID[$0] }
-        let orderedCollectionIDs = Set(collectionSortOrderIDs)
-        let newCollections = collections.filter { !orderedCollectionIDs.contains($0.id) }
-
-        return orderedCollections + newCollections
+        isSortingCollections ? sortingCollections : collections
     }
 
     private var homes: [Home] {
@@ -66,13 +59,10 @@ struct CollectionsView: View {
                 for: .NSManagedObjectContextObjectsDidChange,
                 object: managedObjectContext
             )) { _ in
+                guard !isSortingCollections else { return }
                 reloadCatalogSnapshot()
             }
-            .onChange(of: collections.map(\.id)) { _, collectionIDs in
-                if isSortingCollections {
-                    collectionSortOrderIDs = collectionSortOrderIDs.filter { collectionIDs.contains($0) }
-                    collectionSortOrderIDs.append(contentsOf: collectionIDs.filter { !collectionSortOrderIDs.contains($0) })
-                }
+            .onChange(of: collections.map(\.id)) { _, _ in
                 autoOpenSingleCollectionIfNeeded()
             }
             .navigationTitle(RootTab.collections.title)
@@ -285,22 +275,21 @@ struct CollectionsView: View {
     }
 
     private func startSortingCollections() {
-        collectionSortOrderIDs = collections.map(\.id)
+        sortingCollections = collections
         isSortingCollections = true
     }
 
     private func stopSortingCollections() {
         isSortingCollections = false
-        collectionSortOrderIDs = []
+        sortingCollections = []
+        reloadCatalogSnapshot()
     }
 
     private func moveCollections(from source: IndexSet, to destination: Int) {
         guard isSortingCollections else { return }
 
-        var itemIDs = displayedCollections.map(\.id)
-        itemIDs.move(fromOffsets: source, toOffset: destination)
-        collectionSortOrderIDs = itemIDs
-        repository.saveUserSortOrder(itemIDs: itemIDs, scope: "Collection")
+        sortingCollections.move(fromOffsets: source, toOffset: destination)
+        repository.saveUserSortOrder(itemIDs: sortingCollections.map(\.id), scope: "Collection")
     }
 
     private func addCollection(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
