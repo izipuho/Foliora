@@ -177,7 +177,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		24056E9D301FD7DD00601C22 /* Media */ = {
+		24056EC03020811900601C22 /* Media */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Media;
 			sourceTree = "<group>";
@@ -221,7 +221,7 @@
 		24056E99301E68BE00601C22 /* PreviewData */ = {
 			isa = PBXGroup;
 			children = (
-				24056E9D301FD7DD00601C22 /* Media */,
+				24056EC03020811900601C22 /* Media */,
 				24056E9B301E68CC00601C22 /* PreviewData.swift */,
 				24056E98301E68BE00601C22 /* PreviewContainer.swift */,
 			);
@@ -576,7 +576,7 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				24056E9D301FD7DD00601C22 /* Media */,
+				24056EC03020811900601C22 /* Media */,
 				24374F4F2FFE5C7E00E83899 /* Foundation */,
 			);
 			name = "Foliora Bells";

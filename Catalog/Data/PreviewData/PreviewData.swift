@@ -130,12 +130,12 @@ enum PreviewData {
             switch index {
             case 0:
                 item.mediaAssets = [
-                    makePreviewPhoto(itemID: item.id, resourceName: "IMG_8938", sortOrder: 0)
+                    makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8938.HEIC", sortOrder: 0)
                 ]
             case 2:
                 item.mediaAssets = [
-                    makePreviewPhoto(itemID: item.id, resourceName: "IMG_8934", sortOrder: 0),
-                    makePreviewPhoto(itemID: item.id, resourceName: "IMG_8937", sortOrder: 1)
+                    makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8934.HEIC", sortOrder: 0),
+                    makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8937.HEIC", sortOrder: 1)
                 ]
             default:
                 item.mediaAssets = []
@@ -152,13 +152,13 @@ enum PreviewData {
         }
     }
 
-    static func makePreviewPhoto(itemID: UUID, resourceName: String, sortOrder: Int) -> MediaAsset {
-        guard let image = UIImage(named: resourceName) else {
-            fatalError("Preview image resource not found: \(resourceName)")
+    static func makePreviewPhoto(itemID: UUID, resourcePath: String, sortOrder: Int) -> MediaAsset {
+        guard let image = UIImage(named: resourcePath) ?? bundlePreviewImage(at: resourcePath) else {
+            fatalError("Preview image resource not found: \(resourcePath)")
         }
         guard let originalData = image.jpegData(compressionQuality: 0.92),
               let thumbnailData = thumbnailData(for: image) else {
-            fatalError("Preview image data could not be created: \(resourceName)")
+            fatalError("Preview image data could not be created: \(resourcePath)")
         }
 
         return MediaAsset(
@@ -168,7 +168,7 @@ enum PreviewData {
             localIdentifier: "",
             displayName: nil,
             sortOrder: sortOrder,
-            fileName: "\(resourceName).jpg",
+            fileName: (resourcePath as NSString).lastPathComponent,
             mimeType: "image/jpeg",
             byteSize: originalData.count,
             width: pixelWidth(for: image),
@@ -176,6 +176,18 @@ enum PreviewData {
             thumbnailData: thumbnailData,
             originalData: originalData
         )
+    }
+
+    private static func bundlePreviewImage(at resourcePath: String) -> UIImage? {
+        let filePath = (resourcePath as NSString).lastPathComponent as NSString
+        guard let url = Bundle.main.url(
+            forResource: filePath.deletingPathExtension,
+            withExtension: filePath.pathExtension
+        ) else {
+            return nil
+        }
+
+        return UIImage(contentsOfFile: url.path)
     }
 
     private static func pixelWidth(for image: UIImage) -> Int {
