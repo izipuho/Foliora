@@ -16,6 +16,8 @@ struct CollectionsView: View {
     @State private var collectionIDPendingDeletion: UUID?
     @State private var collectionPendingSharing: CollectionSummary?
     @State private var collectionPendingEdit: CollectionSummary?
+    @State private var isSortingCollections = false
+    @State private var collectionSortOrderIDs: [UUID] = []
 
     init(
         repository: any CatalogRepository,
@@ -31,6 +33,17 @@ struct CollectionsView: View {
 
     private var collections: [CollectionSummary] {
         catalogSnapshot.map(collectionSummaries) ?? []
+    }
+
+    private var displayedCollections: [CollectionSummary] {
+        guard isSortingCollections else { return collections }
+
+        let collectionsByID = Dictionary(uniqueKeysWithValues: collections.map { ($0.id, $0) })
+        let orderedCollections = collectionSortOrderIDs.compactMap { collectionsByID[$0] }
+        let orderedCollectionIDs = Set(collectionSortOrderIDs)
+        let newCollections = collections.filter { !orderedCollectionIDs.contains($0.id) }
+
+        return orderedCollections + newCollections
     }
 
     private var homes: [Home] {
@@ -55,7 +68,11 @@ struct CollectionsView: View {
             )) { _ in
                 reloadCatalogSnapshot()
             }
-            .onChange(of: collections.map(\.id)) { _, _ in
+            .onChange(of: collections.map(\.id)) { _, collectionIDs in
+                if isSortingCollections {
+                    collectionSortOrderIDs = collectionSortOrderIDs.filter { collectionIDs.contains($0) }
+                    collectionSortOrderIDs.append(contentsOf: collectionIDs.filter { !collectionSortOrderIDs.contains($0) })
+                }
                 autoOpenSingleCollectionIfNeeded()
             }
             .navigationTitle(RootTab.collections.title)
@@ -143,54 +160,81 @@ struct CollectionsView: View {
         } else {
             CatalogContainerList {
                 Section {
-                    ForEach(collections) { collection in
-                        Button {
-                            selectCollection(collection)
-                        } label: {
-                            CollectionCard(
-                                collection: collection,
-                                sharingStatus: sharingStatus(for: collection.id)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .catalogContainerListRow()
-                        .swipeActions {
-                            Button(role: .destructive) {
-                                collectionIDPendingDeletion = collection.id
-                            } label: {
-                                let action = deleteActionPresentation(for: collection.id)
-                                Label(action.title, systemImage: action.systemImage)
-                            }
-
-                            if canManageCollection(collection.id) {
-                                Button {
-                                    collectionPendingEdit = collection
-                                } label: {
-                                    Label(String(localized: "common.edit"), systemImage: "pencil")
-                                }
-                                .tint(CatalogSemanticColors.info)
-                            }
-
-                            if canManageCollection(collection.id) {
-                                Button {
-                                    collectionPendingSharing = collection
-                                } label: {
-                                    Label(String(localized: "collection.sharing.swipe_action"), systemImage: "square.and.arrow.up")
-                                }
-                            }
-                        }
+                    ForEach(displayedCollections) { collection in
+                        collectionRow(for: collection)
                     }
+                    .onMove(perform: moveCollections)
                 }
             }
+            .environment(\.editMode, .constant(isSortingCollections ? .active : .inactive))
             .contentMargins(.horizontal, nil, for: .scrollContent)
             .contentMargins(.top, nil, for: .scrollContent)
             .contentMargins(.bottom, 120, for: .scrollContent)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
+                    Button(isSortingCollections ? "Done" : "Sort") {
+                        if isSortingCollections {
+                            stopSortingCollections()
+                        } else {
+                            startSortingCollections()
+                        }
+                    }
+                }
+
+                if !isSortingCollections {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            presentAddCollectionEditor()
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func collectionRow(for collection: CollectionSummary) -> some View {
+        if isSortingCollections {
+            CollectionCard(
+                collection: collection,
+                sharingStatus: sharingStatus(for: collection.id)
+            )
+            .catalogContainerListRow()
+        } else {
+            Button {
+                selectCollection(collection)
+            } label: {
+                CollectionCard(
+                    collection: collection,
+                    sharingStatus: sharingStatus(for: collection.id)
+                )
+            }
+            .buttonStyle(.plain)
+            .catalogContainerListRow()
+            .swipeActions {
+                Button(role: .destructive) {
+                    collectionIDPendingDeletion = collection.id
+                } label: {
+                    let action = deleteActionPresentation(for: collection.id)
+                    Label(action.title, systemImage: action.systemImage)
+                }
+
+                if canManageCollection(collection.id) {
                     Button {
-                        presentAddCollectionEditor()
+                        collectionPendingEdit = collection
                     } label: {
-                        Image(systemName: "plus")
+                        Label(String(localized: "common.edit"), systemImage: "pencil")
+                    }
+                    .tint(CatalogSemanticColors.info)
+                }
+
+                if canManageCollection(collection.id) {
+                    Button {
+                        collectionPendingSharing = collection
+                    } label: {
+                        Label(String(localized: "collection.sharing.swipe_action"), systemImage: "square.and.arrow.up")
                     }
                 }
             }
@@ -232,6 +276,25 @@ struct CollectionsView: View {
             return
         }
         isPresentingAddCollectionEditor = true
+    }
+
+    private func startSortingCollections() {
+        collectionSortOrderIDs = collections.map(\.id)
+        isSortingCollections = true
+    }
+
+    private func stopSortingCollections() {
+        isSortingCollections = false
+        collectionSortOrderIDs = []
+    }
+
+    private func moveCollections(from source: IndexSet, to destination: Int) {
+        guard isSortingCollections else { return }
+
+        var itemIDs = displayedCollections.map(\.id)
+        itemIDs.move(fromOffsets: source, toOffset: destination)
+        collectionSortOrderIDs = itemIDs
+        repository.saveUserSortOrder(itemIDs: itemIDs, scope: "collections")
     }
 
     private func addCollection(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
