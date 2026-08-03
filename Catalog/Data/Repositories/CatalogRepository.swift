@@ -14,6 +14,7 @@ protocol CatalogRepository {
     func saveCollection(_ collection: Collection)
     func deleteResolution(for collectionID: UUID) -> CollectionDeleteResolution
     func deleteCollection(collectionID: UUID)
+    func saveUserSortOrder(itemIDs: [UUID], scope: String)
     func saveItemRecord(_ item: ItemRecord)
     func saveItemRecords(_ items: [ItemRecord])
     func saveBellRecord(_ bell: BellRecord)

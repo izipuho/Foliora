@@ -16,6 +16,8 @@ struct HomeView: View {
     @State private var draftLocations: [Location] = []
     @State private var isPresentingCreateHomeEditor = false
     @State private var homeIDPendingDeletion: UUID?
+    @State private var isSortingHomes = false
+    @State private var sortingHomes: [Home] = []
 
     init(
         repository: any CatalogRepository,
@@ -63,6 +65,10 @@ struct HomeView: View {
         navigationSnapshot?.homes ?? []
     }
 
+    private var displayedHomes: [Home] {
+        isSortingHomes ? sortingHomes : homes
+    }
+
     private var locationsByHomeID: [UUID: [Location]] {
         navigationSnapshot?.locationsByHomeID ?? [:]
     }
@@ -77,6 +83,7 @@ struct HomeView: View {
                         homesRows
                     }
                 }
+                .environment(\.editMode, .constant(isSortingHomes ? .active : .inactive))
             }
         }
         .background {
@@ -86,11 +93,31 @@ struct HomeView: View {
         .navigationTitle(String(localized: "home.screen.title"))
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    presentEditorForNewHome()
-                } label: {
-                    Image(systemName: "plus")
+            if !homes.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if isSortingHomes {
+                            stopSortingHomes()
+                        } else {
+                            startSortingHomes()
+                        }
+                    } label: {
+                        if isSortingHomes {
+                            Image(systemName: "checkmark")
+                        } else {
+                            Image(systemName: "line.3.horizontal.decrease")
+                        }
+                    }
+                }
+            }
+
+            if !isSortingHomes {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        presentEditorForNewHome()
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
         }
@@ -119,36 +146,47 @@ struct HomeView: View {
 
     @ViewBuilder
     private var homesRows: some View {
-        ForEach(homes) { home in
+        ForEach(displayedHomes) { home in
             homeRow(for: home)
         }
+        .onMove(perform: moveHomes)
     }
 
+    @ViewBuilder
     private func homeRow(for home: Home) -> some View {
-        Button {
-            navigate?(.home(home.id))
-        } label: {
+        if isSortingHomes {
             HomeListCard(
                 home: home,
                 locations: locationsByHomeID[home.id] ?? [],
                 collectionCount: collectionCount(in: home.id)
             )
-        }
-        .buttonStyle(.plain)
-        .catalogContainerListRow()
-        .swipeActions {
-            Button(role: .destructive) {
-                homeIDPendingDeletion = home.id
-            } label: {
-                Label(String(localized: "common.delete"), systemImage: "trash")
-            }
-
+            .catalogContainerListRow()
+        } else {
             Button {
-                navigate?(.editHome(home.id))
+                navigate?(.home(home.id))
             } label: {
-                Label(String(localized: "common.edit"), systemImage: "pencil")
+                HomeListCard(
+                    home: home,
+                    locations: locationsByHomeID[home.id] ?? [],
+                    collectionCount: collectionCount(in: home.id)
+                )
             }
-            .tint(CatalogSemanticColors.info)
+            .buttonStyle(.plain)
+            .catalogContainerListRow()
+            .swipeActions {
+                Button(role: .destructive) {
+                    homeIDPendingDeletion = home.id
+                } label: {
+                    Label(String(localized: "common.delete"), systemImage: "trash")
+                }
+
+                Button {
+                    navigate?(.editHome(home.id))
+                } label: {
+                    Label(String(localized: "common.edit"), systemImage: "pencil")
+                }
+                .tint(CatalogSemanticColors.info)
+            }
         }
     }
 
@@ -166,6 +204,24 @@ struct HomeView: View {
         repository.saveHome(draftHome)
         repository.saveLocations(draftLocations, in: draftHome.id)
         reloadNavigationSnapshot()
+    }
+
+    private func startSortingHomes() {
+        sortingHomes = homes
+        isSortingHomes = true
+    }
+
+    private func stopSortingHomes() {
+        isSortingHomes = false
+        sortingHomes = []
+        reloadNavigationSnapshot()
+    }
+
+    private func moveHomes(from source: IndexSet, to destination: Int) {
+        guard isSortingHomes else { return }
+
+        sortingHomes.move(fromOffsets: source, toOffset: destination)
+        repository.saveUserSortOrder(itemIDs: sortingHomes.map(\.id), scope: "Home")
     }
 
     private func deleteHome(_ homeID: UUID) {

@@ -62,13 +62,71 @@ struct CatalogSnapshot {
             },
             uniquingKeysWith: { _, latest in latest }
         )
+        let collectionSortOrderByItemID = Dictionary(
+            userSortOrderEntities.compactMap { entity -> (UUID, Int)? in
+                guard
+                    stringValue(entity, "scope") == "Collection",
+                    let itemID = entity.value(forKey: "itemID") as? UUID
+                else { return nil }
+                return (itemID, CoreDataDomainMapper.intValue(entity, "sortOrder"))
+            },
+            uniquingKeysWith: { _, latest in latest }
+        )
+        let homeSortOrderByItemID = Dictionary(
+            userSortOrderEntities.compactMap { entity -> (UUID, Int)? in
+                guard
+                    stringValue(entity, "scope") == "Home",
+                    let itemID = entity.value(forKey: "itemID") as? UUID
+                else { return nil }
+                return (itemID, CoreDataDomainMapper.intValue(entity, "sortOrder"))
+            },
+            uniquingKeysWith: { _, latest in latest }
+        )
         let records = bellEntities.map { CoreDataDomainMapper.bellRecord(from: $0) }
 
         var snapshot = CatalogSnapshot()
-        snapshot.homes = homeEntities.map(home)
+        snapshot.homes = homeEntities
+            .map(home)
+            .sorted { lhs, rhs in
+                switch (homeSortOrderByItemID[lhs.id], homeSortOrderByItemID[rhs.id]) {
+                case let (lhsOrder?, rhsOrder?):
+                    if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                case (nil, nil):
+                    break
+                }
+
+                let nameComparison = lhs.name.localizedCaseInsensitiveCompare(rhs.name)
+                if nameComparison != .orderedSame {
+                    return nameComparison == .orderedAscending
+                }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
         snapshot.locations = locationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: sortOrderByItemID[uuidValue($0, "id")]) }
         snapshot.collectionLocations = collectionLocationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: sortOrderByItemID[uuidValue($0, "id")]) }
-        snapshot.collections = collectionEntities.map(collection)
+        snapshot.collections = collectionEntities
+            .map(collection)
+            .sorted { lhs, rhs in
+                switch (collectionSortOrderByItemID[lhs.id], collectionSortOrderByItemID[rhs.id]) {
+                case let (lhsOrder?, rhsOrder?):
+                    if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                case (nil, nil):
+                    break
+                }
+
+                let titleComparison = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
+                if titleComparison != .orderedSame {
+                    return titleComparison == .orderedAscending
+                }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
         snapshot.bells = bellEntities.map(bellListItem)
         snapshot.bellRecords = records
         snapshot.places = placeEntities.map { CoreDataDomainMapper.place(from: $0) }
