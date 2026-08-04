@@ -35,7 +35,6 @@
 		24374F4C2FFD302200E83899 /* CatalogCardContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */; };
 		24374F4E2FFE270900E83899 /* CatalogCardCollectionLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */; };
 		244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0472FB465CF00B4D805 /* SettingsView.swift */; };
-		246A557D302274CF00512880 /* Stamps.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 246A557C302274CF00512880 /* Stamps.xcassets */; };
 		246D3FC530011A26000515FD /* ShareInvitationStatusOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */; };
 		246D3FC9300508F7000515FD /* CatalogImportExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246D3FC8300508ED000515FD /* CatalogImportExportView.swift */; };
 		246FD6772FA8BF6300B8859A /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
@@ -652,7 +651,6 @@
 			files = (
 				24056ED030226D0500601C22 /* Bells.xcassets in Resources */,
 				24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */,
-				246A557D302274CF00512880 /* Stamps.xcassets in Resources */,
 				24F1A4542FD6B4CF00FC1717 /* LaunchScreenBells.storyboard in Resources */,
 				24056ECF3020D3A800601C22 /* LaunchScreenBells2.storyboard in Resources */,
 			);
@@ -1132,7 +1130,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColorBells;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
@@ -1154,7 +1152,7 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreenBells;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreenBells2.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -1182,7 +1180,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColorBells;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
@@ -1204,7 +1202,7 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreenBells;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreenBells2.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
