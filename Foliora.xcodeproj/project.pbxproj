@@ -18,7 +18,7 @@
 		2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */; };
 		24056E9A301E68BE00601C22 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E98301E68BE00601C22 /* PreviewContainer.swift */; };
 		24056E9C301E68D200601C22 /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E9B301E68CC00601C22 /* PreviewData.swift */; };
-		24056ECF3020D3A800601C22 /* LaunchScreenBells2.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24056ECE3020D3A800601C22 /* LaunchScreenBells2.storyboard */; };
+		24056ECF3020D3A800601C22 /* LaunchScreenBells.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24056ECE3020D3A800601C22 /* LaunchScreenBells.storyboard */; };
 		24056ED030226D0500601C22 /* Bells.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Bells.xcassets */; };
 		24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
@@ -52,7 +52,6 @@
 		24D9EB9030115CE8009DB654 /* PhotoAnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */; };
 		24D9EBC630138F2D009DB654 /* MediaSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EBC530138F28009DB654 /* MediaSection.swift */; };
 		24D9EC173019D7B6009DB654 /* CoreDataDomainMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */; };
-		24F1A4542FD6B4CF00FC1717 /* LaunchScreenBells.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4532FD6B4CF00FC1717 /* LaunchScreenBells.storyboard */; };
 		24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */; };
 		24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */; };
 		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
@@ -103,7 +102,7 @@
 		2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingView.swift; sourceTree = "<group>"; };
 		24056E98301E68BE00601C22 /* PreviewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContainer.swift; sourceTree = "<group>"; };
 		24056E9B301E68CC00601C22 /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
-		24056ECE3020D3A800601C22 /* LaunchScreenBells2.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreenBells2.storyboard; sourceTree = "<group>"; };
+		24056ECE3020D3A800601C22 /* LaunchScreenBells.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreenBells.storyboard; sourceTree = "<group>"; };
 		24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticPhotoFeatureExtractor.swift; sourceTree = "<group>"; };
 		24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognitionDebugML.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		24374F252FF50A0E00E83899 /* DashboardCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCard.swift; sourceTree = "<group>"; };
@@ -138,7 +137,6 @@
 		24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataDomainMapper.swift; sourceTree = "<group>"; };
 		24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Bells.entitlements"; sourceTree = "<group>"; };
 		24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Bells-Info.plist"; sourceTree = "<group>"; };
-		24F1A4532FD6B4CF00FC1717 /* LaunchScreenBells.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreenBells.storyboard; sourceTree = "<group>"; };
 		24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellBatchAddView.swift; sourceTree = "<group>"; };
 		24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEmptyStateView.swift; sourceTree = "<group>"; };
 		24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -451,8 +449,7 @@
 				C0000000000000000000004B /* Analysis */,
 				C00000000000000000000045 /* List */,
 				C00000000000000000000046 /* Detail */,
-				24F1A4532FD6B4CF00FC1717 /* LaunchScreenBells.storyboard */,
-				24056ECE3020D3A800601C22 /* LaunchScreenBells2.storyboard */,
+				24056ECE3020D3A800601C22 /* LaunchScreenBells.storyboard */,
 			);
 			path = Bells;
 			sourceTree = "<group>";
@@ -651,8 +648,7 @@
 			files = (
 				24056ED030226D0500601C22 /* Bells.xcassets in Resources */,
 				24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */,
-				24F1A4542FD6B4CF00FC1717 /* LaunchScreenBells.storyboard in Resources */,
-				24056ECF3020D3A800601C22 /* LaunchScreenBells2.storyboard in Resources */,
+				24056ECF3020D3A800601C22 /* LaunchScreenBells.storyboard in Resources */,
 			);
 		};
 /* End PBXResourcesBuildPhase section */

@@ -3,6 +3,7 @@
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24743"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -15,26 +16,89 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="LaunchScreenBells" translatesAutoresizingMaskIntoConstraints="NO" id="giQ-yC-bFV">
-                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" alignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="ULu-NC-mmy">
+                                <rect key="frame" x="32" y="100" width="329" height="153"/>
+                                <subviews>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Foliora" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lEN-sh-9lJ">
+                                        <rect key="frame" x="46.333333333333329" y="0.0" width="236.66666666666669" height="95.666666666666671"/>
+                                        <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="80"/>
+                                        <color key="textColor" name="AccentColor"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Bells" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mAj-Iv-SfF">
+                                        <rect key="frame" x="116" y="95.666666666666657" width="97.333333333333314" height="57.333333333333343"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="48"/>
+                                        <color key="textColor" name="LightAccent"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                </subviews>
+                            </stackView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="ArcRight" translatesAutoresizingMaskIntoConstraints="NO" id="9yZ-GO-Lgp">
+                                <rect key="frame" x="0.0" y="717" width="393" height="135"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" secondItem="9yZ-GO-Lgp" secondAttribute="height" multiplier="1290:443" id="Zcm-dk-iVo"/>
+                                </constraints>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="ArcLeft" translatesAutoresizingMaskIntoConstraints="NO" id="EzP-E4-FdN">
+                                <rect key="frame" x="0.0" y="602" width="393" height="250"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" secondItem="EzP-E4-FdN" secondAttribute="height" multiplier="1290:821" id="eLZ-f1-06G"/>
+                                </constraints>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="xDT-LO-C3w">
+                                <rect key="frame" x="74.666666666666671" y="279.33333333333331" width="243.66666666666663" height="243.33333333333331"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" secondItem="xDT-LO-C3w" secondAttribute="height" multiplier="1:1" id="fR9-uJ-9zH"/>
+                                </constraints>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="ug3-Ai-H1P">
+                                <rect key="frame" x="118.66666666666667" y="316.66666666666669" width="155.66666666666663" height="168.66666666666669"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" secondItem="ug3-Ai-H1P" secondAttribute="height" multiplier="377:407" id="s9C-Uf-ZWU"/>
+                                </constraints>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" name="LaunchBackground"/>
                         <constraints>
-                            <constraint firstItem="giQ-yC-bFV" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="7Z2-kj-r2U"/>
-                            <constraint firstAttribute="trailing" secondItem="giQ-yC-bFV" secondAttribute="trailing" id="ipr-FO-0Y6"/>
-                            <constraint firstAttribute="bottom" secondItem="giQ-yC-bFV" secondAttribute="bottom" id="qmS-fh-gYB"/>
-                            <constraint firstItem="giQ-yC-bFV" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="wqf-Wg-jHy"/>
+                            <constraint firstAttribute="trailing" secondItem="ULu-NC-mmy" secondAttribute="trailing" constant="32" id="053-Yq-chE"/>
+                            <constraint firstItem="xDT-LO-C3w" firstAttribute="centerX" secondItem="Bcu-3y-fUS" secondAttribute="centerX" id="0io-V2-9Qb"/>
+                            <constraint firstAttribute="trailing" secondItem="9yZ-GO-Lgp" secondAttribute="trailing" id="64T-Zq-ia4"/>
+                            <constraint firstItem="ULu-NC-mmy" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" constant="100" id="98J-P4-2aO"/>
+                            <constraint firstItem="EzP-E4-FdN" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="FDH-gL-ruH"/>
+                            <constraint firstItem="ug3-Ai-H1P" firstAttribute="width" secondItem="xDT-LO-C3w" secondAttribute="width" multiplier="0.64" id="IPb-Qs-1ry"/>
+                            <constraint firstItem="xDT-LO-C3w" firstAttribute="centerY" secondItem="Bcu-3y-fUS" secondAttribute="centerY" constant="-50" id="PWW-HK-mrJ"/>
+                            <constraint firstItem="ULu-NC-mmy" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="32" id="XFq-le-8Z3"/>
+                            <constraint firstAttribute="trailing" secondItem="EzP-E4-FdN" secondAttribute="trailing" id="e31-AN-cC3"/>
+                            <constraint firstItem="xDT-LO-C3w" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.62" id="ej7-bj-Esl"/>
+                            <constraint firstItem="ug3-Ai-H1P" firstAttribute="centerY" secondItem="xDT-LO-C3w" secondAttribute="centerY" id="g5s-bh-Y8a"/>
+                            <constraint firstAttribute="bottom" secondItem="EzP-E4-FdN" secondAttribute="bottom" id="hDb-Mm-ryp"/>
+                            <constraint firstItem="ug3-Ai-H1P" firstAttribute="centerX" secondItem="xDT-LO-C3w" secondAttribute="centerX" id="poP-xS-ECg"/>
+                            <constraint firstItem="9yZ-GO-Lgp" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="rti-Vt-Ajz"/>
+                            <constraint firstAttribute="bottom" secondItem="9yZ-GO-Lgp" secondAttribute="bottom" id="uEY-ql-wGT"/>
                         </constraints>
                     </view>
+                    <nil key="simulatedTopBarMetrics"/>
+                    <nil key="simulatedBottomBarMetrics"/>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="53" y="375"/>
+            <point key="canvasLocation" x="52.671755725190835" y="374.64788732394368"/>
         </scene>
     </scenes>
     <resources>
-        <image name="LaunchScreenBells" width="1290" height="2805"/>
+        <image name="ArcLeft" width="426" height="271"/>
+        <image name="ArcRight" width="426" height="147"/>
+        <image name="Medalion" width="344" height="344"/>
+        <image name="Symbol" width="249" height="269"/>
+        <namedColor name="AccentColor">
+            <color red="0.90600001811981201" green="0.57599997520446777" blue="0.11800000071525574" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+        <namedColor name="LaunchBackground">
+            <color red="0.97299998998641968" green="0.95300000905990601" blue="0.9179999828338623" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+        </namedColor>
+        <namedColor name="LightAccent">
+            <color red="0.9649999737739563" green="0.71799999475479126" blue="0.25499999523162842" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
     </resources>
 </document>
