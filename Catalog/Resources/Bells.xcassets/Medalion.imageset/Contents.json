@@ -1,17 +1,15 @@
 {
   "images" : [
     {
-      "filename" : "MedalionBells1x.png",
+      "filename" : "Medalion1x.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "MedalionBells2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "MedalionBells3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

@@ -17,7 +17,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" alignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="ULu-NC-mmy">
-                                <rect key="frame" x="32" y="118" width="329" height="153"/>
+                                <rect key="frame" x="32" y="100" width="329" height="153"/>
                                 <subviews>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Foliora" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lEN-sh-9lJ">
                                         <rect key="frame" x="46.333333333333329" y="0.0" width="236.66666666666669" height="95.666666666666671"/>
@@ -46,13 +46,13 @@
                                 </constraints>
                             </imageView>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="xDT-LO-C3w">
-                                <rect key="frame" x="74.666666666666671" y="329.33333333333331" width="243.66666666666663" height="243.33333333333331"/>
+                                <rect key="frame" x="74.666666666666671" y="279.33333333333331" width="243.66666666666663" height="243.33333333333331"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="xDT-LO-C3w" secondAttribute="height" multiplier="1:1" id="fR9-uJ-9zH"/>
                                 </constraints>
                             </imageView>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="ug3-Ai-H1P">
-                                <rect key="frame" x="118.66666666666667" y="366.66666666666669" width="155.66666666666663" height="168.66666666666669"/>
+                                <rect key="frame" x="118.66666666666667" y="316.66666666666669" width="155.66666666666663" height="168.66666666666669"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="ug3-Ai-H1P" secondAttribute="height" multiplier="377:407" id="s9C-Uf-ZWU"/>
                                 </constraints>
@@ -64,10 +64,10 @@
                             <constraint firstAttribute="trailing" secondItem="ULu-NC-mmy" secondAttribute="trailing" constant="32" id="053-Yq-chE"/>
                             <constraint firstItem="xDT-LO-C3w" firstAttribute="centerX" secondItem="Bcu-3y-fUS" secondAttribute="centerX" id="0io-V2-9Qb"/>
                             <constraint firstAttribute="trailing" secondItem="9yZ-GO-Lgp" secondAttribute="trailing" id="64T-Zq-ia4"/>
-                            <constraint firstItem="ULu-NC-mmy" firstAttribute="top" secondItem="Bcu-3y-fUS" secondAttribute="top" id="98J-P4-2aO"/>
+                            <constraint firstItem="ULu-NC-mmy" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" constant="100" id="98J-P4-2aO"/>
                             <constraint firstItem="EzP-E4-FdN" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="FDH-gL-ruH"/>
                             <constraint firstItem="ug3-Ai-H1P" firstAttribute="width" secondItem="xDT-LO-C3w" secondAttribute="width" multiplier="0.64" id="IPb-Qs-1ry"/>
-                            <constraint firstItem="xDT-LO-C3w" firstAttribute="centerY" secondItem="Bcu-3y-fUS" secondAttribute="centerY" id="Q4p-28-KR5"/>
+                            <constraint firstItem="xDT-LO-C3w" firstAttribute="centerY" secondItem="Bcu-3y-fUS" secondAttribute="centerY" constant="-50" id="PWW-HK-mrJ"/>
                             <constraint firstItem="ULu-NC-mmy" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="32" id="XFq-le-8Z3"/>
                             <constraint firstAttribute="trailing" secondItem="EzP-E4-FdN" secondAttribute="trailing" id="e31-AN-cC3"/>
                             <constraint firstItem="xDT-LO-C3w" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.62" id="ej7-bj-Esl"/>
@@ -78,6 +78,8 @@
                             <constraint firstAttribute="bottom" secondItem="9yZ-GO-Lgp" secondAttribute="bottom" id="uEY-ql-wGT"/>
                         </constraints>
                     </view>
+                    <nil key="simulatedTopBarMetrics"/>
+                    <nil key="simulatedBottomBarMetrics"/>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
@@ -85,10 +87,10 @@
         </scene>
     </scenes>
     <resources>
-        <image name="ArcLeft" width="1290" height="821"/>
-        <image name="ArcRight" width="1290" height="443"/>
-        <image name="Medalion" width="1040" height="1040"/>
-        <image name="Symbol" width="753.66668701171875" height="814"/>
+        <image name="ArcLeft" width="426" height="271"/>
+        <image name="ArcRight" width="426" height="147"/>
+        <image name="Medalion" width="344" height="344"/>
+        <image name="Symbol" width="249" height="269"/>
         <namedColor name="AccentColor">
             <color red="0.90600001811981201" green="0.57599997520446777" blue="0.11800000071525574" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>

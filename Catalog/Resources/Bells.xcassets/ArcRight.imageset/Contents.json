@@ -1,17 +1,15 @@
 {
   "images" : [
     {
-      "filename" : "ArcRightBells1x.png",
+      "filename" : "ArcRight1x.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "ArcRightBells2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "ArcRightBells3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
