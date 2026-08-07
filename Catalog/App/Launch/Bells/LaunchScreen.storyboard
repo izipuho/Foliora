@@ -42,7 +42,7 @@
                             <view userInteractionEnabled="NO" tag="100" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="MedallionBell">
                                 <rect key="frame" x="84" y="364" width="252" height="252"/>
                                 <subviews>
-                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk">
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="101" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk">
                                         <rect key="frame" x="0.0" y="0.0" width="252" height="252"/>
                                     </imageView>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="102" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="cZx-or-9f6">

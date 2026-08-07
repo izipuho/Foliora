@@ -76,7 +76,7 @@ private struct LaunchScreenHost: UIViewControllerRepresentable {
     let onAnimationCompleted: () -> Void
 
     func makeUIViewController(context: Context) -> LaunchScreenViewController {
-        let viewController = LaunchScreenViewController.instantiate(storyboardName: "LaunchScreenBells")!
+        let viewController = LaunchScreenViewController.instantiate(storyboardName: "LaunchScreen")!
         viewController.onAnimationCompleted = onAnimationCompleted
         return viewController
     }
