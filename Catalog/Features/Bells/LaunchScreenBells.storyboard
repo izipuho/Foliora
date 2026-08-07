@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24765" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
-    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <device id="retina6_54" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24743"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
@@ -12,70 +12,95 @@
         <scene sceneID="EHf-IW-A2E">
             <objects>
                 <viewController id="01J-lp-oVM" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                    <view key="view" userInteractionEnabled="NO" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="Ze5-6b-2t3" userLabel="RootView">
+                        <rect key="frame" x="0.0" y="0.0" width="420" height="912"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" alignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="ULu-NC-mmy">
-                                <rect key="frame" x="32" y="100" width="329" height="153"/>
+                            <stackView opaque="NO" userInteractionEnabled="NO" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="ZOH-8B-WUK" userLabel="Title">
+                                <rect key="frame" x="99" y="136" width="222" height="156"/>
                                 <subviews>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Foliora" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lEN-sh-9lJ">
-                                        <rect key="frame" x="46.333333333333329" y="0.0" width="236.66666666666669" height="95.666666666666671"/>
-                                        <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="80"/>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Foliora" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zuV-1E-J4G">
+                                        <rect key="frame" x="0.0" y="0.0" width="222.66666666666666" height="95.666666666666671"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="80"/>
                                         <color key="textColor" name="AccentColor"/>
                                         <nil key="highlightedColor"/>
+                                        <variation key="heightClass=regular-widthClass=regular">
+                                            <fontDescription key="fontDescription" type="system" pointSize="100"/>
+                                        </variation>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Bells" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mAj-Iv-SfF">
-                                        <rect key="frame" x="116" y="95.666666666666657" width="97.333333333333314" height="57.333333333333343"/>
-                                        <fontDescription key="fontDescription" type="system" pointSize="48"/>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Bells" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VKk-Vv-RHn">
+                                        <rect key="frame" x="0.0" y="95.666666666666657" width="222.66666666666666" height="60"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="50"/>
                                         <color key="textColor" name="LightAccent"/>
                                         <nil key="highlightedColor"/>
+                                        <variation key="heightClass=regular-widthClass=regular">
+                                            <fontDescription key="fontDescription" type="system" pointSize="70"/>
+                                        </variation>
                                     </label>
                                 </subviews>
                             </stackView>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="ArcRight" translatesAutoresizingMaskIntoConstraints="NO" id="9yZ-GO-Lgp">
-                                <rect key="frame" x="0.0" y="717" width="393" height="135"/>
+                            <view userInteractionEnabled="NO" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="MedallionBell">
+                                <rect key="frame" x="84" y="290" width="252" height="400"/>
+                                <subviews>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk">
+                                        <rect key="frame" x="0.0" y="0.0" width="252" height="400"/>
+                                    </imageView>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="cZx-or-9f6">
+                                        <rect key="frame" x="0.0" y="0.0" width="252" height="400"/>
+                                    </imageView>
+                                </subviews>
+                                <accessibility key="accessibilityConfiguration">
+                                    <accessibilityTraits key="traits" notEnabled="YES"/>
+                                </accessibility>
                                 <constraints>
-                                    <constraint firstAttribute="width" secondItem="9yZ-GO-Lgp" secondAttribute="height" multiplier="1290:443" id="Zcm-dk-iVo"/>
+                                    <constraint firstItem="pCN-B8-puk" firstAttribute="centerX" secondItem="nPf-pr-nES" secondAttribute="centerX" id="BlN-kD-2aA"/>
+                                    <constraint firstItem="cZx-or-9f6" firstAttribute="centerX" secondItem="pCN-B8-puk" secondAttribute="centerX" id="Dby-Xb-Vc7"/>
+                                    <constraint firstItem="pCN-B8-puk" firstAttribute="height" secondItem="nPf-pr-nES" secondAttribute="height" id="NPb-SQ-cXj"/>
+                                    <constraint firstItem="cZx-or-9f6" firstAttribute="centerY" secondItem="pCN-B8-puk" secondAttribute="centerY" id="Z0Q-J6-T3d"/>
+                                    <constraint firstItem="pCN-B8-puk" firstAttribute="centerY" secondItem="nPf-pr-nES" secondAttribute="centerY" id="mPt-7R-QjY"/>
+                                    <constraint firstItem="pCN-B8-puk" firstAttribute="width" secondItem="nPf-pr-nES" secondAttribute="width" id="psb-X0-XCu"/>
+                                    <constraint firstItem="cZx-or-9f6" firstAttribute="width" secondItem="pCN-B8-puk" secondAttribute="width" id="uNc-Nx-qJa"/>
                                 </constraints>
-                            </imageView>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="ArcLeft" translatesAutoresizingMaskIntoConstraints="NO" id="EzP-E4-FdN">
-                                <rect key="frame" x="0.0" y="602" width="393" height="250"/>
+                            </view>
+                            <view userInteractionEnabled="NO" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="pT4-RV-YK9" userLabel="Arcs">
+                                <rect key="frame" x="0.0" y="765" width="420" height="147"/>
+                                <subviews>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" image="ArcRight" translatesAutoresizingMaskIntoConstraints="NO" id="rQW-R1-Z8Z">
+                                        <rect key="frame" x="0.0" y="0.0" width="420" height="147"/>
+                                    </imageView>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" image="ArcLeft" translatesAutoresizingMaskIntoConstraints="NO" id="B1J-xh-wTC">
+                                        <rect key="frame" x="0.0" y="-124" width="420" height="271"/>
+                                    </imageView>
+                                </subviews>
+                                <accessibility key="accessibilityConfiguration">
+                                    <accessibilityTraits key="traits" notEnabled="YES"/>
+                                </accessibility>
                                 <constraints>
-                                    <constraint firstAttribute="width" secondItem="EzP-E4-FdN" secondAttribute="height" multiplier="1290:821" id="eLZ-f1-06G"/>
+                                    <constraint firstItem="rQW-R1-Z8Z" firstAttribute="height" secondItem="pT4-RV-YK9" secondAttribute="height" id="BNK-8Z-hJf"/>
+                                    <constraint firstAttribute="bottom" secondItem="rQW-R1-Z8Z" secondAttribute="bottom" id="EYH-H7-WBr"/>
+                                    <constraint firstItem="B1J-xh-wTC" firstAttribute="leading" secondItem="pT4-RV-YK9" secondAttribute="leading" id="FmZ-Yu-C7c"/>
+                                    <constraint firstAttribute="trailing" secondItem="B1J-xh-wTC" secondAttribute="trailing" id="PbK-mp-Qyw"/>
+                                    <constraint firstAttribute="bottom" secondItem="B1J-xh-wTC" secondAttribute="bottom" id="Xpa-Gg-aNc"/>
+                                    <constraint firstItem="rQW-R1-Z8Z" firstAttribute="leading" secondItem="pT4-RV-YK9" secondAttribute="leading" id="kpC-Km-Hsl"/>
+                                    <constraint firstAttribute="trailing" secondItem="rQW-R1-Z8Z" secondAttribute="trailing" id="rj8-6c-iet"/>
+                                    <constraint firstItem="rQW-R1-Z8Z" firstAttribute="width" secondItem="pT4-RV-YK9" secondAttribute="width" id="v7Z-tX-jAe"/>
                                 </constraints>
-                            </imageView>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="xDT-LO-C3w">
-                                <rect key="frame" x="74.666666666666671" y="279.33333333333331" width="243.66666666666663" height="243.33333333333331"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" secondItem="xDT-LO-C3w" secondAttribute="height" multiplier="1:1" id="fR9-uJ-9zH"/>
-                                </constraints>
-                            </imageView>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="ug3-Ai-H1P">
-                                <rect key="frame" x="118.66666666666667" y="316.66666666666669" width="155.66666666666663" height="168.66666666666669"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" secondItem="ug3-Ai-H1P" secondAttribute="height" multiplier="377:407" id="s9C-Uf-ZWU"/>
-                                </constraints>
-                            </imageView>
+                            </view>
                         </subviews>
-                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                        <viewLayoutGuide key="safeArea" id="po4-Fp-UpO"/>
                         <color key="backgroundColor" name="LaunchBackground"/>
+                        <accessibility key="accessibilityConfiguration">
+                            <accessibilityTraits key="traits" notEnabled="YES"/>
+                        </accessibility>
                         <constraints>
-                            <constraint firstAttribute="trailing" secondItem="ULu-NC-mmy" secondAttribute="trailing" constant="32" id="053-Yq-chE"/>
-                            <constraint firstItem="xDT-LO-C3w" firstAttribute="centerX" secondItem="Bcu-3y-fUS" secondAttribute="centerX" id="0io-V2-9Qb"/>
-                            <constraint firstAttribute="trailing" secondItem="9yZ-GO-Lgp" secondAttribute="trailing" id="64T-Zq-ia4"/>
-                            <constraint firstItem="ULu-NC-mmy" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" constant="100" id="98J-P4-2aO"/>
-                            <constraint firstItem="EzP-E4-FdN" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="FDH-gL-ruH"/>
-                            <constraint firstItem="ug3-Ai-H1P" firstAttribute="width" secondItem="xDT-LO-C3w" secondAttribute="width" multiplier="0.64" id="IPb-Qs-1ry"/>
-                            <constraint firstItem="xDT-LO-C3w" firstAttribute="centerY" secondItem="Bcu-3y-fUS" secondAttribute="centerY" constant="-50" id="PWW-HK-mrJ"/>
-                            <constraint firstItem="ULu-NC-mmy" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="32" id="XFq-le-8Z3"/>
-                            <constraint firstAttribute="trailing" secondItem="EzP-E4-FdN" secondAttribute="trailing" id="e31-AN-cC3"/>
-                            <constraint firstItem="xDT-LO-C3w" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.62" id="ej7-bj-Esl"/>
-                            <constraint firstItem="ug3-Ai-H1P" firstAttribute="centerY" secondItem="xDT-LO-C3w" secondAttribute="centerY" id="g5s-bh-Y8a"/>
-                            <constraint firstAttribute="bottom" secondItem="EzP-E4-FdN" secondAttribute="bottom" id="hDb-Mm-ryp"/>
-                            <constraint firstItem="ug3-Ai-H1P" firstAttribute="centerX" secondItem="xDT-LO-C3w" secondAttribute="centerX" id="poP-xS-ECg"/>
-                            <constraint firstItem="9yZ-GO-Lgp" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="rti-Vt-Ajz"/>
-                            <constraint firstAttribute="bottom" secondItem="9yZ-GO-Lgp" secondAttribute="bottom" id="uEY-ql-wGT"/>
+                            <constraint firstItem="pT4-RV-YK9" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="26f-lL-5n4"/>
+                            <constraint firstItem="pT4-RV-YK9" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" id="6rJ-ve-qWm"/>
+                            <constraint firstItem="ZOH-8B-WUK" firstAttribute="top" secondItem="po4-Fp-UpO" secondAttribute="top" id="Hap-6i-uZW"/>
+                            <constraint firstAttribute="bottomMargin" secondItem="pT4-RV-YK9" secondAttribute="bottom" id="U18-MF-kNE"/>
+                            <constraint firstItem="nPf-pr-nES" firstAttribute="centerY" secondItem="po4-Fp-UpO" secondAttribute="centerY" id="WoI-RI-B7Q"/>
+                            <constraint firstItem="nPf-pr-nES" firstAttribute="width" relation="lessThanOrEqual" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.6" id="bQX-oy-n2e"/>
+                            <constraint firstItem="ZOH-8B-WUK" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="p01-t6-8h8"/>
+                            <constraint firstItem="nPf-pr-nES" firstAttribute="centerX" secondItem="po4-Fp-UpO" secondAttribute="centerX" id="vAt-og-KpT"/>
                         </constraints>
                     </view>
                     <nil key="simulatedTopBarMetrics"/>
@@ -89,8 +114,8 @@
     <resources>
         <image name="ArcLeft" width="426" height="271"/>
         <image name="ArcRight" width="426" height="147"/>
-        <image name="Medalion" width="344" height="344"/>
-        <image name="Symbol" width="249" height="269"/>
+        <image name="Medalion" width="400" height="400"/>
+        <image name="Symbol" width="400" height="400"/>
         <namedColor name="AccentColor">
             <color red="0.90600001811981201" green="0.57599997520446777" blue="0.11800000071525574" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
