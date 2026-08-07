@@ -18,7 +18,6 @@
 		2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */; };
 		24056E9A301E68BE00601C22 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E98301E68BE00601C22 /* PreviewContainer.swift */; };
 		24056E9C301E68D200601C22 /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E9B301E68CC00601C22 /* PreviewData.swift */; };
-		24056ECF3020D3A800601C22 /* LaunchScreenBells.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24056ECE3020D3A800601C22 /* LaunchScreenBells.storyboard */; };
 		24056ED030226D0500601C22 /* Bells.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Bells.xcassets */; };
 		24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
@@ -102,7 +101,6 @@
 		2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingView.swift; sourceTree = "<group>"; };
 		24056E98301E68BE00601C22 /* PreviewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContainer.swift; sourceTree = "<group>"; };
 		24056E9B301E68CC00601C22 /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
-		24056ECE3020D3A800601C22 /* LaunchScreenBells.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreenBells.storyboard; sourceTree = "<group>"; };
 		24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticPhotoFeatureExtractor.swift; sourceTree = "<group>"; };
 		24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognitionDebugML.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		24374F252FF50A0E00E83899 /* DashboardCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCard.swift; sourceTree = "<group>"; };
@@ -197,6 +195,11 @@
 		246FD6602FA8BB2900B8859A /* BellRecognition */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BellRecognition;
+			sourceTree = "<group>";
+		};
+		24B4D3513025E74600904626 /* Launch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Launch;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -298,6 +301,7 @@
 		C00000000000000000000034 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				24B4D3513025E74600904626 /* Launch */,
 				24F1A5492FDB309D00FC1717 /* FolioraApp.swift */,
 				24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */,
 				C00000000000000000000002 /* AppContainer.swift */,
@@ -449,7 +453,6 @@
 				C0000000000000000000004B /* Analysis */,
 				C00000000000000000000045 /* List */,
 				C00000000000000000000046 /* Detail */,
-				24056ECE3020D3A800601C22 /* LaunchScreenBells.storyboard */,
 			);
 			path = Bells;
 			sourceTree = "<group>";
@@ -583,6 +586,7 @@
 			fileSystemSynchronizedGroups = (
 				24056EC03020811900601C22 /* Media */,
 				24374F4F2FFE5C7E00E83899 /* Foundation */,
+				24B4D3513025E74600904626 /* Launch */,
 			);
 			name = "Foliora Bells";
 			productName = Catalog;
@@ -648,7 +652,6 @@
 			files = (
 				24056ED030226D0500601C22 /* Bells.xcassets in Resources */,
 				24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */,
-				24056ECF3020D3A800601C22 /* LaunchScreenBells.storyboard in Resources */,
 			);
 		};
 /* End PBXResourcesBuildPhase section */
@@ -1148,7 +1151,7 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreenBells.storyboard;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -1198,7 +1201,7 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreenBells.storyboard;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
