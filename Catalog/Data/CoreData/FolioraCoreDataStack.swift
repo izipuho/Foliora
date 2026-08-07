@@ -6,6 +6,7 @@ enum FolioraCoreDataStack {
     static let modelName = "Foliora"
     static let cloudKitContainerIdentifier = "iCloud.com.izipuho.FolioraBells"
 
+    @concurrent
     static func makeContainer() async throws -> NSPersistentCloudKitContainer {
         let model = try managedObjectModel()
         var usesCloudKit = true

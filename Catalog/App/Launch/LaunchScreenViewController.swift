@@ -1,9 +1,11 @@
 import UIKit
 
 final class LaunchScreenViewController: UIViewController {
-    var onAnimationCompleted: (() -> Void)?
-
     private var didStartAnimation = false
+    private var isAnimatingSymbol = false
+    private var didRequestStopAnimation = false
+    private var didStopAnimation = false
+    private var stopAnimationCompletions: [() -> Void] = []
 
     private enum Tag {
         static let medallionContainer = 100
@@ -38,6 +40,13 @@ final class LaunchScreenViewController: UIViewController {
     }
 
     func animateSymbol() {
+        guard !didRequestStopAnimation else {
+            completeStopAnimation()
+            return
+        }
+
+        isAnimatingSymbol = true
+
         let symbol = Symbol
         let angles: [CGFloat] = [10, -7, 4, -2, 0]
         let segmentDuration = 1.0 / Double(angles.count)
@@ -51,9 +60,43 @@ final class LaunchScreenViewController: UIViewController {
                     symbol.transform = CGAffineTransform(rotationAngle: angle * .pi / 180)
                 }
             }
-        } completion: { _ in
-            symbol.transform = .identity
-            self.onAnimationCompleted?()
+        } completion: { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.Symbol.transform = .identity
+                self.isAnimatingSymbol = false
+
+                if self.didRequestStopAnimation {
+                    self.completeStopAnimation()
+                } else {
+                    self.animateSymbol()
+                }
+            }
         }
+    }
+
+    func stopAnimation(completion: @escaping () -> Void) {
+        guard !didStopAnimation else {
+            completion()
+            return
+        }
+
+        stopAnimationCompletions.append(completion)
+        didRequestStopAnimation = true
+
+        if !isAnimatingSymbol {
+            completeStopAnimation()
+        }
+    }
+
+    private func completeStopAnimation() {
+        guard !didStopAnimation else { return }
+
+        Symbol.transform = .identity
+        didStopAnimation = true
+
+        let completions = stopAnimationCompletions
+        stopAnimationCompletions.removeAll()
+        completions.forEach { $0() }
     }
 }

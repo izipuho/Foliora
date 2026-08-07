@@ -52,10 +52,10 @@ struct FolioraApp: App {
                 }
 
                 if showsLaunchScreen {
-                    LaunchScreenHost {
-                        if coreDataContainer != nil, container != nil {
-                            showsLaunchScreen = false
-                        }
+                    LaunchScreenHost(
+                        isApplicationReady: coreDataContainer != nil && container != nil
+                    ) {
+                        showsLaunchScreen = false
                     }
                     .ignoresSafeArea()
                 }
@@ -78,7 +78,6 @@ struct FolioraApp: App {
             FolioraAppDelegate.coreDataContainer = coreDataContainer
             self.coreDataContainer = coreDataContainer
             self.container = container
-            showsLaunchScreen = false
         } catch {
             fatalError("Failed to create Core Data container: \(error)")
         }
@@ -86,16 +85,55 @@ struct FolioraApp: App {
 }
 
 private struct LaunchScreenHost: UIViewControllerRepresentable {
-    let onAnimationCompleted: () -> Void
+    let isApplicationReady: Bool
+    let onFinished: @MainActor () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
     func makeUIViewController(context: Context) -> LaunchScreenViewController {
         let viewController = LaunchScreenViewController.instantiate(storyboardName: "LaunchScreen")!
-        viewController.onAnimationCompleted = onAnimationCompleted
+        context.coordinator.viewController = viewController
+        context.coordinator.update(
+            isApplicationReady: isApplicationReady,
+            onFinished: onFinished
+        )
         return viewController
     }
 
     func updateUIViewController(_ uiViewController: LaunchScreenViewController, context: Context) {
-        uiViewController.onAnimationCompleted = onAnimationCompleted
+        context.coordinator.viewController = uiViewController
+        context.coordinator.update(
+            isApplicationReady: isApplicationReady,
+            onFinished: onFinished
+        )
+    }
+
+    @MainActor
+    final class Coordinator {
+        var viewController: LaunchScreenViewController?
+
+        private var didRequestFinish = false
+        private var onFinished: (@MainActor () -> Void)?
+
+        func update(isApplicationReady: Bool, onFinished: @escaping @MainActor () -> Void) {
+            self.onFinished = onFinished
+
+            guard isApplicationReady, !didRequestFinish else { return }
+
+            didRequestFinish = true
+            let completion: @Sendable () -> Void = { [weak self] in
+                Task { @MainActor in
+                    self?.finish()
+                }
+            }
+            viewController?.stopAnimation(completion: completion)
+        }
+
+        private func finish() {
+            onFinished?()
+        }
     }
 }
 
