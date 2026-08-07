@@ -17,7 +17,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <stackView opaque="NO" userInteractionEnabled="NO" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="ZOH-8B-WUK" userLabel="Title">
-                                <rect key="frame" x="99" y="136" width="222" height="156"/>
+                                <rect key="frame" x="98.666666666666671" y="136" width="222.66666666666663" height="155.66666666666663"/>
                                 <subviews>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Foliora" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zuV-1E-J4G">
                                         <rect key="frame" x="0.0" y="0.0" width="222.66666666666666" height="95.666666666666671"/>
@@ -39,13 +39,13 @@
                                     </label>
                                 </subviews>
                             </stackView>
-                            <view userInteractionEnabled="NO" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="MedallionBell">
+                            <view userInteractionEnabled="NO" tag="100" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="MedallionBell">
                                 <rect key="frame" x="84" y="364" width="252" height="252"/>
                                 <subviews>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk">
                                         <rect key="frame" x="0.0" y="0.0" width="252" height="252"/>
                                     </imageView>
-                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="cZx-or-9f6">
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="102" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="cZx-or-9f6">
                                         <rect key="frame" x="0.0" y="-74" width="252" height="400"/>
                                     </imageView>
                                 </subviews>
