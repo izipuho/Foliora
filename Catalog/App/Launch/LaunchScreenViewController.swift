@@ -1,6 +1,10 @@
 import UIKit
 
 final class LaunchScreenViewController: UIViewController {
+    var onAnimationCompleted: (() -> Void)?
+
+    private var didStartAnimation = false
+
     private enum Tag {
         static let medallionContainer = 100
         static let medallion = 101
@@ -24,6 +28,15 @@ final class LaunchScreenViewController: UIViewController {
         return storyboard.instantiateInitialViewController { coder in LaunchScreenViewController(coder: coder) }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        guard !didStartAnimation else { return }
+        didStartAnimation = true
+
+        animateSymbol()
+    }
+
     func animateSymbol() {
         let symbol = Symbol
         let angles: [CGFloat] = [10, -7, 4, -2, 0]
@@ -40,6 +53,7 @@ final class LaunchScreenViewController: UIViewController {
             }
         } completion: { _ in
             symbol.transform = .identity
+            self.onAnimationCompleted?()
         }
     }
 }
