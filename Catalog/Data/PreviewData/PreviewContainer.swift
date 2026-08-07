@@ -9,7 +9,7 @@ enum PreviewScenario {
 enum PreviewContainer {
     static func make(_ scenario: PreviewScenario) -> NSPersistentCloudKitContainer {
         do {
-            let container = try FolioraCoreDataStack.makeContainer(inMemory: true)
+            let container = try FolioraCoreDataStack.makeInMemoryContainer()
 
             switch scenario {
             case .empty:

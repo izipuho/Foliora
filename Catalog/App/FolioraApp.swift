@@ -37,37 +37,50 @@ struct FolioraApp: App {
     private var appDelegate
 
     @State private var showsLaunchScreen = true
-
-    private let coreDataContainer: NSPersistentCloudKitContainer = {
-        do {
-            let container = try FolioraCoreDataStack.makeContainer()
-            return container
-        } catch {
-            fatalError("Failed to create Core Data container: \(error)")
-        }
-    }()
-    private let container: AppContainer
-
-    init() {
-        FolioraAppDelegate.coreDataContainer = coreDataContainer
-        self.container = AppContainer(coreDataContainer: coreDataContainer)
-    }
+    @State private var isPreparingApplication = false
+    @State private var coreDataContainer: NSPersistentCloudKitContainer?
+    @State private var container: AppContainer?
 
     var body: some Scene {
         WindowGroup {
             ZStack {
-                TranslationModelPreparationView {
-                    AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
-                        .environment(\.managedObjectContext, coreDataContainer.viewContext)
+                if let coreDataContainer, let container {
+                    TranslationModelPreparationView {
+                        AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
+                            .environment(\.managedObjectContext, coreDataContainer.viewContext)
+                    }
                 }
 
                 if showsLaunchScreen {
                     LaunchScreenHost {
-                        showsLaunchScreen = false
+                        if coreDataContainer != nil, container != nil {
+                            showsLaunchScreen = false
+                        }
                     }
                     .ignoresSafeArea()
                 }
             }
+            .task {
+                await prepareApplicationIfNeeded()
+            }
+        }
+    }
+
+    @MainActor
+    private func prepareApplicationIfNeeded() async {
+        guard !isPreparingApplication, coreDataContainer == nil, container == nil else { return }
+
+        isPreparingApplication = true
+
+        do {
+            let coreDataContainer = try await FolioraCoreDataStack.makeContainer()
+            let container = AppContainer(coreDataContainer: coreDataContainer)
+            FolioraAppDelegate.coreDataContainer = coreDataContainer
+            self.coreDataContainer = coreDataContainer
+            self.container = container
+            showsLaunchScreen = false
+        } catch {
+            fatalError("Failed to create Core Data container: \(error)")
         }
     }
 }
