@@ -40,13 +40,13 @@
                                 </subviews>
                             </stackView>
                             <view userInteractionEnabled="NO" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="MedallionBell">
-                                <rect key="frame" x="84" y="290" width="252" height="400"/>
+                                <rect key="frame" x="84" y="364" width="252" height="252"/>
                                 <subviews>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk">
-                                        <rect key="frame" x="0.0" y="0.0" width="252" height="400"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="252" height="252"/>
                                     </imageView>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="cZx-or-9f6">
-                                        <rect key="frame" x="0.0" y="0.0" width="252" height="400"/>
+                                        <rect key="frame" x="0.0" y="-74" width="252" height="400"/>
                                     </imageView>
                                 </subviews>
                                 <accessibility key="accessibilityConfiguration">
@@ -56,6 +56,7 @@
                                     <constraint firstItem="pCN-B8-puk" firstAttribute="centerX" secondItem="nPf-pr-nES" secondAttribute="centerX" id="BlN-kD-2aA"/>
                                     <constraint firstItem="cZx-or-9f6" firstAttribute="centerX" secondItem="pCN-B8-puk" secondAttribute="centerX" id="Dby-Xb-Vc7"/>
                                     <constraint firstItem="pCN-B8-puk" firstAttribute="height" secondItem="nPf-pr-nES" secondAttribute="height" id="NPb-SQ-cXj"/>
+                                    <constraint firstAttribute="width" secondItem="nPf-pr-nES" secondAttribute="height" multiplier="1:1" id="OEM-ha-06u"/>
                                     <constraint firstItem="cZx-or-9f6" firstAttribute="centerY" secondItem="pCN-B8-puk" secondAttribute="centerY" id="Z0Q-J6-T3d"/>
                                     <constraint firstItem="pCN-B8-puk" firstAttribute="centerY" secondItem="nPf-pr-nES" secondAttribute="centerY" id="mPt-7R-QjY"/>
                                     <constraint firstItem="pCN-B8-puk" firstAttribute="width" secondItem="nPf-pr-nES" secondAttribute="width" id="psb-X0-XCu"/>
@@ -96,7 +97,7 @@
                             <constraint firstItem="pT4-RV-YK9" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="26f-lL-5n4"/>
                             <constraint firstItem="pT4-RV-YK9" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" id="6rJ-ve-qWm"/>
                             <constraint firstItem="ZOH-8B-WUK" firstAttribute="top" secondItem="po4-Fp-UpO" secondAttribute="top" id="Hap-6i-uZW"/>
-                            <constraint firstAttribute="bottomMargin" secondItem="pT4-RV-YK9" secondAttribute="bottom" id="U18-MF-kNE"/>
+                            <constraint firstAttribute="bottom" secondItem="pT4-RV-YK9" secondAttribute="bottom" id="U18-MF-kNE"/>
                             <constraint firstItem="nPf-pr-nES" firstAttribute="centerY" secondItem="po4-Fp-UpO" secondAttribute="centerY" id="WoI-RI-B7Q"/>
                             <constraint firstItem="nPf-pr-nES" firstAttribute="width" relation="lessThanOrEqual" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.6" id="bQX-oy-n2e"/>
                             <constraint firstItem="ZOH-8B-WUK" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="p01-t6-8h8"/>
