@@ -36,6 +36,8 @@ struct FolioraApp: App {
     @UIApplicationDelegateAdaptor(FolioraAppDelegate.self)
     private var appDelegate
 
+    @State private var showsLaunchScreen = true
+
     private let coreDataContainer: NSPersistentCloudKitContainer = {
         do {
             let container = try FolioraCoreDataStack.makeContainer()
@@ -53,11 +55,34 @@ struct FolioraApp: App {
 
     var body: some Scene {
         WindowGroup {
-            TranslationModelPreparationView {
-                AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
-                    .environment(\.managedObjectContext, coreDataContainer.viewContext)
+            ZStack {
+                TranslationModelPreparationView {
+                    AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
+                        .environment(\.managedObjectContext, coreDataContainer.viewContext)
+                }
+
+                if showsLaunchScreen {
+                    LaunchScreenHost {
+                        showsLaunchScreen = false
+                    }
+                    .ignoresSafeArea()
+                }
             }
         }
+    }
+}
+
+private struct LaunchScreenHost: UIViewControllerRepresentable {
+    let onAnimationCompleted: () -> Void
+
+    func makeUIViewController(context: Context) -> LaunchScreenViewController {
+        let viewController = LaunchScreenViewController.instantiate(storyboardName: "LaunchScreenBells")!
+        viewController.onAnimationCompleted = onAnimationCompleted
+        return viewController
+    }
+
+    func updateUIViewController(_ uiViewController: LaunchScreenViewController, context: Context) {
+        uiViewController.onAnimationCompleted = onAnimationCompleted
     }
 }
 
