@@ -61,6 +61,7 @@ struct FolioraApp: App {
                 }
             }
             .task {
+                NSUbiquitousKeyValueStore.default.synchronize()
                 await prepareApplicationIfNeeded()
             }
         }

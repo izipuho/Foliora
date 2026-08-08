@@ -1,6 +1,6 @@
 # План: приветствие пользователя в LiveSplashScreen
 
-## [ ] 1. Хранилище профиля
+## [x] 1. Хранилище профиля
 
 - Создать `FolioraProfileStore`.
 - Хранить `displayName` в `NSUbiquitousKeyValueStore`.
