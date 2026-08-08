@@ -7,6 +7,12 @@ final class LaunchScreenViewController: UIViewController {
     private var didStopAnimation = false
     private var stopAnimationCompletions: [() -> Void] = []
 
+    private enum IntroAnimation {
+        static let scale: CGFloat = 0.75
+        static let verticalOffsetMultiplier: CGFloat = 0.5
+        static let duration: TimeInterval = 0.6
+    }
+
     private enum Tag {
         static let medallionContainer = 100
         static let medallion = 101
@@ -36,7 +42,28 @@ final class LaunchScreenViewController: UIViewController {
         guard !didStartAnimation else { return }
         didStartAnimation = true
 
-        animateSymbol()
+        animateIntro()
+    }
+
+    private func animateIntro() {
+        let medallionContainer = MedallionContainer
+        let verticalOffset = -IntroAnimation.verticalOffsetMultiplier * medallionContainer.bounds.height
+
+        UIView.animate(
+            withDuration: IntroAnimation.duration,
+            delay: 0,
+            options: [.curveEaseInOut]
+        ) {
+            medallionContainer.transform = CGAffineTransform(
+                translationX: 0,
+                y: verticalOffset
+            ).scaledBy(
+                x: IntroAnimation.scale,
+                y: IntroAnimation.scale
+            )
+        } completion: { [weak self] _ in
+            self?.animateSymbol()
+        }
     }
 
     func animateSymbol() {
