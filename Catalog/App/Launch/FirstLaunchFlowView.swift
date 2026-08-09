@@ -41,7 +41,7 @@ struct FirstLaunchFlowView<Content: View>: View {
                         .disabled(isPreparingTranslation)
 
                         Button("common.skip") {
-                            step = .profile
+                            finishTranslationStep()
                         }
                         .buttonStyle(.bordered)
                         .disabled(isPreparingTranslation)
@@ -75,11 +75,13 @@ struct FirstLaunchFlowView<Content: View>: View {
                         } else {
                             NSUbiquitousKeyValueStore.default.set(displayName, forKey: "foliora.profile.displayName")
                         }
+                        NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.didSkipIntroduction")
                         didFinishFirstLaunchFlow = true
                     }
                     .buttonStyle(.borderedProminent)
 
                     Button("common.skip") {
+                        NSUbiquitousKeyValueStore.default.set(true, forKey: "foliora.profile.didSkipIntroduction")
                         didFinishFirstLaunchFlow = true
                     }
                     .buttonStyle(.bordered)
@@ -105,11 +107,25 @@ struct FirstLaunchFlowView<Content: View>: View {
         let preparationState = await translator.preparationState()
 
         guard preparationState == .needsDownload else {
-            step = .profile
+            finishTranslationStep()
             return
         }
 
         needsTranslationModelDownload = true
+    }
+
+    @MainActor
+    private func finishTranslationStep() {
+        let store = NSUbiquitousKeyValueStore.default
+        let displayName = store.string(forKey: "foliora.profile.displayName")?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard displayName.isEmpty, !store.bool(forKey: "foliora.profile.didSkipIntroduction") else {
+            didFinishFirstLaunchFlow = true
+            return
+        }
+
+        step = .profile
     }
 
     @MainActor
