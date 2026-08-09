@@ -63,13 +63,13 @@
                                     <constraint firstItem="cZx-or-9f6" firstAttribute="width" secondItem="pCN-B8-puk" secondAttribute="width" id="uNc-Nx-qJa"/>
                                 </constraints>
                             </view>
-                            <view userInteractionEnabled="NO" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="pT4-RV-YK9" userLabel="Arcs">
+                            <view userInteractionEnabled="NO" tag="200" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="pT4-RV-YK9" userLabel="Arcs">
                                 <rect key="frame" x="0.0" y="765" width="420" height="147"/>
                                 <subviews>
-                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" image="ArcRight" translatesAutoresizingMaskIntoConstraints="NO" id="rQW-R1-Z8Z">
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="202" contentMode="scaleToFill" image="ArcRight" translatesAutoresizingMaskIntoConstraints="NO" id="rQW-R1-Z8Z">
                                         <rect key="frame" x="0.0" y="0.0" width="420" height="147"/>
                                     </imageView>
-                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" image="ArcLeft" translatesAutoresizingMaskIntoConstraints="NO" id="B1J-xh-wTC">
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="201" contentMode="scaleToFill" image="ArcLeft" translatesAutoresizingMaskIntoConstraints="NO" id="B1J-xh-wTC">
                                         <rect key="frame" x="0.0" y="-124" width="420" height="271"/>
                                     </imageView>
                                 </subviews>

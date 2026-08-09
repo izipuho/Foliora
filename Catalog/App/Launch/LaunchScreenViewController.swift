@@ -20,18 +20,25 @@ final class LaunchScreenViewController: UIViewController {
         static let medallionContainer = 100
         static let medallion = 101
         static let symbol = 102
+        static let arcs = 200
+        static let arcLeft = 201
+        static let arcRight = 202
     }
 
     private var MedallionContainer: UIView {
         view.viewWithTag(Tag.medallionContainer)!
     }
 
-    private var Medallion: UIImageView {
-        view.viewWithTag(Tag.medallion) as! UIImageView
-    }
+    //private var Medallion: UIImageView {
+    //    view.viewWithTag(Tag.medallion) as! UIImageView
+    //}
 
     private var Symbol: UIImageView {
         view.viewWithTag(Tag.symbol) as! UIImageView
+    }
+
+    private var Arcs: UIView {
+        view.viewWithTag(Tag.arcs)!
     }
 
     static func instantiate( storyboardName: String, bundle: Bundle = .main ) -> LaunchScreenViewController? {
@@ -46,11 +53,13 @@ final class LaunchScreenViewController: UIViewController {
         greetingLabel.textAlignment = .center
         greetingLabel.numberOfLines = 1
         greetingLabel.text = displayName ?? ""
+        greetingLabel.font = .systemFont(ofSize: 50)
+        greetingLabel.textColor = UIColor(named: "LightAccent", in: .main, compatibleWith: nil)
         view.addSubview(greetingLabel)
 
         NSLayoutConstraint.activate([
             greetingLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            greetingLabel.topAnchor.constraint(equalTo: MedallionContainer.bottomAnchor)
+            greetingLabel.bottomAnchor.constraint(equalTo: Arcs.topAnchor)
         ])
     }
 
