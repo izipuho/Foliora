@@ -41,6 +41,14 @@ final class LaunchScreenViewController: UIViewController {
         view.viewWithTag(Tag.arcs)!
     }
 
+    private var ArcLeft: UIView {
+        view.viewWithTag(Tag.arcLeft)!
+    }
+
+    private var ArcRight: UIView {
+        view.viewWithTag(Tag.arcRight)!
+    }
+
     static func instantiate( storyboardName: String, bundle: Bundle = .main ) -> LaunchScreenViewController? {
         let storyboard = UIStoryboard(name: storyboardName, bundle: bundle);
         return storyboard.instantiateInitialViewController { coder in LaunchScreenViewController(coder: coder) }
@@ -51,15 +59,20 @@ final class LaunchScreenViewController: UIViewController {
 
         greetingLabel.translatesAutoresizingMaskIntoConstraints = false
         greetingLabel.textAlignment = .center
-        greetingLabel.numberOfLines = 1
+        greetingLabel.numberOfLines = 3
         greetingLabel.text = greetingText()
-        greetingLabel.font = .systemFont(ofSize: 50)
+        greetingLabel.adjustsFontSizeToFitWidth = true
+        greetingLabel.minimumScaleFactor = 0.6
+        greetingLabel.lineBreakMode = .byWordWrapping
+        greetingLabel.font = .systemFont(ofSize: 40)
         greetingLabel.textColor = UIColor(named: "LightAccent", in: .main, compatibleWith: nil)
         view.addSubview(greetingLabel)
 
         NSLayoutConstraint.activate([
             greetingLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            greetingLabel.bottomAnchor.constraint(equalTo: Arcs.topAnchor)
+            greetingLabel.bottomAnchor.constraint(equalTo: ArcLeft.topAnchor, constant: 24),
+            greetingLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+            greetingLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24)
         ])
     }
 
