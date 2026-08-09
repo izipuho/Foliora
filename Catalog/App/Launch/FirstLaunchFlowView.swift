@@ -64,7 +64,7 @@ struct FirstLaunchFlowView<Content: View>: View {
                         .font(.title)
                         .fontWeight(.semibold)
 
-                    TextField("initialize.introduce.name", text: $userName)
+                    TextField("common.name", text: $userName)
                         .textFieldStyle(.roundedBorder)
                         .textContentType(.name)
 

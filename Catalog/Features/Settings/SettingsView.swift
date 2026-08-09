@@ -5,9 +5,11 @@ import SwiftUI
 struct SettingsView: View {
     let repository: any CatalogRepository
     let navigate: (AppDestination) -> Void
+    @Binding var displayName: String?
 
     @Environment(\.managedObjectContext) private var managedObjectContext
 
+    @State private var editedDisplayName = ""
     @State private var isImportingDocument = false
     @State private var importPresentation: CatalogImportPresentation?
     @State private var isImportExportRunning = false
@@ -18,14 +20,39 @@ struct SettingsView: View {
     var body: some View {
         List {
             Section {
+                HStack {
+                    TextField("common.name", text: $editedDisplayName)
+                        .textContentType(.name)
+
+                    if displayName != nil {
+                        Button(role: .destructive) {
+                            deleteDisplayName()
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("settings.profile.display_name.delete")
+                    }
+
+                    Button {
+                        saveDisplayName()
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("settings.profile.display_name.save")
+                }
+            } header: {
+                Text("settings.profile.section_title")
+            }
+
+            Section {
                 NavigationLink {
                     PhotoAnalysisSettingsView()
                 } label: {
                     Label("photo_analysis.title", systemImage: "photo.on.rectangle.angled")
                 }
-            }
 
-            Section {
                 NavigationLink {
                     CatalogExportView { exportedCollectionCount in
                         exportResultMessage = String.localizedStringWithFormat(
@@ -58,6 +85,9 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(RootTab.settings.title)
+        .onAppear {
+            editedDisplayName = displayName ?? ""
+        }
         .fileImporter(
             isPresented: $isImportingDocument,
             allowedContentTypes: [.zip]
@@ -119,6 +149,26 @@ struct SettingsView: View {
 
     private var buildNumber: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+    }
+
+    private func saveDisplayName() {
+        let trimmedDisplayName = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let store = NSUbiquitousKeyValueStore.default
+
+        if trimmedDisplayName.isEmpty {
+            displayName = nil
+            store.removeObject(forKey: "foliora.profile.displayName")
+        } else {
+            displayName = trimmedDisplayName
+            store.set(trimmedDisplayName, forKey: "foliora.profile.displayName")
+            store.removeObject(forKey: "foliora.profile.didSkipIntroduction")
+        }
+    }
+
+    private func deleteDisplayName() {
+        displayName = nil
+        editedDisplayName = ""
+        NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.displayName")
     }
 
     private func handleImport(_ result: Result<URL, Error>) {
@@ -258,6 +308,25 @@ struct SettingsView: View {
     }
 
 }
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.make(.minimal)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+
+    NavigationStack {
+        SettingsView(
+            repository: repository,
+            navigate: { _ in },
+            displayName: .constant("Alex")
+        )
+        .environment(\.managedObjectContext, container.viewContext)
+    }
+}
+#endif
 
 private struct SettingsInfoRow: View {
     let title: String

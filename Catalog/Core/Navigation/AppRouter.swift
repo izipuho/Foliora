@@ -52,6 +52,7 @@ struct AppShellView: View {
     @State private var settingsPath = NavigationPath()
     @State private var searchPath = NavigationPath()
     @State private var selectedRootTab: RootTab = .collections
+    @State private var displayName: String?
     @State private var shareInvitationFailureMessage: String?
     @ObservedObject private var shareInvitationController = CloudKitShareInvitationAcceptanceController.shared
 
@@ -65,6 +66,7 @@ struct AppShellView: View {
             homesPath: $homesPath,
             settingsPath: $settingsPath,
             searchPath: $searchPath,
+            displayName: $displayName,
             destination: { destination, layoutMode, onBellSelected, onBatchAddComplete, popNavigation in
                 destinationView(
                     for: destination,
@@ -75,7 +77,10 @@ struct AppShellView: View {
                 )
             }
         )
-        .onAppear(perform: reloadNavigationSnapshot)
+        .onAppear {
+            reloadNavigationSnapshot()
+            loadDisplayName()
+        }
         .onReceive(NotificationCenter.default.publisher(
             for: .NSManagedObjectContextObjectsDidChange,
             object: managedObjectContext
@@ -244,6 +249,11 @@ struct AppShellView: View {
         navigationSnapshot = CatalogSnapshot.load(from: managedObjectContext)
     }
 
+    private func loadDisplayName() {
+        displayName = NSUbiquitousKeyValueStore.default.string(forKey: "foliora.profile.displayName")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var shareInvitationFailureAlertBinding: Binding<Bool> {
         Binding(
             get: { shareInvitationFailureMessage != nil },
@@ -285,6 +295,7 @@ private struct RootShellView<Destination: View>: View {
     @Binding var homesPath: NavigationPath
     @Binding var settingsPath: NavigationPath
     @Binding var searchPath: NavigationPath
+    @Binding var displayName: String?
     let destination: (AppDestination, Binding<CatalogCardLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = CatalogCardLayoutMode.mini.rawValue
@@ -460,7 +471,8 @@ private struct RootShellView<Destination: View>: View {
         NavigationStack(path: path) {
             SettingsView(
                 repository: repository,
-                navigate: { path.wrappedValue.append($0) }
+                navigate: { path.wrappedValue.append($0) },
+                displayName: $displayName
             )
             .navigationDestination(for: AppDestination.self) { destination in
                 self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popSettingsNavigation)
