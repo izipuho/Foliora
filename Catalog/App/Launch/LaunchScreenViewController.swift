@@ -3,6 +3,7 @@ import UIKit
 final class LaunchScreenViewController: UIViewController {
     private var didStartAnimation = false
     private var isAnimatingSymbol = false
+    private var didCompleteRequiredAnimation = false
     private var didRequestStopAnimation = false
     private var didStopAnimation = false
     private var stopAnimationCompletions: [() -> Void] = []
@@ -23,6 +24,9 @@ final class LaunchScreenViewController: UIViewController {
         static let arcs = 200
         static let arcLeft = 201
         static let arcRight = 202
+        static let titleContainer = 300
+        static let title = 301
+        static let substitle = 302
     }
 
     private var MedallionContainer: UIView {
@@ -47,6 +51,10 @@ final class LaunchScreenViewController: UIViewController {
 
     private var ArcRight: UIView {
         view.viewWithTag(Tag.arcRight)!
+    }
+
+    private var TitleContainer: UIView {
+        view.viewWithTag(Tag.titleContainer)!
     }
 
     static func instantiate( storyboardName: String, bundle: Bundle = .main ) -> LaunchScreenViewController? {
@@ -87,7 +95,13 @@ final class LaunchScreenViewController: UIViewController {
 
     private func animateIntro() {
         let medallionContainer = MedallionContainer
-        let verticalOffset = -IntroAnimation.verticalOffsetMultiplier * medallionContainer.bounds.height
+        let titleContainer = TitleContainer
+        let desiredVerticalOffset = -IntroAnimation.verticalOffsetMultiplier * medallionContainer.bounds.height
+        let medallionFrame = medallionContainer.superview?.convert(medallionContainer.frame, to: view) ?? medallionContainer.frame
+        let titleFrame = titleContainer.superview?.convert(titleContainer.frame, to: view) ?? titleContainer.frame
+        let scaledTopInset = medallionFrame.height * (1 - IntroAnimation.scale) / 2
+        let maximumVerticalOffset = titleFrame.maxY - medallionFrame.minY + scaledTopInset
+        let verticalOffset = max(desiredVerticalOffset, maximumVerticalOffset)
 
         UIView.animate(
             withDuration: IntroAnimation.duration,
@@ -122,7 +136,7 @@ final class LaunchScreenViewController: UIViewController {
     }
 
     func animateSymbol() {
-        guard !didRequestStopAnimation else {
+        guard !didRequestStopAnimation || !didCompleteRequiredAnimation else {
             completeStopAnimation()
             return
         }
@@ -148,6 +162,10 @@ final class LaunchScreenViewController: UIViewController {
                 self.Symbol.transform = .identity
                 self.isAnimatingSymbol = false
 
+                if !self.didCompleteRequiredAnimation {
+                    self.didCompleteRequiredAnimation = true
+                }
+
                 if self.didRequestStopAnimation {
                     self.completeStopAnimation()
                 } else {
@@ -166,7 +184,7 @@ final class LaunchScreenViewController: UIViewController {
         stopAnimationCompletions.append(completion)
         didRequestStopAnimation = true
 
-        if !isAnimatingSymbol {
+        if didCompleteRequiredAnimation && !isAnimatingSymbol {
             completeStopAnimation()
         }
     }
