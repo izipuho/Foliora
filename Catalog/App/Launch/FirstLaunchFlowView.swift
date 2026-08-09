@@ -131,12 +131,12 @@ struct FirstLaunchFlowView: View {
             ) {
                 ZStack {
                     Circle()
-                        .fill(Color("LightAccent").opacity(0.15))
+                        .glassEffect(.clear.tint(.green))
                         .frame(width: 96, height: 96)
 
                     Image(systemName: "checkmark")
                         .font(.system(size: 40, weight: .semibold))
-                        .foregroundStyle(Color("LightAccent"))
+                        .foregroundStyle(.white)
                 }
             }
             .tag(Step.ready)
