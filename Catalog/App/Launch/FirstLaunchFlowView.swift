@@ -19,29 +19,39 @@ struct FirstLaunchFlowView: View {
 
     var body: some View {
         TabView(selection: $step) {
-            VStack(spacing: 20) {
+            VStack(spacing: CatalogMetrics.Spacing.xl) {
                 if needsTranslationModelDownload {
-                    Text("translation.download_model.description")
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                    Text("translation.download_model.title")
+                        .font(CatalogTypography.cardTitle)
+                        .foregroundStyle(Color("LightAccent"))
                         .multilineTextAlignment(.center)
 
-                    Button("common.download") {
-                        prepareTranslation()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isPreparingTranslation)
+                    Text("translation.download_model.description")
+                        .font(CatalogTypography.cardSubtitle)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
 
-                    Button("common.skip") {
-                        finishTranslationStep()
+                    HStack(spacing: CatalogMetrics.Spacing.md) {
+                        Button("common.download") {
+                            prepareTranslation()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isPreparingTranslation)
+                        .frame(maxWidth: .infinity)
+
+                        Button("common.skip") {
+                            finishTranslationStep()
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isPreparingTranslation)
+                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(isPreparingTranslation)
                 } else {
                     ProgressView()
                 }
             }
-            .padding()
+            .frame(maxWidth: 420)
+            .padding(.horizontal, CatalogMetrics.Insets.screen)
             .task {
                 await checkPreparationStateIfNeeded()
             }
@@ -51,34 +61,45 @@ struct FirstLaunchFlowView: View {
             }
             .tag(Step.translation)
 
-            VStack(spacing: 20) {
+            VStack(spacing: CatalogMetrics.Spacing.xl) {
                 Text("initialize.introduce.title")
-                    .font(.title)
-                    .fontWeight(.semibold)
+                    .font(CatalogTypography.cardTitle)
+                    .foregroundStyle(Color("LightAccent"))
+                    .multilineTextAlignment(.center)
+
+                Text("initialize.introduce.description")
+                    .font(CatalogTypography.cardSubtitle)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
 
                 TextField("common.name", text: $userName)
-                    .textFieldStyle(.roundedBorder)
                     .textContentType(.name)
+                    .catalogSurfaceTile()
 
-                Button("common.continue") {
-                    let displayName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if displayName.isEmpty {
-                        NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.displayName")
-                    } else {
-                        NSUbiquitousKeyValueStore.default.set(displayName, forKey: "foliora.profile.displayName")
+                HStack(spacing: CatalogMetrics.Spacing.md) {
+                    Button("common.continue") {
+                        let displayName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if displayName.isEmpty {
+                            NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.displayName")
+                        } else {
+                            NSUbiquitousKeyValueStore.default.set(displayName, forKey: "foliora.profile.displayName")
+                        }
+                        NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.didSkipIntroduction")
+                        onFinished()
                     }
-                    NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.didSkipIntroduction")
-                    onFinished()
-                }
-                .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
 
-                Button("common.skip") {
-                    NSUbiquitousKeyValueStore.default.set(true, forKey: "foliora.profile.didSkipIntroduction")
-                    onFinished()
+                    Button("common.skip") {
+                        NSUbiquitousKeyValueStore.default.set(true, forKey: "foliora.profile.didSkipIntroduction")
+                        onFinished()
+                    }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
             }
-            .padding()
+            .frame(maxWidth: 420)
+            .padding(.horizontal, CatalogMetrics.Insets.screen)
             .tag(Step.profile)
         }
         .tabViewStyle(.page(indexDisplayMode: .always))
