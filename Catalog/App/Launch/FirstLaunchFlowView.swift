@@ -61,8 +61,8 @@ struct FirstLaunchFlowView: View {
         TabView(selection: $step) {
             
             onboardingPage(
-                title: "translation.download_model.title",
-                description: "translation.download_model.description",
+                title: "onboarding.download_model.title",
+                description: "onboarding.download_model.description",
                 primaryTitle: "common.download",
                 primaryDisabled: isPreparingTranslation,
                 primaryAction: {
@@ -85,8 +85,8 @@ struct FirstLaunchFlowView: View {
             .tag(Step.translation)
 
             onboardingPage(
-                title: "initialize.introduce.title",
-                description: "initialize.introduce.description",
+                title: "onboarding.introduce.title",
+                description: "onboarding.introduce.description",
                 primaryTitle: "common.continue",
                 primaryAction: {
                     let displayName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
