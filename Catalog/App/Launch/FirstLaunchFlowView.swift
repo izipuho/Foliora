@@ -46,14 +46,16 @@ struct FirstLaunchFlowView: View {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 Button(primaryTitle, action: primaryAction)
                     .font(.title3)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
+                    .tint(Color("LightAccent"))
                     .disabled(primaryDisabled)
                     .frame(maxWidth: .infinity)
 
                 if let skipAction {
                     Button("common.skip", action: skipAction)
                         .font(.title3)
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.glass)
+                        .tint(Color("LightAccent"))
                         .disabled(skipDisabled)
                         .frame(maxWidth: .infinity)
                 }
