@@ -6,22 +6,38 @@ enum FolioraCoreDataStack {
     static let modelName = "Foliora"
     static let cloudKitContainerIdentifier = "iCloud.com.izipuho.FolioraBells"
 
-    static func makeContainer(inMemory: Bool = false) throws -> NSPersistentCloudKitContainer {
+    @concurrent
+    static func makeContainer() async throws -> NSPersistentCloudKitContainer {
         let model = try managedObjectModel()
-        var usesCloudKit = !inMemory
+        var usesCloudKit = true
         var container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
 
         do {
-            try loadPersistentStores(into: container, inMemory: inMemory, usesCloudKit: usesCloudKit)
+            try await loadPersistentStores(into: container, inMemory: false, usesCloudKit: usesCloudKit)
         } catch {
-            guard usesCloudKit else {
-                throw error
-            }
             usesCloudKit = false
             container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
-            try loadPersistentStores(into: container, inMemory: inMemory, usesCloudKit: usesCloudKit)
+            try await loadPersistentStores(into: container, inMemory: false, usesCloudKit: usesCloudKit)
         }
 
+        try configureLoadedContainer(container, usesCloudKit: usesCloudKit)
+
+        return container
+    }
+
+    static func makeInMemoryContainer() throws -> NSPersistentCloudKitContainer {
+        let model = try managedObjectModel()
+        let container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
+        try loadPersistentStoresSynchronously(into: container, inMemory: true, usesCloudKit: false)
+        try configureLoadedContainer(container, usesCloudKit: false)
+
+        return container
+    }
+
+    private static func configureLoadedContainer(
+        _ container: NSPersistentCloudKitContainer,
+        usesCloudKit: Bool
+    ) throws {
         try migrateExistingBellsToItems(in: container)
 
         container.viewContext.automaticallyMergesChangesFromParent = true
@@ -37,8 +53,6 @@ enum FolioraCoreDataStack {
             }
         }
         #endif
-
-        return container
     }
 
     private static func managedObjectModel() throws -> NSManagedObjectModel {
@@ -57,18 +71,77 @@ enum FolioraCoreDataStack {
         into container: NSPersistentCloudKitContainer,
         inMemory: Bool,
         usesCloudKit: Bool
+    ) async throws {
+        container.persistentStoreDescriptions = try storeDescriptions(
+            inMemory: inMemory,
+            usesCloudKit: usesCloudKit
+        )
+
+        try await withCheckedThrowingContinuation { continuation in
+            let storeCount = container.persistentStoreDescriptions.count
+            guard storeCount > 0 else {
+                continuation.resume()
+                return
+            }
+
+            let lock = NSLock()
+            var remainingStores = storeCount
+            var loadError: Error?
+
+            container.loadPersistentStores { _, error in
+                lock.lock()
+                if loadError == nil {
+                    loadError = error
+                }
+                remainingStores -= 1
+                let isComplete = remainingStores == 0
+                let result = loadError
+                lock.unlock()
+
+                guard isComplete else { return }
+
+                if let result {
+                    continuation.resume(throwing: result)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    private static func loadPersistentStoresSynchronously(
+        into container: NSPersistentCloudKitContainer,
+        inMemory: Bool,
+        usesCloudKit: Bool
     ) throws {
         container.persistentStoreDescriptions = try storeDescriptions(
             inMemory: inMemory,
             usesCloudKit: usesCloudKit
         )
+
+        let storeCount = container.persistentStoreDescriptions.count
+        guard storeCount > 0 else { return }
+
+        let semaphore = DispatchSemaphore(value: 0)
+        let lock = NSLock()
+        var remainingStores = storeCount
         var loadError: Error?
 
         container.loadPersistentStores { _, error in
-            if let error {
+            lock.lock()
+            if loadError == nil {
                 loadError = error
             }
+            remainingStores -= 1
+            let isComplete = remainingStores == 0
+            lock.unlock()
+
+            if isComplete {
+                semaphore.signal()
+            }
         }
+
+        semaphore.wait()
 
         if let loadError {
             throw loadError

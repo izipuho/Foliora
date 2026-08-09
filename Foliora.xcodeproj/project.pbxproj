@@ -18,6 +18,7 @@
 		2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */; };
 		24056E9A301E68BE00601C22 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E98301E68BE00601C22 /* PreviewContainer.swift */; };
 		24056E9C301E68D200601C22 /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E9B301E68CC00601C22 /* PreviewData.swift */; };
+		24056ED030226D0500601C22 /* Bells.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Bells.xcassets */; };
 		24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
 		2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
@@ -50,8 +51,6 @@
 		24D9EB9030115CE8009DB654 /* PhotoAnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */; };
 		24D9EBC630138F2D009DB654 /* MediaSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EBC530138F28009DB654 /* MediaSection.swift */; };
 		24D9EC173019D7B6009DB654 /* CoreDataDomainMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */; };
-		24F1A4542FD6B4CF00FC1717 /* LaunchScreenBells.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4532FD6B4CF00FC1717 /* LaunchScreenBells.storyboard */; };
-		24F1A4662FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4652FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard */; };
 		24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */; };
 		24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */; };
 		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
@@ -73,7 +72,6 @@
 		C000000000000000000000AD /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000D /* HomeView.swift */; };
 		C000000000000000000000AE /* BellCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000E /* BellCatalogView.swift */; };
 		C000000000000000000000AF /* BellDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000F /* BellDetailView.swift */; };
-		C000000000000000000000B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Assets.xcassets */; };
 		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
 		C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000018 /* LocalMediaFileStore.swift */; };
 		C000000000000000000000B9 /* BellCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001F /* BellCardView.swift */; };
@@ -116,6 +114,8 @@
 		24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardContent.swift; sourceTree = "<group>"; };
 		24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardCollectionLayouts.swift; sourceTree = "<group>"; };
 		244FE0472FB465CF00B4D805 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		246A557A302274AF00512880 /* Coins.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Coins.xcassets; sourceTree = "<group>"; };
+		246A557C302274CF00512880 /* Stamps.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Stamps.xcassets; sourceTree = "<group>"; };
 		246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareInvitationStatusOverlay.swift; sourceTree = "<group>"; };
 		246D3FC8300508ED000515FD /* CatalogImportExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportView.swift; sourceTree = "<group>"; };
 		246FD65F2FA8BB2900B8859A /* BellRecognition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognition.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -128,13 +128,13 @@
 		24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellEditorView.swift; sourceTree = "<group>"; };
 		24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogModels.swift; sourceTree = "<group>"; };
 		24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogDashboard.swift; sourceTree = "<group>"; };
+		24C55DCE302272350091118A /* Records.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Records.xcassets; sourceTree = "<group>"; };
+		24C55DD0302272960091118A /* Books.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Books.xcassets; sourceTree = "<group>"; };
 		24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysisSettingsView.swift; sourceTree = "<group>"; };
 		24D9EBC530138F28009DB654 /* MediaSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSection.swift; sourceTree = "<group>"; };
 		24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataDomainMapper.swift; sourceTree = "<group>"; };
 		24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Bells.entitlements"; sourceTree = "<group>"; };
 		24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Bells-Info.plist"; sourceTree = "<group>"; };
-		24F1A4532FD6B4CF00FC1717 /* LaunchScreenBells.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreenBells.storyboard; sourceTree = "<group>"; };
-		24F1A4652FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "LaunchScreenBells 2.storyboard"; sourceTree = "<group>"; };
 		24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellBatchAddView.swift; sourceTree = "<group>"; };
 		24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEmptyStateView.swift; sourceTree = "<group>"; };
 		24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -156,7 +156,7 @@
 		C0000000000000000000000D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C0000000000000000000000E /* BellCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogView.swift; sourceTree = "<group>"; };
 		C0000000000000000000000F /* BellDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellDetailView.swift; sourceTree = "<group>"; };
-		C00000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C00000000000000000000011 /* Bells.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Bells.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C00000000000000000000013 /* EditorFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFields.swift; sourceTree = "<group>"; };
 		C00000000000000000000016 /* Catalog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catalog.entitlements; sourceTree = "<group>"; };
@@ -195,6 +195,11 @@
 		246FD6602FA8BB2900B8859A /* BellRecognition */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BellRecognition;
+			sourceTree = "<group>";
+		};
+		24B4D3513025E74600904626 /* Launch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Launch;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -296,6 +301,7 @@
 		C00000000000000000000034 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				24B4D3513025E74600904626 /* Launch */,
 				24F1A5492FDB309D00FC1717 /* FolioraApp.swift */,
 				24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */,
 				C00000000000000000000002 /* AppContainer.swift */,
@@ -351,8 +357,12 @@
 		C00000000000000000000039 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				C00000000000000000000011 /* Assets.xcassets */,
+				C00000000000000000000011 /* Bells.xcassets */,
 				24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */,
+				24C55DCE302272350091118A /* Records.xcassets */,
+				24C55DD0302272960091118A /* Books.xcassets */,
+				246A557A302274AF00512880 /* Coins.xcassets */,
+				246A557C302274CF00512880 /* Stamps.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -443,8 +453,6 @@
 				C0000000000000000000004B /* Analysis */,
 				C00000000000000000000045 /* List */,
 				C00000000000000000000046 /* Detail */,
-				24F1A4532FD6B4CF00FC1717 /* LaunchScreenBells.storyboard */,
-				24F1A4652FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard */,
 			);
 			path = Bells;
 			sourceTree = "<group>";
@@ -578,6 +586,7 @@
 			fileSystemSynchronizedGroups = (
 				24056EC03020811900601C22 /* Media */,
 				24374F4F2FFE5C7E00E83899 /* Foundation */,
+				24B4D3513025E74600904626 /* Launch */,
 			);
 			name = "Foliora Bells";
 			productName = Catalog;
@@ -641,10 +650,8 @@
 		C00000000000000000000023 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
-				24F1A4662FD7E36A00FC1717 /* LaunchScreenBells 2.storyboard in Resources */,
-				C000000000000000000000B1 /* Assets.xcassets in Resources */,
+				24056ED030226D0500601C22 /* Bells.xcassets in Resources */,
 				24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */,
-				24F1A4542FD6B4CF00FC1717 /* LaunchScreenBells.storyboard in Resources */,
 			);
 		};
 /* End PBXResourcesBuildPhase section */
@@ -1121,13 +1128,13 @@
 		C00000000000000000000073 /* Debug configuration for PBXNativeTarget "Foliora Bells" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColorBells;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1144,7 +1151,7 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreenBells;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -1152,7 +1159,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.10.3;
+				MARKETING_VERSION = 0.10.4;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.FolioraBells;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1171,13 +1178,13 @@
 		C00000000000000000000074 /* Release configuration for PBXNativeTarget "Foliora Bells" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColorBells;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1194,7 +1201,7 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Use your photo library to attach photos to collection items.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreenBells;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -1202,7 +1209,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.10.3;
+				MARKETING_VERSION = 0.10.4;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.FolioraBells;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -36,98 +36,86 @@ struct FolioraApp: App {
     @UIApplicationDelegateAdaptor(FolioraAppDelegate.self)
     private var appDelegate
 
-    private let coreDataContainer: NSPersistentCloudKitContainer = {
-        do {
-            let container = try FolioraCoreDataStack.makeContainer()
-            return container
-        } catch {
-            fatalError("Failed to create Core Data container: \(error)")
-        }
-    }()
-    private let container: AppContainer
+    @State private var showsLaunchScreen = true
+    @State private var showsOnboarding = false
+    @State private var needsOnboarding: Bool?
+    @State private var didFinishLaunchFlow = false
+    @State private var isPreparingApplication = false
+    @State private var coreDataContainer: NSPersistentCloudKitContainer?
+    @State private var container: AppContainer?
 
-    init() {
-        FolioraAppDelegate.coreDataContainer = coreDataContainer
-        self.container = AppContainer(coreDataContainer: coreDataContainer)
-    }
+    private let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
 
     var body: some Scene {
         WindowGroup {
-            TranslationModelPreparationView {
-                AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
-                    .environment(\.managedObjectContext, coreDataContainer.viewContext)
-            }
-        }
-    }
-}
-
-private struct TranslationModelPreparationView<Content: View>: View {
-    @State private var didCheckPreparationState = false
-    @State private var didShowDownloadDialog = false
-    @State private var showsDownloadDialog = false
-    @State private var translationConfiguration: TranslationSession.Configuration?
-
-    private let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
-    private let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .task {
-                await checkPreparationStateIfNeeded()
-            }
-            .alert(
-                "translation.download_model.description",
-                isPresented: $showsDownloadDialog
-            ) {
-                Button("common.download") {
-                    prepareTranslation()
+            ZStack {
+                if let coreDataContainer, let container, didFinishLaunchFlow {
+                    AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
+                        .environment(\.managedObjectContext, coreDataContainer.viewContext)
                 }
-                Button("common.not_now", role: .cancel) {}
+
+                if showsLaunchScreen {
+                    LaunchScreenHost(
+                        isApplicationReady: coreDataContainer != nil && container != nil && needsOnboarding != nil,
+                        shouldPrepareForOnboarding: shouldPrepareForOnboarding
+                    ) {
+                        showsLaunchScreen = false
+                        didFinishLaunchFlow = true
+                    } onReadyForOnboarding: {
+                        showsOnboarding = true
+                    }
+                    .ignoresSafeArea()
+                }
+
+                if showsOnboarding {
+                    FirstLaunchFlowView {
+                        showsOnboarding = false
+                        showsLaunchScreen = false
+                        didFinishLaunchFlow = true
+                    }
+                }
             }
-            .translationTask(translationConfiguration) { session in
-                nonisolated(unsafe) let translationSession = session
-                await prepareTranslation(using: translationSession)
+            .task {
+                NSUbiquitousKeyValueStore.default.synchronize()
+                await prepareApplicationIfNeeded()
             }
-    }
-
-    @MainActor
-    private func checkPreparationStateIfNeeded() async {
-        guard !didCheckPreparationState else { return }
-
-        didCheckPreparationState = true
-        await refreshPreparationState()
-    }
-
-    @MainActor
-    private func refreshPreparationState() async {
-        let preparationState = await translator.preparationState()
-
-        guard preparationState == .needsDownload, !didShowDownloadDialog else {
-            return
         }
+    }
 
-        didShowDownloadDialog = true
-        showsDownloadDialog = true
+    private var shouldPrepareForOnboarding: Bool {
+        coreDataContainer != nil && container != nil && needsOnboarding == true && !didFinishLaunchFlow
     }
 
     @MainActor
-    private func prepareTranslation() {
-        translationConfiguration = TranslationSession.Configuration(
-            source: translator.sourceLanguage,
-            target: translator.targetLanguage()
-        )
+    private func prepareApplicationIfNeeded() async {
+        guard !isPreparingApplication, coreDataContainer == nil, container == nil else { return }
+
+        isPreparingApplication = true
+
+        do {
+            let coreDataContainer = try await FolioraCoreDataStack.makeContainer()
+            let container = AppContainer(coreDataContainer: coreDataContainer)
+            FolioraAppDelegate.coreDataContainer = coreDataContainer
+            self.coreDataContainer = coreDataContainer
+            self.container = container
+            await updateOnboardingState()
+        } catch {
+            fatalError("Failed to create Core Data container: \(error)")
+        }
     }
 
-    nonisolated private func prepareTranslation(using session: TranslationSession) async {
-        try? await session.prepareTranslation()
+    @MainActor
+    private func updateOnboardingState() async {
+        let store = NSUbiquitousKeyValueStore.default
+        let displayName = store.string(forKey: "foliora.profile.displayName")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let profileCompleted = displayName?.isEmpty == false
+            || store.bool(forKey: "foliora.profile.didSkipIntroduction")
 
-        await MainActor.run {
-            translationConfiguration = nil
-        }
-        await refreshPreparationState()
+        let translationState = await translator.preparationState()
+        let translationCompleted = translationState != .needsDownload
+            || store.bool(forKey: "foliora.onboarding.translationDownloadSkipped")
+
+        needsOnboarding = !(profileCompleted && translationCompleted)
     }
 }
