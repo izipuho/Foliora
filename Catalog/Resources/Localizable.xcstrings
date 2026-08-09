@@ -6889,19 +6889,36 @@
         }
       }
     },
+    "splash.greeting_name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", %1$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : ", %1$@"
+          }
+        }
+      }
+    },
     "splash.greeting.digin" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Let’s dig in"
+            "value" : "Let’s dig in%1$@?"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ну что, приступим"
+            "state" : "needs_review",
+            "value" : "Ну что, приступим%1$@?"
           }
         }
       }
@@ -6912,13 +6929,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Good to see you"
+            "value" : "Good to see you%1$@!"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Рад тебя видеть"
+            "state" : "needs_review",
+            "value" : "Рад тебя видеть%1$@!"
           }
         }
       }
@@ -6929,13 +6946,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hello"
+            "value" : "Hello%1$@!"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Привет"
+            "state" : "needs_review",
+            "value" : "Привет%1$@!"
           }
         }
       }
@@ -6946,13 +6963,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Let’s go"
+            "value" : "Let’s go%1$@!"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поехали"
+            "state" : "needs_review",
+            "value" : "Поехали%1$@!"
           }
         }
       }
@@ -6963,13 +6980,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Good time of a day"
+            "value" : "Good time of a day%1$@!"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Доброго времени суток"
+            "state" : "needs_review",
+            "value" : "Доброго времени суток%1$@!"
           }
         }
       }
@@ -6980,13 +6997,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ready?"
+            "value" : "Ready%1$@?"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Готов?"
+            "state" : "needs_review",
+            "value" : "Готов%1$@?"
           }
         }
       }
@@ -6997,13 +7014,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Welcome"
+            "value" : "Welcome%1$@!"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Добро пожаловать"
+            "state" : "needs_review",
+            "value" : "Добро пожаловать%1$@!"
           }
         }
       }
@@ -7014,13 +7031,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Welcome back"
+            "value" : "Welcome back%1$@!"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "С возвращением"
+            "state" : "needs_review",
+            "value" : "С возвращением%1$@!"
           }
         }
       }
