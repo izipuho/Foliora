@@ -40,7 +40,7 @@ struct SettingsView: View {
                         Image(systemName: "checkmark.circle.fill")
                     }
                     .buttonStyle(.borderless)
-                    .accessibilityLabel("settings.profile.display_name.save")
+                    .accessibilityLabel("onboarding.introduce.save_name")
                 }
             } header: {
                 Text("settings.profile.section_title")

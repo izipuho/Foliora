@@ -66,7 +66,7 @@ struct FirstLaunchFlowView: View {
             onboardingPage(
                 title: "onboarding.introduce.title",
                 description: "onboarding.introduce.description",
-                primaryTitle: "common.continue",
+                primaryTitle: "onboarding.introduce.save_name",
                 primaryAction: {
                     let displayName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
 
