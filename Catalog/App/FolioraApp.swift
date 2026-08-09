@@ -38,10 +38,13 @@ struct FolioraApp: App {
 
     @State private var showsLaunchScreen = true
     @State private var showsOnboarding = false
+    @State private var needsOnboarding: Bool?
     @State private var didFinishLaunchFlow = false
     @State private var isPreparingApplication = false
     @State private var coreDataContainer: NSPersistentCloudKitContainer?
     @State private var container: AppContainer?
+
+    private let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
 
     var body: some Scene {
         WindowGroup {
@@ -53,7 +56,7 @@ struct FolioraApp: App {
 
                 if showsLaunchScreen {
                     LaunchScreenHost(
-                        isApplicationReady: coreDataContainer != nil && container != nil,
+                        isApplicationReady: coreDataContainer != nil && container != nil && needsOnboarding != nil,
                         shouldPrepareForOnboarding: shouldPrepareForOnboarding
                     ) {
                         showsLaunchScreen = false
@@ -80,7 +83,7 @@ struct FolioraApp: App {
     }
 
     private var shouldPrepareForOnboarding: Bool {
-        coreDataContainer != nil && container != nil && !didFinishLaunchFlow
+        coreDataContainer != nil && container != nil && needsOnboarding == true && !didFinishLaunchFlow
     }
 
     @MainActor
@@ -95,8 +98,24 @@ struct FolioraApp: App {
             FolioraAppDelegate.coreDataContainer = coreDataContainer
             self.coreDataContainer = coreDataContainer
             self.container = container
+            await updateOnboardingState()
         } catch {
             fatalError("Failed to create Core Data container: \(error)")
         }
+    }
+
+    @MainActor
+    private func updateOnboardingState() async {
+        let store = NSUbiquitousKeyValueStore.default
+        let displayName = store.string(forKey: "foliora.profile.displayName")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let profileCompleted = displayName?.isEmpty == false
+            || store.bool(forKey: "foliora.profile.didSkipIntroduction")
+
+        let translationState = await translator.preparationState()
+        let translationCompleted = translationState != .needsDownload
+            || store.bool(forKey: "foliora.onboarding.translationDownloadSkipped")
+
+        needsOnboarding = !(profileCompleted && translationCompleted)
     }
 }

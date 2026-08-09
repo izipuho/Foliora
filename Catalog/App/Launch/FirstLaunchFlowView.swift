@@ -16,6 +16,7 @@ struct FirstLaunchFlowView: View {
     @State private var userName = ""
 
     private let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
+    private let translationDownloadSkippedKey = "foliora.onboarding.translationDownloadSkipped"
     let onFinished: @MainActor () -> Void
     
     @ViewBuilder
@@ -110,6 +111,10 @@ struct FirstLaunchFlowView: View {
                 },
                 skipDisabled: isPreparingTranslation,
                 skipAction: {
+                    NSUbiquitousKeyValueStore.default.set(
+                        true,
+                        forKey: translationDownloadSkippedKey
+                    )
                     finishTranslationStep()
                 }
             ) {
@@ -162,6 +167,9 @@ struct FirstLaunchFlowView: View {
 
         guard preparationState == .needsDownload else {
             needsTranslationModelDownload = false
+            NSUbiquitousKeyValueStore.default.removeObject(
+                forKey: translationDownloadSkippedKey
+            )
             if step != .profile {
                 finishTranslationStep()
             }
@@ -196,7 +204,16 @@ struct FirstLaunchFlowView: View {
     }
 
     nonisolated private func prepareTranslation(using session: TranslationSession) async {
-        try? await session.prepareTranslation()
+        do {
+            try await session.prepareTranslation()
+
+            await MainActor.run {
+                NSUbiquitousKeyValueStore.default.removeObject(
+                    forKey: translationDownloadSkippedKey
+                )
+            }
+        } catch {
+        }
 
         await MainActor.run {
             translationConfiguration = nil
