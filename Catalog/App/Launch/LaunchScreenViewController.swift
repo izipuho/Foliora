@@ -52,7 +52,7 @@ final class LaunchScreenViewController: UIViewController {
         greetingLabel.translatesAutoresizingMaskIntoConstraints = false
         greetingLabel.textAlignment = .center
         greetingLabel.numberOfLines = 1
-        greetingLabel.text = displayName ?? ""
+        greetingLabel.text = greetingText()
         greetingLabel.font = .systemFont(ofSize: 50)
         greetingLabel.textColor = UIColor(named: "LightAccent", in: .main, compatibleWith: nil)
         view.addSubview(greetingLabel)
@@ -91,6 +91,21 @@ final class LaunchScreenViewController: UIViewController {
         } completion: { [weak self] _ in
             self?.animateSymbol()
         }
+    }
+
+    private func greetingText() -> String {
+        guard let url = Bundle.main.url(forResource: "GreetingsKeys", withExtension: "plist"),
+              let suffixes = NSArray(contentsOf: url) as? [String],
+              let suffix = suffixes.randomElement()
+        else {
+            return ""
+        }
+
+        let name = displayName.map {
+            String.localizedStringWithFormat(String(localized: "splash.greeting_name"), $0)
+        } ?? ""
+        let greetingKey = "splash.greeting.\(suffix)"
+        return String.localizedStringWithFormat(String(localized: LocalizedStringResource(stringLiteral: greetingKey)), name)
     }
 
     func animateSymbol() {
