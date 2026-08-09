@@ -6,6 +6,9 @@ final class LaunchScreenViewController: UIViewController {
     private var didRequestStopAnimation = false
     private var didStopAnimation = false
     private var stopAnimationCompletions: [() -> Void] = []
+    private let displayName = NSUbiquitousKeyValueStore.default
+        .string(forKey: "foliora.profile.displayName")
+    private let greetingLabel = UILabel()
 
     private enum IntroAnimation {
         static let scale: CGFloat = 0.75
@@ -34,6 +37,21 @@ final class LaunchScreenViewController: UIViewController {
     static func instantiate( storyboardName: String, bundle: Bundle = .main ) -> LaunchScreenViewController? {
         let storyboard = UIStoryboard(name: storyboardName, bundle: bundle);
         return storyboard.instantiateInitialViewController { coder in LaunchScreenViewController(coder: coder) }
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        greetingLabel.translatesAutoresizingMaskIntoConstraints = false
+        greetingLabel.textAlignment = .center
+        greetingLabel.numberOfLines = 1
+        greetingLabel.text = displayName ?? ""
+        view.addSubview(greetingLabel)
+
+        NSLayoutConstraint.activate([
+            greetingLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            greetingLabel.topAnchor.constraint(equalTo: MedallionContainer.bottomAnchor)
+        ])
     }
 
     override func viewDidAppear(_ animated: Bool) {
