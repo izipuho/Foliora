@@ -69,6 +69,12 @@ struct FirstLaunchFlowView<Content: View>: View {
                         .textContentType(.name)
 
                     Button("common.continue") {
+                        let displayName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if displayName.isEmpty {
+                            NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.displayName")
+                        } else {
+                            NSUbiquitousKeyValueStore.default.set(displayName, forKey: "foliora.profile.displayName")
+                        }
                         didFinishFirstLaunchFlow = true
                     }
                     .buttonStyle(.borderedProminent)
