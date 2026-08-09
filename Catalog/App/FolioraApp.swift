@@ -37,6 +37,8 @@ struct FolioraApp: App {
     private var appDelegate
 
     @State private var showsLaunchScreen = true
+    @State private var showsOnboarding = false
+    @State private var didFinishLaunchFlow = false
     @State private var isPreparingApplication = false
     @State private var coreDataContainer: NSPersistentCloudKitContainer?
     @State private var container: AppContainer?
@@ -44,20 +46,30 @@ struct FolioraApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                if let coreDataContainer, let container {
-                    FirstLaunchFlowView {
-                        AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
-                            .environment(\.managedObjectContext, coreDataContainer.viewContext)
-                    }
+                if let coreDataContainer, let container, didFinishLaunchFlow {
+                    AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
+                        .environment(\.managedObjectContext, coreDataContainer.viewContext)
                 }
 
                 if showsLaunchScreen {
                     LaunchScreenHost(
-                        isApplicationReady: coreDataContainer != nil && container != nil
+                        isApplicationReady: coreDataContainer != nil && container != nil,
+                        shouldPrepareForOnboarding: shouldPrepareForOnboarding
                     ) {
                         showsLaunchScreen = false
+                        didFinishLaunchFlow = true
+                    } onReadyForOnboarding: {
+                        showsOnboarding = true
                     }
                     .ignoresSafeArea()
+                }
+
+                if showsOnboarding {
+                    FirstLaunchFlowView {
+                        showsOnboarding = false
+                        showsLaunchScreen = false
+                        didFinishLaunchFlow = true
+                    }
                 }
             }
             .task {
@@ -65,6 +77,10 @@ struct FolioraApp: App {
                 await prepareApplicationIfNeeded()
             }
         }
+    }
+
+    private var shouldPrepareForOnboarding: Bool {
+        coreDataContainer != nil && container != nil && !didFinishLaunchFlow
     }
 
     @MainActor

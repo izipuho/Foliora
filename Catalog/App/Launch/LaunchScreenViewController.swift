@@ -1,12 +1,15 @@
 import UIKit
 
-final class LaunchScreenViewController: UIViewController {
+public final class LaunchScreenViewController: UIViewController {
     private var didStartAnimation = false
     private var isAnimatingSymbol = false
     private var didCompleteRequiredAnimation = false
     private var didRequestStopAnimation = false
     private var didStopAnimation = false
     private var stopAnimationCompletions: [() -> Void] = []
+    private var didPrepareForOnboarding = false
+    private var isPreparingForOnboarding = false
+    private var prepareForOnboardingCompletions: [() -> Void] = []
     private let displayName = NSUbiquitousKeyValueStore.default
         .string(forKey: "foliora.profile.displayName")
     private let greetingLabel = UILabel()
@@ -62,7 +65,7 @@ final class LaunchScreenViewController: UIViewController {
         return storyboard.instantiateInitialViewController { coder in LaunchScreenViewController(coder: coder) }
     }
 
-    override func viewDidLoad() {
+    public override func viewDidLoad() {
         super.viewDidLoad()
 
         greetingLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -84,7 +87,7 @@ final class LaunchScreenViewController: UIViewController {
         ])
     }
 
-    override func viewDidAppear(_ animated: Bool) {
+    public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
 
         guard !didStartAnimation else { return }
@@ -186,6 +189,40 @@ final class LaunchScreenViewController: UIViewController {
 
         if didCompleteRequiredAnimation && !isAnimatingSymbol {
             completeStopAnimation()
+        }
+    }
+
+    public func prepareForOnboarding(completion: @escaping () -> Void) {
+        guard !didPrepareForOnboarding else {
+            completion()
+            return
+        }
+
+        prepareForOnboardingCompletions.append(completion)
+
+        guard !isPreparingForOnboarding else { return }
+        isPreparingForOnboarding = true
+
+        stopAnimation { [weak self] in
+            guard let self else { return }
+
+            UIView.animate(
+                withDuration: 0.25,
+                delay: 0,
+                options: [.curveEaseInOut]
+            ) {
+                self.MedallionContainer.alpha = 0
+                self.greetingLabel.alpha = 0
+            } completion: { [weak self] _ in
+                guard let self else { return }
+
+                self.didPrepareForOnboarding = true
+                self.isPreparingForOnboarding = false
+
+                let completions = self.prepareForOnboardingCompletions
+                self.prepareForOnboardingCompletions.removeAll()
+                completions.forEach { $0() }
+            }
         }
     }
 

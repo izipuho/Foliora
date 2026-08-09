@@ -1,14 +1,13 @@
 import SwiftUI
 import Translation
 
-struct FirstLaunchFlowView<Content: View>: View {
+struct FirstLaunchFlowView: View {
     private enum Step: Hashable {
         case translation
         case profile
     }
 
     @State private var step: Step = .translation
-    @State private var didFinishFirstLaunchFlow = false
     @State private var didCheckPreparationState = false
     @State private var needsTranslationModelDownload = false
     @State private var isPreparingTranslation = false
@@ -16,82 +15,74 @@ struct FirstLaunchFlowView<Content: View>: View {
     @State private var userName = ""
 
     private let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
-    private let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
+    let onFinished: @MainActor () -> Void
 
     var body: some View {
-        if didFinishFirstLaunchFlow {
-            content
-        } else {
-            TabView(selection: $step) {
-                VStack(spacing: 20) {
-                    if needsTranslationModelDownload {
-                        Text("translation.download_model.description")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .multilineTextAlignment(.center)
-
-                        Button("common.download") {
-                            prepareTranslation()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(isPreparingTranslation)
-
-                        Button("common.skip") {
-                            finishTranslationStep()
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(isPreparingTranslation)
-                    } else {
-                        ProgressView()
-                    }
-                }
-                .padding()
-                    .task {
-                        await checkPreparationStateIfNeeded()
-                    }
-                    .translationTask(translationConfiguration) { session in
-                        nonisolated(unsafe) let translationSession = session
-                        await prepareTranslation(using: translationSession)
-                    }
-                    .tag(Step.translation)
-
-                VStack(spacing: 20) {
-                    Text("initialize.introduce.title")
-                        .font(.title)
+        TabView(selection: $step) {
+            VStack(spacing: 20) {
+                if needsTranslationModelDownload {
+                    Text("translation.download_model.description")
+                        .font(.title2)
                         .fontWeight(.semibold)
+                        .multilineTextAlignment(.center)
 
-                    TextField("common.name", text: $userName)
-                        .textFieldStyle(.roundedBorder)
-                        .textContentType(.name)
-
-                    Button("common.continue") {
-                        let displayName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if displayName.isEmpty {
-                            NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.displayName")
-                        } else {
-                            NSUbiquitousKeyValueStore.default.set(displayName, forKey: "foliora.profile.displayName")
-                        }
-                        NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.didSkipIntroduction")
-                        didFinishFirstLaunchFlow = true
+                    Button("common.download") {
+                        prepareTranslation()
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(isPreparingTranslation)
 
                     Button("common.skip") {
-                        NSUbiquitousKeyValueStore.default.set(true, forKey: "foliora.profile.didSkipIntroduction")
-                        didFinishFirstLaunchFlow = true
+                        finishTranslationStep()
                     }
                     .buttonStyle(.bordered)
+                    .disabled(isPreparingTranslation)
+                } else {
+                    ProgressView()
                 }
-                .padding()
-                .tag(Step.profile)
             }
-            .tabViewStyle(.page(indexDisplayMode: .always))
-            .indexViewStyle(.page(backgroundDisplayMode: .always))
+            .padding()
+            .task {
+                await checkPreparationStateIfNeeded()
+            }
+            .translationTask(translationConfiguration) { session in
+                nonisolated(unsafe) let translationSession = session
+                await prepareTranslation(using: translationSession)
+            }
+            .tag(Step.translation)
+
+            VStack(spacing: 20) {
+                Text("initialize.introduce.title")
+                    .font(.title)
+                    .fontWeight(.semibold)
+
+                TextField("common.name", text: $userName)
+                    .textFieldStyle(.roundedBorder)
+                    .textContentType(.name)
+
+                Button("common.continue") {
+                    let displayName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if displayName.isEmpty {
+                        NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.displayName")
+                    } else {
+                        NSUbiquitousKeyValueStore.default.set(displayName, forKey: "foliora.profile.displayName")
+                    }
+                    NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.didSkipIntroduction")
+                    onFinished()
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button("common.skip") {
+                    NSUbiquitousKeyValueStore.default.set(true, forKey: "foliora.profile.didSkipIntroduction")
+                    onFinished()
+                }
+                .buttonStyle(.bordered)
+            }
+            .padding()
+            .tag(Step.profile)
         }
+        .tabViewStyle(.page(indexDisplayMode: .always))
+        .indexViewStyle(.page(backgroundDisplayMode: .always))
     }
 
     @MainActor
@@ -121,7 +112,7 @@ struct FirstLaunchFlowView<Content: View>: View {
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         guard displayName.isEmpty, !store.bool(forKey: "foliora.profile.didSkipIntroduction") else {
-            didFinishFirstLaunchFlow = true
+            onFinished()
             return
         }
 
