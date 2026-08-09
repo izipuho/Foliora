@@ -32,12 +32,12 @@ struct FirstLaunchFlowView: View {
     ) -> some View {
         VStack(spacing: CatalogMetrics.Spacing.xl) {
             Text(title)
-                .font(CatalogTypography.cardTitle)
+                .font(.title2.weight(.semibold))
                 .foregroundStyle(Color("LightAccent"))
                 .multilineTextAlignment(.center)
 
             Text(description)
-                .font(CatalogTypography.cardSubtitle)
+                .font(.title3)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
@@ -45,12 +45,14 @@ struct FirstLaunchFlowView: View {
 
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 Button(primaryTitle, action: primaryAction)
+                    .font(.title3)
                     .buttonStyle(.borderedProminent)
                     .disabled(primaryDisabled)
                     .frame(maxWidth: .infinity)
 
                 if let skipAction {
                     Button("common.skip", action: skipAction)
+                        .font(.title3)
                         .buttonStyle(.bordered)
                         .disabled(skipDisabled)
                         .frame(maxWidth: .infinity)
@@ -98,6 +100,7 @@ struct FirstLaunchFlowView: View {
                 TextField("common.name", text: $userName)
                     .textContentType(.name)
                     .catalogSurfaceTile()
+                    .frame(maxWidth: 250)
             }
             .tag(Step.profile)
 
