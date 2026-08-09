@@ -8,7 +8,7 @@ struct FirstLaunchFlowView: View {
         case ready
     }
 
-    @State private var step: Step = .profile
+    @State private var step: Step
     @State private var didCheckPreparationState = false
     @State private var needsTranslationModelDownload = false
     @State private var isPreparingTranslation = false
@@ -18,6 +18,19 @@ struct FirstLaunchFlowView: View {
     private let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
     private let translationDownloadSkippedKey = "foliora.onboarding.translationDownloadSkipped"
     let onFinished: @MainActor () -> Void
+
+    init(onFinished: @escaping @MainActor () -> Void) {
+        let store = NSUbiquitousKeyValueStore.default
+        let displayName = store.string(forKey: "foliora.profile.displayName")
+        let trimmedDisplayName = displayName?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let profileCompleted = trimmedDisplayName?.isEmpty == false
+            || store.bool(forKey: "foliora.profile.didSkipIntroduction")
+
+        _step = State(initialValue: profileCompleted ? .translation : .profile)
+        _userName = State(initialValue: displayName ?? "")
+        self.onFinished = onFinished
+    }
     
     @ViewBuilder
     private func onboardingPage<Content: View>(
