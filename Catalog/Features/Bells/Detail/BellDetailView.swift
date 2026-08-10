@@ -178,18 +178,6 @@ struct BellDetailView: View {
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)
 
-            if !detailMediaAssets.isEmpty || canEditCollection {
-                detailSection(String(localized: "editor.docs_and_media")) {
-                    MediaSection(
-                        itemID: bell.id,
-                        mediaAssets: detailMediaAssetsBinding,
-                        allowsAdding: canEditCollection,
-                        allowsDeletion: false
-                    )
-                }
-                .padding(.horizontal, CatalogMetrics.Insets.screen)
-            }
-
             detailSection(String(localized: "common.field.notes")) {
                 if canEditCollection {
                     TextField(String(localized: "editor.note_history"), text: $draftNotes, axis: .vertical)
@@ -224,6 +212,19 @@ struct BellDetailView: View {
                 CatalogShapes.section
                     .fill(isNotesOrTagsDirty ? AnyShapeStyle(detailAccentColor.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
             )
+            
+            if !detailMediaAssets.isEmpty || canEditCollection {
+                detailSection(String(localized: "editor.docs_and_media")) {
+                    MediaSection(
+                        itemID: bell.id,
+                        mediaAssets: detailMediaAssetsBinding,
+                        allowsAdding: canEditCollection,
+                        allowsDeletion: false
+                    )
+                }
+                .padding(.horizontal, CatalogMetrics.Insets.screen)
+            }
+
         }
         .padding(.horizontal, CatalogMetrics.Insets.screen)
         .padding(.top, detailContentFadeHeight)
