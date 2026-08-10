@@ -97,6 +97,7 @@ struct BellDetailView: View {
                     ) { updatedBell in
                         repository.saveBellRecord(updatedBell)
                         bell = updatedBell
+                        syncDraftsFromBell()
                     }
                 }
             }
