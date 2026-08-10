@@ -113,7 +113,12 @@ private struct OriginTile: View {
     private var originMedia: some View {
         if let coordinate, let region {
             Map(initialPosition: .region(region), interactionModes: []) {
-                Marker("", coordinate: coordinate)
+                Annotation("", coordinate: coordinate) {
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(accentColor, .white)
+                        .shadow(radius: 2, y: 1)
+                }
             }
             .mapStyle(.standard(elevation: .flat))
         } else {
