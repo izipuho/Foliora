@@ -981,8 +981,8 @@ struct BellDetailContainer: View {
     }
 
     private func reloadBell() {
-        let snapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext).loadSnapshot()
-        bell = snapshot.bells.first { $0.id == bellID }
+        bell = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
+            .loadBell(id: bellID)
     }
 
     @MainActor

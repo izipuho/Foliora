@@ -14,6 +14,7 @@ struct BellLookupSnapshot {
 
 protocol BellLookupSnapshotLoading {
     func loadSnapshot(collectionID: UUID?, homeID: UUID?) -> BellLookupSnapshot
+    func loadBell(id: UUID) -> BellRecord?
 }
 
 struct CoreDataBellLookupSnapshotLoader: BellLookupSnapshotLoading {
@@ -72,6 +73,18 @@ struct CoreDataBellLookupSnapshotLoader: BellLookupSnapshotLoading {
             uniqueKeysWithValues: locationEntities.map { (uuidValue($0, "id"), locationPath(from: $0)) }
         )
         return snapshot
+    }
+
+    func loadBell(id: UUID) -> BellRecord? {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "BellEntity")
+        request.predicate = NSPredicate(format: "item.id == %@", id as NSUUID)
+        request.fetchLimit = 1
+
+        guard let entity = try? context.fetch(request).first else {
+            return nil
+        }
+
+        return CoreDataDomainMapper.bellRecord(from: entity)
     }
 
     private func fetchEntities(
