@@ -3,7 +3,6 @@ import Foundation
 
 struct BellCatalogSnapshot {
     var bells: [BellListItem] = []
-    var recordsByID: [UUID: BellRecord] = [:]
     var locations: [Location] = []
     var locationPathByID: [UUID: String] = [:]
 
@@ -38,9 +37,7 @@ struct BellCatalogSnapshot {
                 sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
             )
         }
-        let records = bellEntities.map(CoreDataDomainMapper.bellRecord)
-        bells = records.map(Self.bellListItem)
-        recordsByID = Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) })
+        bells = bellEntities.map(Self.bellListItem)
         locations = locationEntities.map(Self.location)
         locationPathByID = Dictionary(uniqueKeysWithValues: locationEntities.map { (Self.uuidValue($0, "id"), Self.locationPath(from: $0)) })
     }
@@ -57,53 +54,75 @@ struct BellCatalogSnapshot {
         return (try? context.fetch(request)) ?? []
     }
 
-    private static func bellListItem(from record: BellRecord) -> BellListItem {
-        let storageComponents = storageComponents(from: record)
-        let coverPhoto = record.mediaAssets
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .first { $0.kind == .photo }
+    private static func bellListItem(from entity: NSManagedObject) -> BellListItem {
+        guard let itemEntity = entity.value(forKey: "item") as? NSManagedObject else {
+            preconditionFailure("BellEntity is missing its migrated ItemEntity relationship.")
+        }
+
+        let locationEntity = itemEntity.value(forKey: "collectionLocation") as? NSManagedObject
+        let originPlaceEntity = itemEntity.value(forKey: "originPlace") as? NSManagedObject
+        let material = bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue))
+        let customMaterialName = entity.value(forKey: "customMaterialName") as? String
+        let storageLocationName = locationEntity.map { stringValue($0, "name") } ?? String(localized: "common.unassigned")
+        let storageDisplayPath = locationEntity.map(locationPath) ?? storageLocationName
+        let storageComponents = locationEntity.map(storageComponents) ?? [:]
+        let tags = relatedObjects(itemEntity, "tags")
+            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+            .map { stringValue($0, "value") }
+        let coverPhoto = relatedObjects(itemEntity, "mediaAssets")
+            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+            .first { stringValue($0, "kindRaw") == MediaKind.photo.rawValue }
+        let coverPhotoIdentifier = coverPhoto.flatMap {
+            let identifier = stringValue($0, "localIdentifier")
+            return identifier.isEmpty ? nil : identifier
+        }
 
         return BellListItem(
-            id: record.id,
-            title: record.title,
-            notes: record.notes,
-            acquiredYear: record.acquiredYear,
-            createdAt: record.createdAt,
-            collectionID: record.item.collectionID,
-            locationID: record.item.locationID,
-            placeDisplayName: record.placeDisplayName,
-            countryCode: record.originPlace?.countryCode ?? "",
-            countryName: record.countryName,
-            regionName: record.originPlace?.regionName ?? "",
-            cityName: record.cityName,
-            condition: record.condition,
-            acquisitionMethod: record.acquisitionMethod,
-            material: record.details.material,
-            materialDisplayName: record.materialDisplayName,
-            tagValues: record.tags,
+            id: uuidValue(itemEntity, "id"),
+            title: stringValue(itemEntity, "title"),
+            notes: stringValue(itemEntity, "notes"),
+            isFavorite: itemEntity.value(forKey: "isFavorite") as? Bool ?? false,
+            acquiredYear: optionalIntValue(itemEntity, "acquisitionYear"),
+            createdAt: dateValue(itemEntity, "createdAt"),
+            collectionID: (itemEntity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") },
+            locationID: locationEntity.map { uuidValue($0, "id") },
+            placeDisplayName: originPlaceEntity.map { stringValue($0, "displayName") } ?? String(localized: "common.unknown_origin"),
+            originLatitude: originPlaceEntity.flatMap { doubleValue($0, "latitude") },
+            originLongitude: originPlaceEntity.flatMap { doubleValue($0, "longitude") },
+            countryCode: originPlaceEntity.map { stringValue($0, "countryCode") } ?? "",
+            countryName: originPlaceEntity.map { stringValue($0, "countryName") } ?? "",
+            regionName: originPlaceEntity.flatMap { $0.value(forKey: "regionName") as? String } ?? "",
+            cityName: originPlaceEntity.flatMap { $0.value(forKey: "cityName") as? String } ?? "",
+            condition: itemCondition(from: stringValue(itemEntity, "condition", default: ItemCondition.good.rawValue)),
+            acquisitionMethod: acquisitionMethod(from: stringValue(itemEntity, "acquisitionMethod", default: AcquisitionMethod.bought.rawValue)),
+            material: material,
+            materialDisplayName: materialDisplayName(material: material, customMaterialName: customMaterialName),
+            tagValues: tags,
             storageFloor: storageComponents[.floor] ?? "",
             storageRoom: storageComponents[.room] ?? "",
             storageCabinet: storageComponents[.cabinet] ?? "",
             storageShelf: storageComponents[.shelf] ?? "",
-            coverPhotoIdentifier: coverPhoto?.localIdentifier,
-            coverPhotoThumbnailData: coverPhoto?.thumbnailData,
-            coverPhotoOriginalData: coverPhoto?.originalData,
-            hasOrigin: record.originPlace != nil,
-            hasStorage: record.item.locationID != nil
+            storageDisplayPath: storageDisplayPath,
+            storageLocationName: storageLocationName,
+            coverPhotoIdentifier: coverPhotoIdentifier,
+            coverPhotoThumbnailData: coverPhoto?.value(forKey: "thumbnailData") as? Data,
+            coverPhotoOriginalData: nil,
+            hasOrigin: originPlaceEntity != nil,
+            hasStorage: locationEntity != nil
         )
     }
 
-    private static func storageComponents(from record: BellRecord) -> [LocationKind: String] {
-        guard let storageLocation = record.item.storageLocation else { return [:] }
-
-        let pathComponents = record.item.storagePath
+    private static func storageComponents(from entity: NSManagedObject) -> [LocationKind: String] {
+        let storageLocationName = stringValue(entity, "name")
+        let storageLocationKind = locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue))
+        let pathComponents = locationPath(from: entity)
             .split(separator: "/")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-        let names = pathComponents.isEmpty ? [storageLocation.name] : pathComponents
+        let names = pathComponents.isEmpty ? [storageLocationName] : pathComponents
         let kinds: [LocationKind] = [.floor, .room, .cabinet, .shelf]
-        guard let leafIndex = kinds.firstIndex(of: storageLocation.kind) else {
-            return [storageLocation.kind: storageLocation.name]
+        guard let leafIndex = kinds.firstIndex(of: storageLocationKind) else {
+            return [storageLocationKind: storageLocationName]
         }
 
         let startIndex = max(0, leafIndex - names.count + 1)
@@ -163,8 +182,60 @@ struct BellCatalogSnapshot {
         entity.value(forKey: key) as? String ?? defaultValue
     }
 
+    private static func intValue(_ entity: NSManagedObject, _ key: String) -> Int {
+        optionalIntValue(entity, key) ?? 0
+    }
+
+    private static func optionalIntValue(_ entity: NSManagedObject, _ key: String) -> Int? {
+        if let value = entity.value(forKey: key) as? Int {
+            return value
+        }
+
+        return (entity.value(forKey: key) as? NSNumber)?.intValue
+    }
+
+    private static func dateValue(_ entity: NSManagedObject, _ key: String) -> Date {
+        entity.value(forKey: key) as? Date ?? Date()
+    }
+
+    private static func doubleValue(_ entity: NSManagedObject, _ key: String) -> Double? {
+        if let value = entity.value(forKey: key) as? Double {
+            return value
+        }
+
+        return (entity.value(forKey: key) as? NSNumber)?.doubleValue
+    }
+
     private static func locationKind(from rawValue: String) -> LocationKind {
         LocationKind(rawValue: rawValue) ?? .room
+    }
+
+    private static func itemCondition(from rawValue: String) -> ItemCondition {
+        ItemCondition(rawValue: rawValue) ?? .good
+    }
+
+    private static func acquisitionMethod(from rawValue: String) -> AcquisitionMethod {
+        AcquisitionMethod(rawValue: rawValue) ?? .other
+    }
+
+    private static func bellMaterial(from rawValue: String) -> BellMaterial {
+        BellMaterial(rawValue: rawValue) ?? .unknown
+    }
+
+    private static func materialDisplayName(material: BellMaterial, customMaterialName: String?) -> String {
+        if material == .other, let customMaterialName, !customMaterialName.isEmpty {
+            return customMaterialName
+        }
+
+        return material.displayName
+    }
+
+    private static func relatedObjects(_ entity: NSManagedObject, _ key: String) -> [NSManagedObject] {
+        if let objects = entity.value(forKey: key) as? Set<NSManagedObject> {
+            return Array(objects)
+        }
+
+        return (entity.value(forKey: key) as? NSSet)?.allObjects.compactMap { $0 as? NSManagedObject } ?? []
     }
 }
 

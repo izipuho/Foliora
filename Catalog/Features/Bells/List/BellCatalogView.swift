@@ -90,14 +90,6 @@ private extension BellFilters {
     }
 }
 
-private extension BellCatalogSnapshot {
-    var bellRecords: [BellRecord] {
-        bells.compactMap { recordsByID[$0.id] }
-    }
-}
-
-
-
 struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collection: CollectionSummary?
@@ -173,8 +165,8 @@ struct BellCatalogView: View {
         !filters.isEmpty
     }
 
-    private var favoriteBells: [BellRecord] {
-        catalogSnapshot.bellRecords.filter(\.isFavorite)
+    private var favoriteBells: [BellListItem] {
+        catalogSnapshot.bells.filter(\.isFavorite)
     }
 
     private func setFilter(_ filter: BellPresenceFilter) {
@@ -510,7 +502,7 @@ struct BellCatalogView: View {
         .frame(maxHeight: min(max(screenHeight * 0.36, 220), 320), alignment: .top)
     }
 
-    private func favoritesSection(bells: [BellRecord], screenWidth: CGFloat) -> some View {
+    private func favoritesSection(bells: [BellListItem], screenWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             BellCollapsibleSectionHeader(
                 title: String(localized: "bell.catalog.favorites"),
@@ -735,7 +727,6 @@ struct BellCatalogView: View {
     ) -> some View {
         BellGridView(
             bells: bells,
-            recordFor: { catalogSnapshot.recordsByID[$0.id] },
             layoutMode: layoutMode,
             layoutMetrics: layoutMetrics,
             selectedBellIDs: selectedBellIDs,
@@ -783,8 +774,9 @@ struct BellCatalogView: View {
         guard canEditCollection else { return }
 
         let location = locationID.flatMap { locationsByID[$0] }
+        let loader = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
         for bell in bells {
-            guard let record = catalogSnapshot.recordsByID[bell.id] else { continue }
+            guard let record = loader.loadBell(id: bell.id) else { continue }
             repository.saveBellRecord(record.moving(to: location, path: locationID.flatMap { locationPathByID[$0] } ?? ""))
         }
 

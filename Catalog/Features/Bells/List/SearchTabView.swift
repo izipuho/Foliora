@@ -211,7 +211,6 @@ struct SearchTabView: View {
         } else {
             BellGridView(
                 bells: filteredBells,
-                recordFor: { searchSnapshot.recordsByID[$0.id] },
                 layoutMode: layoutMode,
                 layoutMetrics: layoutMetrics,
                 selectedBellIDs: [],
@@ -377,22 +376,18 @@ struct SearchTabView: View {
     }
 
     private func originValues(for bell: BellListItem) -> [String] {
-        let record = searchSnapshot.recordsByID[bell.id]
-
         return [
             bell.countryName,
             bell.cityName,
             bell.placeDisplayName,
-            record?.originPlace?.regionName ?? bell.regionName
+            bell.regionName
         ]
     }
 
     private func storageValues(for bell: BellListItem) -> [String] {
-        let record = searchSnapshot.recordsByID[bell.id]
-
         return [
-            record?.storageDisplayPath ?? "",
-            record?.storageLocationName ?? "",
+            bell.storageDisplayPath,
+            bell.storageLocationName,
             bell.storageFloor,
             bell.storageRoom,
             bell.storageCabinet,
@@ -421,7 +416,6 @@ private struct SearchCollectionSnapshot: Identifiable {
 private struct SearchCatalogSnapshot {
     var collections: [SearchCollectionSnapshot] = []
     var bells: [BellListItem] = []
-    var recordsByID: [UUID: BellRecord] = [:]
     var collectionTitlesByID: [UUID: String] = [:]
 
     init() {}
@@ -441,7 +435,6 @@ private struct SearchCatalogSnapshot {
             )
         }
         bells = catalogSnapshot.bells
-        recordsByID = catalogSnapshot.recordsByID
         collectionTitlesByID = Dictionary(uniqueKeysWithValues: collections.map { ($0.id, $0.title) })
     }
 

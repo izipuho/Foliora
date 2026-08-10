@@ -4,11 +4,14 @@ struct BellListItem: Identifiable, Hashable {
     let id: UUID
     let title: String
     let notes: String
+    let isFavorite: Bool
     let acquiredYear: Int?
     let createdAt: Date
     let collectionID: UUID?
     let locationID: UUID?
     let placeDisplayName: String
+    let originLatitude: Double?
+    let originLongitude: Double?
     let countryCode: String
     let countryName: String
     let regionName: String
@@ -22,6 +25,8 @@ struct BellListItem: Identifiable, Hashable {
     let storageRoom: String
     let storageCabinet: String
     let storageShelf: String
+    let storageDisplayPath: String
+    let storageLocationName: String
     let coverPhotoIdentifier: String?
     let coverPhotoThumbnailData: Data?
     let coverPhotoOriginalData: Data?

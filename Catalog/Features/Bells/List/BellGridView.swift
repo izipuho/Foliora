@@ -2,7 +2,6 @@ import SwiftUI
 
 struct BellGridView: View {
     let bells: [BellListItem]
-    let recordFor: (BellListItem) -> BellRecord?
     let layoutMode: CatalogCardLayoutMode
     let bottomContentMargin: CGFloat?
     let layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics?
@@ -14,7 +13,6 @@ struct BellGridView: View {
 
     init(
         bells: [BellListItem],
-        recordFor: @escaping (BellListItem) -> BellRecord?,
         layoutMode: CatalogCardLayoutMode,
         bottomContentMargin: CGFloat? = nil,
         layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics? = nil,
@@ -25,7 +23,6 @@ struct BellGridView: View {
         contextMenu: ((BellListItem) -> AnyView)? = nil
     ) {
         self.bells = bells
-        self.recordFor = recordFor
         self.layoutMode = layoutMode
         self.bottomContentMargin = bottomContentMargin
         self.layoutMetrics = layoutMetrics
@@ -43,9 +40,7 @@ struct BellGridView: View {
             layoutMetrics: layoutMetrics
         ) { cardSize, _, cardMetrics in
             ForEach(bells, id: \.id) { bell in
-                if let record = recordFor(bell) {
-                    bellCardButton(bell, record: record, cardSize: cardSize, cardMetrics: cardMetrics)
-                }
+                bellCardButton(bell, cardSize: cardSize, cardMetrics: cardMetrics)
             }
         }
     }
@@ -53,7 +48,6 @@ struct BellGridView: View {
     @ViewBuilder
     private func bellCardButton(
         _ bell: BellListItem,
-        record: BellRecord,
         cardSize: CGSize,
         cardMetrics: CatalogCardLayoutMode.CardMetrics
     ) -> some View {
@@ -65,7 +59,7 @@ struct BellGridView: View {
             onTap(bell)
         } label: {
             BellCardView(
-                bell: record,
+                bell: bell,
                 style: style,
                 cardSize: cardSize,
                 cardMetrics: cardMetrics
