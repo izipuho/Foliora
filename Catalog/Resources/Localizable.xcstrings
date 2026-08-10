@@ -6560,25 +6560,25 @@
             "plural" : {
               "few" : {
                 "stringUnit" : {
-                  "state" : "needs_review",
+                  "state" : "translated",
                   "value" : "Архив содержит %d коллекции."
                 }
               },
               "many" : {
                 "stringUnit" : {
-                  "state" : "needs_review",
+                  "state" : "translated",
                   "value" : "Архив содержит %d коллекций."
                 }
               },
               "one" : {
                 "stringUnit" : {
-                  "state" : "needs_review",
+                  "state" : "translated",
                   "value" : "Архив содержит %d коллекцию."
                 }
               },
               "other" : {
                 "stringUnit" : {
-                  "state" : "needs_review",
+                  "state" : "translated",
                   "value" : "Архив содержит %d коллекции."
                 }
               }
