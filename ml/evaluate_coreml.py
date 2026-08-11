@@ -1,3 +1,5 @@
+"""Evaluate an exported Core ML bell classifier on annotated crops."""
+
 from __future__ import annotations
 
 import argparse
@@ -12,6 +14,7 @@ from dataset import LABELS, build_tag_vocab, load_annotations
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse model and dataset evaluation options."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-dir", type=Path, default=Path("Example photos/dataset"))
     parser.add_argument("--model", type=Path, default=Path("ml/artifacts/BellTagDecisionClassifier.mlpackage"))
@@ -21,6 +24,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Run inference and report accuracy for a dataset sample."""
     args = parse_args()
     rows = load_annotations(args.dataset_dir)
     tag_vocab = json.loads(args.tag_vocab.read_text(encoding="utf-8")) if args.tag_vocab.exists() else build_tag_vocab(rows)

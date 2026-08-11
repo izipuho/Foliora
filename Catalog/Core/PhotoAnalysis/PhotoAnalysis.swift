@@ -2,6 +2,7 @@ import CoreGraphics
 import Foundation
 import Vision
 
+/// Represents photo analysis result data and behavior.
 struct PhotoAnalysisResult: Sendable {
     let mainObjectImage: CGImage?
     let mainObjectRegion: ImageRegionFeature?
@@ -16,6 +17,7 @@ struct PhotoAnalysisResult: Sendable {
     )
 }
 
+/// Represents photo analysis feature scope data and behavior.
 struct PhotoAnalysisFeatureScope: Sendable {
     let classifications: [VisionFeature]
     let recognizedText: [RecognizedTextFeature]
@@ -28,15 +30,18 @@ struct PhotoAnalysisFeatureScope: Sendable {
     )
 }
 
+/// Represents vision feature data and behavior.
 struct VisionFeature: Hashable, Sendable {
     let label: String
     let confidence: Double
 }
 
+/// Defines the supported recognized object kind values.
 enum RecognizedObjectKind: Hashable, Sendable {
     case animal
 }
 
+/// Represents recognized object feature data and behavior.
 struct RecognizedObjectFeature: Hashable, Sendable {
     let kind: RecognizedObjectKind
     let labels: [VisionFeature]
@@ -44,12 +49,14 @@ struct RecognizedObjectFeature: Hashable, Sendable {
     let boundingBox: CGRect
 }
 
+/// Represents recognized text feature data and behavior.
 struct RecognizedTextFeature: Hashable, Sendable {
     let text: String
     let confidence: Double
     let boundingBox: CGRect
 }
 
+/// Represents image region feature data and behavior.
 struct ImageRegionFeature: Hashable, Sendable {
     let boundingBox: CGRect
     let confidence: Double
@@ -107,6 +114,7 @@ private enum PhotoAnalysisNormalization {
     }
 }
 
+/// Defines the interface for photo analysis service implementations.
 protocol PhotoAnalysisService: Sendable {
     func analyze(image: CGImage) async -> PhotoAnalysisResult
 }
@@ -249,6 +257,7 @@ private struct VisionAnalyzer: Sendable {
     }
 }
 
+/// Provides default photo analysis service operations.
 struct DefaultPhotoAnalysisService: PhotoAnalysisService {
     private let vision = VisionAnalyzer()
 

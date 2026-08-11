@@ -1,12 +1,14 @@
 import Foundation
 import Translation
 
+/// Defines the supported translation availability values.
 public enum TranslationAvailability: Sendable {
     case available
     case supportedButNotInstalled
     case unsupported
 }
 
+/// Defines the supported translation preparation state values.
 public enum TranslationPreparationState: Sendable, Equatable {
     case notRequired
     case ready
@@ -14,15 +16,19 @@ public enum TranslationPreparationState: Sendable, Equatable {
     case unsupported
 }
 
+/// Represents text translator data and behavior.
 public struct TextTranslator: Sendable {
+    /// Language expected in the source text.
     public let sourceLanguage: Locale.Language
 
+    /// Creates a translator for the supplied source language.
     public init(
         sourceLanguage: Locale.Language = Locale.Language(identifier: "en")
     ) {
         self.sourceLanguage = sourceLanguage
     }
 
+    /// Returns the user's preferred translation target language.
     public func targetLanguage() -> Locale.Language {
         guard let preferredLanguage = Locale.preferredLanguages.first else {
             return Locale.Language(identifier: "en")
@@ -32,6 +38,7 @@ public struct TextTranslator: Sendable {
         return language.languageCode == nil ? Locale.Language(identifier: "en") : language
     }
 
+    /// Reports whether translation is ready or requires preparation.
     public func preparationState() async -> TranslationPreparationState {
         let targetLanguage = targetLanguage()
 
@@ -49,6 +56,7 @@ public struct TextTranslator: Sendable {
         }
     }
 
+    /// Checks translation support for a language pair.
     public func availability(
         from source: Locale.Language,
         to target: Locale.Language
@@ -71,6 +79,7 @@ public struct TextTranslator: Sendable {
         }
     }
 
+    /// Translates texts while preserving their original order.
     public func translate(
         _ texts: [String],
         using session: TranslationSession

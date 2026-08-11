@@ -1,5 +1,6 @@
 import Foundation
 
+/// Represents media asset data and behavior.
 struct MediaAsset: Identifiable, Hashable, Codable {
     let id: UUID
     let itemID: UUID
@@ -49,6 +50,7 @@ struct MediaAsset: Identifiable, Hashable, Codable {
     }
 }
 
+/// Defines the supported media kind values.
 enum MediaKind: String, CaseIterable, Hashable, Identifiable, Codable {
     case photo
     case document

@@ -20,6 +20,7 @@ private struct BellCatalogFeedbackEvent: Equatable {
     let token: Int
 }
 
+/// Represents bell catalog selection mode preference key data and behavior.
 struct BellCatalogSelectionModePreferenceKey: PreferenceKey {
     static let defaultValue = false
 
@@ -90,6 +91,7 @@ private extension BellFilters {
     }
 }
 
+/// Displays the bell catalog view interface.
 struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collection: CollectionSummary?
@@ -896,6 +898,7 @@ private struct BellGroupingJumpPopover: View {
     }
 }
 
+/// Displays the bell detail container interface.
 struct BellDetailContainer: View {
     let bellID: UUID
     let repository: any CatalogRepository

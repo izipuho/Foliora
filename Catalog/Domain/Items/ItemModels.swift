@@ -1,5 +1,6 @@
 import Foundation
 
+/// Represents item record data and behavior.
 struct ItemRecord: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
@@ -112,6 +113,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
     }
 }
 
+/// Groups item condition values and behavior.
 enum ItemCondition: String, CaseIterable, Identifiable, Codable {
     case mint = "Mint"
     case good = "Good"
@@ -137,6 +139,7 @@ enum ItemCondition: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+/// Groups acquisition method values and behavior.
 enum AcquisitionMethod: String, CaseIterable, Identifiable, Codable {
     case bought = "Bought"
     case gifted = "Gifted"

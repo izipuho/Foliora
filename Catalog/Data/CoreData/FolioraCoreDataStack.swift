@@ -2,6 +2,7 @@ import CloudKit
 import CoreData
 import Foundation
 
+/// Groups foliora core data stack values and behavior.
 enum FolioraCoreDataStack {
     static let modelName = "Foliora"
     static let cloudKitContainerIdentifier = "iCloud.com.izipuho.FolioraBells"
@@ -363,6 +364,7 @@ enum FolioraCoreDataStack {
     }
 }
 
+/// Defines the supported foliora core data stack error values.
 enum FolioraCoreDataStackError: LocalizedError {
     case modelNotFound(String)
 

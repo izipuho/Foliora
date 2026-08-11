@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Represents launch screen host data and behavior.
 struct LaunchScreenHost: UIViewControllerRepresentable {
     let isApplicationReady: Bool
     let shouldPrepareForOnboarding: Bool

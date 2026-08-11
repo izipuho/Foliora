@@ -1,6 +1,7 @@
 import SwiftUI
 import MapKit
 
+/// Displays the origin storage section interface.
 struct OriginStorageSection: View {
     let place: Place?
     let storagePath: String

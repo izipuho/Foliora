@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the bell grid view interface.
 struct BellGridView: View {
     let bells: [BellListItem]
     let layoutMode: CatalogCardLayoutMode

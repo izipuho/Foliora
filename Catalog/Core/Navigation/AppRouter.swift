@@ -1,12 +1,14 @@
 import SwiftUI
 import CoreData
 
+/// Defines the supported app destination values.
 enum AppDestination: Hashable {
     case collection(UUID)
     case home(UUID)
     case editHome(UUID)
 }
 
+/// Groups root tab values and behavior.
 enum RootTab: String, CaseIterable, Identifiable, Hashable {
     case collections
     case homes
@@ -42,6 +44,7 @@ enum RootTab: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
+/// Displays the app shell view interface.
 struct AppShellView: View {
     let repository: any CatalogRepository
     let coreDataContainer: NSPersistentCloudKitContainer

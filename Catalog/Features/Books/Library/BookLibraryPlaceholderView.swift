@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the book library placeholder view interface.
 struct BookLibraryPlaceholderView: View {
     let collection: CollectionSummary
 

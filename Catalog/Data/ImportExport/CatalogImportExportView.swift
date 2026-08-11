@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 typealias CollectionID = UUID
 
+/// Displays the catalog export view interface.
 struct CatalogExportView: View {
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
@@ -189,6 +190,7 @@ struct CatalogExportView: View {
     }
 }
 
+/// Displays the catalog import view interface.
 struct CatalogImportView: View {
     @Environment(\.dismiss) private var dismiss
 

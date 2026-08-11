@@ -2,6 +2,7 @@ import CoreData
 import Foundation
 import UIKit
 
+/// Groups preview data values and behavior.
 @MainActor
 enum PreviewData {
     struct CoreMinimal {

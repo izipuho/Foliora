@@ -2,6 +2,7 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
+/// Represents local media file store data and behavior.
 struct LocalMediaFileStore: Sendable {
     static let shared = LocalMediaFileStore()
 

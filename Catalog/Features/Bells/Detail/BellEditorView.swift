@@ -2,6 +2,7 @@ import SwiftUI
 import CoreData
 import Translation
 
+/// Displays the bell editor view interface.
 struct BellEditorView: View {
     enum StartSection: Hashable {
         case storage

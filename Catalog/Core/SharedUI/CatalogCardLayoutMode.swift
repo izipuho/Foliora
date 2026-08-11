@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Defines the supported catalog card layout mode values.
 enum CatalogCardLayoutMode: Int, CaseIterable {
     case covers
     case mini

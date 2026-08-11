@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+/// Provides the bell recognition debug m l app application entry point.
 @main
 struct BellRecognitionDebugMLApp: App {
     var body: some Scene {

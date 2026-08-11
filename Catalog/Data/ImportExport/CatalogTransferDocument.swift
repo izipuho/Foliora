@@ -1,6 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Represents catalog transfer documennt data and behavior.
 struct CatalogTransferDocumennt: FileDocument {
     static var readableContentTypes: [UTType] { [.zip] }
 

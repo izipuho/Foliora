@@ -1,6 +1,7 @@
 import CoreData
 import Foundation
 
+/// Represents catalog snapshot data and behavior.
 struct CatalogSnapshot {
     private(set) var homes: [Home] = []
     private(set) var locations: [Location] = []

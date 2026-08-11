@@ -3,6 +3,7 @@ import CoreData
 import Foundation
 import UIKit
 
+/// Defines the interface for collection sharing service implementations.
 protocol CollectionSharingService: Sendable {
     func fetchShare(for collectionID: UUID) async throws -> CKShare?
 
@@ -15,6 +16,7 @@ protocol CollectionSharingService: Sendable {
     ) async throws -> CollectionSharingState
 }
 
+/// Provides cloud kit collection sharing service operations.
 final class CloudKitCollectionSharingService: CollectionSharingService, @unchecked Sendable {
     private let persistentContainer: NSPersistentCloudKitContainer
     private let context: NSManagedObjectContext

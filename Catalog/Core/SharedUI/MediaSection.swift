@@ -4,6 +4,7 @@ import UIKit
 import QuickLook
 import UniformTypeIdentifiers
 
+/// Displays the media section interface.
 struct MediaSection: View {
     let itemID: UUID
     @Binding var mediaAssets: [MediaAsset]
@@ -242,6 +243,7 @@ struct MediaSection: View {
     }
 }
 
+/// Displays the media quick look presenter interface.
 struct MediaQuickLookPresenter<Content: View>: View {
     let mediaAssets: [MediaAsset]
     private let mediaStore = LocalMediaFileStore.shared
