@@ -155,7 +155,7 @@ struct FirstLaunchFlowView: View {
             ) {
                 ZStack {
                     Circle()
-                        .glassEffect(.clear.tint(.green))
+                        .glassEffect(.clear.tint(Color("AccentColor")))
                         .frame(width: 96, height: 96)
 
                     Image(systemName: "checkmark")
@@ -169,7 +169,7 @@ struct FirstLaunchFlowView: View {
             await checkPreparationStateIfNeeded()
         }
         .tabViewStyle(.page(indexDisplayMode: .always))
-        .indexViewStyle(.page(backgroundDisplayMode: .never))
+        .indexViewStyle(.page(backgroundDisplayMode: .always))
         .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 

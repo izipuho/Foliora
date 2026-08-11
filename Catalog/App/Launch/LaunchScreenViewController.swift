@@ -1,3 +1,4 @@
+import SwiftUI
 import UIKit
 
 /// Presents the animated launch screen and onboarding transition.
@@ -11,6 +12,8 @@ public final class LaunchScreenViewController: UIViewController {
     private var didPrepareForOnboarding = false
     private var isPreparingForOnboarding = false
     private var prepareForOnboardingCompletions: [() -> Void] = []
+    private let onboardingContainer = UIView()
+    private var firstLaunchFlowHostingController: UIHostingController<FirstLaunchFlowView>?
     private let displayName = NSUbiquitousKeyValueStore.default
         .string(forKey: "foliora.profile.displayName")
     private let greetingLabel = UILabel()
@@ -69,6 +72,11 @@ public final class LaunchScreenViewController: UIViewController {
     public override func viewDidLoad() {
         super.viewDidLoad()
 
+        onboardingContainer.translatesAutoresizingMaskIntoConstraints = false
+        onboardingContainer.backgroundColor = .clear
+        onboardingContainer.isHidden = true
+        view.addSubview(onboardingContainer)
+
         greetingLabel.translatesAutoresizingMaskIntoConstraints = false
         greetingLabel.textAlignment = .center
         greetingLabel.numberOfLines = 3
@@ -81,6 +89,11 @@ public final class LaunchScreenViewController: UIViewController {
         view.addSubview(greetingLabel)
 
         NSLayoutConstraint.activate([
+            onboardingContainer.topAnchor.constraint(equalTo: TitleContainer.bottomAnchor),
+            onboardingContainer.bottomAnchor.constraint(equalTo: Arcs.topAnchor),
+            onboardingContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            onboardingContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
             greetingLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             greetingLabel.bottomAnchor.constraint(equalTo: ArcLeft.topAnchor, constant: 24),
             greetingLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
@@ -220,12 +233,36 @@ public final class LaunchScreenViewController: UIViewController {
 
                 self.didPrepareForOnboarding = true
                 self.isPreparingForOnboarding = false
-
-                let completions = self.prepareForOnboardingCompletions
-                self.prepareForOnboardingCompletions.removeAll()
-                completions.forEach { $0() }
+                self.showOnboarding()
             }
         }
+    }
+
+    private func showOnboarding() {
+        onboardingContainer.isHidden = false
+
+        guard firstLaunchFlowHostingController == nil else { return }
+
+        let hostingController = UIHostingController(rootView: FirstLaunchFlowView { [weak self] in
+            guard let self else { return }
+
+            let completions = self.prepareForOnboardingCompletions
+            self.prepareForOnboardingCompletions.removeAll()
+            completions.forEach { $0() }
+        })
+        firstLaunchFlowHostingController = hostingController
+        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
+        hostingController.view.backgroundColor = .clear
+
+        addChild(hostingController)
+        onboardingContainer.addSubview(hostingController.view)
+        NSLayoutConstraint.activate([
+            hostingController.view.topAnchor.constraint(equalTo: onboardingContainer.topAnchor),
+            hostingController.view.bottomAnchor.constraint(equalTo: onboardingContainer.bottomAnchor),
+            hostingController.view.leadingAnchor.constraint(equalTo: onboardingContainer.leadingAnchor),
+            hostingController.view.trailingAnchor.constraint(equalTo: onboardingContainer.trailingAnchor)
+        ])
+        hostingController.didMove(toParent: self)
     }
 
     private func completeStopAnimation() {

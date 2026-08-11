@@ -39,7 +39,6 @@ struct FolioraApp: App {
     private var appDelegate
 
     @State private var showsLaunchScreen = true
-    @State private var showsOnboarding = false
     @State private var needsOnboarding: Bool?
     @State private var didFinishLaunchFlow = false
     @State private var isPreparingApplication = false
@@ -63,18 +62,8 @@ struct FolioraApp: App {
                     ) {
                         showsLaunchScreen = false
                         didFinishLaunchFlow = true
-                    } onReadyForOnboarding: {
-                        showsOnboarding = true
                     }
                     .ignoresSafeArea()
-                }
-
-                if showsOnboarding {
-                    FirstLaunchFlowView {
-                        showsOnboarding = false
-                        showsLaunchScreen = false
-                        didFinishLaunchFlow = true
-                    }
                 }
             }
             .task {

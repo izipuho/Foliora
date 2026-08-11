@@ -5,7 +5,6 @@ struct LaunchScreenHost: UIViewControllerRepresentable {
     let isApplicationReady: Bool
     let shouldPrepareForOnboarding: Bool
     let onFinished: @MainActor () -> Void
-    let onReadyForOnboarding: @MainActor () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -17,8 +16,7 @@ struct LaunchScreenHost: UIViewControllerRepresentable {
         context.coordinator.update(
             isApplicationReady: isApplicationReady,
             shouldPrepareForOnboarding: shouldPrepareForOnboarding,
-            onFinished: onFinished,
-            onReadyForOnboarding: onReadyForOnboarding
+            onFinished: onFinished
         )
         return viewController
     }
@@ -28,8 +26,7 @@ struct LaunchScreenHost: UIViewControllerRepresentable {
         context.coordinator.update(
             isApplicationReady: isApplicationReady,
             shouldPrepareForOnboarding: shouldPrepareForOnboarding,
-            onFinished: onFinished,
-            onReadyForOnboarding: onReadyForOnboarding
+            onFinished: onFinished
         )
     }
 
@@ -40,16 +37,13 @@ struct LaunchScreenHost: UIViewControllerRepresentable {
         private var didRequestFinish = false
         private var didRequestPrepareForOnboarding = false
         private var onFinished: (@MainActor () -> Void)?
-        private var onReadyForOnboarding: (@MainActor () -> Void)?
 
         func update(
             isApplicationReady: Bool,
             shouldPrepareForOnboarding: Bool,
-            onFinished: @escaping @MainActor () -> Void,
-            onReadyForOnboarding: @escaping @MainActor () -> Void
+            onFinished: @escaping @MainActor () -> Void
         ) {
             self.onFinished = onFinished
-            self.onReadyForOnboarding = onReadyForOnboarding
 
             guard isApplicationReady else { return }
 
@@ -59,7 +53,7 @@ struct LaunchScreenHost: UIViewControllerRepresentable {
                 didRequestPrepareForOnboarding = true
                 let completion: @Sendable () -> Void = { [weak self] in
                     Task { @MainActor in
-                        self?.readyForOnboarding()
+                        self?.finish()
                     }
                 }
                 viewController?.prepareForOnboarding(completion: completion)
@@ -79,10 +73,6 @@ struct LaunchScreenHost: UIViewControllerRepresentable {
 
         private func finish() {
             onFinished?()
-        }
-
-        private func readyForOnboarding() {
-            onReadyForOnboarding?()
         }
     }
 }
