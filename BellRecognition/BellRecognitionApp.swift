@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+/// Provides the bell recognition app application entry point.
 @main
 struct BellRecognitionApp: App {
     var body: some Scene {

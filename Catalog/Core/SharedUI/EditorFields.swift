@@ -2,6 +2,7 @@ import SwiftUI
 import Observation
 @preconcurrency import MapKit
 
+/// Displays the year picker field interface.
 struct YearPickerField: View {
     let title: String
     @Binding var selection: String
@@ -16,6 +17,7 @@ struct YearPickerField: View {
     }
 }
 
+/// Displays the enum selection row interface.
 struct EnumSelectionRow<Option: Hashable>: View {
     let title: String
     let selectedLabel: String
@@ -83,6 +85,7 @@ struct EnumSelectionRow<Option: Hashable>: View {
     }
 }
 
+/// Displays the place picker field interface.
 struct PlacePickerField: View {
     let title: String
     let selectedLabel: String
@@ -117,6 +120,7 @@ struct PlacePickerField: View {
     }
 }
 
+/// Displays the location picker field interface.
 struct LocationPickerField: View {
     let title: String
     let selectedLabel: String
@@ -161,6 +165,7 @@ struct LocationPickerField: View {
     }
 }
 
+/// Displays the tag editor section interface.
 struct TagEditorSection: View {
     @Binding var tagInput: String
     @Binding var tags: [String]
@@ -240,6 +245,7 @@ private struct TagChip: View {
     }
 }
 
+/// Displays the place picker view interface.
 struct PlacePickerView: View {
     let places: [Place]
     @Binding var selectedPlace: Place?
@@ -492,6 +498,7 @@ private final class PlaceSearchModel: NSObject, MKLocalSearchCompleterDelegate, 
     }
 }
 
+/// Displays the location hierarchy picker view interface.
 struct LocationHierarchyPickerView: View {
     let locations: [Location]
     @Binding var selectedLocationID: UUID?

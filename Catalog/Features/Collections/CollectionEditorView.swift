@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the collection editor view interface.
 struct CollectionEditorView: View {
     let homes: [Home]
     let onSave: (String, String, UUID, CollectionBackgroundStyle) -> Void

@@ -5,11 +5,13 @@ import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
 
+/// Represents image media data and behavior.
 struct ImageMedia {
     let asset: MediaAsset
     let uiImage: UIImage
 }
 
+/// Provides image media builder operations.
 struct ImageMediaBuilder {
     let store: LocalMediaFileStore
 

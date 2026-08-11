@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import UIKit
 
+/// Displays the vision debug view interface.
 struct VisionDebugView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var image: UIImage?

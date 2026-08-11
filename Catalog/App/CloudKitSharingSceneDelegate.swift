@@ -3,6 +3,7 @@ import CloudKit
 import Combine
 import CoreData
 
+/// Defines the supported cloud kit share invitation acceptance state values.
 enum CloudKitShareInvitationAcceptanceState: Equatable {
     case idle
     case accepting
@@ -10,6 +11,7 @@ enum CloudKitShareInvitationAcceptanceState: Equatable {
     case failed(message: String)
 }
 
+/// Provides cloud kit share invitation acceptance controller operations.
 @MainActor
 final class CloudKitShareInvitationAcceptanceController: ObservableObject {
     static let shared = CloudKitShareInvitationAcceptanceController()
@@ -35,6 +37,7 @@ final class CloudKitShareInvitationAcceptanceController: ObservableObject {
     }
 }
 
+/// Coordinates cloud kit sharing scene delegate behavior.
 final class CloudKitSharingSceneDelegate: UIResponder, UIWindowSceneDelegate {
     func windowScene(
         _ windowScene: UIWindowScene,
@@ -44,6 +47,7 @@ final class CloudKitSharingSceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 }
 
+/// Groups foliora cloud kit share invitation acceptor values and behavior.
 enum FolioraCloudKitShareInvitationAcceptor {
     static func accept(_ metadata: CKShare.Metadata) {
         Task { @MainActor in

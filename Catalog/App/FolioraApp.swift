@@ -4,6 +4,7 @@ import CoreData
 import Translation
 import UIKit
 
+/// Coordinates foliora app delegate behavior.
 final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
     static var coreDataContainer: NSPersistentCloudKitContainer?
 
@@ -31,6 +32,7 @@ final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
+/// Provides the foliora app application entry point.
 @main
 struct FolioraApp: App {
     @UIApplicationDelegateAdaptor(FolioraAppDelegate.self)

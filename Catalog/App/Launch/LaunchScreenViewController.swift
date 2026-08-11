@@ -1,5 +1,6 @@
 import UIKit
 
+/// Presents the animated launch screen and onboarding transition.
 public final class LaunchScreenViewController: UIViewController {
     private var didStartAnimation = false
     private var isAnimatingSymbol = false
@@ -192,6 +193,7 @@ public final class LaunchScreenViewController: UIViewController {
         }
     }
 
+    /// Finishes the launch animation before presenting onboarding.
     public func prepareForOnboarding(completion: @escaping () -> Void) {
         guard !didPrepareForOnboarding else {
             completion()

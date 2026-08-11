@@ -5,6 +5,7 @@ import PhotosUI
 import UIKit
 
 
+/// Displays the home view interface.
 struct HomeView: View {
     let repository: any CatalogRepository
     let embedsNavigation: Bool

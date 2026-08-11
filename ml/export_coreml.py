@@ -1,3 +1,5 @@
+"""Export a trained bell classifier as a Core ML package."""
+
 from __future__ import annotations
 
 import argparse
@@ -10,6 +12,7 @@ from model import BellDecisionModel, CoreMLExportWrapper
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse checkpoint and output paths."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, default=Path("ml/artifacts/bell_classifier.pt"))
     parser.add_argument("--output", type=Path, default=Path("ml/artifacts/BellTagDecisionClassifier.mlpackage"))
@@ -17,6 +20,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Load a checkpoint, convert it, and save the Core ML model."""
     args = parse_args()
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     tag_vocab = checkpoint["tag_vocab"]

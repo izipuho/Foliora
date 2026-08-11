@@ -1,11 +1,13 @@
 import CoreData
 import Foundation
 
+/// Groups catalog export selection values and behavior.
 enum CatalogExportSelection {
     case collections(Set<UUID>)
     case homes(Set<UUID>)
 }
 
+/// Provides catalog import export actor operations.
 @MainActor
 final class CatalogImportExportActor {
     struct ImportResult: Sendable {

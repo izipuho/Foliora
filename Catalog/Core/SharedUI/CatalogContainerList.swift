@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the catalog container list interface.
 struct CatalogContainerList<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -34,6 +35,7 @@ extension View {
     }
 }
 
+/// Displays the catalog container card interface.
 struct CatalogContainerCard: View {
     enum Accessory {
         case icon(String)

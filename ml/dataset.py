@@ -1,3 +1,5 @@
+"""Dataset loading and preprocessing utilities for bell classification."""
+
 from __future__ import annotations
 
 import json
@@ -17,6 +19,8 @@ UNK_TAG = "<UNK>"
 
 @dataclass(frozen=True)
 class Annotation:
+    """Describe one labeled bell crop from the annotation file."""
+
     crop_file_name: str
     tag: str
     confidence: float
@@ -25,6 +29,7 @@ class Annotation:
 
 
 def load_annotations(dataset_dir: Path) -> list[Annotation]:
+    """Load and validate annotations from a dataset directory."""
     annotations_path = dataset_dir / "annotations.jsonl"
     rows: list[Annotation] = []
     with annotations_path.open("r", encoding="utf-8") as handle:
@@ -52,6 +57,7 @@ def load_annotations(dataset_dir: Path) -> list[Annotation]:
 
 
 def validate_crops(dataset_dir: Path, rows: list[Annotation]) -> None:
+    """Ensure every annotation references an existing crop file."""
     missing = sorted(
         {
             row.crop_file_name
@@ -65,6 +71,7 @@ def validate_crops(dataset_dir: Path, rows: list[Annotation]) -> None:
 
 
 def build_tag_vocab(rows: list[Annotation]) -> dict[str, int]:
+    """Build a stable tag-to-index mapping with an unknown tag entry."""
     tags = sorted({row.tag for row in rows})
     return {tag: index for index, tag in enumerate([UNK_TAG, *tags])}
 
@@ -74,6 +81,7 @@ def split_by_photo_id(
     val_ratio: float,
     seed: int,
 ) -> tuple[list[Annotation], list[Annotation]]:
+    """Split annotations by source photo to prevent data leakage."""
     photo_ids = sorted({row.photo_id for row in rows})
     rng = random.Random(seed)
     rng.shuffle(photo_ids)
@@ -85,6 +93,7 @@ def split_by_photo_id(
 
 
 def image_transform(image_size: int, train: bool) -> transforms.Compose:
+    """Create image transforms for training or evaluation."""
     steps: list[object] = [
         transforms.Resize((image_size, image_size)),
     ]
@@ -100,6 +109,8 @@ def image_transform(image_size: int, train: bool) -> transforms.Compose:
 
 
 class BellDecisionDataset(Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]):
+    """Provide model-ready tensors for annotated bell crops."""
+
     def __init__(
         self,
         dataset_dir: Path,
@@ -109,6 +120,7 @@ class BellDecisionDataset(Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor
         image_size: int,
         train: bool,
     ) -> None:
+        """Configure the dataset and its image transformation pipeline."""
         self.dataset_dir = dataset_dir
         self.rows = rows
         self.tag_vocab = tag_vocab
@@ -116,9 +128,11 @@ class BellDecisionDataset(Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor
         self.transform = image_transform(image_size, train=train)
 
     def __len__(self) -> int:
+        """Return the number of annotated crops."""
         return len(self.rows)
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Load and encode one annotated crop."""
         row = self.rows[index]
         image_path = self.dataset_dir / "crops" / row.crop_file_name
         image = Image.open(image_path).convert("RGB")

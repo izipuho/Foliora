@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 
+/// Displays the media preview image interface.
 struct MediaPreviewImage: View {
     let identifier: String?
     let thumbnailData: Data?

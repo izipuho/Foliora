@@ -1,6 +1,7 @@
 import SwiftUI
 import Translation
 
+/// Displays the first launch flow view interface.
 struct FirstLaunchFlowView: View {
     private enum Step: Hashable {
         case profile

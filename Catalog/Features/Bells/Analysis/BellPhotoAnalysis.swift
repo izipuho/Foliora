@@ -2,11 +2,13 @@ import Foundation
 import Observation
 import UIKit
 
+/// Represents visual keyword data and behavior.
 struct VisualKeyword: Hashable, Sendable {
     let value: String
     let confidence: Double
 }
 
+/// Represents bell photo suggestions data and behavior.
 struct BellPhotoSuggestions: Sendable {
     let tags: [String]
     let recognizedText: [RecognizedTextFeature]
@@ -52,6 +54,7 @@ struct BellPhotoSuggestions: Sendable {
     }
 }
 
+/// Represents bell photo analysis debug info data and behavior.
 struct BellPhotoAnalysisDebugInfo: Sendable {
     let prompt: String
     let input: String
@@ -68,6 +71,7 @@ struct BellPhotoAnalysisDebugInfo: Sendable {
     }
 }
 
+/// Defines the interface for bell photo suggestion mapping implementations.
 protocol BellPhotoSuggestionMapping: Sendable {
     func map(
         analysis: PhotoAnalysisResult,
@@ -75,6 +79,7 @@ protocol BellPhotoSuggestionMapping: Sendable {
     ) async -> BellPhotoSuggestions
 }
 
+/// Provides default bell photo suggestion mapper operations.
 struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
     func map(
         analysis: PhotoAnalysisResult,
@@ -256,6 +261,7 @@ private extension SemanticPhotoFeatures {
     }
 }
 
+/// Provides bell photo analysis controller operations.
 @MainActor
 @Observable
 final class BellPhotoAnalysisController {

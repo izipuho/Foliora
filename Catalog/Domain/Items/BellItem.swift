@@ -1,5 +1,6 @@
 import Foundation
 
+/// Represents bell details data and behavior.
 struct BellDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
     var material: BellMaterial
@@ -8,6 +9,7 @@ struct BellDetails: Identifiable, Hashable, Codable {
     var id: UUID { itemID }
 }
 
+/// Groups bell material values and behavior.
 enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
     case unknown
     case metall
@@ -51,6 +53,7 @@ enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
     }
 }
 
+/// Represents bell record data and behavior.
 struct BellRecord: Identifiable, Hashable {
     let item: ItemRecord
     let details: BellDetails

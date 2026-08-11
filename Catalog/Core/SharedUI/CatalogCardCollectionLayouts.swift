@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the catalog card grid interface.
 struct CatalogCardGrid<Content: View>: View {
     typealias LayoutMetrics = (cardSize: CGSize, gridMetrics: CatalogCardLayoutMode.GridMetrics, cardMetrics: CatalogCardLayoutMode.CardMetrics)
 
@@ -78,6 +79,7 @@ struct CatalogCardGrid<Content: View>: View {
     }
 }
 
+/// Displays the catalog card strip interface.
 struct CatalogCardStrip<Content: View>: View {
     let layoutMode: CatalogCardLayoutMode
     let screenWidth: CGFloat

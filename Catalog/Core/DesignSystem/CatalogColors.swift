@@ -1,11 +1,13 @@
 import SwiftUI
 
+/// Groups catalog semantic colors values and behavior.
 enum CatalogSemanticColors {
     static let success = Color.green
     static let destructive = Color.red
     static let info = Color.blue
 }
 
+/// Groups catalog media contrast values and behavior.
 enum CatalogMediaContrast {
     static let scrimClear = Color.black.opacity(0)
     static let scrimWeak = Color.black.opacity(0.10)
@@ -19,6 +21,7 @@ enum CatalogMediaContrast {
     static let onMediaSecondary = Color.white.opacity(0.72)
 }
 
+/// Groups catalog backgrounds values and behavior.
 enum CatalogBackgrounds {
     static func app(scheme: ColorScheme) -> LinearGradient {
         tinted(.orange, scheme: scheme, strength: .weak)

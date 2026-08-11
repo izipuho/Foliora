@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the storage map card interface.
 struct StorageMapCard: View {
     let locations: [Location]
 

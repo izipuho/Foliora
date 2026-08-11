@@ -1,6 +1,7 @@
 import CoreData
 import Foundation
 
+/// Groups catalog j s o n port values and behavior.
 enum CatalogJSONPort {
     @MainActor
     static func exportArchiveData(

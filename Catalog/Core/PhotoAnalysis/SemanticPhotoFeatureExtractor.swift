@@ -1,6 +1,7 @@
 import Foundation
 import FoundationModels
 
+/// Represents semantic photo features data and behavior.
 struct SemanticPhotoFeatures: Hashable, Sendable, Codable {
     let features: [SemanticPhotoFeature]
     let suggestedYear: SemanticPhotoYearEstimate?
@@ -23,6 +24,7 @@ struct SemanticPhotoFeatures: Hashable, Sendable, Codable {
     }
 }
 
+/// Defines the supported semantic photo feature kind values.
 enum SemanticPhotoFeatureKind: String, Hashable, Sendable, Codable {
     case subject
     case material
@@ -34,6 +36,7 @@ enum SemanticPhotoFeatureKind: String, Hashable, Sendable, Codable {
     case recognizedText
 }
 
+/// Represents semantic photo feature data and behavior.
 struct SemanticPhotoFeature: Hashable, Sendable, Codable {
     let kind: SemanticPhotoFeatureKind
     let value: String
@@ -76,32 +79,38 @@ struct SemanticPhotoFeature: Hashable, Sendable, Codable {
     }
 }
 
+/// Defines the supported semantic photo feature source values.
 enum SemanticPhotoFeatureSource: String, Hashable, Sendable, Codable {
     case vision
     case ocr
     case semanticModel = "vlm"
 }
 
+/// Represents semantic photo year estimate data and behavior.
 struct SemanticPhotoYearEstimate: Hashable, Sendable, Codable {
     let year: Int?
     let confidence: Double
 }
 
+/// Represents semantic photo geo estimate data and behavior.
 struct SemanticPhotoGeoEstimate: Hashable, Sendable, Codable {
     let value: String
     let confidence: Double
 }
 
+/// Represents semantic photo visual feature data and behavior.
 struct SemanticPhotoVisualFeature: Hashable, Sendable {
     let label: String
     let confidence: Double
 }
 
+/// Represents semantic photo semantic input data and behavior.
 struct SemanticPhotoSemanticInput: Sendable {
     let visualFeatures: [SemanticPhotoVisualFeature]
     let recognizedText: [RecognizedTextFeature]
 }
 
+/// Represents semantic photo semantic output data and behavior.
 struct SemanticPhotoSemanticOutput: Sendable {
     let subjects: [SemanticPhotoFeature]
     let materialHints: [SemanticPhotoFeature]
@@ -124,10 +133,12 @@ struct SemanticPhotoSemanticOutput: Sendable {
     )
 }
 
+/// Defines the interface for semantic photo semantic extracting implementations.
 protocol SemanticPhotoSemanticExtracting: Sendable {
     func extractFeatures(from input: SemanticPhotoSemanticInput) async -> SemanticPhotoSemanticOutput
 }
 
+/// Represents semantic photo generated feature data and behavior.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
@@ -140,6 +151,7 @@ struct SemanticPhotoGeneratedFeature {
     let confidence: Double
 }
 
+/// Represents semantic photo generated year estimate data and behavior.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
@@ -152,6 +164,7 @@ struct SemanticPhotoGeneratedYearEstimate {
     let confidence: Double
 }
 
+/// Represents semantic photo generated geo estimate data and behavior.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
@@ -164,6 +177,7 @@ struct SemanticPhotoGeneratedGeoEstimate {
     let confidence: Double
 }
 
+/// Represents semantic photo generated response data and behavior.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
@@ -194,6 +208,7 @@ struct SemanticPhotoGeneratedResponse {
     let suggestedGeo: SemanticPhotoGeneratedGeoEstimate?
 }
 
+/// Represents semantic photo tag filter generated item data and behavior.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
@@ -206,6 +221,7 @@ struct SemanticPhotoTagFilterGeneratedItem {
     let confidence: Double
 }
 
+/// Represents semantic photo tag filter generated response data and behavior.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
@@ -215,6 +231,7 @@ struct SemanticPhotoTagFilterGeneratedResponse {
     let tags: [SemanticPhotoTagFilterGeneratedItem]
 }
 
+/// Provides apple foundation models semantic photo extractor operations.
 struct AppleFoundationModelsSemanticPhotoExtractor: SemanticPhotoSemanticExtracting {
     func extractFeatures(from input: SemanticPhotoSemanticInput) async -> SemanticPhotoSemanticOutput {
         do {
@@ -361,6 +378,7 @@ private struct SemanticPhotoPromptFeature: Encodable {
     let confidence: Double
 }
 
+/// Defines the interface for semantic photo tag filtering implementations.
 protocol SemanticPhotoTagFiltering: Sendable {
     func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature]
 }
@@ -370,6 +388,7 @@ private struct SemanticPhotoTagFilterPromptItem: Encodable {
     let confidence: Double
 }
 
+/// Provides apple foundation models semantic photo tag filter operations.
 struct AppleFoundationModelsSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
     func filterTags(_ tags: [SemanticPhotoVisualFeature]) async -> [SemanticPhotoVisualFeature] {
         guard !tags.isEmpty else {
@@ -441,10 +460,12 @@ struct AppleFoundationModelsSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
     }
 }
 
+/// Defines the interface for semantic photo feature extracting implementations.
 protocol SemanticPhotoFeatureExtracting: Sendable {
     func extractFeatures(from analysis: PhotoAnalysisResult) async -> SemanticPhotoFeatures
 }
 
+/// Provides semantic photo feature extractor operations.
 struct SemanticPhotoFeatureExtractor: SemanticPhotoFeatureExtracting {
     private let tagFilter: any SemanticPhotoTagFiltering
     private let semanticExtractor: any SemanticPhotoSemanticExtracting

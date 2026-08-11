@@ -1,5 +1,6 @@
 import Foundation
 
+/// Defines the supported collection access role values.
 enum CollectionAccessRole: String, Identifiable, Hashable, Codable {
     case owner
     case contributor
@@ -8,6 +9,7 @@ enum CollectionAccessRole: String, Identifiable, Hashable, Codable {
     var id: String { rawValue }
 }
 
+/// Defines the supported collection participant acceptance status values.
 enum CollectionParticipantAcceptanceStatus: String, Hashable, Codable {
     case accepted
     case pending
@@ -15,6 +17,7 @@ enum CollectionParticipantAcceptanceStatus: String, Hashable, Codable {
     case unknown
 }
 
+/// Represents collection participant data and behavior.
 struct CollectionParticipant: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID

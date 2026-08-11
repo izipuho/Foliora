@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 
+/// Represents camera picker data and behavior.
 struct CameraPicker: UIViewControllerRepresentable {
     let onImagePicked: (UIImage) -> Void
     @Environment(\.dismiss) private var dismiss

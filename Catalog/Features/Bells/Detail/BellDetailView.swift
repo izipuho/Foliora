@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the bell detail view interface.
 struct BellDetailView: View {
 
     @Binding var bell: BellRecord

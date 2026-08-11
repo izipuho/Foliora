@@ -3,6 +3,7 @@ import CoreData
 import Foundation
 import OSLog
 
+/// Provides core data catalog repository operations.
 @MainActor
 final class CoreDataCatalogRepository: CatalogRepository {
     private let context: NSManagedObjectContext

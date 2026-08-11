@@ -60,6 +60,7 @@ private extension BellBatchAddView {
 }
 #endif
 
+/// Defines the supported batch add completion action values.
 enum BatchAddCompletionAction {
     case done
     case reviewResults(String)
@@ -78,6 +79,7 @@ private enum BellBatchCreationState: Equatable {
     case failed
 }
 
+/// Displays the bell batch add view interface.
 struct BellBatchAddView: View {
     let collection: CollectionSummary
     let photoCount: Int

@@ -2,6 +2,7 @@ import SwiftUI
 import CoreData
 import MapKit
 
+/// Displays the collection origin map view interface.
 struct CollectionOriginMapView: View {
     let collection: CollectionSummary
     let repository: any CatalogRepository
