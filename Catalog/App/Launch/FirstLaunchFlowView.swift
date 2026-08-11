@@ -153,15 +153,9 @@ struct FirstLaunchFlowView: View {
                     onFinished()
                 }
             ) {
-                ZStack {
-                    Circle()
-                        .glassEffect(.clear.tint(Color("AccentColor")))
-                        .frame(width: 96, height: 96)
-
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 40, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 96))
+                    .foregroundStyle(.green)
             }
             .tag(Step.ready)
         }
@@ -170,7 +164,6 @@ struct FirstLaunchFlowView: View {
         }
         .tabViewStyle(.page(indexDisplayMode: .always))
         .indexViewStyle(.page(backgroundDisplayMode: .always))
-        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     @MainActor

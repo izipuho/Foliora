@@ -71,6 +71,7 @@ public final class LaunchScreenViewController: UIViewController {
 
     public override func viewDidLoad() {
         super.viewDidLoad()
+        view.isUserInteractionEnabled = true
 
         onboardingContainer.translatesAutoresizingMaskIntoConstraints = false
         onboardingContainer.backgroundColor = .clear
