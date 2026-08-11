@@ -115,9 +115,9 @@ private struct OriginTile: View {
         if let coordinate, let region {
             Map(initialPosition: .region(region), interactionModes: []) {
                 Annotation("", coordinate: coordinate) {
-                    Image(systemName: "mappin.circle.fill")
+                    Image(systemName: "mappin.and.ellipse")
                         .font(.title2)
-                        .foregroundStyle(accentColor, .white)
+                        .foregroundStyle(accentColor, .red)
                         .shadow(radius: 2, y: 1)
                 }
             }
