@@ -154,7 +154,7 @@ struct FirstLaunchFlowView: View {
                 }
             ) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 96))
+                    .font(.system(size: 80))
                     .foregroundStyle(.green)
             }
             .tag(Step.ready)
@@ -234,4 +234,8 @@ struct FirstLaunchFlowView: View {
         }
         await refreshPreparationState()
     }
+}
+
+#Preview {
+    FirstLaunchFlowView {}
 }
