@@ -1,3 +1,4 @@
+/// Groups bell material values and behavior.
 enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
     case unknown
     case metall
@@ -16,6 +17,7 @@ enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
     }
 }
 
+/// Groups item condition values and behavior.
 enum ItemCondition: String, CaseIterable, Identifiable, Codable {
     case mint = "Mint"
     case good = "Good"

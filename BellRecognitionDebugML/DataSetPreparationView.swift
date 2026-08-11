@@ -3,6 +3,7 @@ import AppKit
 import Foundation
 import UniformTypeIdentifiers
 
+/// Displays the data set preparation view interface.
 struct DataSetPreparationView: View {
     @State private var isImporterPresented = false
     @State private var selectedImageURLs: [URL] = []

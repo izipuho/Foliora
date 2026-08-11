@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Represents tag flow layout data and behavior.
 struct TagFlowLayout: Layout {
     let spacing: CGFloat
 

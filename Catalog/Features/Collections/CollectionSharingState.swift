@@ -1,3 +1,4 @@
+/// Represents collection sharing state data and behavior.
 struct CollectionSharingState {
     var isShared: Bool
     var currentUserRole: CollectionAccessRole

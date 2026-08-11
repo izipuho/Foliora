@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Groups catalog shapes values and behavior.
 enum CatalogShapes {
     static var capsule: Capsule {
         Capsule()

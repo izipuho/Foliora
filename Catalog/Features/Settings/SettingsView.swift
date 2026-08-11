@@ -2,6 +2,7 @@ import CloudKit
 import CoreData
 import SwiftUI
 
+/// Displays the settings view interface.
 struct SettingsView: View {
     let repository: any CatalogRepository
     let navigate: (AppDestination) -> Void

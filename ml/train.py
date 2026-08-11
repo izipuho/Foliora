@@ -1,3 +1,5 @@
+"""Train and validate the bell decision classifier."""
+
 from __future__ import annotations
 
 import argparse
@@ -21,6 +23,7 @@ from model import BellDecisionModel
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line training options."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-dir", type=Path, default=Path("Example photos/dataset"))
     parser.add_argument("--artifacts-dir", type=Path, default=Path("ml/artifacts"))
@@ -37,6 +40,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def compute_metrics(predictions: list[int], labels: list[int], num_classes: int) -> dict[str, object]:
+    """Compute accuracy, per-class F1, and confusion matrix metrics."""
     matrix = np.zeros((num_classes, num_classes), dtype=np.int64)
     for target, prediction in zip(labels, predictions):
         matrix[target, prediction] += 1
@@ -66,6 +70,7 @@ def evaluate(
     criterion: nn.Module,
     device: torch.device,
 ) -> tuple[float, dict[str, object]]:
+    """Evaluate a model without updating its parameters."""
     model.eval()
     total_loss = 0.0
     predictions: list[int] = []
@@ -87,6 +92,7 @@ def evaluate(
 
 
 def main() -> None:
+    """Run training and save the best validation checkpoint."""
     args = parse_args()
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)

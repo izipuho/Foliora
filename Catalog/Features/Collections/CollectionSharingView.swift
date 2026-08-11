@@ -3,6 +3,7 @@ import CoreData
 import Foundation
 import SwiftUI
 
+/// Displays the collection sharing view interface.
 struct CollectionSharingView: View {
     let collection: CollectionSummary
     let onSharingChanged: () -> Void

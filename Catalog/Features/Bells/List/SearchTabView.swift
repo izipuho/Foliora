@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 
+/// Groups search token values and behavior.
 enum SearchToken: Identifiable, Hashable {
     case collection(UUID)
     case country(String)
@@ -27,6 +28,7 @@ enum SearchToken: Identifiable, Hashable {
     }
 }
 
+/// Represents bell catalog search state data and behavior.
 struct BellCatalogSearchState: Equatable {
     enum Scope: String, CaseIterable, Identifiable {
         case all
@@ -45,6 +47,7 @@ struct BellCatalogSearchState: Equatable {
     var tokens: [SearchToken] = []
 }
 
+/// Displays the search tab view interface.
 struct SearchTabView: View {
     let repository: any CatalogRepository
     let onBellSelected: ((UUID) -> Void)?

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Groups catalog typography values and behavior.
 enum CatalogTypography {
     static let screenTitle = Font.largeTitle.weight(.bold)
     static let sectionTitle = Font.headline

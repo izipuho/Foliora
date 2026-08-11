@@ -3,6 +3,7 @@ import Combine
 
 private let unknownTitle = String(localized: "common.unknown")
 
+/// Groups bell catalog layout values and behavior.
 enum BellCatalogLayout {
     case empty
     case flat([BellListItem])
@@ -16,11 +17,13 @@ enum BellCatalogLayout {
     }
 }
 
+/// Represents bell catalog display model data and behavior.
 struct BellCatalogDisplayModel {
     let layout: BellCatalogLayout
     let stats: BellCatalogStats
 }
 
+/// Represents country count data and behavior.
 struct CountryCount: Identifiable {
     let country: String
     let countryCode: String
@@ -29,6 +32,7 @@ struct CountryCount: Identifiable {
     var id: String { country }
 }
 
+/// Represents bell catalog stats data and behavior.
 struct BellCatalogStats {
     let totalCount: Int
     let countryCount: Int
@@ -49,6 +53,7 @@ private struct StorageGroupKey: Hashable {
     let room: String
 }
 
+/// Represents bell catalog view model data and behavior.
 @MainActor
 final class BellCatalogViewModel: ObservableObject {
     var orderMode: BellOrderMode
@@ -445,6 +450,7 @@ final class BellCatalogViewModel: ObservableObject {
     }
 }
 
+/// Represents bell grouped section data and behavior.
 struct BellGroupedSection: Identifiable {
     let id: String
     let title: String
@@ -458,12 +464,14 @@ struct BellGroupedSection: Identifiable {
     }
 }
 
+/// Represents bell storage cabinet group data and behavior.
 struct BellStorageCabinetGroup: Identifiable {
     let id: String
     let title: String
     let bells: [BellListItem]
 }
 
+/// Represents bell geography index entry data and behavior.
 struct BellGeographyIndexEntry: Identifiable {
     let id: String
     let title: String

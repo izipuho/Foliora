@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the home editor view interface.
 struct HomeEditorView: View {
     @Binding var home: Home
     @Binding var locations: [Location]
@@ -352,6 +353,7 @@ struct HomeEditorView: View {
     }
 }
 
+/// Displays the add location sheet interface.
 struct AddLocationSheet: View {
     let homeID: UUID
     let existingLocations: [Location]

@@ -1,6 +1,7 @@
 import CoreData
 import Foundation
 
+/// Represents bell lookup snapshot data and behavior.
 struct BellLookupSnapshot {
     var bells: [BellRecord] = []
     var locations: [Location] = []
@@ -12,11 +13,13 @@ struct BellLookupSnapshot {
     init() {}
 }
 
+/// Defines the interface for bell lookup snapshot loading implementations.
 protocol BellLookupSnapshotLoading {
     func loadSnapshot(collectionID: UUID?, homeID: UUID?) -> BellLookupSnapshot
     func loadBell(id: UUID) -> BellRecord?
 }
 
+/// Provides core data bell lookup snapshot loader operations.
 struct CoreDataBellLookupSnapshotLoader: BellLookupSnapshotLoading {
     private let context: NSManagedObjectContext
 

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the share invitation status overlay interface.
 struct ShareInvitationStatusOverlay: View {
     let state: CloudKitShareInvitationAcceptanceState
 

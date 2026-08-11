@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the dashboard card interface.
 struct DashboardCard<Leading: View, Content: View>: View {
     let leading: Leading
     let content: Content

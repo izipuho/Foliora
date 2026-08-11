@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 
+/// Represents home data and behavior.
 struct Home: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
@@ -40,6 +41,7 @@ struct Home: Identifiable, Hashable, Codable {
     }
 }
 
+/// Represents location data and behavior.
 struct Location: Identifiable, Hashable, Codable {
     let id: UUID
     let homeID: UUID
@@ -50,6 +52,7 @@ struct Location: Identifiable, Hashable, Codable {
     var sortOrder: Int?
 }
 
+/// Represents storage path data and behavior.
 struct StoragePath: Hashable, Codable {
     struct Component: Hashable, Codable {
         let kind: LocationKind
@@ -79,6 +82,7 @@ struct StoragePath: Hashable, Codable {
     }
 }
 
+/// Represents collection data and behavior.
 struct Collection: Identifiable, Hashable, Codable {
     let id: UUID
     let homeID: UUID
@@ -123,6 +127,7 @@ struct Collection: Identifiable, Hashable, Codable {
     }
 }
 
+/// Defines the supported location kind values.
 enum LocationKind: String, CaseIterable, Hashable, Identifiable, Codable {
     case floor
     case room
@@ -169,6 +174,7 @@ enum LocationKind: String, CaseIterable, Hashable, Identifiable, Codable {
     }
 }
 
+/// Defines the supported collection kind values.
 enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
     case bells
     case books
@@ -217,6 +223,7 @@ enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
     }
 }
 
+/// Defines the supported collection status values.
 enum CollectionStatus: String, Hashable, Codable {
     case active
     case planned
@@ -240,6 +247,7 @@ enum CollectionStatus: String, Hashable, Codable {
     }
 }
 
+/// Represents collection summary data and behavior.
 struct CollectionSummary: Identifiable, Hashable, Codable {
     let id: UUID
     let homeID: UUID
@@ -252,6 +260,7 @@ struct CollectionSummary: Identifiable, Hashable, Codable {
     let sharingSummary: String
 }
 
+/// Defines the supported collection background style values.
 enum CollectionBackgroundStyle: String, CaseIterable, Hashable, Identifiable, Codable {
     case amber
     case sky

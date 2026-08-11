@@ -1,6 +1,7 @@
 import CoreData
 import Foundation
 
+/// Represents bell catalog snapshot data and behavior.
 struct BellCatalogSnapshot {
     var bells: [BellListItem] = []
     var locations: [Location] = []

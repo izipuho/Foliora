@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the bell card view interface.
 struct BellCardView: View {
     let bell: BellListItem
     let cardSize: CGSize

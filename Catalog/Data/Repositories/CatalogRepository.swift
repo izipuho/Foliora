@@ -1,11 +1,13 @@
 import Foundation
 
+/// Defines the supported collection delete resolution values.
 enum CollectionDeleteResolution {
     case deletePrivateCollection
     case deleteSharedCollectionAsOwner
     case leaveSharedCollectionAsParticipant
 }
 
+/// Defines the interface for catalog repository implementations.
 @MainActor
 protocol CatalogRepository {
     func saveHome(_ home: Home)

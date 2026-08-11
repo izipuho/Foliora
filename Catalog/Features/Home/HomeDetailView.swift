@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 
+/// Displays the home detail view interface.
 struct HomeDetailView: View {
     @Binding var home: Home
     @Binding var locations: [Location]
@@ -128,6 +129,7 @@ struct HomeDetailView: View {
     }
 }
 
+/// Displays the home identity header interface.
 struct HomeIdentityHeader: View {
     let home: Home
 

@@ -2,6 +2,7 @@ import CloudKit
 import CryptoKit
 import Foundation
 
+/// Groups cloud kit sharing mapper values and behavior.
 enum CloudKitSharingMapper {
     static func collectionParticipant(
         from participant: CKShare.Participant,

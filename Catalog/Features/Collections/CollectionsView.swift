@@ -2,6 +2,7 @@ import SwiftUI
 import CoreData
 import CloudKit
 
+/// Displays the collections view interface.
 struct CollectionsView: View {
     let repository: any CatalogRepository
     let onCollectionSelected: ((UUID) -> Void)?

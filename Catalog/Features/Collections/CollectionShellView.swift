@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import CoreData
 
+/// Displays the collection shell view interface.
 struct CollectionShellView: View {
     let repository: any CatalogRepository
     let coreDataContainer: NSPersistentCloudKitContainer

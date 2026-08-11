@@ -1,5 +1,6 @@
 import Foundation
 
+/// Represents catalog transfer bundle data and behavior.
 struct CatalogTransferBundle: Codable {
     var homes: [Home]
     var locations: [LocationTransferRecord]
@@ -58,6 +59,7 @@ struct CatalogTransferBundle: Codable {
     }
 }
 
+/// Represents collection transfer record data and behavior.
 struct CollectionTransferRecord: Identifiable, Hashable, Codable {
     let id: UUID
     let homeID: UUID
@@ -102,6 +104,7 @@ struct CollectionTransferRecord: Identifiable, Hashable, Codable {
     }
 }
 
+/// Represents location transfer record data and behavior.
 struct LocationTransferRecord: Identifiable, Hashable, Codable {
     let id: UUID
     let homeID: UUID
@@ -128,6 +131,7 @@ struct LocationTransferRecord: Identifiable, Hashable, Codable {
     }
 }
 
+/// Represents origin place transfer value data and behavior.
 struct OriginPlaceTransferValue: Hashable, Codable {
     var displayName: String
     var latitude: Double
@@ -144,6 +148,7 @@ struct OriginPlaceTransferValue: Hashable, Codable {
     }
 }
 
+/// Represents bell transfer item data and behavior.
 struct BellTransferItem: Codable {
     var item: ItemRecord
     var details: BellDetails

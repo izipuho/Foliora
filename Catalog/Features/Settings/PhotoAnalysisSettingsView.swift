@@ -1,6 +1,7 @@
 import SwiftUI
 import Translation
 
+/// Displays the photo analysis settings view interface.
 struct PhotoAnalysisSettingsView: View {
 
     @Environment(\.locale) private var locale
