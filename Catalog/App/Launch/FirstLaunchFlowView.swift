@@ -169,7 +169,8 @@ struct FirstLaunchFlowView: View {
             await checkPreparationStateIfNeeded()
         }
         .tabViewStyle(.page(indexDisplayMode: .always))
-        .indexViewStyle(.page(backgroundDisplayMode: .always))
+        .indexViewStyle(.page(backgroundDisplayMode: .never))
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     @MainActor
