@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var importErrorMessage: String?
     @State private var importResultMessage: String?
     @State private var exportResultMessage: String?
+    @State private var isDeveloperMenuPresented = false
 
     var body: some View {
         List {
@@ -49,14 +50,6 @@ struct SettingsView: View {
             }
 
             Section {
-                #if DEBUG
-                NavigationLink {
-                    PhotoAnalysisSettingsView()
-                } label: {
-                    Label("photo_analysis.title", systemImage: "photo.on.rectangle.angled")
-                }
-                #endif
-
                 NavigationLink {
                     CatalogExportView { exportedCollectionCount in
                         exportResultMessage = String.localizedStringWithFormat(
@@ -86,6 +79,9 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .listRowBackground(Color.clear)
+                .onTapGesture(count: 5) {
+                    isDeveloperMenuPresented = true
+                }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(RootTab.settings.title)
@@ -144,6 +140,18 @@ struct SettingsView: View {
             Button("common.ok", role: .cancel) {}
         } message: {
             Text(importErrorMessage ?? "")
+        }
+        .sheet(isPresented: $isDeveloperMenuPresented) {
+            NavigationStack {
+                PhotoAnalysisSettingsView()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("common.done") {
+                                isDeveloperMenuPresented = false
+                            }
+                        }
+                    }
+            }
         }
     }
 
