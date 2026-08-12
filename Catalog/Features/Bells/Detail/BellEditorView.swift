@@ -109,10 +109,6 @@ struct BellEditorView: View {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var mediaSectionCardVerticalPadding: CGFloat {
-        CatalogMetrics.Spacing.md
-    }
-
     private var shouldShowPhotoAnalysisSection: Bool {
         photoAnalysis.isAnalyzing
         || (!isLocalizingPhotoSuggestions && (
@@ -161,32 +157,24 @@ struct BellEditorView: View {
         NavigationStack {
             ScrollViewReader { scrollProxy in
                 VStack(spacing: 0) {
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        Text(String(localized: "editor.docs_and_media"))
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, CatalogMetrics.Insets.screen)
-
-                        MediaSection(
-                            itemID: editorItemID,
-                            mediaAssets: $mediaAssets,
-                            analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
-                        )
-                        .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, mediaSectionCardVerticalPadding)
-                        .background(
-                            CatalogShapes.section
-                                .fill(Color(uiColor: .secondarySystemGroupedBackground))
-                        )
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, CatalogMetrics.Insets.screen)
-                    .padding(.vertical, CatalogMetrics.Spacing.xs)
-                    .background(Color(uiColor: .systemGroupedBackground))
-
                     Form {
+                        Section(String(localized: "editor.docs_and_media"))
+                        {
+                            MediaSection(
+                                itemID: editorItemID,
+                                mediaAssets: $mediaAssets,
+                                analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
+                            )
+                            .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, CatalogMetrics.Spacing.md)
+                            .background(
+                                CatalogShapes.section
+                                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                            )
+                            .listRowInsets(.init())
+                        }
+                        
                         if shouldShowPhotoAnalysisSection {
                             Section(String(localized: "editor.photo_analysis.section")) {
                                 if photoAnalysis.isAnalyzing {

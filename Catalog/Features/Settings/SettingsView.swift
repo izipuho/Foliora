@@ -29,7 +29,8 @@ struct SettingsView: View {
                         Button(role: .destructive) {
                             deleteDisplayName()
                         } label: {
-                            Image(systemName: "trash")
+                            //Image(systemName: "trash")
+                            Image(systemName: "xmark.circle.fill")
                         }
                         .buttonStyle(.borderless)
                         .accessibilityLabel("settings.profile.display_name.delete")
