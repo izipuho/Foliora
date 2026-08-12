@@ -49,11 +49,13 @@ struct SettingsView: View {
             }
 
             Section {
+                #if DEBUG
                 NavigationLink {
                     PhotoAnalysisSettingsView()
                 } label: {
                     Label("photo_analysis.title", systemImage: "photo.on.rectangle.angled")
                 }
+                #endif
 
                 NavigationLink {
                     CatalogExportView { exportedCollectionCount in
