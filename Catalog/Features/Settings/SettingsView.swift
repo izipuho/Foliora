@@ -148,8 +148,10 @@ struct SettingsView: View {
                 PhotoAnalysisSettingsView()
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
-                            Button("common.done") {
+                            Button {
                                 isDeveloperMenuPresented = false
+                            } label: {
+                                Image(systemName: "checkmark")
                             }
                         }
                     }
