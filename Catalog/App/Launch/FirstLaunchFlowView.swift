@@ -15,6 +15,7 @@ struct FirstLaunchFlowView: View {
     @State private var isPreparingTranslation = false
     @State private var translationConfiguration: TranslationSession.Configuration?
     @State private var userName = ""
+    @FocusState private var isUserNameFocused: Bool
 
     private let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
     private let translationDownloadSkippedKey = "foliora.onboarding.translationDownloadSkipped"
@@ -102,7 +103,7 @@ struct FirstLaunchFlowView: View {
                     NSUbiquitousKeyValueStore.default.removeObject(
                         forKey: "foliora.profile.didSkipIntroduction"
                     )
-
+                    isUserNameFocused = false
                     continueAfterProfile()
                 },
                 skipAction: {
@@ -110,6 +111,7 @@ struct FirstLaunchFlowView: View {
                         true,
                         forKey: "foliora.profile.didSkipIntroduction"
                     )
+                    isUserNameFocused = false
                     continueAfterProfile()
                 }
             ) {
@@ -117,6 +119,7 @@ struct FirstLaunchFlowView: View {
                     .textContentType(.name)
                     .catalogSurfaceTile()
                     .frame(maxWidth: 250)
+                    .focused($isUserNameFocused)
             }
             .tag(Step.profile)
 

@@ -18,6 +18,7 @@ struct SettingsView: View {
     @State private var importResultMessage: String?
     @State private var exportResultMessage: String?
     @State private var isDeveloperMenuPresented = false
+    @FocusState private var isDisplayNameFocused: Bool
 
     var body: some View {
         List {
@@ -25,25 +26,26 @@ struct SettingsView: View {
                 HStack {
                     TextField("common.name", text: $editedDisplayName)
                         .textContentType(.name)
-
-                    if displayName != nil {
+                        .focused($isDisplayNameFocused)
+                    
+                    if hasUnsavedDisplayNameChanges {
+                        Button {
+                            saveDisplayName()
+                            isDisplayNameFocused = false
+                        } label: {
+                            Image(systemName: "checkmark.circle.fill")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("onboarding.introduce.save_name")
+                    } else if displayName != nil {
                         Button(role: .destructive) {
                             deleteDisplayName()
                         } label: {
-                            //Image(systemName: "trash")
                             Image(systemName: "xmark.circle.fill")
                         }
                         .buttonStyle(.borderless)
                         .accessibilityLabel("settings.profile.display_name.delete")
                     }
-
-                    Button {
-                        saveDisplayName()
-                    } label: {
-                        Image(systemName: "checkmark.circle.fill")
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel("onboarding.introduce.save_name")
                 }
             } header: {
                 Text("settings.profile.section_title")
@@ -155,6 +157,11 @@ struct SettingsView: View {
         }
     }
 
+    private var hasUnsavedDisplayNameChanges: Bool {
+        editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            != (displayName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+    }
+    
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
     }
