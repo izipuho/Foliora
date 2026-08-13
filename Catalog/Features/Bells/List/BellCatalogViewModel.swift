@@ -53,6 +53,11 @@ private struct StorageGroupKey: Hashable {
     let room: String?
 }
 
+private struct StorageSubgroupKey: Hashable {
+    let kind: LocationKind
+    let title: String
+}
+
 /// Represents bell catalog view model data and behavior.
 @MainActor
 final class BellCatalogViewModel: ObservableObject {
@@ -307,7 +312,7 @@ final class BellCatalogViewModel: ObservableObject {
                     jumpTitle: country,
                     indexTitle: String(country.prefix(1)).uppercased(),
                     bells: grouped[country, default: []],
-                    cabinetGroups: []
+                    storageGroups: []
                 )
             }
         case .acquisitionYear:
@@ -332,7 +337,7 @@ final class BellCatalogViewModel: ObservableObject {
                     jumpTitle: title,
                     indexTitle: nil,
                     bells: grouped[title, default: []],
-                    cabinetGroups: []
+                    storageGroups: []
                 )
             }
         case .storage:
@@ -354,21 +359,26 @@ final class BellCatalogViewModel: ObservableObject {
             return orderedKeys.map { sectionKey in
                 let header = storageHeaderTitle(for: sectionKey)
                 let sectionBells = grouped[sectionKey, default: []]
-                let bellsWithoutCabinet = sectionBells.filter {
-                    normalizedStorageValue($0.storagePath?.cabinet) == nil
+                let directBells = sectionBells.filter {
+                    storageSubgroupKey(for: $0) == nil
                 }
-                let cabinetGroups = Dictionary(grouping: sectionBells.compactMap { bell in
-                    normalizedStorageValue(bell.storagePath?.cabinet).map { ($0, bell) }
+                let storageGroups = Dictionary(grouping: sectionBells.compactMap { bell in
+                    storageSubgroupKey(for: bell).map { ($0, bell) }
                 }, by: \.0)
-                    .map { cabinetTitle, value in
-                        BellStorageCabinetGroup(
-                            id: "\(storageSectionID(for: sectionKey))-cabinet:\(storageIDComponent(cabinetTitle))",
-                            title: cabinetTitle,
+                    .map { subgroupKey, value in
+                        BellStorageGroup(
+                            id: "\(storageSectionID(for: sectionKey))-\(subgroupKey.kind.rawValue):\(storageIDComponent(subgroupKey.title))",
+                            kind: subgroupKey.kind,
+                            title: subgroupKey.title,
                             bells: value.map(\.1)
                         )
                     }
                     .sorted {
-                        $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+                        if $0.kind != $1.kind {
+                            return $0.kind == .cabinet
+                        }
+
+                        return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
                     }
 
                 return BellGroupedSection(
@@ -376,8 +386,8 @@ final class BellCatalogViewModel: ObservableObject {
                     title: header,
                     jumpTitle: header,
                     indexTitle: nil,
-                    bells: bellsWithoutCabinet,
-                    cabinetGroups: cabinetGroups
+                    bells: directBells,
+                    storageGroups: storageGroups
                 )
             }
         }
@@ -394,6 +404,18 @@ final class BellCatalogViewModel: ObservableObject {
 
     private func storageSectionID(for key: StorageGroupKey) -> String {
         "storage-floor:\(storageIDComponent(key.floor))-room:\(storageIDComponent(key.room))"
+    }
+
+    private func storageSubgroupKey(for bell: BellListItem) -> StorageSubgroupKey? {
+        if let cabinet = normalizedStorageValue(bell.storagePath?.cabinet) {
+            return StorageSubgroupKey(kind: .cabinet, title: cabinet)
+        }
+
+        if let shelf = normalizedStorageValue(bell.storagePath?.shelf) {
+            return StorageSubgroupKey(kind: .shelf, title: shelf)
+        }
+
+        return nil
     }
 
     private func storageIDComponent(_ value: String?) -> String {
@@ -496,16 +518,17 @@ struct BellGroupedSection: Identifiable {
     let jumpTitle: String
     let indexTitle: String?
     let bells: [BellListItem]
-    let cabinetGroups: [BellStorageCabinetGroup]
+    let storageGroups: [BellStorageGroup]
 
     var allBells: [BellListItem] {
-        bells + cabinetGroups.flatMap(\.bells)
+        bells + storageGroups.flatMap(\.bells)
     }
 }
 
-/// Represents bell storage cabinet group data and behavior.
-struct BellStorageCabinetGroup: Identifiable {
+/// Represents bell storage group data and behavior.
+struct BellStorageGroup: Identifiable {
     let id: String
+    let kind: LocationKind
     let title: String
     let bells: [BellListItem]
 }

@@ -583,17 +583,15 @@ struct BellCatalogView: View {
                     bellGridView(bells: section.bells, layoutMetrics: layoutMetrics)
                 }
 
-                if !section.cabinetGroups.isEmpty {
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        ForEach(section.cabinetGroups) { cabinetGroup in
-                            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                                Text(cabinetGroup.title)
-                                    .font(.footnote.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, CatalogMetrics.Spacing.xs)
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                    ForEach(section.storageGroups) { storageGroup in
+                        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                            Text(storageGroup.title)
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, CatalogMetrics.Spacing.xs)
 
-                                bellGridView(bells: cabinetGroup.bells, layoutMetrics: layoutMetrics)
-                            }
+                            bellGridView(bells: storageGroup.bells, layoutMetrics: layoutMetrics)
                         }
                     }
                 }
