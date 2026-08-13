@@ -158,7 +158,7 @@ struct FirstLaunchFlowView: View {
             ) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 80))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color("AccentColor"))
             }
             .tag(Step.ready)
         }
