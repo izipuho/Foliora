@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <array>
+	<string>collectionAwaits</string>
+	<string>bellsAreCalling</string>
+	<string>whereWereWe</string>
+	<string>oneMoreBell</string>
+	<string>takeALook</string>
+	<string>somethingNew</string>
+	<string>treasuresAwait</string>
+	<string>continue</string>
 	<string>hello</string>
 	<string>welcome</string>
 	<string>digin</string>
@@ -10,5 +18,9 @@
 	<string>goodToSeeYou</string>
 	<string>letsGo</string>
 	<string>ready</string>
+	<string>bellTime</string>
+	<string>backToCollection</string>
+	<string>whatsNext</string>
+	<string>newStory</string>
 </array>
 </plist>

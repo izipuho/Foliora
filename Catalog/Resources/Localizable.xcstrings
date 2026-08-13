@@ -6995,6 +6995,91 @@
         }
       }
     },
+    "splash.greeting.backToCollection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to the collection%1$@!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернёмся к коллекции%1$@!"
+          }
+        }
+      }
+    },
+    "splash.greeting.bellsAreCalling" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The bells are calling%1$@!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Колокольчики зовут%1$@!"
+          }
+        }
+      }
+    },
+    "splash.greeting.bellTime" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time for bells%1$@!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Время колокольчиков%1$@!"
+          }
+        }
+      }
+    },
+    "splash.greeting.collectionAwaits" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your collection awaits%1$@!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Коллекция ждёт тебя%1$@!"
+          }
+        }
+      }
+    },
+    "splash.greeting.continue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shall we continue%1$@?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжим%1$@?"
+          }
+        }
+      }
+    },
     "splash.greeting.digin" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7080,6 +7165,40 @@
         }
       }
     },
+    "splash.greeting.newStory" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another story awaits%1$@!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ещё одна история ждёт%1$@!"
+          }
+        }
+      }
+    },
+    "splash.greeting.oneMoreBell" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One more bell%1$@?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ещё один колокольчик%1$@?"
+          }
+        }
+      }
+    },
     "splash.greeting.ready" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7093,6 +7212,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Готов%1$@?"
+          }
+        }
+      }
+    },
+    "splash.greeting.somethingNew" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something new today%1$@?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что-нибудь новенькое сегодня%1$@?"
+          }
+        }
+      }
+    },
+    "splash.greeting.takeALook" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let’s take a look%1$@!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заглянем в коллекцию%1$@!"
+          }
+        }
+      }
+    },
+    "splash.greeting.treasuresAwait" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your treasures await%1$@!"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Твои сокровища ждут%1$@!"
           }
         }
       }
@@ -7127,6 +7297,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "С возвращением%1$@!"
+          }
+        }
+      }
+    },
+    "splash.greeting.whatsNext" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What’s next%1$@?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что у нас дальше%1$@?"
+          }
+        }
+      }
+    },
+    "splash.greeting.whereWereWe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where were we%1$@?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На чём мы остановились%1$@?"
           }
         }
       }
