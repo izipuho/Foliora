@@ -576,11 +576,14 @@ struct BellCatalogView: View {
         scrollProxy: ScrollViewProxy
     ) -> some View {
         ForEach(sections) { section in
-            let usesCabinetGroups = !section.cabinetGroups.isEmpty
             let usesJumpPopover = section.indexTitle == nil
 
             Section {
-                if usesCabinetGroups {
+                if !section.bells.isEmpty {
+                    bellGridView(bells: section.bells, layoutMetrics: layoutMetrics)
+                }
+
+                if !section.cabinetGroups.isEmpty {
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                         ForEach(section.cabinetGroups) { cabinetGroup in
                             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
@@ -593,8 +596,6 @@ struct BellCatalogView: View {
                             }
                         }
                     }
-                } else {
-                    bellGridView(bells: section.bells, layoutMetrics: layoutMetrics)
                 }
             } header: {
                 BellGroupedSectionHeader(
