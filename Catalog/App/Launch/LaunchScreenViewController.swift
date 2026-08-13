@@ -118,7 +118,7 @@ public final class LaunchScreenViewController: UIViewController {
         let medallionFrame = medallionContainer.superview?.convert(medallionContainer.frame, to: view) ?? medallionContainer.frame
         let titleFrame = titleContainer.superview?.convert(titleContainer.frame, to: view) ?? titleContainer.frame
         let scaledTopInset = medallionFrame.height * (1 - IntroAnimation.scale) / 2
-        let maximumVerticalOffset = titleFrame.maxY - medallionFrame.minY + scaledTopInset
+        let maximumVerticalOffset = titleFrame.maxY - medallionFrame.minY - scaledTopInset
         let verticalOffset = max(desiredVerticalOffset, maximumVerticalOffset)
 
         UIView.animate(
