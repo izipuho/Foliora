@@ -23,10 +23,6 @@ struct BellListItem: Identifiable, Hashable {
     let materialDisplayName: String
     let tagValues: [String]
     let storagePath: StoragePath?
-    let storageFloor: String
-    let storageRoom: String
-    let storageCabinet: String
-    let storageShelf: String
     let storageDisplayPath: String
     let storageLocationName: String
     let coverPhotoIdentifier: String?
@@ -57,10 +53,6 @@ struct BellListItem: Identifiable, Hashable {
         materialDisplayName: String,
         tagValues: [String],
         storagePath: StoragePath? = nil,
-        storageFloor: String,
-        storageRoom: String,
-        storageCabinet: String,
-        storageShelf: String,
         storageDisplayPath: String,
         storageLocationName: String,
         coverPhotoIdentifier: String?,
@@ -90,10 +82,6 @@ struct BellListItem: Identifiable, Hashable {
         self.materialDisplayName = materialDisplayName
         self.tagValues = tagValues
         self.storagePath = storagePath
-        self.storageFloor = storageFloor
-        self.storageRoom = storageRoom
-        self.storageCabinet = storageCabinet
-        self.storageShelf = storageShelf
         self.storageDisplayPath = storageDisplayPath
         self.storageLocationName = storageLocationName
         self.coverPhotoIdentifier = coverPhotoIdentifier
