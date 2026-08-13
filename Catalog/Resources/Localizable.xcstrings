@@ -6174,13 +6174,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add your name to make Foliora feel more personal."
+            "value" : "Add your name to make Foliora feel more personal. Name can be changed later in Settings."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Добавьте имя, чтобы Foliora могла обращаться к вам лично."
+            "value" : "Добавьте имя, чтобы Foliora могла обращаться к вам лично. Имя можно будет поменять позже в настройках."
           }
         }
       }
