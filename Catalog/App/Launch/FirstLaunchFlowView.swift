@@ -61,6 +61,7 @@ struct FirstLaunchFlowView: View {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 Button(primaryTitle, action: primaryAction)
                     .font(.title3)
+                    .foregroundStyle(.primary)
                     .buttonStyle(.glassProminent)
                     .tint(Color("LightAccent"))
                     .disabled(primaryDisabled)
@@ -69,6 +70,7 @@ struct FirstLaunchFlowView: View {
                 if let skipAction {
                     Button("common.skip", action: skipAction)
                         .font(.title3)
+                        .foregroundStyle(.primary)
                         .buttonStyle(.glass)
                         .tint(Color("LightAccent"))
                         .disabled(skipDisabled)
@@ -156,9 +158,9 @@ struct FirstLaunchFlowView: View {
                     onFinished()
                 }
             ) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(Color("AccentColor"))
+                //Image(systemName: "checkmark.circle.fill")
+                //    .font(.system(size: 80))
+                //    .foregroundStyle(Color("AccentColor"))
             }
             .tag(Step.ready)
         }
