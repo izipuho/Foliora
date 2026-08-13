@@ -33,7 +33,7 @@ enum RootTab: String, CaseIterable, Identifiable, Hashable {
     var systemImage: String {
         switch self {
         case .collections:
-            return "square.grid.2x2"
+            return "rectangle.stack.fill"
         case .homes:
             return "house"
         case .settings:
