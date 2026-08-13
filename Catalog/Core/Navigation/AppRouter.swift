@@ -542,7 +542,8 @@ private struct BellDetailInspectorView: View {
         NavigationStack {
             BellDetailContainer(
                 bellID: bellID,
-                repository: repository
+                repository: repository,
+                embedsNavigation: false
             )
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
