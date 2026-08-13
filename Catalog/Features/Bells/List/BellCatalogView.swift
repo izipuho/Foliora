@@ -902,30 +902,30 @@ private struct BellGroupingJumpPopover: View {
 struct BellDetailContainer: View {
     let bellID: UUID
     let repository: any CatalogRepository
+    let embedsNavigation: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var bell: BellRecord?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
 
-    init(bellID: UUID, repository: any CatalogRepository) {
+    init(
+        bellID: UUID,
+        repository: any CatalogRepository,
+        embedsNavigation: Bool = true
+    ) {
         self.bellID = bellID
         self.repository = repository
+        self.embedsNavigation = embedsNavigation
     }
 
     var body: some View {
-        NavigationStack {
-            if let bellBinding {
-                BellDetailView(
-                    bell: bellBinding,
-                    repository: repository,
-                    canEditCollection: canEditCollection,
-                    canChangeFavorite: canChangeFavorite
-                )
+        Group {
+            if embedsNavigation {
+                NavigationStack {
+                    content
+                }
             } else {
-                CatalogEmptyStateView(
-                    systemImage: "bell.slash",
-                    title: "bell.not_found"
-                )
+                content
             }
         }
         .task(id: bellID) {
@@ -937,6 +937,23 @@ struct BellDetailContainer: View {
             object: managedObjectContext
         )) { _ in
             reloadBell()
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let bellBinding {
+            BellDetailView(
+                bell: bellBinding,
+                repository: repository,
+                canEditCollection: canEditCollection,
+                canChangeFavorite: canChangeFavorite
+            )
+        } else {
+            CatalogEmptyStateView(
+                systemImage: "bell.slash",
+                title: "bell.not_found"
+            )
         }
     }
 
