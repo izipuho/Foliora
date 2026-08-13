@@ -52,7 +52,7 @@ enum CoreDataDomainMapper {
             tags: tags,
             originPlace: originPlaceEntity.map(place),
             storageLocation: locationEntity.map { location(from: $0) },
-            storagePath: locationEntity.map(storagePath) ?? "",
+            storagePath: locationEntity.map(storagePath),
             mediaAssets: mediaAssets
         )
     }
@@ -183,15 +183,21 @@ enum CoreDataDomainMapper {
         MediaKind(rawValue: rawValue) ?? .photo
     }
 
-    private static func storagePath(from entity: NSManagedObject) -> String {
-        var parts: [String] = []
+    private static func storagePath(from entity: NSManagedObject) -> StoragePath {
+        var components: [StoragePath.Component] = []
         var current: NSManagedObject? = entity
 
         while let location = current {
-            parts.insert(stringValue(location, "name"), at: 0)
+            components.insert(
+                StoragePath.Component(
+                    kind: locationKind(from: stringValue(location, "kindRaw", default: LocationKind.room.rawValue)),
+                    name: stringValue(location, "name")
+                ),
+                at: 0
+            )
             current = location.value(forKey: "parent") as? NSManagedObject
         }
 
-        return parts.joined(separator: " / ")
+        return StoragePath(components: components)
     }
 }

@@ -576,25 +576,24 @@ struct BellCatalogView: View {
         scrollProxy: ScrollViewProxy
     ) -> some View {
         ForEach(sections) { section in
-            let usesCabinetGroups = !section.cabinetGroups.isEmpty
             let usesJumpPopover = section.indexTitle == nil
 
             Section {
-                if usesCabinetGroups {
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        ForEach(section.cabinetGroups) { cabinetGroup in
-                            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                                Text(cabinetGroup.title)
-                                    .font(.footnote.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, CatalogMetrics.Spacing.xs)
+                if !section.bells.isEmpty {
+                    bellGridView(bells: section.bells, layoutMetrics: layoutMetrics)
+                }
 
-                                bellGridView(bells: cabinetGroup.bells, layoutMetrics: layoutMetrics)
-                            }
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                    ForEach(section.storageGroups) { storageGroup in
+                        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                            Text(storageGroup.title)
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, CatalogMetrics.Spacing.xs)
+
+                            bellGridView(bells: storageGroup.bells, layoutMetrics: layoutMetrics)
                         }
                     }
-                } else {
-                    bellGridView(bells: section.bells, layoutMetrics: layoutMetrics)
                 }
             } header: {
                 BellGroupedSectionHeader(
@@ -640,6 +639,29 @@ struct BellCatalogView: View {
         catalogSnapshot.locationPathByID.filter { id, _ in
             availableLocations.contains { $0.id == id }
         }
+    }
+
+    private func storagePath(for location: Location) -> StoragePath {
+        var components = [
+            StoragePath.Component(
+                kind: location.kind,
+                name: location.name
+            )
+        ]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            components.insert(
+                StoragePath.Component(
+                    kind: parent.kind,
+                    name: parent.name
+                ),
+                at: 0
+            )
+            currentParentID = parent.parentLocationID
+        }
+
+        return StoragePath(components: components)
     }
 
     private func reloadCatalogSnapshot() {
@@ -779,7 +801,7 @@ struct BellCatalogView: View {
         let loader = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
         for bell in bells {
             guard let record = loader.loadBell(id: bell.id) else { continue }
-            repository.saveBellRecord(record.moving(to: location, path: locationID.flatMap { locationPathByID[$0] } ?? ""))
+            repository.saveBellRecord(record.moving(to: location, storagePath: location.map(storagePath(for:))))
         }
 
         reloadCatalogSnapshot()

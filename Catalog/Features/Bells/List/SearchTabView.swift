@@ -388,14 +388,11 @@ struct SearchTabView: View {
     }
 
     private func storageValues(for bell: BellListItem) -> [String] {
-        return [
-            bell.storageDisplayPath,
-            bell.storageLocationName,
-            bell.storageFloor,
-            bell.storageRoom,
-            bell.storageCabinet,
-            bell.storageShelf
-        ]
+        guard let storagePath = bell.storagePath, !storagePath.isEmpty else {
+            return [bell.storageLocationName]
+        }
+
+        return [storagePath.displayPath] + storagePath.components.map(\.name)
     }
 
     private func collectionTitle(for bell: BellListItem) -> String {

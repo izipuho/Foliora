@@ -17,7 +17,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
     var tags: [String]
     var originPlace: Place?
     var storageLocation: Location?
-    var storagePath: String
+    var storagePath: StoragePath?
     var mediaAssets: [MediaAsset]
 
     private enum CodingKeys: String, CodingKey {
@@ -52,7 +52,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
         tags: [String],
         originPlace: Place?,
         storageLocation: Location?,
-        storagePath: String,
+        storagePath: StoragePath?,
         mediaAssets: [MediaAsset]
     ) {
         self.id = id
@@ -91,7 +91,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
         tags = try container.decode([String].self, forKey: .tags)
         originPlace = nil
         storageLocation = nil
-        storagePath = ""
+        storagePath = nil
         mediaAssets = []
     }
 

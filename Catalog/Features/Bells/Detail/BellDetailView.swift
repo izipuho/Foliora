@@ -508,7 +508,7 @@ struct BellDetailView: View {
                 tags: tags ?? bell.tags,
                 originPlace: resolvedOriginPlace,
                 storageLocation: location,
-                storagePath: location.map { locationPath(for: $0, locationsByID: locationsByID) } ?? String(localized: "common.unassigned"),
+                storagePath: location.map { storagePath(for: $0, locationsByID: locationsByID) },
                 mediaAssets: normalizedMediaAssets
             ),
             details: BellDetails(
@@ -523,16 +523,27 @@ struct BellDetailView: View {
         reloadLookupSnapshot()
     }
 
-    private func locationPath(for location: Location, locationsByID: [UUID: Location]) -> String {
-        var parts = [location.name]
+    private func storagePath(for location: Location, locationsByID: [UUID: Location]) -> StoragePath {
+        var components = [
+            StoragePath.Component(
+                kind: location.kind,
+                name: location.name
+            )
+        ]
         var currentParentID = location.parentLocationID
 
         while let parentID = currentParentID, let parent = locationsByID[parentID] {
-            parts.insert(parent.name, at: 0)
+            components.insert(
+                StoragePath.Component(
+                    kind: parent.kind,
+                    name: parent.name
+                ),
+                at: 0
+            )
             currentParentID = parent.parentLocationID
         }
 
-        return parts.joined(separator: " / ")
+        return StoragePath(components: components)
     }
 }
 

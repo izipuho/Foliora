@@ -216,9 +216,6 @@ struct CatalogSnapshot {
 
     private static func bellListItem(from entity: NSManagedObject) -> BellListItem {
         let record = CoreDataDomainMapper.bellRecord(from: entity)
-        let locationEntity = (entity.value(forKey: "collectionLocation") as? NSManagedObject)
-            ?? entity.value(forKey: "location") as? NSManagedObject
-        let storageComponents = locationEntity.map(storageComponents) ?? [:]
         let coverPhoto = record.mediaAssets
             .sorted { $0.sortOrder < $1.sortOrder }
             .first { $0.kind == .photo }
@@ -244,10 +241,7 @@ struct CatalogSnapshot {
             material: record.details.material,
             materialDisplayName: record.materialDisplayName,
             tagValues: record.tags,
-            storageFloor: storageComponents[.floor] ?? "",
-            storageRoom: storageComponents[.room] ?? "",
-            storageCabinet: storageComponents[.cabinet] ?? "",
-            storageShelf: storageComponents[.shelf] ?? "",
+            storagePath: record.storagePath,
             storageDisplayPath: record.storageDisplayPath,
             storageLocationName: record.storageLocationName,
             coverPhotoIdentifier: coverPhoto?.localIdentifier,
@@ -286,22 +280,6 @@ struct CatalogSnapshot {
         }
 
         return parts.joined(separator: " / ")
-    }
-
-    private static func storageComponents(from entity: NSManagedObject) -> [LocationKind: String] {
-        var components: [LocationKind: String] = [:]
-        var current: NSManagedObject? = entity
-
-        while let location = current {
-            let kind = locationKind(from: stringValue(location, "kindRaw", default: LocationKind.room.rawValue))
-            let name = stringValue(location, "name").trimmingCharacters(in: .whitespacesAndNewlines)
-            if !name.isEmpty, components[kind] == nil {
-                components[kind] = name
-            }
-            current = location.value(forKey: "parent") as? NSManagedObject
-        }
-
-        return components
     }
 
     private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {

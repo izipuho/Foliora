@@ -77,6 +77,14 @@ struct StoragePath: Hashable, Codable {
         componentName(for: .shelf)
     }
 
+    var displayPath: String {
+        components.map(\.name).joined(separator: " / ")
+    }
+
+    var isEmpty: Bool {
+        components.isEmpty
+    }
+
     private func componentName(for kind: LocationKind) -> String? {
         components.first(where: { $0.kind == kind })?.name
     }
