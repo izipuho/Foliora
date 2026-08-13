@@ -241,7 +241,10 @@ struct BellCatalogSnapshot {
 }
 
 extension BellRecord {
-    func moving(to location: Location?, path: String) -> BellRecord {
+    func moving(
+        to location: Location?,
+        storagePath: StoragePath?
+    ) -> BellRecord {
         BellRecord(
             item: ItemRecord(
                 id: item.id,
@@ -259,7 +262,7 @@ extension BellRecord {
                 tags: tags,
                 originPlace: originPlace,
                 storageLocation: location,
-                storagePath: path,
+                storagePath: storagePath,
                 mediaAssets: mediaAssets
             ),
             details: details

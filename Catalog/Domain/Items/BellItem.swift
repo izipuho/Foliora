@@ -71,13 +71,19 @@ struct BellRecord: Identifiable, Hashable {
     var tags: [String] { item.tags }
     var originPlace: Place? { item.originPlace }
     var storageLocation: Location? { item.storageLocation }
-    var storagePath: String { item.storagePath }
+    var storagePath: StoragePath? { item.storagePath }
     var mediaAssets: [MediaAsset] { item.mediaAssets }
     var placeDisplayName: String { originPlace?.displayName ?? String(localized: "common.unknown_origin") }
     var countryName: String { originPlace?.countryName ?? "" }
     var cityName: String { originPlace?.cityName ?? "" }
     var storageLocationName: String { storageLocation?.name ?? String(localized: "common.unassigned") }
-    var storageDisplayPath: String { storagePath.isEmpty ? storageLocationName : storagePath }
+    var storageDisplayPath: String {
+        guard let storagePath, !storagePath.isEmpty else {
+            return storageLocationName
+        }
+
+        return storagePath.displayPath
+    }
     var photoCount: Int { mediaAssets.filter { $0.kind == .photo }.count }
     var model3DCount: Int { mediaAssets.filter { $0.kind == .model3D }.count }
     var documentCount: Int { mediaAssets.filter { $0.kind == .document }.count }

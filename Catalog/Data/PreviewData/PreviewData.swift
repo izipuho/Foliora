@@ -109,19 +109,33 @@ enum PreviewData {
                 title: "First Item",
                 collectionID: collectionID,
                 location: firstShelf,
-                storagePath: "First Floor / Living Room / Cabinet / Top Shelf"
+                storagePath: StoragePath(
+                    components: [
+                        .init(kind: .floor, name: "First Floor"),
+                        .init(kind: .room, name: "Living Room"),
+                        .init(kind: .cabinet, name: "Cabinet"),
+                        .init(kind: .shelf, name: "Top Shelf")
+                    ]
+                )
             ),
             makeItem(
                 title: "Second Item",
                 collectionID: collectionID,
                 location: secondShelf,
-                storagePath: "First Floor / Living Room / Cabinet / Bottom Shelf"
+                storagePath: StoragePath(
+                    components: [
+                        .init(kind: .floor, name: "First Floor"),
+                        .init(kind: .room, name: "Living Room"),
+                        .init(kind: .cabinet, name: "Cabinet"),
+                        .init(kind: .shelf, name: "Bottom Shelf")
+                    ]
+                )
             ),
             makeItem(
                 title: "Third Item",
                 collectionID: collectionID,
                 location: nil,
-                storagePath: ""
+                storagePath: nil
             )
         ]
 
@@ -240,7 +254,7 @@ enum PreviewData {
         title: String,
         collectionID: UUID,
         location: Location?,
-        storagePath: String
+        storagePath: StoragePath?
     ) -> ItemRecord {
         ItemRecord(
             id: UUID(),

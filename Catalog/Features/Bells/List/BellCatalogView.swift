@@ -642,6 +642,29 @@ struct BellCatalogView: View {
         }
     }
 
+    private func storagePath(for location: Location) -> StoragePath {
+        var components = [
+            StoragePath.Component(
+                kind: location.kind,
+                name: location.name
+            )
+        ]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            components.insert(
+                StoragePath.Component(
+                    kind: parent.kind,
+                    name: parent.name
+                ),
+                at: 0
+            )
+            currentParentID = parent.parentLocationID
+        }
+
+        return StoragePath(components: components)
+    }
+
     private func reloadCatalogSnapshot() {
         catalogSnapshot = BellCatalogSnapshot(context: managedObjectContext, collectionID: collection?.id)
         viewModel.updateSource(bells: catalogSnapshot.bells)
@@ -779,7 +802,7 @@ struct BellCatalogView: View {
         let loader = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
         for bell in bells {
             guard let record = loader.loadBell(id: bell.id) else { continue }
-            repository.saveBellRecord(record.moving(to: location, path: locationID.flatMap { locationPathByID[$0] } ?? ""))
+            repository.saveBellRecord(record.moving(to: location, storagePath: location.map(storagePath(for:))))
         }
 
         reloadCatalogSnapshot()
