@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24765" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
-    <device id="ipad12_9rounded" orientation="landscape" layout="fullscreen" appearance="light"/>
+    <device id="retina6_3" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24743"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
@@ -13,14 +13,14 @@
             <objects>
                 <viewController id="01J-lp-oVM" sceneMemberID="viewController">
                     <view key="view" userInteractionEnabled="NO" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="Ze5-6b-2t3" userLabel="RootView">
-                        <rect key="frame" x="0.0" y="0.0" width="1366" height="1024"/>
+                        <rect key="frame" x="0.0" y="0.0" width="402" height="874"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <stackView opaque="NO" userInteractionEnabled="NO" tag="300" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="ZOH-8B-WUK" userLabel="Title">
-                                <rect key="frame" x="544" y="24" width="278.5" height="203.5"/>
+                                <rect key="frame" x="89.666666666666671" y="123.99999999999999" width="222.66666666666663" height="155.66666666666663"/>
                                 <subviews>
                                     <label opaque="NO" userInteractionEnabled="NO" tag="301" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Foliora" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zuV-1E-J4G">
-                                        <rect key="frame" x="0.0" y="0.0" width="278.5" height="119.5"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="222.66666666666666" height="95.666666666666671"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="80"/>
                                         <color key="textColor" name="AccentColor"/>
                                         <nil key="highlightedColor"/>
@@ -29,7 +29,7 @@
                                         </variation>
                                     </label>
                                     <label opaque="NO" userInteractionEnabled="NO" tag="302" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Bells" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VKk-Vv-RHn">
-                                        <rect key="frame" x="0.0" y="119.5" width="278.5" height="84"/>
+                                        <rect key="frame" x="0.0" y="95.666666666666657" width="222.66666666666666" height="60"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="50"/>
                                         <color key="textColor" name="LightAccent"/>
                                         <nil key="highlightedColor"/>
@@ -38,17 +38,20 @@
                                         </variation>
                                     </label>
                                 </subviews>
+                                <color key="backgroundColor" name="LaunchBackground"/>
                             </stackView>
                             <view userInteractionEnabled="NO" tag="100" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="MedallionBell">
-                                <rect key="frame" x="483" y="299" width="400" height="400"/>
+                                <rect key="frame" x="80.333333333333329" y="344.33333333333331" width="241.33333333333337" height="241.33333333333331"/>
                                 <subviews>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="101" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk">
-                                        <rect key="frame" x="0.0" y="0.0" width="400" height="400"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="241.33333333333334" height="241.33333333333334"/>
                                     </imageView>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="102" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="cZx-or-9f6">
-                                        <rect key="frame" x="0.0" y="0.0" width="400" height="400"/>
+                                        <rect key="frame" x="0.0" y="-79.333333333333314" width="241.33333333333334" height="400"/>
+                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </imageView>
                                 </subviews>
+                                <color key="backgroundColor" name="LaunchBackground"/>
                                 <accessibility key="accessibilityConfiguration">
                                     <accessibilityTraits key="traits" notEnabled="YES"/>
                                 </accessibility>
@@ -64,13 +67,13 @@
                                 </constraints>
                             </view>
                             <view userInteractionEnabled="NO" tag="200" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="pT4-RV-YK9" userLabel="Arcs">
-                                <rect key="frame" x="0.0" y="877" width="1366" height="147"/>
+                                <rect key="frame" x="0.0" y="727" width="402" height="147"/>
                                 <subviews>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="202" contentMode="scaleToFill" image="ArcRight" translatesAutoresizingMaskIntoConstraints="NO" id="rQW-R1-Z8Z">
-                                        <rect key="frame" x="0.0" y="0.0" width="1366" height="147"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="402" height="147"/>
                                     </imageView>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="201" contentMode="scaleToFill" image="ArcLeft" translatesAutoresizingMaskIntoConstraints="NO" id="B1J-xh-wTC">
-                                        <rect key="frame" x="0.0" y="-124" width="1366" height="271"/>
+                                        <rect key="frame" x="0.0" y="-124" width="402" height="271"/>
                                     </imageView>
                                 </subviews>
                                 <accessibility key="accessibilityConfiguration">
