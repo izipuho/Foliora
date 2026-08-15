@@ -5,7 +5,7 @@ import Foundation
 /// Groups foliora core data stack values and behavior.
 enum FolioraCoreDataStack {
     static let modelName = "Foliora"
-    static let cloudKitContainerIdentifier = "iCloud.com.izipuho.FolioraBells"
+    static let cloudKitContainerIdentifier = CKContainer.default().containerIdentifier!
 
     @concurrent
     static func makeContainer() async throws -> NSPersistentCloudKitContainer {
