@@ -30,8 +30,8 @@ struct CoreDataBellLookupSnapshotLoader: BellLookupSnapshotLoading {
     func loadSnapshot(collectionID: UUID? = nil, homeID: UUID? = nil) -> BellLookupSnapshot {
         let bellEntities = fetchEntities(
             named: "BellEntity",
-            predicate: collectionID.map { NSPredicate(format: "collection.id == %@", $0 as NSUUID) },
-            sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)]
+            predicate: collectionID.map { NSPredicate(format: "item.collection.id == %@", $0 as NSUUID) },
+            sortDescriptors: [NSSortDescriptor(key: "item.createdAt", ascending: false)]
         )
         let collectionEntities = fetchEntities(
             named: "CollectionEntity",

@@ -43,7 +43,7 @@ struct CatalogSnapshot {
         let bellEntities = fetchEntities(
             named: "BellEntity",
             in: context,
-            sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)]
+            sortDescriptors: [NSSortDescriptor(key: "item.createdAt", ascending: false)]
         )
         let placeEntities = fetchEntities(
             named: "PlaceEntity",
