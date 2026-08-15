@@ -39,10 +39,6 @@ enum FolioraCoreDataStack {
         _ container: NSPersistentCloudKitContainer,
         usesCloudKit: Bool
     ) throws {
-        // TODO(#58): Remove legacy BellEntity → ItemEntity migration before Foliora Bells 1.0.
-        // Production will use a new CloudKit container and must not support pre-ItemEntity data.
-        try migrateExistingBellsToItems(in: container)
-
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
 
@@ -200,17 +196,6 @@ enum FolioraCoreDataStack {
             .appendingPathComponent("FolioraBells/CoreData", isDirectory: true)
         try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
         return baseURL.appendingPathComponent(fileName)
-    }
-
-    // TODO(#58): Remove legacy BellEntity → ItemEntity migration before Foliora Bells 1.0.
-    // Production will use a new CloudKit container and must not support pre-ItemEntity data.
-    private static func migrateExistingBellsToItems(in container: NSPersistentCloudKitContainer) throws {
-        let context = container.newBackgroundContext()
-        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-
-        try context.performAndWait {
-            try migrateExistingBellsToItems(in: context)
-        }
     }
 
     private static func migrateExistingBellsToItems(in context: NSManagedObjectContext) throws {
