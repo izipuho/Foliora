@@ -384,7 +384,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func fetchBellEntity(by itemID: UUID) -> NSManagedObject? {
         fetchEntities(
             named: "BellEntity",
-            predicate: NSPredicate(format: "item.id == %@", itemID as NSUUID, itemID as NSUUID),
+            predicate: NSPredicate(format: "item.id == %@", itemID as NSUUID),
             fetchLimit: 1
         ).first
     }
