@@ -1,5 +1,6 @@
 import Foundation
 
+/// Provides catalog archive service operations.
 struct CatalogArchiveService: Sendable {
     enum ArchiveError: LocalizedError {
         case corruptArchive

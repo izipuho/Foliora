@@ -2,29 +2,55 @@ import CloudKit
 import CoreData
 import SwiftUI
 
+/// Displays the settings view interface.
 struct SettingsView: View {
     let repository: any CatalogRepository
     let navigate: (AppDestination) -> Void
+    @Binding var displayName: String?
 
     @Environment(\.managedObjectContext) private var managedObjectContext
 
+    @State private var editedDisplayName = ""
     @State private var isImportingDocument = false
     @State private var importPresentation: CatalogImportPresentation?
     @State private var isImportExportRunning = false
     @State private var importErrorMessage: String?
     @State private var importResultMessage: String?
     @State private var exportResultMessage: String?
-    @State private var isShowingPurgeConfirmation = false
-    @State private var isPurgingCloudData = false
-    @State private var purgeStatusMessage: String?
-    @State private var isRefreshingCloudStatus = false
-    @State private var cloudAccountStatusText = "Not checked"
-    @State private var cloudUserRecordIDText = "Not checked"
-    @State private var cloudStatusLastRefreshText = "Never"
-    @State private var cloudStatusErrorMessage: String?
+    @State private var isDeveloperMenuPresented = false
+    @FocusState private var isDisplayNameFocused: Bool
 
     var body: some View {
         List {
+            Section {
+                HStack {
+                    TextField("common.name", text: $editedDisplayName)
+                        .textContentType(.name)
+                        .focused($isDisplayNameFocused)
+                    
+                    if hasUnsavedDisplayNameChanges {
+                        Button {
+                            saveDisplayName()
+                            isDisplayNameFocused = false
+                        } label: {
+                            Image(systemName: "checkmark.circle.fill")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("onboarding.introduce.save_name")
+                    } else if displayName != nil {
+                        Button(role: .destructive) {
+                            deleteDisplayName()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("settings.profile.display_name.delete")
+                    }
+                }
+            } header: {
+                Text("settings.profile.section_title")
+            }
+
             Section {
                 NavigationLink {
                     CatalogExportView { exportedCollectionCount in
@@ -50,45 +76,19 @@ struct SettingsView: View {
                 Text("settings.data.footer")
             }
 
-            #if DEBUG
-            Section {
-                NavigationLink {
-                    CloudSyncDiagnosticsView()
-                } label: {
-                    Label("Cloud Sync Diagnostics", systemImage: "icloud")
-                }
-
-                Button(role: .destructive) {
-                    isShowingPurgeConfirmation = true
-                } label: {
-                    if isPurgingCloudData {
-                        Label("Purging…", systemImage: "trash")
-                    } else {
-                        Label("Purge Cloud Data", systemImage: "trash")
-                    }
-                }
-                .disabled(isPurgingCloudData)
-
-                if let purgeStatusMessage {
-                    Text(purgeStatusMessage)
-                        .font(.footnote)
-                        .foregroundStyle(purgeStatusMessage.hasPrefix("Purge failed") ? .red : .secondary)
-                }
-            } header: {
-                Text("Developer Tools")
-            }
-            #endif
-
             Text("common.version \(appVersion) (\(buildNumber))")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .listRowBackground(Color.clear)
+                .onTapGesture(count: 5) {
+                    isDeveloperMenuPresented = true
+                }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(RootTab.settings.title)
-        .task {
-            refreshCloudStatus()
+        .onAppear {
+            editedDisplayName = displayName ?? ""
         }
         .fileImporter(
             isPresented: $isImportingDocument,
@@ -143,20 +143,27 @@ struct SettingsView: View {
         } message: {
             Text(importErrorMessage ?? "")
         }
-        .confirmationDialog(
-            "Purge Cloud Data?",
-            isPresented: $isShowingPurgeConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Purge", role: .destructive) {
-                purgeCloudData()
+        .sheet(isPresented: $isDeveloperMenuPresented) {
+            NavigationStack {
+                PhotoAnalysisSettingsView()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                isDeveloperMenuPresented = false
+                            } label: {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
             }
-            Button("common.cancel", role: .cancel) {}
-        } message: {
-            Text("This will delete all Foliora Bells data from this device and sync deletions to iCloud for this Apple ID.")
         }
     }
 
+    private var hasUnsavedDisplayNameChanges: Bool {
+        editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            != (displayName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+    }
+    
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
     }
@@ -165,39 +172,24 @@ struct SettingsView: View {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
     }
 
-    private var bundleIdentifier: String {
-        Bundle.main.bundleIdentifier ?? "Unknown"
+    private func saveDisplayName() {
+        let trimmedDisplayName = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let store = NSUbiquitousKeyValueStore.default
+
+        if trimmedDisplayName.isEmpty {
+            displayName = nil
+            store.removeObject(forKey: "foliora.profile.displayName")
+        } else {
+            displayName = trimmedDisplayName
+            store.set(trimmedDisplayName, forKey: "foliora.profile.displayName")
+            store.removeObject(forKey: "foliora.profile.didSkipIntroduction")
+        }
     }
 
-    private func refreshCloudStatus() {
-        guard !isRefreshingCloudStatus else {
-            return
-        }
-
-        isRefreshingCloudStatus = true
-        cloudStatusErrorMessage = nil
-
-        Task {
-            let container = CKContainer.default()
-
-            do {
-                let status = try await container.accountStatus()
-                let userRecordID = try await container.userRecordID()
-
-                await MainActor.run {
-                    cloudAccountStatusText = status.diagnosticsText
-                    cloudUserRecordIDText = userRecordID.recordName
-                    cloudStatusLastRefreshText = Date.now.formatted(date: .abbreviated, time: .standard)
-                    isRefreshingCloudStatus = false
-                }
-            } catch {
-                await MainActor.run {
-                    cloudStatusErrorMessage = error.localizedDescription
-                    cloudStatusLastRefreshText = Date.now.formatted(date: .abbreviated, time: .standard)
-                    isRefreshingCloudStatus = false
-                }
-            }
-        }
+    private func deleteDisplayName() {
+        displayName = nil
+        editedDisplayName = ""
+        NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.displayName")
     }
 
     private func handleImport(_ result: Result<URL, Error>) {
@@ -336,45 +328,26 @@ struct SettingsView: View {
         return String.localizedStringWithFormat(String(localized: key), count)
     }
 
-    private func purgeCloudData() {
-        guard !isPurgingCloudData else {
-            return
-        }
+}
 
-        isPurgingCloudData = true
-        purgeStatusMessage = "Purging…"
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.make(.minimal)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
 
-        Task { @MainActor in
-            await Task.yield()
-
-            do {
-                try deleteAllCatalogEntities()
-                purgeStatusMessage = "Purge completed"
-            } catch {
-                purgeStatusMessage = "Purge failed: \(error.localizedDescription)"
-            }
-
-            isPurgingCloudData = false
-        }
-    }
-
-    private func deleteAllCatalogEntities() throws {
-        try deleteCoreDataEntities(named: "MediaAssetEntity")
-        try deleteCoreDataEntities(named: "BellTagEntity")
-        try deleteCoreDataEntities(named: "BellEntity")
-        try deleteCoreDataEntities(named: "CollectionLocationEntity")
-        try deleteCoreDataEntities(named: "CollectionEntity")
-        try deleteCoreDataEntities(named: "LocationEntity")
-        try deleteCoreDataEntities(named: "PlaceEntity")
-        try deleteCoreDataEntities(named: "HomeEntity")
-        try managedObjectContext.save()
-    }
-
-    private func deleteCoreDataEntities(named entityName: String) throws {
-        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
-        try managedObjectContext.fetch(request).forEach(managedObjectContext.delete)
+    NavigationStack {
+        SettingsView(
+            repository: repository,
+            navigate: { _ in },
+            displayName: .constant("Alex")
+        )
+        .environment(\.managedObjectContext, container.viewContext)
     }
 }
+#endif
 
 private struct SettingsInfoRow: View {
     let title: String

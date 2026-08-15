@@ -2,6 +2,7 @@ import SwiftUI
 import CoreData
 import MapKit
 
+/// Displays the collection origin map view interface.
 struct CollectionOriginMapView: View {
     let collection: CollectionSummary
     let repository: any CatalogRepository
@@ -17,10 +18,9 @@ struct CollectionOriginMapView: View {
     }
 
     private var mappedGroups: [MapBellGroup] {
-        let grouped = Dictionary(grouping: catalogSnapshot.bells.compactMap { listItem -> (String, BellRecord, CLLocationCoordinate2D)? in
-            guard let bell = catalogSnapshot.recordsByID[listItem.id],
-                  let latitude = bell.originPlace?.latitude,
-                  let longitude = bell.originPlace?.longitude else {
+        let grouped = Dictionary(grouping: catalogSnapshot.bells.compactMap { bell -> (String, BellListItem, CLLocationCoordinate2D)? in
+            guard let latitude = bell.originLatitude,
+                  let longitude = bell.originLongitude else {
                 return nil
             }
 
@@ -144,7 +144,7 @@ private struct MapBellGroup: Identifiable {
     let id: String
     let coordinate: CLLocationCoordinate2D
 
-    let bells: [BellRecord]
+    let bells: [BellListItem]
 
     var title: String {
         bells.first?.title ?? ""
@@ -152,7 +152,7 @@ private struct MapBellGroup: Identifiable {
 }
 
 private struct MapBellAnnotationView: View {
-    let bells: [BellRecord]
+    let bells: [BellListItem]
     let isSelected: Bool
     let accentColor: Color
 
@@ -205,40 +205,58 @@ private struct MapBellAnnotationView: View {
 }
 
 private struct MapSelectionPanel: View {
-    let bells: [BellRecord]
+    let bells: [BellListItem]
     let repository: any CatalogRepository
 
-    @State private var presentedBell: BellRecord?
+    @State private var presentedBellID: UUID?
+
+    private var isBellDetailPresented: Binding<Bool> {
+        Binding(
+            get: { presentedBellID != nil },
+            set: { isPresented in
+                if !isPresented {
+                    presentedBellID = nil
+                }
+            }
+        )
+    }
 
     var body: some View {
         GeometryReader { proxy in
-            BellStripView(
-                bells: bells,
-                screenWidth: proxy.size.width + 32
-            ) { bell in
-                presentedBell = bell
+            VStack {
+                Spacer(minLength: 0)
+
+                CatalogCardStrip(
+                    layoutMode: .mini,
+                    screenWidth: proxy.size.width,
+                    horizontalPadding: CatalogMetrics.Insets.screen
+                ) { cardSize, cardMetrics in
+                    ForEach(bells, id: \.id) { bell in
+                        let style = CatalogCardContentStyle.style(for: .mini)
+
+                        Button {
+                            presentedBellID = bell.id
+                        } label: {
+                            BellCardView(
+                                bell: bell,
+                                style: style,
+                                cardSize: cardSize,
+                                cardMetrics: cardMetrics
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
         }
-        .frame(height: bells.count == 1 ? CatalogCardLayoutMode.wide.cardMetrics.cardHeight : CatalogCardLayoutMode.mini.cardMetrics.cardHeight)
-        .sheet(item: $presentedBell) { bell in
-            BellDetailSheetContainer(bell: bell, repository: repository)
-                .presentationDragIndicator(.visible)
+        .sheet(isPresented: isBellDetailPresented) {
+            if let presentedBellID {
+                BellDetailContainer(
+                    bellID: presentedBellID,
+                    repository: repository
+                )
+                    .presentationDragIndicator(.visible)
+            }
         }
-    }
-}
-
-private struct BellDetailSheetContainer: View {
-    @State var bell: BellRecord
-    let repository: any CatalogRepository
-
-    var body: some View {
-        NavigationStack {
-            BellDetailView(
-                bell: $bell,
-                repository: repository,
-                canEditCollection: false
-            )
-        }
-        .presentationBackground(.clear)
     }
 }

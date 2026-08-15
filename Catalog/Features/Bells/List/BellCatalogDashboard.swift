@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the bell catalog dashboard view interface.
 struct BellCatalogDashboardView: View {
     let stats: BellCatalogStats
     let accentColor: Color
@@ -363,6 +364,7 @@ private struct DashboardSharingCardContent {
     let detail: String?
 }
 
+/// Displays the dashboard data health card interface.
 struct DashboardDataHealthCard: View {
     let progress: Double
     let tint: Color
@@ -398,6 +400,7 @@ struct DashboardDataHealthCard: View {
     }
 }
 
+/// Displays the dashboard top geography card interface.
 struct DashboardTopGeographyCard: View {
     let countryName: String
     let flag: String
@@ -463,6 +466,7 @@ private struct DashboardPopoverContainer<Entry, Content: View>: View {
     }
 }
 
+/// Represents data health entry data and behavior.
 struct DataHealthEntry: Identifiable {
     let title: String
     let countText: String
@@ -472,6 +476,7 @@ struct DataHealthEntry: Identifiable {
     var id: String { title }
 }
 
+/// Displays the data health popover interface.
 struct DataHealthPopover: View {
     let entries: [DataHealthEntry]
     let onSelect: (BellPresenceFilter) -> Void
@@ -531,6 +536,7 @@ private struct DataHealthMissingProgressBar: View {
     }
 }
 
+/// Displays the summary coverage row interface.
 struct SummaryCoverageRow: View {
     let title: String
     let value: Int
@@ -574,6 +580,7 @@ struct SummaryCoverageRow: View {
     }
 }
 
+/// Displays the summary breakdown row interface.
 struct SummaryBreakdownRow: View {
     let title: String
     let value: Int
@@ -600,6 +607,7 @@ struct SummaryBreakdownRow: View {
     }
 }
 
+/// Displays the stat chip interface.
 struct StatChip: View {
     let value: String
     let title: String

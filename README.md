@@ -7,7 +7,7 @@
 
 Foliora is a native SwiftUI iOS app for cataloging home collections. The active product target is **Foliora Bells**: an offline-first catalog for bell collections with homes, storage locations, photos, search, import/export, and iCloud sharing built on Core Data + CloudKit.
 
-The repository also contains a small bell-recognition/debug target and a local PyTorch-to-Core ML training pipeline for experimenting with bell tag decisions.
+The repository also contains a small bell-recognition/debug target and a local PyTorch-to-Core ML training pipeline for experimenting with bell tag decisions. The production app now uses Apple's local Vision, Foundation Models, and Translation frameworks for photo suggestions.
 
 ## Product Features
 
@@ -32,7 +32,9 @@ The repository also contains a small bell-recognition/debug target and a local P
 - Add bells one at a time or create batches from multiple selected photos.
 - Browse with multiple card layouts, pinch-to-change layout, search, filters, sorting, jump navigation, and selection mode.
 - Filter by completeness and attributes such as origin, year, city, storage, notes, tags, material, country, condition, and acquisition method.
-- Analyze photos locally with Vision OCR/object signals to suggest tags and visual keywords.
+- Analyze photos locally with Vision and Apple Foundation Models to detect the main object, read visible text, suggest titles, notes, materials, condition, acquisition year, origin hints, tags, and visual keywords.
+- Translate photo-analysis suggestions into the user's app language when Apple Translation support is available, with lower-confidence tag suggestions visually de-emphasized.
+- Warn when the analysis does not detect a bell in the selected photo.
 
 ### Data Portability
 
@@ -63,7 +65,7 @@ Catalog/                         Main Foliora app source
     Books/                       Placeholder library module
     Collections/                 Collection list, editor, sharing, origin map, shell views
     Home/                        Homes and storage-location UI
-    Settings/                    Import/export, CloudKit status, diagnostics
+    Settings/                    Import/export, CloudKit status, photo analysis, diagnostics
   Resources/                     Assets and localized strings
 
 BellRecognition/                 Standalone bell-recognition SwiftUI/debug app
@@ -108,11 +110,13 @@ It trains in PyTorch and exports a Core ML `.mlpackage`. See `ml/README.md` for 
 ### Requirements
 
 - Xcode with iOS 26 SDK support.
+- Device or simulator runtime with Apple Foundation Models and Translation framework support for semantic photo suggestions and localized suggestion text.
 - An Apple developer team with iCloud/CloudKit capabilities for device or CloudKit testing.
 - Python 3 for the optional ML tools.
 
 ## Notes
 
 - The app is offline-first: local Core Data writes are the primary interaction path, with CloudKit synchronization handled by the persistent container.
+- Photo analysis is designed to run locally through Apple system frameworks; suggested fields remain user-reviewed before they are saved.
 - Sharing is collection-scoped; home/location management remains owner-controlled reference data.
 - Books, coins, and stamps assets are present, but bells are the implemented catalog experience in the current codebase.

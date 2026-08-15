@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Groups catalog card accessory values and behavior.
 enum CatalogCardAccessory: Hashable, Identifiable {
     case chip(String)
     case label(text: String, systemImage: String)
@@ -10,6 +11,7 @@ enum CatalogCardAccessory: Hashable, Identifiable {
     }
 }
 
+/// Groups catalog card badge values and behavior.
 enum CatalogCardBadge: Hashable, Identifiable {
     case shared
     case warning
@@ -22,6 +24,7 @@ enum CatalogCardBadge: Hashable, Identifiable {
     }
 }
 
+/// Displays the catalog card content interface.
 struct CatalogCardContent: View {
     let title: String
     let subtitle: String
@@ -81,6 +84,7 @@ struct CatalogCardContent: View {
     }
 }
 
+/// Represents catalog card content style data and behavior.
 struct CatalogCardContentStyle {
     struct TitleBlockStyle {
         let titleFont: Font

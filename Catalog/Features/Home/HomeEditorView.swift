@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the home editor view interface.
 struct HomeEditorView: View {
     @Binding var home: Home
     @Binding var locations: [Location]
@@ -352,6 +353,7 @@ struct HomeEditorView: View {
     }
 }
 
+/// Displays the add location sheet interface.
 struct AddLocationSheet: View {
     let homeID: UUID
     let existingLocations: [Location]
@@ -389,7 +391,8 @@ struct AddLocationSheet: View {
             parentLocationID: parentLocationID,
             kind: kind,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? defaultName(for: kind) : name,
-            notes: notes
+            notes: notes,
+            sortOrder: nil
         )
     }
 
@@ -506,7 +509,8 @@ struct AddLocationSheet: View {
                         NSLocalizedString("home.location.shelf_default_name", comment: "Default generated shelf name"),
                         index
                     ),
-                    notes: ""
+                    notes: "",
+                    sortOrder: nil
                 )
             })
         }

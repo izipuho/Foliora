@@ -1,39 +1,15 @@
 import SwiftUI
 
-extension BellRecord {
-    private var coverPhoto: MediaAsset? {
-        mediaAssets
-            .filter { $0.kind == .photo }
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .first
-    }
-
-    var coverPhotoIdentifier: String? {
-        guard let localIdentifier = coverPhoto?.localIdentifier, !localIdentifier.isEmpty else {
-            return nil
-        }
-
-        return localIdentifier
-    }
-
-    var coverPhotoThumbnailData: Data? {
-        coverPhoto?.thumbnailData
-    }
-
-    var coverPhotoOriginalData: Data? {
-        coverPhoto?.originalData
-    }
-}
-
+/// Displays the bell card view interface.
 struct BellCardView: View {
-    let bell: BellRecord
+    let bell: BellListItem
     let cardSize: CGSize
 
     private let style: CatalogCardContentStyle
     private let cardMetrics: CatalogCardLayoutMode.CardMetrics
 
     init(
-        bell: BellRecord,
+        bell: BellListItem,
         style: CatalogCardContentStyle,
         cardSize: CGSize,
         cardMetrics: CatalogCardLayoutMode.CardMetrics

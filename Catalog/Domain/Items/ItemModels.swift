@@ -1,48 +1,77 @@
 import Foundation
 
-struct Item: Identifiable, Hashable, Codable {
+/// Represents item record data and behavior.
+struct ItemRecord: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
     let locationID: UUID?
+    let originPlaceID: UUID?
     let createdAt: Date
+    let createdBy: String
     var title: String
     var notes: String
     var acquiredYear: Int?
     var condition: ItemCondition
     var acquisitionMethod: AcquisitionMethod
+    var isFavorite: Bool
+    var tags: [String]
+    var originPlace: Place?
+    var storageLocation: Location?
+    var storagePath: StoragePath?
+    var mediaAssets: [MediaAsset]
 
     private enum CodingKeys: String, CodingKey {
         case id
         case collectionID
         case locationID
+        case originPlaceID
         case createdAt
+        case createdBy
         case title
         case notes
         case acquiredYear
         case condition
         case acquisitionMethod
+        case isFavorite
+        case tags
     }
 
     init(
         id: UUID,
         collectionID: UUID,
         locationID: UUID?,
+        originPlaceID: UUID?,
         createdAt: Date,
+        createdBy: String,
         title: String,
         notes: String,
         acquiredYear: Int?,
         condition: ItemCondition,
-        acquisitionMethod: AcquisitionMethod
+        acquisitionMethod: AcquisitionMethod,
+        isFavorite: Bool,
+        tags: [String],
+        originPlace: Place?,
+        storageLocation: Location?,
+        storagePath: StoragePath?,
+        mediaAssets: [MediaAsset]
     ) {
         self.id = id
         self.collectionID = collectionID
         self.locationID = locationID
+        self.originPlaceID = originPlaceID
         self.createdAt = createdAt
+        self.createdBy = createdBy
         self.title = title
         self.notes = notes
         self.acquiredYear = acquiredYear
         self.condition = condition
         self.acquisitionMethod = acquisitionMethod
+        self.isFavorite = isFavorite
+        self.tags = tags
+        self.originPlace = originPlace
+        self.storageLocation = storageLocation
+        self.storagePath = storagePath
+        self.mediaAssets = mediaAssets
     }
 
     init(from decoder: Decoder) throws {
@@ -50,12 +79,20 @@ struct Item: Identifiable, Hashable, Codable {
         id = try container.decode(UUID.self, forKey: .id)
         collectionID = try container.decode(UUID.self, forKey: .collectionID)
         locationID = try container.decodeIfPresent(UUID.self, forKey: .locationID)
+        originPlaceID = try container.decodeIfPresent(UUID.self, forKey: .originPlaceID)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
+        createdBy = try container.decode(String.self, forKey: .createdBy)
         title = try container.decode(String.self, forKey: .title)
         notes = try container.decode(String.self, forKey: .notes)
         acquiredYear = try container.decodeIfPresent(Int.self, forKey: .acquiredYear)
         condition = try container.decode(ItemCondition.self, forKey: .condition)
         acquisitionMethod = try container.decode(AcquisitionMethod.self, forKey: .acquisitionMethod)
+        isFavorite = try container.decode(Bool.self, forKey: .isFavorite)
+        tags = try container.decode([String].self, forKey: .tags)
+        originPlace = nil
+        storageLocation = nil
+        storagePath = nil
+        mediaAssets = []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -63,15 +100,20 @@ struct Item: Identifiable, Hashable, Codable {
         try container.encode(id, forKey: .id)
         try container.encode(collectionID, forKey: .collectionID)
         try container.encodeIfPresent(locationID, forKey: .locationID)
+        try container.encodeIfPresent(originPlaceID, forKey: .originPlaceID)
         try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(createdBy, forKey: .createdBy)
         try container.encode(title, forKey: .title)
         try container.encode(notes, forKey: .notes)
         try container.encodeIfPresent(acquiredYear, forKey: .acquiredYear)
         try container.encode(condition, forKey: .condition)
         try container.encode(acquisitionMethod, forKey: .acquisitionMethod)
+        try container.encode(isFavorite, forKey: .isFavorite)
+        try container.encode(tags, forKey: .tags)
     }
 }
 
+/// Groups item condition values and behavior.
 enum ItemCondition: String, CaseIterable, Identifiable, Codable {
     case mint = "Mint"
     case good = "Good"
@@ -97,6 +139,7 @@ enum ItemCondition: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+/// Groups acquisition method values and behavior.
 enum AcquisitionMethod: String, CaseIterable, Identifiable, Codable {
     case bought = "Bought"
     case gifted = "Gifted"

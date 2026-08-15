@@ -3,6 +3,7 @@ import CoreData
 import Foundation
 import SwiftUI
 
+/// Displays the collection sharing view interface.
 struct CollectionSharingView: View {
     let collection: CollectionSummary
     let onSharingChanged: () -> Void
@@ -99,7 +100,7 @@ struct CollectionSharingView: View {
                 set: { if !$0 { sharingAlert = nil } }
             )
         ) {
-            Button("OK", role: .cancel) {}
+            Button("common.ok", role: .cancel) {}
         } message: {
             Text(sharingAlert?.message ?? "")
         }

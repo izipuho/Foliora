@@ -1,3 +1,5 @@
+"""Neural network definitions for bell decision classification."""
+
 from __future__ import annotations
 
 import torch
@@ -6,6 +8,8 @@ from torchvision.models import MobileNet_V3_Small_Weights, mobilenet_v3_small
 
 
 class BellDecisionModel(nn.Module):
+    """Combine image, tag, and confidence features for classification."""
+
     def __init__(
         self,
         tag_vocab_size: int,
@@ -17,6 +21,7 @@ class BellDecisionModel(nn.Module):
         pretrained: bool = False,
         freeze_backbone: bool = True,
     ) -> None:
+        """Initialize the feature branches and classification head."""
         super().__init__()
         weights = MobileNet_V3_Small_Weights.DEFAULT if pretrained else None
         backbone = mobilenet_v3_small(weights=weights)
@@ -58,6 +63,7 @@ class BellDecisionModel(nn.Module):
         tag_one_hot: torch.Tensor,
         confidence: torch.Tensor,
     ) -> torch.Tensor:
+        """Return class logits for a batch of multimodal inputs."""
         image = (image - self.image_mean) / self.image_std
         image_features = self.image_encoder(image)
         tag_features = self.tag_branch(tag_one_hot)
@@ -67,7 +73,10 @@ class BellDecisionModel(nn.Module):
 
 
 class CoreMLExportWrapper(nn.Module):
+    """Adapt classifier logits to probabilities for Core ML export."""
+
     def __init__(self, model: BellDecisionModel) -> None:
+        """Wrap a trained bell decision model."""
         super().__init__()
         self.model = model
 
@@ -77,5 +86,6 @@ class CoreMLExportWrapper(nn.Module):
         tag_one_hot: torch.Tensor,
         confidence: torch.Tensor,
     ) -> torch.Tensor:
+        """Return normalized class probabilities for Core ML."""
         logits = self.model(image, tag_one_hot, confidence)
         return torch.softmax(logits, dim=1)

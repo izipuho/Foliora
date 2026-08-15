@@ -17,6 +17,7 @@ private final class ThumbnailImageBox: @unchecked Sendable {
     }
 }
 
+/// Provides thumbnail image cache operations.
 actor ThumbnailImageCache {
     static let shared = ThumbnailImageCache()
 

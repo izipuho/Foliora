@@ -20,6 +20,7 @@ private struct BellCatalogFeedbackEvent: Equatable {
     let token: Int
 }
 
+/// Represents bell catalog selection mode preference key data and behavior.
 struct BellCatalogSelectionModePreferenceKey: PreferenceKey {
     static let defaultValue = false
 
@@ -90,8 +91,7 @@ private extension BellFilters {
     }
 }
 
-
-
+/// Displays the bell catalog view interface.
 struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collection: CollectionSummary?
@@ -121,6 +121,7 @@ struct BellCatalogView: View {
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
     @State private var draftHomeLocations: [Location] = []
     @State private var bellPendingMoveAfterHomeEditor: BellListItem?
+    @State private var isFavoritesCollapsed = false
     @StateObject private var viewModel: BellCatalogViewModel
     @Namespace private var bellGridTransitionNamespace
 
@@ -164,6 +165,10 @@ struct BellCatalogView: View {
 
     private var hasActiveFilter: Bool {
         !filters.isEmpty
+    }
+
+    private var favoriteBells: [BellListItem] {
+        catalogSnapshot.bells.filter(\.isFavorite)
     }
 
     private func setFilter(_ filter: BellPresenceFilter) {
@@ -314,6 +319,17 @@ struct BellCatalogView: View {
                     }
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
+
+                ToolbarItem(placement: .principal) {
+                    Text(
+                        String.localizedStringWithFormat(
+                            String(localized: "bell_catalog.selection.selected_count"),
+                            selectedVisibleBellIDs.count
+                        )
+                    )
+                    .lineLimit(1)
+                    .contentTransition(.numericText())
+                }
             }
 
             if canEditCollection && isSelectionModeEnabled && !selectedVisibleBellIDs.isEmpty {
@@ -328,21 +344,6 @@ struct BellCatalogView: View {
 
                 ToolbarSpacer(.flexible, placement: .bottomBar)
                 
-                ToolbarItem(placement: .status) {
-                    Text(
-                        String.localizedStringWithFormat(
-                            //String(localized: "bell_catalog.selection.selected_count"), //Dunno how to place long text
-                            String(localized: "%lld"),
-                            selectedVisibleBellIDs.count
-                        )
-                    )
-                    .lineLimit(1)
-                    .contentTransition(.numericText())
-                }
-                .sharedBackgroundVisibility(.hidden)
-
-                ToolbarSpacer(.flexible, placement: .bottomBar)
-
                 ToolbarItem(placement: .bottomBar) {
                     Button(role: .destructive) {
                         bellPendingDeletion = selectedBells.first
@@ -400,6 +401,15 @@ struct BellCatalogView: View {
 
                     if !isSelectionModeEnabled {
                         dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
+                    }
+
+                    if !isSelectionModeEnabled && !favoriteBells.isEmpty {
+                        favoritesSection(
+                            bells: favoriteBells,
+                            screenWidth: stripScreenWidth(cardSize: cardSize, gridMetrics: gridMetrics)
+                        )
+
+                        catalogSectionHeader
                     }
 
                     if hasActiveFilter {
@@ -494,6 +504,61 @@ struct BellCatalogView: View {
         .frame(maxHeight: min(max(screenHeight * 0.36, 220), 320), alignment: .top)
     }
 
+    private func favoritesSection(bells: [BellListItem], screenWidth: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+            BellCollapsibleSectionHeader(
+                title: String(localized: "bell.catalog.favorites"),
+                isCollapsed: isFavoritesCollapsed
+            ) {
+                withAnimation(.snappy(duration: 0.2)) {
+                    isFavoritesCollapsed.toggle()
+                }
+            }
+
+            if !isFavoritesCollapsed {
+                CatalogCardStrip(
+                    layoutMode: layoutMode,
+                    screenWidth: screenWidth,
+                    horizontalPadding: CatalogMetrics.Insets.screen
+                ) { cardSize, cardMetrics in
+                    ForEach(bells, id: \.id) { bell in
+                        let style = CatalogCardContentStyle.style(for: layoutMode)
+
+                        Button {
+                            onBellSelected?(bell.id)
+                        } label: {
+                            BellCardView(
+                                bell: bell,
+                                style: style,
+                                cardSize: cardSize,
+                                cardMetrics: cardMetrics
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private var catalogSectionHeader: some View {
+        BellGroupedSectionHeader(
+            title: String(localized: "bell.catalog.title"),
+            tint: catalogStyle.accentColor,
+            isJumpButton: false,
+            action: {}
+        )
+        //.padding(.horizontal, CatalogMetrics.Insets.screen)
+    }
+
+    private func stripScreenWidth(
+        cardSize: CGSize,
+        gridMetrics: CatalogCardLayoutMode.GridMetrics
+    ) -> CGFloat {
+        let totalSpacing = gridMetrics.spacing * CGFloat(max(gridMetrics.columnCount - 1, 0))
+        return cardSize.width * CGFloat(gridMetrics.columnCount) + totalSpacing + CatalogCardLayoutMode.screenHorizontalPadding * 2
+    }
+
     private func focusGeography(country: String) {
         let targetID = "geography-\(country)"
         if orderMode != .geography {
@@ -511,25 +576,24 @@ struct BellCatalogView: View {
         scrollProxy: ScrollViewProxy
     ) -> some View {
         ForEach(sections) { section in
-            let usesCabinetGroups = !section.cabinetGroups.isEmpty
             let usesJumpPopover = section.indexTitle == nil
 
             Section {
-                if usesCabinetGroups {
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        ForEach(section.cabinetGroups) { cabinetGroup in
-                            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                                Text(cabinetGroup.title)
-                                    .font(.footnote.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, CatalogMetrics.Spacing.xs)
+                if !section.bells.isEmpty {
+                    bellGridView(bells: section.bells, layoutMetrics: layoutMetrics)
+                }
 
-                                bellGridView(bells: cabinetGroup.bells, layoutMetrics: layoutMetrics)
-                            }
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                    ForEach(section.storageGroups) { storageGroup in
+                        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                            Text(storageGroup.title)
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, CatalogMetrics.Spacing.xs)
+
+                            bellGridView(bells: storageGroup.bells, layoutMetrics: layoutMetrics)
                         }
                     }
-                } else {
-                    bellGridView(bells: section.bells, layoutMetrics: layoutMetrics)
                 }
             } header: {
                 BellGroupedSectionHeader(
@@ -575,6 +639,29 @@ struct BellCatalogView: View {
         catalogSnapshot.locationPathByID.filter { id, _ in
             availableLocations.contains { $0.id == id }
         }
+    }
+
+    private func storagePath(for location: Location) -> StoragePath {
+        var components = [
+            StoragePath.Component(
+                kind: location.kind,
+                name: location.name
+            )
+        ]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            components.insert(
+                StoragePath.Component(
+                    kind: parent.kind,
+                    name: parent.name
+                ),
+                at: 0
+            )
+            currentParentID = parent.parentLocationID
+        }
+
+        return StoragePath(components: components)
     }
 
     private func reloadCatalogSnapshot() {
@@ -664,7 +751,6 @@ struct BellCatalogView: View {
     ) -> some View {
         BellGridView(
             bells: bells,
-            recordFor: { catalogSnapshot.recordsByID[$0.id] },
             layoutMode: layoutMode,
             layoutMetrics: layoutMetrics,
             selectedBellIDs: selectedBellIDs,
@@ -712,9 +798,10 @@ struct BellCatalogView: View {
         guard canEditCollection else { return }
 
         let location = locationID.flatMap { locationsByID[$0] }
+        let loader = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
         for bell in bells {
-            guard let record = catalogSnapshot.recordsByID[bell.id] else { continue }
-            repository.saveBellRecord(record.moving(to: location, path: locationID.flatMap { locationPathByID[$0] } ?? ""))
+            guard let record = loader.loadBell(id: bell.id) else { continue }
+            repository.saveBellRecord(record.moving(to: location, storagePath: location.map(storagePath(for:))))
         }
 
         reloadCatalogSnapshot()
@@ -778,6 +865,37 @@ private struct BellGroupedSectionHeader: View {
     }
 }
 
+private struct BellCollapsibleSectionHeader: View {
+    let title: String
+    let isCollapsed: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: CatalogMetrics.Spacing.sm) {
+                Text(title)
+                    .font(CatalogTypography.sectionTitle)
+                    .foregroundStyle(.primary)
+
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+            }
+            .padding(.vertical, CatalogMetrics.Spacing.sm)
+            .padding(.horizontal, CatalogMetrics.Spacing.md)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Color(uiColor: .separator))
+                    .frame(height: 0.5)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct BellGroupingJumpPopover: View {
     let titles: [String]
     let onSelect: (String) -> Void
@@ -802,17 +920,18 @@ private struct BellGroupingJumpPopover: View {
     }
 }
 
-struct BellCatalogDetailSheetContainer: View {
+/// Displays the bell detail container interface.
+struct BellDetailContainer: View {
     let bellID: UUID
     let repository: any CatalogRepository
-    let canEditCollection: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var bell: BellRecord?
+    @State private var collectionSharingState: CollectionSharingState?
+    @State private var collectionSharingLoadError: Error?
 
-    init(bellID: UUID, repository: any CatalogRepository, canEditCollection: Bool) {
+    init(bellID: UUID, repository: any CatalogRepository) {
         self.bellID = bellID
         self.repository = repository
-        self.canEditCollection = canEditCollection
     }
 
     var body: some View {
@@ -821,24 +940,47 @@ struct BellCatalogDetailSheetContainer: View {
                 BellDetailView(
                     bell: bellBinding,
                     repository: repository,
-                    canEditCollection: canEditCollection
+                    canEditCollection: canEditCollection,
+                    canChangeFavorite: canChangeFavorite
                 )
             } else {
                 CatalogEmptyStateView(
                     systemImage: "bell.slash",
-                    title: "bel.not_found"
+                    title: "bell.not_found"
                 )
             }
         }
-        .presentationBackground(.clear)
         .task(id: bellID) {
             reloadBell()
+            await loadCollectionSharingState()
         }
         .onReceive(NotificationCenter.default.publisher(
             for: .NSManagedObjectContextObjectsDidChange,
             object: managedObjectContext
         )) { _ in
             reloadBell()
+        }
+    }
+
+    private var canEditCollection: Bool {
+        guard collectionSharingLoadError == nil else { return false }
+
+        switch collectionSharingState?.currentUserRole {
+        case .owner, .contributor:
+            return true
+        case .viewer, nil:
+            return false
+        }
+    }
+
+    private var canChangeFavorite: Bool {
+        guard collectionSharingLoadError == nil else { return false }
+
+        switch collectionSharingState?.currentUserRole {
+        case .owner:
+            return true
+        case .contributor, .viewer, nil:
+            return false
         }
     }
 
@@ -856,8 +998,27 @@ struct BellCatalogDetailSheetContainer: View {
     }
 
     private func reloadBell() {
-        let snapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext).loadSnapshot()
-        bell = snapshot.bells.first { $0.id == bellID }
+        bell = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
+            .loadBell(id: bellID)
+    }
+
+    @MainActor
+    private func loadCollectionSharingState() async {
+        collectionSharingState = nil
+        collectionSharingLoadError = nil
+
+        guard let collectionID = bell?.item.collectionID,
+              let persistentContainer = FolioraAppDelegate.coreDataContainer else {
+            return
+        }
+
+        do {
+            collectionSharingState = try await CloudKitCollectionSharingService(
+                persistentContainer: persistentContainer
+            ).sharingState(for: collectionID)
+        } catch {
+            collectionSharingLoadError = error
+        }
     }
 }
 
@@ -943,3 +1104,40 @@ private struct BellQuickMoveSheet: View {
         locations
     }
 }
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.make(.minimal)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+    let collection = snapshot.collections.first { $0.kind == .bells }!
+    let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
+    let summary = CollectionSummary(
+        id: collection.id,
+        homeID: collection.homeID,
+        kind: collection.kind,
+        name: collection.title,
+        subtitle: collection.notes,
+        backgroundStyle: collection.backgroundStyle,
+        itemCount: itemCount,
+        status: .active,
+        sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+    )
+
+    NavigationStack {
+        BellCatalogView(
+            collection: summary,
+            repository: repository,
+            sharingState: CollectionSharingState(
+                currentUserRole: .owner,
+                participants: []
+            ),
+            canEditCollection: true
+        )
+        .environment(\.managedObjectContext, container.viewContext)
+    }
+}
+#endif

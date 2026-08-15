@@ -1,14 +1,15 @@
 import Foundation
 
+/// Represents bell details data and behavior.
 struct BellDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
-    let originPlaceID: UUID?
     var material: BellMaterial
     var customMaterialName: String?
 
     var id: UUID { itemID }
 }
 
+/// Groups bell material values and behavior.
 enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
     case unknown
     case metall
@@ -52,28 +53,37 @@ enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
     }
 }
 
+/// Represents bell record data and behavior.
 struct BellRecord: Identifiable, Hashable {
-    let item: Item
+    let item: ItemRecord
     let details: BellDetails
-    let originPlace: Place?
-    let storageLocation: Location?
-    let storagePath: String
-    let mediaAssets: [MediaAsset]
-    let createdBy: String
-    let tags: [String]
 
     var id: UUID { item.id }
     var title: String { item.title }
+    var originPlaceID: UUID? { item.originPlaceID }
     var createdAt: Date { item.createdAt }
     var acquiredYear: Int? { item.acquiredYear }
     var condition: ItemCondition { item.condition }
     var acquisitionMethod: AcquisitionMethod { item.acquisitionMethod }
     var notes: String { item.notes }
+    var isFavorite: Bool { item.isFavorite }
+    var createdBy: String { item.createdBy }
+    var tags: [String] { item.tags }
+    var originPlace: Place? { item.originPlace }
+    var storageLocation: Location? { item.storageLocation }
+    var storagePath: StoragePath? { item.storagePath }
+    var mediaAssets: [MediaAsset] { item.mediaAssets }
     var placeDisplayName: String { originPlace?.displayName ?? String(localized: "common.unknown_origin") }
     var countryName: String { originPlace?.countryName ?? "" }
     var cityName: String { originPlace?.cityName ?? "" }
     var storageLocationName: String { storageLocation?.name ?? String(localized: "common.unassigned") }
-    var storageDisplayPath: String { storagePath.isEmpty ? storageLocationName : storagePath }
+    var storageDisplayPath: String {
+        guard let storagePath, !storagePath.isEmpty else {
+            return storageLocationName
+        }
+
+        return storagePath.displayPath
+    }
     var photoCount: Int { mediaAssets.filter { $0.kind == .photo }.count }
     var model3DCount: Int { mediaAssets.filter { $0.kind == .model3D }.count }
     var documentCount: Int { mediaAssets.filter { $0.kind == .document }.count }

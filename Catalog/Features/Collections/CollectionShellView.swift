@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import CoreData
 
+/// Displays the collection shell view interface.
 struct CollectionShellView: View {
     let repository: any CatalogRepository
     let coreDataContainer: NSPersistentCloudKitContainer
@@ -173,10 +174,9 @@ struct CollectionShellView: View {
             }
             .sheet(isPresented: isBellDetailPresented) {
                 if let selectedBellID {
-                    BellCatalogDetailSheetContainer(
+                    BellDetailContainer(
                         bellID: selectedBellID,
-                        repository: repository,
-                        canEditCollection: canEditCollection
+                        repository: repository
                     )
                         .presentationDragIndicator(.visible)
                 }

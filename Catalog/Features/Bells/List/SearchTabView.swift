@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 
+/// Groups search token values and behavior.
 enum SearchToken: Identifiable, Hashable {
     case collection(UUID)
     case country(String)
@@ -27,6 +28,7 @@ enum SearchToken: Identifiable, Hashable {
     }
 }
 
+/// Represents bell catalog search state data and behavior.
 struct BellCatalogSearchState: Equatable {
     enum Scope: String, CaseIterable, Identifiable {
         case all
@@ -45,6 +47,7 @@ struct BellCatalogSearchState: Equatable {
     var tokens: [SearchToken] = []
 }
 
+/// Displays the search tab view interface.
 struct SearchTabView: View {
     let repository: any CatalogRepository
     let onBellSelected: ((UUID) -> Void)?
@@ -170,10 +173,9 @@ struct SearchTabView: View {
         }
         .sheet(isPresented: isBellDetailPresented) {
             if let selectedBellID {
-                BellCatalogDetailSheetContainer(
+                BellDetailContainer(
                     bellID: selectedBellID,
-                    repository: repository,
-                    canEditCollection: false
+                    repository: repository
                 )
                     .presentationDragIndicator(.visible)
             }
@@ -212,7 +214,6 @@ struct SearchTabView: View {
         } else {
             BellGridView(
                 bells: filteredBells,
-                recordFor: { searchSnapshot.recordsByID[$0.id] },
                 layoutMode: layoutMode,
                 layoutMetrics: layoutMetrics,
                 selectedBellIDs: [],
@@ -378,27 +379,20 @@ struct SearchTabView: View {
     }
 
     private func originValues(for bell: BellListItem) -> [String] {
-        let record = searchSnapshot.recordsByID[bell.id]
-
         return [
             bell.countryName,
             bell.cityName,
             bell.placeDisplayName,
-            record?.originPlace?.regionName ?? bell.regionName
+            bell.regionName
         ]
     }
 
     private func storageValues(for bell: BellListItem) -> [String] {
-        let record = searchSnapshot.recordsByID[bell.id]
+        guard let storagePath = bell.storagePath, !storagePath.isEmpty else {
+            return [bell.storageLocationName]
+        }
 
-        return [
-            record?.storageDisplayPath ?? "",
-            record?.storageLocationName ?? "",
-            bell.storageFloor,
-            bell.storageRoom,
-            bell.storageCabinet,
-            bell.storageShelf
-        ]
+        return [storagePath.displayPath] + storagePath.components.map(\.name)
     }
 
     private func collectionTitle(for bell: BellListItem) -> String {
@@ -422,7 +416,6 @@ private struct SearchCollectionSnapshot: Identifiable {
 private struct SearchCatalogSnapshot {
     var collections: [SearchCollectionSnapshot] = []
     var bells: [BellListItem] = []
-    var recordsByID: [UUID: BellRecord] = [:]
     var collectionTitlesByID: [UUID: String] = [:]
 
     init() {}
@@ -442,7 +435,6 @@ private struct SearchCatalogSnapshot {
             )
         }
         bells = catalogSnapshot.bells
-        recordsByID = catalogSnapshot.recordsByID
         collectionTitlesByID = Dictionary(uniqueKeysWithValues: collections.map { ($0.id, $0.title) })
     }
 

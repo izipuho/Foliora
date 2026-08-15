@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Groups catalog metrics values and behavior.
 enum CatalogMetrics {
 
     enum Spacing {

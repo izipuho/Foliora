@@ -1,10 +1,12 @@
 import SwiftUI
 
+/// Displays the bell detail view interface.
 struct BellDetailView: View {
 
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
     let canEditCollection: Bool
+    let canChangeFavorite: Bool
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var draftNotes = ""
@@ -18,111 +20,130 @@ struct BellDetailView: View {
     @State private var draftHomeLocations: [Location] = []
     @State private var shouldPresentLocationPickerAfterHomeEditor = false
     @State private var isPresentingUnsavedChangesConfirmation = false
+    @State private var selectedHeroPhotoID: UUID?
     private let detailContentFadeHeight: CGFloat = 80
 
-    init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool) {
+    init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool, canChangeFavorite: Bool = false) {
         _bell = bell
+        _selectedHeroPhotoID = State(initialValue: Self.heroPhotoAssets(in: bell.wrappedValue).first?.id)
         self.repository = repository
         self.canEditCollection = canEditCollection
+        self.canChangeFavorite = canChangeFavorite
     }
 
     var body: some View {
-        ScrollView {
-            ZStack(alignment: .top) {
-                heroHeader
-                detailContent
+        MediaQuickLookPresenter(mediaAssets: bell.mediaAssets) { preview in
+            ScrollView {
+                ZStack(alignment: .top) {
+                    heroHeader(preview: preview)
+                    detailContent
+                }
             }
-        }
-        .ignoresSafeArea(edges: .top)
-        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-        .interactiveDismissDisabled(canEditCollection && isNotesOrTagsDirty)
-        .navigationTitle(bell.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbar {
-            if canEditCollection && isNotesOrTagsDirty {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
-                    .accessibilityLabel(String(localized: "common.cancel"))
+            .ignoresSafeArea(edges: .top)
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            .interactiveDismissDisabled(canEditCollection && isNotesOrTagsDirty)
+            .navigationTitle(bell.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                if canChangeFavorite {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { toggleFavorite() } label: {
+                            Image(systemName: bell.isFavorite ? "star.fill" : "star")
+                        }
+                        .accessibilityLabel(bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
+                    }
                 }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { saveNotesAndTagsChanges() } label: { Image(systemName: "checkmark") }
-                    .accessibilityLabel(String(localized: "common.save"))
-                }
-            } else if canEditCollection {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
-                    .accessibilityLabel(String(localized: "common.edit"))
-                }
-            }
-        }
-        .confirmationDialog(
-            String(localized: "bell.detail.unsaved_changes.title"),
-            isPresented: $isPresentingUnsavedChangesConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(String(localized: "common.save")) {
-                saveNotesAndTagsChanges()
-            }
+                if canEditCollection && isNotesOrTagsDirty {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
+                        .accessibilityLabel(String(localized: "common.cancel"))
+                    }
 
-            Button(String(localized: "bell.detail.unsaved_changes.discard"), role: .destructive) {
-                discardNotesAndTagsChanges()
-            }
-
-            Button(String(localized: "common.cancel"), role: .cancel) {}
-        } message: {
-            Text(String(localized: "bell.detail.unsaved_changes.message"))
-        }
-        .sheet(isPresented: $isPresentingEditor) {
-            if canEditCollection, let collection = inferredCollection {
-                BellEditorView(
-                    collection: collection,
-                    repository: repository,
-                    bell: bell
-                ) { updatedBell in
-                    repository.saveBellRecord(updatedBell)
-                    bell = updatedBell
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { saveNotesAndTagsChanges() } label: { Image(systemName: "checkmark") }
+                        .accessibilityLabel(String(localized: "common.save"))
+                    }
+                } else if canEditCollection {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
+                        .accessibilityLabel(String(localized: "common.edit"))
+                    }
                 }
             }
-        }
-        .sheet(isPresented: $isPresentingOriginPicker) {
-            PlacePickerView(
-                places: availablePlaces,
-                selectedPlace: originPlaceBinding
-            )
-        }
-        .sheet(isPresented: $isPresentingLocationPicker) {
-            LocationHierarchyPickerView(
-                locations: availableLocations,
-                selectedLocationID: locationIDBinding
-            )
-        }
-        .sheet(isPresented: $isPresentingHomeEditor) {
-            HomeEditorView(
-                home: $draftHome,
-                locations: $draftHomeLocations,
-                onSave: {
-                    repository.saveHome(draftHome)
-                    repository.saveLocations(draftHomeLocations, in: draftHome.id)
-                    reloadLookupSnapshot()
-                    continueLocationSelectionIfNeeded()
-                },
-                onDelete: nil
-            )
-        }
-        .task {
-            reloadLookupSnapshot()
-        }
-        .onAppear {
-            syncDraftsFromBell()
-        }
-        .onChange(of: bell) { _, _ in
-            guard !isNotesOrTagsDirty else { return }
-            syncDraftsFromBell()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
-            reloadLookupSnapshot()
+            .confirmationDialog(
+                String(localized: "bell.detail.unsaved_changes.title"),
+                isPresented: $isPresentingUnsavedChangesConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "common.save")) {
+                    saveNotesAndTagsChanges()
+                }
+
+                Button(String(localized: "bell.detail.unsaved_changes.discard"), role: .destructive) {
+                    discardNotesAndTagsChanges()
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "bell.detail.unsaved_changes.message"))
+            }
+            .sheet(isPresented: $isPresentingEditor) {
+                if canEditCollection, let collection = inferredCollection {
+                    BellEditorView(
+                        collection: collection,
+                        repository: repository,
+                        bell: bell
+                    ) { updatedBell in
+                        repository.saveBellRecord(updatedBell)
+                        bell = updatedBell
+                        syncDraftsFromBell()
+                    }
+                }
+            }
+            .sheet(isPresented: $isPresentingOriginPicker) {
+                PlacePickerView(
+                    places: availablePlaces,
+                    selectedPlace: originPlaceBinding
+                )
+            }
+            .sheet(isPresented: $isPresentingLocationPicker) {
+                LocationHierarchyPickerView(
+                    locations: availableLocations,
+                    selectedLocationID: locationIDBinding
+                )
+            }
+            .sheet(isPresented: $isPresentingHomeEditor) {
+                HomeEditorView(
+                    home: $draftHome,
+                    locations: $draftHomeLocations,
+                    onSave: {
+                        repository.saveHome(draftHome)
+                        repository.saveLocations(draftHomeLocations, in: draftHome.id)
+                        reloadLookupSnapshot()
+                        continueLocationSelectionIfNeeded()
+                    },
+                    onDelete: nil
+                )
+            }
+            .task {
+                reloadLookupSnapshot()
+            }
+            .onAppear {
+                syncDraftsFromBell()
+                syncSelectedHeroPhoto()
+            }
+            .onChange(of: bell) { _, _ in
+                guard !isNotesOrTagsDirty else { return }
+                syncDraftsFromBell()
+            }
+            .onChange(of: heroPhotoAssetIDs) { _, _ in
+                syncSelectedHeroPhoto()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
+                reloadLookupSnapshot()
+            }
         }
     }
 
@@ -155,16 +176,6 @@ struct BellDetailView: View {
                             isPresentingLocationPicker = true
                         }
                     }
-                )
-            }
-            .padding(.horizontal, CatalogMetrics.Insets.screen)
-
-            detailSection(String(localized: "bell.detail.section.media")) {
-                MediaSection(
-                    itemID: bell.id,
-                    mediaAssets: mediaAssetsBinding,
-                    allowsAdding: canEditCollection,
-                    allowsDeletion: false
                 )
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)
@@ -203,6 +214,19 @@ struct BellDetailView: View {
                 CatalogShapes.section
                     .fill(isNotesOrTagsDirty ? AnyShapeStyle(detailAccentColor.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
             )
+            
+            if !detailMediaAssets.isEmpty || canEditCollection {
+                detailSection(String(localized: "editor.docs_and_media")) {
+                    MediaSection(
+                        itemID: bell.id,
+                        mediaAssets: detailMediaAssetsBinding,
+                        allowsAdding: canEditCollection,
+                        allowsDeletion: false
+                    )
+                }
+                .padding(.horizontal, CatalogMetrics.Insets.screen)
+            }
+
         }
         .padding(.horizontal, CatalogMetrics.Insets.screen)
         .padding(.top, detailContentFadeHeight)
@@ -211,10 +235,10 @@ struct BellDetailView: View {
         .background(alignment: .top) {
             VStack(spacing: 0) {
                 LinearGradient(
-                    colors: [
-                        .clear,
-                        Color(.systemBackground).opacity(0.88),
-                        Color(.systemBackground)
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .clear, location: 0.65),
+                        .init(color: Color(.systemBackground), location: 1)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -249,16 +273,29 @@ struct BellDetailView: View {
         }
     }
 
-    private var heroHeader: some View {
+    private func heroHeader(preview: @escaping (MediaAsset) -> Void) -> some View {
         GeometryReader { proxy in
             ZStack {
-                if bell.coverPhotoThumbnailData != nil || bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil {
-                    MediaPreviewImage(
-                        identifier: bell.coverPhotoIdentifier,
-                        thumbnailData: bell.coverPhotoThumbnailData,
-                        originalData: bell.coverPhotoOriginalData,
-                        size: CGSize(width: proxy.size.width, height: 320)
-                    )
+                if !heroPhotoAssets.isEmpty {
+                    TabView(selection: $selectedHeroPhotoID) {
+                        ForEach(heroPhotoAssets) { asset in
+                            MediaPreviewImage(
+                                identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
+                                thumbnailData: asset.thumbnailData,
+                                originalData: asset.originalData,
+                                size: CGSize(width: proxy.size.width, height: 320)
+                            )
+                            .frame(width: proxy.size.width, height: 320)
+                            .tag(Optional(asset.id))
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: heroPhotoAssets.count > 1 ? .automatic : .never))
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if let selectedHeroPhoto {
+                            preview(selectedHeroPhoto)
+                        }
+                    }
                 } else {
                     LinearGradient(
                         colors: [
@@ -286,6 +323,40 @@ struct BellDetailView: View {
         }
         .frame(height: 320)
         .ignoresSafeArea(edges: .top)
+    }
+
+    private var heroPhotoAssets: [MediaAsset] {
+        Self.heroPhotoAssets(in: bell)
+    }
+
+    private static func heroPhotoAssets(in bell: BellRecord) -> [MediaAsset] {
+        bell.mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+    }
+
+    private var heroPhotoAssetIDs: [UUID] {
+        heroPhotoAssets.map(\.id)
+    }
+
+    private var detailMediaAssets: [MediaAsset] {
+        let heroPhotoAssetIDs = Set(heroPhotoAssetIDs)
+        return bell.mediaAssets.filter { !heroPhotoAssetIDs.contains($0.id) }
+    }
+
+    private var selectedHeroPhoto: MediaAsset? {
+        heroPhotoAssets.first { $0.id == selectedHeroPhotoID } ?? heroPhotoAssets.first
+    }
+
+    private func syncSelectedHeroPhoto() {
+        guard !heroPhotoAssets.isEmpty else {
+            selectedHeroPhotoID = nil
+            return
+        }
+
+        if selectedHeroPhotoID.map({ heroPhotoAssetIDs.contains($0) }) != true {
+            selectedHeroPhotoID = heroPhotoAssets.first?.id
+        }
     }
 
     private var availableLocations: [Location] {
@@ -337,12 +408,14 @@ struct BellDetailView: View {
         }
     }
 
-    private var mediaAssetsBinding: Binding<[MediaAsset]> {
+    private var detailMediaAssetsBinding: Binding<[MediaAsset]> {
         Binding(
-            get: { bell.mediaAssets },
+            get: { detailMediaAssets },
             set: {
                 guard canEditCollection else { return }
-                persist(mediaAssets: $0)
+                let detailMediaAssetIDs = Set(detailMediaAssets.map(\.id))
+                let heroAndUnchangedAssets = bell.mediaAssets.filter { !detailMediaAssetIDs.contains($0.id) }
+                persist(mediaAssets: heroAndUnchangedAssets + $0)
             }
         )
     }
@@ -386,6 +459,19 @@ struct BellDetailView: View {
         syncDraftsFromBell()
     }
 
+    private func toggleFavorite() {
+        guard canChangeFavorite else { return }
+        var updatedItem = bell.item
+        updatedItem.isFavorite.toggle()
+        let updatedBell = BellRecord(
+            item: updatedItem,
+            details: bell.details
+        )
+
+        bell = updatedBell
+        repository.saveBellRecord(updatedBell)
+    }
+
     private func persist(
         notes: String? = nil,
         tags: [String]? = nil,
@@ -403,32 +489,33 @@ struct BellDetailView: View {
             .enumerated()
             .map { index, asset in
                 asset.with(itemID: bell.id, sortOrder: index)
-            }
+        }
 
         let updatedBell = BellRecord(
-            item: Item(
+            item: ItemRecord(
                 id: bell.item.id,
                 collectionID: bell.item.collectionID,
                 locationID: resolvedLocationID,
+                originPlaceID: resolvedOriginPlace?.id,
                 createdAt: bell.item.createdAt,
+                createdBy: bell.createdBy,
                 title: bell.item.title,
                 notes: notes ?? bell.notes,
                 acquiredYear: bell.item.acquiredYear,
                 condition: bell.item.condition,
-                acquisitionMethod: bell.item.acquisitionMethod
+                acquisitionMethod: bell.item.acquisitionMethod,
+                isFavorite: bell.isFavorite,
+                tags: tags ?? bell.tags,
+                originPlace: resolvedOriginPlace,
+                storageLocation: location,
+                storagePath: location.map { storagePath(for: $0, locationsByID: locationsByID) },
+                mediaAssets: normalizedMediaAssets
             ),
             details: BellDetails(
                 itemID: bell.details.itemID,
-                originPlaceID: resolvedOriginPlace?.id,
                 material: bell.details.material,
                 customMaterialName: bell.details.customMaterialName
-            ),
-            originPlace: resolvedOriginPlace,
-            storageLocation: location,
-            storagePath: location.map { locationPath(for: $0, locationsByID: locationsByID) } ?? String(localized: "common.unassigned"),
-            mediaAssets: normalizedMediaAssets,
-            createdBy: bell.createdBy,
-            tags: tags ?? bell.tags
+            )
         )
 
         repository.saveBellRecord(updatedBell)
@@ -436,69 +523,71 @@ struct BellDetailView: View {
         reloadLookupSnapshot()
     }
 
-    private func locationPath(for location: Location, locationsByID: [UUID: Location]) -> String {
-        var parts = [location.name]
+    private func storagePath(for location: Location, locationsByID: [UUID: Location]) -> StoragePath {
+        var components = [
+            StoragePath.Component(
+                kind: location.kind,
+                name: location.name
+            )
+        ]
         var currentParentID = location.parentLocationID
 
         while let parentID = currentParentID, let parent = locationsByID[parentID] {
-            parts.insert(parent.name, at: 0)
+            components.insert(
+                StoragePath.Component(
+                    kind: parent.kind,
+                    name: parent.name
+                ),
+                at: 0
+            )
             currentParentID = parent.parentLocationID
         }
 
-        return parts.joined(separator: " / ")
+        return StoragePath(components: components)
     }
 }
 
 private struct BellDetailPreviewHost: View {
-    let collectionID: UUID
+    let initialBell: BellRecord
     let repository: any CatalogRepository
-    @Environment(\.managedObjectContext) private var managedObjectContext
-    @State private var lookupSnapshot = BellLookupSnapshot()
-    @State private var bell: BellRecord?
+    @State private var bell: BellRecord
+
+    init(bell: BellRecord, repository: any CatalogRepository) {
+        self.initialBell = bell
+        self.repository = repository
+        _bell = State(initialValue: bell)
+    }
 
     var body: some View {
-        Group {
-            if let binding = bellBinding {
-                BellDetailView(
-                    bell: binding,
-                    repository: repository,
-                    canEditCollection: false
-                )
-            } else {
-                CatalogEmptyStateView(
-                    systemImage: "bell.slash",
-                    title: LocalizedStringKey(String(localized: "home.not_found.title"))
-                )
-            }
-        }
-        .task {
-            reloadLookupSnapshot()
-            syncBellIfNeeded()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
-            reloadLookupSnapshot()
-            syncBellIfNeeded()
-        }
-    }
-
-    private var bellBinding: Binding<BellRecord>? {
-        guard bell != nil else { return nil }
-        return Binding(
-            get: { bell! },
-            set: { bell = $0 }
+        BellDetailView(
+            bell: $bell,
+            repository: repository,
+            canEditCollection: false,
+            canChangeFavorite: false
         )
     }
+}
 
-    private func syncBellIfNeeded() {
-        guard bell == nil else { return }
-        bell = lookupSnapshot.bells.first(where: { $0.item.collectionID == collectionID })
-    }
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.make(.minimal)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+    let collection = snapshot.collections.first { $0.kind == .bells }!
+    let bell = snapshot.bellRecords.first { $0.item.collectionID == collection.id && $0.mediaAssets.count == 2 }!
 
-    private func reloadLookupSnapshot() {
-        lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
-            .loadSnapshot(collectionID: collectionID, homeID: nil)
+    NavigationStack {
+        BellDetailPreviewHost(
+            bell: bell,
+            repository: repository
+        )
+        .environment(\.managedObjectContext, container.viewContext)
     }
 }
+#endif
 
 private extension Collection {
     var summarySnapshot: CollectionSummary {

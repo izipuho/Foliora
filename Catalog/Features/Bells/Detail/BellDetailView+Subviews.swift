@@ -1,6 +1,7 @@
 import SwiftUI
 import MapKit
 
+/// Displays the origin storage section interface.
 struct OriginStorageSection: View {
     let place: Place?
     let storagePath: String
@@ -113,7 +114,12 @@ private struct OriginTile: View {
     private var originMedia: some View {
         if let coordinate, let region {
             Map(initialPosition: .region(region), interactionModes: []) {
-                Marker("", coordinate: coordinate)
+                Annotation("", coordinate: coordinate) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.title2)
+                        .foregroundStyle(accentColor, .red)
+                        .shadow(radius: 2, y: 1)
+                }
             }
             .mapStyle(.standard(elevation: .flat))
         } else {

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24765" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_3" orientation="portrait" appearance="dark"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24743"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <view key="view" userInteractionEnabled="NO" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="Ze5-6b-2t3" userLabel="RootView">
+                        <rect key="frame" x="0.0" y="0.0" width="402" height="874"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <stackView opaque="NO" userInteractionEnabled="NO" tag="300" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="ZOH-8B-WUK" userLabel="Title">
+                                <rect key="frame" x="89.666666666666671" y="123.99999999999999" width="222.66666666666663" height="155.66666666666663"/>
+                                <subviews>
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="301" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Foliora" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zuV-1E-J4G">
+                                        <rect key="frame" x="0.0" y="0.0" width="222.66666666666666" height="95.666666666666671"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="80"/>
+                                        <color key="textColor" name="AccentColor"/>
+                                        <nil key="highlightedColor"/>
+                                        <variation key="heightClass=regular-widthClass=regular">
+                                            <fontDescription key="fontDescription" type="system" pointSize="100"/>
+                                        </variation>
+                                    </label>
+                                    <label opaque="NO" userInteractionEnabled="NO" tag="302" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Bells" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VKk-Vv-RHn">
+                                        <rect key="frame" x="0.0" y="95.666666666666657" width="222.66666666666666" height="60"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="50"/>
+                                        <color key="textColor" name="LightAccent"/>
+                                        <nil key="highlightedColor"/>
+                                        <variation key="heightClass=regular-widthClass=regular">
+                                            <fontDescription key="fontDescription" type="system" pointSize="70"/>
+                                        </variation>
+                                    </label>
+                                </subviews>
+                                <color key="backgroundColor" name="LaunchBackground"/>
+                            </stackView>
+                            <view userInteractionEnabled="NO" tag="200" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="pT4-RV-YK9" userLabel="Arcs">
+                                <rect key="frame" x="0.0" y="728" width="402" height="146"/>
+                                <subviews>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="202" contentMode="scaleToFill" image="ArcRight" translatesAutoresizingMaskIntoConstraints="NO" id="rQW-R1-Z8Z">
+                                        <rect key="frame" x="0.0" y="0.0" width="402" height="146"/>
+                                    </imageView>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="201" contentMode="scaleToFill" image="ArcLeft" translatesAutoresizingMaskIntoConstraints="NO" id="B1J-xh-wTC">
+                                        <rect key="frame" x="0.0" y="-125" width="402" height="271"/>
+                                    </imageView>
+                                </subviews>
+                                <accessibility key="accessibilityConfiguration">
+                                    <accessibilityTraits key="traits" notEnabled="YES"/>
+                                </accessibility>
+                                <constraints>
+                                    <constraint firstItem="rQW-R1-Z8Z" firstAttribute="height" secondItem="pT4-RV-YK9" secondAttribute="height" id="BNK-8Z-hJf"/>
+                                    <constraint firstAttribute="bottom" secondItem="rQW-R1-Z8Z" secondAttribute="bottom" id="EYH-H7-WBr"/>
+                                    <constraint firstItem="B1J-xh-wTC" firstAttribute="leading" secondItem="pT4-RV-YK9" secondAttribute="leading" id="FmZ-Yu-C7c"/>
+                                    <constraint firstAttribute="trailing" secondItem="B1J-xh-wTC" secondAttribute="trailing" id="PbK-mp-Qyw"/>
+                                    <constraint firstAttribute="bottom" secondItem="B1J-xh-wTC" secondAttribute="bottom" id="Xpa-Gg-aNc"/>
+                                    <constraint firstItem="rQW-R1-Z8Z" firstAttribute="leading" secondItem="pT4-RV-YK9" secondAttribute="leading" id="kpC-Km-Hsl"/>
+                                    <constraint firstAttribute="trailing" secondItem="rQW-R1-Z8Z" secondAttribute="trailing" id="rj8-6c-iet"/>
+                                    <constraint firstItem="rQW-R1-Z8Z" firstAttribute="width" secondItem="pT4-RV-YK9" secondAttribute="width" id="v7Z-tX-jAe"/>
+                                </constraints>
+                            </view>
+                            <view opaque="NO" userInteractionEnabled="NO" tag="100" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="MedallionBell">
+                                <rect key="frame" x="40.333333333333343" y="304.33333333333337" width="321.33333333333326" height="321.33333333333337"/>
+                                <subviews>
+                                    <imageView opaque="NO" userInteractionEnabled="NO" tag="101" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk">
+                                        <rect key="frame" x="0.0" y="0.0" width="321.33333333333331" height="321.33333333333331"/>
+                                    </imageView>
+                                    <imageView opaque="NO" userInteractionEnabled="NO" tag="102" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="cZx-or-9f6">
+                                        <rect key="frame" x="0.0" y="-99.333333333333314" width="321.33333333333331" height="520"/>
+                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </imageView>
+                                </subviews>
+                                <accessibility key="accessibilityConfiguration">
+                                    <accessibilityTraits key="traits" notEnabled="YES"/>
+                                </accessibility>
+                                <constraints>
+                                    <constraint firstItem="pCN-B8-puk" firstAttribute="centerX" secondItem="nPf-pr-nES" secondAttribute="centerX" id="BlN-kD-2aA"/>
+                                    <constraint firstItem="cZx-or-9f6" firstAttribute="centerX" secondItem="pCN-B8-puk" secondAttribute="centerX" id="Dby-Xb-Vc7"/>
+                                    <constraint firstItem="pCN-B8-puk" firstAttribute="height" secondItem="nPf-pr-nES" secondAttribute="height" id="NPb-SQ-cXj"/>
+                                    <constraint firstAttribute="width" secondItem="nPf-pr-nES" secondAttribute="height" multiplier="1:1" id="OEM-ha-06u"/>
+                                    <constraint firstItem="cZx-or-9f6" firstAttribute="centerY" secondItem="pCN-B8-puk" secondAttribute="centerY" id="Z0Q-J6-T3d"/>
+                                    <constraint firstItem="pCN-B8-puk" firstAttribute="centerY" secondItem="nPf-pr-nES" secondAttribute="centerY" id="mPt-7R-QjY"/>
+                                    <constraint firstItem="pCN-B8-puk" firstAttribute="width" secondItem="nPf-pr-nES" secondAttribute="width" id="psb-X0-XCu"/>
+                                    <constraint firstItem="cZx-or-9f6" firstAttribute="width" secondItem="pCN-B8-puk" secondAttribute="width" id="uNc-Nx-qJa"/>
+                                </constraints>
+                            </view>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="po4-Fp-UpO"/>
+                        <color key="backgroundColor" name="LaunchBackground"/>
+                        <accessibility key="accessibilityConfiguration">
+                            <accessibilityTraits key="traits" notEnabled="YES"/>
+                        </accessibility>
+                        <constraints>
+                            <constraint firstItem="pT4-RV-YK9" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="26f-lL-5n4"/>
+                            <constraint firstItem="pT4-RV-YK9" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" id="6rJ-ve-qWm"/>
+                            <constraint firstItem="ZOH-8B-WUK" firstAttribute="top" secondItem="po4-Fp-UpO" secondAttribute="top" id="Hap-6i-uZW"/>
+                            <constraint firstItem="nPf-pr-nES" firstAttribute="height" relation="lessThanOrEqual" secondItem="po4-Fp-UpO" secondAttribute="height" multiplier="0.65" id="Kw3-yz-fTo"/>
+                            <constraint firstAttribute="bottom" secondItem="pT4-RV-YK9" secondAttribute="bottom" id="U18-MF-kNE"/>
+                            <constraint firstItem="nPf-pr-nES" firstAttribute="centerY" secondItem="po4-Fp-UpO" secondAttribute="centerY" id="WoI-RI-B7Q"/>
+                            <constraint firstItem="nPf-pr-nES" firstAttribute="width" relation="lessThanOrEqual" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.8" id="bQX-oy-n2e"/>
+                            <constraint firstItem="ZOH-8B-WUK" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="p01-t6-8h8"/>
+                            <constraint firstItem="nPf-pr-nES" firstAttribute="centerX" secondItem="po4-Fp-UpO" secondAttribute="centerX" id="vAt-og-KpT"/>
+                        </constraints>
+                    </view>
+                    <nil key="simulatedTopBarMetrics"/>
+                    <nil key="simulatedBottomBarMetrics"/>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="52.671755725190835" y="374.64788732394368"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="ArcLeft" width="426" height="271"/>
+        <image name="ArcRight" width="426" height="147"/>
+        <image name="Medalion" width="520" height="520"/>
+        <image name="Symbol" width="520" height="520"/>
+        <namedColor name="AccentColor">
+            <color red="0.90600001811981201" green="0.57599997520446777" blue="0.11800000071525574" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+        <namedColor name="LaunchBackground">
+            <color red="0.97299998998641968" green="0.95300000905990601" blue="0.9179999828338623" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+        </namedColor>
+        <namedColor name="LightAccent">
+            <color red="0.9649999737739563" green="0.71799999475479126" blue="0.25499999523162842" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+    </resources>
+</document>

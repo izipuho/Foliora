@@ -1,12 +1,14 @@
 import SwiftUI
 import CoreData
 
+/// Defines the supported app destination values.
 enum AppDestination: Hashable {
     case collection(UUID)
     case home(UUID)
     case editHome(UUID)
 }
 
+/// Groups root tab values and behavior.
 enum RootTab: String, CaseIterable, Identifiable, Hashable {
     case collections
     case homes
@@ -31,7 +33,7 @@ enum RootTab: String, CaseIterable, Identifiable, Hashable {
     var systemImage: String {
         switch self {
         case .collections:
-            return "square.grid.2x2"
+            return "rectangle.stack.fill"
         case .homes:
             return "house"
         case .settings:
@@ -42,6 +44,7 @@ enum RootTab: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
+/// Displays the app shell view interface.
 struct AppShellView: View {
     let repository: any CatalogRepository
     let coreDataContainer: NSPersistentCloudKitContainer
@@ -52,6 +55,7 @@ struct AppShellView: View {
     @State private var settingsPath = NavigationPath()
     @State private var searchPath = NavigationPath()
     @State private var selectedRootTab: RootTab = .collections
+    @State private var displayName: String?
     @State private var shareInvitationFailureMessage: String?
     @ObservedObject private var shareInvitationController = CloudKitShareInvitationAcceptanceController.shared
 
@@ -65,6 +69,7 @@ struct AppShellView: View {
             homesPath: $homesPath,
             settingsPath: $settingsPath,
             searchPath: $searchPath,
+            displayName: $displayName,
             destination: { destination, layoutMode, onBellSelected, onBatchAddComplete, popNavigation in
                 destinationView(
                     for: destination,
@@ -75,7 +80,10 @@ struct AppShellView: View {
                 )
             }
         )
-        .onAppear(perform: reloadNavigationSnapshot)
+        .onAppear {
+            reloadNavigationSnapshot()
+            loadDisplayName()
+        }
         .onReceive(NotificationCenter.default.publisher(
             for: .NSManagedObjectContextObjectsDidChange,
             object: managedObjectContext
@@ -92,7 +100,7 @@ struct AppShellView: View {
             "collection.sharing.accept_failed",
             isPresented: shareInvitationFailureAlertBinding
         ) {
-            Button("OK") {
+            Button("common.ok") {
                 shareInvitationFailureMessage = nil
                 shareInvitationController.reset()
             }
@@ -244,6 +252,11 @@ struct AppShellView: View {
         navigationSnapshot = CatalogSnapshot.load(from: managedObjectContext)
     }
 
+    private func loadDisplayName() {
+        displayName = NSUbiquitousKeyValueStore.default.string(forKey: "foliora.profile.displayName")?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var shareInvitationFailureAlertBinding: Binding<Bool> {
         Binding(
             get: { shareInvitationFailureMessage != nil },
@@ -285,6 +298,7 @@ private struct RootShellView<Destination: View>: View {
     @Binding var homesPath: NavigationPath
     @Binding var settingsPath: NavigationPath
     @Binding var searchPath: NavigationPath
+    @Binding var displayName: String?
     let destination: (AppDestination, Binding<CatalogCardLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = CatalogCardLayoutMode.mini.rawValue
@@ -460,7 +474,8 @@ private struct RootShellView<Destination: View>: View {
         NavigationStack(path: path) {
             SettingsView(
                 repository: repository,
-                navigate: { path.wrappedValue.append($0) }
+                navigate: { path.wrappedValue.append($0) },
+                displayName: $displayName
             )
             .navigationDestination(for: AppDestination.self) { destination in
                 self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popSettingsNavigation)
@@ -512,8 +527,6 @@ private struct BellDetailInspectorView: View {
     let bellID: UUID
     let repository: any CatalogRepository
     let onClose: () -> Void
-    @Environment(\.managedObjectContext) private var managedObjectContext
-    @State private var bell: BellRecord?
 
     init(
         bellID: UUID,
@@ -527,17 +540,10 @@ private struct BellDetailInspectorView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if let bellBinding {
-                    BellDetailView(
-                        bell: bellBinding,
-                        repository: repository,
-                        canEditCollection: false
-                    )
-                } else {
-                    CatalogEmptyStateView(systemImage: "bell.slash", title: "bel.not_found")
-                }
-            }
+            BellDetailContainer(
+                bellID: bellID,
+                repository: repository
+            )
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: onClose) {
@@ -546,33 +552,6 @@ private struct BellDetailInspectorView: View {
                 }
             }
         }
-        .task(id: bellID) {
-            reloadBell()
-        }
-        .onReceive(NotificationCenter.default.publisher(
-            for: .NSManagedObjectContextObjectsDidChange,
-            object: managedObjectContext
-        )) { _ in
-            reloadBell()
-        }
-    }
-
-    private var bellBinding: Binding<BellRecord>? {
-        guard let currentBell = bell else { return nil }
-
-        return Binding(
-            get: {
-                bell ?? currentBell
-            },
-            set: {
-                bell = $0
-            }
-        )
-    }
-
-    private func reloadBell() {
-        let snapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext).loadSnapshot()
-        bell = snapshot.bells.first { $0.id == bellID }
     }
 }
 

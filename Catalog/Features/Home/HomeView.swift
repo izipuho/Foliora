@@ -5,6 +5,7 @@ import PhotosUI
 import UIKit
 
 
+/// Displays the home view interface.
 struct HomeView: View {
     let repository: any CatalogRepository
     let embedsNavigation: Bool
@@ -16,6 +17,8 @@ struct HomeView: View {
     @State private var draftLocations: [Location] = []
     @State private var isPresentingCreateHomeEditor = false
     @State private var homeIDPendingDeletion: UUID?
+    @State private var isSortingHomes = false
+    @State private var sortingHomes: [Home] = []
 
     init(
         repository: any CatalogRepository,
@@ -63,6 +66,10 @@ struct HomeView: View {
         navigationSnapshot?.homes ?? []
     }
 
+    private var displayedHomes: [Home] {
+        isSortingHomes ? sortingHomes : homes
+    }
+
     private var locationsByHomeID: [UUID: [Location]] {
         navigationSnapshot?.locationsByHomeID ?? [:]
     }
@@ -77,6 +84,7 @@ struct HomeView: View {
                         homesRows
                     }
                 }
+                .environment(\.editMode, .constant(isSortingHomes ? .active : .inactive))
             }
         }
         .background {
@@ -86,11 +94,31 @@ struct HomeView: View {
         .navigationTitle(String(localized: "home.screen.title"))
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    presentEditorForNewHome()
-                } label: {
-                    Image(systemName: "plus")
+            if !homes.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if isSortingHomes {
+                            stopSortingHomes()
+                        } else {
+                            startSortingHomes()
+                        }
+                    } label: {
+                        if isSortingHomes {
+                            Image(systemName: "checkmark")
+                        } else {
+                            Image(systemName: "line.3.horizontal.decrease")
+                        }
+                    }
+                }
+            }
+
+            if !isSortingHomes {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        presentEditorForNewHome()
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
         }
@@ -119,36 +147,47 @@ struct HomeView: View {
 
     @ViewBuilder
     private var homesRows: some View {
-        ForEach(homes) { home in
+        ForEach(displayedHomes) { home in
             homeRow(for: home)
         }
+        .onMove(perform: moveHomes)
     }
 
+    @ViewBuilder
     private func homeRow(for home: Home) -> some View {
-        Button {
-            navigate?(.home(home.id))
-        } label: {
+        if isSortingHomes {
             HomeListCard(
                 home: home,
                 locations: locationsByHomeID[home.id] ?? [],
                 collectionCount: collectionCount(in: home.id)
             )
-        }
-        .buttonStyle(.plain)
-        .catalogContainerListRow()
-        .swipeActions {
-            Button(role: .destructive) {
-                homeIDPendingDeletion = home.id
-            } label: {
-                Label(String(localized: "common.delete"), systemImage: "trash")
-            }
-
+            .catalogContainerListRow()
+        } else {
             Button {
-                navigate?(.editHome(home.id))
+                navigate?(.home(home.id))
             } label: {
-                Label(String(localized: "common.edit"), systemImage: "pencil")
+                HomeListCard(
+                    home: home,
+                    locations: locationsByHomeID[home.id] ?? [],
+                    collectionCount: collectionCount(in: home.id)
+                )
             }
-            .tint(CatalogSemanticColors.info)
+            .buttonStyle(.plain)
+            .catalogContainerListRow()
+            .swipeActions {
+                Button(role: .destructive) {
+                    homeIDPendingDeletion = home.id
+                } label: {
+                    Label(String(localized: "common.delete"), systemImage: "trash")
+                }
+
+                Button {
+                    navigate?(.editHome(home.id))
+                } label: {
+                    Label(String(localized: "common.edit"), systemImage: "pencil")
+                }
+                .tint(CatalogSemanticColors.info)
+            }
         }
     }
 
@@ -166,6 +205,24 @@ struct HomeView: View {
         repository.saveHome(draftHome)
         repository.saveLocations(draftLocations, in: draftHome.id)
         reloadNavigationSnapshot()
+    }
+
+    private func startSortingHomes() {
+        sortingHomes = homes
+        isSortingHomes = true
+    }
+
+    private func stopSortingHomes() {
+        isSortingHomes = false
+        sortingHomes = []
+        reloadNavigationSnapshot()
+    }
+
+    private func moveHomes(from source: IndexSet, to destination: Int) {
+        guard isSortingHomes else { return }
+
+        sortingHomes.move(fromOffsets: source, toOffset: destination)
+        repository.saveUserSortOrder(itemIDs: sortingHomes.map(\.id), scope: "Home")
     }
 
     private func deleteHome(_ homeID: UUID) {
@@ -216,87 +273,20 @@ private struct HomeListCard: View {
 
 #if DEBUG
 #Preview {
+    let container = PreviewContainer.make(.minimal)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+
     NavigationStack {
         HomeView(
-            repository: HomeViewPreviewData.repository,
-            navigationSnapshot: HomeViewPreviewData.snapshot,
+            repository: repository,
+            navigationSnapshot: snapshot,
             reloadNavigationSnapshot: {}
         )
-        .environment(\.managedObjectContext, HomeViewPreviewData.context)
+        .environment(\.managedObjectContext, container.viewContext)
     }
-}
-
-@MainActor
-private enum HomeViewPreviewData {
-    static let homeID = UUID()
-
-    static let context: NSManagedObjectContext = {
-        do {
-            let modelURL = Bundle.main.url(forResource: FolioraCoreDataStack.modelName, withExtension: "momd")
-                ?? Bundle(for: CoreDataCatalogRepository.self)
-                    .url(forResource: FolioraCoreDataStack.modelName, withExtension: "momd")
-            guard let modelURL, let model = NSManagedObjectModel(contentsOf: modelURL) else {
-                fatalError("Failed to load Foliora Core Data model for HomeView preview.")
-            }
-
-            let container = NSPersistentCloudKitContainer(
-                name: FolioraCoreDataStack.modelName,
-                managedObjectModel: model
-            )
-            let storeDescription = NSPersistentStoreDescription(url: URL(fileURLWithPath: "/dev/null/Shared.sqlite"))
-            storeDescription.type = NSInMemoryStoreType
-            container.persistentStoreDescriptions = [storeDescription]
-
-            var loadError: Error?
-            container.loadPersistentStores { _, error in
-                loadError = error
-            }
-            if let loadError {
-                throw loadError
-            }
-
-            let context = container.viewContext
-            let home = NSEntityDescription.insertNewObject(forEntityName: "HomeEntity", into: context)
-            home.setValue(homeID, forKey: "id")
-            home.setValue("Lake House", forKey: "name")
-            home.setValue("house.fill", forKey: "iconName")
-            home.setValue("Summer storage and display shelves.", forKey: "notes")
-
-            let location = NSEntityDescription.insertNewObject(forEntityName: "LocationEntity", into: context)
-            location.setValue(UUID(), forKey: "id")
-            location.setValue("room", forKey: "kindRaw")
-            location.setValue("Study", forKey: "name")
-            location.setValue("", forKey: "notes")
-            location.setValue(home, forKey: "home")
-
-            let collection = NSEntityDescription.insertNewObject(forEntityName: "CollectionEntity", into: context)
-            collection.setValue(UUID(), forKey: "id")
-            collection.setValue("bells", forKey: "kindRaw")
-            collection.setValue("Travel Bells", forKey: "title")
-            collection.setValue("", forKey: "notes")
-            collection.setValue("amber", forKey: "backgroundStyleRaw")
-            collection.setValue(home, forKey: "home")
-
-            try context.save()
-            return context
-        } catch {
-            fatalError("Failed to create HomeView preview data: \(error)")
-        }
-    }()
-
-    static let snapshot = CatalogSnapshot.load(from: context)
-    static let repository = HomeViewPreviewRepository()
-}
-
-@MainActor
-private final class HomeViewPreviewRepository: CatalogRepository {
-    func saveHome(_ home: Home) {}
-    func saveLocations(_ locations: [Location], in homeID: UUID) {}
-    func deleteHome(homeID: UUID) {}
-    func saveCollection(_ collection: Collection) {}
-    func deleteResolution(for collectionID: UUID) -> CollectionDeleteResolution { .deletePrivateCollection }
-    func deleteCollection(collectionID: UUID) {}
-    func saveBellRecord(_ bell: BellRecord) {}
-    func deleteBellRecord(bellID: UUID) {}
 }
 #endif

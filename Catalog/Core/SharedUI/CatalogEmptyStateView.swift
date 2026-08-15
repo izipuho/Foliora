@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Displays the catalog empty state view interface.
 struct CatalogEmptyStateView: View {
     let systemImage: String
     let title: LocalizedStringKey

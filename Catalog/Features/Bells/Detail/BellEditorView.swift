@@ -1,6 +1,8 @@
 import SwiftUI
 import CoreData
+import Translation
 
+/// Displays the bell editor view interface.
 struct BellEditorView: View {
     enum StartSection: Hashable {
         case storage
@@ -25,6 +27,20 @@ struct BellEditorView: View {
         let token: Int
     }
 
+    private struct LocalizedPhotoSuggestions {
+        var title: String?
+        var notes: String?
+        var customMaterialName: String?
+        var suggestedTags: [String]
+    }
+
+    private enum PhotoSuggestionTranslationTarget {
+        case title
+        case notes
+        case customMaterialName
+        case suggestedTag(Int)
+    }
+
     private enum FocusedField: Hashable {
         case title
     }
@@ -37,6 +53,7 @@ struct BellEditorView: View {
 
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @FocusState private var focusedField: FocusedField?
     @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var title = ""
@@ -55,6 +72,10 @@ struct BellEditorView: View {
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
     @State private var photoAnalysis = BellPhotoAnalysisController()
+    @State private var localizedPhotoSuggestions: LocalizedPhotoSuggestions?
+    @State private var pendingPhotoSuggestionsForTranslation: BellPhotoSuggestions?
+    @State private var isLocalizingPhotoSuggestions = false
+    @State private var translationConfiguration: TranslationSession.Configuration?
     @State private var didStartInitialAnalysis = false
     @State private var isPresentingHomeEditor = false
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
@@ -63,6 +84,7 @@ struct BellEditorView: View {
     @State private var locationPickerPresentationToken = 0
     private let existingBellID: UUID?
     private let existingCreatedAt: Date?
+    private let existingIsFavorite: Bool
     private let editorItemID: UUID
 
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -89,13 +111,15 @@ struct BellEditorView: View {
 
     private var shouldShowPhotoAnalysisSection: Bool {
         photoAnalysis.isAnalyzing
-        || photoAnalysis.suggestions.title != nil
-        || photoAnalysis.suggestions.notes != nil
-        || photoAnalysis.suggestions.material != nil
-        || photoAnalysis.suggestions.condition != nil
-        || photoAnalysis.suggestions.suggestedYear != nil
-        || photoAnalysis.suggestions.suggestedGeo != nil
-        || !photoAnalysis.suggestions.suggestedTags.isEmpty
+        || (!isLocalizingPhotoSuggestions && (
+            photoAnalysis.suggestions.title != nil
+            || photoAnalysis.suggestions.notes != nil
+            || photoAnalysis.suggestions.material != nil
+            || photoAnalysis.suggestions.condition != nil
+            || photoAnalysis.suggestions.suggestedYear != nil
+            || photoAnalysis.suggestions.suggestedGeo != nil
+            || !photoAnalysis.suggestions.suggestedTags.isEmpty
+        ))
     }
 
     init(
@@ -114,6 +138,7 @@ struct BellEditorView: View {
         self.onSave = onSave
         self.existingBellID = bell?.id
         self.existingCreatedAt = bell?.createdAt
+        self.existingIsFavorite = bell?.isFavorite ?? false
         self.editorItemID = bell?.id ?? UUID()
         _title = State(initialValue: bell?.title ?? "")
         _notes = State(initialValue: bell?.notes ?? "")
@@ -131,211 +156,236 @@ struct BellEditorView: View {
     var body: some View {
         NavigationStack {
             ScrollViewReader { scrollProxy in
-                Form {
-                    Section(String(localized: "editor.media")) {
-                        MediaSection(
-                            itemID: editorItemID,
-                            mediaAssets: $mediaAssets,
-                            analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
-                        )
-                    }
-
-                    if shouldShowPhotoAnalysisSection {
-                        Section(String(localized: "editor.photo_analysis.section")) {
-                            if photoAnalysis.isAnalyzing {
-                                HStack(spacing: CatalogMetrics.Spacing.sm) {
-                                    ProgressView()
-                                    Text(String(localized: "editor.photo_analysis.analyzing"))
-                                        .foregroundStyle(.secondary)
-                                }
-                            } else {
-                                if !photoAnalysis.suggestions.recognizedText.isEmpty {
-                                    PhotoRecognizedTextBlock(textFeatures: photoAnalysis.suggestions.recognizedText)
-                                }
-
-                                if let titleSuggestion = photoAnalysis.suggestions.title {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.title"),
-                                        suggestedValue: titleSuggestion.value,
-                                        confidence: titleSuggestion.confidence,
-                                        onAccept: {
-                                            title = titleSuggestion.value
-                                            photoAnalysis.dismiss(.title)
+                VStack(spacing: 0) {
+                    Form {
+                        Section(String(localized: "editor.docs_and_media"))
+                        {
+                            MediaSection(
+                                itemID: editorItemID,
+                                mediaAssets: $mediaAssets,
+                                analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
+                            )
+                            .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, CatalogMetrics.Spacing.md)
+                            .background(
+                                CatalogShapes.section
+                                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                            )
+                            .listRowInsets(.init())
+                        }
+                        
+                        if shouldShowPhotoAnalysisSection {
+                            Section(String(localized: "editor.photo_analysis.section")) {
+                                if photoAnalysis.isAnalyzing {
+                                    HStack(spacing: CatalogMetrics.Spacing.sm) {
+                                        ProgressView()
+                                        Text(String(localized: "editor.photo_analysis.analyzing"))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                } else {
+                                    if !photoAnalysis.suggestions.isBellDetected {
+                                        Label {
+                                            Text("editor.analysis.bell_not_found")
+                                                .font(.footnote)
+                                                .foregroundStyle(.primary)
+                                        } icon: {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .foregroundStyle(.orange)
                                         }
-                                    )
-                                }
+                                        .padding(.vertical, CatalogMetrics.Spacing.xs)
+                                        .listRowBackground(collection.backgroundStyle.accentColor.opacity(0.10))
+                                    }
 
-                                if let notesSuggestion = photoAnalysis.suggestions.notes {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.notes"),
-                                        suggestedValue: notesSuggestion.value,
-                                        confidence: notesSuggestion.confidence,
-                                        onAccept: {
-                                            notes = notesSuggestion.value
-                                            photoAnalysis.dismiss(.notes)
-                                        }
-                                    )
-                                }
-
-                                if let materialSuggestion = photoAnalysis.suggestions.material {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.material"),
-                                        suggestedValue: materialSuggestionLabel(materialSuggestion),
-                                        confidence: materialSuggestion.confidence,
-                                        onAccept: {
-                                            material = materialSuggestion.value
-                                            if materialSuggestion.value == .other {
-                                                customMaterialName = photoAnalysis.suggestions.customMaterialName?.value ?? ""
-                                                photoAnalysis.dismiss(.customMaterialName)
-                                            } else {
-                                                customMaterialName = ""
+                                    if let titleSuggestion = photoAnalysis.suggestions.title {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "editor.photo_analysis.title"),
+                                            suggestedValue: localizedPhotoSuggestions?.title ?? titleSuggestion.value,
+                                            confidence: titleSuggestion.confidence,
+                                            onAccept: {
+                                                title = titleSuggestion.value
+                                                localizedPhotoSuggestions?.title = nil
+                                                photoAnalysis.dismiss(.title)
                                             }
-                                            photoAnalysis.dismiss(.material)
-                                        }
-                                    )
-                                }
+                                        )
+                                    }
 
-                                if let conditionSuggestion = photoAnalysis.suggestions.condition {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.condition"),
-                                        suggestedValue: conditionSuggestion.value.displayName,
-                                        confidence: conditionSuggestion.confidence,
-                                        onAccept: {
-                                            condition = conditionSuggestion.value
-                                            photoAnalysis.dismiss(.condition)
-                                        }
-                                    )
-                                }
-
-                                if let yearSuggestion = photoAnalysis.suggestions.suggestedYear {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "editor.photo_analysis.year"),
-                                        suggestedValue: String(yearSuggestion.value),
-                                        confidence: yearSuggestion.confidence,
-                                        onAccept: {
-                                            selectedAcquiredYearOption = String(yearSuggestion.value)
-                                            photoAnalysis.dismiss(.suggestedYear)
-                                        }
-                                    )
-                                }
-
-                                if let geoSuggestion = photoAnalysis.suggestions.suggestedGeo {
-                                    PhotoSuggestionRow(
-                                        title: String(localized: "common.ui.origin"),
-                                        suggestedValue: geoSuggestion.value.name,
-                                        confidence: geoSuggestion.confidence,
-                                        onAccept: {
-                                            selectedOriginPlace = place(from: geoSuggestion.value)
-                                            photoAnalysis.dismiss(.suggestedGeo)
-                                        }
-                                    )
-                                }
-
-                                if !photoAnalysis.suggestions.suggestedTags.isEmpty {
-                                    PhotoSuggestedTagsRow(
-                                        title: String(localized: "editor.photo_analysis.tags"),
-                                        suggestions: photoAnalysis.suggestions.suggestedTags,
-                                        onAccept: { newValues in
-                                            for value in newValues where !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
-                                                tags.append(value)
+                                    if let notesSuggestion = photoAnalysis.suggestions.notes {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "editor.photo_analysis.notes"),
+                                            suggestedValue: localizedPhotoSuggestions?.notes ?? notesSuggestion.value,
+                                            confidence: notesSuggestion.confidence,
+                                            onAccept: {
+                                                notes = notesSuggestion.value
+                                                localizedPhotoSuggestions?.notes = nil
+                                                photoAnalysis.dismiss(.notes)
                                             }
-                                            photoAnalysis.dismiss(.suggestedTags)
-                                        }
-                                    )
+                                        )
+                                    }
+
+                                    if let materialSuggestion = photoAnalysis.suggestions.material {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "editor.photo_analysis.material"),
+                                            suggestedValue: materialSuggestionLabel(materialSuggestion),
+                                            confidence: materialSuggestion.confidence,
+                                            onAccept: {
+                                                material = materialSuggestion.value
+                                                if materialSuggestion.value == .other {
+                                                    customMaterialName = photoAnalysis.suggestions.customMaterialName?.value ?? ""
+                                                    localizedPhotoSuggestions?.customMaterialName = nil
+                                                    photoAnalysis.dismiss(.customMaterialName)
+                                                } else {
+                                                    customMaterialName = ""
+                                                }
+                                                photoAnalysis.dismiss(.material)
+                                            }
+                                        )
+                                    }
+
+                                    if let conditionSuggestion = photoAnalysis.suggestions.condition {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "editor.photo_analysis.condition"),
+                                            suggestedValue: conditionSuggestion.value.displayName,
+                                            confidence: conditionSuggestion.confidence,
+                                            onAccept: {
+                                                condition = conditionSuggestion.value
+                                                photoAnalysis.dismiss(.condition)
+                                            }
+                                        )
+                                    }
+
+                                    if let yearSuggestion = photoAnalysis.suggestions.suggestedYear {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "editor.photo_analysis.year"),
+                                            suggestedValue: String(yearSuggestion.value),
+                                            confidence: yearSuggestion.confidence,
+                                            onAccept: {
+                                                selectedAcquiredYearOption = String(yearSuggestion.value)
+                                                photoAnalysis.dismiss(.suggestedYear)
+                                            }
+                                        )
+                                    }
+
+                                    if let geoSuggestion = photoAnalysis.suggestions.suggestedGeo {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "common.ui.origin"),
+                                            suggestedValue: geoSuggestion.value.name,
+                                            confidence: geoSuggestion.confidence,
+                                            onAccept: {
+                                                selectedOriginPlace = place(from: geoSuggestion.value)
+                                                photoAnalysis.dismiss(.suggestedGeo)
+                                            }
+                                        )
+                                    }
+
+                                    if !photoAnalysis.suggestions.suggestedTags.isEmpty {
+                                        PhotoSuggestedTagsRow(
+                                            title: String(localized: "editor.photo_analysis.tags"),
+                                            suggestions: photoAnalysis.suggestions.suggestedTags,
+                                            localizedSuggestions: localizedPhotoSuggestions?.suggestedTags,
+                                            onAccept: { newValues in
+                                                for value in newValues where !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
+                                                    tags.append(value)
+                                                }
+                                                localizedPhotoSuggestions?.suggestedTags = []
+                                                photoAnalysis.dismiss(.suggestedTags)
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    Section(String(localized: "common.field.description")) {
-                        TextField(String(localized: "editor.short_description"), text: $title)
-                            .focused($focusedField, equals: .title)
+                        Section(String(localized: "common.field.description")) {
+                            TextField(String(localized: "editor.short_description"), text: $title)
+                                .focused($focusedField, equals: .title)
 
-                        if !isTitleValid {
-                            Button {
-                                focusTitleValidation()
-                            } label: {
-                                Label {
-                                    Text(String(localized: "editor.title.required"))
-                                        .font(.footnote)
-                                } icon: {
-                                    Image(systemName: "exclamationmark.circle.fill")
-                                        .font(.footnote)
+                            if !isTitleValid {
+                                Button {
+                                    focusTitleValidation()
+                                } label: {
+                                    Label {
+                                        Text(String(localized: "editor.title.required"))
+                                            .font(.footnote)
+                                    } icon: {
+                                        Image(systemName: "exclamationmark.circle.fill")
+                                            .font(.footnote)
+                                    }
                                 }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(CatalogSemanticColors.destructive)
+                                .accessibilityHint(String(localized: "editor.title.focus"))
                             }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(CatalogSemanticColors.destructive)
-                            .accessibilityHint(String(localized: "editor.title.focus"))
+
+                            TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
+                                .lineLimit(4, reservesSpace: true)
                         }
 
-                        TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
-                            .lineLimit(4, reservesSpace: true)
-                    }
+                        Section(String(localized: "editor.acquisition_details")) {
+                            YearPickerField(
+                                title: String(localized: "common.field.acquired_year"),
+                                selection: $selectedAcquiredYearOption,
+                                options: acquiredYearOptions
+                            )
 
-                    Section(String(localized: "editor.acquisition_details")) {
-                        YearPickerField(
-                            title: String(localized: "common.field.acquired_year"),
-                            selection: $selectedAcquiredYearOption,
-                            options: acquiredYearOptions
-                        )
-
-                        EnumSelectionRow(
-                            title: String(localized: "bell.detail.aquisition"),
-                            selectedLabel: acquisitionMethod.displayName,
-                            options: AcquisitionMethod.allCases,
-                            selection: $acquisitionMethod,
-                            optionTitle: \.displayName
-                        )
-                    }
-
-                    Section(String(localized: "editor.attributes")) {
-                        EnumSelectionRow(
-                            title: String(localized: "common.field.condition"),
-                            selectedLabel: condition.displayName,
-                            options: ItemCondition.allCases,
-                            selection: $condition,
-                            optionTitle: \.displayName
-                        )
-
-                        EnumSelectionRow(
-                            title: String(localized: "common.field.material"),
-                            selectedLabel: material.displayName,
-                            options: BellMaterial.allCases,
-                            selection: $material,
-                            optionTitle: \.displayName
-                        )
-
-                        if material == .other {
-                            TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
+                            EnumSelectionRow(
+                                title: String(localized: "bell.detail.aquisition"),
+                                selectedLabel: acquisitionMethod.displayName,
+                                options: AcquisitionMethod.allCases,
+                                selection: $acquisitionMethod,
+                                optionTitle: \.displayName
+                            )
                         }
 
-                    }
+                        Section(String(localized: "editor.attributes")) {
+                            EnumSelectionRow(
+                                title: String(localized: "common.field.condition"),
+                                selectedLabel: condition.displayName,
+                                options: ItemCondition.allCases,
+                                selection: $condition,
+                                optionTitle: \.displayName
+                            )
 
-                    Section(String(localized: "bell.detail.section.location")) {
-                        PlacePickerField(
-                            title: String(localized: "common.ui.origin"),
-                            selectedLabel: selectedOriginLabel,
-                            places: availablePlaces,
-                            selectedPlace: $selectedOriginPlace
-                        )
+                            EnumSelectionRow(
+                                title: String(localized: "common.field.material"),
+                                selectedLabel: material.displayName,
+                                options: BellMaterial.allCases,
+                                selection: $material,
+                                optionTitle: \.displayName
+                            )
 
-                        LocationPickerField(
-                            title: String(localized: "editor.location"),
-                            selectedLabel: selectedLocationLabel,
-                            locations: availableLocations,
-                            onManageLocations: {
-                                presentHomeEditor()
-                            },
-                            presentationToken: locationPickerPresentationToken,
-                            selectedLocationID: $selectedLocationID
-                        )
-                    }
+                            if material == .other {
+                                TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
+                            }
 
-                    Section(String(localized: "common.field.tags")) {
-                        TagEditorSection(
-                            tagInput: $tagInput,
-                            tags: $tags
-                        )
+                        }
+
+                        Section(String(localized: "bell.detail.section.location")) {
+                            PlacePickerField(
+                                title: String(localized: "common.ui.origin"),
+                                selectedLabel: selectedOriginLabel,
+                                places: availablePlaces,
+                                selectedPlace: $selectedOriginPlace
+                            )
+
+                            LocationPickerField(
+                                title: String(localized: "editor.location"),
+                                selectedLabel: selectedLocationLabel,
+                                locations: availableLocations,
+                                onManageLocations: {
+                                    presentHomeEditor()
+                                },
+                                presentationToken: locationPickerPresentationToken,
+                                selectedLocationID: $selectedLocationID
+                            )
+                        }
+
+                        Section(String(localized: "common.field.tags")) {
+                            TagEditorSection(
+                                tagInput: $tagInput,
+                                tags: $tags
+                            )
+                        }
                     }
                 }
                 .navigationTitle(existingBellID == nil ? String(localized: "editor.bell.add") : String(localized: "editor.bell.edit"))
@@ -373,7 +423,13 @@ struct BellEditorView: View {
                 }
                 .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
                     guard wasAnalyzing, !isAnalyzing else { return }
-                    handlePhotoAnalysisCompletion()
+                    Task {
+                        await handlePhotoAnalysisCompletion()
+                    }
+                }
+                .translationTask(translationConfiguration) { session in
+                    let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
+                    await translatePhotoSuggestions(using: session, translator: translator)
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
                     reloadLookupSnapshot()
@@ -410,9 +466,32 @@ struct BellEditorView: View {
         analysisFeedbackEvent = AnalysisFeedbackEvent(kind: kind, token: analysisFeedbackToken)
     }
 
-    private func handlePhotoAnalysisCompletion() {
+    private func handlePhotoAnalysisCompletion() async {
         if photoAnalysis.suggestions.hasSuggestions {
             emitAnalysisFeedback(.success)
+            let suggestions = photoAnalysis.suggestions
+            let sourceLanguage = Locale.Language(identifier: "en")
+            let translator = TextTranslator(sourceLanguage: sourceLanguage)
+
+            switch await translator.preparationState() {
+            case .ready:
+                pendingPhotoSuggestionsForTranslation = suggestions
+            case .needsDownload, .unsupported, .notRequired:
+                localizedPhotoSuggestions = localizedPhotoSuggestions(from: suggestions)
+                pendingPhotoSuggestionsForTranslation = nil
+                isLocalizingPhotoSuggestions = false
+                translationConfiguration = nil
+                return
+            }
+
+            translationConfiguration = TranslationSession.Configuration(
+                source: sourceLanguage,
+                target: locale.language
+            )
+        } else {
+            isLocalizingPhotoSuggestions = false
+            pendingPhotoSuggestionsForTranslation = nil
+            translationConfiguration = nil
         }
 
         // Keep failures / empty results silent by default.
@@ -423,7 +502,88 @@ struct BellEditorView: View {
     private func startInitialPhotoAnalysisIfNeeded() {
         guard !didStartInitialAnalysis, existingBellID == nil, let initialAnalysisImage else { return }
         didStartInitialAnalysis = true
+        isLocalizingPhotoSuggestions = true
+        localizedPhotoSuggestions = nil
+        pendingPhotoSuggestionsForTranslation = nil
+        translationConfiguration = nil
         photoAnalysis.analyze(image: initialAnalysisImage)
+    }
+
+    private func translatePhotoSuggestions(
+        using session: TranslationSession,
+        translator: TextTranslator
+    ) async {
+        guard let suggestions = pendingPhotoSuggestionsForTranslation else {
+            isLocalizingPhotoSuggestions = false
+            translationConfiguration = nil
+            return
+        }
+
+        guard !translator.sourceLanguage.isEquivalent(to: locale.language) else {
+            localizedPhotoSuggestions = localizedPhotoSuggestions(from: suggestions)
+            pendingPhotoSuggestionsForTranslation = nil
+            isLocalizingPhotoSuggestions = false
+            translationConfiguration = nil
+            return
+        }
+
+        var targets: [PhotoSuggestionTranslationTarget] = []
+        var texts: [String] = []
+
+        if let title = suggestions.title?.value {
+            targets.append(.title)
+            texts.append(title)
+        }
+
+        if let notes = suggestions.notes?.value {
+            targets.append(.notes)
+            texts.append(notes)
+        }
+
+        if let customMaterialName = suggestions.customMaterialName?.value {
+            targets.append(.customMaterialName)
+            texts.append(customMaterialName)
+        }
+
+        for (index, tag) in suggestions.suggestedTags.enumerated() {
+            targets.append(.suggestedTag(index))
+            texts.append(tag.value)
+        }
+
+        nonisolated(unsafe) let translationSession = session
+        let translatedTexts = await translator.translate(texts, using: translationSession)
+        guard !Task.isCancelled else { return }
+
+        var localizedSuggestions = localizedPhotoSuggestions(from: suggestions)
+
+        for (target, translatedText) in zip(targets, translatedTexts) {
+            switch target {
+            case .title:
+                localizedSuggestions.title = translatedText
+            case .notes:
+                localizedSuggestions.notes = translatedText
+            case .customMaterialName:
+                localizedSuggestions.customMaterialName = translatedText
+            case .suggestedTag(let index):
+                if localizedSuggestions.suggestedTags.indices.contains(index) {
+                    localizedSuggestions.suggestedTags[index] = translatedText.lowercased(with: locale)
+                }
+            }
+        }
+
+        localizedPhotoSuggestions = localizedSuggestions
+        pendingPhotoSuggestionsForTranslation = nil
+        isLocalizingPhotoSuggestions = false
+        translationConfiguration = nil
+    }
+
+    private func localizedPhotoSuggestions(from suggestions: BellPhotoSuggestions) -> LocalizedPhotoSuggestions {
+        LocalizedPhotoSuggestions(
+            title: suggestions.title?.value,
+            notes: suggestions.notes?.value,
+            customMaterialName: suggestions.customMaterialName?.value,
+            suggestedTags: suggestions.suggestedTags.map(\.value)
+        )
     }
 
     private func reloadLookupSnapshot() {
@@ -488,29 +648,30 @@ struct BellEditorView: View {
         }
 
         let newBell = BellRecord(
-            item: Item(
+            item: ItemRecord(
                 id: itemID,
                 collectionID: collection.id,
                 locationID: selectedLocationID,
+                originPlaceID: selectedOriginPlace?.id,
                 createdAt: existingCreatedAt ?? .now,
+                createdBy: "You",
                 title: trimmedTitle,
                 notes: trimmedNotes,
                 acquiredYear: selectedAcquiredYearOption == String(localized: "common.none") ? nil : Int(selectedAcquiredYearOption),
                 condition: condition,
-                acquisitionMethod: acquisitionMethod
+                acquisitionMethod: acquisitionMethod,
+                isFavorite: existingIsFavorite,
+                tags: tags,
+                originPlace: originPlace,
+                storageLocation: location,
+                storagePath: location.map(storagePath(for:)),
+                mediaAssets: normalizedMediaAssets
             ),
             details: BellDetails(
                 itemID: itemID,
-                originPlaceID: selectedOriginPlace?.id,
                 material: material,
                 customMaterialName: material == .other ? trimmedCustomMaterial : nil
-            ),
-            originPlace: originPlace,
-            storageLocation: location,
-            storagePath: location.map(locationPath(for:)) ?? String(localized: "common.unassigned"),
-            mediaAssets: normalizedMediaAssets,
-            createdBy: "You",
-            tags: tags
+            )
         )
 
         onSave(newBell)
@@ -542,22 +703,33 @@ struct BellEditorView: View {
         return path
     }
 
-    private func locationPath(for location: Location) -> String {
+    private func storagePath(for location: Location) -> StoragePath {
         let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
-        var parts = [location.name]
+        var components = [
+            StoragePath.Component(
+                kind: location.kind,
+                name: location.name
+            )
+        ]
         var currentParentID = location.parentLocationID
 
         while let parentID = currentParentID, let parent = locationsByID[parentID] {
-            parts.insert(parent.name, at: 0)
+            components.insert(
+                StoragePath.Component(
+                    kind: parent.kind,
+                    name: parent.name
+                ),
+                at: 0
+            )
             currentParentID = parent.parentLocationID
         }
 
-        return parts.joined(separator: " / ")
+        return StoragePath(components: components)
     }
 
     private func materialSuggestionLabel(_ suggestion: SuggestedFieldValue<BellMaterial>) -> String {
         if suggestion.value == .other,
-           let customMaterial = photoAnalysis.suggestions.customMaterialName?.value,
+           let customMaterial = localizedPhotoSuggestions?.customMaterialName ?? photoAnalysis.suggestions.customMaterialName?.value,
            !customMaterial.isEmpty {
             return customMaterial
         }
@@ -606,29 +778,22 @@ private struct PhotoSuggestionRow: View {
     }
 }
 
-private struct PhotoRecognizedTextBlock: View {
-    let textFeatures: [RecognizedTextFeature]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-            Text(String(localized: "editor.photo_analysis.detected_text"))
-                .font(CatalogTypography.chipLabel)
-                .foregroundStyle(.secondary)
-
-            TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
-                ForEach(textFeatures, id: \.self) { feature in
-                    Text(feature.text)
-                        .font(.caption.weight(.medium))
-                        .catalogSurfaceCapsule()
-                }
-            }
-        }
-    }
-}
-
 private struct PhotoSuggestedTagsRow: View {
+    private struct DisplaySuggestion: Identifiable {
+        let suggestion: SuggestedFieldValue<String>
+        let localizedTag: String
+        let opacity: Double
+
+        var id: String { suggestion.value }
+    }
+
+    private let minimumVisibleConfidence = 0.02
+    private let highConfidenceThreshold = 0.75
+    private let mediumConfidenceOpacity = 0.75
+
     let title: String
     let suggestions: [SuggestedFieldValue<String>]
+    let localizedSuggestions: [String]?
     let onAccept: ([String]) -> Void
 
     @State private var selectedValues: Set<String>
@@ -636,10 +801,12 @@ private struct PhotoSuggestedTagsRow: View {
     init(
         title: String,
         suggestions: [SuggestedFieldValue<String>],
+        localizedSuggestions: [String]? = nil,
         onAccept: @escaping ([String]) -> Void
     ) {
         self.title = title
         self.suggestions = suggestions
+        self.localizedSuggestions = localizedSuggestions
         self.onAccept = onAccept
         _selectedValues = State(initialValue: [])
     }
@@ -653,10 +820,13 @@ private struct PhotoSuggestedTagsRow: View {
             }
 
             TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
-                ForEach(suggestions, id: \.value) { suggestion in
+                ForEach(displaySuggestions) { displaySuggestion in
+                    let suggestion = displaySuggestion.suggestion
+
                     PhotoSuggestedTagChip(
-                        tag: suggestion.value,
-                        isSelected: selectedValues.contains(suggestion.value)
+                        tag: displaySuggestion.localizedTag,
+                        isSelected: selectedValues.contains(suggestion.value),
+                        opacity: displaySuggestion.opacity
                     ) {
                         if selectedValues.contains(suggestion.value) {
                             selectedValues.remove(suggestion.value)
@@ -671,7 +841,7 @@ private struct PhotoSuggestedTagsRow: View {
                 Spacer()
 
                 Button {
-                    onAccept(suggestions.map(\.value).filter(selectedValues.contains))
+                    onAccept(displaySuggestions.filter { selectedValues.contains($0.suggestion.value) }.map(\.localizedTag))
                 } label: {
                     Image(systemName: "checkmark")
                 }
@@ -683,11 +853,36 @@ private struct PhotoSuggestedTagsRow: View {
         }
         .padding(.vertical, CatalogMetrics.Spacing.xs)
     }
+
+    private var displaySuggestions: [DisplaySuggestion] {
+        suggestions.enumerated()
+            .compactMap { index, suggestion in
+                guard suggestion.confidence >= minimumVisibleConfidence else {
+                    return nil
+                }
+
+                let localizedTag: String
+                if let localizedSuggestions,
+                   localizedSuggestions.indices.contains(index) {
+                    localizedTag = localizedSuggestions[index]
+                } else {
+                    localizedTag = suggestion.value
+                }
+
+                return DisplaySuggestion(
+                    suggestion: suggestion,
+                    localizedTag: localizedTag,
+                    opacity: suggestion.confidence >= highConfidenceThreshold ? 1 : mediumConfidenceOpacity
+                )
+            }
+            .sorted { $0.suggestion.confidence > $1.suggestion.confidence }
+    }
 }
 
 private struct PhotoSuggestedTagChip: View {
     let tag: String
     let isSelected: Bool
+    let opacity: Double
     let onTap: () -> Void
 
     var body: some View {
@@ -703,5 +898,40 @@ private struct PhotoSuggestedTagChip: View {
             .shadow(color: isSelected ? Color.accentColor.opacity(0.18) : .clear, radius: 4, y: 1)
         }
         .buttonStyle(.plain)
+        .opacity(opacity)
     }
 }
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.make(.minimal)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+    let collection = snapshot.collections.first { $0.kind == .bells }!
+    let bell = snapshot.bellRecords.first { $0.item.collectionID == collection.id && $0.mediaAssets.count == 2 }
+    let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
+    let summary = CollectionSummary(
+        id: collection.id,
+        homeID: collection.homeID,
+        kind: collection.kind,
+        name: collection.title,
+        subtitle: collection.notes,
+        backgroundStyle: collection.backgroundStyle,
+        itemCount: itemCount,
+        status: .active,
+        sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+    )
+
+    BellEditorView(
+        collection: summary,
+        repository: repository,
+        bell: bell
+    ) { updatedBell in
+        repository.saveBellRecord(updatedBell)
+    }
+    .environment(\.managedObjectContext, container.viewContext)
+}
+#endif

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Defines the supported summary count kind values.
 enum SummaryCountKind: String {
     case bells
     case materials
@@ -18,6 +19,7 @@ enum SummaryCountKind: String {
     }
 }
 
+/// Defines the supported bell order mode values.
 enum BellOrderMode: String, CaseIterable, Hashable {
     case title
     case newestFirst
@@ -38,6 +40,7 @@ enum BellOrderMode: String, CaseIterable, Hashable {
     }
 }
 
+/// Defines the supported bell presence filter values.
 enum BellPresenceFilter: Hashable {
     case withOrigin
     case missingOrigin
@@ -54,6 +57,7 @@ enum BellPresenceFilter: Hashable {
     case missingMaterial
 }
 
+/// Defines the supported bell attribute filter values.
 enum BellAttributeFilter: Hashable {
     case country(String)
     case material(String)
@@ -62,6 +66,7 @@ enum BellAttributeFilter: Hashable {
     case acquisitionMethod(AcquisitionMethod)
 }
 
+/// Represents bell filters data and behavior.
 struct BellFilters: Hashable {
     var presence: Set<BellPresenceFilter> = []
     var attributes: Set<BellAttributeFilter> = []

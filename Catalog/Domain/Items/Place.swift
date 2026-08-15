@@ -1,5 +1,6 @@
 import Foundation
 
+/// Represents place data and behavior.
 struct Place: Identifiable, Hashable, Codable {
     let id: UUID
     var displayName: String

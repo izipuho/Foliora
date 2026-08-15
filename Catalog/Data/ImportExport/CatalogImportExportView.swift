@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 typealias CollectionID = UUID
 
+/// Displays the catalog export view interface.
 struct CatalogExportView: View {
     @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
@@ -47,7 +48,7 @@ struct CatalogExportView: View {
                 handleExportResult(result)
             }
             .alert("catalog.export.failed", isPresented: exportErrorBinding) {
-                Button("OK", role: .cancel) {}
+                Button("common.ok", role: .cancel) {}
             } message: {
                 Text(exportErrorMessage ?? "")
             }
@@ -189,6 +190,7 @@ struct CatalogExportView: View {
     }
 }
 
+/// Displays the catalog import view interface.
 struct CatalogImportView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -416,79 +418,17 @@ private struct CatalogExportCollectionItem: Identifiable, Hashable {
 }
 
 #Preview {
+    let container = PreviewContainer.make(.minimal)
+
     NavigationStack {
         CatalogExportView()
-            .environment(\.managedObjectContext, CatalogExportPreviewData.context)
+            .environment(\.managedObjectContext, container.viewContext)
     }
 }
 
 #Preview("Import Selection") {
     NavigationStack {
         CatalogImportView(bundle: CatalogImportPreviewData.bundle) { _ in }
-    }
-}
-
-private enum CatalogExportPreviewData {
-    static let context: NSManagedObjectContext = {
-        do {
-            let container = try FolioraCoreDataStack.makeContainer(inMemory: true)
-            let context = container.viewContext
-
-            let firstHome = makeHome(
-                id: UUID(),
-                name: "Home 1",
-                iconName: "house.fill",
-                context: context
-            )
-            let secondHome = makeHome(
-                id: UUID(),
-                name: "Home 2",
-                iconName: "building.2.fill",
-                context: context
-            )
-
-            makeCollection(title: "Collection 1", home: firstHome, context: context)
-            makeCollection(title: "Collection 2", home: firstHome, context: context)
-            makeCollection(title: "Collection 3", home: secondHome, context: context)
-
-            try context.save()
-            return context
-        } catch {
-            fatalError("Failed to create CatalogExportView preview data: \(error)")
-        }
-    }()
-
-    @discardableResult
-    private static func makeHome(
-        id: UUID,
-        name: String,
-        iconName: String,
-        context: NSManagedObjectContext
-    ) -> NSManagedObject {
-        let entity = NSEntityDescription.insertNewObject(forEntityName: "HomeEntity", into: context)
-        entity.setValue(id, forKey: "id")
-        entity.setValue(name, forKey: "name")
-        entity.setValue(iconName, forKey: "iconName")
-        entity.setValue("", forKey: "notes")
-        return entity
-    }
-
-    private static func makeCollection(
-        title: String,
-        home: NSManagedObject,
-        context: NSManagedObjectContext
-    ) {
-        let homeID = home.value(forKey: "id") as? UUID
-        let entity = NSEntityDescription.insertNewObject(forEntityName: "CollectionEntity", into: context)
-        entity.setValue(UUID(), forKey: "id")
-        entity.setValue(homeID, forKey: "homeID")
-        entity.setValue(home.value(forKey: "name"), forKey: "homeName")
-        entity.setValue(home.value(forKey: "iconName"), forKey: "homeIconName")
-        entity.setValue(CollectionKind.bells.rawValue, forKey: "kindRaw")
-        entity.setValue(title, forKey: "title")
-        entity.setValue("", forKey: "notes")
-        entity.setValue(CollectionBackgroundStyle.amber.rawValue, forKey: "backgroundStyleRaw")
-        entity.setValue(home, forKey: "home")
     }
 }
 
