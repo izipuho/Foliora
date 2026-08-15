@@ -169,7 +169,13 @@ struct SettingsView: View {
     }
 
     private var buildNumber: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+        let number = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+
+        #if DEBUG
+        return "\(number) dev"
+        #else
+        return number
+        #endif
     }
 
     private func saveDisplayName() {
