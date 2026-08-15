@@ -148,12 +148,9 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
     func deleteBellRecord(bellID: UUID) {
         guard let entity = fetchBellEntity(by: bellID) else { return }
-        if let item = entity.value(forKey: "item") as? NSManagedObject {
-            context.delete(item)
-            deleteOrphanItemTags()
-        } else {
-            context.delete(entity)
-        }
+        guard let item = entity.value(forKey: "item") as? NSManagedObject else { return }
+        context.delete(item)
+        deleteOrphanItemTags()
         saveContext()
     }
 
@@ -387,7 +384,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func fetchBellEntity(by itemID: UUID) -> NSManagedObject? {
         fetchEntities(
             named: "BellEntity",
-            predicate: NSPredicate(format: "item.id == %@ OR id == %@", itemID as NSUUID, itemID as NSUUID),
+            predicate: NSPredicate(format: "item.id == %@", itemID as NSUUID, itemID as NSUUID),
             fetchLimit: 1
         ).first
     }
