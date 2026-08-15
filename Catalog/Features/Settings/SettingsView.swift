@@ -19,6 +19,9 @@ struct SettingsView: View {
     @State private var exportResultMessage: String?
     @State private var isDeveloperMenuPresented = false
     @FocusState private var isDisplayNameFocused: Bool
+    #if DEBUG
+    @State private var cloudKitSchemaMessage: String?
+    #endif
 
     var body: some View {
         List {
@@ -156,6 +159,16 @@ struct SettingsView: View {
                         }
                     }
             }
+            
+            #if DEBUG
+            Section("CloudKit") {
+                Button {
+                    initializeCloudKitSchema()
+                } label: {
+                    Label("Initialize CloudKit Schema", systemImage: "icloud.and.arrow.up")
+                }
+            }
+            #endif
         }
     }
 
@@ -169,13 +182,7 @@ struct SettingsView: View {
     }
 
     private var buildNumber: String {
-        let number = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
-
-        #if DEBUG
-        return "\(number) dev"
-        #else
-        return number
-        #endif
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
     }
 
     private func saveDisplayName() {
@@ -333,6 +340,23 @@ struct SettingsView: View {
 
         return String.localizedStringWithFormat(String(localized: key), count)
     }
+    
+    #if DEBUG
+    private func initializeCloudKitSchema() {
+        guard let container = FolioraAppDelegate.coreDataContainer else {
+            cloudKitSchemaMessage = "Core Data container is unavailable."
+            return
+        }
+
+        do {
+            try container.initializeCloudKitSchema(options: [])
+            cloudKitSchemaMessage = "CloudKit schema initialized successfully."
+        } catch {
+            cloudKitSchemaMessage = error.localizedDescription
+        }
+    }
+    #endif
+
 
 }
 

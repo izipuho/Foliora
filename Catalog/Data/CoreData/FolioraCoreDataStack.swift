@@ -21,7 +21,7 @@ enum FolioraCoreDataStack {
             try await loadPersistentStores(into: container, inMemory: false, usesCloudKit: usesCloudKit)
         }
 
-        configureLoadedContainer(container, usesCloudKit: usesCloudKit)
+        configureLoadedContainer(container)
 
         return container
     }
@@ -30,28 +30,16 @@ enum FolioraCoreDataStack {
         let model = try managedObjectModel()
         let container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
         try loadPersistentStoresSynchronously(into: container, inMemory: true, usesCloudKit: false)
-        configureLoadedContainer(container, usesCloudKit: false)
+        configureLoadedContainer(container)
 
         return container
     }
 
     private static func configureLoadedContainer(
-        _ container: NSPersistentCloudKitContainer,
-        usesCloudKit: Bool
+        _ container: NSPersistentCloudKitContainer
     ) {
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-
-        #if DEBUG
-        if usesCloudKit {
-            do {
-                try container.initializeCloudKitSchema(options: [])
-                print("CloudKit schema initialized successfully.")
-            } catch {
-                print("CloudKit schema initialization skipped: \(error)")
-            }
-        }
-        #endif
     }
 
     private static func managedObjectModel() throws -> NSManagedObjectModel {
