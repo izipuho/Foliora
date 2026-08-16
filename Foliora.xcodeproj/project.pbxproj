@@ -159,7 +159,6 @@
 		C00000000000000000000011 /* Bells.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Bells.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C00000000000000000000013 /* EditorFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFields.swift; sourceTree = "<group>"; };
-		C00000000000000000000016 /* Catalog.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Catalog.entitlements; sourceTree = "<group>"; };
 		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
 		C0000000000000000000001F /* BellCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCardView.swift; sourceTree = "<group>"; };
 		C00000000000000000000028 /* CatalogTransferBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferBundle.swift; sourceTree = "<group>"; };
@@ -283,7 +282,6 @@
 				C00000000000000000000037 /* Data */,
 				C00000000000000000000038 /* Features */,
 				C00000000000000000000039 /* Resources */,
-				C00000000000000000000016 /* Catalog.entitlements */,
 			);
 			path = Catalog;
 			sourceTree = "<group>";

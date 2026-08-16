@@ -6,20 +6,37 @@ import Foundation
 enum FolioraCoreDataStack {
     static let modelName = "Foliora"
     static let appGroupIdentifier = "group.com.izipuho.Foliora"
-    static let cloudKitContainerIdentifier = CKContainer.default().containerIdentifier!
 
     @concurrent
     static func makeContainer() async throws -> NSPersistentCloudKitContainer {
         let model = try managedObjectModel()
         var usesCloudKit = true
         var container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
+        guard let cloudKitContainerIdentifier = container
+            .persistentStoreDescriptions
+            .first?
+            .cloudKitContainerOptions?
+            .containerIdentifier
+        else {
+            throw FolioraCoreDataStackError.cloudKitContainerUnavailable
+        }
 
         do {
-            try await loadPersistentStores(into: container, inMemory: false, usesCloudKit: usesCloudKit)
+            try await loadPersistentStores(
+                into: container,
+                inMemory: false,
+                usesCloudKit: usesCloudKit,
+                cloudKitContainerIdentifier: cloudKitContainerIdentifier
+            )
         } catch {
             usesCloudKit = false
             container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
-            try await loadPersistentStores(into: container, inMemory: false, usesCloudKit: usesCloudKit)
+            try await loadPersistentStores(
+                into: container,
+                inMemory: false,
+                usesCloudKit: usesCloudKit,
+                cloudKitContainerIdentifier: cloudKitContainerIdentifier
+            )
         }
 
         configureLoadedContainer(container)
@@ -58,11 +75,13 @@ enum FolioraCoreDataStack {
     private static func loadPersistentStores(
         into container: NSPersistentCloudKitContainer,
         inMemory: Bool,
-        usesCloudKit: Bool
+        usesCloudKit: Bool,
+        cloudKitContainerIdentifier: String
     ) async throws {
         container.persistentStoreDescriptions = try storeDescriptions(
             inMemory: inMemory,
-            usesCloudKit: usesCloudKit
+            usesCloudKit: usesCloudKit,
+            cloudKitContainerIdentifier: cloudKitContainerIdentifier
         )
 
         try await withCheckedThrowingContinuation { continuation in
@@ -104,7 +123,8 @@ enum FolioraCoreDataStack {
     ) throws {
         container.persistentStoreDescriptions = try storeDescriptions(
             inMemory: inMemory,
-            usesCloudKit: usesCloudKit
+            usesCloudKit: usesCloudKit,
+            cloudKitContainerIdentifier: nil
         )
 
         let storeCount = container.persistentStoreDescriptions.count
@@ -136,12 +156,17 @@ enum FolioraCoreDataStack {
         }
     }
 
-    private static func storeDescriptions(inMemory: Bool, usesCloudKit: Bool) throws -> [NSPersistentStoreDescription] {
+    private static func storeDescriptions(
+        inMemory: Bool,
+        usesCloudKit: Bool,
+        cloudKitContainerIdentifier: String?
+    ) throws -> [NSPersistentStoreDescription] {
         let privateDescription = NSPersistentStoreDescription(url: try storeURL(named: "Private.sqlite"))
         configure(
             privateDescription,
             inMemory: inMemory,
             usesCloudKit: usesCloudKit,
+            cloudKitContainerIdentifier: cloudKitContainerIdentifier,
             databaseScope: .private,
             inMemoryName: "Private"
         )
@@ -151,6 +176,7 @@ enum FolioraCoreDataStack {
             sharedDescription,
             inMemory: inMemory,
             usesCloudKit: usesCloudKit,
+            cloudKitContainerIdentifier: cloudKitContainerIdentifier,
             databaseScope: .shared,
             inMemoryName: "Shared"
         )
@@ -162,6 +188,7 @@ enum FolioraCoreDataStack {
         _ description: NSPersistentStoreDescription,
         inMemory: Bool,
         usesCloudKit: Bool,
+        cloudKitContainerIdentifier: String?,
         databaseScope: CKDatabase.Scope,
         inMemoryName: String
     ) {
@@ -169,6 +196,9 @@ enum FolioraCoreDataStack {
             description.type = NSInMemoryStoreType
             description.url = URL(fileURLWithPath: "/dev/null/\(inMemoryName)")
         } else if usesCloudKit {
+            guard let cloudKitContainerIdentifier else {
+                return
+            }
             let options = NSPersistentCloudKitContainerOptions(containerIdentifier: cloudKitContainerIdentifier)
             options.databaseScope = databaseScope
             description.cloudKitContainerOptions = options
@@ -201,6 +231,7 @@ enum FolioraCoreDataStack {
 enum FolioraCoreDataStackError: LocalizedError {
     case modelNotFound(String)
     case appGroupContainerUnavailable
+    case cloudKitContainerUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -208,6 +239,8 @@ enum FolioraCoreDataStackError: LocalizedError {
             "Core Data model \(modelName).momd was not found."
         case .appGroupContainerUnavailable:
             "Foliora App Group container is unavailable."
+        case .cloudKitContainerUnavailable:
+            "CloudKit container from Core Data store description is unavailable."
         }
     }
 }

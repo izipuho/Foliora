@@ -153,7 +153,7 @@ struct SettingsView: View {
                         NavigationLink {
                             PhotoAnalysisSettingsView()
                         } label: {
-                            Label("Photo Analysis", systemImage: "photo")
+                            Label("photo_analysis.title", systemImage: "photo")
                         }
                     }
 
@@ -172,7 +172,7 @@ struct SettingsView: View {
                     }
                     #endif
                 }
-                .navigationTitle("Developer")
+                .navigationTitle("settings.developer.section_title")
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
                             Button {
