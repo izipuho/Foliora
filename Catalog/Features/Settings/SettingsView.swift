@@ -161,7 +161,7 @@ struct SettingsView: View {
                     Section("CloudKit") {
                         SettingsInfoRow(
                             title: "CloudContainer",
-                            value: FolioraCoreDataStack.cloudKitContainerIdentifier
+                            value: cloudKitContainerIdentifier
                         )
 
                         Button {
@@ -356,6 +356,12 @@ struct SettingsView: View {
     }
     
     #if DEBUG
+    private var cloudKitContainerIdentifier: String {
+        FolioraAppDelegate.coreDataContainer
+            .flatMap(FolioraCoreDataStack.cloudKitContainerIdentifier)
+            ?? "Unavailable"
+    }
+
     private func initializeCloudKitSchema() {
         guard let container = FolioraAppDelegate.coreDataContainer else {
             cloudKitSchemaMessage = "Core Data container is unavailable."

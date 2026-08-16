@@ -12,12 +12,7 @@ enum FolioraCoreDataStack {
         let model = try managedObjectModel()
         var usesCloudKit = true
         var container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
-        guard let cloudKitContainerIdentifier = container
-            .persistentStoreDescriptions
-            .first?
-            .cloudKitContainerOptions?
-            .containerIdentifier
-        else {
+        guard let cloudKitContainerIdentifier = cloudKitContainerIdentifier(from: container) else {
             throw FolioraCoreDataStackError.cloudKitContainerUnavailable
         }
 
@@ -58,6 +53,16 @@ enum FolioraCoreDataStack {
     ) {
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+    }
+
+    static func cloudKitContainerIdentifier(
+        from container: NSPersistentCloudKitContainer
+    ) -> String? {
+        container
+            .persistentStoreDescriptions
+            .first?
+            .cloudKitContainerOptions?
+            .containerIdentifier
     }
 
     private static func managedObjectModel() throws -> NSManagedObjectModel {
