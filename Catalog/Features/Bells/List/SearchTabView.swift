@@ -1,5 +1,4 @@
 import SwiftUI
-import CoreData
 
 /// Groups search token values and behavior.
 enum SearchToken: Identifiable, Hashable {
@@ -50,11 +49,11 @@ struct BellCatalogSearchState: Equatable {
 /// Displays the search tab view interface.
 struct SearchTabView: View {
     let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     let onBellSelected: ((UUID) -> Void)?
     private let initialQuery: String?
-    @Environment(\.managedObjectContext) private var managedObjectContext
     @Binding var layoutMode: CatalogCardLayoutMode
-    @State private var searchSnapshot = SearchCatalogSnapshot()
     @State private var selectedBellID: UUID?
     @State private var searchState = BellCatalogSearchState()
     @State private var didApplyInitialQuery = false
@@ -63,17 +62,37 @@ struct SearchTabView: View {
     init(
         repository: any CatalogRepository,
         layoutMode: Binding<CatalogCardLayoutMode>,
+        catalogSnapshot: CatalogSnapshot?,
+        reloadCatalogSnapshot: @escaping () -> Void,
         initialQuery: String? = nil,
         onBellSelected: ((UUID) -> Void)? = nil
     ) {
         self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
+        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self._layoutMode = layoutMode
         self.initialQuery = initialQuery
         self.onBellSelected = onBellSelected
     }
 
     private var bells: [BellListItem] {
-        searchSnapshot.bells
+        catalogSnapshot?.bells ?? []
+    }
+
+    private var collections: [Collection] {
+        (catalogSnapshot?.collections ?? [])
+            .sorted {
+                let titleComparison = $0.title.localizedCaseInsensitiveCompare($1.title)
+                if titleComparison != .orderedSame {
+                    return titleComparison == .orderedAscending
+                }
+
+                return $0.id.uuidString < $1.id.uuidString
+            }
+    }
+
+    private var collectionTitlesByID: [UUID: String] {
+        Dictionary(uniqueKeysWithValues: collections.map { ($0.id, $0.title) })
     }
 
     private var suggestedTokenGroups: [SearchTokenGroup] {
@@ -83,7 +102,7 @@ struct SearchTabView: View {
             SearchTokenGroup(
                 title: String(localized: "root_tab.collections"),
                 systemImage: "rectangle.stack",
-                tokens: searchSnapshot.collections.map { SearchToken.collection($0.id) }
+                tokens: collections.map { SearchToken.collection($0.id) }
             ),
             SearchTokenGroup(
                 title: String(localized: "bell_catalog.summary.countries"),
@@ -122,7 +141,7 @@ struct SearchTabView: View {
     }
 
     private var filteredBells: [BellListItem] {
-        searchSnapshot.bells
+        bells
             .filter { matches(bell: $0, searchState: searchState) }
             .sorted {
                 if $0.createdAt == $1.createdAt {
@@ -161,21 +180,16 @@ struct SearchTabView: View {
         }
         .searchFocused($isSearchFocused)
         .onAppear {
-            reloadSearchSnapshot()
             applyInitialQueryIfNeeded()
             isSearchFocused = true
-        }
-        .onReceive(NotificationCenter.default.publisher(
-            for: .NSManagedObjectContextObjectsDidChange,
-            object: managedObjectContext
-        )) { _ in
-            reloadSearchSnapshot()
         }
         .sheet(isPresented: isBellDetailPresented) {
             if let selectedBellID {
                 BellDetailContainer(
                     bellID: selectedBellID,
-                    repository: repository
+                    repository: repository,
+                    catalogSnapshot: catalogSnapshot,
+                    reloadCatalogSnapshot: reloadCatalogSnapshot
                 )
                     .presentationDragIndicator(.visible)
             }
@@ -232,10 +246,6 @@ struct SearchTabView: View {
         }
     }
 
-    private func reloadSearchSnapshot() {
-        searchSnapshot = SearchCatalogSnapshot(context: managedObjectContext)
-    }
-
     private func applyInitialQueryIfNeeded() {
         guard !didApplyInitialQuery else { return }
         didApplyInitialQuery = true
@@ -247,7 +257,7 @@ struct SearchTabView: View {
     private func searchTokenTitle(_ token: SearchToken) -> String {
         switch token {
         case .collection(let collectionID):
-            return searchSnapshot.collectionTitlesByID[collectionID]
+            return collectionTitlesByID[collectionID]
                 ?? String(localized: "search.scope.collection")
         case .country(let value), .material(let value), .tag(let value):
             return value
@@ -297,13 +307,13 @@ struct SearchTabView: View {
 
     private var uniqueConditions: [ItemCondition] {
         ItemCondition.allCases.filter { condition in
-            searchSnapshot.bells.contains { $0.condition == condition }
+            bells.contains { $0.condition == condition }
         }
     }
 
     private var uniqueAcquisitionMethods: [AcquisitionMethod] {
         AcquisitionMethod.allCases.filter { method in
-            searchSnapshot.bells.contains { $0.acquisitionMethod == method }
+            bells.contains { $0.acquisitionMethod == method }
         }
     }
 
@@ -396,7 +406,7 @@ struct SearchTabView: View {
     }
 
     private func collectionTitle(for bell: BellListItem) -> String {
-        bell.collectionID.flatMap { searchSnapshot.collectionTitlesByID[$0] } ?? ""
+        bell.collectionID.flatMap { collectionTitlesByID[$0] } ?? ""
     }
 }
 
@@ -406,55 +416,6 @@ private struct SearchTokenGroup: Identifiable {
     let tokens: [SearchToken]
 
     var id: String { title }
-}
-
-private struct SearchCollectionSnapshot: Identifiable {
-    let id: UUID
-    let title: String
-}
-
-private struct SearchCatalogSnapshot {
-    var collections: [SearchCollectionSnapshot] = []
-    var bells: [BellListItem] = []
-    var collectionTitlesByID: [UUID: String] = [:]
-
-    init() {}
-
-    init(context: NSManagedObjectContext) {
-        let catalogSnapshot = BellCatalogSnapshot(context: context, collectionID: nil)
-        let collectionEntities = Self.fetchEntities(
-            named: "CollectionEntity",
-            in: context,
-            sortDescriptors: [NSSortDescriptor(key: "title", ascending: true)]
-        )
-
-        collections = collectionEntities.map {
-            SearchCollectionSnapshot(
-                id: Self.uuidValue($0, "id"),
-                title: Self.stringValue($0, "title")
-            )
-        }
-        bells = catalogSnapshot.bells
-        collectionTitlesByID = Dictionary(uniqueKeysWithValues: collections.map { ($0.id, $0.title) })
-    }
-
-    private static func fetchEntities(
-        named entityName: String,
-        in context: NSManagedObjectContext,
-        sortDescriptors: [NSSortDescriptor]
-    ) -> [NSManagedObject] {
-        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
-        request.sortDescriptors = sortDescriptors
-        return (try? context.fetch(request)) ?? []
-    }
-
-    private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
-        entity.value(forKey: key) as? UUID ?? UUID()
-    }
-
-    private static func stringValue(_ entity: NSManagedObject, _ key: String) -> String {
-        entity.value(forKey: key) as? String ?? ""
-    }
 }
 
 private struct SearchTokenBar: View {

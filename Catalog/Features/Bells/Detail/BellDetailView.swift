@@ -5,10 +5,10 @@ struct BellDetailView: View {
 
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     let canEditCollection: Bool
     let canChangeFavorite: Bool
-    @Environment(\.managedObjectContext) private var managedObjectContext
-    @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
@@ -23,10 +23,19 @@ struct BellDetailView: View {
     @State private var selectedHeroPhotoID: UUID?
     private let detailContentFadeHeight: CGFloat = 80
 
-    init(bell: Binding<BellRecord>, repository: any CatalogRepository, canEditCollection: Bool, canChangeFavorite: Bool = false) {
+    init(
+        bell: Binding<BellRecord>,
+        repository: any CatalogRepository,
+        catalogSnapshot: CatalogSnapshot?,
+        reloadCatalogSnapshot: @escaping () -> Void,
+        canEditCollection: Bool,
+        canChangeFavorite: Bool = false
+    ) {
         _bell = bell
         _selectedHeroPhotoID = State(initialValue: Self.heroPhotoAssets(in: bell.wrappedValue).first?.id)
         self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
+        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.canEditCollection = canEditCollection
         self.canChangeFavorite = canChangeFavorite
     }
@@ -94,11 +103,14 @@ struct BellDetailView: View {
                     BellEditorView(
                         collection: collection,
                         repository: repository,
+                        catalogSnapshot: catalogSnapshot,
+                        reloadCatalogSnapshot: reloadCatalogSnapshot,
                         bell: bell
                     ) { updatedBell in
                         repository.saveBellRecord(updatedBell)
                         bell = updatedBell
                         syncDraftsFromBell()
+                        reloadCatalogSnapshot()
                     }
                 }
             }
@@ -121,14 +133,11 @@ struct BellDetailView: View {
                     onSave: {
                         repository.saveHome(draftHome)
                         repository.saveLocations(draftHomeLocations, in: draftHome.id)
-                        reloadLookupSnapshot()
+                        reloadCatalogSnapshot()
                         continueLocationSelectionIfNeeded()
                     },
                     onDelete: nil
                 )
-            }
-            .task {
-                reloadLookupSnapshot()
             }
             .onAppear {
                 syncDraftsFromBell()
@@ -140,9 +149,6 @@ struct BellDetailView: View {
             }
             .onChange(of: heroPhotoAssetIDs) { _, _ in
                 syncSelectedHeroPhoto()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
-                reloadLookupSnapshot()
             }
         }
     }
@@ -360,16 +366,23 @@ struct BellDetailView: View {
     }
 
     private var availableLocations: [Location] {
-        guard let homeID = inferredCollection?.homeID else { return [] }
-        return lookupSnapshot.locations.filter { $0.homeID == homeID }
+        guard let snapshot = catalogSnapshot,
+              let collection = inferredCollection else { return [] }
+
+        let collectionLocations = snapshot.collectionLocationsByCollectionID[collection.id] ?? []
+        if !collectionLocations.isEmpty {
+            return collectionLocations
+        }
+
+        return snapshot.locationsByHomeID[collection.homeID] ?? []
     }
 
     private var availablePlaces: [Place] {
-        lookupSnapshot.places
+        catalogSnapshot?.places ?? []
     }
 
     private var inferredCollection: CollectionSummary? {
-        lookupSnapshot.collections.first(where: { $0.id == bell.item.collectionID })?.summarySnapshot
+        catalogSnapshot?.collectionSummary(id: bell.item.collectionID)
     }
 
     private var detailAccentColor: Color {
@@ -386,15 +399,11 @@ struct BellDetailView: View {
         tagInput = ""
     }
 
-    private func reloadLookupSnapshot() {
-        lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
-            .loadSnapshot(collectionID: bell.item.collectionID, homeID: nil)
-    }
-
     private func presentHomeEditor(for homeID: UUID) {
-        guard let home = lookupSnapshot.homes.first(where: { $0.id == homeID }) else { return }
+        guard let snapshot = catalogSnapshot,
+              let home = snapshot.homes.first(where: { $0.id == homeID }) else { return }
         draftHome = home
-        draftHomeLocations = availableLocations
+        draftHomeLocations = snapshot.locationsByHomeID[homeID] ?? []
         shouldPresentLocationPickerAfterHomeEditor = true
         isPresentingHomeEditor = true
     }
@@ -470,6 +479,7 @@ struct BellDetailView: View {
 
         bell = updatedBell
         repository.saveBellRecord(updatedBell)
+        reloadCatalogSnapshot()
     }
 
     private func persist(
@@ -520,7 +530,7 @@ struct BellDetailView: View {
 
         repository.saveBellRecord(updatedBell)
         bell = updatedBell
-        reloadLookupSnapshot()
+        reloadCatalogSnapshot()
     }
 
     private func storagePath(for location: Location, locationsByID: [UUID: Location]) -> StoragePath {
@@ -550,11 +560,13 @@ struct BellDetailView: View {
 private struct BellDetailPreviewHost: View {
     let initialBell: BellRecord
     let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
     @State private var bell: BellRecord
 
-    init(bell: BellRecord, repository: any CatalogRepository) {
+    init(bell: BellRecord, repository: any CatalogRepository, catalogSnapshot: CatalogSnapshot?) {
         self.initialBell = bell
         self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
         _bell = State(initialValue: bell)
     }
 
@@ -562,6 +574,8 @@ private struct BellDetailPreviewHost: View {
         BellDetailView(
             bell: $bell,
             repository: repository,
+            catalogSnapshot: catalogSnapshot,
+            reloadCatalogSnapshot: {},
             canEditCollection: false,
             canChangeFavorite: false
         )
@@ -582,25 +596,10 @@ private struct BellDetailPreviewHost: View {
     NavigationStack {
         BellDetailPreviewHost(
             bell: bell,
-            repository: repository
+            repository: repository,
+            catalogSnapshot: snapshot
         )
         .environment(\.managedObjectContext, container.viewContext)
     }
 }
 #endif
-
-private extension Collection {
-    var summarySnapshot: CollectionSummary {
-        CollectionSummary(
-            id: id,
-            homeID: homeID,
-            kind: kind,
-            name: title,
-            subtitle: notes,
-            backgroundStyle: backgroundStyle,
-            itemCount: 0,
-            status: kind == .bells ? .active : .planned,
-            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
-        )
-    }
-}

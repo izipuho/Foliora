@@ -4,16 +4,15 @@ import CoreData
 
 /// Displays the collection shell view interface.
 struct CollectionShellView: View {
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
+    let collection: CollectionSummary
     let repository: any CatalogRepository
     let coreDataContainer: NSPersistentCloudKitContainer
     private let onBellSelected: ((UUID) -> Void)?
     private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.colorScheme) private var colorScheme
-    @State private var catalogSnapshot: CatalogSnapshot?
-    @State private var collection: CollectionSummary
-    @State private var refreshID = UUID()
     @State private var isPresentingAddBell = false
     @State private var isPresentingBatchAdd = false
     @State private var isPresentingAddBellOptions = false
@@ -35,18 +34,22 @@ struct CollectionShellView: View {
 
     init(
         collection: CollectionSummary,
+        catalogSnapshot: CatalogSnapshot?,
+        reloadCatalogSnapshot: @escaping () -> Void,
         repository: any CatalogRepository,
         coreDataContainer: NSPersistentCloudKitContainer,
         layoutMode: Binding<CatalogCardLayoutMode>,
         onBellSelected: ((UUID) -> Void)? = nil,
         onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
+        self.collection = collection
+        self.catalogSnapshot = catalogSnapshot
+        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.repository = repository
         self.coreDataContainer = coreDataContainer
         self.onBellSelected = onBellSelected
         self.onBatchAddComplete = onBatchAddComplete
         self.layoutMode = layoutMode
-        _collection = State(initialValue: collection)
     }
 
     private var homes: [Home] {
@@ -176,20 +179,15 @@ struct CollectionShellView: View {
                 if let selectedBellID {
                     BellDetailContainer(
                         bellID: selectedBellID,
-                        repository: repository
+                        repository: repository,
+                        catalogSnapshot: catalogSnapshot,
+                        reloadCatalogSnapshot: reloadCatalogSnapshot
                     )
                         .presentationDragIndicator(.visible)
                 }
             }
-            .onAppear(perform: refreshContent)
             .task(id: collection.id) {
                 await loadCollectionSharingState()
-            }
-            .onReceive(NotificationCenter.default.publisher(
-                for: .NSManagedObjectContextObjectsDidChange,
-                object: managedObjectContext
-            )) { _ in
-                refreshContent()
             }
     }
 
@@ -217,6 +215,8 @@ struct CollectionShellView: View {
                 BellCatalogView(
                     collection: collection,
                     repository: repository,
+                    catalogSnapshot: catalogSnapshot,
+                    reloadCatalogSnapshot: reloadCatalogSnapshot,
                     layoutMode: selectedLayoutModeBinding,
                     orderMode: selectedOrderBinding,
                     filters: $selectedSummaryFilter,
@@ -232,7 +232,6 @@ struct CollectionShellView: View {
                 )
             }
         }
-        .id("collection-\(refreshID.uuidString)")
         .navigationTitle(collection.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -242,11 +241,13 @@ struct CollectionShellView: View {
         BellEditorView(
             collection: collection,
             repository: repository,
+            catalogSnapshot: catalogSnapshot,
+            reloadCatalogSnapshot: reloadCatalogSnapshot,
             initialMediaAssets: draftMediaAssets,
             initialAnalysisImage: draftAnalysisImage
         ) { newBell in
             repository.saveBellRecord(newBell)
-            refreshContent()
+            reloadCatalogSnapshot()
         }
     }
 
@@ -254,6 +255,8 @@ struct CollectionShellView: View {
         BellBatchAddView(
             collection: collection,
             photoCount: draftMediaAssets.count,
+            catalogSnapshot: catalogSnapshot,
+            reloadCatalogSnapshot: reloadCatalogSnapshot,
             initialMediaAssets: draftMediaAssets,
             repository: repository,
             onComplete: handleBatchAddCompletion
@@ -275,6 +278,7 @@ struct CollectionShellView: View {
             saveCollectionEdits(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
         } onDelete: {
             repository.deleteCollection(collectionID: collection.id)
+            reloadCatalogSnapshot()
             dismiss()
         }
     }
@@ -307,32 +311,7 @@ struct CollectionShellView: View {
         )
 
         repository.saveCollection(updatedCollection)
-        refreshContent()
-    }
-
-    private func refreshContent() {
-        let snapshot = CatalogSnapshot.load(from: managedObjectContext)
-        catalogSnapshot = snapshot
-        collection = snapshot.collections
-            .first(where: { $0.id == collection.id })
-            .map { collectionSummary(from: $0, in: snapshot) } ?? collection
-        refreshID = UUID()
-    }
-
-    private func collectionSummary(from collection: Collection, in snapshot: CatalogSnapshot) -> CollectionSummary {
-        let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
-
-        return CollectionSummary(
-            id: collection.id,
-            homeID: collection.homeID,
-            kind: collection.kind,
-            name: collection.title,
-            subtitle: collection.notes,
-            backgroundStyle: collection.backgroundStyle,
-            itemCount: collection.kind == .bells ? itemCount : 0,
-            status: collection.kind == .bells ? .active : .planned,
-            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
-        )
+        reloadCatalogSnapshot()
     }
 
     @MainActor
@@ -351,7 +330,7 @@ struct CollectionShellView: View {
 
     private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
         isPresentingBatchAdd = false
-        refreshContent()
+        reloadCatalogSnapshot()
 
         if case .reviewResults = action {
             onBatchAddComplete(action)

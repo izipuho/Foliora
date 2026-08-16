@@ -19,6 +19,11 @@ struct CatalogSnapshot {
 
     private init() {}
 
+    func collectionSummary(id collectionID: UUID) -> CollectionSummary? {
+        guard let collection = collections.first(where: { $0.id == collectionID }) else { return nil }
+        return collectionSummary(from: collection)
+    }
+
     static func load(from context: NSManagedObjectContext) -> CatalogSnapshot {
         let homeEntities = fetchEntities(
             named: "HomeEntity",
@@ -43,6 +48,7 @@ struct CatalogSnapshot {
         let bellEntities = fetchEntities(
             named: "BellEntity",
             in: context,
+            predicate: NSPredicate(format: "item != nil"),
             sortDescriptors: [NSSortDescriptor(key: "item.createdAt", ascending: false)]
         )
         let placeEntities = fetchEntities(
@@ -128,7 +134,7 @@ struct CatalogSnapshot {
                 }
                 return lhs.id.uuidString < rhs.id.uuidString
             }
-        snapshot.bells = bellEntities.map(bellListItem)
+        snapshot.bells = records.map(bellListItem)
         snapshot.bellRecords = records
         snapshot.places = placeEntities.map { CoreDataDomainMapper.place(from: $0) }
         snapshot.recordsByID = Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) })
@@ -214,8 +220,7 @@ struct CatalogSnapshot {
         return (collectionID, (uuidValue(entity, "id"), collectionLocationPath(from: entity)))
     }
 
-    private static func bellListItem(from entity: NSManagedObject) -> BellListItem {
-        let record = CoreDataDomainMapper.bellRecord(from: entity)
+    private static func bellListItem(from record: BellRecord) -> BellListItem {
         let coverPhoto = record.mediaAssets
             .sorted { $0.sortOrder < $1.sortOrder }
             .first { $0.kind == .photo }
@@ -249,6 +254,28 @@ struct CatalogSnapshot {
             coverPhotoOriginalData: coverPhoto?.originalData,
             hasOrigin: record.originPlace != nil,
             hasStorage: record.item.locationID != nil
+        )
+    }
+
+    private func collectionSummary(from collection: Collection) -> CollectionSummary {
+        let itemCount: Int
+        switch collection.kind {
+        case .bells:
+            itemCount = bellRecords.filter { $0.item.collectionID == collection.id }.count
+        default:
+            itemCount = 0
+        }
+
+        return CollectionSummary(
+            id: collection.id,
+            homeID: collection.homeID,
+            kind: collection.kind,
+            name: collection.title,
+            subtitle: collection.notes,
+            backgroundStyle: collection.backgroundStyle,
+            itemCount: itemCount,
+            status: collection.kind == .bells ? .active : .planned,
+            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
         )
     }
 
