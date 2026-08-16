@@ -49,7 +49,7 @@ struct AppShellView: View {
     let repository: any CatalogRepository
     let coreDataContainer: NSPersistentCloudKitContainer
     @Environment(\.managedObjectContext) private var managedObjectContext
-    @State private var navigationSnapshot: CatalogSnapshot?
+    @State private var catalogSnapshot: CatalogSnapshot?
     @State private var collectionsPath = NavigationPath()
     @State private var homesPath = NavigationPath()
     @State private var settingsPath = NavigationPath()
@@ -62,8 +62,8 @@ struct AppShellView: View {
     var body: some View {
         RootShellView(
             repository: repository,
-            navigationSnapshot: navigationSnapshot,
-            reloadNavigationSnapshot: reloadNavigationSnapshot,
+            catalogSnapshot: catalogSnapshot,
+            reloadCatalogSnapshot: reloadCatalogSnapshot,
             selectedRootTab: $selectedRootTab,
             collectionsPath: $collectionsPath,
             homesPath: $homesPath,
@@ -81,14 +81,14 @@ struct AppShellView: View {
             }
         )
         .onAppear {
-            reloadNavigationSnapshot()
+            reloadCatalogSnapshot()
             loadDisplayName()
         }
         .onReceive(NotificationCenter.default.publisher(
             for: .NSManagedObjectContextObjectsDidChange,
             object: managedObjectContext
         )) { _ in
-            reloadNavigationSnapshot()
+            reloadCatalogSnapshot()
         }
         .onChange(of: shareInvitationController.state) { _, state in
             handleShareInvitationState(state)
@@ -144,11 +144,11 @@ struct AppShellView: View {
                     onSave: { updatedHome, updatedLocations in
                         repository.saveHome(updatedHome)
                         repository.saveLocations(updatedLocations, in: updatedHome.id)
-                        reloadNavigationSnapshot()
+                        reloadCatalogSnapshot()
                     },
                     onDelete: {
                         repository.deleteHome(homeID: homeID)
-                        reloadNavigationSnapshot()
+                        reloadCatalogSnapshot()
                         popNavigation()
                     }
                 )
@@ -169,7 +169,7 @@ struct AppShellView: View {
                     },
                     onDelete: {
                         repository.deleteHome(homeID: homeID)
-                        reloadNavigationSnapshot()
+                        reloadCatalogSnapshot()
                         popNavigation()
                     },
                     embedsNavigation: false,
@@ -186,11 +186,11 @@ struct AppShellView: View {
     }
 
     private var homes: [Home] {
-        navigationSnapshot?.homes ?? []
+        catalogSnapshot?.homes ?? []
     }
 
     private var locationsByHomeID: [UUID: [Location]] {
-        navigationSnapshot?.locationsByHomeID ?? [:]
+        catalogSnapshot?.locationsByHomeID ?? [:]
     }
 
     private func binding(for homeID: UUID) -> Binding<Home>? {
@@ -199,7 +199,7 @@ struct AppShellView: View {
             get: { homes.first(where: { $0.id == homeID }) ?? Home(id: homeID, name: "", notes: "") },
             set: {
                 repository.saveHome($0)
-                reloadNavigationSnapshot()
+                reloadCatalogSnapshot()
             }
         )
     }
@@ -209,18 +209,18 @@ struct AppShellView: View {
             get: { locationsByHomeID[homeID] ?? [] },
             set: {
                 repository.saveLocations($0, in: homeID)
-                reloadNavigationSnapshot()
+                reloadCatalogSnapshot()
             }
         )
     }
 
     private func collectionCount(in homeID: UUID) -> Int {
-        navigationSnapshot?.collectionCountsByHomeID[homeID] ?? 0
+        catalogSnapshot?.collectionCountsByHomeID[homeID] ?? 0
     }
 
     private func collectionSummary(for collectionID: UUID) -> CollectionSummary? {
         guard
-            let snapshot = navigationSnapshot,
+            let snapshot = catalogSnapshot,
             let collection = snapshot.collections.first(where: { $0.id == collectionID })
         else {
             return nil
@@ -245,11 +245,11 @@ struct AppShellView: View {
         guard let home = homes.first(where: { $0.id == homeID }) else { return }
         repository.saveHome(home)
         repository.saveLocations(locationsByHomeID[homeID] ?? [], in: homeID)
-        reloadNavigationSnapshot()
+        reloadCatalogSnapshot()
     }
 
-    private func reloadNavigationSnapshot() {
-        navigationSnapshot = CatalogSnapshot.load(from: managedObjectContext)
+    private func reloadCatalogSnapshot() {
+        catalogSnapshot = CatalogSnapshot.load(from: managedObjectContext)
     }
 
     private func loadDisplayName() {
@@ -274,7 +274,7 @@ struct AppShellView: View {
             break
         case .accepted:
             managedObjectContext.refreshAllObjects()
-            reloadNavigationSnapshot()
+            reloadCatalogSnapshot()
             selectedRootTab = .collections
             collectionsPath = NavigationPath()
             Task { @MainActor in
@@ -291,8 +291,8 @@ struct AppShellView: View {
 
 private struct RootShellView<Destination: View>: View {
     let repository: any CatalogRepository
-    let navigationSnapshot: CatalogSnapshot?
-    let reloadNavigationSnapshot: () -> Void
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     @Binding var selectedRootTab: RootTab
     @Binding var collectionsPath: NavigationPath
     @Binding var homesPath: NavigationPath
@@ -442,8 +442,8 @@ private struct RootShellView<Destination: View>: View {
                 repository: repository,
                 embedsNavigation: false,
                 navigate: { path.wrappedValue.append($0) },
-                navigationSnapshot: navigationSnapshot,
-                reloadNavigationSnapshot: reloadNavigationSnapshot
+                catalogSnapshot: catalogSnapshot,
+                reloadCatalogSnapshot: reloadCatalogSnapshot
             )
             .navigationDestination(for: AppDestination.self) { destination in
                 self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popHomesNavigation)
