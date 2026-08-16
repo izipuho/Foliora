@@ -19,6 +19,11 @@ struct CatalogSnapshot {
 
     private init() {}
 
+    func collectionSummary(id collectionID: UUID) -> CollectionSummary? {
+        guard let collection = collections.first(where: { $0.id == collectionID }) else { return nil }
+        return collectionSummary(from: collection)
+    }
+
     static func load(from context: NSManagedObjectContext) -> CatalogSnapshot {
         let homeEntities = fetchEntities(
             named: "HomeEntity",
@@ -249,6 +254,28 @@ struct CatalogSnapshot {
             coverPhotoOriginalData: coverPhoto?.originalData,
             hasOrigin: record.originPlace != nil,
             hasStorage: record.item.locationID != nil
+        )
+    }
+
+    private func collectionSummary(from collection: Collection) -> CollectionSummary {
+        let itemCount: Int
+        switch collection.kind {
+        case .bells:
+            itemCount = bellRecords.filter { $0.item.collectionID == collection.id }.count
+        default:
+            itemCount = 0
+        }
+
+        return CollectionSummary(
+            id: collection.id,
+            homeID: collection.homeID,
+            kind: collection.kind,
+            name: collection.title,
+            subtitle: collection.notes,
+            backgroundStyle: collection.backgroundStyle,
+            itemCount: itemCount,
+            status: collection.kind == .bells ? .active : .planned,
+            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
         )
     }
 
