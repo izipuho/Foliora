@@ -43,6 +43,7 @@ struct CatalogSnapshot {
         let bellEntities = fetchEntities(
             named: "BellEntity",
             in: context,
+            predicate: NSPredicate(format: "item != nil"),
             sortDescriptors: [NSSortDescriptor(key: "item.createdAt", ascending: false)]
         )
         let placeEntities = fetchEntities(
@@ -128,7 +129,7 @@ struct CatalogSnapshot {
                 }
                 return lhs.id.uuidString < rhs.id.uuidString
             }
-        snapshot.bells = bellEntities.map(bellListItem)
+        snapshot.bells = records.map(bellListItem)
         snapshot.bellRecords = records
         snapshot.places = placeEntities.map { CoreDataDomainMapper.place(from: $0) }
         snapshot.recordsByID = Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) })
@@ -214,8 +215,7 @@ struct CatalogSnapshot {
         return (collectionID, (uuidValue(entity, "id"), collectionLocationPath(from: entity)))
     }
 
-    private static func bellListItem(from entity: NSManagedObject) -> BellListItem {
-        let record = CoreDataDomainMapper.bellRecord(from: entity)
+    private static func bellListItem(from record: BellRecord) -> BellListItem {
         let coverPhoto = record.mediaAssets
             .sorted { $0.sortOrder < $1.sortOrder }
             .first { $0.kind == .photo }
