@@ -143,6 +143,7 @@ struct AppShellView: View {
                     home: homeBinding,
                     locations: locationsBinding(for: homeID),
                     collectionCount: collectionCount(in: homeID),
+                    catalogSnapshot: catalogSnapshot,
                     onSave: { updatedHome, updatedLocations in
                         repository.saveHome(updatedHome)
                         repository.saveLocations(updatedLocations, in: updatedHome.id)

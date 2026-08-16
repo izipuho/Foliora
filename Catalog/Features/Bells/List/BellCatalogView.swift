@@ -369,9 +369,6 @@ struct BellCatalogView: View {
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
             updateSourceBells(sourceBells)
-            if catalogSnapshot == nil {
-                reloadCatalogSnapshot()
-            }
         }
         .onChange(of: sourceBells) { _, newValue in
             updateSourceBells(newValue)
