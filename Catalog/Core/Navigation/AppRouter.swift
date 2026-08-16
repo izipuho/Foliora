@@ -354,6 +354,8 @@ private struct RootShellView<Destination: View>: View {
                     SearchTabView(
                         repository: repository,
                         layoutMode: layoutModeBinding,
+                        catalogSnapshot: catalogSnapshot,
+                        reloadCatalogSnapshot: reloadCatalogSnapshot,
                         initialQuery: searchInitialQuery
                     )
                     .id(searchResetID)
@@ -371,6 +373,8 @@ private struct RootShellView<Destination: View>: View {
                     BellDetailInspectorView(
                         bellID: selectedBellID,
                         repository: repository,
+                        catalogSnapshot: catalogSnapshot,
+                        reloadCatalogSnapshot: reloadCatalogSnapshot,
                         onClose: closeBellInspector
                     )
                 } else {
@@ -406,6 +410,8 @@ private struct RootShellView<Destination: View>: View {
                 SearchTabView(
                     repository: repository,
                     layoutMode: layoutModeBinding,
+                    catalogSnapshot: catalogSnapshot,
+                    reloadCatalogSnapshot: reloadCatalogSnapshot,
                     initialQuery: searchInitialQuery,
                     onBellSelected: openBellInspector
                 )
@@ -511,15 +517,21 @@ private struct RootShellView<Destination: View>: View {
 private struct BellDetailInspectorView: View {
     let bellID: UUID
     let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     let onClose: () -> Void
 
     init(
         bellID: UUID,
         repository: any CatalogRepository,
+        catalogSnapshot: CatalogSnapshot?,
+        reloadCatalogSnapshot: @escaping () -> Void,
         onClose: @escaping () -> Void
     ) {
         self.bellID = bellID
         self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
+        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.onClose = onClose
     }
 
@@ -527,7 +539,9 @@ private struct BellDetailInspectorView: View {
         NavigationStack {
             BellDetailContainer(
                 bellID: bellID,
-                repository: repository
+                repository: repository,
+                catalogSnapshot: catalogSnapshot,
+                reloadCatalogSnapshot: reloadCatalogSnapshot
             )
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

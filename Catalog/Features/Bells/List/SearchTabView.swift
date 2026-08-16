@@ -50,6 +50,8 @@ struct BellCatalogSearchState: Equatable {
 /// Displays the search tab view interface.
 struct SearchTabView: View {
     let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     let onBellSelected: ((UUID) -> Void)?
     private let initialQuery: String?
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -63,10 +65,14 @@ struct SearchTabView: View {
     init(
         repository: any CatalogRepository,
         layoutMode: Binding<CatalogCardLayoutMode>,
+        catalogSnapshot: CatalogSnapshot?,
+        reloadCatalogSnapshot: @escaping () -> Void,
         initialQuery: String? = nil,
         onBellSelected: ((UUID) -> Void)? = nil
     ) {
         self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
+        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self._layoutMode = layoutMode
         self.initialQuery = initialQuery
         self.onBellSelected = onBellSelected
@@ -175,7 +181,9 @@ struct SearchTabView: View {
             if let selectedBellID {
                 BellDetailContainer(
                     bellID: selectedBellID,
-                    repository: repository
+                    repository: repository,
+                    catalogSnapshot: catalogSnapshot,
+                    reloadCatalogSnapshot: reloadCatalogSnapshot
                 )
                     .presentationDragIndicator(.visible)
             }

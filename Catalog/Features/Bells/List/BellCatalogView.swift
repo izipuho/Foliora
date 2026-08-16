@@ -503,6 +503,7 @@ struct BellCatalogView: View {
             accentColor: catalogStyle.accentColor,
             collection: collection,
             catalogSnapshot: catalogSnapshot,
+            reloadCatalogSnapshot: reloadCatalogSnapshot,
             repository: repository,
             sharingState: sharingState,
             sharingService: sharingService,
@@ -949,14 +950,22 @@ private struct BellGroupingJumpPopover: View {
 struct BellDetailContainer: View {
     let bellID: UUID
     let repository: any CatalogRepository
-    @Environment(\.managedObjectContext) private var managedObjectContext
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     @State private var bell: BellRecord?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
 
-    init(bellID: UUID, repository: any CatalogRepository) {
+    init(
+        bellID: UUID,
+        repository: any CatalogRepository,
+        catalogSnapshot: CatalogSnapshot?,
+        reloadCatalogSnapshot: @escaping () -> Void
+    ) {
         self.bellID = bellID
         self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
+        self.reloadCatalogSnapshot = reloadCatalogSnapshot
     }
 
     var body: some View {
@@ -965,6 +974,8 @@ struct BellDetailContainer: View {
                 BellDetailView(
                     bell: bellBinding,
                     repository: repository,
+                    catalogSnapshot: catalogSnapshot,
+                    reloadCatalogSnapshot: reloadCatalogSnapshot,
                     canEditCollection: canEditCollection,
                     canChangeFavorite: canChangeFavorite
                 )
@@ -976,14 +987,13 @@ struct BellDetailContainer: View {
             }
         }
         .task(id: bellID) {
-            reloadBell()
+            syncBellFromCatalogSnapshot()
+        }
+        .task(id: currentCollectionID) {
             await loadCollectionSharingState()
         }
-        .onReceive(NotificationCenter.default.publisher(
-            for: .NSManagedObjectContextObjectsDidChange,
-            object: managedObjectContext
-        )) { _ in
-            reloadBell()
+        .onChange(of: catalogSnapshot?.recordsByID[bellID]) { _, _ in
+            syncBellFromCatalogSnapshot()
         }
     }
 
@@ -1022,9 +1032,12 @@ struct BellDetailContainer: View {
         )
     }
 
-    private func reloadBell() {
-        bell = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
-            .loadBell(id: bellID)
+    private var currentCollectionID: UUID? {
+        bell?.item.collectionID ?? catalogSnapshot?.recordsByID[bellID]?.item.collectionID
+    }
+
+    private func syncBellFromCatalogSnapshot() {
+        bell = catalogSnapshot?.recordsByID[bellID]
     }
 
     @MainActor
@@ -1032,7 +1045,7 @@ struct BellDetailContainer: View {
         collectionSharingState = nil
         collectionSharingLoadError = nil
 
-        guard let collectionID = bell?.item.collectionID,
+        guard let collectionID = currentCollectionID,
               let persistentContainer = FolioraAppDelegate.coreDataContainer else {
             return
         }

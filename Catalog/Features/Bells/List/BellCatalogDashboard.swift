@@ -6,6 +6,7 @@ struct BellCatalogDashboardView: View {
     let accentColor: Color
     let collection: CollectionSummary?
     let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     let repository: any CatalogRepository
     let sharingState: CollectionSharingState
     let sharingService: (any CollectionSharingService)?
@@ -26,6 +27,7 @@ struct BellCatalogDashboardView: View {
                             CollectionOriginMapView(
                                 collection: collection,
                                 catalogSnapshot: catalogSnapshot,
+                                reloadCatalogSnapshot: reloadCatalogSnapshot,
                                 repository: repository
                             )
                         } label: {

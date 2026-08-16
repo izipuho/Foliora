@@ -179,7 +179,9 @@ struct CollectionShellView: View {
                 if let selectedBellID {
                     BellDetailContainer(
                         bellID: selectedBellID,
-                        repository: repository
+                        repository: repository,
+                        catalogSnapshot: catalogSnapshot,
+                        reloadCatalogSnapshot: reloadCatalogSnapshot
                     )
                         .presentationDragIndicator(.visible)
                 }
@@ -239,6 +241,8 @@ struct CollectionShellView: View {
         BellEditorView(
             collection: collection,
             repository: repository,
+            catalogSnapshot: catalogSnapshot,
+            reloadCatalogSnapshot: reloadCatalogSnapshot,
             initialMediaAssets: draftMediaAssets,
             initialAnalysisImage: draftAnalysisImage
         ) { newBell in
@@ -251,6 +255,8 @@ struct CollectionShellView: View {
         BellBatchAddView(
             collection: collection,
             photoCount: draftMediaAssets.count,
+            catalogSnapshot: catalogSnapshot,
+            reloadCatalogSnapshot: reloadCatalogSnapshot,
             initialMediaAssets: draftMediaAssets,
             repository: repository,
             onComplete: handleBatchAddCompletion
