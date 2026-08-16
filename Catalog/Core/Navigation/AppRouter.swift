@@ -458,6 +458,8 @@ private struct RootShellView<Destination: View>: View {
         NavigationStack(path: path) {
             CollectionsView(
                 repository: repository,
+                catalogSnapshot: catalogSnapshot,
+                reloadCatalogSnapshot: reloadCatalogSnapshot,
                 navigate: { path.wrappedValue.append($0) },
                 onOpenHomes: openHomesTab
             )
