@@ -117,51 +117,7 @@ struct BellCatalogSnapshot {
             ?? UUID()
     }
 
-    private static func locationHomeID(from entity: NSManagedObject) -> UUID {
-        if entity.entity.name == "LocationEntity",
-           let home = entity.value(forKey: "home") as? NSManagedObject {
-            return uuidValue(home, "id")
-        }
-
-        if entity.entity.name == "CollectionLocationEntity",
-           let collection = entity.value(forKey: "collection") as? NSManagedObject {
-            return collectionHomeID(from: collection)
-        }
-
-        return UUID()
-    }
-
     private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
         entity.value(forKey: key) as? String ?? defaultValue
-    }
-}
-
-extension BellRecord {
-    func moving(
-        to location: Location?,
-        storagePath: StoragePath?
-    ) -> BellRecord {
-        BellRecord(
-            item: ItemRecord(
-                id: item.id,
-                collectionID: item.collectionID,
-                locationID: location?.id,
-                originPlaceID: item.originPlaceID,
-                createdAt: item.createdAt,
-                createdBy: createdBy,
-                title: item.title,
-                notes: item.notes,
-                acquiredYear: item.acquiredYear,
-                condition: item.condition,
-                acquisitionMethod: item.acquisitionMethod,
-                isFavorite: isFavorite,
-                tags: tags,
-                originPlace: originPlace,
-                storageLocation: location,
-                storagePath: storagePath,
-                mediaAssets: mediaAssets
-            ),
-            details: details
-        )
     }
 }

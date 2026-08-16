@@ -122,6 +122,8 @@ struct AppShellView: View {
             if let collection = collectionSummary(for: collectionID) {
                 CollectionShellView(
                     collection: collection,
+                    catalogSnapshot: catalogSnapshot,
+                    reloadCatalogSnapshot: reloadCatalogSnapshot,
                     repository: repository,
                     coreDataContainer: coreDataContainer,
                     layoutMode: layoutMode,
@@ -219,26 +221,7 @@ struct AppShellView: View {
     }
 
     private func collectionSummary(for collectionID: UUID) -> CollectionSummary? {
-        guard
-            let snapshot = catalogSnapshot,
-            let collection = snapshot.collections.first(where: { $0.id == collectionID })
-        else {
-            return nil
-        }
-
-        let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
-
-        return CollectionSummary(
-            id: collection.id,
-            homeID: collection.homeID,
-            kind: collection.kind,
-            name: collection.title,
-            subtitle: collection.notes,
-            backgroundStyle: collection.backgroundStyle,
-            itemCount: collection.kind == .bells ? itemCount : 0,
-            status: collection.kind == .bells ? .active : .planned,
-            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
-        )
+        catalogSnapshot?.collectionSummary(id: collectionID)
     }
 
     private func saveHome(_ homeID: UUID) {
