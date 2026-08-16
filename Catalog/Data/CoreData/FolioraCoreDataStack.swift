@@ -5,6 +5,7 @@ import Foundation
 /// Groups foliora core data stack values and behavior.
 enum FolioraCoreDataStack {
     static let modelName = "Foliora"
+    static let appGroupIdentifier = "group.com.izipuho.Foliora"
     static let cloudKitContainerIdentifier = CKContainer.default().containerIdentifier!
 
     @concurrent
@@ -180,9 +181,18 @@ enum FolioraCoreDataStack {
     }
 
     private static func storeURL(named fileName: String) throws -> URL {
-        let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("FolioraBells/CoreData", isDirectory: true)
-        try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
+        guard let containerURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: appGroupIdentifier
+        ) else {
+            throw FolioraCoreDataStackError.appGroupContainerUnavailable
+        }
+
+        let baseURL = containerURL.appendingPathComponent("CoreData", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: baseURL,
+            withIntermediateDirectories: true
+        )
+
         return baseURL.appendingPathComponent(fileName)
     }
 }
@@ -190,11 +200,14 @@ enum FolioraCoreDataStack {
 /// Defines the supported foliora core data stack error values.
 enum FolioraCoreDataStackError: LocalizedError {
     case modelNotFound(String)
+    case appGroupContainerUnavailable
 
     var errorDescription: String? {
         switch self {
         case .modelNotFound(let modelName):
             "Core Data model \(modelName).momd was not found."
+        case .appGroupContainerUnavailable:
+            "Foliora App Group container is unavailable."
         }
     }
 }

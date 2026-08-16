@@ -148,7 +148,31 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $isDeveloperMenuPresented) {
             NavigationStack {
-                PhotoAnalysisSettingsView()
+                Form {
+                    Section {
+                        NavigationLink {
+                            PhotoAnalysisSettingsView()
+                        } label: {
+                            Label("Photo Analysis", systemImage: "photo")
+                        }
+                    }
+
+                    #if DEBUG
+                    Section("CloudKit") {
+                        SettingsInfoRow(
+                            title: "CloudContainer",
+                            value: FolioraCoreDataStack.cloudKitContainerIdentifier
+                        )
+
+                        Button {
+                            initializeCloudKitSchema()
+                        } label: {
+                            Label("Initialize CloudKit Schema", systemImage: "icloud.and.arrow.up")
+                        }
+                    }
+                    #endif
+                }
+                .navigationTitle("Developer")
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
                             Button {
@@ -159,16 +183,6 @@ struct SettingsView: View {
                         }
                     }
             }
-            
-            #if DEBUG
-            Section("CloudKit") {
-                Button {
-                    initializeCloudKitSchema()
-                } label: {
-                    Label("Initialize CloudKit Schema", systemImage: "icloud.and.arrow.up")
-                }
-            }
-            #endif
         }
     }
 
