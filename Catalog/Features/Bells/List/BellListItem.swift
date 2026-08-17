@@ -26,7 +26,6 @@ struct BellListItem: Identifiable, Hashable {
     let storageDisplayPath: String
     let storageLocationName: String
     let coverPhotoIdentifier: String?
-    let coverPhotoThumbnailData: Data?
     let coverPhotoOriginalData: Data?
     let hasOrigin: Bool
     let hasStorage: Bool
@@ -56,7 +55,6 @@ struct BellListItem: Identifiable, Hashable {
         storageDisplayPath: String,
         storageLocationName: String,
         coverPhotoIdentifier: String?,
-        coverPhotoThumbnailData: Data?,
         coverPhotoOriginalData: Data?,
         hasOrigin: Bool,
         hasStorage: Bool
@@ -85,7 +83,6 @@ struct BellListItem: Identifiable, Hashable {
         self.storageDisplayPath = storageDisplayPath
         self.storageLocationName = storageLocationName
         self.coverPhotoIdentifier = coverPhotoIdentifier
-        self.coverPhotoThumbnailData = coverPhotoThumbnailData
         self.coverPhotoOriginalData = coverPhotoOriginalData
         self.hasOrigin = hasOrigin
         self.hasStorage = hasStorage

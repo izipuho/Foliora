@@ -16,7 +16,6 @@ struct MediaAsset: Identifiable, Hashable, Codable {
     var height: Int? = nil
     var duration: Double? = nil
     var metadataJSON: String? = nil
-    var thumbnailData: Data? = nil
     var originalData: Data? = nil
 
     func with(
@@ -42,7 +41,6 @@ struct MediaAsset: Identifiable, Hashable, Codable {
             height: height,
             duration: duration,
             metadataJSON: metadataJSON,
-            thumbnailData: thumbnailData,
             originalData: originalData
         )
         update(&copy)

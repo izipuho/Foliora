@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 struct LocalMediaFileStore: Sendable {
     static let shared = LocalMediaFileStore()
 
-    private static let photoThumbnailMaxPixelSize = 1_400
+    private static let photoThumbnailMaxPixelSize = 1_024
 
     private let baseURL: URL
     private var thumbnailsURL: URL {
@@ -89,6 +89,25 @@ struct LocalMediaFileStore: Sendable {
         }
         try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
         try? createPhotoThumbnail(from: destinationURL, identifier: trimmed)
+    }
+
+    func materializePhoto(data: Data, identifier: String) throws {
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed == URL(fileURLWithPath: trimmed).lastPathComponent else {
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
+
+        try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
+
+        let destinationURL = baseURL.appendingPathComponent(trimmed)
+
+        if !FileManager.default.fileExists(atPath: destinationURL.path) {
+            try data.write(to: destinationURL, options: .atomic)
+        }
+
+        if thumbnailFileURL(for: trimmed) == nil {
+            try createPhotoThumbnail(from: destinationURL, identifier: trimmed)
+        }
     }
 
     func deleteFile(for identifier: String) {

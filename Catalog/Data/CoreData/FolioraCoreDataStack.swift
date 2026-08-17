@@ -10,29 +10,17 @@ enum FolioraCoreDataStack {
     @concurrent
     static func makeContainer() async throws -> NSPersistentCloudKitContainer {
         let model = try managedObjectModel()
-        var usesCloudKit = true
-        var container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
+        let container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
         guard let cloudKitContainerIdentifier = cloudKitContainerIdentifier(from: container) else {
             throw FolioraCoreDataStackError.cloudKitContainerUnavailable
         }
 
-        do {
-            try await loadPersistentStores(
-                into: container,
-                inMemory: false,
-                usesCloudKit: usesCloudKit,
-                cloudKitContainerIdentifier: cloudKitContainerIdentifier
-            )
-        } catch {
-            usesCloudKit = false
-            container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
-            try await loadPersistentStores(
-                into: container,
-                inMemory: false,
-                usesCloudKit: usesCloudKit,
-                cloudKitContainerIdentifier: cloudKitContainerIdentifier
-            )
-        }
+        try await loadPersistentStores(
+            into: container,
+            inMemory: false,
+            usesCloudKit: true,
+            cloudKitContainerIdentifier: cloudKitContainerIdentifier
+        )
 
         configureLoadedContainer(container)
 

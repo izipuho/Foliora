@@ -791,17 +791,29 @@ private struct MediaAssetThumbnailView: View {
 
     var body: some View {
         Group {
-            if let image = previewImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                switch asset.kind {
-                case .photo:
-                    placeholder(systemImage: "photo")
-                case .document:
+            switch asset.kind {
+            case .photo:
+                MediaPreviewImage(
+                    identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
+                    originalData: asset.originalData,
+                    size: CGSize(width: size, height: size)
+                )
+
+            case .document:
+                if let image = previewImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
                     documentPlaceholder
-                case .model3D:
+                }
+
+            case .model3D:
+                if let image = previewImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
                     placeholder(systemImage: "cube.transparent")
                 }
             }
@@ -811,18 +823,8 @@ private struct MediaAssetThumbnailView: View {
     }
 
     private var previewImage: UIImage? {
-        if let thumbnailData = asset.thumbnailData,
-           let image = UIImage(data: thumbnailData) {
-            return image
-        }
-
         if let url = mediaStore.thumbnailFileURL(for: asset.localIdentifier) ?? mediaStore.fileURL(for: asset.localIdentifier),
            let image = UIImage(contentsOfFile: url.path) {
-            return image
-        }
-
-        if let originalData = asset.originalData,
-           let image = UIImage(data: originalData) {
             return image
         }
 

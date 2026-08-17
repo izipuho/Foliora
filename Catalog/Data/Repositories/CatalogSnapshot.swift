@@ -250,7 +250,6 @@ struct CatalogSnapshot {
             storageDisplayPath: record.storageDisplayPath,
             storageLocationName: record.storageLocationName,
             coverPhotoIdentifier: coverPhoto?.localIdentifier,
-            coverPhotoThumbnailData: coverPhoto?.thumbnailData,
             coverPhotoOriginalData: coverPhoto?.originalData,
             hasOrigin: record.originPlace != nil,
             hasStorage: record.item.locationID != nil

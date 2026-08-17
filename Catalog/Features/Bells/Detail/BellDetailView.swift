@@ -287,7 +287,6 @@ struct BellDetailView: View {
                         ForEach(heroPhotoAssets) { asset in
                             MediaPreviewImage(
                                 identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
-                                thumbnailData: asset.thumbnailData,
                                 originalData: asset.originalData,
                                 size: CGSize(width: proxy.size.width, height: 320)
                             )

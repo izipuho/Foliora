@@ -26,7 +26,6 @@ struct BellCardView: View {
                 if hasCoverPhoto {
                     MediaPreviewImage(
                         identifier: bell.coverPhotoIdentifier,
-                        thumbnailData: bell.coverPhotoThumbnailData,
                         originalData: bell.coverPhotoOriginalData,
                         size: cardSize
                     )
@@ -48,7 +47,7 @@ struct BellCardView: View {
     }
 
     private var hasCoverPhoto: Bool {
-        bell.coverPhotoThumbnailData != nil || bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil
+        bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil
     }
 
     private var accessories: [CatalogCardAccessory] {
