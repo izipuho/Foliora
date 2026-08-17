@@ -261,7 +261,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(collectionLocation, forKey: "collectionLocation")
         entity.setValue(sourceLocationID.flatMap { fetchEntity(named: "LocationEntity", by: $0) }, forKey: "location")
         entity.setValue(item.originPlace.map(upsertPlace), forKey: "originPlace")
-        replaceMediaAssets(item.mediaAssets, for: entity)
+        upsertMediaAssets(item.mediaAssets, for: entity)
         replaceTags(item.tags, for: entity)
         return entity
     }
@@ -302,32 +302,63 @@ final class CoreDataCatalogRepository: CatalogRepository {
         deleteOrphanItemTags()
     }
 
-    private func replaceMediaAssets(_ mediaAssets: [MediaAsset], for item: NSManagedObject) {
+    private func upsertMediaAssets(_ mediaAssets: [MediaAsset], for item: NSManagedObject) {
         let existingAssets = (item.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []
-        existingAssets.forEach(context.delete)
+        let incomingIDs = Set(mediaAssets.map(\.id))
+        var entitiesByID: [UUID: NSManagedObject] = [:]
 
-        let newAssets = mediaAssets.map { asset in
-            let entity = makeEntity(named: "MediaAssetEntity")
-            entity.setValue(asset.id, forKey: "id")
-            entity.setValue(asset.kind.rawValue, forKey: "kindRaw")
-            entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
-            entity.setValue(asset.displayName, forKey: "displayName")
-            entity.setValue(asset.sortOrder, forKey: "sortOrder")
-            entity.setValue(asset.fileName, forKey: "fileName")
-            entity.setValue(asset.mimeType, forKey: "mimeType")
-            entity.setValue(asset.byteSize, forKey: "byteSize")
-            entity.setValue(asset.checksum, forKey: "checksum")
-            entity.setValue(asset.width, forKey: "width")
-            entity.setValue(asset.height, forKey: "height")
-            entity.setValue(asset.duration, forKey: "duration")
-            entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
-            entity.setValue(asset.thumbnailData, forKey: "thumbnailData")
-            entity.setValue(asset.originalData, forKey: "originalData")
+        for entity in existingAssets {
+            guard let id = entity.value(forKey: "id") as? UUID else { continue }
+            entitiesByID[id] = entitiesByID[id] ?? entity
+        }
+
+        let updatedAssets = mediaAssets.map { asset in
+            let entity = entitiesByID[asset.id] ?? makeEntity(named: "MediaAssetEntity")
+            apply(asset, to: entity)
             entity.setValue(item, forKey: "item")
             return entity
         }
 
-        item.setValue(Set(newAssets), forKey: "mediaAssets")
+        for entity in existingAssets {
+            guard
+                let id = entity.value(forKey: "id") as? UUID,
+                !incomingIDs.contains(id)
+            else {
+                continue
+            }
+
+            context.delete(entity)
+        }
+
+        item.setValue(Set(updatedAssets), forKey: "mediaAssets")
+    }
+
+    private func apply(_ asset: MediaAsset, to entity: NSManagedObject) {
+        let isNewEntity = entity.value(forKey: "id") == nil
+        let existingChecksum = entity.value(forKey: "checksum") as? String
+        let existingThumbnailData = entity.value(forKey: "thumbnailData") as? Data
+        let shouldUpdateOriginalData = isNewEntity || existingChecksum != asset.checksum
+        let shouldUpdateThumbnailData = isNewEntity || existingThumbnailData != asset.thumbnailData
+
+        entity.setValue(asset.id, forKey: "id")
+        entity.setValue(asset.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
+        entity.setValue(asset.displayName, forKey: "displayName")
+        entity.setValue(asset.sortOrder, forKey: "sortOrder")
+        entity.setValue(asset.fileName, forKey: "fileName")
+        entity.setValue(asset.mimeType, forKey: "mimeType")
+        entity.setValue(asset.byteSize, forKey: "byteSize")
+        entity.setValue(asset.checksum, forKey: "checksum")
+        entity.setValue(asset.width, forKey: "width")
+        entity.setValue(asset.height, forKey: "height")
+        entity.setValue(asset.duration, forKey: "duration")
+        entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
+        if shouldUpdateThumbnailData {
+            entity.setValue(asset.thumbnailData, forKey: "thumbnailData")
+        }
+        if shouldUpdateOriginalData {
+            entity.setValue(asset.originalData, forKey: "originalData")
+        }
     }
 
     private func home(from entity: NSManagedObject) -> Home {
