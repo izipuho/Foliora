@@ -12,7 +12,6 @@ struct CollectionSharingView: View {
     @State private var pendingSharingMessage: String?
     @State private var sharingControllerMode: CloudSharingControllerMode?
 
-    private let container = CKContainer.default()
     private let sharingService: any CollectionSharingService
 
     init(
@@ -85,7 +84,6 @@ struct CollectionSharingView: View {
         ) { mode in
             CloudSharingController(
                 collectionTitle: collection.name,
-                container: container,
                 mode: mode,
                 onSharingChanged: onSharingChanged,
                 onError: handleSharingControllerError
@@ -145,7 +143,7 @@ struct CollectionSharingView: View {
     @MainActor
     private func openSharingController() async {
         do {
-            let share = if let existingShare = try await sharingService.fetchShare(for: collection.id) {
+            let shareResult = if let existingShare = try await sharingService.fetchShare(for: collection.id) {
                 existingShare
             } else {
                 try await sharingService.createShare(
@@ -153,7 +151,10 @@ struct CollectionSharingView: View {
                     title: collection.name
                 )
             }
-            sharingControllerMode = .existingShare(share)
+            sharingControllerMode = .existingShare(
+                share: shareResult.share,
+                container: shareResult.container
+            )
         } catch {
             handleSharingControllerError(error)
         }
@@ -234,11 +235,11 @@ private struct SharingAlert: Identifiable {
 }
 
 private enum CloudSharingControllerMode: Identifiable {
-    case existingShare(CKShare)
+    case existingShare(share: CKShare, container: CKContainer)
 
     var id: String {
         switch self {
-        case .existingShare(let share):
+        case .existingShare(let share, _):
             "existingShare-\(share.recordID.recordName)"
         }
     }
@@ -246,15 +247,14 @@ private enum CloudSharingControllerMode: Identifiable {
 
 private struct CloudSharingController: UIViewControllerRepresentable {
     let collectionTitle: String
-    let container: CKContainer
     let mode: CloudSharingControllerMode
     let onSharingChanged: () -> Void
     let onError: (any Error) -> Void
 
     func makeUIViewController(context: Context) -> UIViewController {
         switch mode {
-        case .existingShare(let existingShare):
-            let controller = UICloudSharingController(share: existingShare, container: container)
+        case .existingShare(let share, let container):
+            let controller = UICloudSharingController(share: share, container: container)
             controller.delegate = context.coordinator
             controller.availablePermissions = [
                 .allowPrivate,
