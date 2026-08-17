@@ -2,11 +2,11 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24837" systemVersion="25F84" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="BellEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="customMaterialName" optional="YES" attributeType="String"/>
-        <attribute name="materialRaw" optional="YES" attributeType="String" defaultValueString="unknown"/>
+        <attribute name="material" optional="YES" attributeType="String" defaultValueString="unknown"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="bell" inverseEntity="ItemEntity"/>
     </entity>
     <entity name="CollectionEntity" representedClassName="NSManagedObject" syncable="YES">
-        <attribute name="backgroundStyleRaw" optional="YES" attributeType="String" defaultValueString="amber"/>
+        <attribute name="backgroundStyle" optional="YES" attributeType="String" defaultValueString="amber"/>
         <attribute name="homeIconName" optional="YES" attributeType="String"/>
         <attribute name="homeID" optional="YES" attributeType="UUID"/>
         <attribute name="homeName" optional="YES" attributeType="String"/>
@@ -22,7 +22,7 @@
     <entity name="CollectionLocationEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID"/>
         <attribute name="isArchived" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="NO"/>
-        <attribute name="kindRaw" optional="YES" attributeType="String" defaultValueString="room"/>
+        <attribute name="kind" optional="YES" attributeType="String" defaultValueString="room"/>
         <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="sortOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="NO"/>
@@ -68,7 +68,7 @@
     </entity>
     <entity name="LocationEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID"/>
-        <attribute name="kindRaw" optional="YES" attributeType="String" defaultValueString="room"/>
+        <attribute name="kind" optional="YES" attributeType="String" defaultValueString="room"/>
         <attribute name="name" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
         <relationship name="children" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="LocationEntity" inverseName="parent" inverseEntity="LocationEntity"/>
