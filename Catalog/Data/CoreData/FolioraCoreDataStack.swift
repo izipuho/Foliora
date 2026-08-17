@@ -21,7 +21,6 @@ enum FolioraCoreDataStack {
             usesCloudKit: true,
             cloudKitContainerIdentifier: cloudKitContainerIdentifier
         )
-      }
 
         configureLoadedContainer(container)
 
