@@ -335,25 +335,16 @@ private extension CloudKitCollectionSharingService {
         }
 
         if needsPersisting {
-            _ = try await persistUpdatedShare(share, in: persistentStore)
+            let persistedShare = try await persistUpdatedShare(
+                share,
+                in: persistentStore
+            )
 
-            let sharesAfterPersist: [NSManagedObjectID: CKShare]
-            do {
-                sharesAfterPersist = try persistentContainer.fetchShares(matching: [objectID])
-            } catch {
-                throw error
-            }
-            let refetchedShare = sharesAfterPersist[objectID]
-
-            guard let refetchedShare else {
-                throw CloudKitCollectionSharingError.shareNotCreated
-            }
-
-            guard refetchedShare.url != nil else {
+            guard persistedShare.url != nil else {
                 throw CloudKitCollectionSharingError.shareURLUnavailable
             }
 
-            return refetchedShare
+            return persistedShare
         }
 
         guard share.url != nil else {
