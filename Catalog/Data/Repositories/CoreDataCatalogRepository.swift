@@ -189,17 +189,17 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
     private func apply(_ location: Location, to entity: NSManagedObject) {
         entity.setValue(location.id, forKey: "id")
-        entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(location.kind.rawValue, forKey: "kind")
         entity.setValue(location.name, forKey: "name")
         entity.setValue(location.notes, forKey: "notes")
     }
 
     private func apply(_ collection: Collection, to entity: NSManagedObject) {
         entity.setValue(collection.id, forKey: "id")
-        entity.setValue(collection.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(collection.kind.rawValue, forKey: "kind")
         entity.setValue(collection.title, forKey: "title")
         entity.setValue(collection.notes, forKey: "notes")
-        entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyleRaw")
+        entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyle")
     }
 
     private func applyHomeSnapshot(_ home: NSManagedObject, to collection: NSManagedObject) {
@@ -211,7 +211,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func apply(_ location: Location, sortOrder: Int, to entity: NSManagedObject) {
         entity.setValue(location.id, forKey: "id")
         entity.setValue(location.id, forKey: "sourceLocationID")
-        entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(location.kind.rawValue, forKey: "kind")
         entity.setValue(location.name, forKey: "name")
         entity.setValue(location.notes, forKey: "notes")
         entity.setValue(sortOrder, forKey: "sortOrder")
@@ -219,7 +219,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func apply(_ bell: BellRecord, to entity: NSManagedObject) {
-        entity.setValue(bell.details.material.rawValue, forKey: "materialRaw")
+        entity.setValue(bell.details.material.rawValue, forKey: "material")
         entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
     }
 
@@ -369,10 +369,10 @@ final class CoreDataCatalogRepository: CatalogRepository {
         Collection(
             id: uuidValue(entity, "id"),
             homeID: collectionHomeID(from: entity),
-            kind: collectionKind(from: stringValue(entity, "kindRaw", default: CollectionKind.bells.rawValue)),
+            kind: collectionKind(from: stringValue(entity, "kind", default: CollectionKind.bells.rawValue)),
             title: stringValue(entity, "title"),
             notes: stringValue(entity, "notes"),
-            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyleRaw", default: CollectionBackgroundStyle.amber.rawValue))
+            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyle", default: CollectionBackgroundStyle.amber.rawValue))
         )
     }
 

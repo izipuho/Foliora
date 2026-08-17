@@ -196,10 +196,10 @@ struct CatalogSnapshot {
         Collection(
             id: uuidValue(entity, "id"),
             homeID: collectionHomeID(from: entity),
-            kind: collectionKind(from: stringValue(entity, "kindRaw", default: CollectionKind.bells.rawValue)),
+            kind: collectionKind(from: stringValue(entity, "kind", default: CollectionKind.bells.rawValue)),
             title: stringValue(entity, "title"),
             notes: stringValue(entity, "notes"),
-            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyleRaw", default: CollectionBackgroundStyle.amber.rawValue))
+            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyle", default: CollectionBackgroundStyle.amber.rawValue))
         )
     }
 

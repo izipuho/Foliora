@@ -17,7 +17,7 @@ enum CoreDataDomainMapper {
             item: itemRecord,
             details: BellDetails(
                 itemID: itemRecord.id,
-                material: bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)),
+                material: bellMaterial(from: stringValue(entity, "material", default: BellMaterial.unknown.rawValue)),
                 customMaterialName: entity.value(forKey: "customMaterialName") as? String
             )
         )
@@ -75,7 +75,7 @@ enum CoreDataDomainMapper {
             id: uuidValue(entity, "id"),
             homeID: locationHomeID(from: entity),
             parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
-            kind: locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)),
+            kind: locationKind(from: stringValue(entity, "kind", default: LocationKind.room.rawValue)),
             name: stringValue(entity, "name"),
             notes: stringValue(entity, "notes"),
             sortOrder: sortOrder
@@ -189,7 +189,7 @@ enum CoreDataDomainMapper {
         while let location = current {
             components.insert(
                 StoragePath.Component(
-                    kind: locationKind(from: stringValue(location, "kindRaw", default: LocationKind.room.rawValue)),
+                    kind: locationKind(from: stringValue(location, "kind", default: LocationKind.room.rawValue)),
                     name: stringValue(location, "name")
                 ),
                 at: 0

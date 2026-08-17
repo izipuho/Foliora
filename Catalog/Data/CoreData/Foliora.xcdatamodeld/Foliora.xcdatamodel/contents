@@ -11,7 +11,7 @@
         <attribute name="homeID" optional="YES" attributeType="UUID"/>
         <attribute name="homeName" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID"/>
-        <attribute name="kindRaw" optional="YES" attributeType="String" defaultValueString="bells"/>
+        <attribute name="kind" optional="YES" attributeType="String" defaultValueString="bells"/>
         <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="title" optional="YES" attributeType="String" defaultValueString=""/>
         <relationship name="collectionLocations" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CollectionLocationEntity" inverseName="collection" inverseEntity="CollectionLocationEntity"/>
