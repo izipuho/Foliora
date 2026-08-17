@@ -1,5 +1,4 @@
 import SwiftUI
-import CoreData
 import PhotosUI
 
 private struct BellBatchNameGenerator {
@@ -45,7 +44,9 @@ private extension BellBatchAddView {
                 status: .active,
                 sharingSummary: ""
             ),
-            photoCount: 8
+            photoCount: 8,
+            catalogSnapshot: nil,
+            reloadCatalogSnapshot: {}
         )
         .completionContent(createdCount: 8, reviewQuery: "Preview Batch")
     }
@@ -83,15 +84,15 @@ private enum BellBatchCreationState: Equatable {
 struct BellBatchAddView: View {
     let collection: CollectionSummary
     let photoCount: Int
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     private let photoItems: [PhotosPickerItem]
     private let initialMediaAssets: [MediaAsset]
     private let repository: (any CatalogRepository)?
     private let onComplete: (BatchAddCompletionAction) -> Void
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
-    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
-    @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var selectedLocationID: UUID?
     @State private var selectedOriginPlace: Place?
     @State private var selectedAcquiredYearOption = String(localized: "common.none")
@@ -115,6 +116,8 @@ struct BellBatchAddView: View {
     init(
         collection: CollectionSummary,
         photoCount: Int,
+        catalogSnapshot: CatalogSnapshot?,
+        reloadCatalogSnapshot: @escaping () -> Void,
         photoItems: [PhotosPickerItem] = [],
         initialMediaAssets: [MediaAsset] = [],
         repository: (any CatalogRepository)? = nil,
@@ -122,6 +125,8 @@ struct BellBatchAddView: View {
     ) {
         self.collection = collection
         self.photoCount = photoCount
+        self.catalogSnapshot = catalogSnapshot
+        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.photoItems = photoItems
         self.initialMediaAssets = initialMediaAssets
         self.repository = repository
@@ -134,7 +139,6 @@ struct BellBatchAddView: View {
             .navigationTitle(String(localized: "bell_batch_add.title"))
             .navigationBarTitleDisplayMode(.inline)
             .task(id: photoItems.map(\.itemIdentifier)) {
-                reloadLookupSnapshot()
                 await loadMediaPayloadsIfNeeded()
             }
             .toolbar {
@@ -160,7 +164,7 @@ struct BellBatchAddView: View {
                     onSave: {
                         repository?.saveHome(draftHome)
                         repository?.saveLocations(draftHomeLocations, in: draftHome.id)
-                        reloadLookupSnapshot()
+                        reloadCatalogSnapshot()
                         continueLocationSelectionIfNeeded()
                     },
                     onDelete: nil
@@ -308,11 +312,18 @@ struct BellBatchAddView: View {
     }
 
     private var availableLocations: [Location] {
-        lookupSnapshot.locations
+        guard let catalogSnapshot else { return [] }
+
+        let collectionLocations = catalogSnapshot.collectionLocationsByCollectionID[collection.id] ?? []
+        if !collectionLocations.isEmpty {
+            return collectionLocations
+        }
+
+        return catalogSnapshot.locationsByHomeID[collection.homeID] ?? []
     }
 
     private var availablePlaces: [Place] {
-        lookupSnapshot.places
+        catalogSnapshot?.places ?? []
     }
 
     private var selectedLocationLabel: String {
@@ -328,7 +339,17 @@ struct BellBatchAddView: View {
     }
 
     private var locationPathByID: [UUID: String] {
-        lookupSnapshot.locationPathByID
+        guard let catalogSnapshot else { return [:] }
+
+        let collectionLocations = catalogSnapshot.collectionLocationsByCollectionID[collection.id] ?? []
+        if !collectionLocations.isEmpty {
+            return catalogSnapshot.collectionLocationPathByCollectionID[collection.id] ?? [:]
+        }
+
+        let homeLocationIDs = Set((catalogSnapshot.locationsByHomeID[collection.homeID] ?? []).map(\.id))
+        return catalogSnapshot.locationPathByID.filter { id, _ in
+            homeLocationIDs.contains(id)
+        }
     }
 
     private func storagePath(for location: Location) -> StoragePath {
@@ -355,15 +376,13 @@ struct BellBatchAddView: View {
         return StoragePath(components: components)
     }
 
-    private func reloadLookupSnapshot() {
-        lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
-            .loadSnapshot(collectionID: collection.id, homeID: collection.homeID)
-    }
-
     private func presentHomeEditor() {
-        guard let home = lookupSnapshot.homes.first(where: { $0.id == collection.homeID }) else { return }
+        guard
+            let catalogSnapshot,
+            let home = catalogSnapshot.homes.first(where: { $0.id == collection.homeID })
+        else { return }
         draftHome = home
-        draftHomeLocations = availableLocations
+        draftHomeLocations = catalogSnapshot.locationsByHomeID[collection.homeID] ?? []
         shouldPresentLocationPickerAfterHomeEditor = true
         isPresentingHomeEditor = true
     }
@@ -452,6 +471,7 @@ struct BellBatchAddView: View {
         }
 
         repository.saveBellRecords(bells)
+        reloadCatalogSnapshot()
         creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)
     }
 }

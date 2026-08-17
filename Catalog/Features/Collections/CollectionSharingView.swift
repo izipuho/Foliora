@@ -12,7 +12,6 @@ struct CollectionSharingView: View {
     @State private var pendingSharingMessage: String?
     @State private var sharingControllerMode: CloudSharingControllerMode?
 
-    private let container = CKContainer.default()
     private let sharingService: any CollectionSharingService
 
     init(
@@ -84,10 +83,7 @@ struct CollectionSharingView: View {
             }
         ) { mode in
             CloudSharingController(
-                collectionID: collection.id,
                 collectionTitle: collection.name,
-                container: container,
-                sharingService: sharingService,
                 mode: mode,
                 onSharingChanged: onSharingChanged,
                 onError: handleSharingControllerError
@@ -147,13 +143,18 @@ struct CollectionSharingView: View {
     @MainActor
     private func openSharingController() async {
         do {
-            let existingShare = try await sharingService.fetchShare(for: collection.id)
-            let mode: CloudSharingControllerMode = if let existingShare {
-                .existingShare(existingShare)
+            let shareResult = if let existingShare = try await sharingService.fetchShare(for: collection.id) {
+                existingShare
             } else {
-                .preparationHandler
+                try await sharingService.createShare(
+                    for: collection.id,
+                    title: collection.name
+                )
             }
-            sharingControllerMode = mode
+            sharingControllerMode = .existingShare(
+                share: shareResult.share,
+                container: shareResult.container
+            )
         } catch {
             handleSharingControllerError(error)
         }
@@ -234,64 +235,32 @@ private struct SharingAlert: Identifiable {
 }
 
 private enum CloudSharingControllerMode: Identifiable {
-    case existingShare(CKShare)
-    case preparationHandler
+    case existingShare(share: CKShare, container: CKContainer)
 
     var id: String {
         switch self {
-        case .existingShare(let share):
+        case .existingShare(let share, _):
             "existingShare-\(share.recordID.recordName)"
-        case .preparationHandler:
-            "preparationHandler"
         }
     }
 }
 
 private struct CloudSharingController: UIViewControllerRepresentable {
-    let collectionID: UUID
     let collectionTitle: String
-    let container: CKContainer
-    let sharingService: any CollectionSharingService
     let mode: CloudSharingControllerMode
     let onSharingChanged: () -> Void
     let onError: (any Error) -> Void
 
     func makeUIViewController(context: Context) -> UIViewController {
         switch mode {
-        case .existingShare(let existingShare):
-            let controller = UICloudSharingController(share: existingShare, container: container)
-            controller.availablePermissions = [.allowReadOnly, .allowReadWrite, .allowPrivate]
-            return controller
-
-        case .preparationHandler:
-            let itemProvider = NSItemProvider()
-            itemProvider.registerCKShare(
-                container: container,
-                allowedSharingOptions: allowedSharingOptions
-            ) {
-                do {
-                    let share = try await sharingService.createShare(
-                        for: collectionID,
-                        title: collectionTitle
-                    )
-
-                    return share
-                } catch {
-                    await MainActor.run {
-                        onError(error)
-                    }
-                    throw error
-                }
-            }
-
-            let configuration = UIActivityItemsConfiguration(itemProviders: [itemProvider])
-            configuration.metadataProvider = { key in
-                key == .title ? collectionTitle : nil
-            }
-            configuration.perItemMetadataProvider = { _, key in
-                key == .title ? collectionTitle : nil
-            }
-            let controller = UIActivityViewController(activityItemsConfiguration: configuration)
+        case .existingShare(let share, let container):
+            let controller = UICloudSharingController(share: share, container: container)
+            controller.delegate = context.coordinator
+            controller.availablePermissions = [
+                .allowPrivate,
+                .allowReadOnly,
+                .allowReadWrite
+            ]
             return controller
         }
     }
@@ -310,14 +279,7 @@ private struct CloudSharingController: UIViewControllerRepresentable {
         )
     }
 
-    private var allowedSharingOptions: CKAllowedSharingOptions {
-        CKAllowedSharingOptions(
-            allowedParticipantPermissionOptions: [.readOnly, .readWrite],
-            allowedParticipantAccessOptions: [.specifiedRecipientsOnly]
-        )
-    }
-
-    final class Coordinator: NSObject {
+    final class Coordinator: NSObject, UICloudSharingControllerDelegate {
         let collectionTitle: String
         let onSharingChanged: () -> Void
         let onError: (any Error) -> Void
@@ -332,6 +294,24 @@ private struct CloudSharingController: UIViewControllerRepresentable {
             self.onError = onError
         }
 
+        func cloudSharingController(
+            _ csc: UICloudSharingController,
+            failedToSaveShareWithError error: any Error
+        ) {
+            onError(error)
+        }
+
+        func itemTitle(for csc: UICloudSharingController) -> String? {
+            collectionTitle
+        }
+
+        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
+            onSharingChanged()
+        }
+
+        func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
+            onSharingChanged()
+        }
     }
 
 }

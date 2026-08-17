@@ -96,3 +96,33 @@ struct BellRecord: Identifiable, Hashable {
         return details.material.displayName
     }
 }
+
+extension BellRecord {
+    func moving(
+        to location: Location?,
+        storagePath: StoragePath?
+    ) -> BellRecord {
+        BellRecord(
+            item: ItemRecord(
+                id: item.id,
+                collectionID: item.collectionID,
+                locationID: location?.id,
+                originPlaceID: item.originPlaceID,
+                createdAt: item.createdAt,
+                createdBy: createdBy,
+                title: item.title,
+                notes: item.notes,
+                acquiredYear: item.acquiredYear,
+                condition: item.condition,
+                acquisitionMethod: item.acquisitionMethod,
+                isFavorite: isFavorite,
+                tags: tags,
+                originPlace: originPlace,
+                storageLocation: location,
+                storagePath: storagePath,
+                mediaAssets: mediaAssets
+            ),
+            details: details
+        )
+    }
+}

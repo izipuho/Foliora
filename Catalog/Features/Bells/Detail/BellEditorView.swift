@@ -1,5 +1,4 @@
 import SwiftUI
-import CoreData
 import Translation
 
 /// Displays the bell editor view interface.
@@ -47,15 +46,15 @@ struct BellEditorView: View {
 
     let collection: CollectionSummary
     let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     let startSection: StartSection?
     let initialAnalysisImage: UIImage?
     let onSave: (BellRecord) -> Void
 
-    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @FocusState private var focusedField: FocusedField?
-    @State private var lookupSnapshot = BellLookupSnapshot()
     @State private var title = ""
     @State private var notes = ""
     @State private var condition: ItemCondition = .good
@@ -90,15 +89,32 @@ struct BellEditorView: View {
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     private var availableLocations: [Location] {
-        lookupSnapshot.locations
+        guard let snapshot = catalogSnapshot else { return [] }
+
+        let collectionLocations = snapshot.collectionLocationsByCollectionID[collection.id] ?? []
+        if !collectionLocations.isEmpty {
+            return collectionLocations
+        }
+
+        return snapshot.locationsByHomeID[collection.homeID] ?? []
     }
 
     private var availablePlaces: [Place] {
-        lookupSnapshot.places
+        catalogSnapshot?.places ?? []
     }
 
     private var locationPathByID: [UUID: String] {
-        lookupSnapshot.locationPathByID
+        guard let snapshot = catalogSnapshot else { return [:] }
+
+        let collectionLocations = snapshot.collectionLocationsByCollectionID[collection.id] ?? []
+        if !collectionLocations.isEmpty {
+            return snapshot.collectionLocationPathByCollectionID[collection.id] ?? [:]
+        }
+
+        let availableLocationIDs = Set(availableLocations.map(\.id))
+        return snapshot.locationPathByID.filter { id, _ in
+            availableLocationIDs.contains(id)
+        }
     }
 
     private var canSave: Bool {
@@ -125,6 +141,8 @@ struct BellEditorView: View {
     init(
         collection: CollectionSummary,
         repository: any CatalogRepository,
+        catalogSnapshot: CatalogSnapshot?,
+        reloadCatalogSnapshot: @escaping () -> Void,
         bell: BellRecord? = nil,
         initialMediaAssets: [MediaAsset] = [],
         initialAnalysisImage: UIImage? = nil,
@@ -133,6 +151,8 @@ struct BellEditorView: View {
     ) {
         self.collection = collection
         self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
+        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.startSection = startSection
         self.initialAnalysisImage = initialAnalysisImage
         self.onSave = onSave
@@ -403,7 +423,6 @@ struct BellEditorView: View {
                     }
                 }
                 .task {
-                    reloadLookupSnapshot()
                     startInitialPhotoAnalysisIfNeeded()
                     guard let startSection else { return }
                     highlightedSection = startSection
@@ -431,9 +450,6 @@ struct BellEditorView: View {
                     let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
                     await translatePhotoSuggestions(using: session, translator: translator)
                 }
-                .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in
-                    reloadLookupSnapshot()
-                }
                 .sheet(isPresented: $isPresentingHomeEditor) {
                     HomeEditorView(
                         home: $draftHome,
@@ -441,7 +457,7 @@ struct BellEditorView: View {
                         onSave: {
                             repository.saveHome(draftHome)
                             repository.saveLocations(draftHomeLocations, in: draftHome.id)
-                            reloadLookupSnapshot()
+                            reloadCatalogSnapshot()
                             continueLocationSelectionIfNeeded()
                         },
                         onDelete: nil
@@ -586,15 +602,11 @@ struct BellEditorView: View {
         )
     }
 
-    private func reloadLookupSnapshot() {
-        lookupSnapshot = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
-            .loadSnapshot(collectionID: collection.id, homeID: collection.homeID)
-    }
-
     private func presentHomeEditor() {
-        guard let home = lookupSnapshot.homes.first(where: { $0.id == collection.homeID }) else { return }
+        guard let snapshot = catalogSnapshot,
+              let home = snapshot.homes.first(where: { $0.id == collection.homeID }) else { return }
         draftHome = home
-        draftHomeLocations = availableLocations
+        draftHomeLocations = snapshot.locationsByHomeID[collection.homeID] ?? []
         shouldPresentLocationPickerAfterHomeEditor = true
         isPresentingHomeEditor = true
     }
@@ -928,10 +940,11 @@ private struct PhotoSuggestedTagChip: View {
     BellEditorView(
         collection: summary,
         repository: repository,
+        catalogSnapshot: snapshot,
+        reloadCatalogSnapshot: {},
         bell: bell
     ) { updatedBell in
         repository.saveBellRecord(updatedBell)
     }
-    .environment(\.managedObjectContext, container.viewContext)
 }
 #endif

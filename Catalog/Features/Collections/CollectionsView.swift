@@ -1,16 +1,15 @@
 import SwiftUI
-import CoreData
 import CloudKit
 
 /// Displays the collections view interface.
 struct CollectionsView: View {
     let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     let onCollectionSelected: ((UUID) -> Void)?
     let navigate: ((AppDestination) -> Void)?
     let onOpenHomes: () -> Void
-    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.colorScheme) private var colorScheme
-    @State private var catalogSnapshot: CatalogSnapshot?
     @State private var collectionSharingStatuses: [UUID: CollectionCardSharingStatus] = [:]
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
@@ -22,18 +21,24 @@ struct CollectionsView: View {
 
     init(
         repository: any CatalogRepository,
+        catalogSnapshot: CatalogSnapshot?,
+        reloadCatalogSnapshot: @escaping () -> Void,
         onCollectionSelected: ((UUID) -> Void)? = nil,
         navigate: ((AppDestination) -> Void)? = nil,
         onOpenHomes: @escaping () -> Void = {}
     ) {
         self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
+        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.onCollectionSelected = onCollectionSelected
         self.navigate = navigate
         self.onOpenHomes = onOpenHomes
     }
 
     private var collections: [CollectionSummary] {
-        catalogSnapshot.map(collectionSummaries) ?? []
+        catalogSnapshot?.collections.compactMap { collection in
+            catalogSnapshot?.collectionSummary(id: collection.id)
+        } ?? []
     }
 
     private var displayedCollections: [CollectionSummary] {
@@ -53,15 +58,10 @@ struct CollectionsView: View {
                     .ignoresSafeArea()
             }
             .onAppear {
-                reloadCatalogSnapshot()
                 autoOpenSingleCollectionIfNeeded()
             }
-            .onReceive(NotificationCenter.default.publisher(
-                for: .NSManagedObjectContextObjectsDidChange,
-                object: managedObjectContext
-            )) { _ in
-                guard !isSortingCollections else { return }
-                reloadCatalogSnapshot()
+            .task(id: collections.map(\.id)) {
+                await loadCollectionSharingStatuses(for: collections.map(\.id))
             }
             .onChange(of: collections.map(\.id)) { _, _ in
                 autoOpenSingleCollectionIfNeeded()
@@ -79,6 +79,9 @@ struct CollectionsView: View {
                 NavigationStack {
                     CollectionSharingSheetLoaderView(collection: collection) {
                         reloadCatalogSnapshot()
+                        Task {
+                            await loadCollectionSharingStatuses(for: collections.map(\.id))
+                        }
                     }
                 }
             }
@@ -397,35 +400,6 @@ struct CollectionsView: View {
         navigate?(.collection(collection.id))
     }
 
-    private func reloadCatalogSnapshot() {
-        let snapshot = CatalogSnapshot.load(from: managedObjectContext)
-        catalogSnapshot = snapshot
-
-        Task {
-            await loadCollectionSharingStatuses(for: snapshot.collections.map(\.id))
-        }
-    }
-
-    private func collectionSummaries(from snapshot: CatalogSnapshot) -> [CollectionSummary] {
-        snapshot.collections.map { collectionSummary(from: $0, in: snapshot) }
-    }
-
-    private func collectionSummary(from collection: Collection, in snapshot: CatalogSnapshot) -> CollectionSummary {
-        let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
-
-        return CollectionSummary(
-            id: collection.id,
-            homeID: collection.homeID,
-            kind: collection.kind,
-            name: collection.title,
-            subtitle: collection.notes,
-            backgroundStyle: collection.backgroundStyle,
-            itemCount: collection.kind == .bells ? itemCount : 0,
-            status: collection.kind == .bells ? .active : .planned,
-            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
-        )
-    }
-
     private func sharingStatus(for collectionID: UUID) -> CollectionCardSharingStatus {
         collectionSharingStatuses[collectionID] ?? .unknown
     }
@@ -562,10 +536,14 @@ private enum CollectionCardSharingStatus {
         context: container.viewContext,
         persistentContainer: nil
     )
+    let catalogSnapshot = CatalogSnapshot.load(from: container.viewContext)
 
     NavigationStack {
-        CollectionsView(repository: repository)
-            .environment(\.managedObjectContext, container.viewContext)
+        CollectionsView(
+            repository: repository,
+            catalogSnapshot: catalogSnapshot,
+            reloadCatalogSnapshot: {}
+        )
     }
 }
 #endif

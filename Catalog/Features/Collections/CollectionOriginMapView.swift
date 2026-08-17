@@ -1,24 +1,22 @@
 import SwiftUI
-import CoreData
 import MapKit
 
 /// Displays the collection origin map view interface.
 struct CollectionOriginMapView: View {
     let collection: CollectionSummary
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     let repository: any CatalogRepository
-    @Environment(\.managedObjectContext) private var managedObjectContext
-    @State private var catalogSnapshot = BellCatalogSnapshot()
 
     @State private var position: MapCameraPosition = .automatic
     @State private var selectedGroupID: String?
 
-    init(collection: CollectionSummary, repository: any CatalogRepository) {
-        self.collection = collection
-        self.repository = repository
+    private var mappedBells: [BellListItem] {
+        catalogSnapshot?.bells.filter { $0.collectionID == collection.id } ?? []
     }
 
     private var mappedGroups: [MapBellGroup] {
-        let grouped = Dictionary(grouping: catalogSnapshot.bells.compactMap { bell -> (String, BellListItem, CLLocationCoordinate2D)? in
+        let grouped = Dictionary(grouping: mappedBells.compactMap { bell -> (String, BellListItem, CLLocationCoordinate2D)? in
             guard let latitude = bell.originLatitude,
                   let longitude = bell.originLongitude else {
                 return nil
@@ -73,14 +71,7 @@ struct CollectionOriginMapView: View {
             }
             .ignoresSafeArea()
             .onAppear {
-                reloadCatalogSnapshot()
                 updateCameraIfNeeded()
-            }
-            .onReceive(NotificationCenter.default.publisher(
-                for: .NSManagedObjectContextObjectsDidChange,
-                object: managedObjectContext
-            )) { _ in
-                reloadCatalogSnapshot()
             }
             .onChange(of: mappedGroups.map(\.id)) { _, _ in
                 updateCameraIfNeeded()
@@ -89,7 +80,9 @@ struct CollectionOriginMapView: View {
                 if let selectedGroup {
                     MapSelectionPanel(
                         bells: selectedGroup.bells,
-                        repository: repository
+                        repository: repository,
+                        catalogSnapshot: catalogSnapshot,
+                        reloadCatalogSnapshot: reloadCatalogSnapshot
                     )
                     .padding(.bottom, CatalogMetrics.Spacing.xl)
                 }
@@ -97,10 +90,6 @@ struct CollectionOriginMapView: View {
         }
         .navigationTitle(String(localized: "collection.placeholder.map.title"))
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func reloadCatalogSnapshot() {
-        catalogSnapshot = BellCatalogSnapshot(context: managedObjectContext, collectionID: collection.id)
     }
 
     private func updateCameraIfNeeded() {
@@ -207,6 +196,8 @@ private struct MapBellAnnotationView: View {
 private struct MapSelectionPanel: View {
     let bells: [BellListItem]
     let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
 
     @State private var presentedBellID: UUID?
 
@@ -253,7 +244,9 @@ private struct MapSelectionPanel: View {
             if let presentedBellID {
                 BellDetailContainer(
                     bellID: presentedBellID,
-                    repository: repository
+                    repository: repository,
+                    catalogSnapshot: catalogSnapshot,
+                    reloadCatalogSnapshot: reloadCatalogSnapshot
                 )
                     .presentationDragIndicator(.visible)
             }

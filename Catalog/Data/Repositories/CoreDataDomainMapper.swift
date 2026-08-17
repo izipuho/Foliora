@@ -8,7 +8,7 @@ import Foundation
 enum CoreDataDomainMapper {
     static func bellRecord(from entity: NSManagedObject) -> BellRecord {
         guard let itemEntity = entity.value(forKey: "item") as? NSManagedObject else {
-            preconditionFailure("BellEntity is missing its migrated ItemEntity relationship.")
+            preconditionFailure("BellEntity is missing its ItemEntity relationship.")
         }
 
         let itemRecord = itemRecord(from: itemEntity)

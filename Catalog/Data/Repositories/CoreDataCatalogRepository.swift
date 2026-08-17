@@ -148,12 +148,9 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
     func deleteBellRecord(bellID: UUID) {
         guard let entity = fetchBellEntity(by: bellID) else { return }
-        if let item = entity.value(forKey: "item") as? NSManagedObject {
-            context.delete(item)
-            deleteOrphanItemTags()
-        } else {
-            context.delete(entity)
-        }
+        guard let item = entity.value(forKey: "item") as? NSManagedObject else { return }
+        context.delete(item)
+        deleteOrphanItemTags()
         saveContext()
     }
 
@@ -234,23 +231,9 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(item.createdBy, forKey: "createdBy")
         entity.setValue(item.isFavorite, forKey: "isFavorite")
 
-        if entity.entity.attributesByName["acquiredYear"] != nil {
-            entity.setValue(item.acquiredYear, forKey: "acquiredYear")
-        } else {
-            entity.setValue(item.acquiredYear, forKey: "acquisitionYear")
-        }
-
-        if entity.entity.attributesByName["conditionRaw"] != nil {
-            entity.setValue(item.condition.rawValue, forKey: "conditionRaw")
-        } else {
-            entity.setValue(item.condition.rawValue, forKey: "condition")
-        }
-
-        if entity.entity.attributesByName["acquisitionMethodRaw"] != nil {
-            entity.setValue(item.acquisitionMethod.rawValue, forKey: "acquisitionMethodRaw")
-        } else {
-            entity.setValue(item.acquisitionMethod.rawValue, forKey: "acquisitionMethod")
-        }
+        entity.setValue(item.acquiredYear, forKey: "acquisitionYear")
+        entity.setValue(item.condition.rawValue, forKey: "condition")
+        entity.setValue(item.acquisitionMethod.rawValue, forKey: "acquisitionMethod")
     }
 
     private func saveBellRecordWithoutSavingContext(_ bell: BellRecord) {
@@ -340,9 +323,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
             entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
             entity.setValue(asset.thumbnailData, forKey: "thumbnailData")
             entity.setValue(asset.originalData, forKey: "originalData")
-            if entity.entity.attributesByName["itemID"] != nil {
-                entity.setValue(item.value(forKey: "id"), forKey: "itemID")
-            }
             entity.setValue(item, forKey: "item")
             return entity
         }
@@ -387,7 +367,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func fetchBellEntity(by itemID: UUID) -> NSManagedObject? {
         fetchEntities(
             named: "BellEntity",
-            predicate: NSPredicate(format: "item.id == %@ OR id == %@", itemID as NSUUID, itemID as NSUUID),
+            predicate: NSPredicate(format: "item.id == %@", itemID as NSUUID),
             fetchLimit: 1
         ).first
     }

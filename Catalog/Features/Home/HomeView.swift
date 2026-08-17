@@ -10,8 +10,8 @@ struct HomeView: View {
     let repository: any CatalogRepository
     let embedsNavigation: Bool
     let navigate: ((AppDestination) -> Void)?
-    let navigationSnapshot: CatalogSnapshot?
-    let reloadNavigationSnapshot: () -> Void
+    let catalogSnapshot: CatalogSnapshot?
+    let reloadCatalogSnapshot: () -> Void
     @Environment(\.colorScheme) private var colorScheme
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
     @State private var draftLocations: [Location] = []
@@ -24,14 +24,14 @@ struct HomeView: View {
         repository: any CatalogRepository,
         embedsNavigation: Bool = true,
         navigate: ((AppDestination) -> Void)? = nil,
-        navigationSnapshot: CatalogSnapshot?,
-        reloadNavigationSnapshot: @escaping () -> Void
+        catalogSnapshot: CatalogSnapshot?,
+        reloadCatalogSnapshot: @escaping () -> Void
     ) {
         self.repository = repository
         self.embedsNavigation = embedsNavigation
         self.navigate = navigate
-        self.navigationSnapshot = navigationSnapshot
-        self.reloadNavigationSnapshot = reloadNavigationSnapshot
+        self.catalogSnapshot = catalogSnapshot
+        self.reloadCatalogSnapshot = reloadCatalogSnapshot
     }
 
     var body: some View {
@@ -63,7 +63,7 @@ struct HomeView: View {
     }
 
     private var homes: [Home] {
-        navigationSnapshot?.homes ?? []
+        catalogSnapshot?.homes ?? []
     }
 
     private var displayedHomes: [Home] {
@@ -71,7 +71,7 @@ struct HomeView: View {
     }
 
     private var locationsByHomeID: [UUID: [Location]] {
-        navigationSnapshot?.locationsByHomeID ?? [:]
+        catalogSnapshot?.locationsByHomeID ?? [:]
     }
 
     private var homeContent: some View {
@@ -192,7 +192,7 @@ struct HomeView: View {
     }
 
     private func collectionCount(in homeID: UUID) -> Int {
-        navigationSnapshot?.collectionCountsByHomeID[homeID] ?? 0
+        catalogSnapshot?.collectionCountsByHomeID[homeID] ?? 0
     }
 
     private func presentEditorForNewHome() {
@@ -204,7 +204,7 @@ struct HomeView: View {
     private func saveDraftHome() {
         repository.saveHome(draftHome)
         repository.saveLocations(draftLocations, in: draftHome.id)
-        reloadNavigationSnapshot()
+        reloadCatalogSnapshot()
     }
 
     private func startSortingHomes() {
@@ -215,7 +215,7 @@ struct HomeView: View {
     private func stopSortingHomes() {
         isSortingHomes = false
         sortingHomes = []
-        reloadNavigationSnapshot()
+        reloadCatalogSnapshot()
     }
 
     private func moveHomes(from source: IndexSet, to destination: Int) {
@@ -227,7 +227,7 @@ struct HomeView: View {
 
     private func deleteHome(_ homeID: UUID) {
         repository.deleteHome(homeID: homeID)
-        reloadNavigationSnapshot()
+        reloadCatalogSnapshot()
     }
 }
 
@@ -283,8 +283,8 @@ private struct HomeListCard: View {
     NavigationStack {
         HomeView(
             repository: repository,
-            navigationSnapshot: snapshot,
-            reloadNavigationSnapshot: {}
+            catalogSnapshot: snapshot,
+            reloadCatalogSnapshot: {}
         )
         .environment(\.managedObjectContext, container.viewContext)
     }
