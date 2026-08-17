@@ -86,7 +86,7 @@ enum CoreDataDomainMapper {
         MediaAsset(
             id: uuidValue(entity, "id"),
             itemID: itemID,
-            kind: mediaKind(from: stringValue(entity, "kindRaw", default: MediaKind.photo.rawValue)),
+            kind: mediaKind(from: stringValue(entity, "kind", default: MediaKind.photo.rawValue)),
             localIdentifier: stringValue(entity, "localIdentifier"),
             displayName: entity.value(forKey: "displayName") as? String,
             sortOrder: intValue(entity, "sortOrder"),
@@ -98,7 +98,6 @@ enum CoreDataDomainMapper {
             height: optionalIntValue(entity, "height"),
             duration: doubleValue(entity, "duration"),
             metadataJSON: entity.value(forKey: "metadataJSON") as? String,
-            thumbnailData: entity.value(forKey: "thumbnailData") as? Data,
             originalData: entity.value(forKey: "originalData") as? Data
         )
     }

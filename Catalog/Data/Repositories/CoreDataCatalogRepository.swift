@@ -336,12 +336,10 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func apply(_ asset: MediaAsset, to entity: NSManagedObject) {
         let isNewEntity = entity.value(forKey: "id") == nil
         let existingChecksum = entity.value(forKey: "checksum") as? String
-        let existingThumbnailData = entity.value(forKey: "thumbnailData") as? Data
         let shouldUpdateOriginalData = isNewEntity || existingChecksum != asset.checksum
-        let shouldUpdateThumbnailData = isNewEntity || existingThumbnailData != asset.thumbnailData
 
         entity.setValue(asset.id, forKey: "id")
-        entity.setValue(asset.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(asset.kind.rawValue, forKey: "kind")
         entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
         entity.setValue(asset.displayName, forKey: "displayName")
         entity.setValue(asset.sortOrder, forKey: "sortOrder")
@@ -353,9 +351,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(asset.height, forKey: "height")
         entity.setValue(asset.duration, forKey: "duration")
         entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
-        if shouldUpdateThumbnailData {
-            entity.setValue(asset.thumbnailData, forKey: "thumbnailData")
-        }
         if shouldUpdateOriginalData {
             entity.setValue(asset.originalData, forKey: "originalData")
         }

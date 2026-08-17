@@ -811,11 +811,6 @@ private struct MediaAssetThumbnailView: View {
     }
 
     private var previewImage: UIImage? {
-        if let thumbnailData = asset.thumbnailData,
-           let image = UIImage(data: thumbnailData) {
-            return image
-        }
-
         if let url = mediaStore.thumbnailFileURL(for: asset.localIdentifier) ?? mediaStore.fileURL(for: asset.localIdentifier),
            let image = UIImage(contentsOfFile: url.path) {
             return image

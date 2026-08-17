@@ -541,7 +541,6 @@ final class CatalogImportExportActor {
             var bell = bell
             bell.mediaAssets = bell.mediaAssets.map { asset in
                 asset.with { asset in
-                    asset.thumbnailData = nil
                     asset.originalData = nil
                 }
             }
@@ -566,9 +565,6 @@ final class CatalogImportExportActor {
             guard let fileURL = mediaStore.fileURL(for: identifier) else { continue }
 
             entity.setValue(try Data(contentsOf: fileURL), forKey: "originalData")
-            if let thumbnailURL = mediaStore.thumbnailFileURL(for: identifier) {
-                entity.setValue(try Data(contentsOf: thumbnailURL), forKey: "thumbnailData")
-            }
         }
 
         if context.hasChanges {
@@ -791,7 +787,7 @@ final class CatalogImportExportActor {
         item: NSManagedObject
     ) {
         entity.setValue(asset.id, forKey: "id")
-        entity.setValue(asset.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(asset.kind.rawValue, forKey: "kind")
         entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
         entity.setValue(asset.displayName, forKey: "displayName")
         entity.setValue(asset.sortOrder, forKey: "sortOrder")
@@ -803,7 +799,6 @@ final class CatalogImportExportActor {
         entity.setValue(asset.height, forKey: "height")
         entity.setValue(asset.duration, forKey: "duration")
         entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
-        entity.setValue(nil, forKey: "thumbnailData")
         entity.setValue(nil, forKey: "originalData")
         if entity.entity.attributesByName["itemID"] != nil {
             entity.setValue(item.value(forKey: "id"), forKey: "itemID")
