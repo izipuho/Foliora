@@ -234,7 +234,7 @@ private extension CloudKitCollectionSharingService {
             )
             entity.setValue(sourceLocationID, forKey: "id")
             entity.setValue(sourceLocationID, forKey: "sourceLocationID")
-            entity.setValue(location.value(forKey: "kindRaw"), forKey: "kindRaw")
+            entity.setValue(location.value(forKey: "kind"), forKey: "kind")
             entity.setValue(location.value(forKey: "name"), forKey: "name")
             entity.setValue(location.value(forKey: "notes"), forKey: "notes")
             entity.setValue(sortOrder, forKey: "sortOrder")
