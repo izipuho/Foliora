@@ -247,7 +247,7 @@ struct CollectionsView: View {
             requiresHomeEmptyView
         } else {
             CatalogEmptyStateView(
-                systemImage: "square.grid.2x2",
+                systemImage: "rectangle.stack.fill",
                 title: "collections.empty.title",
                 message: "collections.empty.description",
                 primaryActionTitle: "collections.add",
