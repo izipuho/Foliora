@@ -89,7 +89,7 @@
 
 /* Begin PBXFileReference section */
 		2403CED12F9F8F5100C63AB6 /* HomeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDetailView.swift; sourceTree = "<group>"; };
-		2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeEditorView.swift; sourceTree = "<group>"; };
+		2403CED22F9F912300C63AB6 /* HomeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeEditorView.swift; sourceTree = "<group>"; };
 		2403CED52F9F912300C63AB6 /* StorageMapCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageMapCard.swift; sourceTree = "<group>"; };
 		2403CED92F9F945700C63AB6 /* SearchTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchTabView.swift; sourceTree = "<group>"; };
 		2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionOriginMapView.swift; sourceTree = "<group>"; };
@@ -107,7 +107,7 @@
 		24374F2F2FF6734200E83899 /* CatalogColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogColors.swift; sourceTree = "<group>"; };
 		24374F312FF677A100E83899 /* CatalogTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTypography.swift; sourceTree = "<group>"; };
 		24374F452FF7F0A700E83899 /* CatalogShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogShapes.swift; sourceTree = "<group>"; };
-		24374F472FFA652700E83899 /* CatalogSurfaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSurfaces.swift; sourceTree = "<group>"; };
+		24374F472FFA652F00E83899 /* CatalogSurfaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSurfaces.swift; sourceTree = "<group>"; };
 		24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardLayoutMode.swift; sourceTree = "<group>"; };
 		24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardContent.swift; sourceTree = "<group>"; };
 		24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardCollectionLayouts.swift; sourceTree = "<group>"; };
@@ -231,7 +231,7 @@
 		24374F232FF4F93800E83899 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
-				24374F472FFA652700E83899 /* CatalogSurfaces.swift */,
+				24374F472FFA652F00E83899 /* CatalogSurfaces.swift */,
 				24374F452FF7F0A700E83899 /* CatalogShapes.swift */,
 				24374F312FF677A100E83899 /* CatalogTypography.swift */,
 				24374F2F2FF6734200E83899 /* CatalogColors.swift */,
@@ -699,7 +699,7 @@
 				C000000000000000000000B2 /* EditorFields.swift in Sources */,
 				C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */,
 				2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */,
-				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
+				2403CED42F9F5100C63AB6 /* HomeEditorView.swift in Sources */,
 				246D3FC9300508F7000515FD /* CatalogImportExportView.swift in Sources */,
 				24056E9A301E68BE00601C22 /* PreviewContainer.swift in Sources */,
 				E00000000000000000000006 /* Foliora.xcdatamodeld in Sources */,
@@ -855,7 +855,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -930,7 +930,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.iz.BellRecognition;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SYMBOL_EXTENSIONS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1124,7 +1124,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1176,7 +1176,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
