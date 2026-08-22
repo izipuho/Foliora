@@ -287,7 +287,6 @@ struct BellCatalogView: View {
                 onSave: {
                     repository.saveHome(draftHome)
                     repository.saveLocations(draftHomeLocations, in: draftHome.id)
-                    reloadCatalogSnapshot()
                     continueQuickMoveIfNeeded()
                 },
                 onDelete: nil
@@ -827,7 +826,6 @@ struct BellCatalogView: View {
             repository.saveBellRecord(record.moving(to: location, storagePath: location.map(storagePath(for:))))
         }
 
-        reloadCatalogSnapshot()
         emitFeedback(.success)
     }
 
@@ -838,7 +836,6 @@ struct BellCatalogView: View {
             repository.deleteBellRecord(bellID: bell.id)
         }
 
-        reloadCatalogSnapshot()
         emitFeedback(.warning)
     }
 

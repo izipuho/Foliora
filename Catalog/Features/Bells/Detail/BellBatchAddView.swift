@@ -164,7 +164,6 @@ struct BellBatchAddView: View {
                     onSave: {
                         repository?.saveHome(draftHome)
                         repository?.saveLocations(draftHomeLocations, in: draftHome.id)
-                        reloadCatalogSnapshot()
                         continueLocationSelectionIfNeeded()
                     },
                     onDelete: nil
@@ -471,7 +470,6 @@ struct BellBatchAddView: View {
         }
 
         repository.saveBellRecords(bells)
-        reloadCatalogSnapshot()
         creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)
     }
 }

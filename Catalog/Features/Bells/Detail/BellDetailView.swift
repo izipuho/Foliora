@@ -110,7 +110,6 @@ struct BellDetailView: View {
                         repository.saveBellRecord(updatedBell)
                         bell = updatedBell
                         syncDraftsFromBell()
-                        reloadCatalogSnapshot()
                     }
                 }
             }
@@ -133,7 +132,6 @@ struct BellDetailView: View {
                     onSave: {
                         repository.saveHome(draftHome)
                         repository.saveLocations(draftHomeLocations, in: draftHome.id)
-                        reloadCatalogSnapshot()
                         continueLocationSelectionIfNeeded()
                     },
                     onDelete: nil
@@ -478,7 +476,6 @@ struct BellDetailView: View {
 
         bell = updatedBell
         repository.saveBellRecord(updatedBell)
-        reloadCatalogSnapshot()
     }
 
     private func persist(
@@ -529,7 +526,6 @@ struct BellDetailView: View {
 
         repository.saveBellRecord(updatedBell)
         bell = updatedBell
-        reloadCatalogSnapshot()
     }
 
     private func storagePath(for location: Location, locationsByID: [UUID: Location]) -> StoragePath {

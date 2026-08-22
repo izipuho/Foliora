@@ -457,7 +457,6 @@ struct BellEditorView: View {
                         onSave: {
                             repository.saveHome(draftHome)
                             repository.saveLocations(draftHomeLocations, in: draftHome.id)
-                            reloadCatalogSnapshot()
                             continueLocationSelectionIfNeeded()
                         },
                         onDelete: nil

@@ -204,7 +204,6 @@ struct HomeView: View {
     private func saveDraftHome() {
         repository.saveHome(draftHome)
         repository.saveLocations(draftLocations, in: draftHome.id)
-        reloadCatalogSnapshot()
     }
 
     private func startSortingHomes() {
@@ -215,7 +214,6 @@ struct HomeView: View {
     private func stopSortingHomes() {
         isSortingHomes = false
         sortingHomes = []
-        reloadCatalogSnapshot()
     }
 
     private func moveHomes(from source: IndexSet, to destination: Int) {
@@ -227,7 +225,6 @@ struct HomeView: View {
 
     private func deleteHome(_ homeID: UUID) {
         repository.deleteHome(homeID: homeID)
-        reloadCatalogSnapshot()
     }
 }
 

@@ -247,7 +247,6 @@ struct CollectionShellView: View {
             initialAnalysisImage: draftAnalysisImage
         ) { newBell in
             repository.saveBellRecord(newBell)
-            reloadCatalogSnapshot()
         }
     }
 
@@ -278,7 +277,6 @@ struct CollectionShellView: View {
             saveCollectionEdits(title: title, notes: notes, homeID: homeID, backgroundStyle: backgroundStyle)
         } onDelete: {
             repository.deleteCollection(collectionID: collection.id)
-            reloadCatalogSnapshot()
             dismiss()
         }
     }
@@ -311,7 +309,6 @@ struct CollectionShellView: View {
         )
 
         repository.saveCollection(updatedCollection)
-        reloadCatalogSnapshot()
     }
 
     @MainActor
@@ -330,7 +327,6 @@ struct CollectionShellView: View {
 
     private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
         isPresentingBatchAdd = false
-        reloadCatalogSnapshot()
 
         if case .reviewResults = action {
             onBatchAddComplete(action)
