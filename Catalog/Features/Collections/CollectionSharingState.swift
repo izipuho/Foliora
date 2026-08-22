@@ -27,8 +27,10 @@ struct CollectionSharingState {
         }
     }
 
-    var visibleParticipantsCount: Int {
-        peopleParticipants.count
+    var acceptedParticipantsCount: Int {
+        participants.filter {
+            $0.role != .owner && $0.acceptanceStatus == .accepted
+        }.count
     }
 
     static let placeholder = CollectionSharingState(

@@ -336,7 +336,7 @@ private struct DashboardSharingCard: View {
     private var localizedParticipantsCount: String {
         String.localizedStringWithFormat(
             String(localized: "collection.sharing.participants_count"),
-            acceptedParticipantCount
+            state.acceptedParticipantsCount
         )
     }
 
@@ -347,12 +347,6 @@ private struct DashboardSharingCard: View {
             String(localized: "bell_catalog.dashboard.sharing.pending_invitations_count"),
             pendingInvitationCount
         )
-    }
-
-    private var acceptedParticipantCount: Int {
-        state.participants.filter {
-            !$0.isCurrentUser && $0.acceptanceStatus == .accepted
-        }.count
     }
 
     private var pendingInvitationCount: Int {

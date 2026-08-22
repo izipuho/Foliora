@@ -432,7 +432,7 @@ struct CollectionsView: View {
         switch state.currentUserRole {
         case .owner:
             if state.isShared {
-                return .sharedOwner(participantsCount: state.visibleParticipantsCount)
+                return .sharedOwner(participantsCount: state.acceptedParticipantsCount)
             }
             return .privateOwner
         case .contributor, .viewer:
