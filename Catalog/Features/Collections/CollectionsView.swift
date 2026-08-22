@@ -432,11 +432,13 @@ struct CollectionsView: View {
         switch state.currentUserRole {
         case .owner:
             if state.isShared {
-                return .sharedOwner(participantsCount: state.visibleParticipantsCount)
+                return .sharedOwner(participantsCount: state.acceptedParticipantsCount)
             }
             return .privateOwner
-        case .contributor, .viewer:
-            return .sharedParticipant
+        case .contributor:
+            return .sharedContributor
+        case .viewer:
+            return .sharedViewer
         }
     }
 }
@@ -525,7 +527,8 @@ private struct CollectionSharingSheetLoaderView: View {
 private enum CollectionCardSharingStatus {
     case privateOwner
     case sharedOwner(participantsCount: Int)
-    case sharedParticipant
+    case sharedContributor
+    case sharedViewer
     case unknown
 }
 
@@ -557,9 +560,11 @@ private struct CollectionCard: View {
         case .privateOwner, .unknown:
             return nil
         case .sharedOwner(let participantsCount):
-            return .label(text: "\(participantsCount)", systemImage: "person.2")
-        case .sharedParticipant:
-            return .icon("link")
+            return .label(text: "\(participantsCount)", systemImage: "person.2.fill")
+        case .sharedContributor:
+            return .icon("person.crop.circle.badge.checkmark")
+        case .sharedViewer:
+            return .icon("eye.fill")
         }
     }
 
