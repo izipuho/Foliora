@@ -341,18 +341,12 @@ private struct DashboardSharingCard: View {
     }
 
     private var pendingInvitationsDetail: String? {
-        guard pendingInvitationCount > 0 else { return nil }
+        guard state.invitedParticipants.count > 0 else { return nil }
 
         return String.localizedStringWithFormat(
             String(localized: "bell_catalog.dashboard.sharing.pending_invitations_count"),
-            pendingInvitationCount
+            state.invitedParticipants.count
         )
-    }
-
-    private var pendingInvitationCount: Int {
-        state.participants.filter {
-            !$0.isCurrentUser && $0.acceptanceStatus == .pending
-        }.count
     }
 }
 
