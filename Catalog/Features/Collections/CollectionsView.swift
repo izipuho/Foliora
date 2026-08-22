@@ -5,7 +5,6 @@ import CloudKit
 struct CollectionsView: View {
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     let onCollectionSelected: ((UUID) -> Void)?
     let navigate: ((AppDestination) -> Void)?
     let onOpenHomes: () -> Void
@@ -22,14 +21,12 @@ struct CollectionsView: View {
     init(
         repository: any CatalogRepository,
         catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void,
         onCollectionSelected: ((UUID) -> Void)? = nil,
         navigate: ((AppDestination) -> Void)? = nil,
         onOpenHomes: @escaping () -> Void = {}
     ) {
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.onCollectionSelected = onCollectionSelected
         self.navigate = navigate
         self.onOpenHomes = onOpenHomes
@@ -539,8 +536,7 @@ private enum CollectionCardSharingStatus {
     NavigationStack {
         CollectionsView(
             repository: repository,
-            catalogSnapshot: catalogSnapshot,
-            reloadCatalogSnapshot: {}
+            catalogSnapshot: catalogSnapshot
         )
     }
 }

@@ -96,7 +96,6 @@ struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collection: CollectionSummary?
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     let sharingState: CollectionSharingState
     let sharingService: (any CollectionSharingService)?
     let onSharingChanged: () -> Void
@@ -129,7 +128,6 @@ struct BellCatalogView: View {
         collection: CollectionSummary?,
         repository: any CatalogRepository,
         catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void,
         layoutMode: Binding<CatalogCardLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
@@ -142,7 +140,6 @@ struct BellCatalogView: View {
         self.repository = repository
         self.collection = collection
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.sharingState = sharingState
         self.sharingService = sharingService
         self.onSharingChanged = onSharingChanged
@@ -499,7 +496,6 @@ struct BellCatalogView: View {
             accentColor: catalogStyle.accentColor,
             collection: collection,
             catalogSnapshot: catalogSnapshot,
-            reloadCatalogSnapshot: reloadCatalogSnapshot,
             repository: repository,
             sharingState: sharingState,
             sharingService: sharingService,
@@ -945,7 +941,6 @@ struct BellDetailContainer: View {
     let bellID: UUID
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     @State private var bell: BellRecord?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
@@ -953,13 +948,11 @@ struct BellDetailContainer: View {
     init(
         bellID: UUID,
         repository: any CatalogRepository,
-        catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void
+        catalogSnapshot: CatalogSnapshot?
     ) {
         self.bellID = bellID
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
     }
 
     var body: some View {
@@ -969,7 +962,6 @@ struct BellDetailContainer: View {
                     bell: bellBinding,
                     repository: repository,
                     catalogSnapshot: catalogSnapshot,
-                    reloadCatalogSnapshot: reloadCatalogSnapshot,
                     canEditCollection: canEditCollection,
                     canChangeFavorite: canChangeFavorite
                 )
@@ -1164,7 +1156,6 @@ private struct BellQuickMoveSheet: View {
             collection: summary,
             repository: repository,
             catalogSnapshot: snapshot,
-            reloadCatalogSnapshot: {},
             sharingState: CollectionSharingState(
                 currentUserRole: .owner,
                 participants: []

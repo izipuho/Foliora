@@ -47,7 +47,6 @@ struct BellEditorView: View {
     let collection: CollectionSummary
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     let startSection: StartSection?
     let initialAnalysisImage: UIImage?
     let onSave: (BellRecord) -> Void
@@ -142,7 +141,6 @@ struct BellEditorView: View {
         collection: CollectionSummary,
         repository: any CatalogRepository,
         catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void,
         bell: BellRecord? = nil,
         initialMediaAssets: [MediaAsset] = [],
         initialAnalysisImage: UIImage? = nil,
@@ -152,7 +150,6 @@ struct BellEditorView: View {
         self.collection = collection
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.startSection = startSection
         self.initialAnalysisImage = initialAnalysisImage
         self.onSave = onSave
@@ -940,7 +937,6 @@ private struct PhotoSuggestedTagChip: View {
         collection: summary,
         repository: repository,
         catalogSnapshot: snapshot,
-        reloadCatalogSnapshot: {},
         bell: bell
     ) { updatedBell in
         repository.saveBellRecord(updatedBell)

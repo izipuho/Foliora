@@ -5,7 +5,6 @@ import CoreData
 /// Displays the collection shell view interface.
 struct CollectionShellView: View {
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     let collection: CollectionSummary
     let repository: any CatalogRepository
     let coreDataContainer: NSPersistentCloudKitContainer
@@ -35,7 +34,6 @@ struct CollectionShellView: View {
     init(
         collection: CollectionSummary,
         catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void,
         repository: any CatalogRepository,
         coreDataContainer: NSPersistentCloudKitContainer,
         layoutMode: Binding<CatalogCardLayoutMode>,
@@ -44,7 +42,6 @@ struct CollectionShellView: View {
     ) {
         self.collection = collection
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.repository = repository
         self.coreDataContainer = coreDataContainer
         self.onBellSelected = onBellSelected
@@ -180,8 +177,7 @@ struct CollectionShellView: View {
                     BellDetailContainer(
                         bellID: selectedBellID,
                         repository: repository,
-                        catalogSnapshot: catalogSnapshot,
-                        reloadCatalogSnapshot: reloadCatalogSnapshot
+                        catalogSnapshot: catalogSnapshot
                     )
                         .presentationDragIndicator(.visible)
                 }
@@ -216,7 +212,6 @@ struct CollectionShellView: View {
                     collection: collection,
                     repository: repository,
                     catalogSnapshot: catalogSnapshot,
-                    reloadCatalogSnapshot: reloadCatalogSnapshot,
                     layoutMode: selectedLayoutModeBinding,
                     orderMode: selectedOrderBinding,
                     filters: $selectedSummaryFilter,
@@ -242,7 +237,6 @@ struct CollectionShellView: View {
             collection: collection,
             repository: repository,
             catalogSnapshot: catalogSnapshot,
-            reloadCatalogSnapshot: reloadCatalogSnapshot,
             initialMediaAssets: draftMediaAssets,
             initialAnalysisImage: draftAnalysisImage
         ) { newBell in
@@ -255,7 +249,6 @@ struct CollectionShellView: View {
             collection: collection,
             photoCount: draftMediaAssets.count,
             catalogSnapshot: catalogSnapshot,
-            reloadCatalogSnapshot: reloadCatalogSnapshot,
             initialMediaAssets: draftMediaAssets,
             repository: repository,
             onComplete: handleBatchAddCompletion

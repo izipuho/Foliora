@@ -11,7 +11,6 @@ struct HomeView: View {
     let embedsNavigation: Bool
     let navigate: ((AppDestination) -> Void)?
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     @Environment(\.colorScheme) private var colorScheme
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
     @State private var draftLocations: [Location] = []
@@ -24,14 +23,12 @@ struct HomeView: View {
         repository: any CatalogRepository,
         embedsNavigation: Bool = true,
         navigate: ((AppDestination) -> Void)? = nil,
-        catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void
+        catalogSnapshot: CatalogSnapshot?
     ) {
         self.repository = repository
         self.embedsNavigation = embedsNavigation
         self.navigate = navigate
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
     }
 
     var body: some View {
@@ -280,8 +277,7 @@ private struct HomeListCard: View {
     NavigationStack {
         HomeView(
             repository: repository,
-            catalogSnapshot: snapshot,
-            reloadCatalogSnapshot: {}
+            catalogSnapshot: snapshot
         )
         .environment(\.managedObjectContext, container.viewContext)
     }

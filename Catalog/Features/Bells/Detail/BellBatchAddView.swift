@@ -45,8 +45,7 @@ private extension BellBatchAddView {
                 sharingSummary: ""
             ),
             photoCount: 8,
-            catalogSnapshot: nil,
-            reloadCatalogSnapshot: {}
+            catalogSnapshot: nil
         )
         .completionContent(createdCount: 8, reviewQuery: "Preview Batch")
     }
@@ -85,7 +84,6 @@ struct BellBatchAddView: View {
     let collection: CollectionSummary
     let photoCount: Int
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     private let photoItems: [PhotosPickerItem]
     private let initialMediaAssets: [MediaAsset]
     private let repository: (any CatalogRepository)?
@@ -117,7 +115,6 @@ struct BellBatchAddView: View {
         collection: CollectionSummary,
         photoCount: Int,
         catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void,
         photoItems: [PhotosPickerItem] = [],
         initialMediaAssets: [MediaAsset] = [],
         repository: (any CatalogRepository)? = nil,
@@ -126,7 +123,6 @@ struct BellBatchAddView: View {
         self.collection = collection
         self.photoCount = photoCount
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.photoItems = photoItems
         self.initialMediaAssets = initialMediaAssets
         self.repository = repository

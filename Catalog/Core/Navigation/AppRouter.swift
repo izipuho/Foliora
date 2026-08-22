@@ -63,7 +63,6 @@ struct AppShellView: View {
         RootShellView(
             repository: repository,
             catalogSnapshot: catalogSnapshot,
-            reloadCatalogSnapshot: reloadCatalogSnapshot,
             selectedRootTab: $selectedRootTab,
             collectionsPath: $collectionsPath,
             homesPath: $homesPath,
@@ -123,7 +122,6 @@ struct AppShellView: View {
                 CollectionShellView(
                     collection: collection,
                     catalogSnapshot: catalogSnapshot,
-                    reloadCatalogSnapshot: reloadCatalogSnapshot,
                     repository: repository,
                     coreDataContainer: coreDataContainer,
                     layoutMode: layoutMode,
@@ -147,11 +145,9 @@ struct AppShellView: View {
                     onSave: { updatedHome, updatedLocations in
                         repository.saveHome(updatedHome)
                         repository.saveLocations(updatedLocations, in: updatedHome.id)
-                        reloadCatalogSnapshot()
                     },
                     onDelete: {
                         repository.deleteHome(homeID: homeID)
-                        reloadCatalogSnapshot()
                         popNavigation()
                     }
                 )
@@ -172,7 +168,6 @@ struct AppShellView: View {
                     },
                     onDelete: {
                         repository.deleteHome(homeID: homeID)
-                        reloadCatalogSnapshot()
                         popNavigation()
                     },
                     embedsNavigation: false,
@@ -202,7 +197,6 @@ struct AppShellView: View {
             get: { homes.first(where: { $0.id == homeID }) ?? Home(id: homeID, name: "", notes: "") },
             set: {
                 repository.saveHome($0)
-                reloadCatalogSnapshot()
             }
         )
     }
@@ -212,7 +206,6 @@ struct AppShellView: View {
             get: { locationsByHomeID[homeID] ?? [] },
             set: {
                 repository.saveLocations($0, in: homeID)
-                reloadCatalogSnapshot()
             }
         )
     }
@@ -229,7 +222,6 @@ struct AppShellView: View {
         guard let home = homes.first(where: { $0.id == homeID }) else { return }
         repository.saveHome(home)
         repository.saveLocations(locationsByHomeID[homeID] ?? [], in: homeID)
-        reloadCatalogSnapshot()
     }
 
     private func reloadCatalogSnapshot() {
@@ -276,7 +268,6 @@ struct AppShellView: View {
 private struct RootShellView<Destination: View>: View {
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     @Binding var selectedRootTab: RootTab
     @Binding var collectionsPath: NavigationPath
     @Binding var homesPath: NavigationPath
@@ -356,7 +347,6 @@ private struct RootShellView<Destination: View>: View {
                         repository: repository,
                         layoutMode: layoutModeBinding,
                         catalogSnapshot: catalogSnapshot,
-                        reloadCatalogSnapshot: reloadCatalogSnapshot,
                         initialQuery: searchInitialQuery
                     )
                     .id(searchResetID)
@@ -375,7 +365,6 @@ private struct RootShellView<Destination: View>: View {
                         bellID: selectedBellID,
                         repository: repository,
                         catalogSnapshot: catalogSnapshot,
-                        reloadCatalogSnapshot: reloadCatalogSnapshot,
                         onClose: closeBellInspector
                     )
                 } else {
@@ -412,7 +401,6 @@ private struct RootShellView<Destination: View>: View {
                     repository: repository,
                     layoutMode: layoutModeBinding,
                     catalogSnapshot: catalogSnapshot,
-                    reloadCatalogSnapshot: reloadCatalogSnapshot,
                     initialQuery: searchInitialQuery,
                     onBellSelected: openBellInspector
                 )
@@ -432,8 +420,7 @@ private struct RootShellView<Destination: View>: View {
                 repository: repository,
                 embedsNavigation: false,
                 navigate: { path.wrappedValue.append($0) },
-                catalogSnapshot: catalogSnapshot,
-                reloadCatalogSnapshot: reloadCatalogSnapshot
+                catalogSnapshot: catalogSnapshot
             )
             .navigationDestination(for: AppDestination.self) { destination in
                 self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popHomesNavigation)
@@ -449,7 +436,6 @@ private struct RootShellView<Destination: View>: View {
             CollectionsView(
                 repository: repository,
                 catalogSnapshot: catalogSnapshot,
-                reloadCatalogSnapshot: reloadCatalogSnapshot,
                 navigate: { path.wrappedValue.append($0) },
                 onOpenHomes: openHomesTab
             )
@@ -519,20 +505,17 @@ private struct BellDetailInspectorView: View {
     let bellID: UUID
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     let onClose: () -> Void
 
     init(
         bellID: UUID,
         repository: any CatalogRepository,
         catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void,
         onClose: @escaping () -> Void
     ) {
         self.bellID = bellID
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.onClose = onClose
     }
 
@@ -541,8 +524,7 @@ private struct BellDetailInspectorView: View {
             BellDetailContainer(
                 bellID: bellID,
                 repository: repository,
-                catalogSnapshot: catalogSnapshot,
-                reloadCatalogSnapshot: reloadCatalogSnapshot
+                catalogSnapshot: catalogSnapshot
             )
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
