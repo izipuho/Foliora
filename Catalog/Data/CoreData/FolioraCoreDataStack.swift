@@ -211,6 +211,9 @@ enum FolioraCoreDataStack {
         }
 
         let baseURL = containerURL.appendingPathComponent("CoreData", isDirectory: true)
+        #if DEBUG
+            .appendingPathComponent("Development", isDirectory: true)
+        #endif
         try FileManager.default.createDirectory(
             at: baseURL,
             withIntermediateDirectories: true
