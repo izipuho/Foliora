@@ -50,7 +50,6 @@ struct BellCatalogSearchState: Equatable {
 struct SearchTabView: View {
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     let onBellSelected: ((UUID) -> Void)?
     private let initialQuery: String?
     @Binding var layoutMode: CatalogCardLayoutMode
@@ -63,13 +62,11 @@ struct SearchTabView: View {
         repository: any CatalogRepository,
         layoutMode: Binding<CatalogCardLayoutMode>,
         catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void,
         initialQuery: String? = nil,
         onBellSelected: ((UUID) -> Void)? = nil
     ) {
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self._layoutMode = layoutMode
         self.initialQuery = initialQuery
         self.onBellSelected = onBellSelected
@@ -188,8 +185,7 @@ struct SearchTabView: View {
                 BellDetailContainer(
                     bellID: selectedBellID,
                     repository: repository,
-                    catalogSnapshot: catalogSnapshot,
-                    reloadCatalogSnapshot: reloadCatalogSnapshot
+                    catalogSnapshot: catalogSnapshot
                 )
                     .presentationDragIndicator(.visible)
             }

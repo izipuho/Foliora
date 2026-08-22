@@ -11,7 +11,6 @@ struct HomeView: View {
     let embedsNavigation: Bool
     let navigate: ((AppDestination) -> Void)?
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     @Environment(\.colorScheme) private var colorScheme
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
     @State private var draftLocations: [Location] = []
@@ -24,14 +23,12 @@ struct HomeView: View {
         repository: any CatalogRepository,
         embedsNavigation: Bool = true,
         navigate: ((AppDestination) -> Void)? = nil,
-        catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void
+        catalogSnapshot: CatalogSnapshot?
     ) {
         self.repository = repository
         self.embedsNavigation = embedsNavigation
         self.navigate = navigate
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
     }
 
     var body: some View {
@@ -204,7 +201,6 @@ struct HomeView: View {
     private func saveDraftHome() {
         repository.saveHome(draftHome)
         repository.saveLocations(draftLocations, in: draftHome.id)
-        reloadCatalogSnapshot()
     }
 
     private func startSortingHomes() {
@@ -215,7 +211,6 @@ struct HomeView: View {
     private func stopSortingHomes() {
         isSortingHomes = false
         sortingHomes = []
-        reloadCatalogSnapshot()
     }
 
     private func moveHomes(from source: IndexSet, to destination: Int) {
@@ -227,7 +222,6 @@ struct HomeView: View {
 
     private func deleteHome(_ homeID: UUID) {
         repository.deleteHome(homeID: homeID)
-        reloadCatalogSnapshot()
     }
 }
 
@@ -283,8 +277,7 @@ private struct HomeListCard: View {
     NavigationStack {
         HomeView(
             repository: repository,
-            catalogSnapshot: snapshot,
-            reloadCatalogSnapshot: {}
+            catalogSnapshot: snapshot
         )
         .environment(\.managedObjectContext, container.viewContext)
     }

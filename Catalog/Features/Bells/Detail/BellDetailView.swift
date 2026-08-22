@@ -6,7 +6,6 @@ struct BellDetailView: View {
     @Binding var bell: BellRecord
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     let canEditCollection: Bool
     let canChangeFavorite: Bool
     @State private var draftNotes = ""
@@ -27,7 +26,6 @@ struct BellDetailView: View {
         bell: Binding<BellRecord>,
         repository: any CatalogRepository,
         catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void,
         canEditCollection: Bool,
         canChangeFavorite: Bool = false
     ) {
@@ -35,7 +33,6 @@ struct BellDetailView: View {
         _selectedHeroPhotoID = State(initialValue: Self.heroPhotoAssets(in: bell.wrappedValue).first?.id)
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.canEditCollection = canEditCollection
         self.canChangeFavorite = canChangeFavorite
     }
@@ -104,13 +101,11 @@ struct BellDetailView: View {
                         collection: collection,
                         repository: repository,
                         catalogSnapshot: catalogSnapshot,
-                        reloadCatalogSnapshot: reloadCatalogSnapshot,
                         bell: bell
                     ) { updatedBell in
                         repository.saveBellRecord(updatedBell)
                         bell = updatedBell
                         syncDraftsFromBell()
-                        reloadCatalogSnapshot()
                     }
                 }
             }
@@ -133,7 +128,6 @@ struct BellDetailView: View {
                     onSave: {
                         repository.saveHome(draftHome)
                         repository.saveLocations(draftHomeLocations, in: draftHome.id)
-                        reloadCatalogSnapshot()
                         continueLocationSelectionIfNeeded()
                     },
                     onDelete: nil
@@ -478,7 +472,6 @@ struct BellDetailView: View {
 
         bell = updatedBell
         repository.saveBellRecord(updatedBell)
-        reloadCatalogSnapshot()
     }
 
     private func persist(
@@ -529,7 +522,6 @@ struct BellDetailView: View {
 
         repository.saveBellRecord(updatedBell)
         bell = updatedBell
-        reloadCatalogSnapshot()
     }
 
     private func storagePath(for location: Location, locationsByID: [UUID: Location]) -> StoragePath {
@@ -574,7 +566,6 @@ private struct BellDetailPreviewHost: View {
             bell: $bell,
             repository: repository,
             catalogSnapshot: catalogSnapshot,
-            reloadCatalogSnapshot: {},
             canEditCollection: false,
             canChangeFavorite: false
         )

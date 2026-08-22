@@ -5,7 +5,6 @@ import CloudKit
 struct CollectionsView: View {
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     let onCollectionSelected: ((UUID) -> Void)?
     let navigate: ((AppDestination) -> Void)?
     let onOpenHomes: () -> Void
@@ -22,14 +21,12 @@ struct CollectionsView: View {
     init(
         repository: any CatalogRepository,
         catalogSnapshot: CatalogSnapshot?,
-        reloadCatalogSnapshot: @escaping () -> Void,
         onCollectionSelected: ((UUID) -> Void)? = nil,
         navigate: ((AppDestination) -> Void)? = nil,
         onOpenHomes: @escaping () -> Void = {}
     ) {
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
-        self.reloadCatalogSnapshot = reloadCatalogSnapshot
         self.onCollectionSelected = onCollectionSelected
         self.navigate = navigate
         self.onOpenHomes = onOpenHomes
@@ -78,7 +75,6 @@ struct CollectionsView: View {
             .sheet(item: $collectionPendingSharing) { collection in
                 NavigationStack {
                     CollectionSharingSheetLoaderView(collection: collection) {
-                        reloadCatalogSnapshot()
                         Task {
                             await loadCollectionSharingStatuses(for: collections.map(\.id))
                         }
@@ -286,7 +282,6 @@ struct CollectionsView: View {
     private func stopSortingCollections() {
         isSortingCollections = false
         sortingCollections = []
-        reloadCatalogSnapshot()
     }
 
     private func moveCollections(from source: IndexSet, to destination: Int) {
@@ -315,7 +310,6 @@ struct CollectionsView: View {
         )
 
         repository.saveCollection(collection)
-        reloadCatalogSnapshot()
         navigate?(.collection(collection.id))
     }
 
@@ -330,7 +324,6 @@ struct CollectionsView: View {
 
     private func deleteCollection(_ collectionID: UUID) {
         repository.deleteCollection(collectionID: collectionID)
-        reloadCatalogSnapshot()
     }
 
     private func canManageCollection(_ collectionID: UUID) -> Bool {
@@ -376,7 +369,6 @@ struct CollectionsView: View {
         )
 
         repository.saveCollection(updatedCollection)
-        reloadCatalogSnapshot()
     }
 
     private func deleteConfirmationMessage(for collectionID: UUID) -> String {
@@ -544,8 +536,7 @@ private enum CollectionCardSharingStatus {
     NavigationStack {
         CollectionsView(
             repository: repository,
-            catalogSnapshot: catalogSnapshot,
-            reloadCatalogSnapshot: {}
+            catalogSnapshot: catalogSnapshot
         )
     }
 }

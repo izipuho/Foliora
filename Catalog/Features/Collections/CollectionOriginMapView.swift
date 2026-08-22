@@ -5,7 +5,6 @@ import MapKit
 struct CollectionOriginMapView: View {
     let collection: CollectionSummary
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
     let repository: any CatalogRepository
 
     @State private var position: MapCameraPosition = .automatic
@@ -81,8 +80,7 @@ struct CollectionOriginMapView: View {
                     MapSelectionPanel(
                         bells: selectedGroup.bells,
                         repository: repository,
-                        catalogSnapshot: catalogSnapshot,
-                        reloadCatalogSnapshot: reloadCatalogSnapshot
+                        catalogSnapshot: catalogSnapshot
                     )
                     .padding(.bottom, CatalogMetrics.Spacing.xl)
                 }
@@ -196,7 +194,6 @@ private struct MapSelectionPanel: View {
     let bells: [BellListItem]
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
-    let reloadCatalogSnapshot: () -> Void
 
     @State private var presentedBellID: UUID?
 
@@ -244,8 +241,7 @@ private struct MapSelectionPanel: View {
                 BellDetailContainer(
                     bellID: presentedBellID,
                     repository: repository,
-                    catalogSnapshot: catalogSnapshot,
-                    reloadCatalogSnapshot: reloadCatalogSnapshot
+                    catalogSnapshot: catalogSnapshot
                 )
                     .presentationDragIndicator(.visible)
             }
