@@ -100,6 +100,8 @@ struct CatalogContainerCard: View {
             EmptyView()
         case .icon(let systemImage):
             Image(systemName: systemImage)
+                .font(CatalogTypography.cardTitle)
+                .foregroundStyle(.tint)
         case .label(let text, let systemImage):
             Label(text, systemImage: systemImage)
         }
