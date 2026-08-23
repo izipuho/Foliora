@@ -5,7 +5,7 @@ private struct BellBatchNameGenerator {
     private let prefix: String
     private let timestamp: Date
 
-    init(timestamp: Date = .now, prefix: String = String(localized: "batch_name_prefix")) {
+    init(timestamp: Date = .now, prefix: String = String(localized: "common.bell")) {
         self.prefix = prefix
         self.timestamp = timestamp
     }
