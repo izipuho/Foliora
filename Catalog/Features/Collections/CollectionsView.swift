@@ -636,14 +636,16 @@ private struct CollectionCard: View {
     }
 
     private var leading: some View {
-        ZStack {
+        let accentColor = collection.backgroundStyle.accentColor
+
+        return ZStack {
             RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous)
-                .fill(Color.accentColor.opacity(0.12))
-                .frame(width: 52, height: 52)
+                .fill(accentColor.opacity(0.16))
+                .frame(width: 60, height: 60)
 
             Image(systemName: collection.kind.systemImage)
-                .font(CatalogTypography.cardTitle)
-                .foregroundStyle(.tint)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(accentColor)
         }
     }
 
