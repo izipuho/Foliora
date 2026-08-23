@@ -156,6 +156,7 @@ struct BellDetailView: View {
 
                 detailRow(String(localized: "bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
                 detailRow(String(localized: "common.field.condition"), value: bell.condition.displayName)
+                detailRow(String(localized: "common.field.material"), value: bell.materialDisplayName)
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)
 
