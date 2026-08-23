@@ -195,7 +195,8 @@ struct CollectionsView: View {
         if isSortingCollections {
             CollectionCard(
                 collection: collection,
-                sharingStatus: sharingStatus(for: collection.id)
+                sharingStatus: sharingStatus(for: collection.id),
+                previewBells: previewBells(for: collection.id)
             )
             .catalogContainerListRow()
         } else {
@@ -204,7 +205,8 @@ struct CollectionsView: View {
             } label: {
                 CollectionCard(
                     collection: collection,
-                    sharingStatus: sharingStatus(for: collection.id)
+                    sharingStatus: sharingStatus(for: collection.id),
+                    previewBells: previewBells(for: collection.id)
                 )
             }
             .buttonStyle(.plain)
@@ -235,6 +237,20 @@ struct CollectionsView: View {
                 }
             }
         }
+    }
+
+    private func previewBells(for collectionID: UUID) -> [BellListItem] {
+        guard let catalogSnapshot else { return [] }
+
+        return Array(
+            catalogSnapshot.bells
+                .filter {
+                    $0.collectionID == collectionID
+                        && $0.isFavorite
+                        && ($0.coverPhotoIdentifier != nil || $0.coverPhotoOriginalData != nil)
+                }
+                .prefix(3)
+        )
     }
 
     @ViewBuilder
@@ -545,26 +561,95 @@ private enum CollectionCardSharingStatus {
 private struct CollectionCard: View {
     let collection: CollectionSummary
     let sharingStatus: CollectionCardSharingStatus
+    let previewBells: [BellListItem]
 
-    private var accessory: CatalogContainerCard.Accessory? {
-        switch sharingStatus {
-        case .privateOwner, .unknown:
-            return nil
-        case .sharedOwner(let participantsCount):
-            return .label(text: "\(participantsCount)", systemImage: "person.2.fill")
-        case .sharedContributor:
-            return .icon("person.crop.circle.badge.checkmark")
-        case .sharedViewer:
-            return .icon("eye.fill")
+    var body: some View {
+        HStack(alignment: .center, spacing: CatalogMetrics.Spacing.md) {
+            leading
+
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                Text(collection.name)
+                    .font(CatalogTypography.cardTitle)
+
+                Text(collection.kind.countLabel(for: collection.itemCount))
+                    .font(CatalogTypography.cardSubtitle)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: CatalogMetrics.Spacing.md)
+
+            if !previewBells.isEmpty {
+                CollectionPhotoCollage(bells: previewBells)
+            }
+
+            trailingAccessory
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .catalogSurfaceCard()
+    }
+
+    private var leading: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous)
+                .fill(Color.accentColor.opacity(0.12))
+                .frame(width: 52, height: 52)
+
+            Image(systemName: collection.kind.systemImage)
+                .font(CatalogTypography.cardTitle)
+                .foregroundStyle(.tint)
         }
     }
 
+    @ViewBuilder
+    private var trailingAccessory: some View {
+        switch sharingStatus {
+        case .privateOwner, .unknown:
+            EmptyView()
+        case .sharedOwner(let participantsCount):
+            Label("\(participantsCount)", systemImage: "person.2.fill")
+        case .sharedContributor:
+            Image(systemName: "person.crop.circle.badge.checkmark")
+                .font(CatalogTypography.cardTitle)
+                .foregroundStyle(.tint)
+        case .sharedViewer:
+            Image(systemName: "eye.fill")
+                .font(CatalogTypography.cardTitle)
+                .foregroundStyle(.tint)
+        }
+    }
+}
+
+private struct CollectionPhotoCollage: View {
+    let bells: [BellListItem]
+
+    private let previewSize = CGSize(width: 44, height: 44)
+
     var body: some View {
-        CatalogContainerCard(
-            title: collection.name,
-            subtitle: collection.kind.countLabel(for: collection.itemCount),
-            accessory: accessory,
-            systemImage: collection.kind.systemImage
-        )
+        HStack(spacing: -12) {
+            ForEach(bells) { bell in
+                MediaPreviewImage(
+                    identifier: bell.coverPhotoIdentifier,
+                    originalData: bell.coverPhotoOriginalData,
+                    size: previewSize
+                )
+                .frame(width: previewSize.width, height: previewSize.height)
+                .clipShape(
+                    RoundedRectangle(
+                        cornerRadius: CatalogMetrics.CornerRadius.medium,
+                        style: .continuous
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(
+                        cornerRadius: CatalogMetrics.CornerRadius.medium,
+                        style: .continuous
+                    )
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+            }
+        }
     }
 }
