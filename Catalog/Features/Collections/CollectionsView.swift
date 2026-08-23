@@ -43,7 +43,7 @@ struct CollectionsView: View {
     }
 
     private var homes: [Home] {
-        catalogSnapshot?.homes ?? []
+        catalogSnapshot?.homes.filter { !$0.isShared } ?? []
     }
 
     var body: some View {
