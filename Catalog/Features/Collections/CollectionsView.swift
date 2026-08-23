@@ -570,6 +570,7 @@ private struct CollectionCard: View {
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                 Text(collection.name)
                     .font(CatalogTypography.cardTitle)
+                    .lineLimit(2)
 
                 Text(collection.kind.countLabel(for: collection.itemCount))
                     .font(CatalogTypography.cardSubtitle)
@@ -579,15 +580,18 @@ private struct CollectionCard: View {
 
             Spacer(minLength: CatalogMetrics.Spacing.md)
 
-            if !previewBells.isEmpty {
-                CollectionPhotoCollage(bells: previewBells)
-            }
-
             trailingAccessory
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
-        .catalogSurfaceCard()
+        .padding(CatalogMetrics.Spacing.lg)
+        .background {
+            if !previewBells.isEmpty {
+                CollectionPhotoBackground(bells: previewBells)
+                    .clipShape(CatalogShapes.section)
+            }
+        }
+        .glassEffect(.regular.interactive(), in: CatalogShapes.section)
     }
 
     private var leading: some View {
@@ -621,35 +625,44 @@ private struct CollectionCard: View {
     }
 }
 
-private struct CollectionPhotoCollage: View {
+private struct CollectionPhotoBackground: View {
     let bells: [BellListItem]
-
-    private let previewSize = CGSize(width: 44, height: 44)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
-        HStack(spacing: -12) {
-            ForEach(bells) { bell in
-                MediaPreviewImage(
-                    identifier: bell.coverPhotoIdentifier,
-                    originalData: bell.coverPhotoOriginalData,
-                    size: previewSize
-                )
-                .frame(width: previewSize.width, height: previewSize.height)
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: CatalogMetrics.CornerRadius.medium,
-                        style: .continuous
+        GeometryReader { proxy in
+            let displayedBells = Array(bells.prefix(horizontalSizeClass == .compact ? 2 : 3))
+            let backgroundWidth = proxy.size.width * (horizontalSizeClass == .compact ? 0.58 : 0.52)
+            let sliceWidth = backgroundWidth / CGFloat(max(displayedBells.count, 1))
+            let imageSize = CGSize(width: sliceWidth + 1, height: proxy.size.height)
+
+            HStack(spacing: 0) {
+                ForEach(displayedBells) { bell in
+                    MediaPreviewImage(
+                        identifier: bell.coverPhotoIdentifier,
+                        originalData: bell.coverPhotoOriginalData,
+                        size: imageSize
                     )
-                )
-                .overlay {
-                    RoundedRectangle(
-                        cornerRadius: CatalogMetrics.CornerRadius.medium,
-                        style: .continuous
-                    )
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                    .frame(width: sliceWidth, height: proxy.size.height)
+                    .clipped()
                 }
-                .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
             }
+            .frame(width: backgroundWidth, height: proxy.size.height)
+            .mask {
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black.opacity(0.18), location: 0.12),
+                        .init(color: .black.opacity(0.72), location: 0.34),
+                        .init(color: .black, location: 0.50)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+            .opacity(0.92)
         }
+        .allowsHitTesting(false)
     }
 }
