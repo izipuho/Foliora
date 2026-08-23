@@ -10,6 +10,7 @@ struct CollectionsView: View {
     let onOpenHomes: () -> Void
     @Environment(\.colorScheme) private var colorScheme
     @State private var collectionSharingStatuses: [UUID: CollectionCardSharingStatus] = [:]
+    @State private var collectionBackgroundBellIDs: [UUID: UUID] = [:]
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
     @State private var collectionIDPendingDeletion: UUID?
@@ -46,6 +47,16 @@ struct CollectionsView: View {
         catalogSnapshot?.homes.filter { !$0.isShared } ?? []
     }
 
+    private var backgroundCandidateIDs: [UUID] {
+        catalogSnapshot?.bells
+            .filter {
+                $0.isFavorite
+                    && ($0.coverPhotoIdentifier != nil || $0.coverPhotoOriginalData != nil)
+            }
+            .map(\.id)
+            .sorted { $0.uuidString < $1.uuidString } ?? []
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             collectionsRoot
@@ -56,12 +67,17 @@ struct CollectionsView: View {
             }
             .onAppear {
                 autoOpenSingleCollectionIfNeeded()
+                refreshCollectionBackgroundBells()
             }
             .task(id: collections.map(\.id)) {
                 await loadCollectionSharingStatuses(for: collections.map(\.id))
             }
             .onChange(of: collections.map(\.id)) { _, _ in
                 autoOpenSingleCollectionIfNeeded()
+                refreshCollectionBackgroundBells()
+            }
+            .onChange(of: backgroundCandidateIDs) { _, _ in
+                refreshCollectionBackgroundBells()
             }
             .navigationTitle(RootTab.collections.title)
             .sheet(isPresented: $isPresentingAddCollectionEditor) {
@@ -195,7 +211,8 @@ struct CollectionsView: View {
         if isSortingCollections {
             CollectionCard(
                 collection: collection,
-                sharingStatus: sharingStatus(for: collection.id)
+                sharingStatus: sharingStatus(for: collection.id),
+                backgroundBell: backgroundBell(for: collection.id)
             )
             .catalogContainerListRow()
         } else {
@@ -204,7 +221,8 @@ struct CollectionsView: View {
             } label: {
                 CollectionCard(
                     collection: collection,
-                    sharingStatus: sharingStatus(for: collection.id)
+                    sharingStatus: sharingStatus(for: collection.id),
+                    backgroundBell: backgroundBell(for: collection.id)
                 )
             }
             .buttonStyle(.plain)
@@ -235,6 +253,45 @@ struct CollectionsView: View {
                 }
             }
         }
+    }
+
+    private func backgroundCandidates(for collectionID: UUID) -> [BellListItem] {
+        catalogSnapshot?.bells.filter {
+            $0.collectionID == collectionID
+                && $0.isFavorite
+                && ($0.coverPhotoIdentifier != nil || $0.coverPhotoOriginalData != nil)
+        } ?? []
+    }
+
+    private func backgroundBell(for collectionID: UUID) -> BellListItem? {
+        let candidates = backgroundCandidates(for: collectionID)
+        guard !candidates.isEmpty else { return nil }
+
+        if let selectedID = collectionBackgroundBellIDs[collectionID],
+           let selectedBell = candidates.first(where: { $0.id == selectedID }) {
+            return selectedBell
+        }
+
+        return candidates.first
+    }
+
+    private func refreshCollectionBackgroundBells() {
+        var updatedIDs = collectionBackgroundBellIDs
+        let collectionIDs = Set(collections.map(\.id))
+        updatedIDs = updatedIDs.filter { collectionIDs.contains($0.key) }
+
+        for collection in collections {
+            let candidates = backgroundCandidates(for: collection.id)
+
+            if let selectedID = updatedIDs[collection.id],
+               candidates.contains(where: { $0.id == selectedID }) {
+                continue
+            }
+
+            updatedIDs[collection.id] = candidates.randomElement()?.id
+        }
+
+        collectionBackgroundBellIDs = updatedIDs
     }
 
     @ViewBuilder
@@ -545,26 +602,102 @@ private enum CollectionCardSharingStatus {
 private struct CollectionCard: View {
     let collection: CollectionSummary
     let sharingStatus: CollectionCardSharingStatus
+    let backgroundBell: BellListItem?
 
-    private var accessory: CatalogContainerCard.Accessory? {
-        switch sharingStatus {
-        case .privateOwner, .unknown:
-            return nil
-        case .sharedOwner(let participantsCount):
-            return .label(text: "\(participantsCount)", systemImage: "person.2.fill")
-        case .sharedContributor:
-            return .icon("person.crop.circle.badge.checkmark")
-        case .sharedViewer:
-            return .icon("eye.fill")
+    var body: some View {
+        HStack(alignment: .center, spacing: CatalogMetrics.Spacing.md) {
+            leading
+
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                Text(collection.name)
+                    .font(CatalogTypography.cardTitle)
+                    .lineLimit(2)
+
+                Text(collection.kind.countLabel(for: collection.itemCount))
+                    .font(CatalogTypography.cardSubtitle)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: CatalogMetrics.Spacing.md)
+
+            trailingAccessory
+        }
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+        .contentShape(Rectangle())
+        .padding(CatalogMetrics.Spacing.lg)
+        .background {
+            if let backgroundBell {
+                CollectionPhotoBackground(bell: backgroundBell)
+                    .clipShape(CatalogShapes.section)
+            }
+        }
+        .glassEffect(.regular.interactive(), in: CatalogShapes.section)
+    }
+
+    private var leading: some View {
+        let accentColor = collection.backgroundStyle.accentColor
+
+        return ZStack {
+            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous)
+                .fill(accentColor.opacity(0.16))
+                .frame(width: 60, height: 60)
+
+            Image(systemName: collection.kind.systemImage)
+                .font(.system(size: 30))
+                .foregroundStyle(accentColor)
         }
     }
 
+    @ViewBuilder
+    private var trailingAccessory: some View {
+        switch sharingStatus {
+        case .privateOwner, .unknown:
+            EmptyView()
+        case .sharedOwner(let participantsCount):
+            Label("\(participantsCount)", systemImage: "person.2.fill")
+                .font(.title2)
+        case .sharedContributor:
+            Label("collection.sharing.role.contributor", systemImage: "person.crop.circle.badge.checkmark")
+                .labelStyle(.iconOnly)
+                .font(.title2)
+        case .sharedViewer:
+            Label("collection.sharing.role.viewer", systemImage: "eye.fill")
+                .labelStyle(.iconOnly)
+                .font(.title2)
+        }
+    }
+}
+
+private struct CollectionPhotoBackground: View {
+    let bell: BellListItem
+
     var body: some View {
-        CatalogContainerCard(
-            title: collection.name,
-            subtitle: collection.kind.countLabel(for: collection.itemCount),
-            accessory: accessory,
-            systemImage: collection.kind.systemImage
-        )
+        GeometryReader { proxy in
+            let photoWidth = proxy.size.width * 0.62
+            let photoSize = CGSize(width: photoWidth, height: proxy.size.height)
+
+            MediaPreviewImage(
+                identifier: bell.coverPhotoIdentifier,
+                originalData: bell.coverPhotoOriginalData,
+                size: photoSize
+            )
+            .frame(width: photoWidth, height: proxy.size.height)
+            .opacity(0.52)
+            .mask {
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.00),
+                        .init(color: .black.opacity(0.12), location: 0.12),
+                        .init(color: .black.opacity(0.72), location: 0.32),
+                        .init(color: .black, location: 0.48)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+        }
+        .allowsHitTesting(false)
     }
 }

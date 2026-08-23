@@ -157,10 +157,12 @@ enum PreviewData {
 
             switch index {
             case 0:
+                item.isFavorite = true
                 item.mediaAssets = [
                     makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8938.HEIC", sortOrder: 0)
                 ]
             case 2:
+                item.isFavorite = true
                 item.mediaAssets = [
                     makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8934.HEIC", sortOrder: 0),
                     makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8937.HEIC", sortOrder: 1)
