@@ -683,7 +683,6 @@ private struct CollectionPhotoBackground: View {
                 size: photoSize
             )
             .frame(width: photoWidth, height: proxy.size.height)
-            .blur(radius: 1)
             .opacity(0.52)
             .mask {
                 LinearGradient(
