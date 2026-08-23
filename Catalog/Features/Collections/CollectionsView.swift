@@ -677,16 +677,16 @@ private struct CollectionPhotoBackground: View {
                 size: proxy.size
             )
             .frame(width: proxy.size.width, height: proxy.size.height)
-            .blur(radius: 4)
-            .opacity(0.34)
+            .blur(radius: 2)
+            .opacity(0.45)
             .mask {
                 LinearGradient(
                     stops: [
                         .init(color: .clear, location: 0.00),
-                        .init(color: .black.opacity(0.04), location: 0.22),
-                        .init(color: .black.opacity(0.28), location: 0.46),
-                        .init(color: .black.opacity(0.72), location: 0.68),
-                        .init(color: .black, location: 0.86)
+                        .init(color: .black.opacity(0.02), location: 0.38),
+                        .init(color: .black.opacity(0.22), location: 0.50),
+                        .init(color: .black.opacity(0.72), location: 0.64),
+                        .init(color: .black, location: 0.78)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing
