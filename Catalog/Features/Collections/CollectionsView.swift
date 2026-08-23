@@ -654,13 +654,15 @@ private struct CollectionCard: View {
             EmptyView()
         case .sharedOwner(let participantsCount):
             Label("\(participantsCount)", systemImage: "person.2.fill")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.tint)
         case .sharedContributor:
             Image(systemName: "person.crop.circle.badge.checkmark")
-                .font(CatalogTypography.cardTitle)
+                .font(.title2.weight(.semibold))
                 .foregroundStyle(.tint)
         case .sharedViewer:
             Image(systemName: "eye.fill")
-                .font(CatalogTypography.cardTitle)
+                .font(.title2.weight(.semibold))
                 .foregroundStyle(.tint)
         }
     }
