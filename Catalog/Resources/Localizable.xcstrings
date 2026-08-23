@@ -29,22 +29,6 @@
       },
       "shouldTranslate" : false
     },
-    "batch_name_prefix" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Batch"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Партия"
-          }
-        }
-      }
-    },
     "bell_batch_add.completion.message" : {
       "localizations" : {
         "en" : {
@@ -3280,6 +3264,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Назад"
+          }
+        }
+      }
+    },
+    "common.bell" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bell"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Колокольчик"
           }
         }
       }
