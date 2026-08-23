@@ -655,15 +655,14 @@ private struct CollectionCard: View {
         case .sharedOwner(let participantsCount):
             Label("\(participantsCount)", systemImage: "person.2.fill")
                 .font(.title2.weight(.semibold))
-                .foregroundStyle(.tint)
         case .sharedContributor:
-            Image(systemName: "person.crop.circle.badge.checkmark")
+            Label("collection.sharing.role.contributor", systemImage: "person.crop.circle.badge.checkmark")
+                .labelStyle(.iconOnly)
                 .font(.title2.weight(.semibold))
-                .foregroundStyle(.tint)
         case .sharedViewer:
-            Image(systemName: "eye.fill")
+            Label("collection.sharing.role.viewer", systemImage: "eye.fill")
+                .labelStyle(.iconOnly)
                 .font(.title2.weight(.semibold))
-                .foregroundStyle(.tint)
         }
     }
 }
