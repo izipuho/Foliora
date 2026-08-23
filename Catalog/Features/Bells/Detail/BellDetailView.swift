@@ -485,8 +485,19 @@ struct BellDetailView: View {
         guard canEditCollection else { return }
         let resolvedOriginPlace = originPlace ?? bell.originPlace
         let resolvedLocationID = locationID ?? bell.item.locationID
-        let location = availableLocations.first(where: { $0.id == resolvedLocationID })
-        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
+        let resolvedStorageLocation: Location?
+        let resolvedStoragePath: StoragePath?
+
+        if locationID != nil {
+            let location = availableLocations.first(where: { $0.id == resolvedLocationID })
+            let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
+            resolvedStorageLocation = location
+            resolvedStoragePath = location.map { storagePath(for: $0, locationsByID: locationsByID) }
+        } else {
+            resolvedStorageLocation = bell.storageLocation
+            resolvedStoragePath = bell.storagePath
+        }
+
         let normalizedMediaAssets = (mediaAssets ?? bell.mediaAssets)
             .sorted { $0.sortOrder < $1.sortOrder }
             .enumerated()
@@ -510,8 +521,8 @@ struct BellDetailView: View {
                 isFavorite: bell.isFavorite,
                 tags: tags ?? bell.tags,
                 originPlace: resolvedOriginPlace,
-                storageLocation: location,
-                storagePath: location.map { storagePath(for: $0, locationsByID: locationsByID) },
+                storageLocation: resolvedStorageLocation,
+                storagePath: resolvedStoragePath,
                 mediaAssets: normalizedMediaAssets
             ),
             details: BellDetails(
