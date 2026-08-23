@@ -644,7 +644,7 @@ private struct CollectionCard: View {
                 .frame(width: 60, height: 60)
 
             Image(systemName: collection.kind.systemImage)
-                .font(.title2)
+                .font(.system(size: 30))
                 .foregroundStyle(accentColor)
         }
     }
