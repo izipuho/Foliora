@@ -367,6 +367,7 @@ private struct RootShellView<Destination: View>: View {
                         catalogSnapshot: catalogSnapshot,
                         onClose: closeBellInspector
                     )
+                    .inspectorColumnWidth(min: 320, ideal: 360, max: 420)
                 } else {
                     EmptyView()
                 }
