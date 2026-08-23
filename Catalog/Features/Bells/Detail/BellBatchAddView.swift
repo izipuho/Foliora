@@ -4,20 +4,14 @@ import PhotosUI
 private struct BellBatchNameGenerator {
     private let prefix: String
     private let timestamp: Date
-    private let formatter: DateFormatter
 
     init(timestamp: Date = .now, prefix: String = String(localized: "batch_name_prefix")) {
         self.prefix = prefix
         self.timestamp = timestamp
-
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd HH-mm"
-        self.formatter = formatter
     }
 
     var batchPrefix: String {
-        "\(prefix) \(formatter.string(from: timestamp))"
+        "\(prefix) \(timestamp.formatted(date: .numeric, time: .shortened))"
     }
 
     func names(count: Int) -> [String] {
