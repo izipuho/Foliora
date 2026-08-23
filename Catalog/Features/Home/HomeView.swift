@@ -16,6 +16,8 @@ struct HomeView: View {
     @State private var draftLocations: [Location] = []
     @State private var isPresentingCreateHomeEditor = false
     @State private var homeIDPendingDeletion: UUID?
+    @State private var homeIDBlockedFromDeletion: UUID?
+    @State private var homeDeletionTransferRequest: HomeDeletionTransferRequest?
     @State private var isSortingHomes = false
     @State private var sortingHomes: [Home] = []
 
@@ -57,10 +59,47 @@ struct HomeView: View {
             } message: {
                 Text(String(localized: "home.delete.message"))
             }
+            .alert(
+                String(localized: "home.delete.title"),
+                isPresented: Binding(
+                    get: { homeIDBlockedFromDeletion != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            homeIDBlockedFromDeletion = nil
+                        }
+                    }
+                )
+            ) {
+                Button(String(localized: "home.add")) {
+                    homeIDBlockedFromDeletion = nil
+                    presentEditorForNewHome()
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {
+                    homeIDBlockedFromDeletion = nil
+                }
+            } message: {
+                Text(String(localized: "collections.empty.requires_home.message"))
+            }
+            .sheet(item: $homeDeletionTransferRequest) { request in
+                HomeDeletionTransferView(
+                    collectionCount: request.collectionCount,
+                    destinationHomes: request.destinationHomes
+                ) { destinationHomeID in
+                    transferCollectionsAndDeleteHome(
+                        from: request.homeID,
+                        to: destinationHomeID
+                    )
+                }
+            }
     }
 
     private var homes: [Home] {
         catalogSnapshot?.homes ?? []
+    }
+
+    private var privateHomes: [Home] {
+        homes.filter { !$0.isShared }
     }
 
     private var displayedHomes: [Home] {
@@ -173,7 +212,7 @@ struct HomeView: View {
             .catalogContainerListRow()
             .swipeActions {
                 Button(role: .destructive) {
-                    homeIDPendingDeletion = home.id
+                    requestDeleteHome(home)
                 } label: {
                     Label(String(localized: "common.delete"), systemImage: "trash")
                 }
@@ -190,6 +229,54 @@ struct HomeView: View {
 
     private func collectionCount(in homeID: UUID) -> Int {
         catalogSnapshot?.collectionCountsByHomeID[homeID] ?? 0
+    }
+
+    private func collections(in homeID: UUID) -> [Collection] {
+        catalogSnapshot?.collections.filter { $0.homeID == homeID } ?? []
+    }
+
+    private func requestDeleteHome(_ home: Home) {
+        let homeCollections = collections(in: home.id)
+        guard !homeCollections.isEmpty else {
+            homeIDPendingDeletion = home.id
+            return
+        }
+
+        guard !home.isShared else {
+            homeIDPendingDeletion = home.id
+            return
+        }
+
+        let destinationHomes = privateHomes.filter { $0.id != home.id }
+        guard !destinationHomes.isEmpty else {
+            homeIDBlockedFromDeletion = home.id
+            return
+        }
+
+        homeDeletionTransferRequest = HomeDeletionTransferRequest(
+            homeID: home.id,
+            collectionCount: homeCollections.count,
+            destinationHomes: destinationHomes
+        )
+    }
+
+    private func transferCollectionsAndDeleteHome(from homeID: UUID, to destinationHomeID: UUID) {
+        guard privateHomes.contains(where: { $0.id == destinationHomeID && $0.id != homeID }) else { return }
+
+        for collection in collections(in: homeID) {
+            repository.saveCollection(
+                Collection(
+                    id: collection.id,
+                    homeID: destinationHomeID,
+                    kind: collection.kind,
+                    title: collection.title,
+                    notes: collection.notes,
+                    backgroundStyle: collection.backgroundStyle
+                )
+            )
+        }
+
+        deleteHome(homeID)
     }
 
     private func presentEditorForNewHome() {
@@ -222,6 +309,79 @@ struct HomeView: View {
 
     private func deleteHome(_ homeID: UUID) {
         repository.deleteHome(homeID: homeID)
+    }
+}
+
+private struct HomeDeletionTransferRequest: Identifiable {
+    let homeID: UUID
+    let collectionCount: Int
+    let destinationHomes: [Home]
+
+    var id: UUID { homeID }
+}
+
+private struct HomeDeletionTransferView: View {
+    let collectionCount: Int
+    let destinationHomes: [Home]
+    let onConfirm: (UUID) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedHomeID: UUID
+
+    init(
+        collectionCount: Int,
+        destinationHomes: [Home],
+        onConfirm: @escaping (UUID) -> Void
+    ) {
+        self.collectionCount = collectionCount
+        self.destinationHomes = destinationHomes
+        self.onConfirm = onConfirm
+        _selectedHomeID = State(initialValue: destinationHomes.first?.id ?? UUID())
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text(
+                        String.localizedStringWithFormat(
+                            NSLocalizedString("home.list.collections.count", comment: "Home list collection count"),
+                            collectionCount
+                        )
+                    )
+
+                    Picker(String(localized: "home.screen.single_title"), selection: $selectedHomeID) {
+                        ForEach(destinationHomes) { home in
+                            Text(home.name).tag(home.id)
+                        }
+                    }
+                }
+
+                Section {
+                    Text(String(localized: "collection.home_change.message"))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle(String(localized: "home.delete.title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(String(localized: "common.delete"), role: .destructive) {
+                        onConfirm(selectedHomeID)
+                        dismiss()
+                    }
+                    .disabled(!destinationHomes.contains(where: { $0.id == selectedHomeID }))
+                }
+            }
+        }
     }
 }
 
