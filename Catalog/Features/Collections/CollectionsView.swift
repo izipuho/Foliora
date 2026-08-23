@@ -644,7 +644,7 @@ private struct CollectionCard: View {
                 .frame(width: 60, height: 60)
 
             Image(systemName: collection.kind.systemImage)
-                .font(.title2.weight(.semibold))
+                .font(.title2)
                 .foregroundStyle(accentColor)
         }
     }
@@ -656,15 +656,15 @@ private struct CollectionCard: View {
             EmptyView()
         case .sharedOwner(let participantsCount):
             Label("\(participantsCount)", systemImage: "person.2.fill")
-                .font(.title2.weight(.semibold))
+                .font(.title2)
         case .sharedContributor:
             Label("collection.sharing.role.contributor", systemImage: "person.crop.circle.badge.checkmark")
                 .labelStyle(.iconOnly)
-                .font(.title2.weight(.semibold))
+                .font(.title2)
         case .sharedViewer:
             Label("collection.sharing.role.viewer", systemImage: "eye.fill")
                 .labelStyle(.iconOnly)
-                .font(.title2.weight(.semibold))
+                .font(.title2)
         }
     }
 }
