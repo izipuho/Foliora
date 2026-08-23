@@ -10,6 +10,7 @@ struct CollectionsView: View {
     let onOpenHomes: () -> Void
     @Environment(\.colorScheme) private var colorScheme
     @State private var collectionSharingStatuses: [UUID: CollectionCardSharingStatus] = [:]
+    @State private var collectionBackgroundBellIDs: [UUID: UUID] = [:]
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
     @State private var collectionIDPendingDeletion: UUID?
@@ -46,6 +47,16 @@ struct CollectionsView: View {
         catalogSnapshot?.homes.filter { !$0.isShared } ?? []
     }
 
+    private var backgroundCandidateIDs: [UUID] {
+        catalogSnapshot?.bells
+            .filter {
+                $0.isFavorite
+                    && ($0.coverPhotoIdentifier != nil || $0.coverPhotoOriginalData != nil)
+            }
+            .map(\.id)
+            .sorted { $0.uuidString < $1.uuidString } ?? []
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             collectionsRoot
@@ -56,12 +67,17 @@ struct CollectionsView: View {
             }
             .onAppear {
                 autoOpenSingleCollectionIfNeeded()
+                refreshCollectionBackgroundBells()
             }
             .task(id: collections.map(\.id)) {
                 await loadCollectionSharingStatuses(for: collections.map(\.id))
             }
             .onChange(of: collections.map(\.id)) { _, _ in
                 autoOpenSingleCollectionIfNeeded()
+                refreshCollectionBackgroundBells()
+            }
+            .onChange(of: backgroundCandidateIDs) { _, _ in
+                refreshCollectionBackgroundBells()
             }
             .navigationTitle(RootTab.collections.title)
             .sheet(isPresented: $isPresentingAddCollectionEditor) {
@@ -196,7 +212,7 @@ struct CollectionsView: View {
             CollectionCard(
                 collection: collection,
                 sharingStatus: sharingStatus(for: collection.id),
-                previewBells: previewBells(for: collection.id)
+                backgroundBell: backgroundBell(for: collection.id)
             )
             .catalogContainerListRow()
         } else {
@@ -206,7 +222,7 @@ struct CollectionsView: View {
                 CollectionCard(
                     collection: collection,
                     sharingStatus: sharingStatus(for: collection.id),
-                    previewBells: previewBells(for: collection.id)
+                    backgroundBell: backgroundBell(for: collection.id)
                 )
             }
             .buttonStyle(.plain)
@@ -239,18 +255,43 @@ struct CollectionsView: View {
         }
     }
 
-    private func previewBells(for collectionID: UUID) -> [BellListItem] {
-        guard let catalogSnapshot else { return [] }
+    private func backgroundCandidates(for collectionID: UUID) -> [BellListItem] {
+        catalogSnapshot?.bells.filter {
+            $0.collectionID == collectionID
+                && $0.isFavorite
+                && ($0.coverPhotoIdentifier != nil || $0.coverPhotoOriginalData != nil)
+        } ?? []
+    }
 
-        return Array(
-            catalogSnapshot.bells
-                .filter {
-                    $0.collectionID == collectionID
-                        && $0.isFavorite
-                        && ($0.coverPhotoIdentifier != nil || $0.coverPhotoOriginalData != nil)
-                }
-                .prefix(3)
-        )
+    private func backgroundBell(for collectionID: UUID) -> BellListItem? {
+        let candidates = backgroundCandidates(for: collectionID)
+        guard !candidates.isEmpty else { return nil }
+
+        if let selectedID = collectionBackgroundBellIDs[collectionID],
+           let selectedBell = candidates.first(where: { $0.id == selectedID }) {
+            return selectedBell
+        }
+
+        return candidates.first
+    }
+
+    private func refreshCollectionBackgroundBells() {
+        var updatedIDs = collectionBackgroundBellIDs
+        let collectionIDs = Set(collections.map(\.id))
+        updatedIDs = updatedIDs.filter { collectionIDs.contains($0.key) }
+
+        for collection in collections {
+            let candidates = backgroundCandidates(for: collection.id)
+
+            if let selectedID = updatedIDs[collection.id],
+               candidates.contains(where: { $0.id == selectedID }) {
+                continue
+            }
+
+            updatedIDs[collection.id] = candidates.randomElement()?.id
+        }
+
+        collectionBackgroundBellIDs = updatedIDs
     }
 
     @ViewBuilder
@@ -561,7 +602,7 @@ private enum CollectionCardSharingStatus {
 private struct CollectionCard: View {
     let collection: CollectionSummary
     let sharingStatus: CollectionCardSharingStatus
-    let previewBells: [BellListItem]
+    let backgroundBell: BellListItem?
 
     var body: some View {
         HStack(alignment: .center, spacing: CatalogMetrics.Spacing.md) {
@@ -586,8 +627,8 @@ private struct CollectionCard: View {
         .contentShape(Rectangle())
         .padding(CatalogMetrics.Spacing.lg)
         .background {
-            if !previewBells.isEmpty {
-                CollectionPhotoBackground(bells: previewBells)
+            if let backgroundBell {
+                CollectionPhotoBackground(bell: backgroundBell)
                     .clipShape(CatalogShapes.section)
             }
         }
@@ -626,42 +667,31 @@ private struct CollectionCard: View {
 }
 
 private struct CollectionPhotoBackground: View {
-    let bells: [BellListItem]
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    let bell: BellListItem
 
     var body: some View {
         GeometryReader { proxy in
-            let displayedBells = Array(bells.prefix(horizontalSizeClass == .compact ? 2 : 3))
-            let backgroundWidth = proxy.size.width * (horizontalSizeClass == .compact ? 0.58 : 0.52)
-            let sliceWidth = backgroundWidth / CGFloat(max(displayedBells.count, 1))
-            let imageSize = CGSize(width: sliceWidth + 1, height: proxy.size.height)
-
-            HStack(spacing: 0) {
-                ForEach(displayedBells) { bell in
-                    MediaPreviewImage(
-                        identifier: bell.coverPhotoIdentifier,
-                        originalData: bell.coverPhotoOriginalData,
-                        size: imageSize
-                    )
-                    .frame(width: sliceWidth, height: proxy.size.height)
-                    .clipped()
-                }
-            }
-            .frame(width: backgroundWidth, height: proxy.size.height)
+            MediaPreviewImage(
+                identifier: bell.coverPhotoIdentifier,
+                originalData: bell.coverPhotoOriginalData,
+                size: proxy.size
+            )
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .blur(radius: 4)
+            .opacity(0.34)
             .mask {
                 LinearGradient(
                     stops: [
-                        .init(color: .clear, location: 0),
-                        .init(color: .black.opacity(0.18), location: 0.12),
-                        .init(color: .black.opacity(0.72), location: 0.34),
-                        .init(color: .black, location: 0.50)
+                        .init(color: .clear, location: 0.00),
+                        .init(color: .black.opacity(0.04), location: 0.22),
+                        .init(color: .black.opacity(0.28), location: 0.46),
+                        .init(color: .black.opacity(0.72), location: 0.68),
+                        .init(color: .black, location: 0.86)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-            .opacity(0.92)
         }
         .allowsHitTesting(false)
     }
