@@ -623,7 +623,7 @@ private struct CollectionCard: View {
 
             trailingAccessory
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
         .contentShape(Rectangle())
         .padding(CatalogMetrics.Spacing.lg)
         .background {
@@ -671,27 +671,30 @@ private struct CollectionPhotoBackground: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let photoWidth = proxy.size.width * 0.62
+            let photoSize = CGSize(width: photoWidth, height: proxy.size.height)
+
             MediaPreviewImage(
                 identifier: bell.coverPhotoIdentifier,
                 originalData: bell.coverPhotoOriginalData,
-                size: proxy.size
+                size: photoSize
             )
-            .frame(width: proxy.size.width, height: proxy.size.height)
-            .blur(radius: 2)
-            .opacity(0.45)
+            .frame(width: photoWidth, height: proxy.size.height)
+            .blur(radius: 1)
+            .opacity(0.52)
             .mask {
                 LinearGradient(
                     stops: [
                         .init(color: .clear, location: 0.00),
-                        .init(color: .black.opacity(0.02), location: 0.38),
-                        .init(color: .black.opacity(0.22), location: 0.50),
-                        .init(color: .black.opacity(0.72), location: 0.64),
-                        .init(color: .black, location: 0.78)
+                        .init(color: .black.opacity(0.12), location: 0.12),
+                        .init(color: .black.opacity(0.72), location: 0.32),
+                        .init(color: .black, location: 0.48)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
         }
         .allowsHitTesting(false)
     }
