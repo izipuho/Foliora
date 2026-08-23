@@ -215,7 +215,7 @@ struct BellDetailView: View {
                 CatalogShapes.section
                     .fill(isNotesOrTagsDirty ? AnyShapeStyle(detailAccentColor.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
             )
-            
+
             if !detailMediaAssets.isEmpty || canEditCollection {
                 detailSection(String(localized: "editor.docs_and_media")) {
                     MediaSection(
@@ -428,7 +428,7 @@ struct BellDetailView: View {
             get: { bell.item.locationID },
             set: {
                 guard canEditCollection else { return }
-                persist(locationID: $0)
+                persistStorage(locationID: $0)
             }
         )
     }
@@ -438,7 +438,7 @@ struct BellDetailView: View {
             get: { bell.originPlace },
             set: {
                 guard canEditCollection else { return }
-                persist(originPlace: $0)
+                persistOriginPlace($0)
             }
         )
     }
@@ -466,74 +466,60 @@ struct BellDetailView: View {
         guard canChangeFavorite else { return }
         var updatedItem = bell.item
         updatedItem.isFavorite.toggle()
-        let updatedBell = BellRecord(
-            item: updatedItem,
-            details: bell.details
-        )
-
-        bell = updatedBell
-        repository.saveBellRecord(updatedBell)
+        save(updatedItem)
     }
 
     private func persist(
         notes: String? = nil,
         tags: [String]? = nil,
-        mediaAssets: [MediaAsset]? = nil,
-        originPlace: Place?? = nil,
-        locationID: UUID?? = nil
+        mediaAssets: [MediaAsset]? = nil
     ) {
         guard canEditCollection else { return }
-        let resolvedOriginPlace = originPlace ?? bell.originPlace
-        let resolvedLocationID = locationID ?? bell.item.locationID
-        let resolvedStorageLocation: Location?
-        let resolvedStoragePath: StoragePath?
+        var updatedItem = bell.item
 
-        if locationID != nil {
-            let location = availableLocations.first(where: { $0.id == resolvedLocationID })
-            let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
-            resolvedStorageLocation = location
-            resolvedStoragePath = location.map { storagePath(for: $0, locationsByID: locationsByID) }
-        } else {
-            resolvedStorageLocation = bell.storageLocation
-            resolvedStoragePath = bell.storagePath
+        if let notes {
+            updatedItem.notes = notes
         }
 
-        let normalizedMediaAssets = (mediaAssets ?? bell.mediaAssets)
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .enumerated()
-            .map { index, asset in
-                asset.with(itemID: bell.id, sortOrder: index)
+        if let tags {
+            updatedItem.tags = tags
         }
 
-        let updatedBell = BellRecord(
-            item: ItemRecord(
-                id: bell.item.id,
-                collectionID: bell.item.collectionID,
-                locationID: resolvedLocationID,
-                originPlaceID: resolvedOriginPlace?.id,
-                createdAt: bell.item.createdAt,
-                createdBy: bell.createdBy,
-                title: bell.item.title,
-                notes: notes ?? bell.notes,
-                acquiredYear: bell.item.acquiredYear,
-                condition: bell.item.condition,
-                acquisitionMethod: bell.item.acquisitionMethod,
-                isFavorite: bell.isFavorite,
-                tags: tags ?? bell.tags,
-                originPlace: resolvedOriginPlace,
-                storageLocation: resolvedStorageLocation,
-                storagePath: resolvedStoragePath,
-                mediaAssets: normalizedMediaAssets
-            ),
-            details: BellDetails(
-                itemID: bell.details.itemID,
-                material: bell.details.material,
-                customMaterialName: bell.details.customMaterialName
-            )
-        )
+        if let mediaAssets {
+            updatedItem.mediaAssets = mediaAssets
+                .sorted { $0.sortOrder < $1.sortOrder }
+                .enumerated()
+                .map { index, asset in
+                    asset.with(itemID: bell.id, sortOrder: index)
+                }
+        }
 
-        repository.saveBellRecord(updatedBell)
+        save(updatedItem)
+    }
+
+    private func persistOriginPlace(_ place: Place?) {
+        guard canEditCollection else { return }
+        var updatedItem = bell.item
+        updatedItem.setOriginPlace(place)
+        save(updatedItem)
+    }
+
+    private func persistStorage(locationID: UUID?) {
+        guard canEditCollection else { return }
+        var updatedItem = bell.item
+        let location = locationID.flatMap { id in
+            availableLocations.first { $0.id == id }
+        }
+        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
+        let path = location.map { storagePath(for: $0, locationsByID: locationsByID) }
+        updatedItem.setStorageLocation(location, path: path)
+        save(updatedItem)
+    }
+
+    private func save(_ item: ItemRecord) {
+        let updatedBell = BellRecord(item: item, details: bell.details)
         bell = updatedBell
+        repository.saveBellRecord(updatedBell)
     }
 
     private func storagePath(for location: Location, locationsByID: [UUID: Location]) -> StoragePath {
