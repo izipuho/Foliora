@@ -18,7 +18,7 @@ private struct BellBatchNameGenerator {
         guard count > 0 else { return [] }
 
         return (1...count).map { index in
-            "\(batchPrefix) #\(index)"
+            "\(batchPrefix) · \(index)"
         }
     }
 }
