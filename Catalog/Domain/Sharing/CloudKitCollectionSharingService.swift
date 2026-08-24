@@ -320,7 +320,7 @@ private extension CloudKitCollectionSharingService {
     }
 
     func shareThumbnailImageData() -> Data? {
-        UIImage(named: "IconBells")?.pngData()
+        UIImage(named: "Icon")?.pngData()
     }
 
     func savedShare(
