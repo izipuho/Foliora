@@ -16,85 +16,29 @@
 		2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */; };
 		2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */; };
 		2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */; };
-		24056E9A301E68BE00601C22 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E98301E68BE00601C22 /* PreviewContainer.swift */; };
-		24056E9C301E68D200601C22 /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E9B301E68CC00601C22 /* PreviewData.swift */; };
 		24056ED030226D0500601C22 /* Bells.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Bells.xcassets */; };
-		24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
-		24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
-		2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
-		2434A00C2FAC7FDA005383FB /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
-		24374F262FF50A0E00E83899 /* DashboardCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F252FF50A0E00E83899 /* DashboardCard.swift */; };
-		24374F2A2FF5A53700E83899 /* CatalogSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F292FF5A53700E83899 /* CatalogSnapshot.swift */; };
-		24374F2C2FF6596800E83899 /* CatalogMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F2B2FF6595E00E83899 /* CatalogMetrics.swift */; };
-		24374F302FF6734600E83899 /* CatalogColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F2F2FF6734200E83899 /* CatalogColors.swift */; };
-		24374F322FF677A900E83899 /* CatalogTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F312FF677A100E83899 /* CatalogTypography.swift */; };
-		24374F462FF7F0AA00E83899 /* CatalogShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F452FF7F0A700E83899 /* CatalogShapes.swift */; };
-		24374F482FFA652F00E83899 /* CatalogSurfaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F472FFA652700E83899 /* CatalogSurfaces.swift */; };
-		24374F4A2FFD10E300E83899 /* CatalogCardLayoutMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */; };
-		24374F4C2FFD302200E83899 /* CatalogCardContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */; };
-		24374F4E2FFE270900E83899 /* CatalogCardCollectionLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */; };
 		244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0472FB465CF00B4D805 /* SettingsView.swift */; };
-		246D3FC530011A26000515FD /* ShareInvitationStatusOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */; };
-		246D3FC9300508F7000515FD /* CatalogImportExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246D3FC8300508ED000515FD /* CatalogImportExportView.swift */; };
-		246FD6772FA8BF6300B8859A /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
 		246FD67B2FA8BF8600B8859A /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
 		246FD6812FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */; };
 		246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */; };
 		246FD6832FA8CE2A00B8859A /* BellGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6842FA8CE2A00B8859A /* BellGridView.swift */; };
 		246FD6852FA8CE2A00B8859A /* BellListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6872FA8CE2A00B8859A /* BellListItem.swift */; };
-		249A28282FDC1940009A0E03 /* CoreDataCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249A28272FDC1940009A0E03 /* CoreDataCatalogRepository.swift */; };
 		24A7F2CB303C3BF4005D31A1 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
 		24A7F2CC303C3BF4005D31A1 /* Books.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 24C55DD0302272960091118A /* Books.xcassets */; };
-		24A7F2CD303C4970005D31A1 /* CollectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000005 /* CollectionModels.swift */; };
-		24A7F2CE303C4970005D31A1 /* FolioraCoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000002 /* FolioraCoreDataStack.swift */; };
-		24A7F2CF303C4970005D31A1 /* Foliora.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000003 /* Foliora.xcdatamodeld */; };
 		24A7F2D1303C5F95005D31A1 /* BookLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D0303C5F95005D31A1 /* BookLibraryView.swift */; };
 		24A7F2D3303C5F95005D31A1 /* BookCollectionDraftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */; };
 		24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */; };
-		24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */; };
 		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
-		24C44970303C75C000404BD4 /* FolioraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5492FDB309D00FC1717 /* FolioraApp.swift */; };
-		24C44971303C75D000404BD4 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
-		24C44972303C75D700404BD4 /* CloudKitSharingSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */; };
 		24D9EB9030115CE8009DB654 /* PhotoAnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */; };
-		24D9EBC630138F2D009DB654 /* MediaSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EBC530138F28009DB654 /* MediaSection.swift */; };
-		24D9EC173019D7B6009DB654 /* CoreDataDomainMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */; };
 		24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */; };
-		24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */; };
 		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
-		24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */; };
-		24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */; };
-		24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */; };
-		24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */; };
-		24F1A54A2FDB309D00FC1717 /* FolioraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5492FDB309D00FC1717 /* FolioraApp.swift */; };
-		24F1A54C2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */; };
-		C000000000000000000000A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
-		C000000000000000000000A3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* AppRouter.swift */; };
-		C000000000000000000000A5 /* CollectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000005 /* CollectionModels.swift */; };
-		C000000000000000000000A6 /* ItemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000006 /* ItemModels.swift */; };
-		C000000000000000000000A7 /* BellItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000007 /* BellItem.swift */; };
-		C000000000000000000000A8 /* Place.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000008 /* Place.swift */; };
-		C000000000000000000000A9 /* MediaAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000009 /* MediaAsset.swift */; };
-		C000000000000000000000AA /* SharingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000A /* SharingModels.swift */; };
-		C000000000000000000000AB /* CatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000B /* CatalogRepository.swift */; };
 		C000000000000000000000AD /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000D /* HomeView.swift */; };
 		C000000000000000000000AE /* BellCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000E /* BellCatalogView.swift */; };
 		C000000000000000000000AF /* BellDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000F /* BellDetailView.swift */; };
-		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
-		C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000018 /* LocalMediaFileStore.swift */; };
 		C000000000000000000000B9 /* BellCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001F /* BellCardView.swift */; };
-		C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000028 /* CatalogTransferBundle.swift */; };
-		C000000000000000000000BE /* CatalogJSONPort.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000029 /* CatalogJSONPort.swift */; };
-		C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002A /* CatalogTransferDocument.swift */; };
-		C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
 		C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
 		C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002D /* BellCatalogViewModel.swift */; };
-		C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002F /* CatalogImportExportActor.swift */; };
-		C000000000000000000000C5 /* CatalogLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000030 /* CatalogLayouts.swift */; };
-		C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000040 /* CatalogArchiveService.swift */; };
 		D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* BellDetailView+Subviews.swift */; };
-		E00000000000000000000005 /* FolioraCoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000002 /* FolioraCoreDataStack.swift */; };
-		E00000000000000000000006 /* Foliora.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000003 /* Foliora.xcdatamodeld */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -107,30 +51,14 @@
 		2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionsView.swift; sourceTree = "<group>"; };
 		2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionShellView.swift; sourceTree = "<group>"; };
 		2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingView.swift; sourceTree = "<group>"; };
-		24056E98301E68BE00601C22 /* PreviewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContainer.swift; sourceTree = "<group>"; };
-		24056E9B301E68CC00601C22 /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
-		24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticPhotoFeatureExtractor.swift; sourceTree = "<group>"; };
 		24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognitionDebugML.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		24374F252FF50A0E00E83899 /* DashboardCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCard.swift; sourceTree = "<group>"; };
-		24374F292FF5A53700E83899 /* CatalogSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSnapshot.swift; sourceTree = "<group>"; };
-		24374F2B2FF6595E00E83899 /* CatalogMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogMetrics.swift; sourceTree = "<group>"; };
-		24374F2F2FF6734200E83899 /* CatalogColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogColors.swift; sourceTree = "<group>"; };
-		24374F312FF677A100E83899 /* CatalogTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTypography.swift; sourceTree = "<group>"; };
-		24374F452FF7F0A700E83899 /* CatalogShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogShapes.swift; sourceTree = "<group>"; };
-		24374F472FFA652700E83899 /* CatalogSurfaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSurfaces.swift; sourceTree = "<group>"; };
-		24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardLayoutMode.swift; sourceTree = "<group>"; };
-		24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardContent.swift; sourceTree = "<group>"; };
-		24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardCollectionLayouts.swift; sourceTree = "<group>"; };
 		244FE0472FB465CF00B4D805 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		246A557A302274AF00512880 /* Coins.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Coins.xcassets; sourceTree = "<group>"; };
 		246A557C302274CF00512880 /* Stamps.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Stamps.xcassets; sourceTree = "<group>"; };
-		246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareInvitationStatusOverlay.swift; sourceTree = "<group>"; };
-		246D3FC8300508ED000515FD /* CatalogImportExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportView.swift; sourceTree = "<group>"; };
 		246FD65F2FA8BB2900B8859A /* BellRecognition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognition.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedFieldValue.swift; sourceTree = "<group>"; };
 		246FD6842FA8CE2A00B8859A /* BellGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellGridView.swift; sourceTree = "<group>"; };
 		246FD6872FA8CE2A00B8859A /* BellListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellListItem.swift; sourceTree = "<group>"; };
-		249A28272FDC1940009A0E03 /* CoreDataCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataCatalogRepository.swift; sourceTree = "<group>"; };
 		24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Books.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		24A7F2D0303C5F95005D31A1 /* BookLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookLibraryView.swift; sourceTree = "<group>"; };
 		24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCollectionDraftView.swift; sourceTree = "<group>"; };
@@ -138,88 +66,71 @@
 		24A7F2D9303C7219005D31A1 /* Foliora-Books-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Books-Info.plist"; sourceTree = "<group>"; };
 		24A7F2DA303C7219005D31A1 /* Foliora Books.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Books.entitlements"; sourceTree = "<group>"; };
 		24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellEditorView.swift; sourceTree = "<group>"; };
-		24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogModels.swift; sourceTree = "<group>"; };
 		24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogDashboard.swift; sourceTree = "<group>"; };
 		24C55DCE302272350091118A /* Records.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Records.xcassets; sourceTree = "<group>"; };
 		24C55DD0302272960091118A /* Books.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Books.xcassets; sourceTree = "<group>"; };
 		24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysisSettingsView.swift; sourceTree = "<group>"; };
-		24D9EBC530138F28009DB654 /* MediaSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSection.swift; sourceTree = "<group>"; };
-		24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataDomainMapper.swift; sourceTree = "<group>"; };
 		24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Bells.entitlements"; sourceTree = "<group>"; };
 		24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Bells-Info.plist"; sourceTree = "<group>"; };
 		24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellBatchAddView.swift; sourceTree = "<group>"; };
-		24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEmptyStateView.swift; sourceTree = "<group>"; };
 		24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogContainerList.swift; sourceTree = "<group>"; };
-		24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSharingMapper.swift; sourceTree = "<group>"; };
-		24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingState.swift; sourceTree = "<group>"; };
-		24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCollectionSharingService.swift; sourceTree = "<group>"; };
-		24F1A5492FDB309D00FC1717 /* FolioraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolioraApp.swift; sourceTree = "<group>"; };
-		24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSharingSceneDelegate.swift; sourceTree = "<group>"; };
-		C00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
-		C00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
-		C00000000000000000000005 /* CollectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionModels.swift; sourceTree = "<group>"; };
-		C00000000000000000000006 /* ItemModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemModels.swift; sourceTree = "<group>"; };
-		C00000000000000000000007 /* BellItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellItem.swift; sourceTree = "<group>"; };
-		C00000000000000000000008 /* Place.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Place.swift; sourceTree = "<group>"; };
-		C00000000000000000000009 /* MediaAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAsset.swift; sourceTree = "<group>"; };
-		C0000000000000000000000A /* SharingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingModels.swift; sourceTree = "<group>"; };
-		C0000000000000000000000B /* CatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogRepository.swift; sourceTree = "<group>"; };
 		C0000000000000000000000D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C0000000000000000000000E /* BellCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogView.swift; sourceTree = "<group>"; };
 		C0000000000000000000000F /* BellDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellDetailView.swift; sourceTree = "<group>"; };
 		C00000000000000000000011 /* Bells.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Bells.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C00000000000000000000013 /* EditorFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFields.swift; sourceTree = "<group>"; };
-		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
 		C0000000000000000000001F /* BellCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCardView.swift; sourceTree = "<group>"; };
-		C00000000000000000000028 /* CatalogTransferBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferBundle.swift; sourceTree = "<group>"; };
-		C00000000000000000000029 /* CatalogJSONPort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogJSONPort.swift; sourceTree = "<group>"; };
-		C0000000000000000000002A /* CatalogTransferDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferDocument.swift; sourceTree = "<group>"; };
-		C0000000000000000000002B /* PhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysis.swift; sourceTree = "<group>"; };
 		C0000000000000000000002C /* BellPhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellPhotoAnalysis.swift; sourceTree = "<group>"; };
 		C0000000000000000000002D /* BellCatalogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogViewModel.swift; sourceTree = "<group>"; };
-		C0000000000000000000002F /* CatalogImportExportActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportActor.swift; sourceTree = "<group>"; };
-		C00000000000000000000030 /* CatalogLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLayouts.swift; sourceTree = "<group>"; };
-		C00000000000000000000040 /* CatalogArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogArchiveService.swift; sourceTree = "<group>"; };
 		D00000000000000000000031 /* BellDetailView+Subviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BellDetailView+Subviews.swift"; sourceTree = "<group>"; };
-		E00000000000000000000002 /* FolioraCoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolioraCoreDataStack.swift; sourceTree = "<group>"; };
-		E00000000000000000000004 /* Foliora.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Foliora.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		24C28287303C68E700412986 /* Exceptions for "Launch" folder in "Foliora Bells" target */ = {
+		24C449AF303C789300404BD4 /* Exceptions for "Core" folder in "BellRecognition" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Books/GreetingsKeys.plist,
-				Books/LaunchScreen.storyboard,
+				PhotoAnalysis/PhotoAnalysis.swift,
+				PhotoAnalysis/SemanticPhotoFeatureExtractor.swift,
+			);
+			target = 246FD65E2FA8BB2900B8859A /* BellRecognition */;
+		};
+		24C449B0303C789300404BD4 /* Exceptions for "Core" folder in "BellRecognitionDebugML" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				PhotoAnalysis/PhotoAnalysis.swift,
+				PhotoAnalysis/SemanticPhotoFeatureExtractor.swift,
+			);
+			target = 24349FFD2FAC6FD9005383FB /* BellRecognitionDebugML */;
+		};
+		24C44A1E303C78E300404BD4 /* Exceptions for "Domain" folder in "Foliora Books" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Items/BellItem.swift,
+			);
+			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
+		};
+		24C44A55303C7CDF00404BD4 /* Exceptions for "App" folder in "Foliora Bells" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Launch/Books/GreetingsKeys.plist,
+				Launch/Books/LaunchScreen.storyboard,
 			);
 			target = C00000000000000000000051 /* Foliora Bells */;
 		};
-		24C44975303C767100404BD4 /* Exceptions for "Launch" folder in "Foliora Books" target */ = {
+		24C44A56303C7CDF00404BD4 /* Exceptions for "App" folder in "Foliora Books" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Bells/GreetingsKeys.plist,
-				Bells/LaunchScreen.storyboard,
+				Launch/Bells/GreetingsKeys.plist,
+				Launch/Bells/LaunchScreen.storyboard,
 			);
 			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		24056EC03020811900601C22 /* Media */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Media;
-			sourceTree = "<group>";
-		};
 		24349FFF2FAC6FD9005383FB /* BellRecognitionDebugML */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BellRecognitionDebugML;
-			sourceTree = "<group>";
-		};
-		24374F4F2FFE5C7E00E83899 /* Foundation */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Foundation;
 			sourceTree = "<group>";
 		};
 		246FD6602FA8BB2900B8859A /* BellRecognition */ = {
@@ -227,13 +138,35 @@
 			path = BellRecognition;
 			sourceTree = "<group>";
 		};
-		24B4D3513025E74600904626 /* Launch */ = {
+		24C44993303C789200404BD4 /* Core */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				24C28287303C68E700412986 /* Exceptions for "Launch" folder in "Foliora Bells" target */,
-				24C44975303C767100404BD4 /* Exceptions for "Launch" folder in "Foliora Books" target */,
+				24C449AF303C789300404BD4 /* Exceptions for "Core" folder in "BellRecognition" target */,
+				24C449B0303C789300404BD4 /* Exceptions for "Core" folder in "BellRecognitionDebugML" target */,
 			);
-			path = Launch;
+			path = Core;
+			sourceTree = "<group>";
+		};
+		24C449E3303C78AC00404BD4 /* Data */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Data;
+			sourceTree = "<group>";
+		};
+		24C44A0A303C78C800404BD4 /* Domain */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				24C44A1E303C78E300404BD4 /* Exceptions for "Domain" folder in "Foliora Books" target */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		24C44A40303C7CDE00404BD4 /* App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				24C44A55303C7CDF00404BD4 /* Exceptions for "App" folder in "Foliora Bells" target */,
+				24C44A56303C7CDF00404BD4 /* Exceptions for "App" folder in "Foliora Books" target */,
+			);
+			path = App;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -262,28 +195,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		24056E99301E68BE00601C22 /* PreviewData */ = {
-			isa = PBXGroup;
-			children = (
-				24056EC03020811900601C22 /* Media */,
-				24056E9B301E68CC00601C22 /* PreviewData.swift */,
-				24056E98301E68BE00601C22 /* PreviewContainer.swift */,
-			);
-			path = PreviewData;
-			sourceTree = "<group>";
-		};
-		24374F232FF4F93800E83899 /* DesignSystem */ = {
-			isa = PBXGroup;
-			children = (
-				24374F472FFA652700E83899 /* CatalogSurfaces.swift */,
-				24374F452FF7F0A700E83899 /* CatalogShapes.swift */,
-				24374F312FF677A100E83899 /* CatalogTypography.swift */,
-				24374F2F2FF6734200E83899 /* CatalogColors.swift */,
-				24374F2B2FF6595E00E83899 /* CatalogMetrics.swift */,
-			);
-			path = DesignSystem;
-			sourceTree = "<group>";
-		};
 		244FE0482FB465CF00B4D805 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
@@ -311,14 +222,6 @@
 			path = Library;
 			sourceTree = "<group>";
 		};
-		24BFE4E82F9CF57C00421A40 /* Catalog */ = {
-			isa = PBXGroup;
-			children = (
-				24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */,
-			);
-			path = Catalog;
-			sourceTree = "<group>";
-		};
 		C00000000000000000000031 = {
 			isa = PBXGroup;
 			children = (
@@ -336,10 +239,10 @@
 		C00000000000000000000032 /* Catalog */ = {
 			isa = PBXGroup;
 			children = (
-				C00000000000000000000034 /* App */,
-				C00000000000000000000035 /* Core */,
-				C00000000000000000000036 /* Domain */,
-				C00000000000000000000037 /* Data */,
+				24C44A40303C7CDE00404BD4 /* App */,
+				24C44993303C789200404BD4 /* Core */,
+				24C44A0A303C78C800404BD4 /* Domain */,
+				24C449E3303C78AC00404BD4 /* Data */,
 				C00000000000000000000038 /* Features */,
 				C00000000000000000000039 /* Resources */,
 			);
@@ -355,51 +258,6 @@
 				24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000034 /* App */ = {
-			isa = PBXGroup;
-			children = (
-				24B4D3513025E74600904626 /* Launch */,
-				24F1A5492FDB309D00FC1717 /* FolioraApp.swift */,
-				24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */,
-				C00000000000000000000002 /* AppContainer.swift */,
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000035 /* Core */ = {
-			isa = PBXGroup;
-			children = (
-				24374F4F2FFE5C7E00E83899 /* Foundation */,
-				24374F232FF4F93800E83899 /* DesignSystem */,
-				C0000000000000000000003A /* Navigation */,
-				C0000000000000000000004A /* PhotoAnalysis */,
-				C0000000000000000000003B /* SharedUI */,
-			);
-			path = Core;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000036 /* Domain */ = {
-			isa = PBXGroup;
-			children = (
-				24BFE4E82F9CF57C00421A40 /* Catalog */,
-				C0000000000000000000003C /* Collections */,
-				C0000000000000000000003D /* Items */,
-				C0000000000000000000003E /* Sharing */,
-			);
-			path = Domain;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000037 /* Data */ = {
-			isa = PBXGroup;
-			children = (
-				24056E99301E68BE00601C22 /* PreviewData */,
-				C0000000000000000000003F /* Repositories */,
-				E00000000000000000000001 /* CoreData */,
-				C00000000000000000000049 /* ImportExport */,
-			);
-			path = Data;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000038 /* Features */ = {
@@ -427,76 +285,9 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		C0000000000000000000003A /* Navigation */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000003 /* AppRouter.swift */,
-			);
-			path = Navigation;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003B /* SharedUI */ = {
-			isa = PBXGroup;
-			children = (
-				24D9EBC530138F28009DB654 /* MediaSection.swift */,
-				246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */,
-				24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */,
-				24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */,
-				24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */,
-				24374F252FF50A0E00E83899 /* DashboardCard.swift */,
-				24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */,
-				24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */,
-				C00000000000000000000030 /* CatalogLayouts.swift */,
-				C00000000000000000000013 /* EditorFields.swift */,
-			);
-			path = SharedUI;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003C /* Collections */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000005 /* CollectionModels.swift */,
-			);
-			path = Collections;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003D /* Items */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000006 /* ItemModels.swift */,
-				C00000000000000000000007 /* BellItem.swift */,
-				C00000000000000000000008 /* Place.swift */,
-				C00000000000000000000009 /* MediaAsset.swift */,
-			);
-			path = Items;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003E /* Sharing */ = {
-			isa = PBXGroup;
-			children = (
-				24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */,
-				24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */,
-				C0000000000000000000000A /* SharingModels.swift */,
-			);
-			path = Sharing;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003F /* Repositories */ = {
-			isa = PBXGroup;
-			children = (
-				24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */,
-				24374F292FF5A53700E83899 /* CatalogSnapshot.swift */,
-				249A28272FDC1940009A0E03 /* CoreDataCatalogRepository.swift */,
-				C0000000000000000000000B /* CatalogRepository.swift */,
-				C00000000000000000000018 /* LocalMediaFileStore.swift */,
-			);
-			path = Repositories;
-			sourceTree = "<group>";
-		};
 		C00000000000000000000041 /* Collections */ = {
 			isa = PBXGroup;
 			children = (
-				24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */,
 				2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */,
 				2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */,
 				2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */,
@@ -552,28 +343,6 @@
 			path = Detail;
 			sourceTree = "<group>";
 		};
-		C00000000000000000000049 /* ImportExport */ = {
-			isa = PBXGroup;
-			children = (
-				246D3FC8300508ED000515FD /* CatalogImportExportView.swift */,
-				C00000000000000000000028 /* CatalogTransferBundle.swift */,
-				C00000000000000000000029 /* CatalogJSONPort.swift */,
-				C0000000000000000000002A /* CatalogTransferDocument.swift */,
-				C0000000000000000000002F /* CatalogImportExportActor.swift */,
-				C00000000000000000000040 /* CatalogArchiveService.swift */,
-			);
-			path = ImportExport;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000004A /* PhotoAnalysis */ = {
-			isa = PBXGroup;
-			children = (
-				24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */,
-				C0000000000000000000002B /* PhotoAnalysis.swift */,
-			);
-			path = PhotoAnalysis;
-			sourceTree = "<group>";
-		};
 		C0000000000000000000004B /* Analysis */ = {
 			isa = PBXGroup;
 			children = (
@@ -581,15 +350,6 @@
 				C0000000000000000000002C /* BellPhotoAnalysis.swift */,
 			);
 			path = Analysis;
-			sourceTree = "<group>";
-		};
-		E00000000000000000000001 /* CoreData */ = {
-			isa = PBXGroup;
-			children = (
-				E00000000000000000000003 /* Foliora.xcdatamodeld */,
-				E00000000000000000000002 /* FolioraCoreDataStack.swift */,
-			);
-			path = CoreData;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -642,7 +402,10 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				24B4D3513025E74600904626 /* Launch */,
+				24C44993303C789200404BD4 /* Core */,
+				24C449E3303C78AC00404BD4 /* Data */,
+				24C44A0A303C78C800404BD4 /* Domain */,
+				24C44A40303C7CDE00404BD4 /* App */,
 			);
 			name = "Foliora Books";
 			productName = "Foliora Books";
@@ -660,9 +423,10 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				24056EC03020811900601C22 /* Media */,
-				24374F4F2FFE5C7E00E83899 /* Foundation */,
-				24B4D3513025E74600904626 /* Launch */,
+				24C44993303C789200404BD4 /* Core */,
+				24C449E3303C78AC00404BD4 /* Data */,
+				24C44A0A303C78C800404BD4 /* Domain */,
+				24C44A40303C7CDE00404BD4 /* App */,
 			);
 			name = "Foliora Bells";
 			productName = Catalog;
@@ -747,103 +511,47 @@
 		24349FFA2FAC6FD9005383FB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				2434A00C2FAC7FDA005383FB /* PhotoAnalysis.swift in Sources */,
-				2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */,
 			);
 		};
 		246FD65B2FA8BB2900B8859A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
 				246FD67B2FA8BF8600B8859A /* BellPhotoAnalysis.swift in Sources */,
-				24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */,
-				246FD6772FA8BF6300B8859A /* PhotoAnalysis.swift in Sources */,
 				246FD6812FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
 			);
 		};
 		24A7F2B4303C3BA8005D31A1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				24A7F2CD303C4970005D31A1 /* CollectionModels.swift in Sources */,
-				24C44970303C75C000404BD4 /* FolioraApp.swift in Sources */,
 				24A7F2D3303C5F95005D31A1 /* BookCollectionDraftView.swift in Sources */,
 				24A7F2D1303C5F95005D31A1 /* BookLibraryView.swift in Sources */,
-				24C44971303C75D000404BD4 /* AppContainer.swift in Sources */,
-				24A7F2CE303C4970005D31A1 /* FolioraCoreDataStack.swift in Sources */,
-				24C44972303C75D700404BD4 /* CloudKitSharingSceneDelegate.swift in Sources */,
-				24A7F2CF303C4970005D31A1 /* Foliora.xcdatamodeld in Sources */,
 			);
 		};
 		C00000000000000000000022 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
 				246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
-				24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */,
-				C000000000000000000000A2 /* AppContainer.swift in Sources */,
-				C000000000000000000000A3 /* AppRouter.swift in Sources */,
-				C000000000000000000000A5 /* CollectionModels.swift in Sources */,
-				C000000000000000000000A6 /* ItemModels.swift in Sources */,
-				C000000000000000000000A7 /* BellItem.swift in Sources */,
-				C000000000000000000000A8 /* Place.swift in Sources */,
 				2403CEDC2F9F954D00C63AB6 /* CollectionOriginMapView.swift in Sources */,
-				C000000000000000000000A9 /* MediaAsset.swift in Sources */,
-				C000000000000000000000AA /* SharingModels.swift in Sources */,
-				C000000000000000000000AB /* CatalogRepository.swift in Sources */,
 				C000000000000000000000AD /* HomeView.swift in Sources */,
 				C000000000000000000000AE /* BellCatalogView.swift in Sources */,
 				246FD6852FA8CE2A00B8859A /* BellListItem.swift in Sources */,
 				246FD6832FA8CE2A00B8859A /* BellGridView.swift in Sources */,
 				244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */,
-				24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */,
 				24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */,
 				C000000000000000000000AF /* BellDetailView.swift in Sources */,
 				D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */,
 				24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */,
-				24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */,
 				2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */,
-				24056E9C301E68D200601C22 /* PreviewData.swift in Sources */,
-				24374F462FF7F0AA00E83899 /* CatalogShapes.swift in Sources */,
-				24374F262FF50A0E00E83899 /* DashboardCard.swift in Sources */,
-				249A28282FDC1940009A0E03 /* CoreDataCatalogRepository.swift in Sources */,
-				C000000000000000000000B2 /* EditorFields.swift in Sources */,
-				C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */,
 				2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */,
 				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
-				246D3FC9300508F7000515FD /* CatalogImportExportView.swift in Sources */,
-				24056E9A301E68BE00601C22 /* PreviewContainer.swift in Sources */,
-				E00000000000000000000006 /* Foliora.xcdatamodeld in Sources */,
-				24374F2C2FF6596800E83899 /* CatalogMetrics.swift in Sources */,
-				24D9EC173019D7B6009DB654 /* CoreDataDomainMapper.swift in Sources */,
-				246D3FC530011A26000515FD /* ShareInvitationStatusOverlay.swift in Sources */,
-				E00000000000000000000005 /* FolioraCoreDataStack.swift in Sources */,
 				2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */,
 				24D9EB9030115CE8009DB654 /* PhotoAnalysisSettingsView.swift in Sources */,
-				24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */,
-				24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */,
-				24374F322FF677A900E83899 /* CatalogTypography.swift in Sources */,
-				C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */,
-				24D9EBC630138F2D009DB654 /* MediaSection.swift in Sources */,
-				C000000000000000000000BE /* CatalogJSONPort.swift in Sources */,
-				C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */,
-				C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */,
-				C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */,
 				2403CEDF2F9FA3A900C63AB6 /* CollectionEditorView.swift in Sources */,
-				24374F482FFA652F00E83899 /* CatalogSurfaces.swift in Sources */,
 				2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */,
-				24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */,
 				2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */,
-				24374F4C2FFD302200E83899 /* CatalogCardContent.swift in Sources */,
 				2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */,
 				C000000000000000000000B9 /* BellCardView.swift in Sources */,
 				24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */,
-				24374F4E2FFE270900E83899 /* CatalogCardCollectionLayouts.swift in Sources */,
-				24F1A54A2FDB309D00FC1717 /* FolioraApp.swift in Sources */,
-				24F1A54C2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift in Sources */,
-				24374F4A2FFD10E300E83899 /* CatalogCardLayoutMode.swift in Sources */,
-				C000000000000000000000C5 /* CatalogLayouts.swift in Sources */,
-				24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */,
-				24374F302FF6734600E83899 /* CatalogColors.swift in Sources */,
-				24374F2A2FF5A53700E83899 /* CatalogSnapshot.swift in Sources */,
-				C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */,
 				C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */,
 				C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */,
 			);
@@ -1504,19 +1212,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCVersionGroup section */
-		E00000000000000000000003 /* Foliora.xcdatamodeld */ = {
-			isa = XCVersionGroup;
-			children = (
-				E00000000000000000000004 /* Foliora.xcdatamodel */,
-			);
-			currentVersion = E00000000000000000000004 /* Foliora.xcdatamodel */;
-			path = Foliora.xcdatamodeld;
-			sourceTree = "<group>";
-			versionGroupType = wrapper.xcdatamodel;
-		};
-/* End XCVersionGroup section */
 	};
 	rootObject = C00000000000000000000052 /* Project object */;
 }
