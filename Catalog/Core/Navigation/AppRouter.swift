@@ -1,6 +1,8 @@
 import SwiftUI
 import CoreData
 
+private typealias BatchCompletionHandler = (Any) -> Void
+
 /// Defines the supported app destination values.
 enum AppDestination: Hashable {
     case collection(UUID)
@@ -113,7 +115,7 @@ struct AppShellView: View {
         for destination: AppDestination,
         layoutMode: Binding<CatalogCardLayoutMode>,
         onBellSelected: ((UUID) -> Void)?,
-        onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void,
+        onBatchAddComplete: @escaping BatchCompletionHandler,
         popNavigation: @escaping () -> Void
     ) -> some View {
         switch destination {
@@ -274,7 +276,7 @@ private struct RootShellView<Destination: View>: View {
     @Binding var settingsPath: NavigationPath
     @Binding var searchPath: NavigationPath
     @Binding var displayName: String?
-    let destination: (AppDestination, Binding<CatalogCardLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
+    let destination: (AppDestination, Binding<CatalogCardLayoutMode>, ((UUID) -> Void)?, @escaping BatchCompletionHandler, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = CatalogCardLayoutMode.mini.rawValue
     @State private var searchInitialQuery: String?
@@ -462,13 +464,20 @@ private struct RootShellView<Destination: View>: View {
         }
     }
 
-    private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
-        guard case .reviewResults(let query) = action else { return }
+    private func handleBatchAddCompletion(_ action: Any) {
+        guard let query = reviewResultsQuery(from: action) else { return }
         searchInitialQuery = query
         searchResetID = UUID()
         selectedRootTab = .search
         closeBellInspector()
         searchPath = NavigationPath()
+    }
+
+    private func reviewResultsQuery(from action: Any) -> String? {
+        guard case "reviewResults" = String(describing: action).split(separator: "(").first else {
+            return nil
+        }
+        return Mirror(reflecting: action).children.first?.value as? String
     }
 
     private func popCollectionsNavigation() {
