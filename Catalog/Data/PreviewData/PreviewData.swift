@@ -13,19 +13,28 @@ enum PreviewData {
         let items: [ItemRecord]
     }
 
-    static func populateMinimal(context: NSManagedObjectContext) {
+    static func populateCoreMinimal(
+        context: NSManagedObjectContext,
+        collectionKind: CollectionKind
+    ) {
         let repository = CoreDataCatalogRepository(
             context: context,
             persistentContainer: nil
         )
-        let core = makeCoreMinimal(collectionKind: .bells)
-        let bells = makeMinimalBells(from: core)
+        let core = makeCoreMinimal(collectionKind: collectionKind)
 
+        saveCore(core, using: repository)
+        repository.saveItemRecords(core.items)
+    }
+
+    static func saveCore(
+        _ core: CoreMinimal,
+        using repository: CoreDataCatalogRepository
+    ) {
         repository.saveHome(core.home)
         repository.saveLocations(core.locations, in: core.home.id)
         repository.saveCollection(core.collection)
         repository.saveCollection(core.secondaryCollection)
-        repository.saveBellRecords(bells)
     }
 
     static func makeCoreMinimal(collectionKind: CollectionKind) -> CoreMinimal {
@@ -146,40 +155,6 @@ enum PreviewData {
             secondaryCollection: secondaryCollection,
             items: items
         )
-    }
-
-    static func makeMinimalBells(from core: CoreMinimal) -> [BellRecord] {
-        let materials: [BellMaterial] = [.unknown, .brass, .ceramic]
-
-        return zip(core.items, materials).enumerated().map { index, pair in
-            var item = pair.0
-            let material = pair.1
-
-            switch index {
-            case 0:
-                item.isFavorite = true
-                item.mediaAssets = [
-                    makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8938.HEIC", sortOrder: 0)
-                ]
-            case 2:
-                item.isFavorite = true
-                item.mediaAssets = [
-                    makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8934.HEIC", sortOrder: 0),
-                    makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8937.HEIC", sortOrder: 1)
-                ]
-            default:
-                item.mediaAssets = []
-            }
-
-            return BellRecord(
-                item: item,
-                details: BellDetails(
-                    itemID: item.id,
-                    material: material,
-                    customMaterialName: nil
-                )
-            )
-        }
     }
 
     static func makePreviewPhoto(itemID: UUID, resourcePath: String, sortOrder: Int) -> MediaAsset {
