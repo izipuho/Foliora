@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Groups search token values and behavior.
-enum SearchToken: Identifiable, Hashable {
+enum BellSearchToken: Identifiable, Hashable {
     case collection(UUID)
     case country(String)
     case material(String)
@@ -43,11 +43,11 @@ struct BellCatalogSearchState: Equatable {
 
     var query = ""
     var scope: Scope = .all
-    var tokens: [SearchToken] = []
+    var tokens: [BellSearchToken] = []
 }
 
-/// Displays the search tab view interface.
-struct SearchTabView: View {
+/// Displays bell search content inside the shared search tab shell.
+struct BellSearchView: View {
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
     let onBellSelected: ((UUID) -> Void)?
@@ -55,8 +55,6 @@ struct SearchTabView: View {
     @Binding var layoutMode: CatalogCardLayoutMode
     @State private var selectedBellID: UUID?
     @State private var searchState = BellCatalogSearchState()
-    @State private var didApplyInitialQuery = false
-    @FocusState private var isSearchFocused: Bool
 
     init(
         repository: any CatalogRepository,
@@ -92,39 +90,39 @@ struct SearchTabView: View {
         Dictionary(uniqueKeysWithValues: collections.map { ($0.id, $0.title) })
     }
 
-    private var suggestedTokenGroups: [SearchTokenGroup] {
+    private var suggestedTokenGroups: [SearchTokenGroup<BellSearchToken>] {
         let selectedTokens = Set(searchState.tokens)
 
         return [
             SearchTokenGroup(
                 title: String(localized: "root_tab.collections"),
                 systemImage: "rectangle.stack",
-                tokens: collections.map { SearchToken.collection($0.id) }
+                tokens: collections.map { BellSearchToken.collection($0.id) }
             ),
             SearchTokenGroup(
                 title: String(localized: "bell_catalog.summary.countries"),
                 systemImage: "globe.europe.africa",
-                tokens: uniqueValues(bells.map(\.countryName)).map(SearchToken.country)
+                tokens: uniqueValues(bells.map(\.countryName)).map(BellSearchToken.country)
             ),
             SearchTokenGroup(
                 title: String(localized: "bell_catalog.summary.materials"),
                 systemImage: "shippingbox",
-                tokens: uniqueValues(bells.map(\.materialDisplayName)).map(SearchToken.material)
+                tokens: uniqueValues(bells.map(\.materialDisplayName)).map(BellSearchToken.material)
             ),
             SearchTokenGroup(
                 title: String(localized: "bell_catalog.summary.tags"),
                 systemImage: "tag",
-                tokens: uniqueValues(bells.flatMap(\.tagValues)).map(SearchToken.tag)
+                tokens: uniqueValues(bells.flatMap(\.tagValues)).map(BellSearchToken.tag)
             ),
             SearchTokenGroup(
                 title: String(localized: "common.field.condition"),
                 systemImage: "checkmark.seal",
-                tokens: uniqueConditions.map(SearchToken.condition)
+                tokens: uniqueConditions.map(BellSearchToken.condition)
             ),
             SearchTokenGroup(
                 title: String(localized: "bell.detail.aquisition"),
                 systemImage: "tray.and.arrow.down",
-                tokens: uniqueAcquisitionMethods.map(SearchToken.acquisitionMethod)
+                tokens: uniqueAcquisitionMethods.map(BellSearchToken.acquisitionMethod)
             )
         ]
         .map { group in
@@ -161,24 +159,16 @@ struct SearchTabView: View {
     }
 
     var body: some View {
-        CatalogCardGrid(layoutMode: layoutMode, usesGridLayout: false) { cardSize, gridMetrics, cardMetrics in
-            LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xl) {
-                searchHeader
-
-                searchResults(layoutMetrics: (cardSize, gridMetrics, cardMetrics))
-            }
-            .padding(.top, CatalogMetrics.Spacing.xl)
-        }
-        .searchable(
-            text: $searchState.query,
-            tokens: $searchState.tokens
-        ) { token in
-            Label(searchTokenTitle(token), systemImage: searchTokenSystemImage(token))
-        }
-        .searchFocused($isSearchFocused)
-        .onAppear {
-            applyInitialQueryIfNeeded()
-            isSearchFocused = true
+        SearchTabView(
+            layoutMode: $layoutMode,
+            query: $searchState.query,
+            tokens: $searchState.tokens,
+            suggestedTokenGroups: suggestedTokenGroups,
+            initialQuery: initialQuery,
+            tokenTitle: searchTokenTitle,
+            tokenSystemImage: searchTokenSystemImage
+        ) { layoutMetrics in
+            searchResults(layoutMetrics: layoutMetrics)
         }
         .sheet(isPresented: isBellDetailPresented) {
             if let selectedBellID {
@@ -190,25 +180,6 @@ struct SearchTabView: View {
                     .presentationDragIndicator(.visible)
             }
         }
-    }
-
-    private var searchHeader: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            Text("common.ui.search")
-                .font(CatalogTypography.screenTitle)
-                .foregroundStyle(.primary)
-                .padding(.horizontal, CatalogMetrics.Insets.screen)
-
-            SearchTokenBar(
-                tokens: searchState.tokens,
-                suggestedTokenGroups: suggestedTokenGroups,
-                title: searchTokenTitle,
-                select: selectToken,
-                remove: removeToken
-            )
-            .ignoresSafeArea(.container, edges: .horizontal)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -242,15 +213,7 @@ struct SearchTabView: View {
         }
     }
 
-    private func applyInitialQueryIfNeeded() {
-        guard !didApplyInitialQuery else { return }
-        didApplyInitialQuery = true
-
-        guard let initialQuery else { return }
-        searchState.query = initialQuery
-    }
-
-    private func searchTokenTitle(_ token: SearchToken) -> String {
+    private func searchTokenTitle(_ token: BellSearchToken) -> String {
         switch token {
         case .collection(let collectionID):
             return collectionTitlesByID[collectionID]
@@ -264,7 +227,7 @@ struct SearchTabView: View {
         }
     }
 
-    private func searchTokenSystemImage(_ token: SearchToken) -> String {
+    private func searchTokenSystemImage(_ token: BellSearchToken) -> String {
         switch token {
         case .collection:
             return "rectangle.stack"
@@ -279,15 +242,6 @@ struct SearchTabView: View {
         case .acquisitionMethod:
             return "tray.and.arrow.down"
         }
-    }
-
-    private func selectToken(_ token: SearchToken) {
-        guard !searchState.tokens.contains(token) else { return }
-        searchState.tokens.append(token)
-    }
-
-    private func removeToken(_ token: SearchToken) {
-        searchState.tokens.removeAll { $0 == token }
     }
 
     private func uniqueValues(_ values: [String]) -> [String] {
@@ -358,7 +312,7 @@ struct SearchTabView: View {
         }
     }
 
-    private func matches(token: SearchToken, in bell: BellListItem) -> Bool {
+    private func matches(token: BellSearchToken, in bell: BellListItem) -> Bool {
         switch token {
         case .collection(let collectionID):
             return bell.collectionID == collectionID
@@ -403,60 +357,5 @@ struct SearchTabView: View {
 
     private func collectionTitle(for bell: BellListItem) -> String {
         bell.collectionID.flatMap { collectionTitlesByID[$0] } ?? ""
-    }
-}
-
-private struct SearchTokenGroup: Identifiable {
-    let title: String
-    let systemImage: String
-    let tokens: [SearchToken]
-
-    var id: String { title }
-}
-
-private struct SearchTokenBar: View {
-    let tokens: [SearchToken]
-    let suggestedTokenGroups: [SearchTokenGroup]
-    let title: (SearchToken) -> String
-    let select: (SearchToken) -> Void
-    let remove: (SearchToken) -> Void
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: CatalogMetrics.Spacing.sm) {
-                ForEach(tokens) { token in
-                    Button {
-                        remove(token)
-                    } label: {
-                        HStack(spacing: CatalogMetrics.Spacing.xs) {
-                            Text(title(token))
-
-                            Image(systemName: "xmark")
-                                .foregroundStyle(.secondary)
-                        }
-                        .font(CatalogTypography.cardSubtitle)
-                        .catalogSurfaceCapsule()
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                ForEach(suggestedTokenGroups) { group in
-                    Menu {
-                        ForEach(group.tokens) { token in
-                            Button(title(token)) {
-                                select(token)
-                            }
-                        }
-                    } label: {
-                        Label(group.title, systemImage: group.systemImage)
-                            .font(CatalogTypography.cardSubtitle)
-                            .catalogSurfaceCapsule()
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, CatalogMetrics.Insets.screen)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 }
