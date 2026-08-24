@@ -23,7 +23,7 @@ struct BellCatalogDashboardView: View {
 
                     if let collection {
                         NavigationLink {
-                            CollectionOriginMapView(
+                            BellsOriginMapView(
                                 collection: collection,
                                 catalogSnapshot: catalogSnapshot,
                                 repository: repository

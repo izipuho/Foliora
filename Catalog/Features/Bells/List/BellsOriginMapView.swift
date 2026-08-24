@@ -2,7 +2,7 @@ import SwiftUI
 import MapKit
 
 /// Displays the collection origin map view interface.
-struct CollectionOriginMapView: View {
+struct BellsOriginMapView: View {
     let collection: CollectionSummary
     let catalogSnapshot: CatalogSnapshot?
     let repository: any CatalogRepository
