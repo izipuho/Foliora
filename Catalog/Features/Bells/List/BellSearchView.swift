@@ -159,7 +159,7 @@ struct BellSearchView: View {
     }
 
     var body: some View {
-        SearchTabView(
+        SearchShellView(
             layoutMode: $layoutMode,
             query: $searchState.query,
             tokens: $searchState.tokens,
@@ -358,4 +358,23 @@ struct BellSearchView: View {
     private func collectionTitle(for bell: BellListItem) -> String {
         bell.collectionID.flatMap { collectionTitlesByID[$0] } ?? ""
     }
+}
+
+@MainActor
+func makeSearchTabContent(
+    repository: any CatalogRepository,
+    layoutMode: Binding<CatalogCardLayoutMode>,
+    catalogSnapshot: CatalogSnapshot?,
+    initialQuery: String?,
+    onItemSelected: ((UUID) -> Void)?
+) -> AnyView {
+    AnyView(
+        BellSearchView(
+            repository: repository,
+            layoutMode: layoutMode,
+            catalogSnapshot: catalogSnapshot,
+            initialQuery: initialQuery,
+            onBellSelected: onItemSelected
+        )
+    )
 }

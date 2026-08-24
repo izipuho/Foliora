@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Displays a domain-neutral search tab shell.
-struct SearchTabView<Token: Identifiable & Hashable, Content: View>: View {
+struct SearchShellView<Token: Identifiable & Hashable, Content: View>: View {
     @Binding var layoutMode: CatalogCardLayoutMode
     @Binding var query: String
     @Binding var tokens: [Token]
@@ -91,6 +91,39 @@ struct SearchTabView<Token: Identifiable & Hashable, Content: View>: View {
 
     private func removeToken(_ token: Token) {
         tokens.removeAll { $0 == token }
+    }
+}
+
+/// Displays the catalog search tab using the active domain search implementation.
+struct SearchView: View {
+    let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
+    let onItemSelected: ((UUID) -> Void)?
+    private let initialQuery: String?
+    @Binding var layoutMode: CatalogCardLayoutMode
+
+    init(
+        repository: any CatalogRepository,
+        layoutMode: Binding<CatalogCardLayoutMode>,
+        catalogSnapshot: CatalogSnapshot?,
+        initialQuery: String? = nil,
+        onItemSelected: ((UUID) -> Void)? = nil
+    ) {
+        self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
+        self._layoutMode = layoutMode
+        self.initialQuery = initialQuery
+        self.onItemSelected = onItemSelected
+    }
+
+    var body: some View {
+        makeSearchTabContent(
+            repository: repository,
+            layoutMode: $layoutMode,
+            catalogSnapshot: catalogSnapshot,
+            initialQuery: initialQuery,
+            onItemSelected: onItemSelected
+        )
     }
 }
 

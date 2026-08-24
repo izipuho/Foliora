@@ -345,7 +345,7 @@ private struct RootShellView<Destination: View>: View {
 
             Tab(value: RootTab.search, role: .search) {
                 NavigationStack(path: $searchPath) {
-                    BellSearchView(
+                    SearchView(
                         repository: repository,
                         layoutMode: layoutModeBinding,
                         catalogSnapshot: catalogSnapshot,
@@ -400,12 +400,12 @@ private struct RootShellView<Destination: View>: View {
             homesStack(path: $homesPath, onBellSelected: openBellInspector)
         case .search:
             NavigationStack(path: $searchPath) {
-                BellSearchView(
+                SearchView(
                     repository: repository,
                     layoutMode: layoutModeBinding,
                     catalogSnapshot: catalogSnapshot,
                     initialQuery: searchInitialQuery,
-                    onBellSelected: openBellInspector
+                    onItemSelected: openBellInspector
                 )
                 .id(searchResetID)
             }
