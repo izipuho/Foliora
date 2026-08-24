@@ -20,7 +20,7 @@ enum PreviewContainer {
             case .empty:
                 return container
             case .minimal, .bellsMinimal:
-                PreviewData.populateMinimalBells(context: container.viewContext)
+                PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .bells)
                 return container
             case .coreMinimal:
                 PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .bells)
