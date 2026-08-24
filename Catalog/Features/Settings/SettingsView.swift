@@ -1,6 +1,7 @@
 import CloudKit
 import CoreData
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Displays the settings view interface.
 struct SettingsView: View {

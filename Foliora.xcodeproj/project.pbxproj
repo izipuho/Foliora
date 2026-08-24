@@ -29,6 +29,17 @@
 		24A7F2D3303C5F95005D31A1 /* BookCollectionDraftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */; };
 		24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */; };
 		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
+		24C44C63303CCD2500404BD4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0472FB465CF00B4D805 /* SettingsView.swift */; };
+		24C44C64303CCD2500404BD4 /* CollectionSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */; };
+		24C44C65303CCD2500404BD4 /* CollectionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */; };
+		24C44C66303CCD2500404BD4 /* HomeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED12F9F8F5100C63AB6 /* HomeDetailView.swift */; };
+		24C44C67303CCD2500404BD4 /* CollectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */; };
+		24C44C68303CCD2500404BD4 /* PhotoAnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */; };
+		24C44C69303CCD2500404BD4 /* CollectionShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */; };
+		24C44C6A303CCD2500404BD4 /* CollectionOriginMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */; };
+		24C44C6B303CCD2500404BD4 /* StorageMapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED52F9F912300C63AB6 /* StorageMapCard.swift */; };
+		24C44C6C303CCD2500404BD4 /* HomeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */; };
+		24C44C6D303CCD2500404BD4 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000D /* HomeView.swift */; };
 		24D9EB9030115CE8009DB654 /* PhotoAnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */; };
 		24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */; };
 		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
@@ -136,15 +147,16 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				PreviewData/BellPreviewData.swift,
-				Repositories/BellCatalogRepository.swift,
-				Repositories/BellCoreDataDomainMapper.swift,
-				Repositories/CoreDataBellCatalogRepository.swift,
 				PreviewData/Media/Bells/IMG_6709.HEIC,
 				PreviewData/Media/Bells/IMG_6710.HEIC,
 				PreviewData/Media/Bells/IMG_6711.HEIC,
 				PreviewData/Media/Bells/IMG_8934.HEIC,
 				PreviewData/Media/Bells/IMG_8937.HEIC,
 				PreviewData/Media/Bells/IMG_8938.HEIC,
+				Repositories/BellCatalogRepository.swift,
+				Repositories/BellCatalogSnapshot.swift,
+				Repositories/BellCoreDataDomainMapper.swift,
+				Repositories/CoreDataBellCatalogRepository.swift,
 			);
 			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
 		};
@@ -550,6 +562,17 @@
 		24A7F2B4303C3BA8005D31A1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
+				24C44C63303CCD2500404BD4 /* SettingsView.swift in Sources */,
+				24C44C64303CCD2500404BD4 /* CollectionSharingView.swift in Sources */,
+				24C44C65303CCD2500404BD4 /* CollectionEditorView.swift in Sources */,
+				24C44C66303CCD2500404BD4 /* HomeDetailView.swift in Sources */,
+				24C44C67303CCD2500404BD4 /* CollectionsView.swift in Sources */,
+				24C44C68303CCD2500404BD4 /* PhotoAnalysisSettingsView.swift in Sources */,
+				24C44C69303CCD2500404BD4 /* CollectionShellView.swift in Sources */,
+				24C44C6A303CCD2500404BD4 /* CollectionOriginMapView.swift in Sources */,
+				24C44C6B303CCD2500404BD4 /* StorageMapCard.swift in Sources */,
+				24C44C6C303CCD2500404BD4 /* HomeEditorView.swift in Sources */,
+				24C44C6D303CCD2500404BD4 /* HomeView.swift in Sources */,
 				24A7F2D3303C5F95005D31A1 /* BookCollectionDraftView.swift in Sources */,
 				24A7F2D1303C5F95005D31A1 /* BookLibraryView.swift in Sources */,
 			);
