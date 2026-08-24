@@ -2,8 +2,8 @@ import SwiftUI
 import PhotosUI
 import CoreData
 
-/// Displays the collection shell view interface.
-struct CollectionShellView: View {
+/// Displays the bell collection view interface.
+struct BellCollectionView: View {
     let catalogSnapshot: CatalogSnapshot?
     let collection: CollectionSummary
     let repository: any CatalogRepository

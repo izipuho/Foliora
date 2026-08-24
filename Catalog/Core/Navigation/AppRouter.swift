@@ -121,7 +121,7 @@ struct AppShellView: View {
         switch destination {
         case .collection(let collectionID):
             if let collection = collectionSummary(for: collectionID) {
-                CollectionShellView(
+                BellCollectionView(
                     collection: collection,
                     catalogSnapshot: catalogSnapshot,
                     repository: repository,
