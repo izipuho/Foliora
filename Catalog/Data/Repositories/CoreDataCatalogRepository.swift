@@ -6,7 +6,7 @@ import OSLog
 /// Provides core data catalog repository operations.
 @MainActor
 final class CoreDataCatalogRepository: CatalogRepository {
-    private let context: NSManagedObjectContext
+    let context: NSManagedObjectContext
     private let persistentContainer: NSPersistentCloudKitContainer?
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Catalog", category: "CoreDataCatalogRepository")
 
@@ -136,24 +136,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
         saveContext()
     }
 
-    func saveBellRecord(_ bell: BellRecord) {
-        saveBellRecordWithoutSavingContext(bell)
-        saveContext()
-    }
-
-    func saveBellRecords(_ bells: [BellRecord]) {
-        bells.forEach(saveBellRecordWithoutSavingContext)
-        saveContext()
-    }
-
-    func deleteBellRecord(bellID: UUID) {
-        guard let entity = fetchBellEntity(by: bellID) else { return }
-        guard let item = entity.value(forKey: "item") as? NSManagedObject else { return }
-        context.delete(item)
-        deleteOrphanItemTags()
-        saveContext()
-    }
-
     func saveUserSortOrder(itemIDs: [UUID], scope: String) {
         guard let privateStore = context.persistentStoreCoordinator?.persistentStores.first(where: {
             $0.url?.lastPathComponent == "Private.sqlite"
@@ -218,11 +200,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(false, forKey: "isArchived")
     }
 
-    private func apply(_ bell: BellRecord, to entity: NSManagedObject) {
-        entity.setValue(bell.details.material.rawValue, forKey: "material")
-        entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
-    }
-
     private func apply(_ item: ItemRecord, to entity: NSManagedObject) {
         entity.setValue(item.id, forKey: "id")
         entity.setValue(item.title, forKey: "title")
@@ -236,17 +213,8 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(item.acquisitionMethod.rawValue, forKey: "acquisitionMethod")
     }
 
-    private func saveBellRecordWithoutSavingContext(_ bell: BellRecord) {
-        guard let item = saveItemRecordWithoutSavingContext(bell.item) else { return }
-
-        let entity = fetchBellEntity(by: bell.id) ?? makeEntity(named: "BellEntity")
-        apply(bell, to: entity)
-        entity.setValue(item, forKey: "item")
-        fillInverseRelationship(from: entity, relationshipName: "item", with: item)
-    }
-
     @discardableResult
-    private func saveItemRecordWithoutSavingContext(_ item: ItemRecord) -> NSManagedObject? {
+    func saveItemRecordWithoutSavingContext(_ item: ItemRecord) -> NSManagedObject? {
         guard let collection = fetchEntity(named: "CollectionEntity", by: item.collectionID) else { return nil }
         return upsertItemEntity(for: item, in: collection)
     }
@@ -376,7 +344,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         )
     }
 
-    private func makeEntity(named entityName: String) -> NSManagedObject {
+    func makeEntity(named entityName: String) -> NSManagedObject {
         NSEntityDescription.insertNewObject(forEntityName: entityName, into: context)
     }
 
@@ -390,7 +358,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         }
     }
 
-    private func fetchBellEntity(by itemID: UUID) -> NSManagedObject? {
+    func fetchBellEntity(by itemID: UUID) -> NSManagedObject? {
         fetchEntities(
             named: "BellEntity",
             predicate: NSPredicate(format: "item.id == %@", itemID as NSUUID),
@@ -420,7 +388,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         return entity
     }
 
-    private func fillInverseRelationship(
+    func fillInverseRelationship(
         from source: NSManagedObject,
         relationshipName: String,
         with destination: NSManagedObject
@@ -439,7 +407,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         }
     }
 
-    private func deleteOrphanItemTags() {
+    func deleteOrphanItemTags() {
         for tag in fetchEntities(named: "ItemTagEntity") where relatedObjects(tag, "items").isEmpty {
             context.delete(tag)
         }
@@ -608,7 +576,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         CollectionBackgroundStyle(rawValue: rawValue) ?? .amber
     }
 
-    private func saveContext() {
+    func saveContext() {
         guard context.hasChanges else { return }
 
         do {

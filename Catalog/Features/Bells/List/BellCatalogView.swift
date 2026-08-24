@@ -819,7 +819,9 @@ struct BellCatalogView: View {
         let location = locationID.flatMap { locationsByID[$0] }
         for bell in bells {
             guard let record = catalogSnapshot?.recordsByID[bell.id] else { continue }
-            repository.saveBellRecord(record.moving(to: location, storagePath: location.map(storagePath(for:))))
+            (repository as! any BellCatalogRepository).saveBellRecord(
+                record.moving(to: location, storagePath: location.map(storagePath(for:)))
+            )
         }
 
         emitFeedback(.success)
@@ -829,7 +831,7 @@ struct BellCatalogView: View {
         guard canEditCollection else { return }
 
         for bell in bells {
-            repository.deleteBellRecord(bellID: bell.id)
+            (repository as! any BellCatalogRepository).deleteBellRecord(bellID: bell.id)
         }
 
         emitFeedback(.warning)

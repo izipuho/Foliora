@@ -459,7 +459,7 @@ struct BellBatchAddView: View {
             )
         }
 
-        repository.saveBellRecords(bells)
+        (repository as! any BellCatalogRepository).saveBellRecords(bells)
         creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)
     }
 }

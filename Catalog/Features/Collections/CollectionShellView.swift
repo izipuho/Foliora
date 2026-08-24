@@ -240,7 +240,7 @@ struct CollectionShellView: View {
             initialMediaAssets: draftMediaAssets,
             initialAnalysisImage: draftAnalysisImage
         ) { newBell in
-            repository.saveBellRecord(newBell)
+            (repository as! any BellCatalogRepository).saveBellRecord(newBell)
         }
     }
 

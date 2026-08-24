@@ -136,6 +136,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				PreviewData/BellPreviewData.swift,
+				Repositories/BellCatalogRepository.swift,
+				Repositories/BellCoreDataDomainMapper.swift,
+				Repositories/CoreDataBellCatalogRepository.swift,
 				PreviewData/Media/Bells/IMG_6709.HEIC,
 				PreviewData/Media/Bells/IMG_6710.HEIC,
 				PreviewData/Media/Bells/IMG_6711.HEIC,

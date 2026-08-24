@@ -103,7 +103,7 @@ struct BellDetailView: View {
                         catalogSnapshot: catalogSnapshot,
                         bell: bell
                     ) { updatedBell in
-                        repository.saveBellRecord(updatedBell)
+                        (repository as! any BellCatalogRepository).saveBellRecord(updatedBell)
                         bell = updatedBell
                         syncDraftsFromBell()
                     }
@@ -519,7 +519,7 @@ struct BellDetailView: View {
     private func save(_ item: ItemRecord) {
         let updatedBell = BellRecord(item: item, details: bell.details)
         bell = updatedBell
-        repository.saveBellRecord(updatedBell)
+        (repository as! any BellCatalogRepository).saveBellRecord(updatedBell)
     }
 
     private func storagePath(for location: Location, locationsByID: [UUID: Location]) -> StoragePath {

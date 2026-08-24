@@ -19,17 +19,10 @@ protocol CatalogRepository {
     func saveUserSortOrder(itemIDs: [UUID], scope: String)
     func saveItemRecord(_ item: ItemRecord)
     func saveItemRecords(_ items: [ItemRecord])
-    func saveBellRecord(_ bell: BellRecord)
-    func saveBellRecords(_ bells: [BellRecord])
-    func deleteBellRecord(bellID: UUID)
 }
 
 extension CatalogRepository {
     func saveItemRecords(_ items: [ItemRecord]) {
         items.forEach(saveItemRecord)
-    }
-
-    func saveBellRecords(_ bells: [BellRecord]) {
-        bells.forEach(saveBellRecord)
     }
 }
