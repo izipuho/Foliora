@@ -41,13 +41,13 @@
                                 <color key="backgroundColor" name="LaunchBackground"/>
                             </stackView>
                             <view userInteractionEnabled="NO" tag="200" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="pT4-RV-YK9" userLabel="Arcs">
-                                <rect key="frame" x="0.0" y="727" width="402" height="147"/>
+                                <rect key="frame" x="0.0" y="728" width="402" height="146"/>
                                 <subviews>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="202" contentMode="scaleToFill" image="ArcRight" translatesAutoresizingMaskIntoConstraints="NO" id="rQW-R1-Z8Z">
-                                        <rect key="frame" x="0.0" y="0.0" width="402" height="147"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="402" height="146"/>
                                     </imageView>
                                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" tag="201" contentMode="scaleToFill" image="ArcLeft" translatesAutoresizingMaskIntoConstraints="NO" id="B1J-xh-wTC">
-                                        <rect key="frame" x="0.0" y="-124" width="402" height="271"/>
+                                        <rect key="frame" x="0.0" y="-125" width="402" height="271"/>
                                     </imageView>
                                 </subviews>
                                 <accessibility key="accessibilityConfiguration">
@@ -64,7 +64,7 @@
                                     <constraint firstItem="rQW-R1-Z8Z" firstAttribute="width" secondItem="pT4-RV-YK9" secondAttribute="width" id="v7Z-tX-jAe"/>
                                 </constraints>
                             </view>
-                            <view opaque="NO" userInteractionEnabled="NO" tag="100" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="MedallionBell">
+                            <view opaque="NO" userInteractionEnabled="NO" tag="100" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="LaunchEmblem">
                                 <rect key="frame" x="40.333333333333343" y="304.33333333333337" width="321.33333333333326" height="321.33333333333337"/>
                                 <subviews>
                                     <imageView opaque="NO" userInteractionEnabled="NO" tag="101" contentMode="scaleAspectFit" image="Medallion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk">

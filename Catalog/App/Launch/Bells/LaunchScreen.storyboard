@@ -64,14 +64,14 @@
                                     <constraint firstItem="rQW-R1-Z8Z" firstAttribute="width" secondItem="pT4-RV-YK9" secondAttribute="width" id="v7Z-tX-jAe"/>
                                 </constraints>
                             </view>
-                            <view opaque="NO" userInteractionEnabled="NO" tag="100" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="MedallionBell">
+                            <view opaque="NO" userInteractionEnabled="NO" tag="100" contentMode="scaleAspectFit" translatesAutoresizingMaskIntoConstraints="NO" id="nPf-pr-nES" userLabel="LaunchEmblem">
                                 <rect key="frame" x="40.333333333333343" y="304.33333333333337" width="321.33333333333326" height="321.33333333333337"/>
                                 <subviews>
                                     <imageView opaque="NO" userInteractionEnabled="NO" tag="101" contentMode="scaleAspectFit" image="Medalion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk">
                                         <rect key="frame" x="0.0" y="0.0" width="321.33333333333331" height="321.33333333333331"/>
                                     </imageView>
                                     <imageView opaque="NO" userInteractionEnabled="NO" tag="102" contentMode="scaleAspectFit" image="Symbol" translatesAutoresizingMaskIntoConstraints="NO" id="cZx-or-9f6">
-                                        <rect key="frame" x="0.0" y="-99.333333333333314" width="321.33333333333331" height="520"/>
+                                        <rect key="frame" x="0.0" y="21.333333333333371" width="321.33333333333331" height="279"/>
                                         <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </imageView>
                                 </subviews>
@@ -119,15 +119,15 @@
         <image name="ArcLeft" width="426" height="271"/>
         <image name="ArcRight" width="426" height="147"/>
         <image name="Medalion" width="520" height="520"/>
-        <image name="Symbol" width="520" height="520"/>
+        <image name="Symbol" width="297" height="279"/>
         <namedColor name="AccentColor">
-            <color red="0.90600001811981201" green="0.57599997520446777" blue="0.11800000071525574" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.46700000762939453" green="0.27799999713897705" blue="0.14900000393390656" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
         <namedColor name="LaunchBackground">
             <color red="0.97299998998641968" green="0.95300000905990601" blue="0.9179999828338623" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
         </namedColor>
         <namedColor name="LightAccent">
-            <color red="0.9649999737739563" green="0.71799999475479126" blue="0.25499999523162842" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.57300001382827759" green="0.40000000596046448" blue="0.27500000596046448" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
     </resources>
 </document>
