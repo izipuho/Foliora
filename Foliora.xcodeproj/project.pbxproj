@@ -50,10 +50,12 @@
 		24A7F2CF303C4970005D31A1 /* Foliora.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000003 /* Foliora.xcdatamodeld */; };
 		24A7F2D1303C5F95005D31A1 /* BookLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D0303C5F95005D31A1 /* BookLibraryView.swift */; };
 		24A7F2D3303C5F95005D31A1 /* BookCollectionDraftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */; };
-		24A7F2D8303C7219005D31A1 /* FolioraBooksApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D7303C7219005D31A1 /* FolioraBooksApp.swift */; };
 		24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */; };
 		24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */; };
 		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
+		24C44970303C75C000404BD4 /* FolioraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5492FDB309D00FC1717 /* FolioraApp.swift */; };
+		24C44971303C75D000404BD4 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
+		24C44972303C75D700404BD4 /* CloudKitSharingSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */; };
 		24D9EB9030115CE8009DB654 /* PhotoAnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */; };
 		24D9EBC630138F2D009DB654 /* MediaSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EBC530138F28009DB654 /* MediaSection.swift */; };
 		24D9EC173019D7B6009DB654 /* CoreDataDomainMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */; };
@@ -195,11 +197,11 @@
 			);
 			target = C00000000000000000000051 /* Foliora Bells */;
 		};
-		24C28289303C68EB00412986 /* Exceptions for "Launch" folder in "Foliora Books" target */ = {
+		24C44975303C767100404BD4 /* Exceptions for "Launch" folder in "Foliora Books" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Books/GreetingsKeys.plist,
-				Books/LaunchScreen.storyboard,
+				Bells/GreetingsKeys.plist,
+				Bells/LaunchScreen.storyboard,
 			);
 			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
 		};
@@ -230,7 +232,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				24C28287303C68E700412986 /* Exceptions for "Launch" folder in "Foliora Bells" target */,
-				24C28289303C68EB00412986 /* Exceptions for "Launch" folder in "Foliora Books" target */,
+				24C44975303C767100404BD4 /* Exceptions for "Launch" folder in "Foliora Books" target */,
 			);
 			path = Launch;
 			sourceTree = "<group>";
@@ -649,6 +651,9 @@
 			);
 			buildRules = (
 			);
+			fileSystemSynchronizedGroups = (
+				24B4D3513025E74600904626 /* Launch */,
+			);
 			name = "Foliora Books";
 			productName = "Foliora Books";
 			productReference = 24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */;
@@ -769,10 +774,12 @@
 			isa = PBXSourcesBuildPhase;
 			files = (
 				24A7F2CD303C4970005D31A1 /* CollectionModels.swift in Sources */,
+				24C44970303C75C000404BD4 /* FolioraApp.swift in Sources */,
 				24A7F2D3303C5F95005D31A1 /* BookCollectionDraftView.swift in Sources */,
 				24A7F2D1303C5F95005D31A1 /* BookLibraryView.swift in Sources */,
-				24A7F2D8303C7219005D31A1 /* FolioraBooksApp.swift in Sources */,
+				24C44971303C75D000404BD4 /* AppContainer.swift in Sources */,
 				24A7F2CE303C4970005D31A1 /* FolioraCoreDataStack.swift in Sources */,
+				24C44972303C75D700404BD4 /* CloudKitSharingSceneDelegate.swift in Sources */,
 				24A7F2CF303C4970005D31A1 /* Foliora.xcdatamodeld in Sources */,
 			);
 		};
