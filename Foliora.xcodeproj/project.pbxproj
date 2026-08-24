@@ -186,6 +186,23 @@
 		E00000000000000000000004 /* Foliora.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Foliora.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		24C28287303C68E700412986 /* Exceptions for "Launch" folder in "Foliora Bells" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Books/LaunchScreen.storyboard,
+			);
+			target = C00000000000000000000051 /* Foliora Bells */;
+		};
+		24C28289303C68EB00412986 /* Exceptions for "Launch" folder in "Foliora Books" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Books/LaunchScreen.storyboard,
+			);
+			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		24056EC03020811900601C22 /* Media */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -209,6 +226,10 @@
 		};
 		24B4D3513025E74600904626 /* Launch */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				24C28287303C68E700412986 /* Exceptions for "Launch" folder in "Foliora Bells" target */,
+				24C28289303C68EB00412986 /* Exceptions for "Launch" folder in "Foliora Books" target */,
+			);
 			path = Launch;
 			sourceTree = "<group>";
 		};
@@ -269,6 +290,32 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		24A7F2D5303C5F95005D31A1 /* Books */ = {
+			isa = PBXGroup;
+			children = (
+				24A7F2D6303C5F95005D31A1 /* Library */,
+			);
+			path = Books;
+			sourceTree = "<group>";
+		};
+		24A7F2D6303C5F95005D31A1 /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */,
+				24A7F2D0303C5F95005D31A1 /* BookLibraryView.swift */,
+				24A7F2D4303C5F95005D31A1 /* BookLibraryPlaceholderView.swift */,
+			);
+			path = Library;
+			sourceTree = "<group>";
+		};
+		24A7F2DB303C7219005D31A1 /* Books */ = {
+			isa = PBXGroup;
+			children = (
+				24A7F2D7303C7219005D31A1 /* FolioraBooksApp.swift */,
+			);
+			path = Books;
+			sourceTree = "<group>";
+		};
 		24BFE4E82F9CF57C00421A40 /* Catalog */ = {
 			isa = PBXGroup;
 			children = (
@@ -327,14 +374,6 @@
 			path = App;
 			sourceTree = "<group>";
 		};
-		24A7F2DB303C7219005D31A1 /* Books */ = {
-			isa = PBXGroup;
-			children = (
-				24A7F2D7303C7219005D31A1 /* FolioraBooksApp.swift */,
-			);
-			path = Books;
-			sourceTree = "<group>";
-		};
 		C00000000000000000000035 /* Core */ = {
 			isa = PBXGroup;
 			children = (
@@ -379,24 +418,6 @@
 				C00000000000000000000044 /* Home */,
 			);
 			path = Features;
-			sourceTree = "<group>";
-		};
-		24A7F2D5303C5F95005D31A1 /* Books */ = {
-			isa = PBXGroup;
-			children = (
-				24A7F2D6303C5F95005D31A1 /* Library */,
-			);
-			path = Books;
-			sourceTree = "<group>";
-		};
-		24A7F2D6303C5F95005D31A1 /* Library */ = {
-			isa = PBXGroup;
-			children = (
-				24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */,
-				24A7F2D0303C5F95005D31A1 /* BookLibraryView.swift */,
-				24A7F2D4303C5F95005D31A1 /* BookLibraryPlaceholderView.swift */,
-			);
-			path = Library;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000039 /* Resources */ = {
