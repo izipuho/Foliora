@@ -49,13 +49,13 @@ struct CollectionsView: View {
     }
 
     private var backgroundCandidateIDs: [UUID] {
-        catalogSnapshot?.bells
-            .filter {
-                $0.isFavorite
-                    && ($0.coverPhotoIdentifier != nil || $0.coverPhotoOriginalData != nil)
-            }
-            .map(\.id)
-            .sorted { $0.uuidString < $1.uuidString } ?? []
+        guard let itemEntities = catalogSnapshot?.itemEntities else { return [] }
+
+        let favoriteItemIDs = itemEntities.compactMap { itemEntity in
+            CollectionBackgroundItem(itemEntity: itemEntity)?.id
+        }
+
+        return favoriteItemIDs.sorted { $0.uuidString < $1.uuidString }
     }
 
     var body: some View {
@@ -706,13 +706,16 @@ private struct CollectionBackgroundItem: Identifiable, Hashable {
     let coverPhotoIdentifier: String?
     let coverPhotoOriginalData: Data?
 
-    init?(itemEntity: NSManagedObject, collectionID: UUID) {
-        guard
-            itemEntity.value(forKey: "isFavorite") as? Bool == true,
-            let itemCollection = itemEntity.value(forKey: "collection") as? NSManagedObject,
-            itemCollection.value(forKey: "id") as? UUID == collectionID
-        else {
-            return nil
+    init?(itemEntity: NSManagedObject, collectionID: UUID? = nil) {
+        guard itemEntity.value(forKey: "isFavorite") as? Bool == true else { return nil }
+
+        if let collectionID {
+            guard
+                let itemCollection = itemEntity.value(forKey: "collection") as? NSManagedObject,
+                itemCollection.value(forKey: "id") as? UUID == collectionID
+            else {
+                return nil
+            }
         }
 
         let mediaAssets = (itemEntity.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []
