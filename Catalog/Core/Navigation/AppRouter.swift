@@ -71,11 +71,11 @@ struct AppShellView: View {
             settingsPath: $settingsPath,
             searchPath: $searchPath,
             displayName: $displayName,
-            destination: { destination, layoutMode, onBellSelected, onBatchAddComplete, popNavigation in
+            destination: { destination, layoutMode, onItemSelected, onBatchAddComplete, popNavigation in
                 destinationView(
                     for: destination,
                     layoutMode: layoutMode,
-                    onBellSelected: onBellSelected,
+                    onItemSelected: onItemSelected,
                     onBatchAddComplete: onBatchAddComplete,
                     popNavigation: popNavigation
                 )
@@ -114,20 +114,20 @@ struct AppShellView: View {
     private func destinationView(
         for destination: AppDestination,
         layoutMode: Binding<CatalogCardLayoutMode>,
-        onBellSelected: ((UUID) -> Void)?,
+        onItemSelected: ((UUID) -> Void)?,
         onBatchAddComplete: @escaping BatchCompletionHandler,
         popNavigation: @escaping () -> Void
     ) -> some View {
         switch destination {
         case .collection(let collectionID):
             if let collection = collectionSummary(for: collectionID) {
-                BellCollectionView(
+                makeCollectionDestinationContent(
                     collection: collection,
                     catalogSnapshot: catalogSnapshot,
                     repository: repository,
                     coreDataContainer: coreDataContainer,
                     layoutMode: layoutMode,
-                    onBellSelected: onBellSelected,
+                    onItemSelected: onItemSelected,
                     onBatchAddComplete: onBatchAddComplete
                 )
             } else {
@@ -363,8 +363,8 @@ private struct RootShellView<Destination: View>: View {
             .navigationSplitViewStyle(.balanced)
             .inspector(isPresented: isBellInspectorPresented) {
                 if let selectedBellID {
-                    BellDetailInspectorView(
-                        bellID: selectedBellID,
+                    makeItemInspectorContent(
+                        itemID: selectedBellID,
                         repository: repository,
                         catalogSnapshot: catalogSnapshot,
                         onClose: closeBellInspector
@@ -502,48 +502,12 @@ private struct RootShellView<Destination: View>: View {
         selectedRootTab = .homes
     }
 
-    private func openBellInspector(_ bellID: UUID) {
-        selectedBellID = bellID
+    private func openBellInspector(_ itemID: UUID) {
+        selectedBellID = itemID
     }
 
     private func closeBellInspector() {
         selectedBellID = nil
-    }
-}
-
-private struct BellDetailInspectorView: View {
-    let bellID: UUID
-    let repository: any CatalogRepository
-    let catalogSnapshot: CatalogSnapshot?
-    let onClose: () -> Void
-
-    init(
-        bellID: UUID,
-        repository: any CatalogRepository,
-        catalogSnapshot: CatalogSnapshot?,
-        onClose: @escaping () -> Void
-    ) {
-        self.bellID = bellID
-        self.repository = repository
-        self.catalogSnapshot = catalogSnapshot
-        self.onClose = onClose
-    }
-
-    var body: some View {
-        NavigationStack {
-            BellDetailContainer(
-                bellID: bellID,
-                repository: repository,
-                catalogSnapshot: catalogSnapshot
-            )
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                    }
-                }
-            }
-        }
     }
 }
 

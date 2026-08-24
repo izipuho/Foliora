@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreData
 
 private struct BookSearchToken: Identifiable, Hashable {
     let id: String
@@ -54,4 +55,33 @@ func makeSearchTabContent(
             initialQuery: initialQuery
         )
     )
+}
+
+@MainActor
+func makeCollectionDestinationContent(
+    collection: CollectionSummary,
+    catalogSnapshot: CatalogSnapshot?,
+    repository: any CatalogRepository,
+    coreDataContainer: NSPersistentCloudKitContainer,
+    layoutMode: Binding<CatalogCardLayoutMode>,
+    onItemSelected: ((UUID) -> Void)?,
+    onBatchAddComplete: @escaping (Any) -> Void
+) -> AnyView {
+    AnyView(
+        CatalogEmptyStateView(
+            systemImage: collection.kind.systemImage,
+            title: "Collection",
+            message: "This collection is not available in this app yet."
+        )
+    )
+}
+
+@MainActor
+func makeItemInspectorContent(
+    itemID: UUID,
+    repository: any CatalogRepository,
+    catalogSnapshot: CatalogSnapshot?,
+    onClose: @escaping () -> Void
+) -> AnyView {
+    AnyView(EmptyView())
 }

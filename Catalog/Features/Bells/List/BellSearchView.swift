@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreData
 
 /// Groups search token values and behavior.
 enum BellSearchToken: Identifiable, Hashable {
@@ -376,5 +377,53 @@ func makeSearchTabContent(
             initialQuery: initialQuery,
             onBellSelected: onItemSelected
         )
+    )
+}
+
+@MainActor
+func makeCollectionDestinationContent(
+    collection: CollectionSummary,
+    catalogSnapshot: CatalogSnapshot?,
+    repository: any CatalogRepository,
+    coreDataContainer: NSPersistentCloudKitContainer,
+    layoutMode: Binding<CatalogCardLayoutMode>,
+    onItemSelected: ((UUID) -> Void)?,
+    onBatchAddComplete: @escaping (Any) -> Void
+) -> AnyView {
+    AnyView(
+        BellCollectionView(
+            collection: collection,
+            catalogSnapshot: catalogSnapshot,
+            repository: repository,
+            coreDataContainer: coreDataContainer,
+            layoutMode: layoutMode,
+            onBellSelected: onItemSelected,
+            onBatchAddComplete: onBatchAddComplete
+        )
+    )
+}
+
+@MainActor
+func makeItemInspectorContent(
+    itemID: UUID,
+    repository: any CatalogRepository,
+    catalogSnapshot: CatalogSnapshot?,
+    onClose: @escaping () -> Void
+) -> AnyView {
+    AnyView(
+        NavigationStack {
+            BellDetailContainer(
+                bellID: itemID,
+                repository: repository,
+                catalogSnapshot: catalogSnapshot
+            )
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: onClose) {
+                        Image(systemName: "xmark")
+                    }
+                }
+            }
+        }
     )
 }
