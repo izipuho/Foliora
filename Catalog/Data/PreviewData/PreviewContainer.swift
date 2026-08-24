@@ -26,7 +26,7 @@ enum PreviewContainer {
                 PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .bells)
                 return container
             case .booksMinimal:
-                PreviewData.populateMinimalBooks(context: container.viewContext)
+                PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .books)
                 return container
             }
         } catch {

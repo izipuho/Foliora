@@ -43,7 +43,7 @@ struct CatalogExportView: View {
                 isPresented: $isExportingDocument,
                 document: exportDocument,
                 contentType: .zip,
-                defaultFilename: "FolioraBells-export"
+                defaultFilename: "Foliora-export"
             ) { result in
                 handleExportResult(result)
             }
@@ -418,7 +418,7 @@ private struct CatalogExportCollectionItem: Identifiable, Hashable {
 }
 
 #Preview {
-    let container = PreviewContainer.make(.minimal)
+    let container = PreviewContainer.make(.coreMinimal)
 
     NavigationStack {
         CatalogExportView()
@@ -457,21 +457,21 @@ private enum CatalogImportPreviewData {
                 Collection(
                     id: UUID(),
                     homeID: firstHomeID,
-                    kind: .bells,
+                    kind: .books,
                     title: "Collection 1",
                     notes: ""
                 ),
                 Collection(
                     id: UUID(),
                     homeID: firstHomeID,
-                    kind: .bells,
+                    kind: .books,
                     title: "Collection 2",
                     notes: ""
                 ),
                 Collection(
                     id: UUID(),
                     homeID: secondHomeID,
-                    kind: .bells,
+                    kind: .books,
                     title: "Collection 3",
                     notes: ""
                 )
