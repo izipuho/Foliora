@@ -477,7 +477,8 @@ private enum CatalogImportPreviewData {
                 )
             ],
             places: [],
-            bellItems: []
+            items: [],
+            domainPayloads: []
         )
     }()
 }

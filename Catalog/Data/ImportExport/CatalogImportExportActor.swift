@@ -108,6 +108,9 @@ final class CatalogImportExportActor {
         let homeEntities = try fetchEntities(named: "HomeEntity", sortKey: "name")
         let locationEntities = try fetchEntities(named: "LocationEntity", sortKey: "name")
         let collectionEntities = try fetchEntities(named: "CollectionEntity", sortKey: "title")
+        let itemEntities = try fetchEntities(named: "ItemEntity", sortDescriptors: [
+            NSSortDescriptor(key: "createdAt", ascending: false)
+        ])
         let bellEntities = try fetchEntities(named: "BellEntity", sortDescriptors: [
             NSSortDescriptor(key: "item.createdAt", ascending: false)
         ])
@@ -115,7 +118,7 @@ final class CatalogImportExportActor {
         let exportedHomeEntities: [NSManagedObject]
         let exportedLocationEntities: [NSManagedObject]
         let exportedCollectionEntities: [NSManagedObject]
-        let exportedBellRecords: [BellRecord]
+        let exportedItemEntities: [NSManagedObject]
 
         switch selection {
         case .collections(let ids):
@@ -131,15 +134,10 @@ final class CatalogImportExportActor {
             exportedLocationEntities = locationEntities.filter {
                 homeIDs.contains(locationHomeID(from: $0))
             }
-            exportedBellRecords = bellEntities
-                .filter {
-                    guard
-                        let item = $0.value(forKey: "item") as? NSManagedObject,
-                        let collection = item.value(forKey: "collection") as? NSManagedObject
-                    else { return false }
-                    return collectionIDs.contains(uuidValue(collection, "id"))
-                }
-                .map(CoreDataDomainMapper.bellRecord)
+            exportedItemEntities = itemEntities.filter {
+                guard let collection = $0.value(forKey: "collection") as? NSManagedObject else { return false }
+                return collectionIDs.contains(uuidValue(collection, "id"))
+            }
 
         case .homes(let ids):
             exportedHomeEntities = homeEntities.filter {
@@ -151,26 +149,39 @@ final class CatalogImportExportActor {
                 homeIDs.contains(locationHomeID(from: $0))
             }
             exportedCollectionEntities = []
-            exportedBellRecords = []
+            exportedItemEntities = []
         }
 
-        let bellItems = exportedBellRecords.map { record in
-            return BellTransferItem(
-                item: record.item,
-                details: record.details,
-                originPlace: record.originPlace.flatMap(OriginPlaceTransferValue.init),
-                mediaAssets: record.mediaAssets,
-                createdBy: record.createdBy,
-                tags: record.tags
+        let exportedItemIDs = Set(exportedItemEntities.map { uuidValue($0, "id") })
+        let transferItems = exportedItemEntities.map { entity in
+            let item = CoreDataDomainMapper.itemRecord(from: entity)
+            return CatalogTransferItem(
+                item: item,
+                originPlace: item.originPlace.flatMap(OriginPlaceTransferValue.init),
+                mediaAssets: item.mediaAssets,
+                createdBy: item.createdBy,
+                tags: item.tags
             )
         }
+        let bellPayloadItems = bellEntities.compactMap { bell -> BellCatalogTransferItem? in
+            guard let item = bell.value(forKey: "item") as? NSManagedObject else { return nil }
+            let itemID = uuidValue(item, "id")
+            guard exportedItemIDs.contains(itemID) else { return nil }
+            return BellCatalogTransferItem(
+                itemID: itemID,
+                material: stringValue(bell, "material", default: "unknown"),
+                customMaterialName: bell.value(forKey: "customMaterialName") as? String
+            )
+        }
+        let domainPayloads = try domainPayloads(bellItems: bellPayloadItems)
 
         return CatalogTransferBundle(
             homes: exportedHomeEntities.map(home),
             locations: exportedLocationEntities.map { CoreDataDomainMapper.location(from: $0) },
             collections: exportedCollectionEntities.map(collection),
             places: [],
-            bellItems: bellItems
+            items: transferItems,
+            domainPayloads: domainPayloads
         )
     }
 
@@ -183,15 +194,17 @@ final class CatalogImportExportActor {
         }
         let collectionIDs = Set(collections.map(\.id))
         let homeIDs = Set(collections.map(\.homeID))
-        let bellItems = bundle.bellItems.filter {
+        let items = bundle.items.filter {
             collectionIDs.contains($0.item.collectionID)
         }
+        let itemIDs = Set(items.map(\.item.id))
 
         var copy = bundle
         copy.homes = bundle.homes.filter { homeIDs.contains($0.id) }
         copy.locations = bundle.locations.filter { homeIDs.contains($0.homeID) }
         copy.collections = collections
-        copy.bellItems = bellItems
+        copy.items = items
+        copy.domainPayloads = filteredDomainPayloads(bundle.domainPayloads, itemIDs: itemIDs)
         return copy
     }
 
@@ -268,7 +281,7 @@ final class CatalogImportExportActor {
 
         var placeEntitiesByOriginPlace: [OriginPlaceTransferValue: NSManagedObject] = [:]
 
-        for originPlace in bundle.bellItems.compactMap(\.originPlace) {
+        for originPlace in bundle.items.compactMap(\.originPlace) {
             guard placeEntitiesByOriginPlace[originPlace] == nil else { continue }
 
             let entity = makeEntity(named: "PlaceEntity")
@@ -280,23 +293,21 @@ final class CatalogImportExportActor {
         }
 
         var tagEntitiesByCollectionAndName: [UUID: [String: NSManagedObject]] = [:]
+        var itemEntitiesByID: [UUID: NSManagedObject] = [:]
 
-        for bell in bundle.bellItems {
+        for transferItem in bundle.items {
             let itemEntity = makeEntity(named: "ItemEntity")
             updateItemEntity(
                 itemEntity,
-                with: bell,
-                collection: collectionEntities[bell.item.collectionID],
-                collectionLocation: bell.item.locationID.flatMap { collectionLocationEntities[bell.item.collectionID]?[$0] },
-                location: bell.item.locationID.flatMap { locationEntities[$0] },
-                originPlace: bell.originPlace.flatMap { placeEntitiesByOriginPlace[$0] }
+                with: transferItem,
+                collection: collectionEntities[transferItem.item.collectionID],
+                collectionLocation: transferItem.item.locationID.flatMap { collectionLocationEntities[transferItem.item.collectionID]?[$0] },
+                location: transferItem.item.locationID.flatMap { locationEntities[$0] },
+                originPlace: transferItem.originPlace.flatMap { placeEntitiesByOriginPlace[$0] }
             )
+            itemEntitiesByID[transferItem.item.id] = itemEntity
 
-            let bellEntity = makeEntity(named: "BellEntity")
-            updateBellEntity(bellEntity, with: bell)
-            bellEntity.setValue(itemEntity, forKey: "item")
-
-            let mediaEntities = bell.mediaAssets.map { asset in
+            let mediaEntities = transferItem.mediaAssets.map { asset in
                 let mediaEntity = makeEntity(named: "MediaAssetEntity")
                 updateMediaEntity(mediaEntity, with: asset, item: itemEntity)
                 return mediaEntity
@@ -304,20 +315,22 @@ final class CatalogImportExportActor {
             itemEntity.setValue(Set(mediaEntities), forKey: "mediaAssets")
 
             var seenNormalizedNames = Set<String>()
-            let tagEntities = bell.tags.enumerated().compactMap { index, tag -> NSManagedObject? in
-                guard let collectionEntity = collectionEntities[bell.item.collectionID] else { return nil }
+            let tagEntities = transferItem.tags.enumerated().compactMap { index, tag -> NSManagedObject? in
+                guard let collectionEntity = collectionEntities[transferItem.item.collectionID] else { return nil }
 
                 let normalizedName = normalizedTagName(tag)
                 guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
 
-                let existingTagEntity = tagEntitiesByCollectionAndName[bell.item.collectionID]?[normalizedName]
+                let existingTagEntity = tagEntitiesByCollectionAndName[transferItem.item.collectionID]?[normalizedName]
                 let tagEntity = existingTagEntity ?? makeEntity(named: "ItemTagEntity")
                 updateItemTagEntity(tagEntity, value: tag, normalizedName: normalizedName, sortOrder: index, collection: collectionEntity)
-                tagEntitiesByCollectionAndName[bell.item.collectionID, default: [:]][normalizedName] = tagEntity
+                tagEntitiesByCollectionAndName[transferItem.item.collectionID, default: [:]][normalizedName] = tagEntity
                 return tagEntity
             }
             itemEntity.setValue(Set(tagEntities), forKey: "tags")
         }
+
+        applyDomainPayloads(bundle.domainPayloads, itemEntitiesByID: itemEntitiesByID)
 
         try context.save()
     }
@@ -442,7 +455,7 @@ final class CatalogImportExportActor {
             return PlaceKey(latitude: latitude, longitude: longitude)
         }
 
-        for originPlace in bundle.bellItems.compactMap(\.originPlace) {
+        for originPlace in bundle.items.compactMap(\.originPlace) {
             let key = PlaceKey(latitude: originPlace.latitude, longitude: originPlace.longitude)
             guard placeEntitiesByCoordinate[key] == nil else { continue }
 
@@ -467,33 +480,29 @@ final class CatalogImportExportActor {
             itemEntitiesByCollectionAndID[uuidValue(collection, "id"), default: [:]][uuidValue(entity, "id")] = entity
         }
 
-        for bell in bundle.bellItems {
-            guard let collectionEntity = collectionEntities[bell.item.collectionID] else { continue }
+        var itemEntitiesByID: [UUID: NSManagedObject] = [:]
+        for transferItem in bundle.items {
+            guard let collectionEntity = collectionEntities[transferItem.item.collectionID] else { continue }
             let localCollectionID = uuidValue(collectionEntity, "id")
-            let originPlace = bell.originPlace.flatMap {
+            let originPlace = transferItem.originPlace.flatMap {
                 placeEntitiesByCoordinate[PlaceKey(latitude: $0.latitude, longitude: $0.longitude)]
             }
-            let itemEntity = itemEntitiesByCollectionAndID[localCollectionID]?[bell.item.id] ?? makeEntity(named: "ItemEntity")
+            let itemEntity = itemEntitiesByCollectionAndID[localCollectionID]?[transferItem.item.id] ?? makeEntity(named: "ItemEntity")
             updateItemEntity(
                 itemEntity,
-                with: bell,
+                with: transferItem,
                 collection: collectionEntity,
-                collectionLocation: bell.item.locationID.flatMap { collectionLocationEntities[bell.item.collectionID]?[$0] },
-                location: bell.item.locationID.flatMap { locationEntities[$0] },
+                collectionLocation: transferItem.item.locationID.flatMap { collectionLocationEntities[transferItem.item.collectionID]?[$0] },
+                location: transferItem.item.locationID.flatMap { locationEntities[$0] },
                 originPlace: originPlace
             )
-            itemEntitiesByCollectionAndID[localCollectionID, default: [:]][bell.item.id] = itemEntity
-
-            let bellEntity = (itemEntity.value(forKey: "bell") as? NSManagedObject)
-                ?? fetchBellEntity(for: itemEntity)
-                ?? makeEntity(named: "BellEntity")
-            updateBellEntity(bellEntity, with: bell)
-            bellEntity.setValue(itemEntity, forKey: "item")
+            itemEntitiesByCollectionAndID[localCollectionID, default: [:]][transferItem.item.id] = itemEntity
+            itemEntitiesByID[transferItem.item.id] = itemEntity
 
             var mediaEntitiesByID = indexed((itemEntity.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []) {
                 uuidValue($0, "id")
             }
-            for asset in bell.mediaAssets {
+            for asset in transferItem.mediaAssets {
                 let mediaEntity = mediaEntitiesByID[asset.id] ?? makeEntity(named: "MediaAssetEntity")
                 updateMediaEntity(mediaEntity, with: asset, item: itemEntity)
                 mediaEntitiesByID[asset.id] = mediaEntity
@@ -501,7 +510,7 @@ final class CatalogImportExportActor {
             itemEntity.setValue(Set(mediaEntitiesByID.values), forKey: "mediaAssets")
 
             var seenNormalizedNames = Set<String>()
-            let tagEntities = bell.tags.enumerated().compactMap { index, tag -> NSManagedObject? in
+            let tagEntities = transferItem.tags.enumerated().compactMap { index, tag -> NSManagedObject? in
                 let normalizedName = normalizedTagName(tag)
                 guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
 
@@ -513,6 +522,8 @@ final class CatalogImportExportActor {
             }
             itemEntity.setValue(Set(tagEntities), forKey: "tags")
         }
+
+        applyDomainPayloads(bundle.domainPayloads, itemEntitiesByID: itemEntitiesByID)
 
         try context.save()
     }
@@ -527,7 +538,7 @@ final class CatalogImportExportActor {
 
     private func mediaAssets(in bundle: CatalogTransferBundle) -> [MediaAsset] {
         var seenIdentifiers = Set<String>()
-        return bundle.bellItems
+        return bundle.items
             .flatMap(\.mediaAssets)
             .filter { asset in
                 let identifier = asset.localIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -537,14 +548,14 @@ final class CatalogImportExportActor {
 
     private func jsonBundle(from bundle: CatalogTransferBundle) -> CatalogTransferBundle {
         var copy = bundle
-        copy.bellItems = copy.bellItems.map { bell in
-            var bell = bell
-            bell.mediaAssets = bell.mediaAssets.map { asset in
+        copy.items = copy.items.map { item in
+            var item = item
+            item.mediaAssets = item.mediaAssets.map { asset in
                 asset.with { asset in
                     asset.originalData = nil
                 }
             }
-            return bell
+            return item
         }
         return copy
     }
@@ -753,32 +764,84 @@ final class CatalogImportExportActor {
         }
     }
 
+    private func domainPayloads(bellItems: [BellCatalogTransferItem]) throws -> [CatalogDomainPayload] {
+        guard !bellItems.isEmpty else { return [] }
+        let payload = BellCatalogTransferPayload(items: bellItems)
+        return [
+            CatalogDomainPayload(
+                domain: BellCatalogTransferPayload.domain,
+                version: BellCatalogTransferPayload.version,
+                data: try JSONEncoder().encode(payload)
+            )
+        ]
+    }
+
+    private func filteredDomainPayloads(
+        _ payloads: [CatalogDomainPayload],
+        itemIDs: Set<UUID>
+    ) -> [CatalogDomainPayload] {
+        payloads.compactMap { payload in
+            guard payload.domain == BellCatalogTransferPayload.domain else {
+                return payload
+            }
+            guard var bellPayload = try? JSONDecoder().decode(BellCatalogTransferPayload.self, from: payload.data) else {
+                return nil
+            }
+            bellPayload.items = bellPayload.items.filter { itemIDs.contains($0.itemID) }
+            guard !bellPayload.items.isEmpty,
+                  let data = try? JSONEncoder().encode(bellPayload)
+            else {
+                return nil
+            }
+            return CatalogDomainPayload(domain: payload.domain, version: payload.version, data: data)
+        }
+    }
+
+    private func applyDomainPayloads(
+        _ payloads: [CatalogDomainPayload],
+        itemEntitiesByID: [UUID: NSManagedObject]
+    ) {
+        for payload in payloads where payload.domain == BellCatalogTransferPayload.domain {
+            guard let bellPayload = try? JSONDecoder().decode(BellCatalogTransferPayload.self, from: payload.data) else {
+                continue
+            }
+            for bell in bellPayload.items {
+                guard let itemEntity = itemEntitiesByID[bell.itemID] else { continue }
+                let bellEntity = (itemEntity.value(forKey: "bell") as? NSManagedObject)
+                    ?? fetchBellEntity(for: itemEntity)
+                    ?? makeEntity(named: "BellEntity")
+                updateBellEntity(bellEntity, with: bell)
+                bellEntity.setValue(itemEntity, forKey: "item")
+            }
+        }
+    }
+
     private func updateItemEntity(
         _ entity: NSManagedObject,
-        with bell: BellTransferItem,
+        with transferItem: CatalogTransferItem,
         collection: NSManagedObject?,
         collectionLocation: NSManagedObject?,
         location: NSManagedObject?,
         originPlace: NSManagedObject?
     ) {
-        entity.setValue(bell.item.id, forKey: "id")
-        entity.setValue(bell.item.title, forKey: "title")
-        entity.setValue(bell.item.notes, forKey: "notes")
-        entity.setValue(bell.item.acquiredYear, forKey: "acquisitionYear")
-        entity.setValue(bell.item.createdAt, forKey: "createdAt")
-        entity.setValue(bell.item.createdBy, forKey: "createdBy")
-        entity.setValue(bell.item.condition.rawValue, forKey: "condition")
-        entity.setValue(bell.item.acquisitionMethod.rawValue, forKey: "acquisitionMethod")
-        entity.setValue(bell.item.isFavorite, forKey: "isFavorite")
+        entity.setValue(transferItem.item.id, forKey: "id")
+        entity.setValue(transferItem.item.title, forKey: "title")
+        entity.setValue(transferItem.item.notes, forKey: "notes")
+        entity.setValue(transferItem.item.acquiredYear, forKey: "acquisitionYear")
+        entity.setValue(transferItem.item.createdAt, forKey: "createdAt")
+        entity.setValue(transferItem.item.createdBy, forKey: "createdBy")
+        entity.setValue(transferItem.item.condition.rawValue, forKey: "condition")
+        entity.setValue(transferItem.item.acquisitionMethod.rawValue, forKey: "acquisitionMethod")
+        entity.setValue(transferItem.item.isFavorite, forKey: "isFavorite")
         entity.setValue(collection, forKey: "collection")
         entity.setValue(collectionLocation, forKey: "collectionLocation")
         entity.setValue(location, forKey: "location")
         entity.setValue(originPlace, forKey: "originPlace")
     }
 
-    private func updateBellEntity(_ entity: NSManagedObject, with bell: BellTransferItem) {
-        entity.setValue(bell.details.material.rawValue, forKey: "material")
-        entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
+    private func updateBellEntity(_ entity: NSManagedObject, with bell: BellCatalogTransferItem) {
+        entity.setValue(bell.material, forKey: "material")
+        entity.setValue(bell.customMaterialName, forKey: "customMaterialName")
     }
 
     private func updateMediaEntity(

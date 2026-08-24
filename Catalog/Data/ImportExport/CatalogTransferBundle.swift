@@ -5,14 +5,16 @@ struct CatalogTransferBundle: Codable {
     var homes: [Home]
     var locations: [LocationTransferRecord]
     var collections: [CollectionTransferRecord]
-    var bellItems: [BellTransferItem]
+    var items: [CatalogTransferItem]
+    var domainPayloads: [CatalogDomainPayload]
 
     static let empty = CatalogTransferBundle(
         homes: [],
         locations: [],
         collections: [],
         places: [],
-        bellItems: []
+        items: [],
+        domainPayloads: []
     )
 
     init(
@@ -20,7 +22,8 @@ struct CatalogTransferBundle: Codable {
         locations: [Location],
         collections: [Collection],
         places: [Place],
-        bellItems: [BellTransferItem]
+        items: [CatalogTransferItem],
+        domainPayloads: [CatalogDomainPayload]
     ) {
         let homesByID = Dictionary(uniqueKeysWithValues: homes.map { ($0.id, $0) })
         let locationsByID = Dictionary(uniqueKeysWithValues: locations.map { ($0.id, $0) })
@@ -39,7 +42,8 @@ struct CatalogTransferBundle: Codable {
                 homeName: homesByID[collection.homeID]?.name
             )
         }
-        self.bellItems = bellItems
+        self.items = items
+        self.domainPayloads = domainPayloads
     }
 
     private static func locationPath(
@@ -56,6 +60,19 @@ struct CatalogTransferBundle: Codable {
         }
 
         return path
+    }
+}
+
+/// Represents a domain-specific payload embedded in a catalog transfer bundle.
+struct CatalogDomainPayload: Hashable, Codable {
+    var domain: String
+    var version: Int
+    var data: Data
+
+    init(domain: String, version: Int, data: Data) {
+        self.domain = domain
+        self.version = version
+        self.data = data
     }
 }
 
@@ -148,10 +165,9 @@ struct OriginPlaceTransferValue: Hashable, Codable {
     }
 }
 
-/// Represents bell transfer item data and behavior.
-struct BellTransferItem: Codable {
+/// Represents item transfer record data and behavior.
+struct CatalogTransferItem: Codable {
     var item: ItemRecord
-    var details: BellDetails
     var originPlace: OriginPlaceTransferValue?
     var mediaAssets: [MediaAsset]
     var createdBy: String
@@ -159,14 +175,12 @@ struct BellTransferItem: Codable {
 
     init(
         item: ItemRecord,
-        details: BellDetails,
         originPlace: OriginPlaceTransferValue?,
         mediaAssets: [MediaAsset],
         createdBy: String,
         tags: [String]
     ) {
         self.item = item
-        self.details = details
         self.originPlace = originPlace
         self.mediaAssets = mediaAssets
         self.createdBy = createdBy
