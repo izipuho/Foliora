@@ -48,6 +48,9 @@
 		24A7F2CD303C4970005D31A1 /* CollectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000005 /* CollectionModels.swift */; };
 		24A7F2CE303C4970005D31A1 /* FolioraCoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000002 /* FolioraCoreDataStack.swift */; };
 		24A7F2CF303C4970005D31A1 /* Foliora.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000003 /* Foliora.xcdatamodeld */; };
+		24A7F2D1303C5F95005D31A1 /* BookLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D0303C5F95005D31A1 /* BookLibraryView.swift */; };
+		24A7F2D3303C5F95005D31A1 /* BookCollectionDraftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */; };
+		24A7F2D8303C7219005D31A1 /* FolioraBooksApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D7303C7219005D31A1 /* FolioraBooksApp.swift */; };
 		24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */; };
 		24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */; };
 		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
@@ -127,6 +130,12 @@
 		246FD6872FA8CE2A00B8859A /* BellListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellListItem.swift; sourceTree = "<group>"; };
 		249A28272FDC1940009A0E03 /* CoreDataCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataCatalogRepository.swift; sourceTree = "<group>"; };
 		24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Books.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		24A7F2D0303C5F95005D31A1 /* BookLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookLibraryView.swift; sourceTree = "<group>"; };
+		24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCollectionDraftView.swift; sourceTree = "<group>"; };
+		24A7F2D4303C5F95005D31A1 /* BookLibraryPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookLibraryPlaceholderView.swift; sourceTree = "<group>"; };
+		24A7F2D7303C7219005D31A1 /* FolioraBooksApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolioraBooksApp.swift; sourceTree = "<group>"; };
+		24A7F2D9303C7219005D31A1 /* Foliora-Books-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Books-Info.plist"; sourceTree = "<group>"; };
+		24A7F2DA303C7219005D31A1 /* Foliora Books.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Books.entitlements"; sourceTree = "<group>"; };
 		24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellEditorView.swift; sourceTree = "<group>"; };
 		24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogModels.swift; sourceTree = "<group>"; };
 		24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogDashboard.swift; sourceTree = "<group>"; };
@@ -177,17 +186,6 @@
 		E00000000000000000000004 /* Foliora.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Foliora.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		24A7F2C7303C3BA9005D31A1 /* Exceptions for "Foliora Books" folder in "Foliora Books" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Foliora_Books.xcdatamodeld,
-				Info.plist,
-			);
-			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		24056EC03020811900601C22 /* Media */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -207,14 +205,6 @@
 		246FD6602FA8BB2900B8859A /* BellRecognition */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BellRecognition;
-			sourceTree = "<group>";
-		};
-		24A7F2B9303C3BA8005D31A1 /* Foliora Books */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				24A7F2C7303C3BA9005D31A1 /* Exceptions for "Foliora Books" folder in "Foliora Books" target */,
-			);
-			path = "Foliora Books";
 			sourceTree = "<group>";
 		};
 		24B4D3513025E74600904626 /* Launch */ = {
@@ -292,10 +282,11 @@
 			children = (
 				24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */,
 				24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */,
+				24A7F2D9303C7219005D31A1 /* Foliora-Books-Info.plist */,
+				24A7F2DA303C7219005D31A1 /* Foliora Books.entitlements */,
 				C00000000000000000000032 /* Catalog */,
 				246FD6602FA8BB2900B8859A /* BellRecognition */,
 				24349FFF2FAC6FD9005383FB /* BellRecognitionDebugML */,
-				24A7F2B9303C3BA8005D31A1 /* Foliora Books */,
 				C00000000000000000000033 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -328,11 +319,20 @@
 			isa = PBXGroup;
 			children = (
 				24B4D3513025E74600904626 /* Launch */,
+				24A7F2DB303C7219005D31A1 /* Books */,
 				24F1A5492FDB309D00FC1717 /* FolioraApp.swift */,
 				24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */,
 				C00000000000000000000002 /* AppContainer.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		24A7F2DB303C7219005D31A1 /* Books */ = {
+			isa = PBXGroup;
+			children = (
+				24A7F2D7303C7219005D31A1 /* FolioraBooksApp.swift */,
+			);
+			path = Books;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000035 /* Core */ = {
@@ -375,9 +375,28 @@
 				244FE0482FB465CF00B4D805 /* Settings */,
 				C00000000000000000000041 /* Collections */,
 				C00000000000000000000042 /* Bells */,
+				24A7F2D5303C5F95005D31A1 /* Books */,
 				C00000000000000000000044 /* Home */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		24A7F2D5303C5F95005D31A1 /* Books */ = {
+			isa = PBXGroup;
+			children = (
+				24A7F2D6303C5F95005D31A1 /* Library */,
+			);
+			path = Books;
+			sourceTree = "<group>";
+		};
+		24A7F2D6303C5F95005D31A1 /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */,
+				24A7F2D0303C5F95005D31A1 /* BookLibraryView.swift */,
+				24A7F2D4303C5F95005D31A1 /* BookLibraryPlaceholderView.swift */,
+			);
+			path = Library;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000039 /* Resources */ = {
@@ -607,9 +626,6 @@
 			);
 			buildRules = (
 			);
-			fileSystemSynchronizedGroups = (
-				24A7F2B9303C3BA8005D31A1 /* Foliora Books */,
-			);
 			name = "Foliora Books";
 			productName = "Foliora Books";
 			productReference = 24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */;
@@ -730,6 +746,9 @@
 			isa = PBXSourcesBuildPhase;
 			files = (
 				24A7F2CD303C4970005D31A1 /* CollectionModels.swift in Sources */,
+				24A7F2D3303C5F95005D31A1 /* BookCollectionDraftView.swift in Sources */,
+				24A7F2D1303C5F95005D31A1 /* BookLibraryView.swift in Sources */,
+				24A7F2D8303C7219005D31A1 /* FolioraBooksApp.swift in Sources */,
 				24A7F2CE303C4970005D31A1 /* FolioraCoreDataStack.swift in Sources */,
 				24A7F2CF303C4970005D31A1 /* Foliora.xcdatamodeld in Sources */,
 			);
@@ -1086,7 +1105,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -1096,7 +1114,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = "Foliora Books/Foliora Books.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "Foliora Books.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
@@ -1110,7 +1128,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Foliora Books/Info.plist";
+				INFOPLIST_FILE = "Foliora-Books-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Foliora Books";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Foliora Books can use the camera to add book photos.";
@@ -1155,7 +1173,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -1165,7 +1182,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = "Foliora Books/Foliora Books.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "Foliora Books.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 89JC2TD8QQ;
@@ -1178,7 +1195,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Foliora Books/Info.plist";
+				INFOPLIST_FILE = "Foliora-Books-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Foliora Books";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Foliora Books can use the camera to add book photos.";

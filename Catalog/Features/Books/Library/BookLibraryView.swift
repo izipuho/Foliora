@@ -1,14 +1,8 @@
-//
-//  ContentView.swift
-//  Foliora Books
-//
-//  Created by Ivan Zipuho on 24.08.2026.
-//
-
-import SwiftUI
 import CoreData
+import SwiftUI
 
-struct ContentView: View {
+/// Displays the book library list interface.
+struct BookLibraryView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var collections: [NSManagedObject] = []
 
@@ -112,26 +106,8 @@ struct ContentView: View {
     }
 }
 
-private struct BookCollectionDraftView: View {
-    let collection: NSManagedObject
-
-    var body: some View {
-        ContentUnavailableView(
-            collectionTitle,
-            systemImage: "books.vertical",
-            description: Text("Books, editions, authors, reading status and search will live here. This draft is already backed by the shared Foliora catalog model.")
-        )
-        .navigationTitle(collectionTitle)
-    }
-
-    private var collectionTitle: String {
-        let title = collection.value(forKey: "title") as? String
-        return title?.isEmpty == false ? title! : "Books"
-    }
-}
-
 #Preview {
     let container = try! FolioraCoreDataStack.makeInMemoryContainer()
-    ContentView()
+    BookLibraryView()
         .environment(\.managedObjectContext, container.viewContext)
 }
