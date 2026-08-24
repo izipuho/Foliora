@@ -6,11 +6,10 @@ struct HomeDetailView: View {
     @Binding var home: Home
     @Binding var locations: [Location]
     let collectionCount: Int
+    let catalogSnapshot: CatalogSnapshot?
     let onSave: (Home, [Location]) -> Void
     let onDelete: () -> Void
-    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.dismiss) private var dismiss
-    @State private var catalogSnapshot: CatalogSnapshot?
     @State private var isPresentingEditor = false
     @State private var isPresentingDeleteConfirmation = false
 
@@ -79,13 +78,6 @@ struct HomeDetailView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(home.name)
         .navigationBarTitleDisplayMode(.large)
-        .onAppear(perform: reloadCatalogSnapshot)
-        .onReceive(NotificationCenter.default.publisher(
-            for: .NSManagedObjectContextObjectsDidChange,
-            object: managedObjectContext
-        )) { _ in
-            reloadCatalogSnapshot()
-        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -122,10 +114,6 @@ struct HomeDetailView: View {
         } message: {
             Text(String(localized: "home.delete.message"))
         }
-    }
-
-    private func reloadCatalogSnapshot() {
-        catalogSnapshot = CatalogSnapshot.load(from: managedObjectContext)
     }
 }
 
@@ -171,6 +159,7 @@ struct HomeIdentityHeader: View {
             home: .constant(home),
             locations: .constant(snapshot.locationsByHomeID[home.id] ?? []),
             collectionCount: snapshot.collectionCountsByHomeID[home.id] ?? 0,
+            catalogSnapshot: snapshot,
             onSave: { _, _ in },
             onDelete: {}
         )

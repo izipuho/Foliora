@@ -157,10 +157,12 @@ enum PreviewData {
 
             switch index {
             case 0:
+                item.isFavorite = true
                 item.mediaAssets = [
                     makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8938.HEIC", sortOrder: 0)
                 ]
             case 2:
+                item.isFavorite = true
                 item.mediaAssets = [
                     makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8934.HEIC", sortOrder: 0),
                     makePreviewPhoto(itemID: item.id, resourcePath: "Bells/IMG_8937.HEIC", sortOrder: 1)
@@ -184,8 +186,7 @@ enum PreviewData {
         guard let image = UIImage(named: resourcePath) ?? bundlePreviewImage(at: resourcePath) else {
             fatalError("Preview image resource not found: \(resourcePath)")
         }
-        guard let originalData = image.jpegData(compressionQuality: 0.92),
-              let thumbnailData = thumbnailData(for: image) else {
+        guard let originalData = image.jpegData(compressionQuality: 0.92) else {
             fatalError("Preview image data could not be created: \(resourcePath)")
         }
 
@@ -201,7 +202,6 @@ enum PreviewData {
             byteSize: originalData.count,
             width: pixelWidth(for: image),
             height: pixelHeight(for: image),
-            thumbnailData: thumbnailData,
             originalData: originalData
         )
     }
@@ -224,30 +224,6 @@ enum PreviewData {
 
     private static func pixelHeight(for image: UIImage) -> Int {
         image.cgImage?.height ?? Int((image.size.height * image.scale).rounded())
-    }
-
-    private static func thumbnailData(for image: UIImage) -> Data? {
-        let maxPixelSize: CGFloat = 700
-        let pixelSize = CGSize(
-            width: image.size.width * image.scale,
-            height: image.size.height * image.scale
-        )
-        let longestSide = max(pixelSize.width, pixelSize.height)
-        guard longestSide > 0 else { return nil }
-
-        let scale = min(1, maxPixelSize / longestSide)
-        let targetSize = CGSize(
-            width: max(1, (pixelSize.width * scale).rounded()),
-            height: max(1, (pixelSize.height * scale).rounded())
-        )
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-
-        return UIGraphicsImageRenderer(size: targetSize, format: format)
-            .image { _ in
-                image.draw(in: CGRect(origin: .zero, size: targetSize))
-            }
-            .jpegData(compressionQuality: 0.82)
     }
 
     private static func makeItem(

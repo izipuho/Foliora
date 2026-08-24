@@ -215,7 +215,7 @@ final class CatalogImportExportActor {
         for location in bundle.locations {
             let entity = makeEntity(named: "LocationEntity")
             entity.setValue(location.id, forKey: "id")
-            entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+            entity.setValue(location.kind.rawValue, forKey: "kind")
             entity.setValue(location.name, forKey: "name")
             entity.setValue(location.notes, forKey: "notes")
             entity.setValue(homeEntities[location.homeID], forKey: "home")
@@ -230,10 +230,10 @@ final class CatalogImportExportActor {
         for collection in bundle.collections {
             let entity = makeEntity(named: "CollectionEntity")
             entity.setValue(collection.id, forKey: "id")
-            entity.setValue(collection.kind.rawValue, forKey: "kindRaw")
+            entity.setValue(collection.kind.rawValue, forKey: "kind")
             entity.setValue(collection.title, forKey: "title")
             entity.setValue(collection.notes, forKey: "notes")
-            entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyleRaw")
+            entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyle")
             if let home = homeEntities[collection.homeID] {
                 entity.setValue(home, forKey: "home")
                 entity.setValue(home.value(forKey: "id"), forKey: "homeID")
@@ -251,7 +251,7 @@ final class CatalogImportExportActor {
                 let entity = makeEntity(named: "CollectionLocationEntity")
                 entity.setValue(location.id, forKey: "id")
                 entity.setValue(location.id, forKey: "sourceLocationID")
-                entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+                entity.setValue(location.kind.rawValue, forKey: "kind")
                 entity.setValue(location.name, forKey: "name")
                 entity.setValue(location.notes, forKey: "notes")
                 entity.setValue(sortOrder, forKey: "sortOrder")
@@ -347,7 +347,7 @@ final class CatalogImportExportActor {
             let key = locationKey(for: location, localHomeID: uuidValue(homeEntity, "id"))
             let entity = locationEntitiesByKey[key] ?? makeEntity(named: "LocationEntity")
             ensureID(entity)
-            entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+            entity.setValue(location.kind.rawValue, forKey: "kind")
             entity.setValue(location.name, forKey: "name")
             entity.setValue(location.notes, forKey: "notes")
             entity.setValue(homeEntity, forKey: "home")
@@ -373,7 +373,7 @@ final class CatalogImportExportActor {
         var collectionEntitiesByKey = indexed(try fetchEntities(named: "CollectionEntity", sortKey: "title")) {
             collectionKey(
                 homeID: collectionHomeID(from: $0),
-                kindRaw: stringValue($0, "kindRaw", default: CollectionKind.bells.rawValue),
+                kindRaw: stringValue($0, "kind", default: CollectionKind.bells.rawValue),
                 title: stringValue($0, "title")
             )
         }
@@ -387,10 +387,10 @@ final class CatalogImportExportActor {
             )
             let entity = collectionEntitiesByKey[key] ?? makeEntity(named: "CollectionEntity")
             ensureID(entity)
-            entity.setValue(collection.kind.rawValue, forKey: "kindRaw")
+            entity.setValue(collection.kind.rawValue, forKey: "kind")
             entity.setValue(collection.title, forKey: "title")
             entity.setValue(collection.notes, forKey: "notes")
-            entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyleRaw")
+            entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyle")
             entity.setValue(homeEntity, forKey: "home")
             entity.setValue(homeEntity.value(forKey: "id"), forKey: "homeID")
             entity.setValue(homeEntity.value(forKey: "name"), forKey: "homeName")
@@ -418,7 +418,7 @@ final class CatalogImportExportActor {
                 let entity = collectionLocationEntitiesByKey[key] ?? makeEntity(named: "CollectionLocationEntity")
                 ensureID(entity)
                 entity.setValue(localLocationID, forKey: "sourceLocationID")
-                entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+                entity.setValue(location.kind.rawValue, forKey: "kind")
                 entity.setValue(location.name, forKey: "name")
                 entity.setValue(location.notes, forKey: "notes")
                 entity.setValue(sortOrder, forKey: "sortOrder")
@@ -541,7 +541,6 @@ final class CatalogImportExportActor {
             var bell = bell
             bell.mediaAssets = bell.mediaAssets.map { asset in
                 asset.with { asset in
-                    asset.thumbnailData = nil
                     asset.originalData = nil
                 }
             }
@@ -566,9 +565,6 @@ final class CatalogImportExportActor {
             guard let fileURL = mediaStore.fileURL(for: identifier) else { continue }
 
             entity.setValue(try Data(contentsOf: fileURL), forKey: "originalData")
-            if let thumbnailURL = mediaStore.thumbnailFileURL(for: identifier) {
-                entity.setValue(try Data(contentsOf: thumbnailURL), forKey: "thumbnailData")
-            }
         }
 
         if context.hasChanges {
@@ -625,11 +621,11 @@ final class CatalogImportExportActor {
         Collection(
             id: uuidValue(entity, "id"),
             homeID: collectionHomeID(from: entity),
-            kind: CollectionKind(rawValue: stringValue(entity, "kindRaw", default: CollectionKind.bells.rawValue)) ?? .bells,
+            kind: CollectionKind(rawValue: stringValue(entity, "kind", default: CollectionKind.bells.rawValue)) ?? .bells,
             title: stringValue(entity, "title"),
             notes: stringValue(entity, "notes"),
             backgroundStyle: CollectionBackgroundStyle(
-                rawValue: stringValue(entity, "backgroundStyleRaw", default: CollectionBackgroundStyle.amber.rawValue)
+                rawValue: stringValue(entity, "backgroundStyle", default: CollectionBackgroundStyle.amber.rawValue)
             ) ?? .amber
         )
     }
@@ -685,7 +681,7 @@ final class CatalogImportExportActor {
         guard let home = entity.value(forKey: "home") as? NSManagedObject else { return nil }
         return LocationKey(
             homeID: uuidValue(home, "id"),
-            kindRaw: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue),
+            kindRaw: stringValue(entity, "kind", default: LocationKind.room.rawValue),
             path: locationPathComponentKeys(for: entity)
         )
     }
@@ -715,7 +711,7 @@ final class CatalogImportExportActor {
         while let location = current, visitedObjectIDs.insert(location.objectID).inserted {
             path.insert(
                 locationPathComponentKey(
-                    kindRaw: stringValue(location, "kindRaw", default: LocationKind.room.rawValue),
+                    kindRaw: stringValue(location, "kind", default: LocationKind.room.rawValue),
                     name: stringValue(location, "name")
                 ),
                 at: 0
@@ -781,7 +777,7 @@ final class CatalogImportExportActor {
     }
 
     private func updateBellEntity(_ entity: NSManagedObject, with bell: BellTransferItem) {
-        entity.setValue(bell.details.material.rawValue, forKey: "materialRaw")
+        entity.setValue(bell.details.material.rawValue, forKey: "material")
         entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
     }
 
@@ -791,7 +787,7 @@ final class CatalogImportExportActor {
         item: NSManagedObject
     ) {
         entity.setValue(asset.id, forKey: "id")
-        entity.setValue(asset.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(asset.kind.rawValue, forKey: "kind")
         entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
         entity.setValue(asset.displayName, forKey: "displayName")
         entity.setValue(asset.sortOrder, forKey: "sortOrder")
@@ -803,7 +799,6 @@ final class CatalogImportExportActor {
         entity.setValue(asset.height, forKey: "height")
         entity.setValue(asset.duration, forKey: "duration")
         entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
-        entity.setValue(nil, forKey: "thumbnailData")
         entity.setValue(nil, forKey: "originalData")
         if entity.entity.attributesByName["itemID"] != nil {
             entity.setValue(item.value(forKey: "id"), forKey: "itemID")

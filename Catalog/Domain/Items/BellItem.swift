@@ -96,3 +96,14 @@ struct BellRecord: Identifiable, Hashable {
         return details.material.displayName
     }
 }
+
+extension BellRecord {
+    func moving(
+        to location: Location?,
+        storagePath: StoragePath?
+    ) -> BellRecord {
+        var updatedItem = item
+        updatedItem.setStorageLocation(location, path: storagePath)
+        return BellRecord(item: updatedItem, details: details)
+    }
+}

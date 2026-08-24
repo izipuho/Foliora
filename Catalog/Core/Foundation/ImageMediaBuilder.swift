@@ -64,7 +64,6 @@ struct ImageMediaBuilder {
             checksum: Self.checksum(for: data),
             width: Int(image.size.width * image.scale),
             height: Int(image.size.height * image.scale),
-            thumbnailData: Self.thumbnailData(for: image),
             originalData: data
         )
 
@@ -88,27 +87,4 @@ struct ImageMediaBuilder {
         image.cgImage?.height ?? Int((image.size.height * image.scale).rounded())
     }
 
-    private static func thumbnailData(for image: UIImage) -> Data? {
-        let maxPixelSize: CGFloat = 700
-        let pixelSize = CGSize(
-            width: image.size.width * image.scale,
-            height: image.size.height * image.scale
-        )
-        let longestSide = max(pixelSize.width, pixelSize.height)
-        guard longestSide > 0 else { return nil }
-
-        let scale = min(1, maxPixelSize / longestSide)
-        let targetSize = CGSize(
-            width: max(1, (pixelSize.width * scale).rounded()),
-            height: max(1, (pixelSize.height * scale).rounded())
-        )
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-
-        return UIGraphicsImageRenderer(size: targetSize, format: format)
-            .image { _ in
-                image.draw(in: CGRect(origin: .zero, size: targetSize))
-            }
-            .jpegData(compressionQuality: 0.82)
-    }
 }

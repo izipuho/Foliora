@@ -1,17 +1,16 @@
 import SwiftUI
-import CoreData
 import CloudKit
 
 /// Displays the collections view interface.
 struct CollectionsView: View {
     let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
     let onCollectionSelected: ((UUID) -> Void)?
     let navigate: ((AppDestination) -> Void)?
     let onOpenHomes: () -> Void
-    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.colorScheme) private var colorScheme
-    @State private var catalogSnapshot: CatalogSnapshot?
     @State private var collectionSharingStatuses: [UUID: CollectionCardSharingStatus] = [:]
+    @State private var collectionBackgroundBellIDs: [UUID: UUID] = [:]
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
     @State private var collectionIDPendingDeletion: UUID?
@@ -22,18 +21,22 @@ struct CollectionsView: View {
 
     init(
         repository: any CatalogRepository,
+        catalogSnapshot: CatalogSnapshot?,
         onCollectionSelected: ((UUID) -> Void)? = nil,
         navigate: ((AppDestination) -> Void)? = nil,
         onOpenHomes: @escaping () -> Void = {}
     ) {
         self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
         self.onCollectionSelected = onCollectionSelected
         self.navigate = navigate
         self.onOpenHomes = onOpenHomes
     }
 
     private var collections: [CollectionSummary] {
-        catalogSnapshot.map(collectionSummaries) ?? []
+        catalogSnapshot?.collections.compactMap { collection in
+            catalogSnapshot?.collectionSummary(id: collection.id)
+        } ?? []
     }
 
     private var displayedCollections: [CollectionSummary] {
@@ -41,7 +44,17 @@ struct CollectionsView: View {
     }
 
     private var homes: [Home] {
-        catalogSnapshot?.homes ?? []
+        catalogSnapshot?.homes.filter { !$0.isShared } ?? []
+    }
+
+    private var backgroundCandidateIDs: [UUID] {
+        catalogSnapshot?.bells
+            .filter {
+                $0.isFavorite
+                    && ($0.coverPhotoIdentifier != nil || $0.coverPhotoOriginalData != nil)
+            }
+            .map(\.id)
+            .sorted { $0.uuidString < $1.uuidString } ?? []
     }
 
     var body: some View {
@@ -53,18 +66,18 @@ struct CollectionsView: View {
                     .ignoresSafeArea()
             }
             .onAppear {
-                reloadCatalogSnapshot()
                 autoOpenSingleCollectionIfNeeded()
+                refreshCollectionBackgroundBells()
             }
-            .onReceive(NotificationCenter.default.publisher(
-                for: .NSManagedObjectContextObjectsDidChange,
-                object: managedObjectContext
-            )) { _ in
-                guard !isSortingCollections else { return }
-                reloadCatalogSnapshot()
+            .task(id: collections.map(\.id)) {
+                await loadCollectionSharingStatuses(for: collections.map(\.id))
             }
             .onChange(of: collections.map(\.id)) { _, _ in
                 autoOpenSingleCollectionIfNeeded()
+                refreshCollectionBackgroundBells()
+            }
+            .onChange(of: backgroundCandidateIDs) { _, _ in
+                refreshCollectionBackgroundBells()
             }
             .navigationTitle(RootTab.collections.title)
             .sheet(isPresented: $isPresentingAddCollectionEditor) {
@@ -78,7 +91,9 @@ struct CollectionsView: View {
             .sheet(item: $collectionPendingSharing) { collection in
                 NavigationStack {
                     CollectionSharingSheetLoaderView(collection: collection) {
-                        reloadCatalogSnapshot()
+                        Task {
+                            await loadCollectionSharingStatuses(for: collections.map(\.id))
+                        }
                     }
                 }
             }
@@ -196,7 +211,8 @@ struct CollectionsView: View {
         if isSortingCollections {
             CollectionCard(
                 collection: collection,
-                sharingStatus: sharingStatus(for: collection.id)
+                sharingStatus: sharingStatus(for: collection.id),
+                backgroundBell: backgroundBell(for: collection.id)
             )
             .catalogContainerListRow()
         } else {
@@ -205,7 +221,8 @@ struct CollectionsView: View {
             } label: {
                 CollectionCard(
                     collection: collection,
-                    sharingStatus: sharingStatus(for: collection.id)
+                    sharingStatus: sharingStatus(for: collection.id),
+                    backgroundBell: backgroundBell(for: collection.id)
                 )
             }
             .buttonStyle(.plain)
@@ -238,13 +255,52 @@ struct CollectionsView: View {
         }
     }
 
+    private func backgroundCandidates(for collectionID: UUID) -> [BellListItem] {
+        catalogSnapshot?.bells.filter {
+            $0.collectionID == collectionID
+                && $0.isFavorite
+                && ($0.coverPhotoIdentifier != nil || $0.coverPhotoOriginalData != nil)
+        } ?? []
+    }
+
+    private func backgroundBell(for collectionID: UUID) -> BellListItem? {
+        let candidates = backgroundCandidates(for: collectionID)
+        guard !candidates.isEmpty else { return nil }
+
+        if let selectedID = collectionBackgroundBellIDs[collectionID],
+           let selectedBell = candidates.first(where: { $0.id == selectedID }) {
+            return selectedBell
+        }
+
+        return candidates.first
+    }
+
+    private func refreshCollectionBackgroundBells() {
+        var updatedIDs = collectionBackgroundBellIDs
+        let collectionIDs = Set(collections.map(\.id))
+        updatedIDs = updatedIDs.filter { collectionIDs.contains($0.key) }
+
+        for collection in collections {
+            let candidates = backgroundCandidates(for: collection.id)
+
+            if let selectedID = updatedIDs[collection.id],
+               candidates.contains(where: { $0.id == selectedID }) {
+                continue
+            }
+
+            updatedIDs[collection.id] = candidates.randomElement()?.id
+        }
+
+        collectionBackgroundBellIDs = updatedIDs
+    }
+
     @ViewBuilder
     private var emptyCollectionsView: some View {
         if homes.isEmpty {
             requiresHomeEmptyView
         } else {
             CatalogEmptyStateView(
-                systemImage: "square.grid.2x2",
+                systemImage: "rectangle.stack.slash",
                 title: "collections.empty.title",
                 message: "collections.empty.description",
                 primaryActionTitle: "collections.add",
@@ -283,7 +339,6 @@ struct CollectionsView: View {
     private func stopSortingCollections() {
         isSortingCollections = false
         sortingCollections = []
-        reloadCatalogSnapshot()
     }
 
     private func moveCollections(from source: IndexSet, to destination: Int) {
@@ -312,7 +367,6 @@ struct CollectionsView: View {
         )
 
         repository.saveCollection(collection)
-        reloadCatalogSnapshot()
         navigate?(.collection(collection.id))
     }
 
@@ -327,7 +381,6 @@ struct CollectionsView: View {
 
     private func deleteCollection(_ collectionID: UUID) {
         repository.deleteCollection(collectionID: collectionID)
-        reloadCatalogSnapshot()
     }
 
     private func canManageCollection(_ collectionID: UUID) -> Bool {
@@ -373,7 +426,6 @@ struct CollectionsView: View {
         )
 
         repository.saveCollection(updatedCollection)
-        reloadCatalogSnapshot()
     }
 
     private func deleteConfirmationMessage(for collectionID: UUID) -> String {
@@ -395,35 +447,6 @@ struct CollectionsView: View {
 
         didAutoOpenSingleCollection = true
         navigate?(.collection(collection.id))
-    }
-
-    private func reloadCatalogSnapshot() {
-        let snapshot = CatalogSnapshot.load(from: managedObjectContext)
-        catalogSnapshot = snapshot
-
-        Task {
-            await loadCollectionSharingStatuses(for: snapshot.collections.map(\.id))
-        }
-    }
-
-    private func collectionSummaries(from snapshot: CatalogSnapshot) -> [CollectionSummary] {
-        snapshot.collections.map { collectionSummary(from: $0, in: snapshot) }
-    }
-
-    private func collectionSummary(from collection: Collection, in snapshot: CatalogSnapshot) -> CollectionSummary {
-        let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
-
-        return CollectionSummary(
-            id: collection.id,
-            homeID: collection.homeID,
-            kind: collection.kind,
-            name: collection.title,
-            subtitle: collection.notes,
-            backgroundStyle: collection.backgroundStyle,
-            itemCount: collection.kind == .bells ? itemCount : 0,
-            status: collection.kind == .bells ? .active : .planned,
-            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
-        )
     }
 
     private func sharingStatus(for collectionID: UUID) -> CollectionCardSharingStatus {
@@ -458,11 +481,13 @@ struct CollectionsView: View {
         switch state.currentUserRole {
         case .owner:
             if state.isShared {
-                return .sharedOwner(participantsCount: state.visibleParticipantsCount)
+                return .sharedOwner(participantsCount: state.acceptedParticipantsCount)
             }
             return .privateOwner
-        case .contributor, .viewer:
-            return .sharedParticipant
+        case .contributor:
+            return .sharedContributor
+        case .viewer:
+            return .sharedViewer
         }
     }
 }
@@ -551,7 +576,8 @@ private struct CollectionSharingSheetLoaderView: View {
 private enum CollectionCardSharingStatus {
     case privateOwner
     case sharedOwner(participantsCount: Int)
-    case sharedParticipant
+    case sharedContributor
+    case sharedViewer
     case unknown
 }
 
@@ -562,10 +588,13 @@ private enum CollectionCardSharingStatus {
         context: container.viewContext,
         persistentContainer: nil
     )
+    let catalogSnapshot = CatalogSnapshot.load(from: container.viewContext)
 
     NavigationStack {
-        CollectionsView(repository: repository)
-            .environment(\.managedObjectContext, container.viewContext)
+        CollectionsView(
+            repository: repository,
+            catalogSnapshot: catalogSnapshot
+        )
     }
 }
 #endif
@@ -573,24 +602,102 @@ private enum CollectionCardSharingStatus {
 private struct CollectionCard: View {
     let collection: CollectionSummary
     let sharingStatus: CollectionCardSharingStatus
+    let backgroundBell: BellListItem?
 
-    private var accessory: CatalogContainerCard.Accessory? {
-        switch sharingStatus {
-        case .privateOwner, .unknown:
-            return nil
-        case .sharedOwner(let participantsCount):
-            return .label(text: "\(participantsCount)", systemImage: "person.2")
-        case .sharedParticipant:
-            return .icon("link")
+    var body: some View {
+        HStack(alignment: .center, spacing: CatalogMetrics.Spacing.md) {
+            leading
+
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                Text(collection.name)
+                    .font(CatalogTypography.cardTitle)
+                    .lineLimit(2)
+
+                Text(collection.kind.countLabel(for: collection.itemCount))
+                    .font(CatalogTypography.cardSubtitle)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: CatalogMetrics.Spacing.md)
+
+            trailingAccessory
+        }
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+        .contentShape(Rectangle())
+        .padding(CatalogMetrics.Spacing.lg)
+        .background {
+            if let backgroundBell {
+                CollectionPhotoBackground(bell: backgroundBell)
+                    .clipShape(CatalogShapes.section)
+            }
+        }
+        .glassEffect(.regular.interactive(), in: CatalogShapes.section)
+    }
+
+    private var leading: some View {
+        let accentColor = collection.backgroundStyle.accentColor
+
+        return ZStack {
+            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous)
+                .fill(accentColor.opacity(0.16))
+                .frame(width: 60, height: 60)
+
+            Image(systemName: collection.kind.systemImage)
+                .font(.system(size: 30))
+                .foregroundStyle(accentColor)
         }
     }
 
+    @ViewBuilder
+    private var trailingAccessory: some View {
+        switch sharingStatus {
+        case .privateOwner, .unknown:
+            EmptyView()
+        case .sharedOwner(let participantsCount):
+            Label("\(participantsCount)", systemImage: "person.2.fill")
+                .font(.title2)
+        case .sharedContributor:
+            Label("collection.sharing.role.contributor", systemImage: "person.crop.circle.badge.checkmark")
+                .labelStyle(.iconOnly)
+                .font(.title2)
+        case .sharedViewer:
+            Label("collection.sharing.role.viewer", systemImage: "eye.fill")
+                .labelStyle(.iconOnly)
+                .font(.title2)
+        }
+    }
+}
+
+private struct CollectionPhotoBackground: View {
+    let bell: BellListItem
+
     var body: some View {
-        CatalogContainerCard(
-            title: collection.name,
-            subtitle: collection.kind.countLabel(for: collection.itemCount),
-            accessory: accessory,
-            systemImage: collection.kind.systemImage
-        )
+        GeometryReader { proxy in
+            let photoWidth = proxy.size.width * 0.62
+            let photoSize = CGSize(width: photoWidth, height: proxy.size.height)
+
+            MediaPreviewImage(
+                identifier: bell.coverPhotoIdentifier,
+                originalData: bell.coverPhotoOriginalData,
+                size: photoSize
+            )
+            .frame(width: photoWidth, height: proxy.size.height)
+            .opacity(0.52)
+            .mask {
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.00),
+                        .init(color: .black.opacity(0.12), location: 0.12),
+                        .init(color: .black.opacity(0.72), location: 0.32),
+                        .init(color: .black, location: 0.48)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+        }
+        .allowsHitTesting(false)
     }
 }

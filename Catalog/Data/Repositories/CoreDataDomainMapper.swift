@@ -8,7 +8,7 @@ import Foundation
 enum CoreDataDomainMapper {
     static func bellRecord(from entity: NSManagedObject) -> BellRecord {
         guard let itemEntity = entity.value(forKey: "item") as? NSManagedObject else {
-            preconditionFailure("BellEntity is missing its migrated ItemEntity relationship.")
+            preconditionFailure("BellEntity is missing its ItemEntity relationship.")
         }
 
         let itemRecord = itemRecord(from: itemEntity)
@@ -17,7 +17,7 @@ enum CoreDataDomainMapper {
             item: itemRecord,
             details: BellDetails(
                 itemID: itemRecord.id,
-                material: bellMaterial(from: stringValue(entity, "materialRaw", default: BellMaterial.unknown.rawValue)),
+                material: bellMaterial(from: stringValue(entity, "material", default: BellMaterial.unknown.rawValue)),
                 customMaterialName: entity.value(forKey: "customMaterialName") as? String
             )
         )
@@ -75,7 +75,7 @@ enum CoreDataDomainMapper {
             id: uuidValue(entity, "id"),
             homeID: locationHomeID(from: entity),
             parentLocationID: (entity.value(forKey: "parent") as? NSManagedObject).map { uuidValue($0, "id") },
-            kind: locationKind(from: stringValue(entity, "kindRaw", default: LocationKind.room.rawValue)),
+            kind: locationKind(from: stringValue(entity, "kind", default: LocationKind.room.rawValue)),
             name: stringValue(entity, "name"),
             notes: stringValue(entity, "notes"),
             sortOrder: sortOrder
@@ -86,7 +86,7 @@ enum CoreDataDomainMapper {
         MediaAsset(
             id: uuidValue(entity, "id"),
             itemID: itemID,
-            kind: mediaKind(from: stringValue(entity, "kindRaw", default: MediaKind.photo.rawValue)),
+            kind: mediaKind(from: stringValue(entity, "kind", default: MediaKind.photo.rawValue)),
             localIdentifier: stringValue(entity, "localIdentifier"),
             displayName: entity.value(forKey: "displayName") as? String,
             sortOrder: intValue(entity, "sortOrder"),
@@ -98,7 +98,6 @@ enum CoreDataDomainMapper {
             height: optionalIntValue(entity, "height"),
             duration: doubleValue(entity, "duration"),
             metadataJSON: entity.value(forKey: "metadataJSON") as? String,
-            thumbnailData: entity.value(forKey: "thumbnailData") as? Data,
             originalData: entity.value(forKey: "originalData") as? Data
         )
     }
@@ -190,7 +189,7 @@ enum CoreDataDomainMapper {
         while let location = current {
             components.insert(
                 StoragePath.Component(
-                    kind: locationKind(from: stringValue(location, "kindRaw", default: LocationKind.room.rawValue)),
+                    kind: locationKind(from: stringValue(location, "kind", default: LocationKind.room.rawValue)),
                     name: stringValue(location, "name")
                 ),
                 at: 0

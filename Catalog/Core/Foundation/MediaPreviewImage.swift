@@ -4,7 +4,6 @@ import UIKit
 /// Displays the media preview image interface.
 struct MediaPreviewImage: View {
     let identifier: String?
-    let thumbnailData: Data?
     let originalData: Data?
     let size: CGSize
     private let mediaStore = LocalMediaFileStore.shared
@@ -40,35 +39,38 @@ struct MediaPreviewImage: View {
     private var thumbnailTaskID: String {
         let pixelWidth = Int((size.width * displayScale).rounded(.up))
         let pixelHeight = Int((size.height * displayScale).rounded(.up))
-        return "\(identifier ?? "data")-\(thumbnailData?.count ?? 0)-\(originalData?.count ?? 0)-\(pixelWidth)x\(pixelHeight)"
+        return "\(identifier ?? "data")-\(originalData?.count ?? 0)-\(pixelWidth)x\(pixelHeight)"
     }
 
     @MainActor
     private func loadImage() async {
-        if let thumbnailData {
-            if let loadedImage = UIImage(data: thumbnailData) {
-                image = loadedImage
-                return
+        if let identifier {
+            if mediaStore.thumbnailFileURL(for: identifier) == nil,
+               let originalData {
+                await Task.detached(priority: .utility) {
+                    try? mediaStore.materializePhoto(
+                        data: originalData,
+                        identifier: identifier
+                    )
+                }.value
+            }
+
+            if let url = mediaStore.thumbnailFileURL(for: identifier) ?? mediaStore.fileURL(for: identifier) {
+                if let loadedImage = await thumbnailCache.image(
+                    identifier: identifier,
+                    url: url,
+                    targetSize: size,
+                    scale: displayScale
+                ) {
+                    image = loadedImage
+                    return
+                }
             }
         }
 
-        if let identifier,
-           let url = mediaStore.thumbnailFileURL(for: identifier) ?? mediaStore.fileURL(for: identifier) {
-            if let loadedImage = await thumbnailCache.image(
-                identifier: identifier,
-                url: url,
-                targetSize: size,
-                scale: displayScale
-            ) {
-                image = loadedImage
-                return
-            }
-        }
-
-        if let originalData {
-            if let loadedImage = UIImage(data: originalData) {
-                image = loadedImage
-            }
+        if let originalData,
+           let loadedImage = UIImage(data: originalData) {
+            image = loadedImage
         }
     }
 }

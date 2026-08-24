@@ -5,6 +5,7 @@ struct BellCatalogDashboardView: View {
     let stats: BellCatalogStats
     let accentColor: Color
     let collection: CollectionSummary?
+    let catalogSnapshot: CatalogSnapshot?
     let repository: any CatalogRepository
     let sharingState: CollectionSharingState
     let sharingService: (any CollectionSharingService)?
@@ -24,6 +25,7 @@ struct BellCatalogDashboardView: View {
                         NavigationLink {
                             CollectionOriginMapView(
                                 collection: collection,
+                                catalogSnapshot: catalogSnapshot,
                                 repository: repository
                             )
                         } label: {
@@ -332,29 +334,17 @@ private struct DashboardSharingCard: View {
     private var localizedParticipantsCount: String {
         String.localizedStringWithFormat(
             String(localized: "collection.sharing.participants_count"),
-            acceptedParticipantCount
+            state.acceptedParticipantsCount
         )
     }
 
     private var pendingInvitationsDetail: String? {
-        guard pendingInvitationCount > 0 else { return nil }
+        guard state.invitedParticipants.count > 0 else { return nil }
 
         return String.localizedStringWithFormat(
             String(localized: "bell_catalog.dashboard.sharing.pending_invitations_count"),
-            pendingInvitationCount
+            state.invitedParticipants.count
         )
-    }
-
-    private var acceptedParticipantCount: Int {
-        state.participants.filter {
-            !$0.isCurrentUser && $0.acceptanceStatus == .accepted
-        }.count
-    }
-
-    private var pendingInvitationCount: Int {
-        state.participants.filter {
-            !$0.isCurrentUser && $0.acceptanceStatus == .pending
-        }.count
     }
 }
 

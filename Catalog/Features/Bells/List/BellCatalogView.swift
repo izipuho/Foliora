@@ -95,17 +95,16 @@ private extension BellFilters {
 struct BellCatalogView: View {
     let repository: any CatalogRepository
     let collection: CollectionSummary?
+    let catalogSnapshot: CatalogSnapshot?
     let sharingState: CollectionSharingState
     let sharingService: (any CollectionSharingService)?
     let onSharingChanged: () -> Void
     let onBellSelected: ((UUID) -> Void)?
     let canEditCollection: Bool
-    @Environment(\.managedObjectContext) private var managedObjectContext
     @Environment(\.colorScheme) private var colorScheme
     @Binding var layoutMode: CatalogCardLayoutMode
     @Binding var orderMode: BellOrderMode
     @Binding var filters: BellFilters
-    @State private var catalogSnapshot = BellCatalogSnapshot()
     @State private var bellPendingMove: BellListItem?
     @State private var bellPendingDeletion: BellListItem?
     @State private var isPresentingDeleteConfirmation = false
@@ -128,6 +127,7 @@ struct BellCatalogView: View {
     init(
         collection: CollectionSummary?,
         repository: any CatalogRepository,
+        catalogSnapshot: CatalogSnapshot?,
         layoutMode: Binding<CatalogCardLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
@@ -139,6 +139,7 @@ struct BellCatalogView: View {
     ) {
         self.repository = repository
         self.collection = collection
+        self.catalogSnapshot = catalogSnapshot
         self.sharingState = sharingState
         self.sharingService = sharingService
         self.onSharingChanged = onSharingChanged
@@ -168,7 +169,13 @@ struct BellCatalogView: View {
     }
 
     private var favoriteBells: [BellListItem] {
-        catalogSnapshot.bells.filter(\.isFavorite)
+        sourceBells.filter(\.isFavorite)
+    }
+
+    private var sourceBells: [BellListItem] {
+        let bells = catalogSnapshot?.bells ?? []
+        guard let collectionID = collection?.id else { return bells }
+        return bells.filter { $0.collectionID == collectionID }
     }
 
     private func setFilter(_ filter: BellPresenceFilter) {
@@ -277,7 +284,6 @@ struct BellCatalogView: View {
                 onSave: {
                     repository.saveHome(draftHome)
                     repository.saveLocations(draftHomeLocations, in: draftHome.id)
-                    reloadCatalogSnapshot()
                     continueQuickMoveIfNeeded()
                 },
                 onDelete: nil
@@ -356,15 +362,12 @@ struct BellCatalogView: View {
             }
         }
         .onAppear {
-            reloadCatalogSnapshot()
             viewModel.updateContext(orderMode: orderMode)
             viewModel.updateContext(filters: filters)
+            updateSourceBells(sourceBells)
         }
-        .onReceive(NotificationCenter.default.publisher(
-            for: .NSManagedObjectContextObjectsDidChange,
-            object: managedObjectContext
-        )) { _ in
-            reloadCatalogSnapshot()
+        .onChange(of: sourceBells) { _, newValue in
+            updateSourceBells(newValue)
         }
         .onChange(of: orderMode) { _, newValue in
             activeJumpPopoverSectionID = nil
@@ -492,6 +495,7 @@ struct BellCatalogView: View {
             stats: displayModel.stats,
             accentColor: catalogStyle.accentColor,
             collection: collection,
+            catalogSnapshot: catalogSnapshot,
             repository: repository,
             sharingState: sharingState,
             sharingService: sharingService,
@@ -631,13 +635,29 @@ struct BellCatalogView: View {
     }
 
     private var availableLocations: [Location] {
-        guard let collection else { return catalogSnapshot.locations }
-        return catalogSnapshot.locations.filter { $0.homeID == collection.homeID }
+        guard let snapshot = catalogSnapshot else { return [] }
+        guard let collection else { return snapshot.locations }
+
+        let collectionLocations = snapshot.collectionLocationsByCollectionID[collection.id] ?? []
+        if !collectionLocations.isEmpty {
+            return collectionLocations
+        }
+
+        return snapshot.locationsByHomeID[collection.homeID] ?? []
     }
 
     private var locationPathByID: [UUID: String] {
-        catalogSnapshot.locationPathByID.filter { id, _ in
-            availableLocations.contains { $0.id == id }
+        guard let snapshot = catalogSnapshot else { return [:] }
+
+        if let collection,
+           let collectionLocationPathByID = snapshot.collectionLocationPathByCollectionID[collection.id],
+           !(snapshot.collectionLocationsByCollectionID[collection.id] ?? []).isEmpty {
+            return collectionLocationPathByID
+        }
+
+        let availableLocationIDs = Set(availableLocations.map(\.id))
+        return snapshot.locationPathByID.filter { id, _ in
+            availableLocationIDs.contains(id)
         }
     }
 
@@ -664,14 +684,13 @@ struct BellCatalogView: View {
         return StoragePath(components: components)
     }
 
-    private func reloadCatalogSnapshot() {
-        catalogSnapshot = BellCatalogSnapshot(context: managedObjectContext, collectionID: collection?.id)
-        viewModel.updateSource(bells: catalogSnapshot.bells)
+    private func updateSourceBells(_ bells: [BellListItem]) {
+        viewModel.updateSource(bells: bells)
         pruneSelectionToVisibleBells()
     }
 
     private func presentHomeEditor(for homeID: UUID, thenMove bell: BellListItem) {
-        let snapshot = CatalogSnapshot.load(from: managedObjectContext)
+        guard let snapshot = catalogSnapshot else { return }
         guard let home = snapshot.homes.first(where: { $0.id == homeID }) else { return }
         draftHome = home
         draftHomeLocations = snapshot.locationsByHomeID[homeID] ?? []
@@ -798,13 +817,11 @@ struct BellCatalogView: View {
         guard canEditCollection else { return }
 
         let location = locationID.flatMap { locationsByID[$0] }
-        let loader = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
         for bell in bells {
-            guard let record = loader.loadBell(id: bell.id) else { continue }
+            guard let record = catalogSnapshot?.recordsByID[bell.id] else { continue }
             repository.saveBellRecord(record.moving(to: location, storagePath: location.map(storagePath(for:))))
         }
 
-        reloadCatalogSnapshot()
         emitFeedback(.success)
     }
 
@@ -815,7 +832,6 @@ struct BellCatalogView: View {
             repository.deleteBellRecord(bellID: bell.id)
         }
 
-        reloadCatalogSnapshot()
         emitFeedback(.warning)
     }
 
@@ -924,14 +940,19 @@ private struct BellGroupingJumpPopover: View {
 struct BellDetailContainer: View {
     let bellID: UUID
     let repository: any CatalogRepository
-    @Environment(\.managedObjectContext) private var managedObjectContext
+    let catalogSnapshot: CatalogSnapshot?
     @State private var bell: BellRecord?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
 
-    init(bellID: UUID, repository: any CatalogRepository) {
+    init(
+        bellID: UUID,
+        repository: any CatalogRepository,
+        catalogSnapshot: CatalogSnapshot?
+    ) {
         self.bellID = bellID
         self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
     }
 
     var body: some View {
@@ -940,6 +961,7 @@ struct BellDetailContainer: View {
                 BellDetailView(
                     bell: bellBinding,
                     repository: repository,
+                    catalogSnapshot: catalogSnapshot,
                     canEditCollection: canEditCollection,
                     canChangeFavorite: canChangeFavorite
                 )
@@ -951,14 +973,13 @@ struct BellDetailContainer: View {
             }
         }
         .task(id: bellID) {
-            reloadBell()
+            syncBellFromCatalogSnapshot()
+        }
+        .task(id: currentCollectionID) {
             await loadCollectionSharingState()
         }
-        .onReceive(NotificationCenter.default.publisher(
-            for: .NSManagedObjectContextObjectsDidChange,
-            object: managedObjectContext
-        )) { _ in
-            reloadBell()
+        .onChange(of: catalogSnapshot?.recordsByID[bellID]) { _, _ in
+            syncBellFromCatalogSnapshot()
         }
     }
 
@@ -997,9 +1018,12 @@ struct BellDetailContainer: View {
         )
     }
 
-    private func reloadBell() {
-        bell = CoreDataBellLookupSnapshotLoader(context: managedObjectContext)
-            .loadBell(id: bellID)
+    private var currentCollectionID: UUID? {
+        bell?.item.collectionID ?? catalogSnapshot?.recordsByID[bellID]?.item.collectionID
+    }
+
+    private func syncBellFromCatalogSnapshot() {
+        bell = catalogSnapshot?.recordsByID[bellID]
     }
 
     @MainActor
@@ -1007,7 +1031,7 @@ struct BellDetailContainer: View {
         collectionSharingState = nil
         collectionSharingLoadError = nil
 
-        guard let collectionID = bell?.item.collectionID,
+        guard let collectionID = currentCollectionID,
               let persistentContainer = FolioraAppDelegate.coreDataContainer else {
             return
         }
@@ -1131,6 +1155,7 @@ private struct BellQuickMoveSheet: View {
         BellCatalogView(
             collection: summary,
             repository: repository,
+            catalogSnapshot: snapshot,
             sharingState: CollectionSharingState(
                 currentUserRole: .owner,
                 participants: []

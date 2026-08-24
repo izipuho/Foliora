@@ -4,8 +4,8 @@ import Foundation
 struct ItemRecord: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
-    let locationID: UUID?
-    let originPlaceID: UUID?
+    var locationID: UUID?
+    var originPlaceID: UUID?
     let createdAt: Date
     let createdBy: String
     var title: String
@@ -110,6 +110,17 @@ struct ItemRecord: Identifiable, Hashable, Codable {
         try container.encode(acquisitionMethod, forKey: .acquisitionMethod)
         try container.encode(isFavorite, forKey: .isFavorite)
         try container.encode(tags, forKey: .tags)
+    }
+
+    mutating func setOriginPlace(_ place: Place?) {
+        originPlaceID = place?.id
+        originPlace = place
+    }
+
+    mutating func setStorageLocation(_ location: Location?, path: StoragePath?) {
+        locationID = location?.id
+        storageLocation = location
+        storagePath = location == nil ? nil : path
     }
 }
 

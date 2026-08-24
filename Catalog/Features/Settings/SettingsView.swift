@@ -19,6 +19,9 @@ struct SettingsView: View {
     @State private var exportResultMessage: String?
     @State private var isDeveloperMenuPresented = false
     @FocusState private var isDisplayNameFocused: Bool
+    #if DEBUG
+    @State private var cloudKitSchemaMessage: String?
+    #endif
 
     var body: some View {
         List {
@@ -145,7 +148,31 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $isDeveloperMenuPresented) {
             NavigationStack {
-                PhotoAnalysisSettingsView()
+                Form {
+                    Section {
+                        NavigationLink {
+                            PhotoAnalysisSettingsView()
+                        } label: {
+                            Label("photo_analysis.title", systemImage: "photo")
+                        }
+                    }
+
+                    #if DEBUG
+                    Section("CloudKit") {
+                        SettingsInfoRow(
+                            title: "CloudContainer",
+                            value: cloudKitContainerIdentifier
+                        )
+
+                        Button {
+                            initializeCloudKitSchema()
+                        } label: {
+                            Label("Initialize CloudKit Schema", systemImage: "icloud.and.arrow.up")
+                        }
+                    }
+                    #endif
+                }
+                .navigationTitle("settings.developer.section_title")
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
                             Button {
@@ -327,6 +354,29 @@ struct SettingsView: View {
 
         return String.localizedStringWithFormat(String(localized: key), count)
     }
+    
+    #if DEBUG
+    private var cloudKitContainerIdentifier: String {
+        FolioraAppDelegate.coreDataContainer
+            .flatMap(FolioraCoreDataStack.cloudKitContainerIdentifier)
+            ?? "Unavailable"
+    }
+
+    private func initializeCloudKitSchema() {
+        guard let container = FolioraAppDelegate.coreDataContainer else {
+            cloudKitSchemaMessage = "Core Data container is unavailable."
+            return
+        }
+
+        do {
+            try container.initializeCloudKitSchema(options: [])
+            cloudKitSchemaMessage = "CloudKit schema initialized successfully."
+        } catch {
+            cloudKitSchemaMessage = error.localizedDescription
+        }
+    }
+    #endif
+
 
 }
 

@@ -148,12 +148,9 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
     func deleteBellRecord(bellID: UUID) {
         guard let entity = fetchBellEntity(by: bellID) else { return }
-        if let item = entity.value(forKey: "item") as? NSManagedObject {
-            context.delete(item)
-            deleteOrphanItemTags()
-        } else {
-            context.delete(entity)
-        }
+        guard let item = entity.value(forKey: "item") as? NSManagedObject else { return }
+        context.delete(item)
+        deleteOrphanItemTags()
         saveContext()
     }
 
@@ -192,17 +189,17 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
     private func apply(_ location: Location, to entity: NSManagedObject) {
         entity.setValue(location.id, forKey: "id")
-        entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(location.kind.rawValue, forKey: "kind")
         entity.setValue(location.name, forKey: "name")
         entity.setValue(location.notes, forKey: "notes")
     }
 
     private func apply(_ collection: Collection, to entity: NSManagedObject) {
         entity.setValue(collection.id, forKey: "id")
-        entity.setValue(collection.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(collection.kind.rawValue, forKey: "kind")
         entity.setValue(collection.title, forKey: "title")
         entity.setValue(collection.notes, forKey: "notes")
-        entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyleRaw")
+        entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyle")
     }
 
     private func applyHomeSnapshot(_ home: NSManagedObject, to collection: NSManagedObject) {
@@ -214,7 +211,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func apply(_ location: Location, sortOrder: Int, to entity: NSManagedObject) {
         entity.setValue(location.id, forKey: "id")
         entity.setValue(location.id, forKey: "sourceLocationID")
-        entity.setValue(location.kind.rawValue, forKey: "kindRaw")
+        entity.setValue(location.kind.rawValue, forKey: "kind")
         entity.setValue(location.name, forKey: "name")
         entity.setValue(location.notes, forKey: "notes")
         entity.setValue(sortOrder, forKey: "sortOrder")
@@ -222,7 +219,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func apply(_ bell: BellRecord, to entity: NSManagedObject) {
-        entity.setValue(bell.details.material.rawValue, forKey: "materialRaw")
+        entity.setValue(bell.details.material.rawValue, forKey: "material")
         entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
     }
 
@@ -234,23 +231,9 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(item.createdBy, forKey: "createdBy")
         entity.setValue(item.isFavorite, forKey: "isFavorite")
 
-        if entity.entity.attributesByName["acquiredYear"] != nil {
-            entity.setValue(item.acquiredYear, forKey: "acquiredYear")
-        } else {
-            entity.setValue(item.acquiredYear, forKey: "acquisitionYear")
-        }
-
-        if entity.entity.attributesByName["conditionRaw"] != nil {
-            entity.setValue(item.condition.rawValue, forKey: "conditionRaw")
-        } else {
-            entity.setValue(item.condition.rawValue, forKey: "condition")
-        }
-
-        if entity.entity.attributesByName["acquisitionMethodRaw"] != nil {
-            entity.setValue(item.acquisitionMethod.rawValue, forKey: "acquisitionMethodRaw")
-        } else {
-            entity.setValue(item.acquisitionMethod.rawValue, forKey: "acquisitionMethod")
-        }
+        entity.setValue(item.acquiredYear, forKey: "acquisitionYear")
+        entity.setValue(item.condition.rawValue, forKey: "condition")
+        entity.setValue(item.acquisitionMethod.rawValue, forKey: "acquisitionMethod")
     }
 
     private func saveBellRecordWithoutSavingContext(_ bell: BellRecord) {
@@ -278,7 +261,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(collectionLocation, forKey: "collectionLocation")
         entity.setValue(sourceLocationID.flatMap { fetchEntity(named: "LocationEntity", by: $0) }, forKey: "location")
         entity.setValue(item.originPlace.map(upsertPlace), forKey: "originPlace")
-        replaceMediaAssets(item.mediaAssets, for: entity)
+        upsertMediaAssets(item.mediaAssets, for: entity)
         replaceTags(item.tags, for: entity)
         return entity
     }
@@ -319,35 +302,58 @@ final class CoreDataCatalogRepository: CatalogRepository {
         deleteOrphanItemTags()
     }
 
-    private func replaceMediaAssets(_ mediaAssets: [MediaAsset], for item: NSManagedObject) {
+    private func upsertMediaAssets(_ mediaAssets: [MediaAsset], for item: NSManagedObject) {
         let existingAssets = (item.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []
-        existingAssets.forEach(context.delete)
+        let incomingIDs = Set(mediaAssets.map(\.id))
+        var entitiesByID: [UUID: NSManagedObject] = [:]
 
-        let newAssets = mediaAssets.map { asset in
-            let entity = makeEntity(named: "MediaAssetEntity")
-            entity.setValue(asset.id, forKey: "id")
-            entity.setValue(asset.kind.rawValue, forKey: "kindRaw")
-            entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
-            entity.setValue(asset.displayName, forKey: "displayName")
-            entity.setValue(asset.sortOrder, forKey: "sortOrder")
-            entity.setValue(asset.fileName, forKey: "fileName")
-            entity.setValue(asset.mimeType, forKey: "mimeType")
-            entity.setValue(asset.byteSize, forKey: "byteSize")
-            entity.setValue(asset.checksum, forKey: "checksum")
-            entity.setValue(asset.width, forKey: "width")
-            entity.setValue(asset.height, forKey: "height")
-            entity.setValue(asset.duration, forKey: "duration")
-            entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
-            entity.setValue(asset.thumbnailData, forKey: "thumbnailData")
-            entity.setValue(asset.originalData, forKey: "originalData")
-            if entity.entity.attributesByName["itemID"] != nil {
-                entity.setValue(item.value(forKey: "id"), forKey: "itemID")
-            }
+        for entity in existingAssets {
+            guard let id = entity.value(forKey: "id") as? UUID else { continue }
+            entitiesByID[id] = entitiesByID[id] ?? entity
+        }
+
+        let updatedAssets = mediaAssets.map { asset in
+            let entity = entitiesByID[asset.id] ?? makeEntity(named: "MediaAssetEntity")
+            apply(asset, to: entity)
             entity.setValue(item, forKey: "item")
             return entity
         }
 
-        item.setValue(Set(newAssets), forKey: "mediaAssets")
+        for entity in existingAssets {
+            guard
+                let id = entity.value(forKey: "id") as? UUID,
+                !incomingIDs.contains(id)
+            else {
+                continue
+            }
+
+            context.delete(entity)
+        }
+
+        item.setValue(Set(updatedAssets), forKey: "mediaAssets")
+    }
+
+    private func apply(_ asset: MediaAsset, to entity: NSManagedObject) {
+        let isNewEntity = entity.value(forKey: "id") == nil
+        let existingChecksum = entity.value(forKey: "checksum") as? String
+        let shouldUpdateOriginalData = isNewEntity || existingChecksum != asset.checksum
+
+        entity.setValue(asset.id, forKey: "id")
+        entity.setValue(asset.kind.rawValue, forKey: "kind")
+        entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
+        entity.setValue(asset.displayName, forKey: "displayName")
+        entity.setValue(asset.sortOrder, forKey: "sortOrder")
+        entity.setValue(asset.fileName, forKey: "fileName")
+        entity.setValue(asset.mimeType, forKey: "mimeType")
+        entity.setValue(asset.byteSize, forKey: "byteSize")
+        entity.setValue(asset.checksum, forKey: "checksum")
+        entity.setValue(asset.width, forKey: "width")
+        entity.setValue(asset.height, forKey: "height")
+        entity.setValue(asset.duration, forKey: "duration")
+        entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
+        if shouldUpdateOriginalData {
+            entity.setValue(asset.originalData, forKey: "originalData")
+        }
     }
 
     private func home(from entity: NSManagedObject) -> Home {
@@ -363,10 +369,10 @@ final class CoreDataCatalogRepository: CatalogRepository {
         Collection(
             id: uuidValue(entity, "id"),
             homeID: collectionHomeID(from: entity),
-            kind: collectionKind(from: stringValue(entity, "kindRaw", default: CollectionKind.bells.rawValue)),
+            kind: collectionKind(from: stringValue(entity, "kind", default: CollectionKind.bells.rawValue)),
             title: stringValue(entity, "title"),
             notes: stringValue(entity, "notes"),
-            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyleRaw", default: CollectionBackgroundStyle.amber.rawValue))
+            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyle", default: CollectionBackgroundStyle.amber.rawValue))
         )
     }
 
@@ -387,7 +393,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     private func fetchBellEntity(by itemID: UUID) -> NSManagedObject? {
         fetchEntities(
             named: "BellEntity",
-            predicate: NSPredicate(format: "item.id == %@ OR id == %@", itemID as NSUUID, itemID as NSUUID),
+            predicate: NSPredicate(format: "item.id == %@", itemID as NSUUID),
             fetchLimit: 1
         ).first
     }

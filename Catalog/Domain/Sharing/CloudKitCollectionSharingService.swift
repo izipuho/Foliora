@@ -5,11 +5,11 @@ import UIKit
 
 /// Defines the interface for collection sharing service implementations.
 protocol CollectionSharingService: Sendable {
-    func fetchShare(for collectionID: UUID) async throws -> CKShare?
+    func fetchShare(for collectionID: UUID) async throws -> (share: CKShare, container: CKContainer)?
 
     func localSharingReadiness(for collectionID: UUID) async throws -> (isReady: Bool, reasons: [String])
 
-    func createShare(for collectionID: UUID, title: String) async throws -> CKShare
+    func createShare(for collectionID: UUID, title: String) async throws -> (share: CKShare, container: CKContainer)
 
     func sharingState(
         for collectionID: UUID
@@ -27,11 +27,16 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
         self.context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
     }
 
-    func fetchShare(for collectionID: UUID) async throws -> CKShare? {
+    func fetchShare(for collectionID: UUID) async throws -> (share: CKShare, container: CKContainer)? {
         do {
-            let collection = try await collectionEntity(for: collectionID)
-            let share = try persistentContainer.fetchShares(matching: [collection.objectID])[collection.objectID]
-            return share
+            let objectID = try await collectionObjectID(for: collectionID)
+            guard let share = try persistentContainer.fetchShares(matching: [objectID])[objectID] else {
+                return nil
+            }
+            guard let containerIdentifier = FolioraCoreDataStack.cloudKitContainerIdentifier(from: persistentContainer) else {
+                throw CloudKitCollectionSharingError.shareNotCreated
+            }
+            return (share: share, container: CKContainer(identifier: containerIdentifier))
         } catch {
             throw error
         }
@@ -75,41 +80,44 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
     func createShare(
         for collectionID: UUID,
         title: String
-    ) async throws -> CKShare {
+    ) async throws -> (share: CKShare, container: CKContainer) {
         do {
-            let collection = try await collectionEntity(for: collectionID)
-            let persistentStore = try persistentStore(for: collection)
+            let objectID = try await collectionObjectID(for: collectionID)
+            let persistentStore = try persistentStore(for: objectID)
 
             let sharesBefore: [NSManagedObjectID: CKShare]
             do {
-                sharesBefore = try persistentContainer.fetchShares(matching: [collection.objectID])
+                sharesBefore = try persistentContainer.fetchShares(matching: [objectID])
             } catch {
                 throw error
             }
-            let existingShare = sharesBefore[collection.objectID]
+            let existingShare = sharesBefore[objectID]
 
             if let existingShare {
                 let share = try await savedShare(
                     existingShare,
                     title: title,
                     thumbnailImageData: shareThumbnailImageData(),
-                    objectID: collection.objectID,
+                    objectID: objectID,
                     in: persistentStore
                 )
-                return share
+                guard let containerIdentifier = FolioraCoreDataStack.cloudKitContainerIdentifier(from: persistentContainer) else {
+                    throw CloudKitCollectionSharingError.shareNotCreated
+                }
+                return (share: share, container: CKContainer(identifier: containerIdentifier))
             }
 
-            try await prepareForSharing(collection)
-            let share = try await share(collection)
+            try await prepareForSharing(objectID)
+            let sharedCollection = try await share(objectID)
 
             let savedShare = try await savedShare(
-                share,
+                sharedCollection.share,
                 title: title,
                 thumbnailImageData: shareThumbnailImageData(),
-                objectID: collection.objectID,
+                objectID: objectID,
                 in: persistentStore
             )
-            return savedShare
+            return (share: savedShare, container: sharedCollection.container)
         } catch {
             throw error
         }
@@ -118,7 +126,7 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
     func sharingState(
         for collectionID: UUID
     ) async throws -> CollectionSharingState {
-        guard let share = try await fetchShare(for: collectionID) else {
+        guard let share = try await fetchShare(for: collectionID)?.share else {
             return CollectionSharingState(
                 currentUserRole: .owner,
                 participants: []
@@ -144,7 +152,7 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
 }
 
 private extension CloudKitCollectionSharingService {
-    func collectionEntity(for collectionID: UUID) async throws -> NSManagedObject {
+    func collectionObjectID(for collectionID: UUID) async throws -> NSManagedObjectID {
         try await context.perform {
             let request = NSFetchRequest<NSManagedObject>(entityName: "CollectionEntity")
             request.fetchLimit = 1
@@ -154,35 +162,35 @@ private extension CloudKitCollectionSharingService {
                 throw CloudKitCollectionSharingError.collectionNotFound(collectionID)
             }
 
-            return collection
+            return collection.objectID
         }
     }
 
-    func share(_ collection: NSManagedObject) async throws -> CKShare {
-        do {
-            let share: CKShare = try await withCheckedThrowingContinuation { continuation in
-                persistentContainer.share([collection], to: nil) { _, share, _, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                        return
-                    }
+    func share(_ objectID: NSManagedObjectID) async throws -> (share: CKShare, container: CKContainer) {
+        try await withCheckedThrowingContinuation { continuation in
+            context.perform {
+                do {
+                    let collection = try self.context.existingObject(with: objectID)
+                    self.persistentContainer.share([collection], to: nil) { _, share, container, error in
+                        if let error {
+                            continuation.resume(throwing: error)
+                            return
+                        }
 
-                    if let share {
-                        continuation.resume(returning: share)
-                    } else {
-                        continuation.resume(throwing: CloudKitCollectionSharingError.shareNotCreated)
+                        if let share, let container {
+                            continuation.resume(returning: (share: share, container: container))
+                        } else {
+                            continuation.resume(throwing: CloudKitCollectionSharingError.shareNotCreated)
+                        }
                     }
+                } catch {
+                    continuation.resume(throwing: error)
                 }
             }
-            return share
-        } catch {
-            throw error
         }
     }
 
-    func prepareForSharing(_ collection: NSManagedObject) async throws {
-        let objectID = collection.objectID
-
+    func prepareForSharing(_ objectID: NSManagedObjectID) async throws {
         do {
             try await context.perform {
                 let collection = try self.context.existingObject(with: objectID)
@@ -226,7 +234,7 @@ private extension CloudKitCollectionSharingService {
             )
             entity.setValue(sourceLocationID, forKey: "id")
             entity.setValue(sourceLocationID, forKey: "sourceLocationID")
-            entity.setValue(location.value(forKey: "kindRaw"), forKey: "kindRaw")
+            entity.setValue(location.value(forKey: "kind"), forKey: "kind")
             entity.setValue(location.value(forKey: "name"), forKey: "name")
             entity.setValue(location.value(forKey: "notes"), forKey: "notes")
             entity.setValue(sortOrder, forKey: "sortOrder")
@@ -335,25 +343,16 @@ private extension CloudKitCollectionSharingService {
         }
 
         if needsPersisting {
-            _ = try await persistUpdatedShare(share, in: persistentStore)
+            let persistedShare = try await persistUpdatedShare(
+                share,
+                in: persistentStore
+            )
 
-            let sharesAfterPersist: [NSManagedObjectID: CKShare]
-            do {
-                sharesAfterPersist = try persistentContainer.fetchShares(matching: [objectID])
-            } catch {
-                throw error
-            }
-            let refetchedShare = sharesAfterPersist[objectID]
-
-            guard let refetchedShare else {
-                throw CloudKitCollectionSharingError.shareNotCreated
-            }
-
-            guard refetchedShare.url != nil else {
+            guard persistedShare.url != nil else {
                 throw CloudKitCollectionSharingError.shareURLUnavailable
             }
 
-            return refetchedShare
+            return share
         }
 
         guard share.url != nil else {
@@ -385,8 +384,8 @@ private extension CloudKitCollectionSharingService {
         }
     }
 
-    func persistentStore(for collection: NSManagedObject) throws -> NSPersistentStore {
-        guard let persistentStore = collection.objectID.persistentStore else {
+    func persistentStore(for objectID: NSManagedObjectID) throws -> NSPersistentStore {
+        guard let persistentStore = objectID.persistentStore else {
             throw CloudKitCollectionSharingError.persistentStoreNotFound
         }
 
