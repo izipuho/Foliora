@@ -11,8 +11,6 @@
 		2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */; };
 		2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED52F9F912300C63AB6 /* StorageMapCard.swift */; };
 		2403CEDA2F9F945700C63AB6 /* BellSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED92F9F945700C63AB6 /* BellSearchView.swift */; };
-		24C44C6E303CCD2500404BD4 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C44C70303CCD2500404BD4 /* SearchView.swift */; };
-		24C44C6F303CCD2500404BD4 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C44C70303CCD2500404BD4 /* SearchView.swift */; };
 		2403CEDC2F9F954D00C63AB6 /* BellsOriginMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDB2F9F954D00C63AB6 /* BellsOriginMapView.swift */; };
 		2403CEDF2F9FA3A900C63AB6 /* CollectionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */; };
 		2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */; };
@@ -29,7 +27,6 @@
 		24A7F2CC303C3BF4005D31A1 /* Books.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 24C55DD0302272960091118A /* Books.xcassets */; };
 		24A7F2D1303C5F95005D31A1 /* BookLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D0303C5F95005D31A1 /* BookLibraryView.swift */; };
 		24A7F2D3303C5F95005D31A1 /* BookCollectionDraftView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */; };
-		24C44C72303CCD2500404BD4 /* BookSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C44C73303CCD2500404BD4 /* BookSearchView.swift */; };
 		24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */; };
 		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
 		24C44C63303CCD2500404BD4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0472FB465CF00B4D805 /* SettingsView.swift */; };
@@ -41,6 +38,9 @@
 		24C44C6B303CCD2500404BD4 /* StorageMapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED52F9F912300C63AB6 /* StorageMapCard.swift */; };
 		24C44C6C303CCD2500404BD4 /* HomeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */; };
 		24C44C6D303CCD2500404BD4 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000D /* HomeView.swift */; };
+		24C44C6E303CCD2500404BD4 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C44C70303CCD2500404BD4 /* SearchView.swift */; };
+		24C44C6F303CCD2500404BD4 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C44C70303CCD2500404BD4 /* SearchView.swift */; };
+		24C44C72303CCD2500404BD4 /* BookSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C44C73303CCD2500404BD4 /* BookSearchView.swift */; };
 		24D9EB9030115CE8009DB654 /* PhotoAnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */; };
 		24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */; };
 		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
@@ -75,14 +75,14 @@
 		24A7F2D0303C5F95005D31A1 /* BookLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookLibraryView.swift; sourceTree = "<group>"; };
 		24A7F2D2303C5F95005D31A1 /* BookCollectionDraftView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCollectionDraftView.swift; sourceTree = "<group>"; };
 		24A7F2D4303C5F95005D31A1 /* BookLibraryPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookLibraryPlaceholderView.swift; sourceTree = "<group>"; };
-		24C44C73303CCD2500404BD4 /* BookSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookSearchView.swift; sourceTree = "<group>"; };
 		24A7F2D9303C7219005D31A1 /* Foliora-Books-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Books-Info.plist"; sourceTree = "<group>"; };
 		24A7F2DA303C7219005D31A1 /* Foliora Books.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Books.entitlements"; sourceTree = "<group>"; };
 		24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellEditorView.swift; sourceTree = "<group>"; };
 		24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogDashboard.swift; sourceTree = "<group>"; };
+		24C44C70303CCD2500404BD4 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		24C44C73303CCD2500404BD4 /* BookSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookSearchView.swift; sourceTree = "<group>"; };
 		24C55DCE302272350091118A /* Records.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Records.xcassets; sourceTree = "<group>"; };
 		24C55DD0302272960091118A /* Books.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Books.xcassets; sourceTree = "<group>"; };
-		24C44C70303CCD2500404BD4 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysisSettingsView.swift; sourceTree = "<group>"; };
 		24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Bells.entitlements"; sourceTree = "<group>"; };
 		24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Bells-Info.plist"; sourceTree = "<group>"; };
@@ -265,6 +265,14 @@
 			path = Library;
 			sourceTree = "<group>";
 		};
+		24C44C71303CCD2500404BD4 /* Search */ = {
+			isa = PBXGroup;
+			children = (
+				24C44C70303CCD2500404BD4 /* SearchView.swift */,
+			);
+			path = Search;
+			sourceTree = "<group>";
+		};
 		C00000000000000000000031 = {
 			isa = PBXGroup;
 			children = (
@@ -347,14 +355,6 @@
 				C00000000000000000000046 /* Detail */,
 			);
 			path = Bells;
-			sourceTree = "<group>";
-		};
-		24C44C71303CCD2500404BD4 /* Search */ = {
-			isa = PBXGroup;
-			children = (
-				24C44C70303CCD2500404BD4 /* SearchView.swift */,
-			);
-			path = Search;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000044 /* Home */ = {
