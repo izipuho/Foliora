@@ -64,10 +64,11 @@ struct CatalogExportView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            //Button("Cancel") {
             Button {
                 dismiss()
-            } label: {Image(systemName: "xmark")}
+            } label: {
+                Image(systemName: "xmark")
+            }
         }
 
         ToolbarItem(placement: .confirmationAction) {
@@ -116,7 +117,9 @@ struct CatalogExportView: View {
     }
 
     private var collectionItems: [CatalogExportCollectionItem] {
-        collectionEntities.compactMap(CatalogExportCollectionItem.init(entity:))
+        collectionEntities
+            .compactMap(CatalogExportCollectionItem.init(entity:))
+            .filter { $0.kind == CollectionAppLink.currentAppKind }
     }
 
     private var collectionsByHomeID: [UUID: [CatalogExportCollectionItem]] {
@@ -125,12 +128,15 @@ struct CatalogExportView: View {
 
     private var selectionTree: CatalogSelectionTree {
         CatalogSelectionTree(
-            homes: homeItems.map { home in
-                CatalogSelectionHomeItem(
+            homes: homeItems.compactMap { home in
+                let collections = collectionsByHomeID[home.id, default: []]
+                guard !collections.isEmpty else { return nil }
+
+                return CatalogSelectionHomeItem(
                     id: home.id,
                     name: home.name,
                     iconName: home.iconName,
-                    collections: collectionsByHomeID[home.id, default: []].map {
+                    collections: collections.map {
                         CatalogSelectionCollectionItem(id: $0.id, title: $0.title)
                     }
                 )
@@ -352,15 +358,22 @@ private struct CatalogSelectionTree: Equatable {
     }
 
     init(bundle: CatalogTransferBundle) {
-        let collectionsByHomeID = Dictionary(grouping: bundle.collections, by: \.homeID)
+        let supportedCollections = bundle.collections.filter {
+            $0.kind == CollectionAppLink.currentAppKind
+        }
+        let collectionsByHomeID = Dictionary(grouping: supportedCollections, by: \.homeID)
+
         homes = bundle.homes
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-            .map { home in
-                CatalogSelectionHomeItem(
+            .compactMap { home in
+                let collections = collectionsByHomeID[home.id, default: []]
+                guard !collections.isEmpty else { return nil }
+
+                return CatalogSelectionHomeItem(
                     id: home.id,
                     name: home.name,
                     iconName: home.iconName,
-                    collections: collectionsByHomeID[home.id, default: []]
+                    collections: collections
                         .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
                         .map { CatalogSelectionCollectionItem(id: $0.id, title: $0.title) }
                 )
@@ -403,16 +416,21 @@ private struct CatalogExportHomeItem: Identifiable, Hashable {
 private struct CatalogExportCollectionItem: Identifiable, Hashable {
     let id: UUID
     let homeID: UUID
+    let kind: CollectionKind
     let title: String
 
     init?(entity: NSManagedObject) {
         guard let id = entity.value(forKey: "id") as? UUID,
-              let homeID = entity.value(forKey: "homeID") as? UUID else {
+              let homeID = entity.value(forKey: "homeID") as? UUID,
+              let rawKind = entity.value(forKey: "kind") as? String,
+              let kind = CollectionKind(rawValue: rawKind)
+        else {
             return nil
         }
 
         self.id = id
         self.homeID = homeID
+        self.kind = kind
         title = entity.value(forKey: "title") as? String ?? ""
     }
 }
@@ -457,22 +475,29 @@ private enum CatalogImportPreviewData {
                 Collection(
                     id: UUID(),
                     homeID: firstHomeID,
-                    kind: .books,
-                    title: "Collection 1",
+                    kind: .bells,
+                    title: "Bells 1",
                     notes: ""
                 ),
                 Collection(
                     id: UUID(),
                     homeID: firstHomeID,
                     kind: .books,
-                    title: "Collection 2",
+                    title: "Books 1",
+                    notes: ""
+                ),
+                Collection(
+                    id: UUID(),
+                    homeID: secondHomeID,
+                    kind: .bells,
+                    title: "Bells 2",
                     notes: ""
                 ),
                 Collection(
                     id: UUID(),
                     homeID: secondHomeID,
                     kind: .books,
-                    title: "Collection 3",
+                    title: "Books 2",
                     notes: ""
                 )
             ],
