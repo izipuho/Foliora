@@ -107,7 +107,7 @@ struct BookLibraryView: View {
 }
 
 #Preview {
-    let container = try! FolioraCoreDataStack.makeInMemoryContainer()
+    let container = PreviewContainer.makeBooksMinimal()
     BookLibraryView()
         .environment(\.managedObjectContext, container.viewContext)
 }

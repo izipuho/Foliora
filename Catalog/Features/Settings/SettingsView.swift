@@ -383,7 +383,7 @@ struct SettingsView: View {
 
 #if DEBUG
 #Preview {
-    let container = PreviewContainer.make(.minimal)
+    let container = PreviewContainer.make(.coreMinimal)
     let repository = CoreDataCatalogRepository(
         context: container.viewContext,
         persistentContainer: nil
