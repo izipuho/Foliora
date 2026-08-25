@@ -163,3 +163,16 @@ extension PreviewData {
         }
     }
 }
+
+@MainActor
+extension PreviewContainer {
+    static func makeBooksMinimal() -> NSPersistentCloudKitContainer {
+        do {
+            let container = try FolioraCoreDataStack.makeInMemoryContainer()
+            PreviewData.populateMinimalBooks(context: container.viewContext)
+            return container
+        } catch {
+            fatalError("Failed to create books preview container: \(error)")
+        }
+    }
+}
