@@ -605,8 +605,8 @@ private enum CollectionCardSharingStatus {
 }
 
 #if DEBUG
-#Preview {
-    let container = PreviewContainer.make(.minimal)
+#Preview("Mixed Collections") {
+    let container = PreviewContainer.make(.collectionsMinimal)
     let repository = CoreDataCatalogRepository(
         context: container.viewContext,
         persistentContainer: nil
