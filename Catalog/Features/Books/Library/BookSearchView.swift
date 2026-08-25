@@ -68,10 +68,12 @@ func makeCollectionDestinationContent(
     onBatchAddComplete: @escaping (Any) -> Void
 ) -> AnyView {
     AnyView(
-        CatalogEmptyStateView(
-            systemImage: collection.kind.systemImage,
-            title: "Collection",
-            message: "This collection is not available in this app yet."
+        BookLibraryView(
+            collection: collection,
+            catalogSnapshot: catalogSnapshot,
+            repository: repository,
+            layoutMode: layoutMode,
+            onBookSelected: onItemSelected
         )
     )
 }
@@ -83,5 +85,19 @@ func makeItemInspectorContent(
     catalogSnapshot: CatalogSnapshot?,
     onClose: @escaping () -> Void
 ) -> AnyView {
-    AnyView(EmptyView())
+    guard let book = catalogSnapshot?.recordsByID[itemID] else {
+        return AnyView(
+            CatalogEmptyStateView(
+                systemImage: "book.closed",
+                title: "Book not found",
+                message: "This book is no longer available."
+            )
+        )
+    }
+
+    return AnyView(
+        NavigationStack {
+            BookDetailView(book: book, onClose: onClose)
+        }
+    )
 }
