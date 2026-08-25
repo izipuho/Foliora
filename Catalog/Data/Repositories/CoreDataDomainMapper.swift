@@ -10,6 +10,7 @@ enum CoreDataDomainMapper {
         precondition(entity.entity.name == "ItemEntity", "CoreDataDomainMapper.itemRecord(from:) expects ItemEntity.")
 
         let id = uuidValue(entity, "id")
+        let collectionEntity = entity.value(forKey: "collection") as? NSManagedObject
         let locationEntity = entity.value(forKey: "collectionLocation") as? NSManagedObject
         let originPlaceEntity = entity.value(forKey: "originPlace") as? NSManagedObject
         let tags = relatedObjects(entity, "tags")
@@ -21,7 +22,13 @@ enum CoreDataDomainMapper {
 
         return ItemRecord(
             id: id,
-            collectionID: (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") } ?? UUID(),
+            collectionID: collectionEntity.map { uuidValue($0, "id") } ?? UUID(),
+            kind: collectionKind(from: stringValue(
+                entity,
+                "kind",
+                default: collectionEntity.map { stringValue($0, "kind", default: CollectionKind.bells.rawValue) }
+                    ?? CollectionKind.bells.rawValue
+            )),
             locationID: locationEntity.map { uuidValue($0, "id") },
             originPlaceID: originPlaceEntity.map { uuidValue($0, "id") },
             createdAt: dateValue(entity, "createdAt"),
@@ -147,6 +154,10 @@ enum CoreDataDomainMapper {
 
     private static func locationKind(from rawValue: String) -> LocationKind {
         LocationKind(rawValue: rawValue) ?? .room
+    }
+
+    private static func collectionKind(from rawValue: String) -> CollectionKind {
+        CollectionKind(rawValue: rawValue) ?? .bells
     }
 
     private static func itemCondition(from rawValue: String) -> ItemCondition {

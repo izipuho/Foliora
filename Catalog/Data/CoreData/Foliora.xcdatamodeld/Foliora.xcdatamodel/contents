@@ -15,7 +15,7 @@
         <attribute name="languageCode" optional="YES" attributeType="String"/>
         <attribute name="pageCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="publicationPlaceName" optional="YES" attributeType="String"/>
-        <attribute name="publicationYear" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="publicationYear" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="NO"/>
         <attribute name="volumeNumber" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="contributors" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="book" inverseEntity="BookContributorEntity"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="book" inverseEntity="ItemEntity"/>

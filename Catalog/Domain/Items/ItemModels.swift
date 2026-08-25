@@ -4,6 +4,7 @@ import Foundation
 struct ItemRecord: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
+    var kind: CollectionKind
     var locationID: UUID?
     var originPlaceID: UUID?
     let createdAt: Date
@@ -23,6 +24,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
     private enum CodingKeys: String, CodingKey {
         case id
         case collectionID
+        case kind
         case locationID
         case originPlaceID
         case createdAt
@@ -39,6 +41,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
     init(
         id: UUID,
         collectionID: UUID,
+        kind: CollectionKind = .bells,
         locationID: UUID?,
         originPlaceID: UUID?,
         createdAt: Date,
@@ -57,6 +60,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
     ) {
         self.id = id
         self.collectionID = collectionID
+        self.kind = kind
         self.locationID = locationID
         self.originPlaceID = originPlaceID
         self.createdAt = createdAt
@@ -78,6 +82,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         collectionID = try container.decode(UUID.self, forKey: .collectionID)
+        kind = try container.decodeIfPresent(CollectionKind.self, forKey: .kind) ?? .bells
         locationID = try container.decodeIfPresent(UUID.self, forKey: .locationID)
         originPlaceID = try container.decodeIfPresent(UUID.self, forKey: .originPlaceID)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
@@ -99,6 +104,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(collectionID, forKey: .collectionID)
+        try container.encode(kind, forKey: .kind)
         try container.encodeIfPresent(locationID, forKey: .locationID)
         try container.encodeIfPresent(originPlaceID, forKey: .originPlaceID)
         try container.encode(createdAt, forKey: .createdAt)

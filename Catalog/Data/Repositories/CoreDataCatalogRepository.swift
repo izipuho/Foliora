@@ -202,6 +202,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
     private func apply(_ item: ItemRecord, to entity: NSManagedObject) {
         entity.setValue(item.id, forKey: "id")
+        entity.setValue(item.kind.rawValue, forKey: "kind")
         entity.setValue(item.title, forKey: "title")
         entity.setValue(item.notes, forKey: "notes")
         entity.setValue(item.createdAt, forKey: "createdAt")
