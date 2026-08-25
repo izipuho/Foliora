@@ -103,8 +103,8 @@ struct BookDetailView: View {
                 metadataRow(contributor.role.title, value: contributor.person.name)
             }
         }
-        .padding(CatalogMetrics.Spacing.lg)
-        .catalogSurfaceSection()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .catalogSurfaceCard()
     }
 
     private var notes: some View {
@@ -116,8 +116,7 @@ struct BookDetailView: View {
                 .font(.body)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(CatalogMetrics.Spacing.lg)
-        .catalogSurfaceSection()
+        .catalogSurfaceCard()
     }
 
     private func metadataRow(_ title: String, value: String) -> some View {
