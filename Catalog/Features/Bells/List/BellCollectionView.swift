@@ -119,6 +119,7 @@ struct BellCollectionView: View {
         CatalogContentToolbar(
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: selectedLayoutModeBinding,
+            isPresentingAddOptions: $isPresentingAddBellOptions,
             sortOptions: [.newestFirst, .title, .geography, .acquisitionYear, .storage],
             sortSectionTitle: String(localized: "bell_catalog.sort.menu"),
             layoutSectionTitle: String(localized: "bell_catalog.layout.menu"),
@@ -133,13 +134,22 @@ struct BellCollectionView: View {
                 String(localized: mode.title)
             },
             canEdit: canEditCollection,
+            addTitle: String(localized: "editor.bell.add"),
+            photoLibraryTitle: String(localized: "editor.media.photo_library"),
+            cameraTitle: String(localized: "editor.media.camera"),
+            cancelTitle: String(localized: "common.cancel"),
+            isCameraAvailable: UIImagePickerController.isSourceTypeAvailable(.camera),
             onEdit: {
                 guard canEditCollection else { return }
                 isPresentingEditCollection = true
             },
-            onAdd: {
+            onLibrary: {
                 guard canEditCollection else { return }
-                isPresentingAddBellOptions = true
+                isPresentingPhotoPicker = true
+            },
+            onCamera: {
+                guard canEditCollection else { return }
+                isPresentingCamera = true
             }
         )
     }
@@ -150,25 +160,6 @@ struct BellCollectionView: View {
                 if !isBellCatalogSelectionMode {
                     collectionToolbar
                 }
-            }
-            .confirmationDialog(
-                String(localized: "editor.bell.add"),
-                isPresented: $isPresentingAddBellOptions,
-                titleVisibility: .visible
-            ) {
-                Button(String(localized: "editor.media.photo_library")) {
-                    guard canEditCollection else { return }
-                    isPresentingPhotoPicker = true
-                }
-
-                if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    Button(String(localized: "editor.media.camera")) {
-                        guard canEditCollection else { return }
-                        isPresentingCamera = true
-                    }
-                }
-
-                Button(String(localized: "common.cancel"), role: .cancel) {}
             }
             .onPreferenceChange(BellCatalogSelectionModePreferenceKey.self) { isSelectionMode in
                 isBellCatalogSelectionMode = isSelectionMode
