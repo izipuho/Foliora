@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 import CoreData
 
 private enum LibraryOrderMode: String, CaseIterable {
@@ -33,6 +34,10 @@ struct LibraryView: View {
     @AppStorage("bookLibrary.orderMode") private var selectedOrderRawValue = LibraryOrderMode.title.rawValue
     @State private var selectedBookID: UUID?
     @State private var isPresentingEditLibrary = false
+    @State private var isPresentingAddBookOptions = false
+    @State private var isPresentingPhotoPicker = false
+    @State private var isPresentingCamera = false
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
 
@@ -169,6 +174,35 @@ struct LibraryView: View {
             .toolbar {
                 libraryToolbar
             }
+            .confirmationDialog(
+                "Add Book",
+                isPresented: $isPresentingAddBookOptions,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "editor.media.photo_library")) {
+                    guard canEditLibrary else { return }
+                    isPresentingPhotoPicker = true
+                }
+
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button(String(localized: "editor.media.camera")) {
+                        guard canEditLibrary else { return }
+                        isPresentingCamera = true
+                    }
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+            }
+            .photosPicker(
+                isPresented: $isPresentingPhotoPicker,
+                selection: $selectedPhotoItems,
+                maxSelectionCount: nil,
+                matching: .images,
+                photoLibrary: .shared()
+            )
+            .fullScreenCover(isPresented: $isPresentingCamera) {
+                CameraPicker { _ in }
+            }
             .sheet(isPresented: $isPresentingEditLibrary) {
                 editLibrarySheet
             }
@@ -238,7 +272,10 @@ struct LibraryView: View {
             onEdit: {
                 isPresentingEditLibrary = true
             },
-            onAdd: nil
+            onAdd: {
+                guard canEditLibrary else { return }
+                isPresentingAddBookOptions = true
+            }
         )
     }
 
