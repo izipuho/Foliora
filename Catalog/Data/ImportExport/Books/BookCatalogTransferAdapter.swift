@@ -71,6 +71,8 @@ struct BookCatalogTransferAdapter: CatalogDomainTransferAdapter {
 
             for transferredBook in bookPayload.items {
                 guard let itemEntity = itemEntitiesByID[transferredBook.itemID] else { continue }
+                itemEntity.setValue(CollectionKind.books.rawValue, forKey: "kind")
+
                 let item = CoreDataDomainMapper.itemRecord(from: itemEntity)
                 let sourceDetails = transferredBook.details
                 let details = BookDetails(
