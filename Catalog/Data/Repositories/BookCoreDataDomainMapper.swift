@@ -13,7 +13,7 @@ extension CoreDataDomainMapper {
         let publicationPlaceEntity = entity.value(forKey: "publicationPlace") as? NSManagedObject
         let contributors = relatedObjects(entity, "contributors")
             .sorted { intValue($0, "order") < intValue($1, "order") }
-            .map(bookContributor)
+            .map { bookContributor(from: $0) }
 
         return BookRecord(
             item: itemRecord,
@@ -24,7 +24,7 @@ extension CoreDataDomainMapper {
                 publicationPlaceName: entity.value(forKey: "publicationPlaceName") as? String,
                 publicationYear: optionalIntValue(entity, "publicationYear"),
                 volumeNumber: positiveIntValue(entity, "volumeNumber"),
-                publicationPlace: publicationPlaceEntity.map(place),
+                publicationPlace: publicationPlaceEntity.map { place(from: $0) },
                 contributors: contributors
             )
         )
