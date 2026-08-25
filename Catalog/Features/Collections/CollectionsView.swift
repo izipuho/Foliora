@@ -10,6 +10,7 @@ struct CollectionsView: View {
     let navigate: ((AppDestination) -> Void)?
     let onOpenHomes: () -> Void
     @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var collectionAppLinkRouter = CollectionAppLinkRouter.shared
     @State private var collectionSharingStatuses: [UUID: CollectionCardSharingStatus] = [:]
     @State private var collectionBackgroundItemIDs: [UUID: UUID] = [:]
     @State private var isPresentingAddCollectionEditor = false
@@ -67,6 +68,7 @@ struct CollectionsView: View {
                     .ignoresSafeArea()
             }
             .onAppear {
+                handlePendingCollectionDeepLink()
                 autoOpenSingleCollectionIfNeeded()
                 refreshCollectionBackgroundBells()
             }
@@ -74,8 +76,12 @@ struct CollectionsView: View {
                 await loadCollectionSharingStatuses(for: collections.map(\.id))
             }
             .onChange(of: collections.map(\.id)) { _, _ in
+                handlePendingCollectionDeepLink()
                 autoOpenSingleCollectionIfNeeded()
                 refreshCollectionBackgroundBells()
+            }
+            .onChange(of: collectionAppLinkRouter.pendingCollectionID) { _, _ in
+                handlePendingCollectionDeepLink()
             }
             .onChange(of: backgroundCandidateIDs) { _, _ in
                 refreshCollectionBackgroundBells()
@@ -359,7 +365,7 @@ struct CollectionsView: View {
         let collection = Collection(
             id: UUID(),
             homeID: homeID,
-            kind: .bells,
+            kind: CollectionAppLink.currentAppKind,
             title: trimmedTitle.isEmpty ? String(localized: "collection.editor.default_title") : trimmedTitle,
             notes: trimmedNotes,
             backgroundStyle: backgroundStyle
@@ -370,6 +376,11 @@ struct CollectionsView: View {
     }
 
     private func selectCollection(_ collection: CollectionSummary) {
+        guard collection.kind == CollectionAppLink.currentAppKind else {
+            CollectionAppLink.open(kind: collection.kind, collectionID: collection.id)
+            return
+        }
+
         if let onCollectionSelected {
             onCollectionSelected(collection.id)
             return
@@ -443,9 +454,22 @@ struct CollectionsView: View {
         guard !didAutoOpenSingleCollection else { return }
         guard collections.count == 1 else { return }
         guard let collection = collections.first else { return }
+        guard collection.kind == CollectionAppLink.currentAppKind else { return }
 
         didAutoOpenSingleCollection = true
         navigate?(.collection(collection.id))
+    }
+
+    private func handlePendingCollectionDeepLink() {
+        guard let collectionID = collectionAppLinkRouter.pendingCollectionID,
+              let collection = collections.first(where: { $0.id == collectionID }),
+              collection.kind == CollectionAppLink.currentAppKind
+        else {
+            return
+        }
+
+        collectionAppLinkRouter.consume(collectionID)
+        navigate?(.collection(collectionID))
     }
 
     private func sharingStatus(for collectionID: UUID) -> CollectionCardSharingStatus {
