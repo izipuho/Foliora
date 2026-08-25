@@ -64,7 +64,7 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
                     }
                 }
 
-                Section(String(localized: "bell_catalog.layout.menu")) {
+                Section(String(localized: "card_layout.menu")) {
                     ControlGroup {
                         Button {
                             zoomOutLayout()
@@ -82,7 +82,7 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
                         }
                         .disabled(!canZoomIn)
                     } label: {
-                        Label(String(localized: "bell_catalog.layout.menu"), systemImage: "square.grid.2x2")
+                        Label(String(localized: "card_layout.menu"), systemImage: "square.grid.2x2")
                     }
                     .menuActionDismissBehavior(.disabled)
                 }

@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import CoreData
+import UIKit
 
 private enum LibraryOrderMode: String, CaseIterable {
     case title
@@ -37,9 +38,15 @@ struct LibraryView: View {
     @State private var isPresentingAddBookOptions = false
     @State private var isPresentingPhotoPicker = false
     @State private var isPresentingCamera = false
+    @State private var shouldPresentEditorAfterCamera = false
+    @State private var isPresentingAddBook = false
+    @State private var isPresentingBatchAdd = false
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
+    @State private var draftMediaAssets: [MediaAsset] = []
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
+
+    private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
     init(
         collection: CollectionSummary,
@@ -182,7 +189,40 @@ struct LibraryView: View {
                 photoLibrary: .shared()
             )
             .fullScreenCover(isPresented: $isPresentingCamera) {
-                CameraPicker { _ in }
+                CameraPicker { image in
+                    Task {
+                        await addCapturedPhotoAndPresentEditor(image)
+                    }
+                }
+            }
+            .onChange(of: selectedPhotoItems) { _, newItems in
+                Task {
+                    await addDraftPhotosAndPresentEditor(from: newItems)
+                }
+            }
+            .onChange(of: isPresentingCamera) { _, isPresented in
+                if !isPresented, shouldPresentEditorAfterCamera, !draftMediaAssets.isEmpty {
+                    shouldPresentEditorAfterCamera = false
+                    isPresentingAddBook = true
+                }
+            }
+            .sheet(isPresented: $isPresentingAddBook, onDismiss: clearDraftBook) {
+                BookEditorView(
+                    collection: collection,
+                    initialMediaAssets: draftMediaAssets
+                ) { book in
+                    (repository as! any BookCatalogRepository).saveBookRecord(book)
+                }
+            }
+            .sheet(isPresented: $isPresentingBatchAdd, onDismiss: clearDraftBook) {
+                BookBatchAddView(
+                    collection: collection,
+                    initialMediaAssets: draftMediaAssets,
+                    repository: repository,
+                    onComplete: {
+                        isPresentingBatchAdd = false
+                    }
+                )
             }
             .sheet(isPresented: $isPresentingEditLibrary) {
                 editLibrarySheet
@@ -301,6 +341,52 @@ struct LibraryView: View {
         } else {
             selectedBookID = book.id
         }
+    }
+
+    private func clearDraftBook() {
+        draftMediaAssets = []
+    }
+
+    @MainActor
+    private func addDraftPhotosAndPresentEditor(from items: [PhotosPickerItem]) async {
+        guard canEditLibrary, !items.isEmpty else { return }
+
+        var newAssets: [MediaAsset] = []
+
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self),
+                  let image = UIImage(data: data) else { continue }
+
+            let contentType = item.supportedContentTypes.first
+            guard let media = try? imageMediaBuilder.build(
+                from: data,
+                image: image,
+                preferredFileExtension: contentType?.preferredFilenameExtension,
+                mimeType: contentType?.preferredMIMEType
+            ) else { continue }
+
+            newAssets.append(media.asset.with(sortOrder: newAssets.count))
+        }
+
+        selectedPhotoItems = []
+
+        guard !newAssets.isEmpty else { return }
+        draftMediaAssets = newAssets
+
+        if newAssets.count == 1 {
+            isPresentingAddBook = true
+        } else {
+            isPresentingBatchAdd = true
+        }
+    }
+
+    @MainActor
+    private func addCapturedPhotoAndPresentEditor(_ image: UIImage) async {
+        guard canEditLibrary,
+              let media = try? imageMediaBuilder.build(from: image) else { return }
+
+        draftMediaAssets = [media.asset.with(sortOrder: 0)]
+        shouldPresentEditorAfterCamera = true
     }
 
     private func saveLibraryEdits(

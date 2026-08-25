@@ -1,0 +1,204 @@
+import SwiftUI
+
+/// Displays the editor used to create a book from selected media.
+struct BookEditorView: View {
+    let collection: CollectionSummary
+    private let onSave: (BookRecord) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var isTitleFocused: Bool
+
+    @State private var title = ""
+    @State private var notes = ""
+    @State private var selectedAcquiredYearOption = String(localized: "common.none")
+    @State private var condition: ItemCondition = .good
+    @State private var acquisitionMethod: AcquisitionMethod = .bought
+    @State private var tagInput = ""
+    @State private var tags: [String] = []
+    @State private var mediaAssets: [MediaAsset]
+
+    @State private var languageCode = ""
+    @State private var pageCount = ""
+    @State private var publicationPlaceName = ""
+    @State private var publicationYear = ""
+    @State private var volumeNumber = ""
+
+    private let editorItemID = UUID()
+    private let acquiredYearOptions = [String(localized: "common.none")]
+        + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
+
+    init(
+        collection: CollectionSummary,
+        initialMediaAssets: [MediaAsset],
+        onSave: @escaping (BookRecord) -> Void
+    ) {
+        self.collection = collection
+        self.onSave = onSave
+        _mediaAssets = State(initialValue: initialMediaAssets)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(String(localized: "editor.docs_and_media")) {
+                    MediaSection(
+                        itemID: editorItemID,
+                        mediaAssets: $mediaAssets
+                    )
+                    .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, CatalogMetrics.Spacing.md)
+                    .background(
+                        CatalogShapes.section
+                            .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                    )
+                    .listRowInsets(.init())
+                }
+
+                Section(String(localized: "common.field.description")) {
+                    TextField(String(localized: "common.field.title"), text: $title)
+                        .focused($isTitleFocused)
+
+                    TextField(String(localized: "common.field.notes"), text: $notes, axis: .vertical)
+                        .lineLimit(4, reservesSpace: true)
+
+                    if !isTitleValid {
+                        Button {
+                            isTitleFocused = true
+                        } label: {
+                            Label(
+                                String(localized: "editor.title.required"),
+                                systemImage: "exclamationmark.circle.fill"
+                            )
+                            .font(.footnote)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
+                    }
+                }
+
+                Section(String(localized: "editor.acquisition_details")) {
+                    YearPickerField(
+                        title: String(localized: "common.field.acquired_year"),
+                        selection: $selectedAcquiredYearOption,
+                        options: acquiredYearOptions
+                    )
+
+                    EnumSelectionRow(
+                        title: String(localized: "bell.detail.aquisition"),
+                        selectedLabel: acquisitionMethod.displayName,
+                        options: AcquisitionMethod.allCases,
+                        selection: $acquisitionMethod,
+                        optionTitle: \.displayName
+                    )
+                }
+
+                Section(String(localized: "editor.attributes")) {
+                    EnumSelectionRow(
+                        title: String(localized: "common.field.condition"),
+                        selectedLabel: condition.displayName,
+                        options: ItemCondition.allCases,
+                        selection: $condition,
+                        optionTitle: \.displayName
+                    )
+                }
+
+                Section("Book") {
+                    TextField("Language", text: $languageCode)
+                    TextField("Pages", text: $pageCount)
+                    TextField("Publication place", text: $publicationPlaceName)
+                    TextField("Publication year", text: $publicationYear)
+                    TextField("Volume", text: $volumeNumber)
+                }
+
+                Section(String(localized: "common.field.tags")) {
+                    TagEditorSection(
+                        tagInput: $tagInput,
+                        tags: $tags
+                    )
+                }
+            }
+            .navigationTitle("Add Book")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        saveBook()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .disabled(!isTitleValid)
+                    .accessibilityLabel(String(localized: "common.save"))
+                }
+            }
+        }
+    }
+
+    private var isTitleValid: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func saveBook() {
+        guard isTitleValid else {
+            isTitleFocused = true
+            return
+        }
+
+        let itemID = editorItemID
+        let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
+            asset.with(itemID: itemID, sortOrder: index)
+        }
+
+        let book = BookRecord(
+            item: ItemRecord(
+                id: itemID,
+                collectionID: collection.id,
+                kind: .books,
+                locationID: nil,
+                originPlaceID: nil,
+                createdAt: .now,
+                createdBy: "me",
+                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
+                acquiredYear: Int(selectedAcquiredYearOption),
+                condition: condition,
+                acquisitionMethod: acquisitionMethod,
+                isFavorite: false,
+                tags: tags,
+                originPlace: nil,
+                storageLocation: nil,
+                storagePath: nil,
+                mediaAssets: normalizedMediaAssets
+            ),
+            details: BookDetails(
+                itemID: itemID,
+                languageCode: optionalString(languageCode)?.lowercased(),
+                pageCount: optionalInt(pageCount),
+                publicationPlaceName: optionalString(publicationPlaceName),
+                publicationYear: optionalInt(publicationYear),
+                volumeNumber: optionalInt(volumeNumber),
+                publicationPlace: nil,
+                contributors: []
+            )
+        )
+
+        onSave(book)
+        dismiss()
+    }
+
+    private func optionalString(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func optionalInt(_ value: String) -> Int? {
+        optionalString(value).flatMap(Int.init)
+    }
+}
