@@ -101,6 +101,13 @@ struct LibraryView: View {
         }
     }
 
+    private var selectedOrderBinding: Binding<LibraryOrderMode> {
+        Binding(
+            get: { selectedOrder },
+            set: { selectedOrder = $0 }
+        )
+    }
+
     private var selectedBook: BookRecord? {
         guard let selectedBookID else { return nil }
         return books.first { $0.id == selectedBookID }
@@ -218,69 +225,21 @@ struct LibraryView: View {
         .ignoresSafeArea()
     }
 
-    @ToolbarContentBuilder
     private var libraryToolbar: some ToolbarContent {
-        if canEditLibrary {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    isPresentingEditLibrary = true
-                } label: {
-                    floatingToolbarIcon(systemName: "square.and.pencil")
-                }
-            }
-        }
-
-        ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Section("Sort") {
-                    ForEach(LibraryOrderMode.allCases, id: \.self) { option in
-                        Button {
-                            selectedOrder = option
-                        } label: {
-                            if selectedOrder == option {
-                                Label(option.title, systemImage: "checkmark")
-                            } else {
-                                Text(option.title)
-                            }
-                        }
-                    }
-                }
-
-                Section("Layout") {
-                    ControlGroup {
-                        Button {
-                            zoomOutLayout()
-                        } label: {
-                            Image(systemName: "minus")
-                        }
-                        .disabled(!canZoomOut)
-
-                        Text(layoutTitle(for: layoutMode.wrappedValue))
-
-                        Button {
-                            zoomInLayout()
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .disabled(!canZoomIn)
-                    } label: {
-                        Label("Layout", systemImage: "square.grid.2x2")
-                    }
-                    .menuActionDismissBehavior(.disabled)
-                }
-            } label: {
-                floatingToolbarIcon(systemName: "line.3.horizontal.decrease")
-            }
-        }
-
-        if canEditLibrary {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {} label: {
-                    floatingToolbarIcon(systemName: "plus")
-                }
-                .disabled(true)
-            }
-        }
+        CatalogContentToolbar(
+            selectedSort: selectedOrderBinding,
+            selectedLayoutMode: layoutMode,
+            sortOptions: LibraryOrderMode.allCases,
+            sortSectionTitle: "Sort",
+            layoutSectionTitle: "Layout",
+            sortTitle: { $0.title },
+            layoutTitle: layoutTitle,
+            canEdit: canEditLibrary,
+            onEdit: {
+                isPresentingEditLibrary = true
+            },
+            onAdd: nil
+        )
     }
 
     private var editLibrarySheet: some View {
@@ -305,44 +264,6 @@ struct LibraryView: View {
             repository.deleteCollection(collectionID: collection.id)
             dismiss()
         }
-    }
-
-    private var orderedLayoutModes: [CatalogCardLayoutMode] {
-        [.covers, .mini, .compact, .wide, .showcase]
-    }
-
-    private var canZoomOut: Bool {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode.wrappedValue) else {
-            return false
-        }
-
-        return currentIndex < orderedLayoutModes.count - 1
-    }
-
-    private var canZoomIn: Bool {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode.wrappedValue) else {
-            return false
-        }
-
-        return currentIndex > 0
-    }
-
-    private func zoomOutLayout() {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode.wrappedValue),
-              currentIndex < orderedLayoutModes.count - 1 else {
-            return
-        }
-
-        layoutMode.wrappedValue = orderedLayoutModes[currentIndex + 1]
-    }
-
-    private func zoomInLayout() {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode.wrappedValue),
-              currentIndex > 0 else {
-            return
-        }
-
-        layoutMode.wrappedValue = orderedLayoutModes[currentIndex - 1]
     }
 
     private func layoutTitle(for mode: CatalogCardLayoutMode) -> String {
@@ -474,12 +395,6 @@ private struct LibrarySharingStateLoaderView: View {
 
         isLoading = false
     }
-}
-
-private func floatingToolbarIcon(systemName: String) -> some View {
-    Image(systemName: systemName)
-        .font(.system(size: 17, weight: .semibold))
-        .frame(width: 30, height: 30)
 }
 
 #if DEBUG
