@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if DEBUG
+import CoreData
+#endif
+
 /// Displays a book card using the shared catalog card system.
 struct BookCardView: View {
     let book: BookRecord
