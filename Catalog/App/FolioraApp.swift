@@ -66,6 +66,9 @@ struct FolioraApp: App {
                     .ignoresSafeArea()
                 }
             }
+            .onOpenURL { url in
+                CollectionAppLinkRouter.shared.handle(url)
+            }
             .task {
                 NSUbiquitousKeyValueStore.default.synchronize()
                 await prepareApplicationIfNeeded()
