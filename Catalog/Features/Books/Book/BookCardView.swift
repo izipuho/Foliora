@@ -25,22 +25,27 @@ struct BookCardView: View {
     }
 
     var body: some View {
-        CatalogCardContent(
-            title: book.title,
-            subtitle: authorNames,
-            accessories: accessories,
-            style: style,
-            bright: coverPhoto != nil,
-            cardSize: cardSize,
-            cardMetrics: cardMetrics
-        )
-        .catalogSurfaceCard(cardMetrics: cardMetrics) {
+        Group {
             if let coverPhoto {
-                MediaPreviewImage(
-                    identifier: coverPhoto.localIdentifier,
-                    originalData: coverPhoto.originalData,
-                    size: cardSize
+                Color.clear
+                    .catalogSurfaceCard(cardMetrics: cardMetrics) {
+                        MediaPreviewImage(
+                            identifier: coverPhoto.localIdentifier,
+                            originalData: coverPhoto.originalData,
+                            size: cardSize
+                        )
+                    }
+            } else {
+                CatalogCardContent(
+                    title: book.title,
+                    subtitle: authorNames,
+                    accessories: [],
+                    style: style,
+                    bright: false,
+                    cardSize: cardSize,
+                    cardMetrics: cardMetrics
                 )
+                .catalogSurfaceCard(cardMetrics: cardMetrics)
             }
         }
         .frame(width: cardSize.width, height: cardSize.height)
@@ -59,20 +64,6 @@ struct BookCardView: View {
             .sorted { $0.order < $1.order }
             .map(\.person.name)
             .joined(separator: ", ")
-    }
-
-    private var accessories: [CatalogCardAccessory] {
-        var result: [CatalogCardAccessory] = []
-
-        if let publicationYear = book.details.publicationYear {
-            result.append(.chip(String(publicationYear)))
-        }
-
-        if let volumeNumber = book.details.volumeNumber {
-            result.append(.label(text: String(volumeNumber), systemImage: "books.vertical"))
-        }
-
-        return result
     }
 }
 
