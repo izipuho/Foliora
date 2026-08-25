@@ -75,3 +75,16 @@ extension PreviewData {
         return try? context.fetch(request).first
     }
 }
+
+@MainActor
+extension PreviewContainer {
+    static func makeBellsMinimal() -> NSPersistentCloudKitContainer {
+        do {
+            let container = try FolioraCoreDataStack.makeInMemoryContainer()
+            PreviewData.populateMinimalBells(context: container.viewContext)
+            return container
+        } catch {
+            fatalError("Failed to create bells preview container: \(error)")
+        }
+    }
+}
