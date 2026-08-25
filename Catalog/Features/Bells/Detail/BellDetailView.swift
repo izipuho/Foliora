@@ -572,7 +572,7 @@ private struct BellDetailPreviewHost: View {
 
 #if DEBUG
 #Preview {
-    let container = PreviewContainer.make(.minimal)
+    let container = PreviewContainer.makeBellsMinimal()
     let repository = CoreDataCatalogRepository(
         context: container.viewContext,
         persistentContainer: nil

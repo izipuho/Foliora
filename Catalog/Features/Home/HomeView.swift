@@ -427,7 +427,7 @@ private struct HomeListCard: View {
 
 #if DEBUG
 #Preview {
-    let container = PreviewContainer.make(.minimal)
+    let container = PreviewContainer.make(.collectionsMinimal)
     let repository = CoreDataCatalogRepository(
         context: container.viewContext,
         persistentContainer: nil

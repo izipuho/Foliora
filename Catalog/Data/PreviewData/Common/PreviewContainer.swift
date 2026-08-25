@@ -3,10 +3,8 @@ import CoreData
 /// Defines the supported preview scenario values.
 enum PreviewScenario {
     case empty
-    case minimal
     case coreMinimal
-    case bellsMinimal
-    case booksMinimal
+    case collectionsMinimal
 }
 
 /// Groups preview container values and behavior.
@@ -19,14 +17,11 @@ enum PreviewContainer {
             switch scenario {
             case .empty:
                 return container
-            case .minimal, .bellsMinimal:
-                PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .bells)
-                return container
             case .coreMinimal:
                 PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .bells)
                 return container
-            case .booksMinimal:
-                PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .books)
+            case .collectionsMinimal:
+                PreviewData.populateCollectionsMinimal(context: container.viewContext)
                 return container
             }
         } catch {

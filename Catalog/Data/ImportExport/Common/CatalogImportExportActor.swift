@@ -15,9 +15,11 @@ final class CatalogImportExportActor {
     }
 
     private let context: NSManagedObjectContext
+    private let domainTransferAdapter: any CatalogDomainTransferAdapter
 
     init(context: NSManagedObjectContext) {
         self.context = context
+        domainTransferAdapter = CatalogDomainTransferAdapterFactory.make()
     }
 
     func exportArchiveData(selection: CatalogExportSelection) throws -> Data {
@@ -111,9 +113,6 @@ final class CatalogImportExportActor {
         let itemEntities = try fetchEntities(named: "ItemEntity", sortDescriptors: [
             NSSortDescriptor(key: "createdAt", ascending: false)
         ])
-        let bellEntities = try fetchEntities(named: "BellEntity", sortDescriptors: [
-            NSSortDescriptor(key: "item.createdAt", ascending: false)
-        ])
 
         let exportedHomeEntities: [NSManagedObject]
         let exportedLocationEntities: [NSManagedObject]
@@ -163,17 +162,10 @@ final class CatalogImportExportActor {
                 tags: item.tags
             )
         }
-        let bellPayloadItems = bellEntities.compactMap { bell -> BellCatalogTransferItem? in
-            guard let item = bell.value(forKey: "item") as? NSManagedObject else { return nil }
-            let itemID = uuidValue(item, "id")
-            guard exportedItemIDs.contains(itemID) else { return nil }
-            return BellCatalogTransferItem(
-                itemID: itemID,
-                material: stringValue(bell, "material", default: "unknown"),
-                customMaterialName: bell.value(forKey: "customMaterialName") as? String
-            )
-        }
-        let domainPayloads = try domainPayloads(bellItems: bellPayloadItems)
+        let domainPayloads = try domainTransferAdapter.exportPayloads(
+            from: context,
+            itemIDs: exportedItemIDs
+        )
 
         return CatalogTransferBundle(
             homes: exportedHomeEntities.map(home),
@@ -204,7 +196,10 @@ final class CatalogImportExportActor {
         copy.locations = bundle.locations.filter { homeIDs.contains($0.homeID) }
         copy.collections = collections
         copy.items = items
-        copy.domainPayloads = filteredDomainPayloads(bundle.domainPayloads, itemIDs: itemIDs)
+        copy.domainPayloads = domainTransferAdapter.filteredPayloads(
+            bundle.domainPayloads,
+            itemIDs: itemIDs
+        )
         return copy
     }
 
@@ -330,7 +325,11 @@ final class CatalogImportExportActor {
             itemEntity.setValue(Set(tagEntities), forKey: "tags")
         }
 
-        applyDomainPayloads(bundle.domainPayloads, itemEntitiesByID: itemEntitiesByID)
+        domainTransferAdapter.applyPayloads(
+            bundle.domainPayloads,
+            itemEntitiesByID: itemEntitiesByID,
+            in: context
+        )
 
         try context.save()
     }
@@ -523,7 +522,11 @@ final class CatalogImportExportActor {
             itemEntity.setValue(Set(tagEntities), forKey: "tags")
         }
 
-        applyDomainPayloads(bundle.domainPayloads, itemEntitiesByID: itemEntitiesByID)
+        domainTransferAdapter.applyPayloads(
+            bundle.domainPayloads,
+            itemEntitiesByID: itemEntitiesByID,
+            in: context
+        )
 
         try context.save()
     }
@@ -585,7 +588,7 @@ final class CatalogImportExportActor {
 
     private func deleteExistingData() throws {
         try deleteEntities(named: "MediaAssetEntity")
-        try deleteEntities(named: "BellEntity")
+        try domainTransferAdapter.deleteDomainEntities(in: context)
         try deleteEntities(named: "ItemTagEntity")
         try deleteEntities(named: "ItemEntity")
         try deleteEntities(named: "CollectionLocationEntity")
@@ -764,58 +767,6 @@ final class CatalogImportExportActor {
         }
     }
 
-    private func domainPayloads(bellItems: [BellCatalogTransferItem]) throws -> [CatalogDomainPayload] {
-        guard !bellItems.isEmpty else { return [] }
-        let payload = BellCatalogTransferPayload(items: bellItems)
-        return [
-            CatalogDomainPayload(
-                domain: BellCatalogTransferPayload.domain,
-                version: BellCatalogTransferPayload.version,
-                data: try JSONEncoder().encode(payload)
-            )
-        ]
-    }
-
-    private func filteredDomainPayloads(
-        _ payloads: [CatalogDomainPayload],
-        itemIDs: Set<UUID>
-    ) -> [CatalogDomainPayload] {
-        payloads.compactMap { payload in
-            guard payload.domain == BellCatalogTransferPayload.domain else {
-                return payload
-            }
-            guard var bellPayload = try? JSONDecoder().decode(BellCatalogTransferPayload.self, from: payload.data) else {
-                return nil
-            }
-            bellPayload.items = bellPayload.items.filter { itemIDs.contains($0.itemID) }
-            guard !bellPayload.items.isEmpty,
-                  let data = try? JSONEncoder().encode(bellPayload)
-            else {
-                return nil
-            }
-            return CatalogDomainPayload(domain: payload.domain, version: payload.version, data: data)
-        }
-    }
-
-    private func applyDomainPayloads(
-        _ payloads: [CatalogDomainPayload],
-        itemEntitiesByID: [UUID: NSManagedObject]
-    ) {
-        for payload in payloads where payload.domain == BellCatalogTransferPayload.domain {
-            guard let bellPayload = try? JSONDecoder().decode(BellCatalogTransferPayload.self, from: payload.data) else {
-                continue
-            }
-            for bell in bellPayload.items {
-                guard let itemEntity = itemEntitiesByID[bell.itemID] else { continue }
-                let bellEntity = (itemEntity.value(forKey: "bell") as? NSManagedObject)
-                    ?? fetchBellEntity(for: itemEntity)
-                    ?? makeEntity(named: "BellEntity")
-                updateBellEntity(bellEntity, with: bell)
-                bellEntity.setValue(itemEntity, forKey: "item")
-            }
-        }
-    }
-
     private func updateItemEntity(
         _ entity: NSManagedObject,
         with transferItem: CatalogTransferItem,
@@ -837,11 +788,6 @@ final class CatalogImportExportActor {
         entity.setValue(collectionLocation, forKey: "collectionLocation")
         entity.setValue(location, forKey: "location")
         entity.setValue(originPlace, forKey: "originPlace")
-    }
-
-    private func updateBellEntity(_ entity: NSManagedObject, with bell: BellCatalogTransferItem) {
-        entity.setValue(bell.material, forKey: "material")
-        entity.setValue(bell.customMaterialName, forKey: "customMaterialName")
     }
 
     private func updateMediaEntity(
@@ -881,13 +827,6 @@ final class CatalogImportExportActor {
         entity.setValue(value, forKey: "value")
         entity.setValue(sortOrder, forKey: "sortOrder")
         entity.setValue(collection, forKey: "collection")
-    }
-
-    private func fetchBellEntity(for item: NSManagedObject) -> NSManagedObject? {
-        let request = NSFetchRequest<NSManagedObject>(entityName: "BellEntity")
-        request.predicate = NSPredicate(format: "item == %@", item)
-        request.fetchLimit = 1
-        return try? context.fetch(request).first
     }
 
     private func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {

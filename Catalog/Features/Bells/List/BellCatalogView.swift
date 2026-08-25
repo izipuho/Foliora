@@ -1133,7 +1133,7 @@ private struct BellQuickMoveSheet: View {
 
 #if DEBUG
 #Preview {
-    let container = PreviewContainer.make(.minimal)
+    let container = PreviewContainer.makeBellsMinimal()
     let repository = CoreDataCatalogRepository(
         context: container.viewContext,
         persistentContainer: nil
