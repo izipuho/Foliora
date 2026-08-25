@@ -174,25 +174,6 @@ struct LibraryView: View {
             .toolbar {
                 libraryToolbar
             }
-            .confirmationDialog(
-                "Add Book",
-                isPresented: $isPresentingAddBookOptions,
-                titleVisibility: .visible
-            ) {
-                Button(String(localized: "editor.media.photo_library")) {
-                    guard canEditLibrary else { return }
-                    isPresentingPhotoPicker = true
-                }
-
-                if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    Button(String(localized: "editor.media.camera")) {
-                        guard canEditLibrary else { return }
-                        isPresentingCamera = true
-                    }
-                }
-
-                Button(String(localized: "common.cancel"), role: .cancel) {}
-            }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
                 selection: $selectedPhotoItems,
@@ -263,18 +244,28 @@ struct LibraryView: View {
         CatalogContentToolbar(
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: layoutMode,
+            isPresentingAddOptions: $isPresentingAddBookOptions,
             sortOptions: LibraryOrderMode.allCases,
             sortSectionTitle: "Sort",
             layoutSectionTitle: "Layout",
             sortTitle: { $0.title },
             layoutTitle: layoutTitle,
             canEdit: canEditLibrary,
+            addTitle: "Add Book",
+            photoLibraryTitle: String(localized: "editor.media.photo_library"),
+            cameraTitle: String(localized: "editor.media.camera"),
+            cancelTitle: String(localized: "common.cancel"),
+            isCameraAvailable: UIImagePickerController.isSourceTypeAvailable(.camera),
             onEdit: {
                 isPresentingEditLibrary = true
             },
-            onAdd: {
+            onLibrary: {
                 guard canEditLibrary else { return }
-                isPresentingAddBookOptions = true
+                isPresentingPhotoPicker = true
+            },
+            onCamera: {
+                guard canEditLibrary else { return }
+                isPresentingCamera = true
             }
         )
     }
