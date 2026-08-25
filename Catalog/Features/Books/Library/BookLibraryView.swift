@@ -1,113 +1,134 @@
-import CoreData
 import SwiftUI
 
-/// Displays the book library list interface.
+/// Displays the books contained in a single library collection.
 struct BookLibraryView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-    @State private var collections: [NSManagedObject] = []
+    let collection: CollectionSummary
+    let catalogSnapshot: CatalogSnapshot?
+    let repository: any CatalogRepository
+    let layoutMode: Binding<CatalogCardLayoutMode>
+    let onBookSelected: ((UUID) -> Void)?
+
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var selectedBookID: UUID?
+
+    init(
+        collection: CollectionSummary,
+        catalogSnapshot: CatalogSnapshot?,
+        repository: any CatalogRepository,
+        layoutMode: Binding<CatalogCardLayoutMode>,
+        onBookSelected: ((UUID) -> Void)? = nil
+    ) {
+        self.collection = collection
+        self.catalogSnapshot = catalogSnapshot
+        self.repository = repository
+        self.layoutMode = layoutMode
+        self.onBookSelected = onBookSelected
+    }
+
+    private var books: [BookRecord] {
+        catalogSnapshot?.bookRecords
+            .filter { $0.collectionID == collection.id }
+            .sorted { lhs, rhs in
+                lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
+            } ?? []
+    }
+
+    private var selectedBook: BookRecord? {
+        guard let selectedBookID else { return nil }
+        return books.first { $0.id == selectedBookID }
+    }
+
+    private var isBookDetailPresented: Binding<Bool> {
+        Binding(
+            get: { selectedBookID != nil },
+            set: { isPresented in
+                if !isPresented {
+                    selectedBookID = nil
+                }
+            }
+        )
+    }
 
     var body: some View {
-        NavigationStack {
-            List(collections, id: \.objectID) { collection in
-                NavigationLink {
-                    BookCollectionDraftView(collection: collection)
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(collectionTitle(collection))
-                            .font(.headline)
+        content
+            .navigationTitle(collection.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .sheet(isPresented: isBookDetailPresented) {
+                if let selectedBook {
+                    NavigationStack {
+                        BookDetailView(book: selectedBook)
+                    }
+                    .presentationDragIndicator(.visible)
+                }
+            }
+    }
 
-                        Text(collectionSubtitle(collection))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+    @ViewBuilder
+    private var content: some View {
+        if books.isEmpty {
+            CatalogEmptyStateView(
+                systemImage: "books.vertical",
+                title: "No Books",
+                message: "This library does not contain any books yet."
+            )
+            .background(
+                CatalogBackgrounds.collection(
+                    collection.backgroundStyle.accentColor,
+                    scheme: colorScheme
+                )
+                .ignoresSafeArea()
+            )
+        } else {
+            CatalogCardGrid(layoutMode: layoutMode.wrappedValue) { cardSize, _, cardMetrics in
+                ForEach(books) { book in
+                    Button {
+                        openBook(book)
+                    } label: {
+                        BookCardView(
+                            book: book,
+                            style: CatalogCardContentStyle.style(for: layoutMode.wrappedValue),
+                            cardSize: cardSize,
+                            cardMetrics: cardMetrics
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .frame(width: cardSize.width, height: cardSize.height)
+                    .contentShape(Rectangle())
                 }
-            }
-            .overlay {
-                if collections.isEmpty {
-                    ContentUnavailableView {
-                        Label("No Book Libraries", systemImage: "books.vertical")
-                    } description: {
-                        Text("Create a first books collection backed by the shared Foliora catalog model.")
-                    } actions: {
-                        Button("Create Library", action: createBookCollection)
-                            .buttonStyle(.borderedProminent)
-                    }
-                }
-            }
-            .navigationTitle("Foliora Books")
-            .toolbar {
-                ToolbarItem {
-                    Button(action: createBookCollection) {
-                        Label("Add Library", systemImage: "plus")
-                    }
-                }
-            }
-            .onAppear(perform: reloadCollections)
-            .onReceive(NotificationCenter.default.publisher(
-                for: .NSManagedObjectContextObjectsDidChange,
-                object: viewContext
-            )) { _ in
-                reloadCollections()
             }
         }
     }
 
-    private func createBookCollection() {
-        let home = existingHome() ?? createDefaultHome()
-        let collection = NSEntityDescription.insertNewObject(forEntityName: "CollectionEntity", into: viewContext)
-        collection.setValue(UUID(), forKey: "id")
-        collection.setValue(home.value(forKey: "id"), forKey: "homeID")
-        collection.setValue(home.value(forKey: "name"), forKey: "homeName")
-        collection.setValue(CollectionKind.books.rawValue, forKey: "kind")
-        collection.setValue("Books", forKey: "title")
-        collection.setValue("", forKey: "notes")
-        collection.setValue(CollectionBackgroundStyle.mint.rawValue, forKey: "backgroundStyle")
-        collection.setValue(home, forKey: "home")
-
-        do {
-            try viewContext.save()
-            reloadCollections()
-        } catch {
-            viewContext.rollback()
+    private func openBook(_ book: BookRecord) {
+        if let onBookSelected {
+            onBookSelected(book.id)
+        } else {
+            selectedBookID = book.id
         }
-    }
-
-    private func reloadCollections() {
-        let request = NSFetchRequest<NSManagedObject>(entityName: "CollectionEntity")
-        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-        request.predicate = NSPredicate(format: "kind == %@", CollectionKind.books.rawValue)
-        collections = (try? viewContext.fetch(request)) ?? []
-    }
-
-    private func existingHome() -> NSManagedObject? {
-        let request = NSFetchRequest<NSManagedObject>(entityName: "HomeEntity")
-        request.fetchLimit = 1
-        request.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
-        return try? viewContext.fetch(request).first
-    }
-
-    private func createDefaultHome() -> NSManagedObject {
-        let home = NSEntityDescription.insertNewObject(forEntityName: "HomeEntity", into: viewContext)
-        home.setValue(UUID(), forKey: "id")
-        home.setValue("My Library", forKey: "name")
-        home.setValue("books.vertical.fill", forKey: "iconName")
-        home.setValue("", forKey: "notes")
-        return home
-    }
-
-    private func collectionTitle(_ collection: NSManagedObject) -> String {
-        let title = collection.value(forKey: "title") as? String
-        return title?.isEmpty == false ? title! : "Books"
-    }
-
-    private func collectionSubtitle(_ collection: NSManagedObject) -> String {
-        let homeName = collection.value(forKey: "homeName") as? String
-        return homeName?.isEmpty == false ? homeName! : "Shared Foliora catalog"
     }
 }
 
+#if DEBUG
 #Preview {
     let container = PreviewContainer.makeBooksMinimal()
-    BookLibraryView()
-        .environment(\.managedObjectContext, container.viewContext)
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+
+    if let collection = snapshot.collections
+        .compactMap({ snapshot.collectionSummary(id: $0.id) })
+        .first(where: { $0.kind == .books }) {
+        NavigationStack {
+            BookLibraryView(
+                collection: collection,
+                catalogSnapshot: snapshot,
+                repository: repository,
+                layoutMode: .constant(.compact)
+            )
+        }
+    }
 }
+#endif
