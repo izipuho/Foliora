@@ -68,10 +68,11 @@ func makeCollectionDestinationContent(
     onBatchAddComplete: @escaping (Any) -> Void
 ) -> AnyView {
     AnyView(
-        BookLibraryView(
+        LibraryView(
             collection: collection,
             catalogSnapshot: catalogSnapshot,
             repository: repository,
+            coreDataContainer: coreDataContainer,
             layoutMode: layoutMode,
             onBookSelected: onItemSelected
         )
