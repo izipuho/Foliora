@@ -325,22 +325,6 @@
         }
       }
     },
-    "bell_catalog.layout.menu" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Layout"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вид"
-          }
-        }
-      }
-    },
     "bell_catalog.search.empty.description" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1673,6 +1657,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Обложки"
+          }
+        }
+      }
+    },
+    "card_layout.menu" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вид"
           }
         }
       }
