@@ -163,13 +163,6 @@
 			);
 			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
 		};
-		24C45843303D741700404BD4 /* Exceptions for "Domain" folder in "Foliora Bells" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Reference/Person.swift,
-			);
-			target = C00000000000000000000051 /* Foliora Bells */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -204,7 +197,6 @@
 		24C44A0A303C78C800404BD4 /* Domain */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				24C45843303D741700404BD4 /* Exceptions for "Domain" folder in "Foliora Bells" target */,
 				24C44A1E303C78E300404BD4 /* Exceptions for "Domain" folder in "Foliora Books" target */,
 			);
 			path = Domain;
