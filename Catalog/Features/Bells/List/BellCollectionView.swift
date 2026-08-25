@@ -115,29 +115,60 @@ struct BellCollectionView: View {
         ))
     }
 
+    private var collectionToolbar: some ToolbarContent {
+        CatalogContentToolbar(
+            selectedSort: selectedOrderBinding,
+            selectedLayoutMode: selectedLayoutModeBinding,
+            sortOptions: [.newestFirst, .title, .geography, .acquisitionYear, .storage],
+            sortSectionTitle: String(localized: "bell_catalog.sort.menu"),
+            layoutSectionTitle: String(localized: "bell_catalog.layout.menu"),
+            sortTitle: { option in
+                if option == .newestFirst {
+                    return String(localized: "bell_catalog.sort.recently_added")
+                }
+
+                return String(localized: option.title)
+            },
+            layoutTitle: { mode in
+                String(localized: mode.title)
+            },
+            canEdit: canEditCollection,
+            onEdit: {
+                guard canEditCollection else { return }
+                isPresentingEditCollection = true
+            },
+            onAdd: {
+                guard canEditCollection else { return }
+                isPresentingAddBellOptions = true
+            }
+        )
+    }
+
     var body: some View {
         content
             .toolbar {
                 if !isBellCatalogSelectionMode {
-                    CollectionShellToolbar(
-                        selectedOrder: selectedOrderBinding,
-                        selectedLayoutMode: selectedLayoutModeBinding,
-                        isPresentingAddBellOptions: $isPresentingAddBellOptions,
-                        canEditCollection: canEditCollection,
-                        onEdit: {
-                            guard canEditCollection else { return }
-                            isPresentingEditCollection = true
-                        },
-                        onLibrary: {
-                            guard canEditCollection else { return }
-                            isPresentingPhotoPicker = true
-                        },
-                        onCamera: {
-                            guard canEditCollection else { return }
-                            isPresentingCamera = true
-                        }
-                    )
+                    collectionToolbar
                 }
+            }
+            .confirmationDialog(
+                String(localized: "editor.bell.add"),
+                isPresented: $isPresentingAddBellOptions,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "editor.media.photo_library")) {
+                    guard canEditCollection else { return }
+                    isPresentingPhotoPicker = true
+                }
+
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button(String(localized: "editor.media.camera")) {
+                        guard canEditCollection else { return }
+                        isPresentingCamera = true
+                    }
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {}
             }
             .onPreferenceChange(BellCatalogSelectionModePreferenceKey.self) { isSelectionMode in
                 isBellCatalogSelectionMode = isSelectionMode
@@ -457,123 +488,6 @@ private extension CollectionSharingState {
     )
 }
 
-private struct CollectionShellToolbar: ToolbarContent {
-    @Binding var selectedOrder: BellOrderMode
-    @Binding var selectedLayoutMode: CatalogCardLayoutMode
-    @Binding var isPresentingAddBellOptions: Bool
-    let canEditCollection: Bool
-    let onEdit: () -> Void
-    let onLibrary: () -> Void
-    let onCamera: () -> Void
-
-    var body: some ToolbarContent {
-        if canEditCollection {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(action: onEdit) {
-                    floatingToolbarIcon(systemName: "square.and.pencil")
-                }
-            }
-        }
-
-        ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Section(String(localized: "bell_catalog.sort.menu")) {
-                    Button {
-                        selectedOrder = .newestFirst
-                    } label: {
-                        if selectedOrder == .newestFirst {
-                            Label(String(localized: "bell_catalog.sort.recently_added"), systemImage: "checkmark")
-                        } else {
-                            Text(String(localized: "bell_catalog.sort.recently_added"))
-                        }
-                    }
-
-                    ForEach(listedOrderModes, id: \.self) { option in
-                        Button {
-                            selectedOrder = option
-                        } label: {
-                            if selectedOrder == option {
-                                Label(String(localized: option.title), systemImage: "checkmark")
-                            } else {
-                                Text(String(localized: option.title))
-                            }
-                        }
-                    }
-                }
-
-                Section(String(localized: "bell_catalog.layout.menu")) {
-                    ControlGroup {
-                        Button {
-                            zoomOutLayout()
-                        } label: {
-                            Image(systemName: "minus")
-                        }
-                        .disabled(!canZoomOut)
-
-                        Text(String(localized: selectedLayoutMode.title))
-
-                        Button {
-                            zoomInLayout()
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .disabled(!canZoomIn)
-                    } label: {
-                        Label(String(localized: "bell_catalog.layout.menu"), systemImage: "square.grid.2x2")
-                    }
-                    .menuActionDismissBehavior(.disabled)
-                }
-            } label: {
-                floatingToolbarIcon(systemName: "line.3.horizontal.decrease")
-            }
-        }
-
-        if canEditCollection {
-            ToolbarItem(placement: .topBarTrailing) {
-                AddBellMenu(
-                    isPresented: $isPresentingAddBellOptions,
-                    onCamera: onCamera,
-                    onLibrary: onLibrary
-                )
-            }
-        }
-    }
-
-    private var orderedLayoutModes: [CatalogCardLayoutMode] {
-        [.covers, .mini, .compact, .wide, .showcase]
-    }
-
-    private var listedOrderModes: [BellOrderMode] {
-        [.title, .geography, .acquisitionYear, .storage]
-    }
-
-    private var canZoomOut: Bool {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode) else { return false }
-        return currentIndex > 0
-    }
-
-    private var canZoomIn: Bool {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode) else { return false }
-        return currentIndex < orderedLayoutModes.count - 1
-    }
-
-    private func zoomOutLayout() {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode), currentIndex > 0 else {
-            return
-        }
-
-        selectedLayoutMode = orderedLayoutModes[currentIndex - 1]
-    }
-
-    private func zoomInLayout() {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode), currentIndex < orderedLayoutModes.count - 1 else {
-            return
-        }
-
-        selectedLayoutMode = orderedLayoutModes[currentIndex + 1]
-    }
-}
-
 private extension CatalogCardLayoutMode {
     var title: LocalizedStringResource {
         switch self {
@@ -589,33 +503,4 @@ private extension CatalogCardLayoutMode {
             return "bell_catalog.layout.showcase"
         }
     }
-}
-
-private struct AddBellMenu: View {
-    @Binding var isPresented: Bool
-    let onCamera: () -> Void
-    let onLibrary: () -> Void
-
-    var body: some View {
-        Button {
-            isPresented = true
-        } label: {
-            floatingToolbarIcon(systemName: "plus")
-        }
-        .confirmationDialog(String(localized: "editor.bell.add"), isPresented: $isPresented, titleVisibility: .visible) {
-            Button(String(localized: "editor.media.photo_library"), action: onLibrary)
-
-            if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button(String(localized: "editor.media.camera"), action: onCamera)
-            }
-
-            Button(String(localized: "common.cancel"), role: .cancel) {}
-        }
-    }
-}
-
-private func floatingToolbarIcon(systemName: String) -> some View {
-    Image(systemName: systemName)
-        .font(.system(size: 17, weight: .semibold))
-        .frame(width: 30, height: 30)
 }
