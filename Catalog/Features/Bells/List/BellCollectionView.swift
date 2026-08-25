@@ -478,15 +478,15 @@ private extension CatalogCardLayoutMode {
     var title: LocalizedStringResource {
         switch self {
         case .covers:
-            return "bell_catalog.layout.covers"
+            return "card_layout.covers"
         case .mini:
-            return "bell_catalog.layout.mini"
+            return "card_layout.mini"
         case .compact:
-            return "bell_catalog.layout.compact"
+            return "card_layout.compact"
         case .wide:
-            return "bell_catalog.layout.wide"
+            return "card_layout.wide"
         case .showcase:
-            return "bell_catalog.layout.showcase"
+            return "card_layout.showcase"
         }
     }
 }
