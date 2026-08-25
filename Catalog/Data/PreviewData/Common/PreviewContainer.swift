@@ -5,8 +5,6 @@ enum PreviewScenario {
     case empty
     case minimal
     case coreMinimal
-    case bellsMinimal
-    case booksMinimal
     case collectionsMinimal
 }
 
@@ -25,12 +23,6 @@ enum PreviewContainer {
                 return container
             case .coreMinimal:
                 PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .bells)
-                return container
-            case .bellsMinimal:
-                PreviewData.populateMinimalBells(context: container.viewContext)
-                return container
-            case .booksMinimal:
-                PreviewData.populateMinimalBooks(context: container.viewContext)
                 return container
             case .collectionsMinimal:
                 PreviewData.populateCollectionsMinimal(context: container.viewContext)
