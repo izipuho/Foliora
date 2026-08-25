@@ -251,15 +251,10 @@ struct LibraryView: View {
             sortTitle: { $0.title },
             layoutTitle: layoutTitle,
             canEdit: canEditLibrary,
-            addTitle: "Add Book",
-            photoLibraryTitle: String(localized: "editor.media.photo_library"),
-            cameraTitle: String(localized: "editor.media.camera"),
-            cancelTitle: String(localized: "common.cancel"),
-            isCameraAvailable: UIImagePickerController.isSourceTypeAvailable(.camera),
             onEdit: {
                 isPresentingEditLibrary = true
             },
-            onLibrary: {
+            onPhotoLibrary: {
                 guard canEditLibrary else { return }
                 isPresentingPhotoPicker = true
             },

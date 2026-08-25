@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Shared edit, sort/layout, and add toolbar for collection-style catalog screens.
 struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
@@ -12,13 +13,8 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
     private let sortTitle: (SortOption) -> String
     private let layoutTitle: (CatalogCardLayoutMode) -> String
     private let canEdit: Bool
-    private let addTitle: String
-    private let photoLibraryTitle: String
-    private let cameraTitle: String
-    private let cancelTitle: String
-    private let isCameraAvailable: Bool
     private let onEdit: () -> Void
-    private let onLibrary: () -> Void
+    private let onPhotoLibrary: () -> Void
     private let onCamera: () -> Void
 
     init(
@@ -31,13 +27,8 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
         sortTitle: @escaping (SortOption) -> String,
         layoutTitle: @escaping (CatalogCardLayoutMode) -> String,
         canEdit: Bool,
-        addTitle: String,
-        photoLibraryTitle: String,
-        cameraTitle: String,
-        cancelTitle: String,
-        isCameraAvailable: Bool,
         onEdit: @escaping () -> Void,
-        onLibrary: @escaping () -> Void,
+        onPhotoLibrary: @escaping () -> Void,
         onCamera: @escaping () -> Void
     ) {
         self._selectedSort = selectedSort
@@ -49,13 +40,8 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
         self.sortTitle = sortTitle
         self.layoutTitle = layoutTitle
         self.canEdit = canEdit
-        self.addTitle = addTitle
-        self.photoLibraryTitle = photoLibraryTitle
-        self.cameraTitle = cameraTitle
-        self.cancelTitle = cancelTitle
-        self.isCameraAvailable = isCameraAvailable
         self.onEdit = onEdit
-        self.onLibrary = onLibrary
+        self.onPhotoLibrary = onPhotoLibrary
         self.onCamera = onCamera
     }
 
@@ -119,17 +105,17 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
                     toolbarIcon(systemName: "plus")
                 }
                 .confirmationDialog(
-                    addTitle,
+                    String(localized: "common.add"),
                     isPresented: $isPresentingAddOptions,
                     titleVisibility: .visible
                 ) {
-                    Button(photoLibraryTitle, action: onLibrary)
+                    Button(String(localized: "editor.media.photo_library"), action: onPhotoLibrary)
 
-                    if isCameraAvailable {
-                        Button(cameraTitle, action: onCamera)
+                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                        Button(String(localized: "editor.media.camera"), action: onCamera)
                     }
 
-                    Button(cancelTitle, role: .cancel) {}
+                    Button(String(localized: "common.cancel"), role: .cancel) {}
                 }
             }
         }
