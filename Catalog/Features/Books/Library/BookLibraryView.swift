@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if DEBUG
+import CoreData
+#endif
+
 /// Displays the books contained in a single library collection.
 struct BookLibraryView: View {
     let collection: CollectionSummary
