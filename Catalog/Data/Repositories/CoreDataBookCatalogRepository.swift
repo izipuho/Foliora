@@ -14,7 +14,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
 
     func deleteBookRecord(bookID: UUID) {
         guard let entity = fetchBookEntity(by: bookID) else { return }
-        let persons = relatedObjects(entity, "contributors").compactMap {
+        let persons = bookRelatedObjects(entity, "contributors").compactMap {
             $0.value(forKey: "person") as? NSManagedObject
         }
         guard let item = entity.value(forKey: "item") as? NSManagedObject else { return }
@@ -29,7 +29,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         guard let item = saveItemRecordWithoutSavingContext(book.item) else { return }
 
         let entity = fetchBookEntity(by: book.id) ?? makeEntity(named: "BookEntity")
-        let previousPersons = relatedObjects(entity, "contributors").compactMap {
+        let previousPersons = bookRelatedObjects(entity, "contributors").compactMap {
             $0.value(forKey: "person") as? NSManagedObject
         }
 
@@ -51,7 +51,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
     }
 
     private func replaceContributors(_ contributors: [BookContributor], for book: NSManagedObject) {
-        relatedObjects(book, "contributors").forEach(context.delete)
+        bookRelatedObjects(book, "contributors").forEach(context.delete)
 
         let entities = contributors.map { contributor -> NSManagedObject in
             let entity = makeEntity(named: "BookContributorEntity")
@@ -66,7 +66,12 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
     }
 
     private func deletePersonIfOrphaned(_ person: NSManagedObject) {
-        guard relatedObjects(person, "bookContributions").isEmpty else { return }
+        let request = NSFetchRequest<NSManagedObject>(entityName: "BookContributorEntity")
+        request.predicate = NSPredicate(format: "person == %@", person)
+        request.fetchLimit = 1
+
+        let hasRemainingContribution = (try? context.fetch(request))?.contains(where: { !$0.isDeleted }) == true
+        guard !hasRemainingContribution else { return }
         context.delete(person)
     }
 
@@ -92,5 +97,13 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         entity.setValue(place.latitude, forKey: "latitude")
         entity.setValue(place.longitude, forKey: "longitude")
         return entity
+    }
+
+    private func bookRelatedObjects(_ entity: NSManagedObject, _ key: String) -> [NSManagedObject] {
+        if let objects = entity.value(forKey: key) as? Set<NSManagedObject> {
+            return Array(objects)
+        }
+
+        return (entity.value(forKey: key) as? NSSet)?.allObjects.compactMap { $0 as? NSManagedObject } ?? []
     }
 }
