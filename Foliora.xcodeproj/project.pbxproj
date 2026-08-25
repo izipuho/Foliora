@@ -143,6 +143,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				PreviewData/BookPreviewData.swift,
+				Repositories/BookCoreDataDomainMapper.swift,
 			);
 			target = C00000000000000000000051 /* Foliora Bells */;
 		};
