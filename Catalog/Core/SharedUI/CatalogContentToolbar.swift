@@ -4,6 +4,7 @@ import SwiftUI
 struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
     @Binding private var selectedSort: SortOption
     @Binding private var selectedLayoutMode: CatalogCardLayoutMode
+    @Binding private var isPresentingAddOptions: Bool
 
     private let sortOptions: [SortOption]
     private let sortSectionTitle: String
@@ -11,31 +12,51 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
     private let sortTitle: (SortOption) -> String
     private let layoutTitle: (CatalogCardLayoutMode) -> String
     private let canEdit: Bool
+    private let addTitle: String
+    private let photoLibraryTitle: String
+    private let cameraTitle: String
+    private let cancelTitle: String
+    private let isCameraAvailable: Bool
     private let onEdit: () -> Void
-    private let onAdd: (() -> Void)?
+    private let onLibrary: () -> Void
+    private let onCamera: () -> Void
 
     init(
         selectedSort: Binding<SortOption>,
         selectedLayoutMode: Binding<CatalogCardLayoutMode>,
+        isPresentingAddOptions: Binding<Bool>,
         sortOptions: [SortOption],
         sortSectionTitle: String,
         layoutSectionTitle: String,
         sortTitle: @escaping (SortOption) -> String,
         layoutTitle: @escaping (CatalogCardLayoutMode) -> String,
         canEdit: Bool,
+        addTitle: String,
+        photoLibraryTitle: String,
+        cameraTitle: String,
+        cancelTitle: String,
+        isCameraAvailable: Bool,
         onEdit: @escaping () -> Void,
-        onAdd: (() -> Void)?
+        onLibrary: @escaping () -> Void,
+        onCamera: @escaping () -> Void
     ) {
         self._selectedSort = selectedSort
         self._selectedLayoutMode = selectedLayoutMode
+        self._isPresentingAddOptions = isPresentingAddOptions
         self.sortOptions = sortOptions
         self.sortSectionTitle = sortSectionTitle
         self.layoutSectionTitle = layoutSectionTitle
         self.sortTitle = sortTitle
         self.layoutTitle = layoutTitle
         self.canEdit = canEdit
+        self.addTitle = addTitle
+        self.photoLibraryTitle = photoLibraryTitle
+        self.cameraTitle = cameraTitle
+        self.cancelTitle = cancelTitle
+        self.isCameraAvailable = isCameraAvailable
         self.onEdit = onEdit
-        self.onAdd = onAdd
+        self.onLibrary = onLibrary
+        self.onCamera = onCamera
     }
 
     var body: some ToolbarContent {
@@ -92,15 +113,23 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
 
         if canEdit {
             ToolbarItem(placement: .topBarTrailing) {
-                if let onAdd {
-                    Button(action: onAdd) {
-                        toolbarIcon(systemName: "plus")
+                Button {
+                    isPresentingAddOptions = true
+                } label: {
+                    toolbarIcon(systemName: "plus")
+                }
+                .confirmationDialog(
+                    addTitle,
+                    isPresented: $isPresentingAddOptions,
+                    titleVisibility: .visible
+                ) {
+                    Button(photoLibraryTitle, action: onLibrary)
+
+                    if isCameraAvailable {
+                        Button(cameraTitle, action: onCamera)
                     }
-                } else {
-                    Button {} label: {
-                        toolbarIcon(systemName: "plus")
-                    }
-                    .disabled(true)
+
+                    Button(cancelTitle, role: .cancel) {}
                 }
             }
         }
