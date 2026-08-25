@@ -69,6 +69,8 @@ struct BellCatalogTransferAdapter: CatalogDomainTransferAdapter {
 
             for bell in bellPayload.items {
                 guard let itemEntity = itemEntitiesByID[bell.itemID] else { continue }
+                itemEntity.setValue(CollectionKind.bells.rawValue, forKey: "kind")
+
                 let bellEntity = (itemEntity.value(forKey: "bell") as? NSManagedObject)
                     ?? fetchBellEntity(for: itemEntity, in: context)
                     ?? NSEntityDescription.insertNewObject(forEntityName: "BellEntity", into: context)
