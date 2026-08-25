@@ -1,0 +1,96 @@
+import CoreData
+import Foundation
+
+extension CoreDataCatalogRepository: BookCatalogRepository {
+    func saveBookRecord(_ book: BookRecord) {
+        saveBookRecordWithoutSavingContext(book)
+        saveContext()
+    }
+
+    func saveBookRecords(_ books: [BookRecord]) {
+        books.forEach(saveBookRecordWithoutSavingContext)
+        saveContext()
+    }
+
+    func deleteBookRecord(bookID: UUID) {
+        guard let entity = fetchBookEntity(by: bookID) else { return }
+        let persons = relatedObjects(entity, "contributors").compactMap {
+            $0.value(forKey: "person") as? NSManagedObject
+        }
+        guard let item = entity.value(forKey: "item") as? NSManagedObject else { return }
+
+        context.delete(item)
+        persons.forEach(deletePersonIfOrphaned)
+        deleteOrphanItemTags()
+        saveContext()
+    }
+
+    private func saveBookRecordWithoutSavingContext(_ book: BookRecord) {
+        guard let item = saveItemRecordWithoutSavingContext(book.item) else { return }
+
+        let entity = fetchBookEntity(by: book.id) ?? makeEntity(named: "BookEntity")
+        let previousPersons = relatedObjects(entity, "contributors").compactMap {
+            $0.value(forKey: "person") as? NSManagedObject
+        }
+
+        apply(book, to: entity)
+        replaceContributors(book.details.contributors, for: entity)
+        entity.setValue(item, forKey: "item")
+        fillInverseRelationship(from: entity, relationshipName: "item", with: item)
+
+        previousPersons.forEach(deletePersonIfOrphaned)
+    }
+
+    private func apply(_ book: BookRecord, to entity: NSManagedObject) {
+        entity.setValue(book.details.languageCode, forKey: "languageCode")
+        entity.setValue(book.details.pageCount, forKey: "pageCount")
+        entity.setValue(book.details.publicationPlaceName, forKey: "publicationPlaceName")
+        entity.setValue(book.details.publicationYear, forKey: "publicationYear")
+        entity.setValue(book.details.volumeNumber, forKey: "volumeNumber")
+        entity.setValue(book.details.publicationPlace.map(upsertBookPlace), forKey: "publicationPlace")
+    }
+
+    private func replaceContributors(_ contributors: [BookContributor], for book: NSManagedObject) {
+        relatedObjects(book, "contributors").forEach(context.delete)
+
+        let entities = contributors.map { contributor -> NSManagedObject in
+            let entity = makeEntity(named: "BookContributorEntity")
+            entity.setValue(contributor.role.rawValue, forKey: "role")
+            entity.setValue(contributor.order, forKey: "order")
+            entity.setValue(book, forKey: "book")
+            entity.setValue(makePersonEntity(from: contributor.person), forKey: "person")
+            return entity
+        }
+
+        book.setValue(Set(entities), forKey: "contributors")
+    }
+
+    private func deletePersonIfOrphaned(_ person: NSManagedObject) {
+        guard relatedObjects(person, "bookContributions").isEmpty else { return }
+        context.delete(person)
+    }
+
+    private func fetchBookEntity(by itemID: UUID) -> NSManagedObject? {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "BookEntity")
+        request.predicate = NSPredicate(format: "item.id == %@", itemID as NSUUID)
+        request.fetchLimit = 1
+        return (try? context.fetch(request))?.first
+    }
+
+    private func upsertBookPlace(_ place: Place) -> NSManagedObject {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "PlaceEntity")
+        request.predicate = NSPredicate(format: "id == %@", place.id as NSUUID)
+        request.fetchLimit = 1
+
+        let entity = (try? context.fetch(request))?.first ?? makeEntity(named: "PlaceEntity")
+        entity.setValue(place.id, forKey: "id")
+        entity.setValue(place.displayName, forKey: "displayName")
+        entity.setValue(place.countryCode, forKey: "countryCode")
+        entity.setValue(place.countryName, forKey: "countryName")
+        entity.setValue(place.regionName, forKey: "regionName")
+        entity.setValue(place.cityName, forKey: "cityName")
+        entity.setValue(place.latitude, forKey: "latitude")
+        entity.setValue(place.longitude, forKey: "longitude")
+        return entity
+    }
+}
