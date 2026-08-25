@@ -19,14 +19,17 @@ enum PreviewContainer {
             switch scenario {
             case .empty:
                 return container
-            case .minimal, .bellsMinimal:
+            case .minimal:
                 PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .bells)
                 return container
             case .coreMinimal:
                 PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .bells)
                 return container
+            case .bellsMinimal:
+                PreviewData.populateMinimalBells(context: container.viewContext)
+                return container
             case .booksMinimal:
-                PreviewData.populateCoreMinimal(context: container.viewContext, collectionKind: .books)
+                PreviewData.populateMinimalBooks(context: container.viewContext)
                 return container
             }
         } catch {
