@@ -9,9 +9,7 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
 
     private let sortOptions: [SortOption]
     private let sortSectionTitle: String
-    private let layoutSectionTitle: String
     private let sortTitle: (SortOption) -> String
-    private let layoutTitle: (CatalogCardLayoutMode) -> String
     private let canEdit: Bool
     private let onEdit: () -> Void
     private let onPhotoLibrary: () -> Void
@@ -23,9 +21,7 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
         isPresentingAddOptions: Binding<Bool>,
         sortOptions: [SortOption],
         sortSectionTitle: String,
-        layoutSectionTitle: String,
         sortTitle: @escaping (SortOption) -> String,
-        layoutTitle: @escaping (CatalogCardLayoutMode) -> String,
         canEdit: Bool,
         onEdit: @escaping () -> Void,
         onPhotoLibrary: @escaping () -> Void,
@@ -36,9 +32,7 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
         self._isPresentingAddOptions = isPresentingAddOptions
         self.sortOptions = sortOptions
         self.sortSectionTitle = sortSectionTitle
-        self.layoutSectionTitle = layoutSectionTitle
         self.sortTitle = sortTitle
-        self.layoutTitle = layoutTitle
         self.canEdit = canEdit
         self.onEdit = onEdit
         self.onPhotoLibrary = onPhotoLibrary
@@ -70,7 +64,7 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
                     }
                 }
 
-                Section(layoutSectionTitle) {
+                Section(String(localized: "bell_catalog.layout.menu")) {
                     ControlGroup {
                         Button {
                             zoomOutLayout()
@@ -79,7 +73,7 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
                         }
                         .disabled(!canZoomOut)
 
-                        Text(layoutTitle(selectedLayoutMode))
+                        Text(layoutTitle(for: selectedLayoutMode))
 
                         Button {
                             zoomInLayout()
@@ -88,7 +82,7 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
                         }
                         .disabled(!canZoomIn)
                     } label: {
-                        Label(layoutSectionTitle, systemImage: "square.grid.2x2")
+                        Label(String(localized: "bell_catalog.layout.menu"), systemImage: "square.grid.2x2")
                     }
                     .menuActionDismissBehavior(.disabled)
                 }
@@ -156,6 +150,21 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
         }
 
         selectedLayoutMode = orderedLayoutModes[currentIndex + 1]
+    }
+
+    private func layoutTitle(for mode: CatalogCardLayoutMode) -> String {
+        switch mode {
+        case .covers:
+            return String(localized: "card_layout.covers")
+        case .mini:
+            return String(localized: "card_layout.mini")
+        case .compact:
+            return String(localized: "card_layout.compact")
+        case .wide:
+            return String(localized: "card_layout.wide")
+        case .showcase:
+            return String(localized: "card_layout.showcase")
+        }
     }
 
     private func toolbarIcon(systemName: String) -> some View {

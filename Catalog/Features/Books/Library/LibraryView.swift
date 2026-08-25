@@ -247,9 +247,7 @@ struct LibraryView: View {
             isPresentingAddOptions: $isPresentingAddBookOptions,
             sortOptions: LibraryOrderMode.allCases,
             sortSectionTitle: "Sort",
-            layoutSectionTitle: "Layout",
             sortTitle: { $0.title },
-            layoutTitle: layoutTitle,
             canEdit: canEditLibrary,
             onEdit: {
                 isPresentingEditLibrary = true
@@ -286,16 +284,6 @@ struct LibraryView: View {
         } onDelete: {
             repository.deleteCollection(collectionID: collection.id)
             dismiss()
-        }
-    }
-
-    private func layoutTitle(for mode: CatalogCardLayoutMode) -> String {
-        switch mode {
-        case .covers: return "Covers"
-        case .mini: return "Mini"
-        case .compact: return "Compact"
-        case .wide: return "Wide"
-        case .showcase: return "Showcase"
         }
     }
 

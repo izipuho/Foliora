@@ -122,16 +122,12 @@ struct BellCollectionView: View {
             isPresentingAddOptions: $isPresentingAddBellOptions,
             sortOptions: [.newestFirst, .title, .geography, .acquisitionYear, .storage],
             sortSectionTitle: String(localized: "bell_catalog.sort.menu"),
-            layoutSectionTitle: String(localized: "bell_catalog.layout.menu"),
             sortTitle: { option in
                 if option == .newestFirst {
                     return String(localized: "bell_catalog.sort.recently_added")
                 }
 
                 return String(localized: option.title)
-            },
-            layoutTitle: { mode in
-                String(localized: mode.title)
             },
             canEdit: canEditCollection,
             onEdit: {
@@ -472,23 +468,6 @@ private extension CollectionSharingState {
         currentUserRole: .owner,
         participants: []
     )
-}
-
-private extension CatalogCardLayoutMode {
-    var title: LocalizedStringResource {
-        switch self {
-        case .covers:
-            return "card_layout.covers"
-        case .mini:
-            return "card_layout.mini"
-        case .compact:
-            return "card_layout.compact"
-        case .wide:
-            return "card_layout.wide"
-        case .showcase:
-            return "card_layout.showcase"
-        }
-    }
 }
 
 #if DEBUG
