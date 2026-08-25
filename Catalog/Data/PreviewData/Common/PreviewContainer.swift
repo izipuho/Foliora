@@ -7,6 +7,7 @@ enum PreviewScenario {
     case coreMinimal
     case bellsMinimal
     case booksMinimal
+    case collectionsMinimal
 }
 
 /// Groups preview container values and behavior.
@@ -30,6 +31,9 @@ enum PreviewContainer {
                 return container
             case .booksMinimal:
                 PreviewData.populateMinimalBooks(context: container.viewContext)
+                return container
+            case .collectionsMinimal:
+                PreviewData.populateCollectionsMinimal(context: container.viewContext)
                 return container
             }
         } catch {
