@@ -77,13 +77,6 @@
 			);
 			target = C00000000000000000000051 /* Foliora Bells */;
 		};
-		24C45CFE303D97D400404BD4 /* Exceptions for "ImportExport" folder in "Foliora Books" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				BellCatalogTransferPayload.swift,
-			);
-			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
-		};
 		24C45D4D303D997900404BD4 /* Exceptions for "Bells" folder in "BellRecognition" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -162,14 +155,6 @@
 			path = Books;
 			sourceTree = "<group>";
 		};
-		24C45CEF303D97CF00404BD4 /* ImportExport */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				24C45CFE303D97D400404BD4 /* Exceptions for "ImportExport" folder in "Foliora Books" target */,
-			);
-			path = ImportExport;
-			sourceTree = "<group>";
-		};
 		24C45D01303D97DD00404BD4 /* CoreData */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CoreData;
@@ -206,6 +191,21 @@
 		24C45D53303D997E00404BD4 /* Books */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Books;
+			sourceTree = "<group>";
+		};
+		24C45D92303DC8BF00404BD4 /* Bells */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Bells;
+			sourceTree = "<group>";
+		};
+		24C45D93303DC8BF00404BD4 /* Books */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Books;
+			sourceTree = "<group>";
+		};
+		24C45D94303DC8BF00404BD4 /* Common */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Common;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -258,11 +258,21 @@
 			isa = PBXGroup;
 			children = (
 				24C45D01303D97DD00404BD4 /* CoreData */,
-				24C45CEF303D97CF00404BD4 /* ImportExport */,
+				24C45D83303DC8BB00404BD4 /* ImportExport */,
 				24C45C75303D971B00404BD4 /* PreviewData */,
 				24C45C82303D971B00404BD4 /* Repositories */,
 			);
 			path = Data;
+			sourceTree = "<group>";
+		};
+		24C45D83303DC8BB00404BD4 /* ImportExport */ = {
+			isa = PBXGroup;
+			children = (
+				24C45D92303DC8BF00404BD4 /* Bells */,
+				24C45D93303DC8BF00404BD4 /* Books */,
+				24C45D94303DC8BF00404BD4 /* Common */,
+			);
+			path = ImportExport;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000031 = {
@@ -386,13 +396,14 @@
 				24C45CC5303D973B00404BD4 /* Books */,
 				24C45CC7303D977900404BD4 /* Common */,
 				24C45CC9303D978900404BD4 /* Books */,
-				24C45CEF303D97CF00404BD4 /* ImportExport */,
 				24C45D01303D97DD00404BD4 /* CoreData */,
 				24C45D09303D996B00404BD4 /* Settings */,
 				24C45D11303D996E00404BD4 /* Collections */,
 				24C45D19303D997200404BD4 /* Search */,
 				24C45D20303D997500404BD4 /* Home */,
 				24C45D53303D997E00404BD4 /* Books */,
+				24C45D93303DC8BF00404BD4 /* Books */,
+				24C45D94303DC8BF00404BD4 /* Common */,
 			);
 			name = "Foliora Books";
 			productName = "Foliora Books";
@@ -417,13 +428,14 @@
 				24C45CC4303D973300404BD4 /* Bells */,
 				24C45CC7303D977900404BD4 /* Common */,
 				24C45CC8303D978300404BD4 /* Bells */,
-				24C45CEF303D97CF00404BD4 /* ImportExport */,
 				24C45D01303D97DD00404BD4 /* CoreData */,
 				24C45D09303D996B00404BD4 /* Settings */,
 				24C45D11303D996E00404BD4 /* Collections */,
 				24C45D19303D997200404BD4 /* Search */,
 				24C45D20303D997500404BD4 /* Home */,
 				24C45D3B303D997900404BD4 /* Bells */,
+				24C45D92303DC8BF00404BD4 /* Bells */,
+				24C45D94303DC8BF00404BD4 /* Common */,
 			);
 			name = "Foliora Bells";
 			productName = Catalog;
