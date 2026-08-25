@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if DEBUG
+import CoreData
+#endif
+
 /// Displays the catalog details for a single book.
 struct BookDetailView: View {
     let book: BookRecord
