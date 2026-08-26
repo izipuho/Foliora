@@ -64,7 +64,7 @@ struct BellCatalogDashboardView: View {
                 }
             }
             .scrollClipDisabled()
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: CatalogMetrics.Spacing.sm) {
                     MetricPill(
@@ -124,14 +124,14 @@ struct BellCatalogDashboardView: View {
                     onSharingChanged()
                 }
             } label: {
-                DashboardSharingCard(
+                CatalogDashboardSharingCard(
                     state: sharingState,
                     tint: accentColor
                 )
             }
             .buttonStyle(.plain)
         } else {
-            DashboardSharingCard(
+            CatalogDashboardSharingCard(
                 state: sharingState,
                 tint: accentColor
             )
@@ -267,91 +267,6 @@ private struct MetricPill: View {
         }
         .catalogSurfaceCapsule()
     }
-}
-
-private struct DashboardSharingCard: View {
-    let state: CollectionSharingState
-    let tint: Color
-
-    private enum Layout {
-        static let textSpacing: CGFloat = 2
-        static let iconFontSize: CGFloat = 24
-    }
-
-    @ViewBuilder
-    var body: some View {
-        if let content {
-            DashboardCard {
-                Image(systemName: content.systemImage)
-                    .font(.system(size: Layout.iconFontSize, weight: .semibold))
-                    .foregroundStyle(tint)
-            } content: {
-                VStack(alignment: .leading, spacing: Layout.textSpacing) {
-                    Text(String(localized: "bell_catalog.dashboard.sharing"))
-                        .font(CatalogTypography.sectionTitle)
-                    Text(content.value)
-                        .font(CatalogTypography.cardSubtitle)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-
-                    if let detail = content.detail {
-                        Text(detail)
-                            .font(CatalogTypography.chipLabel)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
-                    }
-                }
-            }
-        } else {
-            EmptyView()
-        }
-    }
-
-    private var content: DashboardSharingCardContent? {
-        switch state.currentUserRole {
-        case .owner:
-            return DashboardSharingCardContent(
-                systemImage: "person.2.fill",
-                value: state.isShared ? localizedParticipantsCount : String(localized: "collection.sharing.status.private"),
-                detail: pendingInvitationsDetail
-            )
-        case .contributor:
-            return DashboardSharingCardContent(
-                systemImage: "person.crop.circle.badge.checkmark",
-                value: String(localized: "collection.sharing.role.coowner"),
-                detail: nil
-            )
-        case .viewer:
-            return DashboardSharingCardContent(
-                systemImage: "eye.fill",
-                value: String(localized: "collection.sharing.role.viewer"),
-                detail: nil
-            )
-        }
-    }
-
-    private var localizedParticipantsCount: String {
-        String.localizedStringWithFormat(
-            String(localized: "collection.sharing.participants_count"),
-            state.acceptedParticipantsCount
-        )
-    }
-
-    private var pendingInvitationsDetail: String? {
-        guard state.invitedParticipants.count > 0 else { return nil }
-
-        return String.localizedStringWithFormat(
-            String(localized: "bell_catalog.dashboard.sharing.pending_invitations_count"),
-            state.invitedParticipants.count
-        )
-    }
-}
-
-private struct DashboardSharingCardContent {
-    let systemImage: String
-    let value: String
-    let detail: String?
 }
 
 /// Displays the dashboard data health card interface.
