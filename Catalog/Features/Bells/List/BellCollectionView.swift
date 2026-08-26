@@ -104,7 +104,7 @@ struct BellCollectionView: View {
     }
 
     private var collectionToolbar: some ToolbarContent {
-        CatalogContentToolbar(
+        CatalogCollectionToolbar(
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: selectedLayoutModeBinding,
             isPresentingAddOptions: $isPresentingAddBellOptions,

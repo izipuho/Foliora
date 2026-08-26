@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 /// Shared edit, sort/layout, and add toolbar for collection-style catalog screens.
-struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
+struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
     @Binding private var selectedSort: SortOption
     @Binding private var selectedLayoutMode: CatalogCardLayoutMode
     @Binding private var isPresentingAddOptions: Bool

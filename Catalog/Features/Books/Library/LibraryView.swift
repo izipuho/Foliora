@@ -256,7 +256,7 @@ struct LibraryView: View {
     }
 
     private var libraryToolbar: some ToolbarContent {
-        CatalogContentToolbar(
+        CatalogCollectionToolbar(
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: layoutMode,
             isPresentingAddOptions: $isPresentingAddBookOptions,
