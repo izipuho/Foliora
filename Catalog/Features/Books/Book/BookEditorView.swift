@@ -121,7 +121,7 @@ struct BookEditorView: View {
                     )
                 }
 
-                Section("Book") {
+                Section("common.book") {
                     TextField("Language", text: $languageCode)
                     TextField("Pages", text: $pageCount)
                     TextField("Publication place", text: $publicationPlaceName)

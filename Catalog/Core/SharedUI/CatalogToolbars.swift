@@ -208,8 +208,8 @@ struct CatalogItemDetailToolbar: ToolbarContent {
                 }
                 .accessibilityLabel(
                     favorite.isFavorite
-                        ? String(localized: "bell.favorite.remove")
-                        : String(localized: "bell.favorite.add")
+                        ? String(localized: "favorite.remove")
+                        : String(localized: "favorite.add")
                 )
             }
         }
