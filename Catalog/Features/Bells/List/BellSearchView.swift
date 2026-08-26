@@ -385,21 +385,12 @@ func makeItemDetailContent(
     onClose: (() -> Void)?
 ) -> AnyView {
     AnyView(
-        BellDetailContainer(
+        BellItemDetailContainer(
             bellID: itemID,
             repository: repository,
-            catalogSnapshot: catalogSnapshot
+            catalogSnapshot: catalogSnapshot,
+            onClose: onClose
         )
         .id(itemID)
-        .overlay(alignment: .topTrailing) {
-            if let onClose {
-                Button(action: onClose) {
-                    Image(systemName: "xmark")
-                }
-                .buttonStyle(.glass)
-                .padding(.top, CatalogMetrics.Spacing.md)
-                .padding(.trailing, CatalogMetrics.Spacing.md)
-            }
-        }
     )
 }
