@@ -22,7 +22,6 @@ struct BellCollectionView: View {
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
-    @State private var selectedBellID: UUID?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
@@ -77,17 +76,6 @@ struct BellCollectionView: View {
 
     private var selectedLayoutModeBinding: Binding<CatalogCardLayoutMode> {
         layoutMode
-    }
-
-    private var isBellDetailPresented: Binding<Bool> {
-        Binding(
-            get: { selectedBellID != nil },
-            set: { isPresented in
-                if !isPresented {
-                    selectedBellID = nil
-                }
-            }
-        )
     }
 
     private var canEditCollection: Bool {
@@ -185,16 +173,6 @@ struct BellCollectionView: View {
             .sheet(isPresented: $isPresentingEditCollection) {
                 editCollectionSheet
             }
-            .sheet(isPresented: isBellDetailPresented) {
-                if let selectedBellID {
-                    BellDetailContainer(
-                        bellID: selectedBellID,
-                        repository: repository,
-                        catalogSnapshot: catalogSnapshot
-                    )
-                        .presentationDragIndicator(.visible)
-                }
-            }
             .task(id: collection.id) {
                 await loadCollectionSharingState()
             }
@@ -236,7 +214,7 @@ struct BellCollectionView: View {
                         }
                     },
                     canEditCollection: canEditCollection,
-                    onBellSelected: openBell
+                    onBellSelected: onBellSelected
                 )
             }
         }
@@ -336,14 +314,6 @@ struct BellCollectionView: View {
 
         if case .reviewResults = action {
             onBatchAddComplete(action)
-        }
-    }
-
-    private func openBell(_ bellID: UUID) {
-        if let onBellSelected {
-            onBellSelected(bellID)
-        } else {
-            selectedBellID = bellID
         }
     }
 
