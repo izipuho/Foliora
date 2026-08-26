@@ -390,14 +390,7 @@ func makeItemDetailContent(
             repository: repository,
             catalogSnapshot: catalogSnapshot
         )
-        .toolbar {
-            if let onClose {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                    }
-                }
-            }
-        }
+        .id(itemID)
+        .environment(\.catalogItemDetailCloseAction, onClose)
     )
 }
