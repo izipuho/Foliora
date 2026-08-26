@@ -7,12 +7,6 @@ import CoreData
 /// Displays the catalog details for a single book.
 struct BookDetailView: View {
     let book: BookRecord
-    let onClose: (() -> Void)?
-
-    init(book: BookRecord, onClose: (() -> Void)? = nil) {
-        self.book = book
-        self.onClose = onClose
-    }
 
     var body: some View {
         ScrollView {
@@ -28,15 +22,6 @@ struct BookDetailView: View {
         }
         .navigationTitle(book.title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if let onClose {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                    }
-                }
-            }
-        }
     }
 
     private var header: some View {
@@ -193,13 +178,22 @@ struct BookDetailContainer: View {
     var body: some View {
         NavigationStack {
             if let book {
-                BookDetailView(book: book, onClose: onClose)
+                BookDetailView(book: book)
             } else {
                 CatalogEmptyStateView(
                     systemImage: "book.closed",
                     title: "Book not found",
                     message: "This book is no longer available."
                 )
+            }
+        }
+        .toolbar {
+            if let onClose {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: onClose) {
+                        Image(systemName: "xmark")
+                    }
+                }
             }
         }
         .task(id: bookID) {
