@@ -391,5 +391,15 @@ func makeItemDetailContent(
             catalogSnapshot: catalogSnapshot
         )
         .id(itemID)
+        .overlay(alignment: .topTrailing) {
+            if let onClose {
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.glass)
+                .padding(.top, CatalogMetrics.Spacing.md)
+                .padding(.trailing, CatalogMetrics.Spacing.md)
+            }
+        }
     )
 }
