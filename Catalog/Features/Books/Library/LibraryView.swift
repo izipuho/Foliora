@@ -264,6 +264,8 @@ struct LibraryView: View {
                                 )
                             }
                         }
+
+                        CatalogSectionHeader(title: String(localized: "Library"))
                     }
 
                     CatalogCardGrid(
