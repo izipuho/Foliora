@@ -6,7 +6,30 @@ import CoreData
 
 /// Displays the catalog details for a single book.
 struct BookDetailView: View {
-    let book: BookRecord
+    @Binding var book: BookRecord
+    let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
+    let canEditCollection: Bool
+    let canChangeFavorite: Bool
+    let onClose: (() -> Void)?
+
+    @State private var isPresentingEditor = false
+
+    init(
+        book: Binding<BookRecord>,
+        repository: any CatalogRepository,
+        catalogSnapshot: CatalogSnapshot?,
+        canEditCollection: Bool,
+        canChangeFavorite: Bool = false,
+        onClose: (() -> Void)? = nil
+    ) {
+        _book = book
+        self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
+        self.canEditCollection = canEditCollection
+        self.canChangeFavorite = canChangeFavorite
+        self.onClose = onClose
+    }
 
     var body: some View {
         ScrollView {
@@ -22,6 +45,46 @@ struct BookDetailView: View {
         }
         .navigationTitle(book.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            CatalogItemDetailToolbar(
+                onClose: onClose,
+                favorite: favoriteToolbarAction,
+                contentState: detailToolbarState
+            )
+        }
+        .sheet(isPresented: $isPresentingEditor) {
+            if canEditCollection, let collection = inferredCollection {
+                BookEditorView(
+                    collection: collection,
+                    book: book
+                ) { updatedBook in
+                    save(updatedBook)
+                }
+            }
+        }
+    }
+
+    private var detailToolbarState: CatalogItemDetailToolbar.ContentState {
+        guard canEditCollection else { return .readOnly }
+
+        return .viewing {
+            isPresentingEditor = true
+        }
+    }
+
+    private var favoriteToolbarAction: CatalogItemDetailToolbar.FavoriteAction? {
+        guard canChangeFavorite else { return nil }
+
+        return CatalogItemDetailToolbar.FavoriteAction(
+            isFavorite: book.isFavorite,
+            accessibilityLabel: book.isFavorite ? "Remove from favorites" : "Add to favorites",
+            action: toggleFavorite
+        )
+    }
+
+    private var inferredCollection: CollectionSummary? {
+        catalogSnapshot?.collectionSummary(id: book.collectionID)
     }
 
     private var header: some View {
@@ -152,6 +215,18 @@ struct BookDetailView: View {
 
         return nil
     }
+
+    private func toggleFavorite() {
+        guard canChangeFavorite else { return }
+        var updatedItem = book.item
+        updatedItem.isFavorite.toggle()
+        save(BookRecord(item: updatedItem, details: book.details))
+    }
+
+    private func save(_ updatedBook: BookRecord) {
+        book = updatedBook
+        (repository as! any BookCatalogRepository).saveBookRecord(updatedBook)
+    }
 }
 
 /// Resolves a book by identifier and keeps the presented detail synchronized with the catalog snapshot.
@@ -162,6 +237,8 @@ struct BookDetailContainer: View {
     let onClose: (() -> Void)?
 
     @State private var book: BookRecord?
+    @State private var collectionSharingState: CollectionSharingState?
+    @State private var collectionSharingLoadError: Error?
 
     init(
         bookID: UUID,
@@ -177,8 +254,15 @@ struct BookDetailContainer: View {
 
     var body: some View {
         NavigationStack {
-            if let book {
-                BookDetailView(book: book)
+            if let bookBinding {
+                BookDetailView(
+                    book: bookBinding,
+                    repository: repository,
+                    catalogSnapshot: catalogSnapshot,
+                    canEditCollection: canEditCollection,
+                    canChangeFavorite: canChangeFavorite,
+                    onClose: onClose
+                )
             } else {
                 CatalogEmptyStateView(
                     systemImage: "book.closed",
@@ -187,25 +271,77 @@ struct BookDetailContainer: View {
                 )
             }
         }
-        .toolbar {
-            if let onClose {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                    }
-                }
-            }
-        }
         .task(id: bookID) {
             syncBookFromCatalogSnapshot()
+        }
+        .task(id: currentCollectionID) {
+            await loadCollectionSharingState()
         }
         .onChange(of: catalogSnapshot?.recordsByID[bookID]) { _, _ in
             syncBookFromCatalogSnapshot()
         }
     }
 
+    private var canEditCollection: Bool {
+        guard collectionSharingLoadError == nil else { return false }
+
+        switch collectionSharingState?.currentUserRole {
+        case .owner, .contributor:
+            return true
+        case .viewer, nil:
+            return false
+        }
+    }
+
+    private var canChangeFavorite: Bool {
+        guard collectionSharingLoadError == nil else { return false }
+
+        switch collectionSharingState?.currentUserRole {
+        case .owner:
+            return true
+        case .contributor, .viewer, nil:
+            return false
+        }
+    }
+
+    private var bookBinding: Binding<BookRecord>? {
+        guard let currentBook = book else { return nil }
+
+        return Binding(
+            get: {
+                book ?? currentBook
+            },
+            set: {
+                book = $0
+            }
+        )
+    }
+
+    private var currentCollectionID: UUID? {
+        book?.collectionID ?? catalogSnapshot?.recordsByID[bookID]?.collectionID
+    }
+
     private func syncBookFromCatalogSnapshot() {
         book = catalogSnapshot?.recordsByID[bookID]
+    }
+
+    @MainActor
+    private func loadCollectionSharingState() async {
+        collectionSharingState = nil
+        collectionSharingLoadError = nil
+
+        guard let collectionID = currentCollectionID,
+              let persistentContainer = FolioraAppDelegate.coreDataContainer else {
+            return
+        }
+
+        do {
+            collectionSharingState = try await CloudKitCollectionSharingService(
+                persistentContainer: persistentContainer
+            ).sharingState(for: collectionID)
+        } catch {
+            collectionSharingLoadError = error
+        }
     }
 }
 

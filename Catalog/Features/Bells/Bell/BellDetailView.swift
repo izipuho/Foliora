@@ -55,33 +55,11 @@ struct BellDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
-                if onClose != nil || (canEditCollection && isNotesOrTagsDirty) {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { handleCloseOrCancel() } label: { Image(systemName: "xmark") }
-                        .accessibilityLabel(String(localized: "common.cancel"))
-                    }
-                }
-
-                if canChangeFavorite {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { toggleFavorite() } label: {
-                            Image(systemName: bell.isFavorite ? "star.fill" : "star")
-                        }
-                        .accessibilityLabel(bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
-                    }
-                }
-
-                if canEditCollection && isNotesOrTagsDirty {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { saveNotesAndTagsChanges() } label: { Image(systemName: "checkmark") }
-                        .accessibilityLabel(String(localized: "common.save"))
-                    }
-                } else if canEditCollection {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
-                        .accessibilityLabel(String(localized: "common.edit"))
-                    }
-                }
+                CatalogItemDetailToolbar(
+                    onClose: onClose,
+                    favorite: favoriteToolbarAction,
+                    contentState: detailToolbarState
+                )
             }
             .confirmationDialog(
                 String(localized: "bell.detail.unsaved_changes.title"),
@@ -150,6 +128,31 @@ struct BellDetailView: View {
                 syncSelectedHeroPhoto()
             }
         }
+    }
+
+    private var detailToolbarState: CatalogItemDetailToolbar.ContentState {
+        guard canEditCollection else { return .readOnly }
+
+        if isNotesOrTagsDirty {
+            return .pendingChanges(
+                onCancel: requestDiscardNotesAndTagsChanges,
+                onSave: saveNotesAndTagsChanges
+            )
+        }
+
+        return .viewing {
+            isPresentingEditor = true
+        }
+    }
+
+    private var favoriteToolbarAction: CatalogItemDetailToolbar.FavoriteAction? {
+        guard canChangeFavorite else { return nil }
+
+        return CatalogItemDetailToolbar.FavoriteAction(
+            isFavorite: bell.isFavorite,
+            accessibilityLabel: String(localized: bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add"),
+            action: toggleFavorite
+        )
     }
 
     private var detailContent: some View {
@@ -396,14 +399,6 @@ struct BellDetailView: View {
         draftNotes = bell.notes
         draftTags = bell.tags
         tagInput = ""
-    }
-
-    private func handleCloseOrCancel() {
-        if canEditCollection && isNotesOrTagsDirty {
-            requestDiscardNotesAndTagsChanges()
-        } else {
-            onClose?()
-        }
     }
 
     private func presentHomeEditor(for homeID: UUID) {
