@@ -219,7 +219,8 @@ struct BookDetailView: View {
         guard canChangeFavorite else { return }
         var updatedItem = book.item
         updatedItem.isFavorite.toggle()
-        save(BookRecord(item: updatedItem, details: book.details))
+        book = BookRecord(item: updatedItem, details: book.details)
+        repository.setFavorite(updatedItem.isFavorite, for: updatedItem.id)
     }
 
     private func save(_ updatedBook: BookRecord) {

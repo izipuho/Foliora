@@ -473,7 +473,8 @@ struct BellDetailView: View {
         guard canChangeFavorite else { return }
         var updatedItem = bell.item
         updatedItem.isFavorite.toggle()
-        save(updatedItem)
+        bell = BellRecord(item: updatedItem, details: bell.details)
+        repository.setFavorite(updatedItem.isFavorite, for: updatedItem.id)
     }
 
     private func persist(
