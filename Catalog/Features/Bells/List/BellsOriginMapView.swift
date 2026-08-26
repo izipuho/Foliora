@@ -5,7 +5,7 @@ import MapKit
 struct BellsOriginMapView: View {
     let collection: CollectionSummary
     let catalogSnapshot: CatalogSnapshot?
-    let repository: any CatalogRepository
+    let onBellSelected: ((UUID) -> Void)?
 
     @State private var position: MapCameraPosition = .automatic
     @State private var selectedGroupID: String?
@@ -79,8 +79,7 @@ struct BellsOriginMapView: View {
                 if let selectedGroup {
                     MapSelectionPanel(
                         bells: selectedGroup.bells,
-                        repository: repository,
-                        catalogSnapshot: catalogSnapshot
+                        onBellSelected: onBellSelected
                     )
                     .padding(.bottom, CatalogMetrics.Spacing.xl)
                 }
@@ -192,21 +191,7 @@ private struct MapBellAnnotationView: View {
 
 private struct MapSelectionPanel: View {
     let bells: [BellListItem]
-    let repository: any CatalogRepository
-    let catalogSnapshot: CatalogSnapshot?
-
-    @State private var presentedBellID: UUID?
-
-    private var isBellDetailPresented: Binding<Bool> {
-        Binding(
-            get: { presentedBellID != nil },
-            set: { isPresented in
-                if !isPresented {
-                    presentedBellID = nil
-                }
-            }
-        )
-    }
+    let onBellSelected: ((UUID) -> Void)?
 
     var body: some View {
         GeometryReader { proxy in
@@ -222,7 +207,7 @@ private struct MapSelectionPanel: View {
                         let style = CatalogCardContentStyle.style(for: .mini)
 
                         Button {
-                            presentedBellID = bell.id
+                            onBellSelected?(bell.id)
                         } label: {
                             BellCardView(
                                 bell: bell,
@@ -234,16 +219,6 @@ private struct MapSelectionPanel: View {
                         .buttonStyle(.plain)
                     }
                 }
-            }
-        }
-        .sheet(isPresented: isBellDetailPresented) {
-            if let presentedBellID {
-                BellDetailContainer(
-                    bellID: presentedBellID,
-                    repository: repository,
-                    catalogSnapshot: catalogSnapshot
-                )
-                    .presentationDragIndicator(.visible)
             }
         }
     }
