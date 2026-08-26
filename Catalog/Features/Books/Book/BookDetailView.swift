@@ -78,7 +78,6 @@ struct BookDetailView: View {
 
         return CatalogItemDetailToolbar.FavoriteAction(
             isFavorite: book.isFavorite,
-            accessibilityLabel: book.isFavorite ? "Remove from favorites" : "Add to favorites",
             action: toggleFavorite
         )
     }

@@ -184,7 +184,6 @@ struct CatalogItemDetailToolbar: ToolbarContent {
 
     struct FavoriteAction {
         let isFavorite: Bool
-        let accessibilityLabel: String
         let action: () -> Void
     }
 
@@ -207,7 +206,11 @@ struct CatalogItemDetailToolbar: ToolbarContent {
                 Button(action: favorite.action) {
                     Image(systemName: favorite.isFavorite ? "star.fill" : "star")
                 }
-                .accessibilityLabel(favorite.accessibilityLabel)
+                .accessibilityLabel(
+                    favorite.isFavorite
+                        ? String(localized: "bell.favorite.remove")
+                        : String(localized: "bell.favorite.add")
+                )
             }
         }
 

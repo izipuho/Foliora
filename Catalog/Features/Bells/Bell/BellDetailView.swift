@@ -150,7 +150,6 @@ struct BellDetailView: View {
 
         return CatalogItemDetailToolbar.FavoriteAction(
             isFavorite: bell.isFavorite,
-            accessibilityLabel: String(localized: bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add"),
             action: toggleFavorite
         )
     }
