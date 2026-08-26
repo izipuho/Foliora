@@ -24,6 +24,7 @@ struct BellCollectionView: View {
     @State private var isPresentingEditCollection = false
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
+    @State private var favoriteChangeRevision = 0
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
     private let layoutMode: Binding<CatalogCardLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
@@ -134,6 +135,8 @@ struct BellCollectionView: View {
     }
 
     var body: some View {
+        let _ = favoriteChangeRevision
+
         content
             .toolbar {
                 if !isBellCatalogSelectionMode {
@@ -142,6 +145,16 @@ struct BellCollectionView: View {
             }
             .onPreferenceChange(BellCatalogSelectionModePreferenceKey.self) { isSelectionMode in
                 isBellCatalogSelectionMode = isSelectionMode
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .catalogItemFavoriteDidChange)) { notification in
+                guard
+                    let change = notification.object as? CatalogItemFavoriteChange,
+                    change.collectionID == collection.id
+                else {
+                    return
+                }
+
+                favoriteChangeRevision &+= 1
             }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,

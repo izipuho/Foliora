@@ -11,5 +11,17 @@ extension CoreDataCatalogRepository {
 
         item.setValue(isFavorite, forKey: "isFavorite")
         saveContext()
+
+        let collectionID = (item.value(forKey: "collection") as? NSManagedObject)?
+            .value(forKey: "id") as? UUID
+
+        NotificationCenter.default.post(
+            name: .catalogItemFavoriteDidChange,
+            object: CatalogItemFavoriteChange(
+                itemID: itemID,
+                collectionID: collectionID,
+                isFavorite: isFavorite
+            )
+        )
     }
 }
