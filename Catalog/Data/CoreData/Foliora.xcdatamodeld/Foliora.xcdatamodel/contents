@@ -17,16 +17,16 @@
         <attribute name="publicationPlaceName" optional="YES" attributeType="String"/>
         <attribute name="publicationYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
         <attribute name="volumeNumber" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
-        <relationship name="bookSeries" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookSeriesEntity" inverseName="books" inverseEntity="BookSeriesEntity"/>
         <relationship name="contributors" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="book" inverseEntity="BookContributorEntity"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="book" inverseEntity="ItemEntity"/>
         <relationship name="publicationPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="books" inverseEntity="PlaceEntity"/>
+        <relationship name="series" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookSeriesEntity" inverseName="books" inverseEntity="BookSeriesEntity"/>
     </entity>
-    <entity name="BookSeriesEntity" representedClassName="NSManagedObject" syncable="YES" codeGenerationType="class">
+    <entity name="BookSeriesEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
-        <attribute name="totalBookCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="bookSeries" inverseEntity="BookEntity"/>
+        <attribute name="totalBookCount" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
+        <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="series" inverseEntity="BookEntity"/>
         <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="bookSeries" inverseEntity="CollectionEntity"/>
     </entity>
     <entity name="CollectionEntity" representedClassName="NSManagedObject" syncable="YES">
