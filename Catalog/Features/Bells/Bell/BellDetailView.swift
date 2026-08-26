@@ -8,6 +8,7 @@ struct BellDetailView: View {
     let catalogSnapshot: CatalogSnapshot?
     let canEditCollection: Bool
     let canChangeFavorite: Bool
+    let onClose: (() -> Void)?
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
@@ -27,7 +28,8 @@ struct BellDetailView: View {
         repository: any CatalogRepository,
         catalogSnapshot: CatalogSnapshot?,
         canEditCollection: Bool,
-        canChangeFavorite: Bool = false
+        canChangeFavorite: Bool = false,
+        onClose: (() -> Void)? = nil
     ) {
         _bell = bell
         _selectedHeroPhotoID = State(initialValue: Self.heroPhotoAssets(in: bell.wrappedValue).first?.id)
@@ -35,6 +37,7 @@ struct BellDetailView: View {
         self.catalogSnapshot = catalogSnapshot
         self.canEditCollection = canEditCollection
         self.canChangeFavorite = canChangeFavorite
+        self.onClose = onClose
     }
 
     var body: some View {
@@ -52,6 +55,13 @@ struct BellDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
+                if onClose != nil || (canEditCollection && isNotesOrTagsDirty) {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { handleCloseOrCancel() } label: { Image(systemName: "xmark") }
+                        .accessibilityLabel(String(localized: "common.cancel"))
+                    }
+                }
+
                 if canChangeFavorite {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { toggleFavorite() } label: {
@@ -62,11 +72,6 @@ struct BellDetailView: View {
                 }
 
                 if canEditCollection && isNotesOrTagsDirty {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
-                        .accessibilityLabel(String(localized: "common.cancel"))
-                    }
-
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { saveNotesAndTagsChanges() } label: { Image(systemName: "checkmark") }
                         .accessibilityLabel(String(localized: "common.save"))
@@ -391,6 +396,14 @@ struct BellDetailView: View {
         draftNotes = bell.notes
         draftTags = bell.tags
         tagInput = ""
+    }
+
+    private func handleCloseOrCancel() {
+        if canEditCollection && isNotesOrTagsDirty {
+            requestDiscardNotesAndTagsChanges()
+        } else {
+            onClose?()
+        }
     }
 
     private func presentHomeEditor(for homeID: UUID) {
