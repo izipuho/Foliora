@@ -26,6 +26,12 @@ extension PreviewData {
             latitude: nil,
             longitude: nil
         )
+        let series = BookSeries(
+            id: UUID(),
+            collectionID: core.items[0].collectionID,
+            name: "Preview Series",
+            totalBookCount: 3
+        )
 
         return core.items.enumerated().map { index, sourceItem in
             var item = sourceItem
@@ -49,7 +55,7 @@ extension PreviewData {
                         pageCount: 320,
                         publicationPlaceName: "London",
                         publicationYear: 1954,
-                        volumeNumber: nil,
+                        volumeNumber: 1,
                         publicationPlace: publicationPlace,
                         contributors: [
                             BookContributor(
@@ -64,7 +70,8 @@ extension PreviewData {
                                     deathPlace: nil
                                 )
                             )
-                        ]
+                        ],
+                        series: series
                     )
                 )
 
@@ -146,7 +153,8 @@ extension PreviewData {
                                     deathPlace: nil
                                 )
                             )
-                        ]
+                        ],
+                        series: series
                     )
                 )
             }

@@ -34,6 +34,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         }
 
         apply(book, to: entity)
+        entity.setValue(book.details.series.map { upsertBookSeries($0, for: item) }, forKey: "series")
         replaceContributors(book.details.contributors, for: entity)
         entity.setValue(item, forKey: "item")
         fillInverseRelationship(from: entity, relationshipName: "item", with: item)
@@ -48,6 +49,40 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         entity.setValue(book.details.publicationYear, forKey: "publicationYear")
         entity.setValue(book.details.volumeNumber, forKey: "volumeNumber")
         entity.setValue(book.details.publicationPlace.map(upsertBookPlace), forKey: "publicationPlace")
+    }
+
+    private func upsertBookSeries(_ series: BookSeries, for item: NSManagedObject) -> NSManagedObject {
+        guard let collection = item.value(forKey: "collection") as? NSManagedObject else {
+            preconditionFailure("ItemEntity is missing its CollectionEntity relationship while saving BookSeriesEntity.")
+        }
+
+        let collectionID = collection.value(forKey: "id") as? UUID
+        precondition(
+            collectionID == series.collectionID,
+            "BookSeries collection does not match the book collection."
+        )
+
+        let request = NSFetchRequest<NSManagedObject>(entityName: "BookSeriesEntity")
+        request.predicate = NSPredicate(format: "id == %@", series.id as NSUUID)
+        request.fetchLimit = 1
+
+        let existingEntity = (try? context.fetch(request))?.first
+        if let existingCollection = existingEntity?.value(forKey: "collection") as? NSManagedObject,
+           existingCollection != collection {
+            preconditionFailure("BookSeriesEntity cannot be shared across collections.")
+        }
+
+        let entity = existingEntity ?? makeEntity(named: "BookSeriesEntity")
+        if existingEntity == nil,
+           let store = collection.objectID.persistentStore {
+            context.assign(entity, to: store)
+        }
+
+        entity.setValue(series.id, forKey: "id")
+        entity.setValue(series.name, forKey: "name")
+        entity.setValue(series.totalBookCount, forKey: "totalBookCount")
+        entity.setValue(collection, forKey: "collection")
+        return entity
     }
 
     private func replaceContributors(_ contributors: [BookContributor], for book: NSManagedObject) {

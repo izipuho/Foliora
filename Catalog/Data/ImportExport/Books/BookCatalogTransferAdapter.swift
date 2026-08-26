@@ -75,6 +75,14 @@ struct BookCatalogTransferAdapter: CatalogDomainTransferAdapter {
 
                 let item = CoreDataDomainMapper.itemRecord(from: itemEntity)
                 let sourceDetails = transferredBook.details
+                let series = sourceDetails.series.map {
+                    BookSeries(
+                        id: $0.id,
+                        collectionID: item.collectionID,
+                        name: $0.name,
+                        totalBookCount: $0.totalBookCount
+                    )
+                }
                 let details = BookDetails(
                     itemID: item.id,
                     languageCode: sourceDetails.languageCode,
@@ -83,7 +91,8 @@ struct BookCatalogTransferAdapter: CatalogDomainTransferAdapter {
                     publicationYear: sourceDetails.publicationYear,
                     volumeNumber: sourceDetails.volumeNumber,
                     publicationPlace: sourceDetails.publicationPlace,
-                    contributors: sourceDetails.contributors
+                    contributors: sourceDetails.contributors,
+                    series: series
                 )
                 repository.saveBookRecord(BookRecord(item: item, details: details))
             }
@@ -91,7 +100,7 @@ struct BookCatalogTransferAdapter: CatalogDomainTransferAdapter {
     }
 
     func deleteDomainEntities(in context: NSManagedObjectContext) throws {
-        for entityName in ["BookContributorEntity", "BookEntity", "PersonEntity"] {
+        for entityName in ["BookContributorEntity", "BookEntity", "BookSeriesEntity", "PersonEntity"] {
             let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
             try context.fetch(request).forEach(context.delete)
         }
