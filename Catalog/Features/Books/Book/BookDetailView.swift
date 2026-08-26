@@ -169,6 +169,52 @@ struct BookDetailView: View {
     }
 }
 
+/// Resolves a book by identifier and keeps the presented detail synchronized with the catalog snapshot.
+struct BookDetailContainer: View {
+    let bookID: UUID
+    let repository: any CatalogRepository
+    let catalogSnapshot: CatalogSnapshot?
+    let onClose: (() -> Void)?
+
+    @State private var book: BookRecord?
+
+    init(
+        bookID: UUID,
+        repository: any CatalogRepository,
+        catalogSnapshot: CatalogSnapshot?,
+        onClose: (() -> Void)? = nil
+    ) {
+        self.bookID = bookID
+        self.repository = repository
+        self.catalogSnapshot = catalogSnapshot
+        self.onClose = onClose
+    }
+
+    var body: some View {
+        NavigationStack {
+            if let book {
+                BookDetailView(book: book, onClose: onClose)
+            } else {
+                CatalogEmptyStateView(
+                    systemImage: "book.closed",
+                    title: "Book not found",
+                    message: "This book is no longer available."
+                )
+            }
+        }
+        .task(id: bookID) {
+            syncBookFromCatalogSnapshot()
+        }
+        .onChange(of: catalogSnapshot?.recordsByID[bookID]) { _, _ in
+            syncBookFromCatalogSnapshot()
+        }
+    }
+
+    private func syncBookFromCatalogSnapshot() {
+        book = catalogSnapshot?.recordsByID[bookID]
+    }
+}
+
 private extension BookContributorRole {
     var title: String {
         switch self {
@@ -183,12 +229,18 @@ private extension BookContributorRole {
 #if DEBUG
 #Preview {
     let container = PreviewContainer.makeBooksMinimal()
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
     let snapshot = CatalogSnapshot.load(from: container.viewContext)
 
     if let book = snapshot.bookRecords.first {
-        NavigationStack {
-            BookDetailView(book: book)
-        }
+        BookDetailContainer(
+            bookID: book.id,
+            repository: repository,
+            catalogSnapshot: snapshot
+        )
     }
 }
 #endif
