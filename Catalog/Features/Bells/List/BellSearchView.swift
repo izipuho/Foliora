@@ -391,6 +391,5 @@ func makeItemDetailContent(
             catalogSnapshot: catalogSnapshot
         )
         .id(itemID)
-        .environment(\.catalogItemDetailCloseAction, onClose)
     )
 }
