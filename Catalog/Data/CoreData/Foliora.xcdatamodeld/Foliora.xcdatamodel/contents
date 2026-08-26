@@ -17,9 +17,17 @@
         <attribute name="publicationPlaceName" optional="YES" attributeType="String"/>
         <attribute name="publicationYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
         <attribute name="volumeNumber" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="bookSeries" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookSeriesEntity" inverseName="books" inverseEntity="BookSeriesEntity"/>
         <relationship name="contributors" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="book" inverseEntity="BookContributorEntity"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="book" inverseEntity="ItemEntity"/>
         <relationship name="publicationPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="books" inverseEntity="PlaceEntity"/>
+    </entity>
+    <entity name="BookSeriesEntity" representedClassName="NSManagedObject" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="totalBookCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="bookSeries" inverseEntity="BookEntity"/>
+        <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="bookSeries" inverseEntity="CollectionEntity"/>
     </entity>
     <entity name="CollectionEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="backgroundStyle" optional="YES" attributeType="String" defaultValueString="amber"/>
@@ -30,6 +38,7 @@
         <attribute name="kind" optional="YES" attributeType="String" defaultValueString="bells"/>
         <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="title" optional="YES" attributeType="String" defaultValueString=""/>
+        <relationship name="bookSeries" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookSeriesEntity" inverseName="collection" inverseEntity="BookSeriesEntity"/>
         <relationship name="collectionLocations" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CollectionLocationEntity" inverseName="collection" inverseEntity="CollectionLocationEntity"/>
         <relationship name="home" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="HomeEntity" inverseName="collections" inverseEntity="HomeEntity"/>
         <relationship name="items" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ItemEntity" inverseName="collection" inverseEntity="ItemEntity"/>
