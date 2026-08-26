@@ -391,6 +391,5 @@ func makeItemDetailContent(
             catalogSnapshot: catalogSnapshot,
             onClose: onClose
         )
-        .id(itemID)
     )
 }
