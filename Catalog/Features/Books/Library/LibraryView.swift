@@ -44,6 +44,8 @@ struct LibraryView: View {
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
+    @State private var isFavoritesCollapsed = false
+    @State private var favoriteChangeRevision = 0
 
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
@@ -103,6 +105,10 @@ struct LibraryView: View {
         }
     }
 
+    private var favoriteBooks: [BookRecord] {
+        books.filter(\.isFavorite)
+    }
+
     private var selectedOrder: LibraryOrderMode {
         get {
             LibraryOrderMode(rawValue: selectedOrderRawValue) ?? .title
@@ -157,12 +163,24 @@ struct LibraryView: View {
     }
 
     var body: some View {
+        let _ = favoriteChangeRevision
+
         content
             .navigationTitle(collection.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 libraryToolbar
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .catalogItemFavoriteDidChange)) { notification in
+                guard
+                    let change = notification.object as? CatalogItemFavoriteChange,
+                    change.collectionID == collection.id
+                else {
+                    return
+                }
+
+                favoriteChangeRevision &+= 1
             }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
@@ -226,25 +244,74 @@ struct LibraryView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(libraryBackground)
         } else {
-            CatalogCardGrid(layoutMode: layoutMode.wrappedValue) { cardSize, _, cardMetrics in
-                ForEach(books) { book in
-                    Button {
-                        onBookSelected?(book.id)
-                    } label: {
-                        BookCardView(
-                            book: book,
-                            style: CatalogCardContentStyle.style(for: layoutMode.wrappedValue),
-                            cardSize: cardSize,
-                            cardMetrics: cardMetrics
-                        )
+            CatalogCardGrid(
+                layoutMode: layoutMode.wrappedValue,
+                usesGridLayout: false
+            ) { cardSize, gridMetrics, cardMetrics in
+                LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
+                    if !favoriteBooks.isEmpty {
+                        CatalogCollapsibleCardSection(
+                            title: String(localized: "bell.catalog.favorites"),
+                            layoutMode: layoutMode.wrappedValue,
+                            screenWidth: stripScreenWidth(cardSize: cardSize, gridMetrics: gridMetrics),
+                            isCollapsed: $isFavoritesCollapsed
+                        ) { favoriteCardSize, favoriteCardMetrics in
+                            ForEach(favoriteBooks) { book in
+                                bookCard(
+                                    book,
+                                    cardSize: favoriteCardSize,
+                                    cardMetrics: favoriteCardMetrics
+                                )
+                            }
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .frame(width: cardSize.width, height: cardSize.height)
-                    .contentShape(Rectangle())
+
+                    CatalogCardGrid(
+                        layoutMode: layoutMode.wrappedValue,
+                        layoutMetrics: (cardSize, gridMetrics, cardMetrics)
+                    ) { cardSize, _, cardMetrics in
+                        ForEach(books) { book in
+                            bookCard(
+                                book,
+                                cardSize: cardSize,
+                                cardMetrics: cardMetrics
+                            )
+                        }
+                    }
                 }
             }
             .background(libraryBackground)
         }
+    }
+
+    private func bookCard(
+        _ book: BookRecord,
+        cardSize: CGSize,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics
+    ) -> some View {
+        Button {
+            onBookSelected?(book.id)
+        } label: {
+            BookCardView(
+                book: book,
+                style: CatalogCardContentStyle.style(for: layoutMode.wrappedValue),
+                cardSize: cardSize,
+                cardMetrics: cardMetrics
+            )
+        }
+        .buttonStyle(.plain)
+        .frame(width: cardSize.width, height: cardSize.height)
+        .contentShape(Rectangle())
+    }
+
+    private func stripScreenWidth(
+        cardSize: CGSize,
+        gridMetrics: CatalogCardLayoutMode.GridMetrics
+    ) -> CGFloat {
+        let totalSpacing = gridMetrics.spacing * CGFloat(max(gridMetrics.columnCount - 1, 0))
+        return cardSize.width * CGFloat(gridMetrics.columnCount)
+            + totalSpacing
+            + CatalogCardLayoutMode.screenHorizontalPadding * 2
     }
 
     private var libraryBackground: some View {
