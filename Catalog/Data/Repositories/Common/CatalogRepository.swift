@@ -19,6 +19,7 @@ protocol CatalogRepository {
     func saveUserSortOrder(itemIDs: [UUID], scope: String)
     func saveItemRecord(_ item: ItemRecord)
     func saveItemRecords(_ items: [ItemRecord])
+    func setFavorite(_ isFavorite: Bool, for itemID: UUID)
 }
 
 extension CatalogRepository {

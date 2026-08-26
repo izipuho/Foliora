@@ -6,10 +6,10 @@ struct BellCatalogDashboardView: View {
     let accentColor: Color
     let collection: CollectionSummary?
     let catalogSnapshot: CatalogSnapshot?
-    let repository: any CatalogRepository
     let sharingState: CollectionSharingState
     let sharingService: (any CollectionSharingService)?
     let onSharingChanged: () -> Void
+    let onBellSelected: ((UUID) -> Void)?
     let onFilterApply: (BellPresenceFilter) -> Void
     let onResetFilters: () -> Void
 
@@ -26,7 +26,7 @@ struct BellCatalogDashboardView: View {
                             BellsOriginMapView(
                                 collection: collection,
                                 catalogSnapshot: catalogSnapshot,
-                                repository: repository
+                                onBellSelected: onBellSelected
                             )
                         } label: {
                             DashboardTopGeographyCard(

@@ -1,40 +1,58 @@
 import SwiftUI
 
-/// Displays the editor used to create a book from selected media.
+/// Displays the editor used to create or edit a book.
 struct BookEditorView: View {
     let collection: CollectionSummary
+    private let existingBook: BookRecord?
     private let onSave: (BookRecord) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isTitleFocused: Bool
 
-    @State private var title = ""
-    @State private var notes = ""
-    @State private var selectedAcquiredYearOption = String(localized: "common.none")
-    @State private var condition: ItemCondition = .good
-    @State private var acquisitionMethod: AcquisitionMethod = .bought
+    @State private var title: String
+    @State private var notes: String
+    @State private var selectedAcquiredYearOption: String
+    @State private var condition: ItemCondition
+    @State private var acquisitionMethod: AcquisitionMethod
     @State private var tagInput = ""
-    @State private var tags: [String] = []
+    @State private var tags: [String]
     @State private var mediaAssets: [MediaAsset]
 
-    @State private var languageCode = ""
-    @State private var pageCount = ""
-    @State private var publicationPlaceName = ""
-    @State private var publicationYear = ""
-    @State private var volumeNumber = ""
+    @State private var languageCode: String
+    @State private var pageCount: String
+    @State private var publicationPlaceName: String
+    @State private var publicationYear: String
+    @State private var volumeNumber: String
 
-    private let editorItemID = UUID()
+    private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
     init(
         collection: CollectionSummary,
-        initialMediaAssets: [MediaAsset],
+        initialMediaAssets: [MediaAsset] = [],
+        book: BookRecord? = nil,
         onSave: @escaping (BookRecord) -> Void
     ) {
         self.collection = collection
+        self.existingBook = book
         self.onSave = onSave
-        _mediaAssets = State(initialValue: initialMediaAssets)
+        self.editorItemID = book?.id ?? UUID()
+
+        _title = State(initialValue: book?.title ?? "")
+        _notes = State(initialValue: book?.notes ?? "")
+        _selectedAcquiredYearOption = State(
+            initialValue: book?.acquiredYear.map(String.init) ?? String(localized: "common.none")
+        )
+        _condition = State(initialValue: book?.condition ?? .good)
+        _acquisitionMethod = State(initialValue: book?.acquisitionMethod ?? .bought)
+        _tags = State(initialValue: book?.tags ?? [])
+        _mediaAssets = State(initialValue: book?.mediaAssets ?? initialMediaAssets)
+        _languageCode = State(initialValue: book?.details.languageCode ?? "")
+        _pageCount = State(initialValue: book?.details.pageCount.map(String.init) ?? "")
+        _publicationPlaceName = State(initialValue: book?.details.publicationPlaceName ?? "")
+        _publicationYear = State(initialValue: book?.details.publicationYear.map(String.init) ?? "")
+        _volumeNumber = State(initialValue: book?.details.volumeNumber.map(String.init) ?? "")
     }
 
     var body: some View {
@@ -103,7 +121,7 @@ struct BookEditorView: View {
                     )
                 }
 
-                Section("Book") {
+                Section("common.book") {
                     TextField("Language", text: $languageCode)
                     TextField("Pages", text: $pageCount)
                     TextField("Publication place", text: $publicationPlaceName)
@@ -118,7 +136,7 @@ struct BookEditorView: View {
                     )
                 }
             }
-            .navigationTitle("Add Book")
+            .navigationTitle(existingBook == nil ? "Add Book" : "Edit Book")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -155,26 +173,27 @@ struct BookEditorView: View {
         let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
             asset.with(itemID: itemID, sortOrder: index)
         }
+        let existingItem = existingBook?.item
 
         let book = BookRecord(
             item: ItemRecord(
                 id: itemID,
-                collectionID: collection.id,
+                collectionID: existingItem?.collectionID ?? collection.id,
                 kind: .books,
-                locationID: nil,
-                originPlaceID: nil,
-                createdAt: .now,
-                createdBy: "me",
+                locationID: existingItem?.locationID,
+                originPlaceID: existingItem?.originPlaceID,
+                createdAt: existingItem?.createdAt ?? .now,
+                createdBy: existingItem?.createdBy ?? "me",
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
                 acquiredYear: Int(selectedAcquiredYearOption),
                 condition: condition,
                 acquisitionMethod: acquisitionMethod,
-                isFavorite: false,
+                isFavorite: existingItem?.isFavorite ?? false,
                 tags: tags,
-                originPlace: nil,
-                storageLocation: nil,
-                storagePath: nil,
+                originPlace: existingItem?.originPlace,
+                storageLocation: existingItem?.storageLocation,
+                storagePath: existingItem?.storagePath,
                 mediaAssets: normalizedMediaAssets
             ),
             details: BookDetails(
@@ -184,8 +203,8 @@ struct BookEditorView: View {
                 publicationPlaceName: optionalString(publicationPlaceName),
                 publicationYear: optionalInt(publicationYear),
                 volumeNumber: optionalInt(volumeNumber),
-                publicationPlace: nil,
-                contributors: []
+                publicationPlace: existingBook?.details.publicationPlace,
+                contributors: existingBook?.details.contributors ?? []
             )
         )
 

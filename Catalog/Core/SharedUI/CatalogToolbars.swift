@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 /// Shared edit, sort/layout, and add toolbar for collection-style catalog screens.
-struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
+struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
     @Binding private var selectedSort: SortOption
     @Binding private var selectedLayoutMode: CatalogCardLayoutMode
     @Binding private var isPresentingAddOptions: Bool
@@ -171,5 +171,80 @@ struct CatalogContentToolbar<SortOption: Hashable>: ToolbarContent {
         Image(systemName: systemName)
             .font(.system(size: 17, weight: .semibold))
             .frame(width: 30, height: 30)
+    }
+}
+
+/// Shared navigation toolbar for catalog item detail screens.
+struct CatalogItemDetailToolbar: ToolbarContent {
+    enum ContentState {
+        case readOnly
+        case viewing(onEdit: () -> Void)
+        case pendingChanges(onCancel: () -> Void, onSave: () -> Void)
+    }
+
+    struct FavoriteAction {
+        let isFavorite: Bool
+        let action: () -> Void
+    }
+
+    let onClose: (() -> Void)?
+    let favorite: FavoriteAction?
+    let contentState: ContentState
+
+    var body: some ToolbarContent {
+        if onClose != nil || isPendingChanges {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: handleCloseOrCancel) {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel(String(localized: "common.cancel"))
+            }
+        }
+
+        if let favorite {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: favorite.action) {
+                    Image(systemName: favorite.isFavorite ? "star.fill" : "star")
+                }
+                .accessibilityLabel(
+                    favorite.isFavorite
+                        ? String(localized: "favorite.remove")
+                        : String(localized: "favorite.add")
+                )
+            }
+        }
+
+        if case .viewing(let onEdit) = contentState {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: onEdit) {
+                    Image(systemName: "square.and.pencil")
+                }
+                .accessibilityLabel(String(localized: "common.edit"))
+            }
+        }
+
+        if case .pendingChanges(_, let onSave) = contentState {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: onSave) {
+                    Image(systemName: "checkmark")
+                }
+                .accessibilityLabel(String(localized: "common.save"))
+            }
+        }
+    }
+
+    private var isPendingChanges: Bool {
+        if case .pendingChanges = contentState {
+            return true
+        }
+        return false
+    }
+
+    private func handleCloseOrCancel() {
+        if case .pendingChanges(let onCancel, _) = contentState {
+            onCancel()
+        } else {
+            onClose?()
+        }
     }
 }

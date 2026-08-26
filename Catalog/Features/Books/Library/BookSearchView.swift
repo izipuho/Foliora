@@ -80,25 +80,18 @@ func makeCollectionDestinationContent(
 }
 
 @MainActor
-func makeItemInspectorContent(
+func makeItemDetailContent(
     itemID: UUID,
     repository: any CatalogRepository,
     catalogSnapshot: CatalogSnapshot?,
-    onClose: @escaping () -> Void
+    onClose: (() -> Void)?
 ) -> AnyView {
-    guard let book = catalogSnapshot?.recordsByID[itemID] else {
-        return AnyView(
-            CatalogEmptyStateView(
-                systemImage: "book.closed",
-                title: "Book not found",
-                message: "This book is no longer available."
-            )
+    AnyView(
+        BookDetailContainer(
+            bookID: itemID,
+            repository: repository,
+            catalogSnapshot: catalogSnapshot,
+            onClose: onClose
         )
-    }
-
-    return AnyView(
-        NavigationStack {
-            BookDetailView(book: book, onClose: onClose)
-        }
     )
 }

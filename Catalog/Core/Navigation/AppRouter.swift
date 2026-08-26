@@ -281,7 +281,7 @@ private struct RootShellView<Destination: View>: View {
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = CatalogCardLayoutMode.mini.rawValue
     @State private var searchInitialQuery: String?
     @State private var searchResetID = UUID()
-    @State private var selectedBellID: UUID?
+    @State private var selectedItemID: UUID?
 
     private var layoutMode: CatalogCardLayoutMode {
         get {
@@ -299,12 +299,12 @@ private struct RootShellView<Destination: View>: View {
         )
     }
 
-    private var isBellInspectorPresented: Binding<Bool> {
+    private var isItemDetailPresented: Binding<Bool> {
         Binding(
-            get: { selectedBellID != nil },
+            get: { selectedItemID != nil },
             set: { isPresented in
                 if !isPresented {
-                    selectedBellID = nil
+                    selectedItemID = nil
                 }
             }
         )
@@ -332,15 +332,15 @@ private struct RootShellView<Destination: View>: View {
     private var iPhoneRootContainer: some View {
         TabView(selection: $selectedRootTab) {
             Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage, value: RootTab.collections) {
-                collectionsStack(path: $collectionsPath, onBellSelected: nil)
+                collectionsStack(path: $collectionsPath, onItemSelected: openItemDetail)
             }
 
             Tab(RootTab.homes.title, systemImage: RootTab.homes.systemImage, value: RootTab.homes) {
-                homesStack(path: $homesPath, onBellSelected: nil)
+                homesStack(path: $homesPath, onItemSelected: openItemDetail)
             }
 
             Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage, value: RootTab.settings) {
-                settingsStack(path: $settingsPath, onBellSelected: nil)
+                settingsStack(path: $settingsPath, onItemSelected: openItemDetail)
             }
 
             Tab(value: RootTab.search, role: .search) {
@@ -349,26 +349,40 @@ private struct RootShellView<Destination: View>: View {
                         repository: repository,
                         layoutMode: layoutModeBinding,
                         catalogSnapshot: catalogSnapshot,
-                        initialQuery: searchInitialQuery
+                        initialQuery: searchInitialQuery,
+                        onItemSelected: openItemDetail
                     )
                     .id(searchResetID)
                 }
             }
         }
         .modifier(ModernTabBarBehavior())
+        .sheet(isPresented: isItemDetailPresented) {
+            if let selectedItemID {
+                makeItemDetailContent(
+                    itemID: selectedItemID,
+                    repository: repository,
+                    catalogSnapshot: catalogSnapshot,
+                    onClose: nil
+                )
+                .id(selectedItemID)
+                .presentationDragIndicator(.visible)
+            }
+        }
     }
 
     private var iPadRootContainer: some View {
         iPadSplitView
             .navigationSplitViewStyle(.balanced)
-            .inspector(isPresented: isBellInspectorPresented) {
-                if let selectedBellID {
-                    makeItemInspectorContent(
-                        itemID: selectedBellID,
+            .inspector(isPresented: isItemDetailPresented) {
+                if let selectedItemID {
+                    makeItemDetailContent(
+                        itemID: selectedItemID,
                         repository: repository,
                         catalogSnapshot: catalogSnapshot,
-                        onClose: closeBellInspector
+                        onClose: closeItemDetail
                     )
+                    .id(selectedItemID)
                     .inspectorColumnWidth(min: 320, ideal: 360, max: 420)
                 } else {
                     EmptyView()
@@ -384,7 +398,7 @@ private struct RootShellView<Destination: View>: View {
             }
             .navigationTitle(RootTab.collections.title)
             .onChange(of: selectedRootTab) { _, _ in
-                closeBellInspector()
+                closeItemDetail()
             }
         } detail: {
             iPadContent(for: selectedRootTab)
@@ -395,9 +409,9 @@ private struct RootShellView<Destination: View>: View {
     private func iPadContent(for tab: RootTab) -> some View {
         switch tab {
         case .collections:
-            collectionsStack(path: $collectionsPath, onBellSelected: openBellInspector)
+            collectionsStack(path: $collectionsPath, onItemSelected: openItemDetail)
         case .homes:
-            homesStack(path: $homesPath, onBellSelected: openBellInspector)
+            homesStack(path: $homesPath, onItemSelected: openItemDetail)
         case .search:
             NavigationStack(path: $searchPath) {
                 SearchView(
@@ -405,18 +419,18 @@ private struct RootShellView<Destination: View>: View {
                     layoutMode: layoutModeBinding,
                     catalogSnapshot: catalogSnapshot,
                     initialQuery: searchInitialQuery,
-                    onItemSelected: openBellInspector
+                    onItemSelected: openItemDetail
                 )
                 .id(searchResetID)
             }
         case .settings:
-            settingsStack(path: $settingsPath, onBellSelected: openBellInspector)
+            settingsStack(path: $settingsPath, onItemSelected: openItemDetail)
         }
     }
 
     private func homesStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((UUID) -> Void)?
+        onItemSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
             HomeView(
@@ -426,14 +440,14 @@ private struct RootShellView<Destination: View>: View {
                 catalogSnapshot: catalogSnapshot
             )
             .navigationDestination(for: AppDestination.self) { destination in
-                self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popHomesNavigation)
+                self.destination(destination, layoutModeBinding, onItemSelected, handleBatchAddCompletion, popHomesNavigation)
             }
         }
     }
 
     private func collectionsStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((UUID) -> Void)?
+        onItemSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
             CollectionsView(
@@ -443,14 +457,14 @@ private struct RootShellView<Destination: View>: View {
                 onOpenHomes: openHomesTab
             )
             .navigationDestination(for: AppDestination.self) { destination in
-                self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popCollectionsNavigation)
+                self.destination(destination, layoutModeBinding, onItemSelected, handleBatchAddCompletion, popCollectionsNavigation)
             }
         }
     }
 
     private func settingsStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((UUID) -> Void)?
+        onItemSelected: ((UUID) -> Void)?
     ) -> some View {
         NavigationStack(path: path) {
             SettingsView(
@@ -459,7 +473,7 @@ private struct RootShellView<Destination: View>: View {
                 displayName: $displayName
             )
             .navigationDestination(for: AppDestination.self) { destination in
-                self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popSettingsNavigation)
+                self.destination(destination, layoutModeBinding, onItemSelected, handleBatchAddCompletion, popSettingsNavigation)
             }
         }
     }
@@ -469,7 +483,7 @@ private struct RootShellView<Destination: View>: View {
         searchInitialQuery = query
         searchResetID = UUID()
         selectedRootTab = .search
-        closeBellInspector()
+        closeItemDetail()
         searchPath = NavigationPath()
     }
 
@@ -502,12 +516,12 @@ private struct RootShellView<Destination: View>: View {
         selectedRootTab = .homes
     }
 
-    private func openBellInspector(_ itemID: UUID) {
-        selectedBellID = itemID
+    private func openItemDetail(_ itemID: UUID) {
+        selectedItemID = itemID
     }
 
-    private func closeBellInspector() {
-        selectedBellID = nil
+    private func closeItemDetail() {
+        selectedItemID = nil
     }
 }
 

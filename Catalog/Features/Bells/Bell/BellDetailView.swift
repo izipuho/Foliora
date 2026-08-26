@@ -8,6 +8,7 @@ struct BellDetailView: View {
     let catalogSnapshot: CatalogSnapshot?
     let canEditCollection: Bool
     let canChangeFavorite: Bool
+    let onClose: (() -> Void)?
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
@@ -27,7 +28,8 @@ struct BellDetailView: View {
         repository: any CatalogRepository,
         catalogSnapshot: CatalogSnapshot?,
         canEditCollection: Bool,
-        canChangeFavorite: Bool = false
+        canChangeFavorite: Bool = false,
+        onClose: (() -> Void)? = nil
     ) {
         _bell = bell
         _selectedHeroPhotoID = State(initialValue: Self.heroPhotoAssets(in: bell.wrappedValue).first?.id)
@@ -35,6 +37,7 @@ struct BellDetailView: View {
         self.catalogSnapshot = catalogSnapshot
         self.canEditCollection = canEditCollection
         self.canChangeFavorite = canChangeFavorite
+        self.onClose = onClose
     }
 
     var body: some View {
@@ -52,31 +55,11 @@ struct BellDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
-                if canChangeFavorite {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { toggleFavorite() } label: {
-                            Image(systemName: bell.isFavorite ? "star.fill" : "star")
-                        }
-                        .accessibilityLabel(bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
-                    }
-                }
-
-                if canEditCollection && isNotesOrTagsDirty {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
-                        .accessibilityLabel(String(localized: "common.cancel"))
-                    }
-
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { saveNotesAndTagsChanges() } label: { Image(systemName: "checkmark") }
-                        .accessibilityLabel(String(localized: "common.save"))
-                    }
-                } else if canEditCollection {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
-                        .accessibilityLabel(String(localized: "common.edit"))
-                    }
-                }
+                CatalogItemDetailToolbar(
+                    onClose: onClose,
+                    favorite: favoriteToolbarAction,
+                    contentState: detailToolbarState
+                )
             }
             .confirmationDialog(
                 String(localized: "bell.detail.unsaved_changes.title"),
@@ -145,6 +128,30 @@ struct BellDetailView: View {
                 syncSelectedHeroPhoto()
             }
         }
+    }
+
+    private var detailToolbarState: CatalogItemDetailToolbar.ContentState {
+        guard canEditCollection else { return .readOnly }
+
+        if isNotesOrTagsDirty {
+            return .pendingChanges(
+                onCancel: requestDiscardNotesAndTagsChanges,
+                onSave: saveNotesAndTagsChanges
+            )
+        }
+
+        return .viewing {
+            isPresentingEditor = true
+        }
+    }
+
+    private var favoriteToolbarAction: CatalogItemDetailToolbar.FavoriteAction? {
+        guard canChangeFavorite else { return nil }
+
+        return CatalogItemDetailToolbar.FavoriteAction(
+            isFavorite: bell.isFavorite,
+            action: toggleFavorite
+        )
     }
 
     private var detailContent: some View {
@@ -466,7 +473,8 @@ struct BellDetailView: View {
         guard canChangeFavorite else { return }
         var updatedItem = bell.item
         updatedItem.isFavorite.toggle()
-        save(updatedItem)
+        bell = BellRecord(item: updatedItem, details: bell.details)
+        repository.setFavorite(updatedItem.isFavorite, for: updatedItem.id)
     }
 
     private func persist(

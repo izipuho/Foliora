@@ -22,9 +22,9 @@ struct BellCollectionView: View {
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
-    @State private var selectedBellID: UUID?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
+    @State private var favoriteChangeRevision = 0
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
     private let layoutMode: Binding<CatalogCardLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
@@ -79,17 +79,6 @@ struct BellCollectionView: View {
         layoutMode
     }
 
-    private var isBellDetailPresented: Binding<Bool> {
-        Binding(
-            get: { selectedBellID != nil },
-            set: { isPresented in
-                if !isPresented {
-                    selectedBellID = nil
-                }
-            }
-        )
-    }
-
     private var canEditCollection: Bool {
         guard collectionSharingLoadError == nil else { return false }
 
@@ -116,7 +105,7 @@ struct BellCollectionView: View {
     }
 
     private var collectionToolbar: some ToolbarContent {
-        CatalogContentToolbar(
+        CatalogCollectionToolbar(
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: selectedLayoutModeBinding,
             isPresentingAddOptions: $isPresentingAddBellOptions,
@@ -146,6 +135,8 @@ struct BellCollectionView: View {
     }
 
     var body: some View {
+        let _ = favoriteChangeRevision
+
         content
             .toolbar {
                 if !isBellCatalogSelectionMode {
@@ -154,6 +145,16 @@ struct BellCollectionView: View {
             }
             .onPreferenceChange(BellCatalogSelectionModePreferenceKey.self) { isSelectionMode in
                 isBellCatalogSelectionMode = isSelectionMode
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .catalogItemFavoriteDidChange)) { notification in
+                guard
+                    let change = notification.object as? CatalogItemFavoriteChange,
+                    change.collectionID == collection.id
+                else {
+                    return
+                }
+
+                favoriteChangeRevision &+= 1
             }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
@@ -184,16 +185,6 @@ struct BellCollectionView: View {
             }
             .sheet(isPresented: $isPresentingEditCollection) {
                 editCollectionSheet
-            }
-            .sheet(isPresented: isBellDetailPresented) {
-                if let selectedBellID {
-                    BellDetailContainer(
-                        bellID: selectedBellID,
-                        repository: repository,
-                        catalogSnapshot: catalogSnapshot
-                    )
-                        .presentationDragIndicator(.visible)
-                }
             }
             .task(id: collection.id) {
                 await loadCollectionSharingState()
@@ -236,7 +227,7 @@ struct BellCollectionView: View {
                         }
                     },
                     canEditCollection: canEditCollection,
-                    onBellSelected: openBell
+                    onBellSelected: onBellSelected
                 )
             }
         }
@@ -336,14 +327,6 @@ struct BellCollectionView: View {
 
         if case .reviewResults = action {
             onBatchAddComplete(action)
-        }
-    }
-
-    private func openBell(_ bellID: UUID) {
-        if let onBellSelected {
-            onBellSelected(bellID)
-        } else {
-            selectedBellID = bellID
         }
     }
 

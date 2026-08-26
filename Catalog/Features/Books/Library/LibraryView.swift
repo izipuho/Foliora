@@ -33,7 +33,6 @@ struct LibraryView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage("bookLibrary.orderMode") private var selectedOrderRawValue = LibraryOrderMode.title.rawValue
-    @State private var selectedBookID: UUID?
     @State private var isPresentingEditLibrary = false
     @State private var isPresentingAddBookOptions = false
     @State private var isPresentingPhotoPicker = false
@@ -117,22 +116,6 @@ struct LibraryView: View {
         Binding(
             get: { selectedOrder },
             set: { selectedOrder = $0 }
-        )
-    }
-
-    private var selectedBook: BookRecord? {
-        guard let selectedBookID else { return nil }
-        return books.first { $0.id == selectedBookID }
-    }
-
-    private var isBookDetailPresented: Binding<Bool> {
-        Binding(
-            get: { selectedBookID != nil },
-            set: { isPresented in
-                if !isPresented {
-                    selectedBookID = nil
-                }
-            }
         )
     }
 
@@ -227,14 +210,6 @@ struct LibraryView: View {
             .sheet(isPresented: $isPresentingEditLibrary) {
                 editLibrarySheet
             }
-            .sheet(isPresented: isBookDetailPresented) {
-                if let selectedBook {
-                    NavigationStack {
-                        BookDetailView(book: selectedBook)
-                    }
-                    .presentationDragIndicator(.visible)
-                }
-            }
             .task(id: collection.id) {
                 await loadCollectionSharingState()
             }
@@ -254,7 +229,7 @@ struct LibraryView: View {
             CatalogCardGrid(layoutMode: layoutMode.wrappedValue) { cardSize, _, cardMetrics in
                 ForEach(books) { book in
                     Button {
-                        openBook(book)
+                        onBookSelected?(book.id)
                     } label: {
                         BookCardView(
                             book: book,
@@ -281,7 +256,7 @@ struct LibraryView: View {
     }
 
     private var libraryToolbar: some ToolbarContent {
-        CatalogContentToolbar(
+        CatalogCollectionToolbar(
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: layoutMode,
             isPresentingAddOptions: $isPresentingAddBookOptions,
@@ -333,14 +308,6 @@ struct LibraryView: View {
             .sorted { $0.order < $1.order }
             .first?
             .person.name ?? ""
-    }
-
-    private func openBook(_ book: BookRecord) {
-        if let onBookSelected {
-            onBookSelected(book.id)
-        } else {
-            selectedBookID = book.id
-        }
     }
 
     private func clearDraftBook() {
