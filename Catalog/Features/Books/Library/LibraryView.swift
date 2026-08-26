@@ -291,27 +291,28 @@ struct LibraryView: View {
     @ViewBuilder
     private var libraryDashboard: some View {
         if let collectionSharingState {
-            HStack(spacing: CatalogMetrics.Spacing.md) {
-                NavigationLink {
-                    CollectionSharingView(
-                        collection: collection,
-                        state: collectionSharingState,
-                        sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer)
-                    ) {
-                        Task {
-                            await loadCollectionSharingState()
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: CatalogMetrics.Spacing.md) {
+                    NavigationLink {
+                        CollectionSharingView(
+                            collection: collection,
+                            state: collectionSharingState,
+                            sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer)
+                        ) {
+                            Task {
+                                await loadCollectionSharingState()
+                            }
                         }
+                    } label: {
+                        CatalogDashboardSharingCard(
+                            state: collectionSharingState,
+                            tint: collection.backgroundStyle.accentColor
+                        )
                     }
-                } label: {
-                    CatalogDashboardSharingCard(
-                        state: collectionSharingState,
-                        tint: collection.backgroundStyle.accentColor
-                    )
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-
-                Spacer(minLength: 0)
             }
+            .scrollClipDisabled()
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, CatalogMetrics.Insets.screen)
             .padding(.top, CatalogMetrics.Spacing.xs)
