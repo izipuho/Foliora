@@ -54,7 +54,6 @@ struct BellSearchView: View {
     let onBellSelected: ((UUID) -> Void)?
     private let initialQuery: String?
     @Binding var layoutMode: CatalogCardLayoutMode
-    @State private var selectedBellID: UUID?
     @State private var searchState = BellCatalogSearchState()
 
     init(
@@ -148,17 +147,6 @@ struct BellSearchView: View {
             }
     }
 
-    private var isBellDetailPresented: Binding<Bool> {
-        Binding(
-            get: { selectedBellID != nil },
-            set: { isPresented in
-                if !isPresented {
-                    selectedBellID = nil
-                }
-            }
-        )
-    }
-
     var body: some View {
         SearchShellView(
             layoutMode: $layoutMode,
@@ -170,16 +158,6 @@ struct BellSearchView: View {
             tokenSystemImage: searchTokenSystemImage
         ) { layoutMetrics in
             searchResults(layoutMetrics: layoutMetrics)
-        }
-        .sheet(isPresented: isBellDetailPresented) {
-            if let selectedBellID {
-                BellDetailContainer(
-                    bellID: selectedBellID,
-                    repository: repository,
-                    catalogSnapshot: catalogSnapshot
-                )
-                    .presentationDragIndicator(.visible)
-            }
         }
     }
 
@@ -207,11 +185,7 @@ struct BellSearchView: View {
     }
 
     private func openBell(_ bell: BellListItem) {
-        if let onBellSelected {
-            onBellSelected(bell.id)
-        } else {
-            selectedBellID = bell.id
-        }
+        onBellSelected?(bell.id)
     }
 
     private func searchTokenTitle(_ token: BellSearchToken) -> String {
@@ -404,20 +378,20 @@ func makeCollectionDestinationContent(
 }
 
 @MainActor
-func makeItemInspectorContent(
+func makeItemDetailContent(
     itemID: UUID,
     repository: any CatalogRepository,
     catalogSnapshot: CatalogSnapshot?,
-    onClose: @escaping () -> Void
+    onClose: (() -> Void)?
 ) -> AnyView {
     AnyView(
-        NavigationStack {
-            BellDetailContainer(
-                bellID: itemID,
-                repository: repository,
-                catalogSnapshot: catalogSnapshot
-            )
-            .toolbar {
+        BellDetailContainer(
+            bellID: itemID,
+            repository: repository,
+            catalogSnapshot: catalogSnapshot
+        )
+        .toolbar {
+            if let onClose {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: onClose) {
                         Image(systemName: "xmark")
