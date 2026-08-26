@@ -25,30 +25,20 @@ struct BellItemDetailContainer: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if let bellBinding {
-                    BellDetailView(
-                        bell: bellBinding,
-                        repository: repository,
-                        catalogSnapshot: catalogSnapshot,
-                        canEditCollection: canEditCollection,
-                        canChangeFavorite: canChangeFavorite
-                    )
-                } else {
-                    CatalogEmptyStateView(
-                        systemImage: "bell.slash",
-                        title: "bell.not_found"
-                    )
-                }
-            }
-            .toolbar {
-                if let onClose {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: onClose) {
-                            Image(systemName: "xmark")
-                        }
-                    }
-                }
+            if let bellBinding {
+                BellDetailView(
+                    bell: bellBinding,
+                    repository: repository,
+                    catalogSnapshot: catalogSnapshot,
+                    canEditCollection: canEditCollection,
+                    canChangeFavorite: canChangeFavorite,
+                    onClose: onClose
+                )
+            } else {
+                CatalogEmptyStateView(
+                    systemImage: "bell.slash",
+                    title: "bell.not_found"
+                )
             }
         }
         .task(id: bellID) {
