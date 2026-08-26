@@ -204,7 +204,8 @@ struct BookEditorView: View {
                 publicationYear: optionalInt(publicationYear),
                 volumeNumber: optionalInt(volumeNumber),
                 publicationPlace: existingBook?.details.publicationPlace,
-                contributors: existingBook?.details.contributors ?? []
+                contributors: existingBook?.details.contributors ?? [],
+                series: existingBook?.details.series
             )
         )
 

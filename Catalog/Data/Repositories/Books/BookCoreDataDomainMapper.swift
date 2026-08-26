@@ -11,6 +11,7 @@ extension CoreDataDomainMapper {
 
         let itemRecord = itemRecord(from: itemEntity)
         let publicationPlaceEntity = entity.value(forKey: "publicationPlace") as? NSManagedObject
+        let seriesEntity = entity.value(forKey: "series") as? NSManagedObject
         let contributors = relatedObjects(entity, "contributors")
             .sorted { intValue($0, "order") < intValue($1, "order") }
             .map { bookContributor(from: $0) }
@@ -25,8 +26,27 @@ extension CoreDataDomainMapper {
                 publicationYear: optionalIntValue(entity, "publicationYear"),
                 volumeNumber: positiveIntValue(entity, "volumeNumber"),
                 publicationPlace: publicationPlaceEntity.map { place(from: $0) },
-                contributors: contributors
+                contributors: contributors,
+                series: seriesEntity.map { bookSeries(from: $0) }
             )
+        )
+    }
+
+    static func bookSeries(from entity: NSManagedObject) -> BookSeries {
+        precondition(
+            entity.entity.name == "BookSeriesEntity",
+            "CoreDataDomainMapper.bookSeries(from:) expects BookSeriesEntity."
+        )
+
+        guard let collectionEntity = entity.value(forKey: "collection") as? NSManagedObject else {
+            preconditionFailure("BookSeriesEntity is missing its CollectionEntity relationship.")
+        }
+
+        return BookSeries(
+            id: uuidValue(entity, "id"),
+            collectionID: uuidValue(collectionEntity, "id"),
+            name: stringValue(entity, "name"),
+            totalBookCount: optionalIntValue(entity, "totalBookCount")
         )
     }
 
