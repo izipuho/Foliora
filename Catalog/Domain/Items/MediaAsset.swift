@@ -3,20 +3,54 @@ import Foundation
 /// Represents media asset data and behavior.
 struct MediaAsset: Identifiable, Hashable, Codable {
     let id: UUID
-    let itemID: UUID? = nil
+    let itemID: UUID?
     var kind: MediaKind
     var localIdentifier: String
     var displayName: String?
     var sortOrder: Int
-    var fileName: String? = nil
-    var mimeType: String? = nil
-    var byteSize: Int? = nil
-    var checksum: String? = nil
-    var width: Int? = nil
-    var height: Int? = nil
-    var duration: Double? = nil
-    var metadataJSON: String? = nil
-    var originalData: Data? = nil
+    var fileName: String?
+    var mimeType: String?
+    var byteSize: Int?
+    var checksum: String?
+    var width: Int?
+    var height: Int?
+    var duration: Double?
+    var metadataJSON: String?
+    var originalData: Data?
+
+    init(
+        id: UUID,
+        itemID: UUID? = nil,
+        kind: MediaKind,
+        localIdentifier: String,
+        displayName: String?,
+        sortOrder: Int,
+        fileName: String? = nil,
+        mimeType: String? = nil,
+        byteSize: Int? = nil,
+        checksum: String? = nil,
+        width: Int? = nil,
+        height: Int? = nil,
+        duration: Double? = nil,
+        metadataJSON: String? = nil,
+        originalData: Data? = nil
+    ) {
+        self.id = id
+        self.itemID = itemID
+        self.kind = kind
+        self.localIdentifier = localIdentifier
+        self.displayName = displayName
+        self.sortOrder = sortOrder
+        self.fileName = fileName
+        self.mimeType = mimeType
+        self.byteSize = byteSize
+        self.checksum = checksum
+        self.width = width
+        self.height = height
+        self.duration = duration
+        self.metadataJSON = metadataJSON
+        self.originalData = originalData
+    }
 
     func with(
         itemID: UUID? = nil,
