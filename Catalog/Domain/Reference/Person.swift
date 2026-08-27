@@ -9,4 +9,5 @@ struct Person: Identifiable, Hashable, Codable {
     var biography: String?
     var birthPlace: Place?
     var deathPlace: Place?
+    var photos: [MediaAsset] = []
 }
