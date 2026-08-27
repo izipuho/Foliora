@@ -233,42 +233,6 @@ struct BellCatalogDashboardView: View {
     }
 }
 
-private struct MetricPill: View {
-    let title: String
-    let value: String
-    let systemImage: String
-    let tint: Color
-    var isInteractive = true
-    var action: (() -> Void)?
-
-    var body: some View {
-        if isInteractive, let action {
-            Button(action: action) {
-                content
-            }
-            .buttonStyle(.plain)
-        } else {
-            content
-        }
-    }
-
-    private var content: some View {
-        HStack(spacing: CatalogMetrics.Spacing.sm) {
-            Image(systemName: systemImage)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(tint)
-
-            Text(title)
-                .font(CatalogTypography.cardSubtitle)
-
-            Text(value)
-                .font(CatalogTypography.cardSubtitle)
-                .foregroundStyle(.secondary)
-        }
-        .catalogSurfaceCapsule()
-    }
-}
-
 /// Displays the dashboard data health card interface.
 struct DashboardDataHealthCard: View {
     let progress: Double
