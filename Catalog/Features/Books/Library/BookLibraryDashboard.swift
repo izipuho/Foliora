@@ -3,6 +3,7 @@ import SwiftUI
 /// Displays the book library dashboard view interface.
 struct BookLibraryDashboardView: View {
     let books: [BookRecord]
+    let series: [BookSeries]
     let accentColor: Color
     let collection: CollectionSummary
     let sharingState: CollectionSharingState?
@@ -21,6 +22,7 @@ struct BookLibraryDashboardView: View {
 
             MetricStrip(
                 books: books,
+                series: series,
                 tint: accentColor
             )
         }
@@ -85,6 +87,7 @@ private struct DashboardCardStrip: View {
 
 private struct MetricStrip: View {
     let books: [BookRecord]
+    let series: [BookSeries]
     let tint: Color
 
     var body: some View {
@@ -106,7 +109,7 @@ private struct MetricStrip: View {
 
                 MetricPill(
                     title: "Series",
-                    value: "\(seriesCount)",
+                    value: "\(series.count)",
                     systemImage: "books.vertical",
                     tint: tint
                 )
@@ -115,13 +118,6 @@ private struct MetricStrip: View {
                     title: "Languages",
                     value: "\(languageCount)",
                     systemImage: "character.book.closed.fill",
-                    tint: tint
-                )
-
-                MetricPill(
-                    title: "Publication Places",
-                    value: "\(publicationPlaceCount)",
-                    systemImage: "mappin.and.ellipse",
                     tint: tint
                 )
 
@@ -146,28 +142,10 @@ private struct MetricStrip: View {
         ).count
     }
 
-    private var seriesCount: Int {
-        Set(books.compactMap { $0.details.series?.id }).count
-    }
-
     private var languageCount: Int {
         Set(
             books.compactMap { $0.details.languageCode.map(normalizedMetricValue) }
                 .filter { !$0.isEmpty }
-        ).count
-    }
-
-    private var publicationPlaceCount: Int {
-        Set(
-            books.compactMap { book -> String? in
-                if let place = book.details.publicationPlace {
-                    return "id:\(place.id.uuidString)"
-                }
-
-                guard let name = book.details.publicationPlaceName else { return nil }
-                let normalizedName = normalizedMetricValue(name)
-                return normalizedName.isEmpty ? nil : "name:\(normalizedName)"
-            }
         ).count
     }
 

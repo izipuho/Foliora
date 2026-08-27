@@ -13,10 +13,19 @@ extension PreviewData {
 
         saveCore(core, using: repository)
         repository.saveBookRecords(books)
+        repository.saveBookSeries(
+            BookSeries(
+                id: UUID(),
+                collectionID: core.items[0].collectionID,
+                name: "Standalone Preview Series",
+                totalBookCount: nil,
+                publisher: nil
+            )
+        )
     }
 
     private static func makeMinimalBookRecords(from core: CoreMinimal) -> [BookRecord] {
-        let publicationPlace = Place(
+        let publisherLocation = Place(
             id: UUID(),
             displayName: "London, United Kingdom",
             countryCode: "GB",
@@ -26,11 +35,17 @@ extension PreviewData {
             latitude: nil,
             longitude: nil
         )
+        let publisher = Publisher(
+            id: UUID(),
+            name: "Preview Publisher",
+            location: publisherLocation
+        )
         let series = BookSeries(
             id: UUID(),
             collectionID: core.items[0].collectionID,
             name: "Preview Series",
-            totalBookCount: 3
+            totalBookCount: 3,
+            publisher: publisher
         )
 
         return core.items.enumerated().map { index, sourceItem in
@@ -53,10 +68,9 @@ extension PreviewData {
                         itemID: item.id,
                         languageCode: "en",
                         pageCount: 320,
-                        publicationPlaceName: "London",
                         publicationYear: 1954,
                         volumeNumber: 1,
-                        publicationPlace: publicationPlace,
+                        publisher: publisher,
                         contributors: [
                             BookContributor(
                                 role: .author,
@@ -90,10 +104,9 @@ extension PreviewData {
                         itemID: item.id,
                         languageCode: "ru",
                         pageCount: 480,
-                        publicationPlaceName: nil,
                         publicationYear: 1987,
                         volumeNumber: nil,
-                        publicationPlace: nil,
+                        publisher: nil,
                         contributors: [
                             BookContributor(
                                 role: .author,
@@ -139,10 +152,9 @@ extension PreviewData {
                         itemID: item.id,
                         languageCode: "en",
                         pageCount: nil,
-                        publicationPlaceName: nil,
                         publicationYear: nil,
                         volumeNumber: 2,
-                        publicationPlace: nil,
+                        publisher: nil,
                         contributors: [
                             BookContributor(
                                 role: .editor,

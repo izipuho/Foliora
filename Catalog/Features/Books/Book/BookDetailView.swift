@@ -134,10 +134,6 @@ struct BookDetailView: View {
 
     private var metadata: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            if let publicationPlace = publicationPlaceDisplayName {
-                metadataRow("Publication place", value: publicationPlace)
-            }
-
             if let pageCount = book.details.pageCount {
                 metadataRow("Pages", value: String(pageCount))
             }
@@ -201,18 +197,6 @@ struct BookDetailView: View {
         book.details.contributors
             .filter { $0.role != .author }
             .sorted { $0.order < $1.order }
-    }
-
-    private var publicationPlaceDisplayName: String? {
-        if let place = book.details.publicationPlace?.displayName, !place.isEmpty {
-            return place
-        }
-
-        if let placeName = book.details.publicationPlaceName, !placeName.isEmpty {
-            return placeName
-        }
-
-        return nil
     }
 
     private func toggleFavorite() {
