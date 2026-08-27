@@ -142,7 +142,7 @@
         <relationship name="bornPersons" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PersonEntity" inverseName="birthPlace" inverseEntity="PersonEntity"/>
         <relationship name="diedPersons" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PersonEntity" inverseName="deathPlace" inverseEntity="PersonEntity"/>
         <relationship name="items" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="originPlace" inverseEntity="ItemEntity"/>
-        <relationship name="publishers" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="location" inverseEntity="PublisherEntity"/>
+        <relationship name="publishers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="location" inverseEntity="PublisherEntity"/>
     </entity>
     <entity name="PublisherEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
