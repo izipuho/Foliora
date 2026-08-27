@@ -12,6 +12,19 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         saveContext()
     }
 
+    func saveBookSeries(_ series: BookSeries) {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "CollectionEntity")
+        request.predicate = NSPredicate(format: "id == %@", series.collectionID as NSUUID)
+        request.fetchLimit = 1
+
+        guard let collection = (try? context.fetch(request))?.first else {
+            preconditionFailure("BookSeries collection does not exist.")
+        }
+
+        _ = upsertBookSeries(series, forCollection: collection)
+        saveContext()
+    }
+
     func deleteBookRecord(bookID: UUID) {
         guard let entity = fetchBookEntity(by: bookID) else { return }
         let persons = bookRelatedObjects(entity, "contributors").compactMap {
@@ -55,6 +68,10 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
             preconditionFailure("ItemEntity is missing its CollectionEntity relationship while saving BookSeriesEntity.")
         }
 
+        return upsertBookSeries(series, forCollection: collection)
+    }
+
+    private func upsertBookSeries(_ series: BookSeries, forCollection collection: NSManagedObject) -> NSManagedObject {
         let collectionID = collection.value(forKey: "id") as? UUID
         precondition(
             collectionID == series.collectionID,

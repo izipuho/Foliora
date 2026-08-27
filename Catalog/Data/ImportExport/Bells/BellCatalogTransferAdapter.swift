@@ -5,6 +5,7 @@ import Foundation
 struct BellCatalogTransferAdapter: CatalogDomainTransferAdapter {
     func exportPayloads(
         from context: NSManagedObjectContext,
+        collectionIDs: Set<UUID>,
         itemIDs: Set<UUID>
     ) throws -> [CatalogDomainPayload] {
         let request = NSFetchRequest<NSManagedObject>(entityName: "BellEntity")
@@ -38,6 +39,7 @@ struct BellCatalogTransferAdapter: CatalogDomainTransferAdapter {
 
     func filteredPayloads(
         _ payloads: [CatalogDomainPayload],
+        collectionIDs: Set<UUID>,
         itemIDs: Set<UUID>
     ) -> [CatalogDomainPayload] {
         payloads.compactMap { payload in
@@ -59,6 +61,7 @@ struct BellCatalogTransferAdapter: CatalogDomainTransferAdapter {
 
     func applyPayloads(
         _ payloads: [CatalogDomainPayload],
+        collectionEntitiesByID: [UUID: NSManagedObject],
         itemEntitiesByID: [UUID: NSManagedObject],
         in context: NSManagedObjectContext
     ) {

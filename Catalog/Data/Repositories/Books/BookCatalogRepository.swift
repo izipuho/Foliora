@@ -5,6 +5,7 @@ import Foundation
 protocol BookCatalogRepository {
     func saveBookRecord(_ book: BookRecord)
     func saveBookRecords(_ books: [BookRecord])
+    func saveBookSeries(_ series: BookSeries)
     func deleteBookRecord(bookID: UUID)
 }
 
