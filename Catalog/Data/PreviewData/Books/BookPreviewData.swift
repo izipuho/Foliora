@@ -38,7 +38,13 @@ extension PreviewData {
         let publisher = Publisher(
             id: UUID(),
             name: "Preview Publisher",
-            location: publisherLocation
+            location: publisherLocation,
+            logos: [
+                makePreviewPhoto(
+                    resourcePath: "Media/IMG_7502.HEIC",
+                    sortOrder: 0
+                )
+            ]
         )
         let series = BookSeries(
             id: UUID(),
@@ -82,7 +88,13 @@ extension PreviewData {
                                     deathYear: nil,
                                     biography: nil,
                                     birthPlace: nil,
-                                    deathPlace: nil
+                                    deathPlace: nil,
+                                    photos: [
+                                        makePreviewPhoto(
+                                            resourcePath: "Media/IMG_7503.HEIC",
+                                            sortOrder: 0
+                                        )
+                                    ]
                                 )
                             )
                         ],
