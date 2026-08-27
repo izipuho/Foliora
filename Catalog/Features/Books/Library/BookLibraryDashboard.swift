@@ -290,49 +290,16 @@ private struct BookDataHealthPopover: View {
     let entries: [BookDataHealthEntry]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            Text("Data Health")
-                .font(.title2.bold())
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 0) {
-                ForEach(entries.indices, id: \.self) { index in
-                    let entry = entries[index]
-
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xxs) {
-                        Text(entry.title)
-                            .font(CatalogTypography.cardSubtitle)
-                            .foregroundStyle(.primary)
-
-                        HStack(spacing: CatalogMetrics.Spacing.sm) {
-                            Text("\(entry.missingCount)/\(entry.totalCount)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            GeometryReader { proxy in
-                                ZStack(alignment: .leading) {
-                                    Capsule()
-                                        .fill(.green.opacity(0.35))
-
-                                    Capsule()
-                                        .fill(.red.opacity(0.8))
-                                        .frame(width: proxy.size.width * min(max(entry.progress, 0), 1))
-                                }
-                            }
-                            .frame(height: 6)
-                        }
-                    }
-                    .padding(CatalogMetrics.Spacing.md)
-
-                    if index < entries.count - 1 {
-                        Divider()
-                    }
-                }
-            }
+        DashboardPopoverContainer(
+            title: "Data Health",
+            entries: entries
+        ) { entry in
+            DashboardDataHealthRow(
+                title: entry.title,
+                countText: "\(entry.missingCount)/\(entry.totalCount)",
+                missingProgress: entry.progress
+            )
         }
-        .padding()
-        .presentationDetents([.medium])
     }
 }
 
