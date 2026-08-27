@@ -62,6 +62,7 @@ extension PreviewData {
                                 role: .author,
                                 order: 0,
                                 person: Person(
+                                    id: UUID(),
                                     name: "Author One",
                                     birthYear: nil,
                                     deathYear: nil,
@@ -98,6 +99,7 @@ extension PreviewData {
                                 role: .author,
                                 order: 0,
                                 person: Person(
+                                    id: UUID(),
                                     name: "Author Two",
                                     birthYear: nil,
                                     deathYear: nil,
@@ -110,6 +112,7 @@ extension PreviewData {
                                 role: .translator,
                                 order: 1,
                                 person: Person(
+                                    id: UUID(),
                                     name: "Translator One",
                                     birthYear: nil,
                                     deathYear: nil,
@@ -145,6 +148,7 @@ extension PreviewData {
                                 role: .editor,
                                 order: 0,
                                 person: Person(
+                                    id: UUID(),
                                     name: "Editor One",
                                     birthYear: nil,
                                     deathYear: nil,

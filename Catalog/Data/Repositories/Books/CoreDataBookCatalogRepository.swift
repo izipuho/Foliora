@@ -93,11 +93,27 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
             entity.setValue(contributor.role.rawValue, forKey: "role")
             entity.setValue(contributor.order, forKey: "order")
             entity.setValue(book, forKey: "book")
-            entity.setValue(makePersonEntity(from: contributor.person), forKey: "person")
+            entity.setValue(upsertPerson(contributor.person), forKey: "person")
             return entity
         }
 
         book.setValue(Set(entities), forKey: "contributors")
+    }
+
+    private func upsertPerson(_ person: Person) -> NSManagedObject {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "PersonEntity")
+        request.predicate = NSPredicate(format: "id == %@", person.id as NSUUID)
+        request.fetchLimit = 1
+
+        let entity = (try? context.fetch(request))?.first ?? makeEntity(named: "PersonEntity")
+        entity.setValue(person.id, forKey: "id")
+        entity.setValue(person.name, forKey: "name")
+        entity.setValue(person.birthYear, forKey: "birthYear")
+        entity.setValue(person.deathYear, forKey: "deathYear")
+        entity.setValue(person.biography, forKey: "biography")
+        entity.setValue(person.birthPlace.map(upsertBookPlace), forKey: "birthPlace")
+        entity.setValue(person.deathPlace.map(upsertBookPlace), forKey: "deathPlace")
+        return entity
     }
 
     private func deletePersonIfOrphaned(_ person: NSManagedObject) {

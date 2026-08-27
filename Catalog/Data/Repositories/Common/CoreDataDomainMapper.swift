@@ -67,6 +67,7 @@ enum CoreDataDomainMapper {
         let deathPlaceEntity = entity.value(forKey: "deathPlace") as? NSManagedObject
 
         return Person(
+            id: uuidValue(entity, "id"),
             name: stringValue(entity, "name"),
             birthYear: optionalIntValue(entity, "birthYear"),
             deathYear: optionalIntValue(entity, "deathYear"),
