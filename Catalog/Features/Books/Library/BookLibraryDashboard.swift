@@ -141,8 +141,7 @@ private struct MetricStrip: View {
             books.flatMap { book in
                 book.details.contributors
                     .filter { $0.role == .author }
-                    .map { normalizedMetricValue($0.person.name) }
-                    .filter { !$0.isEmpty }
+                    .map(\.person.id)
             }
         ).count
     }
