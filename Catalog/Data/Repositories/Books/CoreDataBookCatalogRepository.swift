@@ -111,6 +111,12 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         entity.setValue(publisher.id, forKey: "id")
         entity.setValue(publisher.name, forKey: "name")
         entity.setValue(publisher.location.map(upsertBookPlace), forKey: "location")
+        replaceReferenceMediaAssets(
+            publisher.logos,
+            relationshipName: "logos",
+            inverseRelationshipName: "publisher",
+            for: entity
+        )
         return entity
     }
 
@@ -142,7 +148,75 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         entity.setValue(person.biography, forKey: "biography")
         entity.setValue(person.birthPlace.map(upsertBookPlace), forKey: "birthPlace")
         entity.setValue(person.deathPlace.map(upsertBookPlace), forKey: "deathPlace")
+        replaceReferenceMediaAssets(
+            person.photos,
+            relationshipName: "photos",
+            inverseRelationshipName: "person",
+            for: entity
+        )
         return entity
+    }
+
+    private func replaceReferenceMediaAssets(
+        _ mediaAssets: [MediaAsset],
+        relationshipName: String,
+        inverseRelationshipName: String,
+        for owner: NSManagedObject
+    ) {
+        let existingAssets = Set(bookRelatedObjects(owner, relationshipName))
+        let incomingIDs = Set(mediaAssets.map(\.id))
+        var existingByID: [UUID: NSManagedObject] = [:]
+
+        for entity in existingAssets {
+            guard let id = entity.value(forKey: "id") as? UUID else { continue }
+            existingByID[id] = entity
+        }
+
+        let updatedAssets = mediaAssets.map { asset -> NSManagedObject in
+            let entity = existingByID[asset.id] ?? makeEntity(named: "MediaAssetEntity")
+            if entity.objectID.persistentStore == nil,
+               let store = owner.objectID.persistentStore {
+                context.assign(entity, to: store)
+            }
+            applyReferenceMediaAsset(asset, to: entity)
+            entity.setValue(owner, forKey: inverseRelationshipName)
+            return entity
+        }
+
+        for entity in existingAssets {
+            guard
+                let id = entity.value(forKey: "id") as? UUID,
+                !incomingIDs.contains(id)
+            else {
+                continue
+            }
+            context.delete(entity)
+        }
+
+        owner.setValue(Set(updatedAssets), forKey: relationshipName)
+    }
+
+    private func applyReferenceMediaAsset(_ asset: MediaAsset, to entity: NSManagedObject) {
+        let isNewEntity = entity.value(forKey: "id") == nil
+        let existingChecksum = entity.value(forKey: "checksum") as? String
+        let shouldUpdateOriginalData = isNewEntity || existingChecksum != asset.checksum
+
+        entity.setValue(asset.id, forKey: "id")
+        entity.setValue(asset.kind.rawValue, forKey: "kind")
+        entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
+        entity.setValue(asset.displayName, forKey: "displayName")
+        entity.setValue(asset.sortOrder, forKey: "sortOrder")
+        entity.setValue(asset.fileName, forKey: "fileName")
+        entity.setValue(asset.mimeType, forKey: "mimeType")
+        entity.setValue(asset.byteSize, forKey: "byteSize")
+        entity.setValue(asset.checksum, forKey: "checksum")
+        entity.setValue(asset.width, forKey: "width")
+        entity.setValue(asset.height, forKey: "height")
+        entity.setValue(asset.duration, forKey: "duration")
+        entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
+        if shouldUpdateOriginalData {
+            entity.setValue(asset.originalData, forKey: "originalData")
+        }
     }
 
     private func deletePersonIfOrphaned(_ person: NSManagedObject) {
