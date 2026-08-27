@@ -235,11 +235,15 @@ struct LibraryView: View {
 
     @ViewBuilder
     private var content: some View {
-        if books.isEmpty {
+        if canEditLibrary && collection.itemCount == 0 {
             CatalogEmptyStateView(
                 systemImage: "books.vertical",
                 title: "No Books",
-                message: "This library does not contain any books yet."
+                message: "This library does not contain any books yet.",
+                primaryActionTitle: "Add Book",
+                primaryActionSystemImage: "plus.circle.fill",
+                primaryTint: collection.backgroundStyle.accentColor,
+                primaryAction: { isPresentingAddBookOptions = true }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(libraryBackground)
