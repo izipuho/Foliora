@@ -65,45 +65,10 @@ struct BellCatalogDashboardView: View {
             }
             .scrollClipDisabled()
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: CatalogMetrics.Spacing.sm) {
-                    MetricPill(
-                        title: String(localized: "bell_catalog.dashboard.total"),
-                        value: "\(stats.totalCount)",
-                        systemImage: "bell.fill",
-                        tint: accentColor,
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.dashboard.countries"),
-                        value: "\(stats.countryCount)",
-                        systemImage: "globe.europe.africa.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.dashboard.cities"),
-                        value: "\(stats.cityCount)",
-                        systemImage: "building.2.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.summary.materials"),
-                        value: "\(stats.materialCount)",
-                        systemImage: "cube.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.summary.tags"),
-                        value: "\(stats.tagCount)",
-                        systemImage: "tag.fill",
-                        tint: accentColor
-                    )
-                }
-            }
-            .scrollClipDisabled()
+            BellMetricStrip(
+                stats: stats,
+                tint: accentColor
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, CatalogMetrics.Insets.screen)
@@ -230,6 +195,53 @@ struct BellCatalogDashboardView: View {
         let base: UInt32 = 127397
         let scalars = normalizedCode.unicodeScalars.compactMap { UnicodeScalar(base + $0.value) }
         return scalars.count == 2 ? String(String.UnicodeScalarView(scalars)) : "🌍"
+    }
+}
+
+private struct BellMetricStrip: View {
+    let stats: BellCatalogStats
+    let tint: Color
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: CatalogMetrics.Spacing.sm) {
+                MetricPill(
+                    title: String(localized: "bell_catalog.dashboard.total"),
+                    value: "\(stats.totalCount)",
+                    systemImage: "bell.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: String(localized: "bell_catalog.dashboard.countries"),
+                    value: "\(stats.countryCount)",
+                    systemImage: "globe.europe.africa.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: String(localized: "bell_catalog.dashboard.cities"),
+                    value: "\(stats.cityCount)",
+                    systemImage: "building.2.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: String(localized: "bell_catalog.summary.materials"),
+                    value: "\(stats.materialCount)",
+                    systemImage: "cube.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: String(localized: "bell_catalog.summary.tags"),
+                    value: "\(stats.tagCount)",
+                    systemImage: "tag.fill",
+                    tint: tint
+                )
+            }
+        }
+        .scrollClipDisabled()
     }
 }
 

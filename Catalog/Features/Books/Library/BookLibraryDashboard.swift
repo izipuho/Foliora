@@ -33,52 +33,10 @@ struct BookLibraryDashboardView: View {
                 .scrollClipDisabled()
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: CatalogMetrics.Spacing.sm) {
-                    MetricPill(
-                        title: "Total",
-                        value: "\(books.count)",
-                        systemImage: "books.vertical.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: "Authors",
-                        value: "\(authorCount)",
-                        systemImage: "person.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: "Series",
-                        value: "\(seriesCount)",
-                        systemImage: "books.vertical",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: "Languages",
-                        value: "\(languageCount)",
-                        systemImage: "character.book.closed.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: "Publication Places",
-                        value: "\(publicationPlaceCount)",
-                        systemImage: "mappin.and.ellipse",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: "Tags",
-                        value: "\(tagCount)",
-                        systemImage: "tag.fill",
-                        tint: accentColor
-                    )
-                }
-            }
-            .scrollClipDisabled()
+            BookLibraryMetricStrip(
+                books: books,
+                tint: accentColor
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, CatalogMetrics.Insets.screen)
@@ -89,6 +47,60 @@ struct BookLibraryDashboardView: View {
                 .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
                 .opacity(phase.isIdentity ? 1 : 0.82)
         }
+    }
+}
+
+private struct BookLibraryMetricStrip: View {
+    let books: [BookRecord]
+    let tint: Color
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: CatalogMetrics.Spacing.sm) {
+                MetricPill(
+                    title: "Total",
+                    value: "\(books.count)",
+                    systemImage: "books.vertical.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: "Authors",
+                    value: "\(authorCount)",
+                    systemImage: "person.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: "Series",
+                    value: "\(seriesCount)",
+                    systemImage: "books.vertical",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: "Languages",
+                    value: "\(languageCount)",
+                    systemImage: "character.book.closed.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: "Publication Places",
+                    value: "\(publicationPlaceCount)",
+                    systemImage: "mappin.and.ellipse",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: "Tags",
+                    value: "\(tagCount)",
+                    systemImage: "tag.fill",
+                    tint: tint
+                )
+            }
+        }
+        .scrollClipDisabled()
     }
 
     private var authorCount: Int {
