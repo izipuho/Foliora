@@ -20,7 +20,6 @@ struct BookEditorView: View {
 
     @State private var languageCode: String
     @State private var pageCount: String
-    @State private var publicationPlaceName: String
     @State private var publicationYear: String
     @State private var volumeNumber: String
 
@@ -50,7 +49,6 @@ struct BookEditorView: View {
         _mediaAssets = State(initialValue: book?.mediaAssets ?? initialMediaAssets)
         _languageCode = State(initialValue: book?.details.languageCode ?? "")
         _pageCount = State(initialValue: book?.details.pageCount.map(String.init) ?? "")
-        _publicationPlaceName = State(initialValue: book?.details.publicationPlaceName ?? "")
         _publicationYear = State(initialValue: book?.details.publicationYear.map(String.init) ?? "")
         _volumeNumber = State(initialValue: book?.details.volumeNumber.map(String.init) ?? "")
     }
@@ -124,7 +122,6 @@ struct BookEditorView: View {
                 Section("common.book") {
                     TextField("Language", text: $languageCode)
                     TextField("Pages", text: $pageCount)
-                    TextField("Publication place", text: $publicationPlaceName)
                     TextField("Publication year", text: $publicationYear)
                     TextField("Volume", text: $volumeNumber)
                 }
@@ -200,10 +197,9 @@ struct BookEditorView: View {
                 itemID: itemID,
                 languageCode: optionalString(languageCode)?.lowercased(),
                 pageCount: optionalInt(pageCount),
-                publicationPlaceName: optionalString(publicationPlaceName),
                 publicationYear: optionalInt(publicationYear),
                 volumeNumber: optionalInt(volumeNumber),
-                publicationPlace: existingBook?.details.publicationPlace,
+                publisher: existingBook?.details.publisher,
                 contributors: existingBook?.details.contributors ?? [],
                 series: existingBook?.details.series
             )

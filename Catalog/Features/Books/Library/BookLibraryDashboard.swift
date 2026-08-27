@@ -119,13 +119,6 @@ private struct MetricStrip: View {
                 )
 
                 MetricPill(
-                    title: "Publication Places",
-                    value: "\(publicationPlaceCount)",
-                    systemImage: "mappin.and.ellipse",
-                    tint: tint
-                )
-
-                MetricPill(
                     title: "Tags",
                     value: "\(tagCount)",
                     systemImage: "tag.fill",
@@ -154,20 +147,6 @@ private struct MetricStrip: View {
         Set(
             books.compactMap { $0.details.languageCode.map(normalizedMetricValue) }
                 .filter { !$0.isEmpty }
-        ).count
-    }
-
-    private var publicationPlaceCount: Int {
-        Set(
-            books.compactMap { book -> String? in
-                if let place = book.details.publicationPlace {
-                    return "id:\(place.id.uuidString)"
-                }
-
-                guard let name = book.details.publicationPlaceName else { return nil }
-                let normalizedName = normalizedMetricValue(name)
-                return normalizedName.isEmpty ? nil : "name:\(normalizedName)"
-            }
         ).count
     }
 

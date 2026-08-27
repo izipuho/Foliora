@@ -34,6 +34,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         }
 
         apply(book, to: entity)
+        entity.setValue(book.details.publisher.map(upsertPublisher), forKey: "publisher")
         entity.setValue(book.details.series.map { upsertBookSeries($0, for: item) }, forKey: "series")
         replaceContributors(book.details.contributors, for: entity)
         entity.setValue(item, forKey: "item")
@@ -45,10 +46,8 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
     private func apply(_ book: BookRecord, to entity: NSManagedObject) {
         entity.setValue(book.details.languageCode, forKey: "languageCode")
         entity.setValue(book.details.pageCount, forKey: "pageCount")
-        entity.setValue(book.details.publicationPlaceName, forKey: "publicationPlaceName")
         entity.setValue(book.details.publicationYear, forKey: "publicationYear")
         entity.setValue(book.details.volumeNumber, forKey: "volumeNumber")
-        entity.setValue(book.details.publicationPlace.map(upsertBookPlace), forKey: "publicationPlace")
     }
 
     private func upsertBookSeries(_ series: BookSeries, for item: NSManagedObject) -> NSManagedObject {
@@ -81,7 +80,20 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         entity.setValue(series.id, forKey: "id")
         entity.setValue(series.name, forKey: "name")
         entity.setValue(series.totalBookCount, forKey: "totalBookCount")
+        entity.setValue(series.publisher.map(upsertPublisher), forKey: "publisher")
         entity.setValue(collection, forKey: "collection")
+        return entity
+    }
+
+    private func upsertPublisher(_ publisher: Publisher) -> NSManagedObject {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "PublisherEntity")
+        request.predicate = NSPredicate(format: "id == %@", publisher.id as NSUUID)
+        request.fetchLimit = 1
+
+        let entity = (try? context.fetch(request))?.first ?? makeEntity(named: "PublisherEntity")
+        entity.setValue(publisher.id, forKey: "id")
+        entity.setValue(publisher.name, forKey: "name")
+        entity.setValue(publisher.location.map(upsertBookPlace), forKey: "location")
         return entity
     }
 
