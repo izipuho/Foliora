@@ -3,7 +3,7 @@ import Foundation
 /// Represents media asset data and behavior.
 struct MediaAsset: Identifiable, Hashable, Codable {
     let id: UUID
-    let itemID: UUID
+    let itemID: UUID? = nil
     var kind: MediaKind
     var localIdentifier: String
     var displayName: String?
