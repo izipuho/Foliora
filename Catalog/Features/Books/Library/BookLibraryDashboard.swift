@@ -43,11 +43,10 @@ private struct DashboardCardStrip: View {
     let tint: Color
     let onSharingChanged: () -> Void
 
-    @ViewBuilder
     var body: some View {
-        if let sharingState {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: CatalogMetrics.Spacing.md) {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: CatalogMetrics.Spacing.md) {
+                if let sharingState {
                     NavigationLink {
                         CollectionSharingView(
                             collection: collection,
@@ -62,10 +61,25 @@ private struct DashboardCardStrip: View {
                         )
                     }
                     .buttonStyle(.plain)
+                } else {
+                    CatalogDashboardSharingCard(
+                        state: placeholderSharingState,
+                        tint: tint
+                    )
+                    .redacted(reason: .placeholder)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
                 }
             }
-            .scrollClipDisabled()
         }
+        .scrollClipDisabled()
+    }
+
+    private var placeholderSharingState: CollectionSharingState {
+        CollectionSharingState(
+            currentUserRole: .owner,
+            participants: []
+        )
     }
 }
 
