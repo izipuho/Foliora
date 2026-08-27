@@ -118,7 +118,9 @@
         <attribute name="originalData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
         <attribute name="sortOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="NO"/>
         <attribute name="width" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <relationship name="bookSeries" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookSeriesEntity"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="mediaAssets" inverseEntity="ItemEntity"/>
+        <relationship name="publisher" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="logos" inverseEntity="PublisherEntity"/>
     </entity>
     <entity name="PersonEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="biography" optional="YES" attributeType="String"/>
@@ -129,6 +131,7 @@
         <relationship name="birthPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="bornPersons" inverseEntity="PlaceEntity"/>
         <relationship name="bookContributions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="person" inverseEntity="BookContributorEntity"/>
         <relationship name="deathPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="diedPersons" inverseEntity="PlaceEntity"/>
+        <relationship name="photos" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MediaAssetEntity"/>
     </entity>
     <entity name="PlaceEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="cityName" optional="YES" attributeType="String"/>
@@ -150,6 +153,7 @@
         <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="publisher" inverseEntity="BookEntity"/>
         <relationship name="bookSeries" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookSeriesEntity" inverseName="publisher" inverseEntity="BookSeriesEntity"/>
         <relationship name="location" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="publishers" inverseEntity="PlaceEntity"/>
+        <relationship name="logos" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MediaAssetEntity" inverseName="publisher" inverseEntity="MediaAssetEntity"/>
     </entity>
     <entity name="UserSortOrderEntity" representedClassName="UserSortOrderEntity" syncable="YES" codeGenerationType="class">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
