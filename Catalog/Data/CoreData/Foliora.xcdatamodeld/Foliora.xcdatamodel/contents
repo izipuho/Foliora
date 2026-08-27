@@ -118,7 +118,6 @@
         <attribute name="originalData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
         <attribute name="sortOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="NO"/>
         <attribute name="width" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
-        <relationship name="bookSeries" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookSeriesEntity"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="mediaAssets" inverseEntity="ItemEntity"/>
         <relationship name="person" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersonEntity" inverseName="photos" inverseEntity="PersonEntity"/>
         <relationship name="publisher" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="logos" inverseEntity="PublisherEntity"/>
