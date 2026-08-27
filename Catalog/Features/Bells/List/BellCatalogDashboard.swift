@@ -13,97 +13,24 @@ struct BellCatalogDashboardView: View {
     let onFilterApply: (BellPresenceFilter) -> Void
     let onResetFilters: () -> Void
 
-    @State private var isPresentingDataHealthPopover = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: CatalogMetrics.Spacing.md) {
-                    sharingCard
+            DashboardCardStrip(
+                stats: stats,
+                tint: accentColor,
+                collection: collection,
+                catalogSnapshot: catalogSnapshot,
+                sharingState: sharingState,
+                sharingService: sharingService,
+                onSharingChanged: onSharingChanged,
+                onBellSelected: onBellSelected,
+                onFilterApply: onFilterApply
+            )
 
-                    if let collection {
-                        NavigationLink {
-                            BellsOriginMapView(
-                                collection: collection,
-                                catalogSnapshot: catalogSnapshot,
-                                onBellSelected: onBellSelected
-                            )
-                        } label: {
-                            DashboardTopGeographyCard(
-                                countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                                flag: topGeography?.flag ?? "🌍",
-                                countText: topGeographyCountText,
-                                tint: accentColor
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        DashboardTopGeographyCard(
-                            countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                            flag: topGeography?.flag ?? "🌍",
-                            countText: topGeographyCountText,
-                            tint: accentColor
-                        )
-                    }
-
-                    DashboardDataHealthCard(
-                        progress: dataHealthProgress,
-                        tint: accentColor
-                    ) {
-                        isPresentingDataHealthPopover = true
-                    }
-                    .popover(isPresented: $isPresentingDataHealthPopover) {
-                        DataHealthPopover(
-                            entries: dataHealthEntries,
-                            onSelect: { filter in
-                                isPresentingDataHealthPopover = false
-                                onFilterApply(filter)
-                            }
-                        )
-                    }
-                }
-            }
-            .scrollClipDisabled()
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: CatalogMetrics.Spacing.sm) {
-                    MetricPill(
-                        title: String(localized: "bell_catalog.dashboard.total"),
-                        value: "\(stats.totalCount)",
-                        systemImage: "bell.fill",
-                        tint: accentColor,
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.dashboard.countries"),
-                        value: "\(stats.countryCount)",
-                        systemImage: "globe.europe.africa.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.dashboard.cities"),
-                        value: "\(stats.cityCount)",
-                        systemImage: "building.2.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.summary.materials"),
-                        value: "\(stats.materialCount)",
-                        systemImage: "cube.fill",
-                        tint: accentColor
-                    )
-
-                    MetricPill(
-                        title: String(localized: "bell_catalog.summary.tags"),
-                        value: "\(stats.tagCount)",
-                        systemImage: "tag.fill",
-                        tint: accentColor
-                    )
-                }
-            }
-            .scrollClipDisabled()
+            MetricStrip(
+                stats: stats,
+                tint: accentColor
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, CatalogMetrics.Insets.screen)
@@ -114,6 +41,70 @@ struct BellCatalogDashboardView: View {
                 .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
                 .opacity(phase.isIdentity ? 1 : 0.82)
         }
+    }
+}
+
+private struct DashboardCardStrip: View {
+    let stats: BellCatalogStats
+    let tint: Color
+    let collection: CollectionSummary?
+    let catalogSnapshot: CatalogSnapshot?
+    let sharingState: CollectionSharingState
+    let sharingService: (any CollectionSharingService)?
+    let onSharingChanged: () -> Void
+    let onBellSelected: ((UUID) -> Void)?
+    let onFilterApply: (BellPresenceFilter) -> Void
+
+    @State private var isPresentingDataHealthPopover = false
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: CatalogMetrics.Spacing.md) {
+                sharingCard
+
+                if let collection {
+                    NavigationLink {
+                        BellsOriginMapView(
+                            collection: collection,
+                            catalogSnapshot: catalogSnapshot,
+                            onBellSelected: onBellSelected
+                        )
+                    } label: {
+                        DashboardTopGeographyCard(
+                            countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                            flag: topGeography?.flag ?? "🌍",
+                            countText: topGeographyCountText,
+                            tint: tint
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    DashboardTopGeographyCard(
+                        countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                        flag: topGeography?.flag ?? "🌍",
+                        countText: topGeographyCountText,
+                        tint: tint
+                    )
+                }
+
+                DashboardDataHealthCard(
+                    progress: dataHealthProgress,
+                    tint: tint
+                ) {
+                    isPresentingDataHealthPopover = true
+                }
+                .popover(isPresented: $isPresentingDataHealthPopover) {
+                    DataHealthPopover(
+                        entries: dataHealthEntries,
+                        onSelect: { filter in
+                            isPresentingDataHealthPopover = false
+                            onFilterApply(filter)
+                        }
+                    )
+                }
+            }
+        }
+        .scrollClipDisabled()
     }
 
     @ViewBuilder
@@ -126,14 +117,14 @@ struct BellCatalogDashboardView: View {
             } label: {
                 CatalogDashboardSharingCard(
                     state: sharingState,
-                    tint: accentColor
+                    tint: tint
                 )
             }
             .buttonStyle(.plain)
         } else {
             CatalogDashboardSharingCard(
                 state: sharingState,
-                tint: accentColor
+                tint: tint
             )
         }
     }
@@ -233,39 +224,50 @@ struct BellCatalogDashboardView: View {
     }
 }
 
-private struct MetricPill: View {
-    let title: String
-    let value: String
-    let systemImage: String
+private struct MetricStrip: View {
+    let stats: BellCatalogStats
     let tint: Color
-    var isInteractive = true
-    var action: (() -> Void)?
 
     var body: some View {
-        if isInteractive, let action {
-            Button(action: action) {
-                content
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: CatalogMetrics.Spacing.sm) {
+                MetricPill(
+                    title: String(localized: "bell_catalog.dashboard.total"),
+                    value: "\(stats.totalCount)",
+                    systemImage: "bell.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: String(localized: "bell_catalog.dashboard.countries"),
+                    value: "\(stats.countryCount)",
+                    systemImage: "globe.europe.africa.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: String(localized: "bell_catalog.dashboard.cities"),
+                    value: "\(stats.cityCount)",
+                    systemImage: "building.2.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: String(localized: "bell_catalog.summary.materials"),
+                    value: "\(stats.materialCount)",
+                    systemImage: "cube.fill",
+                    tint: tint
+                )
+
+                MetricPill(
+                    title: String(localized: "bell_catalog.summary.tags"),
+                    value: "\(stats.tagCount)",
+                    systemImage: "tag.fill",
+                    tint: tint
+                )
             }
-            .buttonStyle(.plain)
-        } else {
-            content
         }
-    }
-
-    private var content: some View {
-        HStack(spacing: CatalogMetrics.Spacing.sm) {
-            Image(systemName: systemImage)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(tint)
-
-            Text(title)
-                .font(CatalogTypography.cardSubtitle)
-
-            Text(value)
-                .font(CatalogTypography.cardSubtitle)
-                .foregroundStyle(.secondary)
-        }
-        .catalogSurfaceCapsule()
+        .scrollClipDisabled()
     }
 }
 
