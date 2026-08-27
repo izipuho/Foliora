@@ -288,40 +288,46 @@ struct LibraryView: View {
         }
     }
 
-    @ViewBuilder
     private var libraryDashboard: some View {
-        if let collectionSharingState {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: CatalogMetrics.Spacing.md) {
-                    NavigationLink {
-                        CollectionSharingView(
-                            collection: collection,
-                            state: collectionSharingState,
-                            sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer)
-                        ) {
-                            Task {
-                                await loadCollectionSharingState()
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+            if let collectionSharingState {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: CatalogMetrics.Spacing.md) {
+                        NavigationLink {
+                            CollectionSharingView(
+                                collection: collection,
+                                state: collectionSharingState,
+                                sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer)
+                            ) {
+                                Task {
+                                    await loadCollectionSharingState()
+                                }
                             }
+                        } label: {
+                            CatalogDashboardSharingCard(
+                                state: collectionSharingState,
+                                tint: collection.backgroundStyle.accentColor
+                            )
                         }
-                    } label: {
-                        CatalogDashboardSharingCard(
-                            state: collectionSharingState,
-                            tint: collection.backgroundStyle.accentColor
-                        )
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+                .scrollClipDisabled()
             }
-            .scrollClipDisabled()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, CatalogMetrics.Insets.screen)
-            .padding(.top, CatalogMetrics.Spacing.xs)
-            .padding(.vertical, CatalogMetrics.Spacing.xs)
-            .scrollTransition(axis: .vertical) { content, phase in
-                content
-                    .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
-                    .opacity(phase.isIdentity ? 1 : 0.82)
-            }
+
+            BookLibraryMetricStrip(
+                books: books,
+                tint: collection.backgroundStyle.accentColor
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, CatalogMetrics.Insets.screen)
+        .padding(.top, CatalogMetrics.Spacing.xs)
+        .padding(.vertical, CatalogMetrics.Spacing.xs)
+        .scrollTransition(axis: .vertical) { content, phase in
+            content
+                .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
+                .opacity(phase.isIdentity ? 1 : 0.82)
         }
     }
 
