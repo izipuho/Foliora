@@ -6,4 +6,5 @@ struct BookSeries: Identifiable, Hashable, Codable {
     let collectionID: UUID
     var name: String
     var totalBookCount: Int?
+    var publisher: Publisher? = nil
 }

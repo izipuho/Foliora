@@ -26,6 +26,7 @@ struct BookDetails: Identifiable, Hashable, Codable {
     var publicationYear: Int?
     var volumeNumber: Int?
     var publicationPlace: Place?
+    var publisher: Publisher? = nil
     var contributors: [BookContributor]
     var series: BookSeries? = nil
 
