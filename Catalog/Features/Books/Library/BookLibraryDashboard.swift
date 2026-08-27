@@ -11,29 +11,15 @@ struct BookLibraryDashboardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            if let sharingState {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: CatalogMetrics.Spacing.md) {
-                        NavigationLink {
-                            CollectionSharingView(
-                                collection: collection,
-                                state: sharingState,
-                                sharingService: sharingService,
-                                onSharingChanged: onSharingChanged
-                            )
-                        } label: {
-                            CatalogDashboardSharingCard(
-                                state: sharingState,
-                                tint: accentColor
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .scrollClipDisabled()
-            }
+            DashboardCardStrip(
+                collection: collection,
+                sharingState: sharingState,
+                sharingService: sharingService,
+                tint: accentColor,
+                onSharingChanged: onSharingChanged
+            )
 
-            BookLibraryMetricStrip(
+            MetricStrip(
                 books: books,
                 tint: accentColor
             )
@@ -50,7 +36,40 @@ struct BookLibraryDashboardView: View {
     }
 }
 
-private struct BookLibraryMetricStrip: View {
+private struct DashboardCardStrip: View {
+    let collection: CollectionSummary
+    let sharingState: CollectionSharingState?
+    let sharingService: any CollectionSharingService
+    let tint: Color
+    let onSharingChanged: () -> Void
+
+    @ViewBuilder
+    var body: some View {
+        if let sharingState {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: CatalogMetrics.Spacing.md) {
+                    NavigationLink {
+                        CollectionSharingView(
+                            collection: collection,
+                            state: sharingState,
+                            sharingService: sharingService,
+                            onSharingChanged: onSharingChanged
+                        )
+                    } label: {
+                        CatalogDashboardSharingCard(
+                            state: sharingState,
+                            tint: tint
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .scrollClipDisabled()
+        }
+    }
+}
+
+private struct MetricStrip: View {
     let books: [BookRecord]
     let tint: Color
 

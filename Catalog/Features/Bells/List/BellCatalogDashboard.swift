@@ -13,59 +13,21 @@ struct BellCatalogDashboardView: View {
     let onFilterApply: (BellPresenceFilter) -> Void
     let onResetFilters: () -> Void
 
-    @State private var isPresentingDataHealthPopover = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: CatalogMetrics.Spacing.md) {
-                    sharingCard
+            DashboardCardStrip(
+                stats: stats,
+                tint: accentColor,
+                collection: collection,
+                catalogSnapshot: catalogSnapshot,
+                sharingState: sharingState,
+                sharingService: sharingService,
+                onSharingChanged: onSharingChanged,
+                onBellSelected: onBellSelected,
+                onFilterApply: onFilterApply
+            )
 
-                    if let collection {
-                        NavigationLink {
-                            BellsOriginMapView(
-                                collection: collection,
-                                catalogSnapshot: catalogSnapshot,
-                                onBellSelected: onBellSelected
-                            )
-                        } label: {
-                            DashboardTopGeographyCard(
-                                countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                                flag: topGeography?.flag ?? "🌍",
-                                countText: topGeographyCountText,
-                                tint: accentColor
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        DashboardTopGeographyCard(
-                            countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                            flag: topGeography?.flag ?? "🌍",
-                            countText: topGeographyCountText,
-                            tint: accentColor
-                        )
-                    }
-
-                    DashboardDataHealthCard(
-                        progress: dataHealthProgress,
-                        tint: accentColor
-                    ) {
-                        isPresentingDataHealthPopover = true
-                    }
-                    .popover(isPresented: $isPresentingDataHealthPopover) {
-                        DataHealthPopover(
-                            entries: dataHealthEntries,
-                            onSelect: { filter in
-                                isPresentingDataHealthPopover = false
-                                onFilterApply(filter)
-                            }
-                        )
-                    }
-                }
-            }
-            .scrollClipDisabled()
-
-            BellMetricStrip(
+            MetricStrip(
                 stats: stats,
                 tint: accentColor
             )
@@ -80,6 +42,70 @@ struct BellCatalogDashboardView: View {
                 .opacity(phase.isIdentity ? 1 : 0.82)
         }
     }
+}
+
+private struct DashboardCardStrip: View {
+    let stats: BellCatalogStats
+    let tint: Color
+    let collection: CollectionSummary?
+    let catalogSnapshot: CatalogSnapshot?
+    let sharingState: CollectionSharingState
+    let sharingService: (any CollectionSharingService)?
+    let onSharingChanged: () -> Void
+    let onBellSelected: ((UUID) -> Void)?
+    let onFilterApply: (BellPresenceFilter) -> Void
+
+    @State private var isPresentingDataHealthPopover = false
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: CatalogMetrics.Spacing.md) {
+                sharingCard
+
+                if let collection {
+                    NavigationLink {
+                        BellsOriginMapView(
+                            collection: collection,
+                            catalogSnapshot: catalogSnapshot,
+                            onBellSelected: onBellSelected
+                        )
+                    } label: {
+                        DashboardTopGeographyCard(
+                            countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                            flag: topGeography?.flag ?? "🌍",
+                            countText: topGeographyCountText,
+                            tint: tint
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    DashboardTopGeographyCard(
+                        countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                        flag: topGeography?.flag ?? "🌍",
+                        countText: topGeographyCountText,
+                        tint: tint
+                    )
+                }
+
+                DashboardDataHealthCard(
+                    progress: dataHealthProgress,
+                    tint: tint
+                ) {
+                    isPresentingDataHealthPopover = true
+                }
+                .popover(isPresented: $isPresentingDataHealthPopover) {
+                    DataHealthPopover(
+                        entries: dataHealthEntries,
+                        onSelect: { filter in
+                            isPresentingDataHealthPopover = false
+                            onFilterApply(filter)
+                        }
+                    )
+                }
+            }
+        }
+        .scrollClipDisabled()
+    }
 
     @ViewBuilder
     private var sharingCard: some View {
@@ -91,14 +117,14 @@ struct BellCatalogDashboardView: View {
             } label: {
                 CatalogDashboardSharingCard(
                     state: sharingState,
-                    tint: accentColor
+                    tint: tint
                 )
             }
             .buttonStyle(.plain)
         } else {
             CatalogDashboardSharingCard(
                 state: sharingState,
-                tint: accentColor
+                tint: tint
             )
         }
     }
@@ -198,7 +224,7 @@ struct BellCatalogDashboardView: View {
     }
 }
 
-private struct BellMetricStrip: View {
+private struct MetricStrip: View {
     let stats: BellCatalogStats
     let tint: Color
 
