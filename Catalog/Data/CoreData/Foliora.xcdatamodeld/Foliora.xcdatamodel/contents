@@ -14,12 +14,11 @@
     <entity name="BookEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="languageCode" optional="YES" attributeType="String"/>
         <attribute name="pageCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="publicationPlaceName" optional="YES" attributeType="String"/>
         <attribute name="publicationYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
         <attribute name="volumeNumber" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="contributors" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="book" inverseEntity="BookContributorEntity"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="book" inverseEntity="ItemEntity"/>
-        <relationship name="publicationPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="books" inverseEntity="PlaceEntity"/>
+        <relationship name="publisher" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="books" inverseEntity="PublisherEntity"/>
         <relationship name="series" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookSeriesEntity" inverseName="books" inverseEntity="BookSeriesEntity"/>
     </entity>
     <entity name="BookSeriesEntity" representedClassName="NSManagedObject" syncable="YES">
@@ -28,6 +27,7 @@
         <attribute name="totalBookCount" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
         <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="series" inverseEntity="BookEntity"/>
         <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="bookSeries" inverseEntity="CollectionEntity"/>
+        <relationship name="publisher" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="bookSeries" inverseEntity="PublisherEntity"/>
     </entity>
     <entity name="CollectionEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="backgroundStyle" optional="YES" attributeType="String" defaultValueString="amber"/>
@@ -119,15 +119,19 @@
         <attribute name="sortOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="NO"/>
         <attribute name="width" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="mediaAssets" inverseEntity="ItemEntity"/>
+        <relationship name="person" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersonEntity" inverseName="photos" inverseEntity="PersonEntity"/>
+        <relationship name="publisher" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="logos" inverseEntity="PublisherEntity"/>
     </entity>
     <entity name="PersonEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="biography" optional="YES" attributeType="String"/>
         <attribute name="birthYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
         <attribute name="deathYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <relationship name="birthPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="bornPersons" inverseEntity="PlaceEntity"/>
         <relationship name="bookContributions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="person" inverseEntity="BookContributorEntity"/>
         <relationship name="deathPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="diedPersons" inverseEntity="PlaceEntity"/>
+        <relationship name="photos" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MediaAssetEntity" inverseName="person" inverseEntity="MediaAssetEntity"/>
     </entity>
     <entity name="PlaceEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="cityName" optional="YES" attributeType="String"/>
@@ -138,10 +142,18 @@
         <attribute name="latitude" optional="YES" attributeType="Double" usesScalarValueType="NO"/>
         <attribute name="longitude" optional="YES" attributeType="Double" usesScalarValueType="NO"/>
         <attribute name="regionName" optional="YES" attributeType="String"/>
-        <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="publicationPlace" inverseEntity="BookEntity"/>
         <relationship name="bornPersons" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PersonEntity" inverseName="birthPlace" inverseEntity="PersonEntity"/>
         <relationship name="diedPersons" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PersonEntity" inverseName="deathPlace" inverseEntity="PersonEntity"/>
         <relationship name="items" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="originPlace" inverseEntity="ItemEntity"/>
+        <relationship name="publishers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="location" inverseEntity="PublisherEntity"/>
+    </entity>
+    <entity name="PublisherEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="publisher" inverseEntity="BookEntity"/>
+        <relationship name="bookSeries" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookSeriesEntity" inverseName="publisher" inverseEntity="BookSeriesEntity"/>
+        <relationship name="location" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="publishers" inverseEntity="PlaceEntity"/>
+        <relationship name="logos" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MediaAssetEntity" inverseName="publisher" inverseEntity="MediaAssetEntity"/>
     </entity>
     <entity name="UserSortOrderEntity" representedClassName="UserSortOrderEntity" syncable="YES" codeGenerationType="class">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>

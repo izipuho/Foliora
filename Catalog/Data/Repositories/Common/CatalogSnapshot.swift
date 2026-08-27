@@ -8,6 +8,7 @@ struct CatalogSnapshot {
     private(set) var collectionLocations: [Location] = []
     private(set) var collections: [Collection] = []
     private(set) var places: [Place] = []
+    private(set) var collectionEntities: [NSManagedObject] = []
     private(set) var itemEntities: [NSManagedObject] = []
     private(set) var locationsByHomeID: [UUID: [Location]] = [:]
     private(set) var collectionLocationsByCollectionID: [UUID: [Location]] = [:]
@@ -131,6 +132,7 @@ struct CatalogSnapshot {
                 return lhs.id.uuidString < rhs.id.uuidString
             }
         snapshot.places = placeEntities.map { CoreDataDomainMapper.place(from: $0) }
+        snapshot.collectionEntities = collectionEntities
         snapshot.itemEntities = itemEntities
         snapshot.locationsByHomeID = Dictionary(grouping: locationEntities.compactMap { locationRow(from: $0, sortOrderByItemID: sortOrderByItemID) }, by: \.0)
             .mapValues { rows in
