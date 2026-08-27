@@ -3,6 +3,7 @@ import SwiftUI
 /// Displays the book library dashboard view interface.
 struct BookLibraryDashboardView: View {
     let books: [BookRecord]
+    let series: [BookSeries]
     let accentColor: Color
     let collection: CollectionSummary
     let sharingState: CollectionSharingState?
@@ -21,6 +22,7 @@ struct BookLibraryDashboardView: View {
 
             MetricStrip(
                 books: books,
+                series: series,
                 tint: accentColor
             )
         }
@@ -85,6 +87,7 @@ private struct DashboardCardStrip: View {
 
 private struct MetricStrip: View {
     let books: [BookRecord]
+    let series: [BookSeries]
     let tint: Color
 
     var body: some View {
@@ -106,7 +109,7 @@ private struct MetricStrip: View {
 
                 MetricPill(
                     title: "Series",
-                    value: "\(seriesCount)",
+                    value: "\(series.count)",
                     systemImage: "books.vertical",
                     tint: tint
                 )
@@ -137,10 +140,6 @@ private struct MetricStrip: View {
                     .map(\.person.id)
             }
         ).count
-    }
-
-    private var seriesCount: Int {
-        Set(books.compactMap { $0.details.series?.id }).count
     }
 
     private var languageCount: Int {

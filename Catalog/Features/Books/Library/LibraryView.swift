@@ -105,6 +105,10 @@ struct LibraryView: View {
         }
     }
 
+    private var series: [BookSeries] {
+        catalogSnapshot?.bookSeries.filter { $0.collectionID == collection.id } ?? []
+    }
+
     private var favoriteBooks: [BookRecord] {
         books.filter(\.isFavorite)
     }
@@ -255,6 +259,7 @@ struct LibraryView: View {
                 LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
                     BookLibraryDashboardView(
                         books: books,
+                        series: series,
                         accentColor: collection.backgroundStyle.accentColor,
                         collection: collection,
                         sharingState: collectionSharingState,
