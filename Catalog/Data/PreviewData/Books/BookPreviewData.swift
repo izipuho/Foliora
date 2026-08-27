@@ -13,6 +13,15 @@ extension PreviewData {
 
         saveCore(core, using: repository)
         repository.saveBookRecords(books)
+        repository.saveBookSeries(
+            BookSeries(
+                id: UUID(),
+                collectionID: core.items[0].collectionID,
+                name: "Standalone Preview Series",
+                totalBookCount: nil,
+                publisher: nil
+            )
+        )
     }
 
     private static func makeMinimalBookRecords(from core: CoreMinimal) -> [BookRecord] {
