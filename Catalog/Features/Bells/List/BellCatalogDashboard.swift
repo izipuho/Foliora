@@ -333,46 +333,6 @@ struct DashboardTopGeographyCard: View {
     }
 }
 
-private struct DashboardPopoverContainer<Entry, Content: View>: View {
-    let title: LocalizedStringKey
-    let entries: [Entry]
-    let onSelect: (Entry) -> Void
-    let content: (Entry) -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            Text(title)
-                .font(.title2.bold())
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(entries.indices, id: \.self) { index in
-                        let entry = entries[index]
-
-                        Button {
-                            onSelect(entry)
-                        } label: {
-                            content(entry)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-
-                        if index < entries.count - 1 {
-                            Divider()
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding()
-        .presentationDetents([.medium])
-    }
-}
-
 /// Represents data health entry data and behavior.
 struct DataHealthEntry: Identifiable {
     let title: String
@@ -390,56 +350,17 @@ struct DataHealthPopover: View {
 
     var body: some View {
         DashboardPopoverContainer(
-            title: "bell_catalog.dashboard.health",
+            title: String(localized: "bell_catalog.dashboard.health"),
             entries: entries,
             onSelect: { onSelect($0.filter) }
         ) { entry in
-            HStack(spacing: CatalogMetrics.Spacing.md) {
-                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xxs) {
-                    Text(entry.title)
-                        .font(CatalogTypography.cardSubtitle)
-                        .foregroundStyle(.primary)
-
-                    GeometryReader { proxy in
-                        HStack(spacing: CatalogMetrics.Spacing.sm) {
-                            Text(entry.countText)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            Spacer(minLength: 0)
-
-                            DataHealthMissingProgressBar(progress: entry.missingProgress)
-                                .frame(width: proxy.size.width / 2)
-
-                            Image(systemName: "chevron.right")
-                                .font(CatalogTypography.chipLabel)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .frame(height: 14)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(CatalogMetrics.Spacing.md)
+            DashboardDataHealthRow(
+                title: entry.title,
+                countText: entry.countText,
+                missingProgress: entry.missingProgress,
+                showsDisclosureIndicator: true
+            )
         }
-    }
-}
-
-private struct DataHealthMissingProgressBar: View {
-    let progress: Double
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(.green.opacity(0.35))
-
-                Capsule()
-                    .fill(.red.opacity(0.8))
-                    .frame(width: proxy.size.width * min(max(progress, 0), 1))
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: 6, maxHeight: 6)
     }
 }
 
