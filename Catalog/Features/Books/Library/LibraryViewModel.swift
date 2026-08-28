@@ -274,28 +274,17 @@ final class LibraryViewModel: ObservableObject {
     }
 
     private func publicationYearSections(books: [BookRecord]) -> [LibraryGroupedSection] {
-        let grouped = Dictionary(grouping: books, by: { $0.details.publicationYear })
-        let orderedYears = grouped.keys.sorted { lhs, rhs in
-            switch (lhs, rhs) {
-            case let (lhs?, rhs?):
-                return lhs > rhs
-            case (.some, .none):
-                return true
-            case (.none, .some):
-                return false
-            case (.none, .none):
-                return false
-            }
-        }
-
-        return orderedYears.map { year in
-            let sectionBooks = grouped[year, default: []].sorted(by: titleLessThan)
-            return LibraryGroupedSection(
-                id: year.map { "year-\($0)" } ?? "year-unknown",
-                title: year.map(String.init) ?? "Unknown",
+        CatalogYearGrouping.descending(
+            books,
+            year: { $0.details.publicationYear },
+            sortedBy: titleLessThan
+        ).map { group in
+            LibraryGroupedSection(
+                id: group.year.map { "year-\($0)" } ?? "year-unknown",
+                title: group.year.map(String.init) ?? String(localized: "common.unknown"),
                 detailText: nil,
                 indexTitle: nil,
-                books: sectionBooks,
+                books: group.elements,
                 subgroups: []
             )
         }

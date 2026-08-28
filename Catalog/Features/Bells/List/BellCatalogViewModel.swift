@@ -316,27 +316,20 @@ final class BellCatalogViewModel: ObservableObject {
                 )
             }
         case .acquisitionYear:
-            let grouped = Dictionary(grouping: bellRecords, by: { acquisitionYearGroupTitle(for: $0) })
-            let orderedTitles = grouped.keys.sorted { lhs, rhs in
-                switch (Int(lhs), Int(rhs)) {
-                case let (left?, right?):
-                    return left > right
-                case (_?, nil):
-                    return true
-                case (nil, _?):
-                    return false
-                default:
-                    return compareDisplayValues(lhs, rhs, unknown: unknownTitle) == .orderedAscending
+            return CatalogYearGrouping.descending(
+                bellRecords,
+                year: { $0.acquiredYear },
+                sortedBy: { lhs, rhs in
+                    lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
                 }
-            }
-
-            return orderedTitles.map { title in
-                BellGroupedSection(
+            ).map { group in
+                let title = group.year.map(String.init) ?? unknownTitle
+                return BellGroupedSection(
                     id: "year-\(title)",
                     title: title,
                     jumpTitle: title,
                     indexTitle: nil,
-                    bells: grouped[title, default: []],
+                    bells: group.elements,
                     storageGroups: []
                 )
             }
@@ -391,10 +384,6 @@ final class BellCatalogViewModel: ObservableObject {
                 )
             }
         }
-    }
-
-    private func acquisitionYearGroupTitle(for bell: BellListItem) -> String {
-        bell.acquiredYear.map(String.init) ?? unknownTitle
     }
 
     private func storageHeaderTitle(for key: StorageGroupKey) -> String {
