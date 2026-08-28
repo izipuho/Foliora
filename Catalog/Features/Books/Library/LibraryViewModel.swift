@@ -6,6 +6,9 @@ enum LibraryOrderMode: String, CaseIterable {
     case title
     case author
     case publicationYearNewest
+    case newestFirst
+    case series
+    case storage
 
     var title: String {
         switch self {
@@ -15,13 +18,55 @@ enum LibraryOrderMode: String, CaseIterable {
             return "Author"
         case .publicationYearNewest:
             return "Publication year"
+        case .newestFirst:
+            return "Newest first"
+        case .series:
+            return "Series"
+        case .storage:
+            return "Storage"
         }
     }
 }
 
+/// Represents the layout rendered by a book library.
+enum LibraryLayout {
+    case empty
+    case flat([BookRecord])
+    case grouped([LibraryGroupedSection])
+
+    var isGrouped: Bool {
+        if case .grouped = self {
+            return true
+        }
+        return false
+    }
+}
+
+/// Represents a grouped book library section.
+struct LibraryGroupedSection: Identifiable {
+    let id: String
+    let title: String
+    let detailText: String?
+    let indexTitle: String?
+    let books: [BookRecord]
+    let subgroups: [LibraryBookSubgroup]
+}
+
+/// Represents a nested group of books inside a library section.
+struct LibraryBookSubgroup: Identifiable {
+    let id: String
+    let title: String
+    let books: [BookRecord]
+}
+
+private enum AlphabetGroupKey: Hashable {
+    case initial(String)
+    case noValue
+}
+
 /// Represents the content rendered by a book library.
 struct LibraryDisplayModel {
-    let books: [BookRecord]
+    let layout: LibraryLayout
     let favoriteBooks: [BookRecord]
     let stats: LibraryStats
 }
@@ -58,7 +103,7 @@ final class LibraryViewModel: ObservableObject {
     init(orderMode: LibraryOrderMode) {
         self.orderMode = orderMode
         self.displayModel = LibraryDisplayModel(
-            books: [],
+            layout: .empty,
             favoriteBooks: [],
             stats: LibraryStats(
                 totalCount: 0,
@@ -84,10 +129,29 @@ final class LibraryViewModel: ObservableObject {
         sourceBooks = books
         sourceSeries = series
 
-        let sortedBooks = sorted(books)
+        let layout: LibraryLayout
+        if books.isEmpty {
+            layout = .empty
+        } else {
+            switch orderMode {
+            case .title:
+                layout = .grouped(titleSections(books: books))
+            case .author:
+                layout = .grouped(authorSections(books: books))
+            case .publicationYearNewest:
+                layout = .grouped(publicationYearSections(books: books))
+            case .newestFirst:
+                layout = .flat(sorted(books))
+            case .series:
+                layout = .grouped(seriesSections(books: books, series: series))
+            case .storage:
+                layout = .grouped(storageSections(books: books))
+            }
+        }
+
         displayModel = LibraryDisplayModel(
-            books: sortedBooks,
-            favoriteBooks: sortedBooks.filter(\.isFavorite),
+            layout: layout,
+            favoriteBooks: books.filter(\.isFavorite),
             stats: buildStats(books: books, series: series)
         )
     }
@@ -106,39 +170,310 @@ final class LibraryViewModel: ObservableObject {
     private func sorted(_ books: [BookRecord]) -> [BookRecord] {
         switch orderMode {
         case .title:
-            return books.sorted {
-                $0.title.localizedStandardCompare($1.title) == .orderedAscending
-            }
+            return books.sorted(by: titleLessThan)
         case .author:
-            return books.sorted { lhs, rhs in
-                let lhsAuthor = primaryAuthorName(for: lhs)
-                let rhsAuthor = primaryAuthorName(for: rhs)
-
-                if lhsAuthor == rhsAuthor {
-                    return lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
-                }
-
-                if lhsAuthor.isEmpty { return false }
-                if rhsAuthor.isEmpty { return true }
-                return lhsAuthor.localizedStandardCompare(rhsAuthor) == .orderedAscending
-            }
+            return books.sorted(by: authorLessThan)
         case .publicationYearNewest:
-            return books.sorted { lhs, rhs in
-                let lhsYear = lhs.details.publicationYear
-                let rhsYear = rhs.details.publicationYear
+            return books.sorted(by: publicationYearLessThan)
+        case .newestFirst:
+            return books.sorted(using: newestFirstComparators)
+        case .series:
+            return books
+        case .storage:
+            return CatalogStorageGrouping.sorted(
+                books,
+                storagePath: { $0.storagePath },
+                title: { $0.title }
+            )
+        }
+    }
 
-                switch (lhsYear, rhsYear) {
-                case let (.some(lhsYear), .some(rhsYear)) where lhsYear != rhsYear:
-                    return lhsYear > rhsYear
-                case (.some, .none):
-                    return true
-                case (.none, .some):
-                    return false
-                default:
-                    return lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
-                }
+    private func titleSections(books: [BookRecord]) -> [LibraryGroupedSection] {
+        let sortedBooks = books.sorted(by: titleLessThan)
+        let grouped = Dictionary(grouping: sortedBooks, by: titleGroupKey)
+        let orderedKeys = grouped.keys.sorted(by: alphabetGroupLessThan)
+
+        return orderedKeys.map { key in
+            let sectionBooks = grouped[key, default: []]
+
+            switch key {
+            case .initial(let initial):
+                return LibraryGroupedSection(
+                    id: "title-\(initial)",
+                    title: initial,
+                    detailText: nil,
+                    indexTitle: initial,
+                    books: sectionBooks,
+                    subgroups: []
+                )
+            case .noValue:
+                return LibraryGroupedSection(
+                    id: "title-none",
+                    title: "No Title",
+                    detailText: nil,
+                    indexTitle: nil,
+                    books: sectionBooks,
+                    subgroups: []
+                )
             }
         }
+    }
+
+    private func authorSections(books: [BookRecord]) -> [LibraryGroupedSection] {
+        let sortedBooks = books.sorted(by: authorLessThan)
+        let grouped = Dictionary(grouping: sortedBooks, by: authorGroupKey)
+        let orderedKeys = grouped.keys.sorted(by: alphabetGroupLessThan)
+
+        return orderedKeys.map { key in
+            let sectionBooks = grouped[key, default: []]
+
+            switch key {
+            case .initial(let initial):
+                let booksByAuthor = Dictionary(grouping: sectionBooks, by: authorDisplayName)
+                let authorNames = booksByAuthor.keys.sorted {
+                    $0.localizedStandardCompare($1) == .orderedAscending
+                }
+                let subgroups = authorNames.map { authorName in
+                    LibraryBookSubgroup(
+                        id: "author-\(initial)-\(authorName)",
+                        title: authorName,
+                        books: booksByAuthor[authorName, default: []].sorted(by: titleLessThan)
+                    )
+                }
+
+                return LibraryGroupedSection(
+                    id: "author-\(initial)",
+                    title: initial,
+                    detailText: nil,
+                    indexTitle: initial,
+                    books: [],
+                    subgroups: subgroups
+                )
+            case .noValue:
+                return LibraryGroupedSection(
+                    id: "author-none",
+                    title: "No Author",
+                    detailText: nil,
+                    indexTitle: nil,
+                    books: sectionBooks.sorted(by: titleLessThan),
+                    subgroups: []
+                )
+            }
+        }
+    }
+
+    private func publicationYearSections(books: [BookRecord]) -> [LibraryGroupedSection] {
+        CatalogYearGrouping.descending(
+            books,
+            year: { $0.details.publicationYear },
+            sortedBy: titleLessThan
+        ).map { group in
+            LibraryGroupedSection(
+                id: group.year.map { "year-\($0)" } ?? "year-unknown",
+                title: group.year.map(String.init) ?? String(localized: "common.unknown"),
+                detailText: nil,
+                indexTitle: nil,
+                books: group.elements,
+                subgroups: []
+            )
+        }
+    }
+
+    private func titleGroupKey(for book: BookRecord) -> AlphabetGroupKey {
+        let title = book.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let firstCharacter = title.first else {
+            return .noValue
+        }
+
+        return .initial(String(firstCharacter).uppercased())
+    }
+
+    private func authorGroupKey(for book: BookRecord) -> AlphabetGroupKey {
+        let author = authorDisplayName(for: book)
+        guard let firstCharacter = author.first else {
+            return .noValue
+        }
+
+        return .initial(String(firstCharacter).uppercased())
+    }
+
+    private func alphabetGroupLessThan(_ lhs: AlphabetGroupKey, _ rhs: AlphabetGroupKey) -> Bool {
+        switch (lhs, rhs) {
+        case let (.initial(lhsInitial), .initial(rhsInitial)):
+            return lhsInitial.localizedStandardCompare(rhsInitial) == .orderedAscending
+        case (.initial, .noValue):
+            return true
+        case (.noValue, .initial):
+            return false
+        case (.noValue, .noValue):
+            return false
+        }
+    }
+
+    private func seriesSections(
+        books: [BookRecord],
+        series: [BookSeries]
+    ) -> [LibraryGroupedSection] {
+        let seriesByID = Dictionary(uniqueKeysWithValues: series.map { ($0.id, $0) })
+        let grouped = Dictionary(grouping: books, by: { $0.details.series?.id })
+        let orderedKeys = grouped.keys.sorted { lhsID, rhsID in
+            let lhsSeries = lhsID.flatMap { seriesByID[$0] }
+                ?? grouped[lhsID]?.first?.details.series
+            let rhsSeries = rhsID.flatMap { seriesByID[$0] }
+                ?? grouped[rhsID]?.first?.details.series
+            return compareSeries(lhsSeries, rhsSeries) == .orderedAscending
+        }
+
+        return orderedKeys.map { seriesID in
+            let sectionBooks = grouped[seriesID, default: []].sorted(by: volumeLessThan)
+
+            guard let bookSeries = seriesID.flatMap({ seriesByID[$0] })
+                ?? sectionBooks.first?.details.series else {
+                return LibraryGroupedSection(
+                    id: "series-none",
+                    title: "No Series",
+                    detailText: "\(sectionBooks.count) books",
+                    indexTitle: nil,
+                    books: sectionBooks.sorted(by: titleLessThan),
+                    subgroups: []
+                )
+            }
+
+            let progressText: String
+            if let totalBookCount = bookSeries.totalBookCount, totalBookCount > 0 {
+                progressText = "\(sectionBooks.count) of \(totalBookCount)"
+            } else {
+                progressText = "\(sectionBooks.count) owned"
+            }
+
+            return LibraryGroupedSection(
+                id: "series-\(bookSeries.id.uuidString)",
+                title: bookSeries.name,
+                detailText: progressText,
+                indexTitle: nil,
+                books: sectionBooks,
+                subgroups: []
+            )
+        }
+    }
+
+    private func storageSections(books: [BookRecord]) -> [LibraryGroupedSection] {
+        let sortedBooks = CatalogStorageGrouping.sorted(
+            books,
+            storagePath: { $0.storagePath },
+            title: { $0.title }
+        )
+
+        return CatalogStorageGrouping.sections(
+            fromSorted: sortedBooks,
+            storagePath: { $0.storagePath }
+        ).map { section in
+            let sectionID = storageSectionID(
+                floor: section.floor,
+                room: section.room
+            )
+            let title = section.pathComponents.isEmpty
+                ? String(localized: "common.unknown")
+                : section.pathComponents.joined(separator: " · ")
+            let subgroups = section.subgroups.map { subgroup in
+                LibraryBookSubgroup(
+                    id: "\(sectionID)-\(subgroup.kind.rawValue):\(storageIDComponent(subgroup.title))",
+                    title: subgroup.title,
+                    books: subgroup.elements
+                )
+            }
+
+            return LibraryGroupedSection(
+                id: sectionID,
+                title: title,
+                detailText: nil,
+                indexTitle: nil,
+                books: section.elements,
+                subgroups: subgroups
+            )
+        }
+    }
+
+    private func storageSectionID(floor: String?, room: String?) -> String {
+        "storage-floor:\(storageIDComponent(floor))-room:\(storageIDComponent(room))"
+    }
+
+    private func storageIDComponent(_ value: String?) -> String {
+        value.map { "value:\($0)" } ?? "nil"
+    }
+
+    private func titleLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
+        lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
+    }
+
+    private func authorLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
+        let lhsAuthor = authorDisplayName(for: lhs)
+        let rhsAuthor = authorDisplayName(for: rhs)
+
+        if lhsAuthor == rhsAuthor {
+            return titleLessThan(lhs, rhs)
+        }
+
+        if lhsAuthor.isEmpty { return false }
+        if rhsAuthor.isEmpty { return true }
+        return lhsAuthor.localizedStandardCompare(rhsAuthor) == .orderedAscending
+    }
+
+    private func publicationYearLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
+        let lhsYear = lhs.details.publicationYear
+        let rhsYear = rhs.details.publicationYear
+
+        switch (lhsYear, rhsYear) {
+        case let (.some(lhsYear), .some(rhsYear)) where lhsYear != rhsYear:
+            return lhsYear > rhsYear
+        case (.some, .none):
+            return true
+        case (.none, .some):
+            return false
+        default:
+            return titleLessThan(lhs, rhs)
+        }
+    }
+
+    private func volumeLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
+        switch (lhs.details.volumeNumber, rhs.details.volumeNumber) {
+        case let (.some(lhsVolume), .some(rhsVolume)) where lhsVolume != rhsVolume:
+            return lhsVolume < rhsVolume
+        case (.some, .none):
+            return true
+        case (.none, .some):
+            return false
+        default:
+            return titleLessThan(lhs, rhs)
+        }
+    }
+
+    private func compareSeries(_ lhs: BookSeries?, _ rhs: BookSeries?) -> ComparisonResult {
+        switch (lhs, rhs) {
+        case let (lhs?, rhs?):
+            let nameComparison = lhs.name.localizedStandardCompare(rhs.name)
+            if nameComparison != .orderedSame {
+                return nameComparison
+            }
+            return lhs.id.uuidString.compare(rhs.id.uuidString)
+        case (.some, .none):
+            return .orderedAscending
+        case (.none, .some):
+            return .orderedDescending
+        case (.none, .none):
+            return .orderedSame
+        }
+    }
+
+    private var newestFirstComparators: [KeyPathComparator<BookRecord>] {
+        [
+            KeyPathComparator(\.createdAt, order: .reverse),
+            titleComparator
+        ]
+    }
+
+    private var titleComparator: KeyPathComparator<BookRecord> {
+        KeyPathComparator(\.title, comparator: .localizedStandard)
     }
 
     private func buildStats(
@@ -186,12 +521,18 @@ final class LibraryViewModel: ObservableObject {
         )
     }
 
-    private func primaryAuthorName(for book: BookRecord) -> String {
+    private func authorDisplayName(for book: BookRecord) -> String {
         book.details.contributors
             .filter { $0.role == .author }
-            .sorted { $0.order < $1.order }
-            .first?
-            .person.name ?? ""
+            .sorted { lhs, rhs in
+                if lhs.order != rhs.order {
+                    return lhs.order < rhs.order
+                }
+                return lhs.person.name.localizedStandardCompare(rhs.person.name) == .orderedAscending
+            }
+            .map { $0.person.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
     }
 
     private func ownedBookCount(
@@ -206,10 +547,7 @@ final class LibraryViewModel: ObservableObject {
     }
 
     private func hasAuthor(_ book: BookRecord) -> Bool {
-        book.details.contributors.contains { contributor in
-            contributor.role == .author
-                && !contributor.person.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        }
+        !authorDisplayName(for: book).isEmpty
     }
 
     private func authorCount(in books: [BookRecord]) -> Int {
