@@ -24,7 +24,7 @@ struct CatalogDashboardDataHealthCard: View {
                 .frame(width: 56, height: 56)
             } content: {
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                    Text(String(localized: "bell_catalog.dashboard.health"))
+                    Text(String(localized: "catalog.dashboard.health"))
                         .font(CatalogTypography.sectionTitle)
                     Text(String(localized: "bell_catalog.dashboard.health.subtitle"))
                         .font(.caption)
@@ -33,5 +33,31 @@ struct CatalogDashboardDataHealthCard: View {
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// Displays catalog data health details in a shared dashboard popover.
+struct CatalogDashboardDataHealthPopover<Entry, Content: View>: View {
+    let entries: [Entry]
+    let onSelect: ((Entry) -> Void)?
+    let content: (Entry) -> Content
+
+    init(
+        entries: [Entry],
+        onSelect: ((Entry) -> Void)? = nil,
+        @ViewBuilder content: @escaping (Entry) -> Content
+    ) {
+        self.entries = entries
+        self.onSelect = onSelect
+        self.content = content
+    }
+
+    var body: some View {
+        DashboardPopoverContainer(
+            title: String(localized: "catalog.dashboard.health"),
+            entries: entries,
+            onSelect: onSelect,
+            content: content
+        )
     }
 }
