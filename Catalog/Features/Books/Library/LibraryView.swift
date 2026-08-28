@@ -64,10 +64,6 @@ struct LibraryView: View {
         viewModel.displayModel
     }
 
-    private var books: [BookRecord] {
-        displayModel.books
-    }
-
     private var favoriteBooks: [BookRecord] {
         displayModel.favoriteBooks
     }
@@ -229,7 +225,11 @@ struct LibraryView: View {
                 layoutMode: layoutMode.wrappedValue,
                 usesGridLayout: false
             ) { cardSize, gridMetrics, cardMetrics in
-                LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
+                LazyVStack(
+                    alignment: .leading,
+                    spacing: CatalogMetrics.Spacing.lg,
+                    pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []
+                ) {
                     LibraryDashboardView(
                         stats: displayModel.stats,
                         accentColor: collection.backgroundStyle.accentColor,
@@ -259,19 +259,48 @@ struct LibraryView: View {
                             }
                         }
 
-                        CatalogSectionHeader(title: String(localized: "Library"))
+                        if !displayModel.layout.isGrouped {
+                            CatalogSectionHeader(title: String(localized: "Library"))
+                        }
                     }
 
-                    CatalogCardGrid(
-                        layoutMode: layoutMode.wrappedValue,
-                        layoutMetrics: (cardSize, gridMetrics, cardMetrics)
-                    ) { cardSize, _, cardMetrics in
-                        ForEach(books) { book in
-                            bookCard(
-                                book,
-                                cardSize: cardSize,
-                                cardMetrics: cardMetrics
-                            )
+                    switch displayModel.layout {
+                    case .empty:
+                        EmptyView()
+                    case .flat(let books):
+                        CatalogCardGrid(
+                            layoutMode: layoutMode.wrappedValue,
+                            layoutMetrics: (cardSize, gridMetrics, cardMetrics)
+                        ) { cardSize, _, cardMetrics in
+                            ForEach(books) { book in
+                                bookCard(
+                                    book,
+                                    cardSize: cardSize,
+                                    cardMetrics: cardMetrics
+                                )
+                            }
+                        }
+                    case .grouped(let sections):
+                        ForEach(sections) { section in
+                            Section {
+                                CatalogCardGrid(
+                                    layoutMode: layoutMode.wrappedValue,
+                                    layoutMetrics: (cardSize, gridMetrics, cardMetrics)
+                                ) { cardSize, _, cardMetrics in
+                                    ForEach(section.books) { book in
+                                        bookCard(
+                                            book,
+                                            cardSize: cardSize,
+                                            cardMetrics: cardMetrics
+                                        )
+                                    }
+                                }
+                            } header: {
+                                LibrarySeriesSectionHeader(
+                                    title: section.title,
+                                    progressText: section.progressText
+                                )
+                            }
                         }
                     }
                 }
@@ -452,6 +481,35 @@ struct LibraryView: View {
             ).sharingState(for: collection.id)
         } catch {
             collectionSharingLoadError = error
+        }
+    }
+}
+
+private struct LibrarySeriesSectionHeader: View {
+    let title: String
+    let progressText: String
+
+    var body: some View {
+        HStack(spacing: CatalogMetrics.Spacing.sm) {
+            Text(title)
+                .font(CatalogTypography.sectionTitle)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+            Spacer()
+
+            Text(progressText)
+                .font(CatalogTypography.chipLabel)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.vertical, CatalogMetrics.Spacing.sm)
+        .padding(.horizontal, CatalogMetrics.Spacing.md)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(uiColor: .separator))
+                .frame(height: 0.5)
         }
     }
 }
