@@ -26,7 +26,7 @@ struct CatalogDashboardDataHealthCard: View {
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                     Text(String(localized: "catalog.dashboard.health"))
                         .font(CatalogTypography.sectionTitle)
-                    Text(String(localized: "bell_catalog.dashboard.health.subtitle"))
+                    Text(String(localized: "catalog.dashboard.health.subtitle"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

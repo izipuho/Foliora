@@ -239,21 +239,21 @@ private struct MetricStrip: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: CatalogMetrics.Spacing.sm) {
                 MetricPill(
-                    title: String(localized: "bell_catalog.dashboard.total"),
+                    title: String(localized: "catalog.dashboard.total"),
                     value: "\(stats.totalCount)",
                     systemImage: "bell.fill",
                     tint: tint
                 )
 
                 MetricPill(
-                    title: String(localized: "bell_catalog.dashboard.countries"),
+                    title: String(localized: "catalog.dashboard.countries"),
                     value: "\(stats.countryCount)",
                     systemImage: "globe.europe.africa.fill",
                     tint: tint
                 )
 
                 MetricPill(
-                    title: String(localized: "bell_catalog.dashboard.cities"),
+                    title: String(localized: "catalog.dashboard.cities"),
                     value: "\(stats.cityCount)",
                     systemImage: "building.2.fill",
                     tint: tint

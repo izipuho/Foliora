@@ -19,7 +19,7 @@ struct CatalogDashboardSharingCard: View {
                     .foregroundStyle(tint)
             } content: {
                 VStack(alignment: .leading, spacing: Layout.textSpacing) {
-                    Text(String(localized: "bell_catalog.dashboard.sharing"))
+                    Text(String(localized: "catalog.dashboard.sharing"))
                         .font(CatalogTypography.sectionTitle)
                     Text(content.value)
                         .font(CatalogTypography.cardSubtitle)
@@ -76,7 +76,7 @@ struct CatalogDashboardSharingCard: View {
         guard !state.invitedParticipants.isEmpty else { return nil }
 
         return String.localizedStringWithFormat(
-            String(localized: "bell_catalog.dashboard.sharing.pending_invitations_count"),
+            String(localized: "catalog.dashboard.sharing.pending_invitations_count"),
             state.invitedParticipants.count
         )
     }
