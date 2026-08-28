@@ -63,7 +63,7 @@ private struct DashboardCardStrip: View {
                     tint: tint
                 )
 
-                BookDataHealthCard(
+                CatalogDashboardDataHealthCard(
                     progress: dataHealthProgress,
                     tint: tint
                 ) {
@@ -234,42 +234,6 @@ private struct BookSeriesHealthCard: View {
         }
 
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
-    }
-}
-
-private struct BookDataHealthCard: View {
-    let progress: Double
-    let tint: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            DashboardCard {
-                ZStack {
-                    Circle()
-                        .stroke(Color(uiColor: .separator), lineWidth: 8)
-
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(tint, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-
-                    Text(progress.formatted(.percent.precision(.fractionLength(0))))
-                        .font(CatalogTypography.cardSubtitle)
-                }
-                .frame(width: 56, height: 56)
-            } content: {
-                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                    Text("Data Health")
-                        .font(CatalogTypography.sectionTitle)
-                    Text("Cover · Author · Year")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: true, vertical: false)
-                }
-            }
-        }
-        .buttonStyle(.plain)
     }
 }
 
