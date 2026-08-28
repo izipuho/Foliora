@@ -94,13 +94,20 @@ private struct DashboardCardStrip: View {
                     isPresentingDataHealthPopover = true
                 }
                 .popover(isPresented: $isPresentingDataHealthPopover) {
-                    DataHealthPopover(
+                    CatalogDashboardDataHealthPopover(
                         entries: dataHealthEntries,
-                        onSelect: { filter in
+                        onSelect: { entry in
                             isPresentingDataHealthPopover = false
-                            onFilterApply(filter)
+                            onFilterApply(entry.filter)
                         }
-                    )
+                    ) { entry in
+                        DashboardDataHealthRow(
+                            title: entry.title,
+                            countText: entry.countText,
+                            missingProgress: entry.missingProgress,
+                            showsDisclosureIndicator: true
+                        )
+                    }
                 }
             }
         }
@@ -305,27 +312,6 @@ struct DataHealthEntry: Identifiable {
     let filter: BellPresenceFilter
 
     var id: String { title }
-}
-
-/// Displays the data health popover interface.
-struct DataHealthPopover: View {
-    let entries: [DataHealthEntry]
-    let onSelect: (BellPresenceFilter) -> Void
-
-    var body: some View {
-        DashboardPopoverContainer(
-            title: String(localized: "bell_catalog.dashboard.health"),
-            entries: entries,
-            onSelect: { onSelect($0.filter) }
-        ) { entry in
-            DashboardDataHealthRow(
-                title: entry.title,
-                countText: entry.countText,
-                missingProgress: entry.missingProgress,
-                showsDisclosureIndicator: true
-            )
-        }
-    }
 }
 
 /// Displays the summary coverage row interface.
