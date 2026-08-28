@@ -3,23 +3,6 @@ import PhotosUI
 import CoreData
 import UIKit
 
-private enum LibraryOrderMode: String, CaseIterable {
-    case title
-    case author
-    case publicationYearNewest
-
-    var title: String {
-        switch self {
-        case .title:
-            return "Title"
-        case .author:
-            return "Author"
-        case .publicationYearNewest:
-            return "Publication year"
-        }
-    }
-}
-
 /// Displays and manages a single book library.
 struct LibraryView: View {
     let collection: CollectionSummary
@@ -46,6 +29,7 @@ struct LibraryView: View {
     @State private var collectionSharingLoadError: Error?
     @State private var isFavoritesCollapsed = false
     @State private var favoriteChangeRevision = 0
+    @StateObject private var viewModel: BookLibraryViewModel
 
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
@@ -63,54 +47,29 @@ struct LibraryView: View {
         self.coreDataContainer = coreDataContainer
         self.layoutMode = layoutMode
         self.onBookSelected = onBookSelected
+        _viewModel = StateObject(
+            wrappedValue: BookLibraryViewModel(orderMode: .title)
+        )
     }
 
-    private var books: [BookRecord] {
-        let source = catalogSnapshot?.bookRecords.filter { $0.collectionID == collection.id } ?? []
-
-        switch selectedOrder {
-        case .title:
-            return source.sorted {
-                $0.title.localizedStandardCompare($1.title) == .orderedAscending
-            }
-        case .author:
-            return source.sorted { lhs, rhs in
-                let lhsAuthor = primaryAuthorName(for: lhs)
-                let rhsAuthor = primaryAuthorName(for: rhs)
-
-                if lhsAuthor == rhsAuthor {
-                    return lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
-                }
-
-                if lhsAuthor.isEmpty { return false }
-                if rhsAuthor.isEmpty { return true }
-                return lhsAuthor.localizedStandardCompare(rhsAuthor) == .orderedAscending
-            }
-        case .publicationYearNewest:
-            return source.sorted { lhs, rhs in
-                let lhsYear = lhs.details.publicationYear
-                let rhsYear = rhs.details.publicationYear
-
-                switch (lhsYear, rhsYear) {
-                case let (.some(lhsYear), .some(rhsYear)) where lhsYear != rhsYear:
-                    return lhsYear > rhsYear
-                case (.some, .none):
-                    return true
-                case (.none, .some):
-                    return false
-                default:
-                    return lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
-                }
-            }
-        }
+    private var sourceBooks: [BookRecord] {
+        catalogSnapshot?.bookRecords.filter { $0.collectionID == collection.id } ?? []
     }
 
     private var series: [BookSeries] {
         catalogSnapshot?.bookSeries.filter { $0.collectionID == collection.id } ?? []
     }
 
+    private var displayModel: BookLibraryDisplayModel {
+        viewModel.displayModel
+    }
+
+    private var books: [BookRecord] {
+        displayModel.books
+    }
+
     private var favoriteBooks: [BookRecord] {
-        books.filter(\.isFavorite)
+        displayModel.favoriteBooks
     }
 
     private var selectedOrder: LibraryOrderMode {
@@ -176,6 +135,19 @@ struct LibraryView: View {
             .toolbar {
                 libraryToolbar
             }
+            .onAppear {
+                viewModel.updateContext(orderMode: selectedOrder)
+                updateLibrarySource()
+            }
+            .onChange(of: sourceBooks) { _, _ in
+                updateLibrarySource()
+            }
+            .onChange(of: series) { _, _ in
+                updateLibrarySource()
+            }
+            .onChange(of: selectedOrderRawValue) { _, _ in
+                viewModel.updateContext(orderMode: selectedOrder)
+            }
             .onReceive(NotificationCenter.default.publisher(for: .catalogItemFavoriteDidChange)) { notification in
                 guard
                     let change = notification.object as? CatalogItemFavoriteChange,
@@ -185,6 +157,7 @@ struct LibraryView: View {
                 }
 
                 favoriteChangeRevision &+= 1
+                updateLibrarySource()
             }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
@@ -258,8 +231,7 @@ struct LibraryView: View {
             ) { cardSize, gridMetrics, cardMetrics in
                 LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
                     BookLibraryDashboardView(
-                        books: books,
-                        series: series,
+                        stats: displayModel.stats,
                         accentColor: collection.backgroundStyle.accentColor,
                         collection: collection,
                         sharingState: collectionSharingState,
@@ -393,12 +365,11 @@ struct LibraryView: View {
         }
     }
 
-    private func primaryAuthorName(for book: BookRecord) -> String {
-        book.details.contributors
-            .filter { $0.role == .author }
-            .sorted { $0.order < $1.order }
-            .first?
-            .person.name ?? ""
+    private func updateLibrarySource() {
+        viewModel.updateSource(
+            books: sourceBooks,
+            series: series
+        )
     }
 
     private func clearDraftBook() {
