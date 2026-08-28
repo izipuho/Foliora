@@ -95,13 +95,18 @@ struct LibraryStats {
 @MainActor
 final class LibraryViewModel: ObservableObject {
     var orderMode: LibraryOrderMode
+    var filters: BookFilters
     @Published private(set) var displayModel: LibraryDisplayModel
 
     private var sourceBooks: [BookRecord]?
     private var sourceSeries: [BookSeries]?
 
-    init(orderMode: LibraryOrderMode) {
+    init(
+        orderMode: LibraryOrderMode,
+        filters: BookFilters = BookFilters()
+    ) {
         self.orderMode = orderMode
+        self.filters = filters
         self.displayModel = LibraryDisplayModel(
             layout: .empty,
             favoriteBooks: [],
@@ -129,23 +134,24 @@ final class LibraryViewModel: ObservableObject {
         sourceBooks = books
         sourceSeries = series
 
+        let filteredBooks = filteredBooks(from: books, series: series)
         let layout: LibraryLayout
-        if books.isEmpty {
+        if filteredBooks.isEmpty {
             layout = .empty
         } else {
             switch orderMode {
             case .title:
-                layout = .grouped(titleSections(books: books))
+                layout = .grouped(titleSections(books: filteredBooks))
             case .author:
-                layout = .grouped(authorSections(books: books))
+                layout = .grouped(authorSections(books: filteredBooks))
             case .publicationYearNewest:
-                layout = .grouped(publicationYearSections(books: books))
+                layout = .grouped(publicationYearSections(books: filteredBooks))
             case .newestFirst:
-                layout = .flat(sorted(books))
+                layout = .flat(sorted(filteredBooks))
             case .series:
-                layout = .grouped(seriesSections(books: books, series: series))
+                layout = .grouped(seriesSections(books: filteredBooks, series: series))
             case .storage:
-                layout = .grouped(storageSections(books: books))
+                layout = .grouped(storageSections(books: filteredBooks))
             }
         }
 
@@ -162,9 +168,67 @@ final class LibraryViewModel: ObservableObject {
         refreshSource()
     }
 
+    func updateContext(filters: BookFilters) {
+        guard self.filters != filters else { return }
+        self.filters = filters
+        refreshSource()
+    }
+
     private func refreshSource() {
         guard let sourceBooks, let sourceSeries else { return }
         updateSource(books: sourceBooks, series: sourceSeries)
+    }
+
+    private func filteredBooks(
+        from books: [BookRecord],
+        series: [BookSeries]
+    ) -> [BookRecord] {
+        guard !filters.isEmpty else { return books }
+
+        let seriesByID = Dictionary(uniqueKeysWithValues: series.map { ($0.id, $0) })
+        let ownedCountBySeriesID = Dictionary(
+            books.compactMap { book -> (UUID, Int)? in
+                guard let seriesID = book.details.series?.id else { return nil }
+                return (seriesID, 1)
+            },
+            uniquingKeysWith: +
+        )
+
+        return books.filter { book in
+            filters.presence.allSatisfy { filter in
+                switch filter {
+                case .missingCover:
+                    return !hasCover(book)
+                case .missingAuthor:
+                    return !hasAuthor(book)
+                case .missingPublicationYear:
+                    return book.details.publicationYear == nil
+                case .incompleteSeries:
+                    guard
+                        let seriesID = book.details.series?.id,
+                        let bookSeries = seriesByID[seriesID] ?? book.details.series,
+                        let totalBookCount = bookSeries.totalBookCount,
+                        totalBookCount > 0
+                    else {
+                        return false
+                    }
+
+                    return (ownedCountBySeriesID[seriesID] ?? 0) < totalBookCount
+                case .unknownSeriesSize:
+                    guard
+                        let seriesID = book.details.series?.id,
+                        let bookSeries = seriesByID[seriesID] ?? book.details.series
+                    else {
+                        return false
+                    }
+
+                    guard let totalBookCount = bookSeries.totalBookCount else {
+                        return true
+                    }
+                    return totalBookCount <= 0
+                }
+            }
+        }
     }
 
     private func sorted(_ books: [BookRecord]) -> [BookRecord] {
