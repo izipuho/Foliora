@@ -49,6 +49,7 @@ private struct DashboardCardStrip: View {
     let tint: Color
     let onSharingChanged: () -> Void
 
+    @State private var isPresentingSeriesPopover = false
     @State private var isPresentingDataHealthPopover = false
 
     var body: some View {
@@ -56,12 +57,30 @@ private struct DashboardCardStrip: View {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 sharingCard
 
-                BookSeriesHealthCard(
-                    completeCount: completeSeriesCount,
-                    incompleteCount: incompleteSeriesCount,
-                    unknownCount: unknownSeriesCount,
-                    tint: tint
-                )
+                if !series.isEmpty {
+                    Button {
+                        isPresentingSeriesPopover = true
+                    } label: {
+                        BookSeriesHealthCard(
+                            completeCount: completeSeriesCount,
+                            incompleteCount: incompleteSeriesCount,
+                            unknownCount: unknownSeriesCount,
+                            tint: tint
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $isPresentingSeriesPopover) {
+                        DashboardPopoverContainer(
+                            title: "Series",
+                            entries: seriesProgressEntries
+                        ) { entry in
+                            BookSeriesProgressRow(
+                                entry: entry,
+                                tint: tint
+                            )
+                        }
+                    }
+                }
 
                 CatalogDashboardDataHealthCard(
                     progress: dataHealthProgress,
@@ -130,6 +149,21 @@ private struct DashboardCardStrip: View {
             guard let totalBookCount = series.totalBookCount else { return true }
             return totalBookCount <= 0
         }.count
+    }
+
+    private var seriesProgressEntries: [BookSeriesProgressEntry] {
+        series
+            .map { series in
+                BookSeriesProgressEntry(
+                    id: series.id,
+                    name: series.name,
+                    ownedBookCount: ownedBookCount(for: series),
+                    totalBookCount: series.totalBookCount.flatMap { $0 > 0 ? $0 : nil }
+                )
+            }
+            .sorted {
+                $0.name.localizedStandardCompare($1.name) == .orderedAscending
+            }
     }
 
     private func ownedBookCount(for series: BookSeries) -> Int {
@@ -240,6 +274,68 @@ private struct BookSeriesHealthCard: View {
         }
 
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}
+
+private struct BookSeriesProgressEntry: Identifiable {
+    let id: UUID
+    let name: String
+    let ownedBookCount: Int
+    let totalBookCount: Int?
+}
+
+private struct BookSeriesProgressRow: View {
+    let entry: BookSeriesProgressEntry
+    let tint: Color
+
+    private var progress: Double {
+        guard let totalBookCount = entry.totalBookCount, totalBookCount > 0 else { return 0 }
+        return min(max(Double(entry.ownedBookCount) / Double(totalBookCount), 0), 1)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+            Text(entry.name)
+                .font(CatalogTypography.cardSubtitle)
+                .foregroundStyle(.primary)
+
+            HStack {
+                Text("Owned")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Text("\(entry.ownedBookCount)")
+                    .font(CatalogTypography.chipLabel)
+            }
+
+            if let totalBookCount = entry.totalBookCount {
+                HStack {
+                    Text("Total")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    Text("\(totalBookCount)")
+                        .font(CatalogTypography.chipLabel)
+                }
+
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color(uiColor: .separator))
+
+                        Capsule()
+                            .fill(tint)
+                            .frame(width: proxy.size.width * progress)
+                    }
+                }
+                .frame(height: 6)
+            }
+        }
+        .padding(CatalogMetrics.Spacing.md)
     }
 }
 
