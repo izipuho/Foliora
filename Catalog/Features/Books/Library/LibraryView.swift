@@ -15,7 +15,7 @@ struct LibraryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
-    @AppStorage("bookLibrary.orderMode") private var selectedOrderRawValue = LibraryOrderMode.title.rawValue
+    @AppStorage("bookLibrary.orderMode") private var selectedOrderRawValue = BookLibraryOrderMode.title.rawValue
     @State private var isPresentingEditLibrary = false
     @State private var isPresentingAddBookOptions = false
     @State private var isPresentingPhotoPicker = false
@@ -72,16 +72,16 @@ struct LibraryView: View {
         displayModel.favoriteBooks
     }
 
-    private var selectedOrder: LibraryOrderMode {
+    private var selectedOrder: BookLibraryOrderMode {
         get {
-            LibraryOrderMode(rawValue: selectedOrderRawValue) ?? .title
+            BookLibraryOrderMode(rawValue: selectedOrderRawValue) ?? .title
         }
         nonmutating set {
             selectedOrderRawValue = newValue.rawValue
         }
     }
 
-    private var selectedOrderBinding: Binding<LibraryOrderMode> {
+    private var selectedOrderBinding: Binding<BookLibraryOrderMode> {
         Binding(
             get: { selectedOrder },
             set: { selectedOrder = $0 }
@@ -323,7 +323,7 @@ struct LibraryView: View {
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: layoutMode,
             isPresentingAddOptions: $isPresentingAddBookOptions,
-            sortOptions: LibraryOrderMode.allCases,
+            sortOptions: BookLibraryOrderMode.allCases,
             sortSectionTitle: "Sort",
             sortTitle: { $0.title },
             canEdit: canEditLibrary,
