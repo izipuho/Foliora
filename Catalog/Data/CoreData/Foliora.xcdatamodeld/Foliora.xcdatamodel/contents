@@ -16,10 +16,16 @@
         <attribute name="pageCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="publicationYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
         <attribute name="volumeNumber" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="bookIdentifiers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookIdentifierEntity" inverseName="book" inverseEntity="BookIdentifierEntity"/>
         <relationship name="contributors" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="book" inverseEntity="BookContributorEntity"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="book" inverseEntity="ItemEntity"/>
         <relationship name="publisher" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="books" inverseEntity="PublisherEntity"/>
         <relationship name="series" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookSeriesEntity" inverseName="books" inverseEntity="BookSeriesEntity"/>
+    </entity>
+    <entity name="BookIdentifierEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="type" optional="YES" attributeType="String"/>
+        <attribute name="value" optional="YES"/>
+        <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="bookIdentifiers" inverseEntity="BookEntity"/>
     </entity>
     <entity name="BookSeriesEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
