@@ -143,15 +143,16 @@ private struct DashboardCardStrip: View {
     }
 
     private var dataHealthProgress: Double {
-        guard !books.isEmpty else { return 0 }
-
-        let filledFields = books.reduce(into: 0) { count, book in
+        let filledBookFields = books.reduce(into: 0) { count, book in
             if hasCover(book) { count += 1 }
             if hasAuthor(book) { count += 1 }
             if book.details.publicationYear != nil { count += 1 }
         }
+        let filledSeriesFields = knownSeriesCount
+        let totalFields = books.count * 3 + series.count
 
-        return Double(filledFields) / Double(books.count * 3)
+        guard totalFields > 0 else { return 0 }
+        return Double(filledBookFields + filledSeriesFields) / Double(totalFields)
     }
 
     private var dataHealthEntries: [BookDataHealthEntry] {
@@ -172,6 +173,16 @@ private struct DashboardCardStrip: View {
                 totalCount: books.count
             )
         ]
+
+        if unknownSeriesCount > 0 {
+            entries.append(
+                BookDataHealthEntry(
+                    title: "Series Size Unknown",
+                    missingCount: unknownSeriesCount,
+                    totalCount: series.count
+                )
+            )
+        }
 
         if incompleteSeriesCount > 0 {
             entries.append(
@@ -240,7 +251,7 @@ private struct BookSeriesHealthCard: View {
     private var primaryText: String {
         let knownCount = completeCount + incompleteCount
         guard knownCount > 0 else {
-            return unknownCount > 0 ? "No completion data" : "No series"
+            return "No completion data"
         }
 
         return "\(completeCount) of \(knownCount) complete"
