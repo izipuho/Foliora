@@ -296,7 +296,7 @@ struct LibraryView: View {
             }
             .background(libraryBackground)
             .overlay(alignment: .trailing) {
-                if selectedOrder == .author,
+                if (selectedOrder == .author || selectedOrder == .title),
                    case .grouped(let sections) = displayModel.layout {
                     LibraryAlphabetIndex(sections: sections) { sectionID in
                         withAnimation(.snappy(duration: 0.2)) {
@@ -316,16 +316,37 @@ struct LibraryView: View {
     ) -> some View {
         ForEach(sections) { section in
             Section {
-                CatalogCardGrid(
-                    layoutMode: layoutMode.wrappedValue,
-                    layoutMetrics: layoutMetrics
-                ) { cardSize, _, cardMetrics in
-                    ForEach(section.books) { book in
-                        bookCard(
-                            book,
-                            cardSize: cardSize,
-                            cardMetrics: cardMetrics
-                        )
+                if !section.books.isEmpty {
+                    CatalogCardGrid(
+                        layoutMode: layoutMode.wrappedValue,
+                        layoutMetrics: layoutMetrics
+                    ) { cardSize, _, cardMetrics in
+                        ForEach(section.books) { book in
+                            bookCard(
+                                book,
+                                cardSize: cardSize,
+                                cardMetrics: cardMetrics
+                            )
+                        }
+                    }
+                }
+
+                ForEach(section.subgroups) { subgroup in
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                        LibraryBookSubgroupHeader(title: subgroup.title)
+
+                        CatalogCardGrid(
+                            layoutMode: layoutMode.wrappedValue,
+                            layoutMetrics: layoutMetrics
+                        ) { cardSize, _, cardMetrics in
+                            ForEach(subgroup.books) { book in
+                                bookCard(
+                                    book,
+                                    cardSize: cardSize,
+                                    cardMetrics: cardMetrics
+                                )
+                            }
+                        }
                     }
                 }
             } header: {
@@ -542,6 +563,18 @@ private struct LibraryGroupedSectionHeader: View {
                 .fill(Color(uiColor: .separator))
                 .frame(height: 0.5)
         }
+    }
+}
+
+private struct LibraryBookSubgroupHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .padding(.horizontal, CatalogMetrics.Spacing.xs)
     }
 }
 
