@@ -18,7 +18,6 @@ struct BookBatchAddView: View {
 
     @State private var languageCode = ""
     @State private var pageCount = ""
-    @State private var publicationPlaceName = ""
     @State private var publicationYear = ""
     @State private var volumeNumber = ""
 
@@ -74,7 +73,6 @@ struct BookBatchAddView: View {
                 Section("common.book") {
                     TextField("Language", text: $languageCode)
                     TextField("Pages", text: $pageCount)
-                    TextField("Publication place", text: $publicationPlaceName)
                     TextField("Publication year", text: $publicationYear)
                     TextField("Volume", text: $volumeNumber)
                 }
@@ -156,10 +154,9 @@ struct BookBatchAddView: View {
                     itemID: itemID,
                     languageCode: optionalString(languageCode)?.lowercased(),
                     pageCount: optionalInt(pageCount),
-                    publicationPlaceName: optionalString(publicationPlaceName),
                     publicationYear: optionalInt(publicationYear),
                     volumeNumber: optionalInt(volumeNumber),
-                    publicationPlace: nil,
+                    publisher: nil,
                     contributors: []
                 )
             )

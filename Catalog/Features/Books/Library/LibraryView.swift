@@ -3,20 +3,26 @@ import PhotosUI
 import CoreData
 import UIKit
 
-private enum LibraryOrderMode: String, CaseIterable {
-    case title
-    case author
-    case publicationYearNewest
-
+private extension BookPresenceFilter {
     var title: String {
         switch self {
-        case .title:
-            return "Title"
-        case .author:
-            return "Author"
-        case .publicationYearNewest:
-            return "Publication year"
+        case .missingCover:
+            return "Missing Cover"
+        case .missingAuthor:
+            return "Missing Author"
+        case .missingPublicationYear:
+            return "Missing Publication Year"
+        case .incompleteSeries:
+            return "Incomplete Series"
+        case .unknownSeriesSize:
+            return "Series Size Unknown"
         }
+    }
+}
+
+private extension BookFilters {
+    var title: String? {
+        presence.first?.title
     }
 }
 
@@ -33,6 +39,7 @@ struct LibraryView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage("bookLibrary.orderMode") private var selectedOrderRawValue = LibraryOrderMode.title.rawValue
+    @State private var filters = BookFilters()
     @State private var isPresentingEditLibrary = false
     @State private var isPresentingAddBookOptions = false
     @State private var isPresentingPhotoPicker = false
@@ -44,6 +51,10 @@ struct LibraryView: View {
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
+    @State private var isFavoritesCollapsed = false
+    @State private var collapsedGroupIDs: Set<String> = []
+    @State private var favoriteChangeRevision = 0
+    @StateObject private var viewModel: LibraryViewModel
 
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
@@ -61,46 +72,29 @@ struct LibraryView: View {
         self.coreDataContainer = coreDataContainer
         self.layoutMode = layoutMode
         self.onBookSelected = onBookSelected
+        _viewModel = StateObject(
+            wrappedValue: LibraryViewModel(orderMode: .title)
+        )
     }
 
-    private var books: [BookRecord] {
-        let source = catalogSnapshot?.bookRecords.filter { $0.collectionID == collection.id } ?? []
+    private var sourceBooks: [BookRecord] {
+        catalogSnapshot?.bookRecords.filter { $0.collectionID == collection.id } ?? []
+    }
 
-        switch selectedOrder {
-        case .title:
-            return source.sorted {
-                $0.title.localizedStandardCompare($1.title) == .orderedAscending
-            }
-        case .author:
-            return source.sorted { lhs, rhs in
-                let lhsAuthor = primaryAuthorName(for: lhs)
-                let rhsAuthor = primaryAuthorName(for: rhs)
+    private var series: [BookSeries] {
+        catalogSnapshot?.bookSeries.filter { $0.collectionID == collection.id } ?? []
+    }
 
-                if lhsAuthor == rhsAuthor {
-                    return lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
-                }
+    private var displayModel: LibraryDisplayModel {
+        viewModel.displayModel
+    }
 
-                if lhsAuthor.isEmpty { return false }
-                if rhsAuthor.isEmpty { return true }
-                return lhsAuthor.localizedStandardCompare(rhsAuthor) == .orderedAscending
-            }
-        case .publicationYearNewest:
-            return source.sorted { lhs, rhs in
-                let lhsYear = lhs.details.publicationYear
-                let rhsYear = rhs.details.publicationYear
+    private var favoriteBooks: [BookRecord] {
+        displayModel.favoriteBooks
+    }
 
-                switch (lhsYear, rhsYear) {
-                case let (.some(lhsYear), .some(rhsYear)) where lhsYear != rhsYear:
-                    return lhsYear > rhsYear
-                case (.some, .none):
-                    return true
-                case (.none, .some):
-                    return false
-                default:
-                    return lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
-                }
-            }
-        }
+    private var hasActiveFilter: Bool {
+        !filters.isEmpty
     }
 
     private var selectedOrder: LibraryOrderMode {
@@ -157,12 +151,42 @@ struct LibraryView: View {
     }
 
     var body: some View {
+        let _ = favoriteChangeRevision
+
         content
             .navigationTitle(collection.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 libraryToolbar
+            }
+            .onAppear {
+                viewModel.updateContext(orderMode: selectedOrder)
+                viewModel.updateContext(filters: filters)
+                updateLibrarySource()
+            }
+            .onChange(of: sourceBooks) { _, _ in
+                updateLibrarySource()
+            }
+            .onChange(of: series) { _, _ in
+                updateLibrarySource()
+            }
+            .onChange(of: selectedOrderRawValue) { _, _ in
+                viewModel.updateContext(orderMode: selectedOrder)
+            }
+            .onChange(of: filters) { _, newValue in
+                viewModel.updateContext(filters: newValue)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .catalogItemFavoriteDidChange)) { notification in
+                guard
+                    let change = notification.object as? CatalogItemFavoriteChange,
+                    change.collectionID == collection.id
+                else {
+                    return
+                }
+
+                favoriteChangeRevision &+= 1
+                updateLibrarySource()
             }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
@@ -217,34 +241,244 @@ struct LibraryView: View {
 
     @ViewBuilder
     private var content: some View {
-        if books.isEmpty {
+        if canEditLibrary && collection.itemCount == 0 {
             CatalogEmptyStateView(
                 systemImage: "books.vertical",
                 title: "No Books",
-                message: "This library does not contain any books yet."
+                message: "This library does not contain any books yet.",
+                primaryActionTitle: "Add Book",
+                primaryActionSystemImage: "plus.circle.fill",
+                primaryTint: collection.backgroundStyle.accentColor,
+                primaryAction: { isPresentingAddBookOptions = true }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(libraryBackground)
         } else {
-            CatalogCardGrid(layoutMode: layoutMode.wrappedValue) { cardSize, _, cardMetrics in
-                ForEach(books) { book in
-                    Button {
-                        onBookSelected?(book.id)
-                    } label: {
-                        BookCardView(
-                            book: book,
-                            style: CatalogCardContentStyle.style(for: layoutMode.wrappedValue),
-                            cardSize: cardSize,
-                            cardMetrics: cardMetrics
+            libraryContent
+        }
+    }
+
+    private var libraryContent: some View {
+        ScrollViewReader { scrollProxy in
+            CatalogCardGrid(
+                layoutMode: layoutMode.wrappedValue,
+                usesGridLayout: false
+            ) { cardSize, gridMetrics, cardMetrics in
+                LazyVStack(
+                    alignment: .leading,
+                    spacing: CatalogMetrics.Spacing.lg,
+                    pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []
+                ) {
+                    LibraryDashboardView(
+                        stats: displayModel.stats,
+                        accentColor: collection.backgroundStyle.accentColor,
+                        collection: collection,
+                        sharingState: collectionSharingState,
+                        sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer),
+                        onSharingChanged: {
+                            Task {
+                                await loadCollectionSharingState()
+                            }
+                        },
+                        onFilterApply: { filter in
+                            filters = BookFilters(presence: [filter])
+                        }
+                    )
+
+                    if hasActiveFilter {
+                        activeFilterSection
+                    }
+
+                    if !favoriteBooks.isEmpty {
+                        CatalogCollapsibleCardSection(
+                            title: String(localized: "bell.catalog.favorites"),
+                            layoutMode: layoutMode.wrappedValue,
+                            screenWidth: stripScreenWidth(cardSize: cardSize, gridMetrics: gridMetrics),
+                            isCollapsed: $isFavoritesCollapsed
+                        ) { favoriteCardSize, favoriteCardMetrics in
+                            ForEach(favoriteBooks) { book in
+                                bookCard(
+                                    book,
+                                    cardSize: favoriteCardSize,
+                                    cardMetrics: favoriteCardMetrics
+                                )
+                            }
+                        }
+
+                        if !displayModel.layout.isGrouped {
+                            CatalogSectionHeader(title: String(localized: "Library"))
+                        }
+                    }
+
+                    switch displayModel.layout {
+                    case .empty:
+                        EmptyView()
+                    case .flat(let books):
+                        CatalogCardGrid(
+                            layoutMode: layoutMode.wrappedValue,
+                            layoutMetrics: (cardSize, gridMetrics, cardMetrics)
+                        ) { cardSize, _, cardMetrics in
+                            ForEach(books) { book in
+                                bookCard(
+                                    book,
+                                    cardSize: cardSize,
+                                    cardMetrics: cardMetrics
+                                )
+                            }
+                        }
+                    case .grouped(let sections):
+                        groupedLibrarySections(
+                            sections,
+                            layoutMetrics: (cardSize, gridMetrics, cardMetrics)
                         )
                     }
-                    .buttonStyle(.plain)
-                    .frame(width: cardSize.width, height: cardSize.height)
-                    .contentShape(Rectangle())
                 }
             }
             .background(libraryBackground)
+            .overlay(alignment: .trailing) {
+                if (selectedOrder == .author || selectedOrder == .title),
+                   case .grouped(let sections) = displayModel.layout {
+                    LibraryAlphabetIndex(sections: sections) { sectionID in
+                        withAnimation(.snappy(duration: 0.2)) {
+                            scrollProxy.scrollTo(sectionID, anchor: .top)
+                        }
+                    }
+                    .padding(.trailing, CatalogMetrics.Spacing.xs)
+                }
+            }
         }
+    }
+
+    private var activeFilterSection: some View {
+        HStack(spacing: CatalogMetrics.Spacing.sm) {
+            Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                .foregroundStyle(collection.backgroundStyle.accentColor)
+
+            Text(filters.title ?? "")
+                .font(CatalogTypography.cardSubtitle)
+
+            Spacer()
+
+            Button(String(localized: "common.clear")) {
+                filters = BookFilters()
+            }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(collection.backgroundStyle.accentColor)
+        }
+        .padding(CatalogMetrics.Spacing.md)
+        .background(.ultraThinMaterial, in: CatalogShapes.medium)
+    }
+
+    @ViewBuilder
+    private func groupedLibrarySections(
+        _ sections: [LibraryGroupedSection],
+        layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics
+    ) -> some View {
+        ForEach(sections) { section in
+            let isSectionCollapsible = selectedOrder == .series
+            let isSectionCollapsed = isSectionCollapsible && collapsedGroupIDs.contains(section.id)
+
+            Section {
+                if !isSectionCollapsed {
+                    if !section.books.isEmpty {
+                        CatalogCardGrid(
+                            layoutMode: layoutMode.wrappedValue,
+                            layoutMetrics: layoutMetrics
+                        ) { cardSize, _, cardMetrics in
+                            ForEach(section.books) { book in
+                                bookCard(
+                                    book,
+                                    cardSize: cardSize,
+                                    cardMetrics: cardMetrics
+                                )
+                            }
+                        }
+                    }
+
+                    ForEach(section.subgroups) { subgroup in
+                        let isSubgroupCollapsed = selectedOrder == .author
+                            && collapsedGroupIDs.contains(subgroup.id)
+
+                        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                            LibraryBookSubgroupHeader(
+                                title: subgroup.title,
+                                isCollapsed: isSubgroupCollapsed,
+                                onToggle: selectedOrder == .author
+                                    ? { toggleCollapsedGroup(subgroup.id) }
+                                    : nil
+                            )
+
+                            if !isSubgroupCollapsed {
+                                CatalogCardGrid(
+                                    layoutMode: layoutMode.wrappedValue,
+                                    layoutMetrics: layoutMetrics
+                                ) { cardSize, _, cardMetrics in
+                                    ForEach(subgroup.books) { book in
+                                        bookCard(
+                                            book,
+                                            cardSize: cardSize,
+                                            cardMetrics: cardMetrics
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } header: {
+                LibraryGroupedSectionHeader(
+                    title: section.title,
+                    detailText: section.detailText,
+                    isCollapsed: isSectionCollapsible ? isSectionCollapsed : nil,
+                    onToggle: isSectionCollapsible
+                        ? { toggleCollapsedGroup(section.id) }
+                        : nil
+                )
+                .id(section.id)
+            }
+        }
+    }
+
+    private func toggleCollapsedGroup(_ id: String) {
+        withAnimation(.snappy(duration: 0.2)) {
+            var updated = collapsedGroupIDs
+            if updated.contains(id) {
+                updated.remove(id)
+            } else {
+                updated.insert(id)
+            }
+            collapsedGroupIDs = updated
+        }
+    }
+
+    private func bookCard(
+        _ book: BookRecord,
+        cardSize: CGSize,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics
+    ) -> some View {
+        Button {
+            onBookSelected?(book.id)
+        } label: {
+            BookCardView(
+                book: book,
+                style: CatalogCardContentStyle.style(for: layoutMode.wrappedValue),
+                cardSize: cardSize,
+                cardMetrics: cardMetrics
+            )
+        }
+        .buttonStyle(.plain)
+        .frame(width: cardSize.width, height: cardSize.height)
+        .contentShape(Rectangle())
+    }
+
+    private func stripScreenWidth(
+        cardSize: CGSize,
+        gridMetrics: CatalogCardLayoutMode.GridMetrics
+    ) -> CGFloat {
+        let totalSpacing = gridMetrics.spacing * CGFloat(max(gridMetrics.columnCount - 1, 0))
+        return cardSize.width * CGFloat(gridMetrics.columnCount)
+            + totalSpacing
+            + CatalogCardLayoutMode.screenHorizontalPadding * 2
     }
 
     private var libraryBackground: some View {
@@ -302,12 +536,11 @@ struct LibraryView: View {
         }
     }
 
-    private func primaryAuthorName(for book: BookRecord) -> String {
-        book.details.contributors
-            .filter { $0.role == .author }
-            .sorted { $0.order < $1.order }
-            .first?
-            .person.name ?? ""
+    private func updateLibrarySource() {
+        viewModel.updateSource(
+            books: sourceBooks,
+            series: series
+        )
     }
 
     private func clearDraftBook() {
@@ -391,6 +624,122 @@ struct LibraryView: View {
         } catch {
             collectionSharingLoadError = error
         }
+    }
+}
+
+private struct LibraryGroupedSectionHeader: View {
+    let title: String
+    let detailText: String?
+    let isCollapsed: Bool?
+    let onToggle: (() -> Void)?
+
+    var body: some View {
+        Group {
+            if let isCollapsed, let onToggle {
+                Button(action: onToggle) {
+                    headerContent(isCollapsed: isCollapsed)
+                }
+                .buttonStyle(.plain)
+            } else {
+                headerContent(isCollapsed: nil)
+            }
+        }
+        .padding(.vertical, CatalogMetrics.Spacing.sm)
+        .padding(.horizontal, CatalogMetrics.Spacing.md)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(uiColor: .separator))
+                .frame(height: 0.5)
+        }
+    }
+
+    private func headerContent(isCollapsed: Bool?) -> some View {
+        HStack(spacing: CatalogMetrics.Spacing.sm) {
+            Text(title)
+                .font(CatalogTypography.sectionTitle)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+            if let isCollapsed {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if let detailText {
+                Text(detailText)
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+private struct LibraryBookSubgroupHeader: View {
+    let title: String
+    let isCollapsed: Bool
+    let onToggle: (() -> Void)?
+
+    var body: some View {
+        Group {
+            if let onToggle {
+                Button(action: onToggle) {
+                    content
+                }
+                .buttonStyle(.plain)
+            } else {
+                content
+            }
+        }
+    }
+
+    private var content: some View {
+        HStack(spacing: CatalogMetrics.Spacing.xs) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            if onToggle != nil {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, CatalogMetrics.Spacing.xs)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct LibraryAlphabetIndex: View {
+    let sections: [LibraryGroupedSection]
+    let onSelect: (String) -> Void
+
+    var body: some View {
+        VStack(spacing: 1) {
+            ForEach(indexedSections) { section in
+                Button(section.indexTitle ?? "") {
+                    onSelect(section.id)
+                }
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .buttonStyle(.plain)
+                .frame(minWidth: 20, minHeight: 14)
+            }
+        }
+        .padding(.vertical, 4)
+        .background(.thinMaterial, in: Capsule())
+    }
+
+    private var indexedSections: [LibraryGroupedSection] {
+        sections.filter { $0.indexTitle != nil }
     }
 }
 

@@ -129,154 +129,6 @@
         }
       }
     },
-    "bell_catalog.dashboard.cities" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cities"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Города"
-          }
-        }
-      }
-    },
-    "bell_catalog.dashboard.countries" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Countries"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Страны"
-          }
-        }
-      }
-    },
-    "bell_catalog.dashboard.health" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Data Health"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заполненность"
-          }
-        }
-      }
-    },
-    "bell_catalog.dashboard.health.subtitle" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Key field coverage"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заполненность ключевых полей"
-          }
-        }
-      }
-    },
-    "bell_catalog.dashboard.sharing" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sharing"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Доступ"
-          }
-        }
-      }
-    },
-    "bell_catalog.dashboard.sharing.pending_invitations_count" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "+%d invitation"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "+%d invitations"
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "variations" : {
-            "plural" : {
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "+%d приглашения"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "+%d приглашений"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "+%d приглашение"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "+%d приглашения"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "bell_catalog.dashboard.total" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Всего"
-          }
-        }
-      }
-    },
     "bell_catalog.empty.description" : {
       "localizations" : {
         "en" : {
@@ -1685,6 +1537,154 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Широкий"
+          }
+        }
+      }
+    },
+    "catalog.dashboard.cities" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cities"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Города"
+          }
+        }
+      }
+    },
+    "catalog.dashboard.countries" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Countries"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Страны"
+          }
+        }
+      }
+    },
+    "catalog.dashboard.health" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Health"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заполненность"
+          }
+        }
+      }
+    },
+    "catalog.dashboard.health.subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Key field coverage"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заполненность ключевых полей"
+          }
+        }
+      }
+    },
+    "catalog.dashboard.sharing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sharing"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ"
+          }
+        }
+      }
+    },
+    "catalog.dashboard.sharing.pending_invitations_count" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%d invitation"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%d invitations"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%d приглашения"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%d приглашений"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%d приглашение"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "+%d приглашения"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "catalog.dashboard.total" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всего"
           }
         }
       }
@@ -6154,6 +6154,10 @@
       "comment" : "A label for the book's language.",
       "isCommentAutoGenerated" : true
     },
+    "Library" : {
+      "comment" : "Title of the section of the library that contains all books.",
+      "isCommentAutoGenerated" : true
+    },
     "No Books" : {
       "comment" : "Title of a view that displays a message when a library has no books.",
       "isCommentAutoGenerated" : true
@@ -6436,10 +6440,6 @@
         }
       }
     },
-    "Publication place" : {
-      "comment" : "A label for the publication place of a book.",
-      "isCommentAutoGenerated" : true
-    },
     "Publication year" : {
       "comment" : "A label for the publication year of a book.",
       "isCommentAutoGenerated" : true
@@ -6528,6 +6528,10 @@
           }
         }
       }
+    },
+    "Series" : {
+      "comment" : "A heading for a book series.",
+      "isCommentAutoGenerated" : true
     },
     "settings.data.footer" : {
       "localizations" : {

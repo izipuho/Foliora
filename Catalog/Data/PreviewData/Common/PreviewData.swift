@@ -157,7 +157,7 @@ enum PreviewData {
         )
     }
 
-    static func makePreviewPhoto(itemID: UUID, resourcePath: String, sortOrder: Int) -> MediaAsset {
+    static func makePreviewPhoto(itemID: UUID? = nil, resourcePath: String, sortOrder: Int) -> MediaAsset {
         guard let image = UIImage(named: resourcePath) ?? bundlePreviewImage(at: resourcePath) else {
             fatalError("Preview image resource not found: \(resourcePath)")
         }

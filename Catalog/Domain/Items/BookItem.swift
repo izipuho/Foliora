@@ -22,11 +22,11 @@ struct BookDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
     var languageCode: String?
     var pageCount: Int?
-    var publicationPlaceName: String?
     var publicationYear: Int?
     var volumeNumber: Int?
-    var publicationPlace: Place?
+    var publisher: Publisher? = nil
     var contributors: [BookContributor]
+    var series: BookSeries? = nil
 
     var id: UUID { itemID }
 }

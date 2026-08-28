@@ -10,7 +10,8 @@ extension CoreDataDomainMapper {
         }
 
         let itemRecord = itemRecord(from: itemEntity)
-        let publicationPlaceEntity = entity.value(forKey: "publicationPlace") as? NSManagedObject
+        let publisherEntity = entity.value(forKey: "publisher") as? NSManagedObject
+        let seriesEntity = entity.value(forKey: "series") as? NSManagedObject
         let contributors = relatedObjects(entity, "contributors")
             .sorted { intValue($0, "order") < intValue($1, "order") }
             .map { bookContributor(from: $0) }
@@ -21,12 +22,52 @@ extension CoreDataDomainMapper {
                 itemID: itemRecord.id,
                 languageCode: entity.value(forKey: "languageCode") as? String,
                 pageCount: positiveIntValue(entity, "pageCount"),
-                publicationPlaceName: entity.value(forKey: "publicationPlaceName") as? String,
                 publicationYear: optionalIntValue(entity, "publicationYear"),
                 volumeNumber: positiveIntValue(entity, "volumeNumber"),
-                publicationPlace: publicationPlaceEntity.map { place(from: $0) },
-                contributors: contributors
+                publisher: publisherEntity.map { publisher(from: $0) },
+                contributors: contributors,
+                series: seriesEntity.map { bookSeries(from: $0) }
             )
+        )
+    }
+
+    static func bookSeries(from entity: NSManagedObject) -> BookSeries {
+        precondition(
+            entity.entity.name == "BookSeriesEntity",
+            "CoreDataDomainMapper.bookSeries(from:) expects BookSeriesEntity."
+        )
+
+        guard let collectionEntity = entity.value(forKey: "collection") as? NSManagedObject else {
+            preconditionFailure("BookSeriesEntity is missing its CollectionEntity relationship.")
+        }
+
+        let publisherEntity = entity.value(forKey: "publisher") as? NSManagedObject
+
+        return BookSeries(
+            id: uuidValue(entity, "id"),
+            collectionID: uuidValue(collectionEntity, "id"),
+            name: stringValue(entity, "name"),
+            totalBookCount: optionalIntValue(entity, "totalBookCount"),
+            publisher: publisherEntity.map { publisher(from: $0) }
+        )
+    }
+
+    static func publisher(from entity: NSManagedObject) -> Publisher {
+        precondition(
+            entity.entity.name == "PublisherEntity",
+            "CoreDataDomainMapper.publisher(from:) expects PublisherEntity."
+        )
+
+        let locationEntity = entity.value(forKey: "location") as? NSManagedObject
+        let logos = relatedObjects(entity, "logos")
+            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+            .map { mediaAsset(from: $0) }
+
+        return Publisher(
+            id: uuidValue(entity, "id"),
+            name: stringValue(entity, "name"),
+            location: locationEntity.map { place(from: $0) },
+            logos: logos
         )
     }
 
