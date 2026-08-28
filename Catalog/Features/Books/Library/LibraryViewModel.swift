@@ -175,8 +175,8 @@ final class LibraryViewModel: ObservableObject {
 
         let seriesByID = Dictionary(uniqueKeysWithValues: series.map { ($0.id, $0) })
         return books.sorted(by: { lhs, rhs in
-            let lhsSeries = lhs.details.series?.id.flatMap { seriesByID[$0] } ?? lhs.details.series
-            let rhsSeries = rhs.details.series?.id.flatMap { seriesByID[$0] } ?? rhs.details.series
+            let lhsSeries = (lhs.details.series?.id).flatMap { seriesByID[$0] } ?? lhs.details.series
+            let rhsSeries = (rhs.details.series?.id).flatMap { seriesByID[$0] } ?? rhs.details.series
             let seriesComparison = compareSeries(lhsSeries, rhsSeries)
 
             if seriesComparison != .orderedSame {
