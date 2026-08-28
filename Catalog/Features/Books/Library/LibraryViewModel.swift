@@ -174,7 +174,7 @@ final class LibraryViewModel: ObservableObject {
         }
 
         let seriesByID = Dictionary(uniqueKeysWithValues: series.map { ($0.id, $0) })
-        return books.sorted { lhs, rhs in
+        return books.sorted(by: { lhs, rhs in
             let lhsSeries = lhs.details.series?.id.flatMap { seriesByID[$0] } ?? lhs.details.series
             let rhsSeries = rhs.details.series?.id.flatMap { seriesByID[$0] } ?? rhs.details.series
             let seriesComparison = compareSeries(lhsSeries, rhsSeries)
@@ -184,7 +184,7 @@ final class LibraryViewModel: ObservableObject {
             }
 
             return volumeLessThan(lhs, rhs)
-        }
+        })
     }
 
     private func authorSections(books: [BookRecord]) -> [LibraryGroupedSection] {
