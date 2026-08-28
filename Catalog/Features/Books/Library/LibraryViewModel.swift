@@ -171,7 +171,7 @@ final class LibraryViewModel: ObservableObject {
         case .publicationYearNewest:
             return books.sorted(by: publicationYearLessThan)
         case .recentlyAdded:
-            return books.sorted(by: recentlyAddedLessThan)
+            return books.sorted(using: recentlyAddedComparators)
         case .series:
             return books
         }
@@ -401,13 +401,6 @@ final class LibraryViewModel: ObservableObject {
         }
     }
 
-    private func recentlyAddedLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
-        if lhs.createdAt != rhs.createdAt {
-            return lhs.createdAt > rhs.createdAt
-        }
-        return titleLessThan(lhs, rhs)
-    }
-
     private func volumeLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
         switch (lhs.details.volumeNumber, rhs.details.volumeNumber) {
         case let (.some(lhsVolume), .some(rhsVolume)) where lhsVolume != rhsVolume:
@@ -436,6 +429,17 @@ final class LibraryViewModel: ObservableObject {
         case (.none, .none):
             return .orderedSame
         }
+    }
+
+    private var recentlyAddedComparators: [KeyPathComparator<BookRecord>] {
+        [
+            KeyPathComparator(\.createdAt, order: .reverse),
+            titleComparator
+        ]
+    }
+
+    private var titleComparator: KeyPathComparator<BookRecord> {
+        KeyPathComparator(\.title, comparator: .localizedStandard)
     }
 
     private func buildStats(
