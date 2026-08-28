@@ -3,6 +3,29 @@ import PhotosUI
 import CoreData
 import UIKit
 
+private extension BookPresenceFilter {
+    var title: String {
+        switch self {
+        case .missingCover:
+            return "Missing Cover"
+        case .missingAuthor:
+            return "Missing Author"
+        case .missingPublicationYear:
+            return "Missing Publication Year"
+        case .incompleteSeries:
+            return "Incomplete Series"
+        case .unknownSeriesSize:
+            return "Series Size Unknown"
+        }
+    }
+}
+
+private extension BookFilters {
+    var title: String? {
+        presence.first?.title
+    }
+}
+
 /// Displays and manages a single book library.
 struct LibraryView: View {
     let collection: CollectionSummary
@@ -16,6 +39,7 @@ struct LibraryView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     @AppStorage("bookLibrary.orderMode") private var selectedOrderRawValue = LibraryOrderMode.title.rawValue
+    @State private var filters = BookFilters()
     @State private var isPresentingEditLibrary = false
     @State private var isPresentingAddBookOptions = false
     @State private var isPresentingPhotoPicker = false
@@ -67,6 +91,10 @@ struct LibraryView: View {
 
     private var favoriteBooks: [BookRecord] {
         displayModel.favoriteBooks
+    }
+
+    private var hasActiveFilter: Bool {
+        !filters.isEmpty
     }
 
     private var selectedOrder: LibraryOrderMode {
@@ -134,6 +162,7 @@ struct LibraryView: View {
             }
             .onAppear {
                 viewModel.updateContext(orderMode: selectedOrder)
+                viewModel.updateContext(filters: filters)
                 updateLibrarySource()
             }
             .onChange(of: sourceBooks) { _, _ in
@@ -144,6 +173,9 @@ struct LibraryView: View {
             }
             .onChange(of: selectedOrderRawValue) { _, _ in
                 viewModel.updateContext(orderMode: selectedOrder)
+            }
+            .onChange(of: filters) { _, newValue in
+                viewModel.updateContext(filters: newValue)
             }
             .onReceive(NotificationCenter.default.publisher(for: .catalogItemFavoriteDidChange)) { notification in
                 guard
@@ -247,8 +279,15 @@ struct LibraryView: View {
                             Task {
                                 await loadCollectionSharingState()
                             }
+                        },
+                        onFilterApply: { filter in
+                            filters = BookFilters(presence: [filter])
                         }
                     )
+
+                    if hasActiveFilter {
+                        activeFilterSection
+                    }
 
                     if !favoriteBooks.isEmpty {
                         CatalogCollapsibleCardSection(
@@ -308,6 +347,26 @@ struct LibraryView: View {
                 }
             }
         }
+    }
+
+    private var activeFilterSection: some View {
+        HStack(spacing: CatalogMetrics.Spacing.sm) {
+            Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                .foregroundStyle(collection.backgroundStyle.accentColor)
+
+            Text(filters.title ?? "")
+                .font(CatalogTypography.cardSubtitle)
+
+            Spacer()
+
+            Button(String(localized: "common.clear")) {
+                filters = BookFilters()
+            }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(collection.backgroundStyle.accentColor)
+        }
+        .padding(CatalogMetrics.Spacing.md)
+        .background(.ultraThinMaterial, in: CatalogShapes.medium)
     }
 
     @ViewBuilder

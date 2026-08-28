@@ -8,6 +8,7 @@ struct LibraryDashboardView: View {
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
     let onSharingChanged: () -> Void
+    let onFilterApply: (BookPresenceFilter) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
@@ -17,7 +18,8 @@ struct LibraryDashboardView: View {
                 sharingState: sharingState,
                 sharingService: sharingService,
                 tint: accentColor,
-                onSharingChanged: onSharingChanged
+                onSharingChanged: onSharingChanged,
+                onFilterApply: onFilterApply
             )
 
             MetricStrip(
@@ -44,6 +46,7 @@ private struct DashboardCardStrip: View {
     let sharingService: any CollectionSharingService
     let tint: Color
     let onSharingChanged: () -> Void
+    let onFilterApply: (BookPresenceFilter) -> Void
 
     @State private var isPresentingDataHealthPopover = false
 
@@ -68,11 +71,18 @@ private struct DashboardCardStrip: View {
                     isPresentingDataHealthPopover = true
                 }
                 .popover(isPresented: $isPresentingDataHealthPopover) {
-                    CatalogDashboardDataHealthPopover(entries: dataHealthEntries) { entry in
+                    CatalogDashboardDataHealthPopover(
+                        entries: dataHealthEntries,
+                        onSelect: { entry in
+                            isPresentingDataHealthPopover = false
+                            onFilterApply(entry.filter)
+                        }
+                    ) { entry in
                         DashboardDataHealthRow(
                             title: entry.title,
                             countText: "\(entry.missingCount)/\(entry.totalCount)",
-                            missingProgress: entry.progress
+                            missingProgress: entry.progress,
+                            showsDisclosureIndicator: true
                         )
                     }
                 }
@@ -114,17 +124,20 @@ private struct DashboardCardStrip: View {
             BookDataHealthEntry(
                 title: "Missing Cover",
                 missingCount: stats.missingCoverCount,
-                totalCount: stats.totalCount
+                totalCount: stats.totalCount,
+                filter: .missingCover
             ),
             BookDataHealthEntry(
                 title: "Missing Author",
                 missingCount: stats.missingAuthorCount,
-                totalCount: stats.totalCount
+                totalCount: stats.totalCount,
+                filter: .missingAuthor
             ),
             BookDataHealthEntry(
                 title: "Missing Publication Year",
                 missingCount: stats.missingPublicationYearCount,
-                totalCount: stats.totalCount
+                totalCount: stats.totalCount,
+                filter: .missingPublicationYear
             )
         ]
 
@@ -133,7 +146,8 @@ private struct DashboardCardStrip: View {
                 BookDataHealthEntry(
                     title: "Series Size Unknown",
                     missingCount: stats.unknownSeriesCount,
-                    totalCount: stats.seriesCount
+                    totalCount: stats.seriesCount,
+                    filter: .unknownSeriesSize
                 )
             )
         }
@@ -143,7 +157,8 @@ private struct DashboardCardStrip: View {
                 BookDataHealthEntry(
                     title: "Incomplete Series",
                     missingCount: stats.incompleteSeriesCount,
-                    totalCount: stats.knownSeriesCount
+                    totalCount: stats.knownSeriesCount,
+                    filter: .incompleteSeries
                 )
             )
         }
@@ -219,6 +234,7 @@ private struct BookDataHealthEntry: Identifiable {
     let title: String
     let missingCount: Int
     let totalCount: Int
+    let filter: BookPresenceFilter
 
     var id: String { title }
 
