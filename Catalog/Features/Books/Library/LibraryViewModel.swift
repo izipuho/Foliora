@@ -151,7 +151,7 @@ final class LibraryViewModel: ObservableObject {
 
         displayModel = LibraryDisplayModel(
             layout: layout,
-            favoriteBooks: sortedFavorites(books.filter(\.isFavorite), series: series),
+            favoriteBooks: books.filter(\.isFavorite),
             stats: buildStats(books: books, series: series)
         )
     }
@@ -186,28 +186,6 @@ final class LibraryViewModel: ObservableObject {
                 title: { $0.title }
             )
         }
-    }
-
-    private func sortedFavorites(
-        _ books: [BookRecord],
-        series: [BookSeries]
-    ) -> [BookRecord] {
-        guard orderMode == .series else {
-            return sorted(books)
-        }
-
-        let seriesByID = Dictionary(uniqueKeysWithValues: series.map { ($0.id, $0) })
-        return books.sorted(by: { lhs, rhs in
-            let lhsSeries = (lhs.details.series?.id).flatMap { seriesByID[$0] } ?? lhs.details.series
-            let rhsSeries = (rhs.details.series?.id).flatMap { seriesByID[$0] } ?? rhs.details.series
-            let seriesComparison = compareSeries(lhsSeries, rhsSeries)
-
-            if seriesComparison != .orderedSame {
-                return seriesComparison == .orderedAscending
-            }
-
-            return volumeLessThan(lhs, rhs)
-        })
     }
 
     private func titleSections(books: [BookRecord]) -> [LibraryGroupedSection] {
