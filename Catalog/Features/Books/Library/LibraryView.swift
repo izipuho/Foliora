@@ -28,6 +28,7 @@ struct LibraryView: View {
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
     @State private var isFavoritesCollapsed = false
+    @State private var collapsedGroupIDs: Set<String> = []
     @State private var favoriteChangeRevision = 0
     @StateObject private var viewModel: LibraryViewModel
 
@@ -315,31 +316,17 @@ struct LibraryView: View {
         layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics
     ) -> some View {
         ForEach(sections) { section in
+            let isSectionCollapsible = selectedOrder == .series
+            let isSectionCollapsed = isSectionCollapsible && collapsedGroupIDs.contains(section.id)
+
             Section {
-                if !section.books.isEmpty {
-                    CatalogCardGrid(
-                        layoutMode: layoutMode.wrappedValue,
-                        layoutMetrics: layoutMetrics
-                    ) { cardSize, _, cardMetrics in
-                        ForEach(section.books) { book in
-                            bookCard(
-                                book,
-                                cardSize: cardSize,
-                                cardMetrics: cardMetrics
-                            )
-                        }
-                    }
-                }
-
-                ForEach(section.subgroups) { subgroup in
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                        LibraryBookSubgroupHeader(title: subgroup.title)
-
+                if !isSectionCollapsed {
+                    if !section.books.isEmpty {
                         CatalogCardGrid(
                             layoutMode: layoutMode.wrappedValue,
                             layoutMetrics: layoutMetrics
                         ) { cardSize, _, cardMetrics in
-                            ForEach(subgroup.books) { book in
+                            ForEach(section.books) { book in
                                 bookCard(
                                     book,
                                     cardSize: cardSize,
@@ -348,14 +335,60 @@ struct LibraryView: View {
                             }
                         }
                     }
+
+                    ForEach(section.subgroups) { subgroup in
+                        let isSubgroupCollapsed = selectedOrder == .author
+                            && collapsedGroupIDs.contains(subgroup.id)
+
+                        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                            LibraryBookSubgroupHeader(
+                                title: subgroup.title,
+                                isCollapsed: isSubgroupCollapsed,
+                                onToggle: selectedOrder == .author
+                                    ? { toggleCollapsedGroup(subgroup.id) }
+                                    : nil
+                            )
+
+                            if !isSubgroupCollapsed {
+                                CatalogCardGrid(
+                                    layoutMode: layoutMode.wrappedValue,
+                                    layoutMetrics: layoutMetrics
+                                ) { cardSize, _, cardMetrics in
+                                    ForEach(subgroup.books) { book in
+                                        bookCard(
+                                            book,
+                                            cardSize: cardSize,
+                                            cardMetrics: cardMetrics
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             } header: {
                 LibraryGroupedSectionHeader(
                     title: section.title,
-                    detailText: section.detailText
+                    detailText: section.detailText,
+                    isCollapsed: isSectionCollapsible ? isSectionCollapsed : nil,
+                    onToggle: isSectionCollapsible
+                        ? { toggleCollapsedGroup(section.id) }
+                        : nil
                 )
                 .id(section.id)
             }
+        }
+    }
+
+    private func toggleCollapsedGroup(_ id: String) {
+        withAnimation(.snappy(duration: 0.2)) {
+            var updated = collapsedGroupIDs
+            if updated.contains(id) {
+                updated.remove(id)
+            } else {
+                updated.insert(id)
+            }
+            collapsedGroupIDs = updated
         }
     }
 
@@ -538,21 +571,18 @@ struct LibraryView: View {
 private struct LibraryGroupedSectionHeader: View {
     let title: String
     let detailText: String?
+    let isCollapsed: Bool?
+    let onToggle: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: CatalogMetrics.Spacing.sm) {
-            Text(title)
-                .font(CatalogTypography.sectionTitle)
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-
-            Spacer()
-
-            if let detailText {
-                Text(detailText)
-                    .font(CatalogTypography.chipLabel)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+        Group {
+            if let isCollapsed, let onToggle {
+                Button(action: onToggle) {
+                    headerContent(isCollapsed: isCollapsed)
+                }
+                .buttonStyle(.plain)
+            } else {
+                headerContent(isCollapsed: nil)
             }
         }
         .padding(.vertical, CatalogMetrics.Spacing.sm)
@@ -564,17 +594,68 @@ private struct LibraryGroupedSectionHeader: View {
                 .frame(height: 0.5)
         }
     }
+
+    private func headerContent(isCollapsed: Bool?) -> some View {
+        HStack(spacing: CatalogMetrics.Spacing.sm) {
+            Text(title)
+                .font(CatalogTypography.sectionTitle)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+            if let isCollapsed {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if let detailText {
+                Text(detailText)
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .contentShape(Rectangle())
+    }
 }
 
 private struct LibraryBookSubgroupHeader: View {
     let title: String
+    let isCollapsed: Bool
+    let onToggle: (() -> Void)?
 
     var body: some View {
-        Text(title)
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .lineLimit(2)
-            .padding(.horizontal, CatalogMetrics.Spacing.xs)
+        Group {
+            if let onToggle {
+                Button(action: onToggle) {
+                    content
+                }
+                .buttonStyle(.plain)
+            } else {
+                content
+            }
+        }
+    }
+
+    private var content: some View {
+        HStack(spacing: CatalogMetrics.Spacing.xs) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            if onToggle != nil {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, CatalogMetrics.Spacing.xs)
+        .contentShape(Rectangle())
     }
 }
 
