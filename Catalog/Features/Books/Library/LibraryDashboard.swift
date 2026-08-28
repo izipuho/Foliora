@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Displays the book library dashboard view interface.
-struct BookLibraryDashboardView: View {
-    let stats: BookLibraryStats
+struct LibraryDashboardView: View {
+    let stats: LibraryStats
     let accentColor: Color
     let collection: CollectionSummary
     let sharingState: CollectionSharingState?
@@ -38,7 +38,7 @@ struct BookLibraryDashboardView: View {
 }
 
 private struct DashboardCardStrip: View {
-    let stats: BookLibraryStats
+    let stats: LibraryStats
     let collection: CollectionSummary
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
@@ -229,7 +229,7 @@ private struct BookDataHealthEntry: Identifiable {
 }
 
 private struct MetricStrip: View {
-    let stats: BookLibraryStats
+    let stats: LibraryStats
     let tint: Color
 
     var body: some View {

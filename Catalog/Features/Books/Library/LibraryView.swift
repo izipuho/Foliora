@@ -15,7 +15,7 @@ struct LibraryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
-    @AppStorage("bookLibrary.orderMode") private var selectedOrderRawValue = BookLibraryOrderMode.title.rawValue
+    @AppStorage("bookLibrary.orderMode") private var selectedOrderRawValue = LibraryOrderMode.title.rawValue
     @State private var isPresentingEditLibrary = false
     @State private var isPresentingAddBookOptions = false
     @State private var isPresentingPhotoPicker = false
@@ -29,7 +29,7 @@ struct LibraryView: View {
     @State private var collectionSharingLoadError: Error?
     @State private var isFavoritesCollapsed = false
     @State private var favoriteChangeRevision = 0
-    @StateObject private var viewModel: BookLibraryViewModel
+    @StateObject private var viewModel: LibraryViewModel
 
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
@@ -48,7 +48,7 @@ struct LibraryView: View {
         self.layoutMode = layoutMode
         self.onBookSelected = onBookSelected
         _viewModel = StateObject(
-            wrappedValue: BookLibraryViewModel(orderMode: .title)
+            wrappedValue: LibraryViewModel(orderMode: .title)
         )
     }
 
@@ -60,7 +60,7 @@ struct LibraryView: View {
         catalogSnapshot?.bookSeries.filter { $0.collectionID == collection.id } ?? []
     }
 
-    private var displayModel: BookLibraryDisplayModel {
+    private var displayModel: LibraryDisplayModel {
         viewModel.displayModel
     }
 
@@ -72,16 +72,16 @@ struct LibraryView: View {
         displayModel.favoriteBooks
     }
 
-    private var selectedOrder: BookLibraryOrderMode {
+    private var selectedOrder: LibraryOrderMode {
         get {
-            BookLibraryOrderMode(rawValue: selectedOrderRawValue) ?? .title
+            LibraryOrderMode(rawValue: selectedOrderRawValue) ?? .title
         }
         nonmutating set {
             selectedOrderRawValue = newValue.rawValue
         }
     }
 
-    private var selectedOrderBinding: Binding<BookLibraryOrderMode> {
+    private var selectedOrderBinding: Binding<LibraryOrderMode> {
         Binding(
             get: { selectedOrder },
             set: { selectedOrder = $0 }
@@ -230,7 +230,7 @@ struct LibraryView: View {
                 usesGridLayout: false
             ) { cardSize, gridMetrics, cardMetrics in
                 LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
-                    BookLibraryDashboardView(
+                    LibraryDashboardView(
                         stats: displayModel.stats,
                         accentColor: collection.backgroundStyle.accentColor,
                         collection: collection,
@@ -323,7 +323,7 @@ struct LibraryView: View {
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: layoutMode,
             isPresentingAddOptions: $isPresentingAddBookOptions,
-            sortOptions: BookLibraryOrderMode.allCases,
+            sortOptions: LibraryOrderMode.allCases,
             sortSectionTitle: "Sort",
             sortTitle: { $0.title },
             canEdit: canEditLibrary,

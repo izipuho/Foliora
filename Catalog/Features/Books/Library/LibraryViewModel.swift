@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 /// Defines the supported ordering modes for a book library.
-enum BookLibraryOrderMode: String, CaseIterable {
+enum LibraryOrderMode: String, CaseIterable {
     case title
     case author
     case publicationYearNewest
@@ -20,14 +20,14 @@ enum BookLibraryOrderMode: String, CaseIterable {
 }
 
 /// Represents the content rendered by a book library.
-struct BookLibraryDisplayModel {
+struct LibraryDisplayModel {
     let books: [BookRecord]
     let favoriteBooks: [BookRecord]
-    let stats: BookLibraryStats
+    let stats: LibraryStats
 }
 
 /// Represents aggregate book library statistics used by the dashboard.
-struct BookLibraryStats {
+struct LibraryStats {
     let totalCount: Int
     let authorCount: Int
     let seriesCount: Int
@@ -48,19 +48,19 @@ struct BookLibraryStats {
 
 /// Prepares ordered book library content and dashboard statistics for display.
 @MainActor
-final class BookLibraryViewModel: ObservableObject {
-    var orderMode: BookLibraryOrderMode
-    @Published private(set) var displayModel: BookLibraryDisplayModel
+final class LibraryViewModel: ObservableObject {
+    var orderMode: LibraryOrderMode
+    @Published private(set) var displayModel: LibraryDisplayModel
 
     private var sourceBooks: [BookRecord]?
     private var sourceSeries: [BookSeries]?
 
-    init(orderMode: BookLibraryOrderMode) {
+    init(orderMode: LibraryOrderMode) {
         self.orderMode = orderMode
-        self.displayModel = BookLibraryDisplayModel(
+        self.displayModel = LibraryDisplayModel(
             books: [],
             favoriteBooks: [],
-            stats: BookLibraryStats(
+            stats: LibraryStats(
                 totalCount: 0,
                 authorCount: 0,
                 seriesCount: 0,
@@ -85,14 +85,14 @@ final class BookLibraryViewModel: ObservableObject {
         sourceSeries = series
 
         let sortedBooks = sorted(books)
-        displayModel = BookLibraryDisplayModel(
+        displayModel = LibraryDisplayModel(
             books: sortedBooks,
             favoriteBooks: sortedBooks.filter(\.isFavorite),
             stats: buildStats(books: books, series: series)
         )
     }
 
-    func updateContext(orderMode: BookLibraryOrderMode) {
+    func updateContext(orderMode: LibraryOrderMode) {
         guard self.orderMode != orderMode else { return }
         self.orderMode = orderMode
         refreshSource()
@@ -144,7 +144,7 @@ final class BookLibraryViewModel: ObservableObject {
     private func buildStats(
         books: [BookRecord],
         series: [BookSeries]
-    ) -> BookLibraryStats {
+    ) -> LibraryStats {
         let completeSeriesCount = series.filter { series in
             guard let totalBookCount = series.totalBookCount, totalBookCount > 0 else { return false }
             return ownedBookCount(for: series, in: books) >= totalBookCount
@@ -170,7 +170,7 @@ final class BookLibraryViewModel: ObservableObject {
             ? Double(filledBookFields + knownSeriesCount) / Double(totalHealthFields)
             : 0
 
-        return BookLibraryStats(
+        return LibraryStats(
             totalCount: books.count,
             authorCount: authorCount(in: books),
             seriesCount: series.count,
