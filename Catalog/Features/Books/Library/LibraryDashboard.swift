@@ -1,9 +1,8 @@
 import SwiftUI
 
 /// Displays the book library dashboard view interface.
-struct BookLibraryDashboardView: View {
-    let books: [BookRecord]
-    let series: [BookSeries]
+struct LibraryDashboardView: View {
+    let stats: LibraryStats
     let accentColor: Color
     let collection: CollectionSummary
     let sharingState: CollectionSharingState?
@@ -13,8 +12,7 @@ struct BookLibraryDashboardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             DashboardCardStrip(
-                books: books,
-                series: series,
+                stats: stats,
                 collection: collection,
                 sharingState: sharingState,
                 sharingService: sharingService,
@@ -23,8 +21,7 @@ struct BookLibraryDashboardView: View {
             )
 
             MetricStrip(
-                books: books,
-                series: series,
+                stats: stats,
                 tint: accentColor
             )
         }
@@ -41,8 +38,7 @@ struct BookLibraryDashboardView: View {
 }
 
 private struct DashboardCardStrip: View {
-    let books: [BookRecord]
-    let series: [BookSeries]
+    let stats: LibraryStats
     let collection: CollectionSummary
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
@@ -56,17 +52,17 @@ private struct DashboardCardStrip: View {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 sharingCard
 
-                if !series.isEmpty {
+                if stats.seriesCount > 0 {
                     BookSeriesHealthCard(
-                        completeCount: completeSeriesCount,
-                        incompleteCount: incompleteSeriesCount,
-                        unknownCount: unknownSeriesCount,
+                        completeCount: stats.completeSeriesCount,
+                        incompleteCount: stats.incompleteSeriesCount,
+                        unknownCount: stats.unknownSeriesCount,
                         tint: tint
                     )
                 }
 
                 CatalogDashboardDataHealthCard(
-                    progress: dataHealthProgress,
+                    progress: stats.dataHealthProgress,
                     tint: tint
                 ) {
                     isPresentingDataHealthPopover = true
@@ -113,99 +109,46 @@ private struct DashboardCardStrip: View {
         }
     }
 
-    private var completeSeriesCount: Int {
-        series.filter { series in
-            guard let totalBookCount = series.totalBookCount, totalBookCount > 0 else { return false }
-            return ownedBookCount(for: series) >= totalBookCount
-        }.count
-    }
-
-    private var incompleteSeriesCount: Int {
-        series.filter { series in
-            guard let totalBookCount = series.totalBookCount, totalBookCount > 0 else { return false }
-            return ownedBookCount(for: series) < totalBookCount
-        }.count
-    }
-
-    private var knownSeriesCount: Int {
-        completeSeriesCount + incompleteSeriesCount
-    }
-
-    private var unknownSeriesCount: Int {
-        series.filter { series in
-            guard let totalBookCount = series.totalBookCount else { return true }
-            return totalBookCount <= 0
-        }.count
-    }
-
-    private func ownedBookCount(for series: BookSeries) -> Int {
-        books.filter { $0.details.series?.id == series.id }.count
-    }
-
-    private var dataHealthProgress: Double {
-        let filledBookFields = books.reduce(into: 0) { count, book in
-            if hasCover(book) { count += 1 }
-            if hasAuthor(book) { count += 1 }
-            if book.details.publicationYear != nil { count += 1 }
-        }
-        let filledSeriesFields = knownSeriesCount
-        let totalFields = books.count * 3 + series.count
-
-        guard totalFields > 0 else { return 0 }
-        return Double(filledBookFields + filledSeriesFields) / Double(totalFields)
-    }
-
     private var dataHealthEntries: [BookDataHealthEntry] {
         var entries = [
             BookDataHealthEntry(
                 title: "Missing Cover",
-                missingCount: books.filter { !hasCover($0) }.count,
-                totalCount: books.count
+                missingCount: stats.missingCoverCount,
+                totalCount: stats.totalCount
             ),
             BookDataHealthEntry(
                 title: "Missing Author",
-                missingCount: books.filter { !hasAuthor($0) }.count,
-                totalCount: books.count
+                missingCount: stats.missingAuthorCount,
+                totalCount: stats.totalCount
             ),
             BookDataHealthEntry(
                 title: "Missing Publication Year",
-                missingCount: books.filter { $0.details.publicationYear == nil }.count,
-                totalCount: books.count
+                missingCount: stats.missingPublicationYearCount,
+                totalCount: stats.totalCount
             )
         ]
 
-        if unknownSeriesCount > 0 {
+        if stats.unknownSeriesCount > 0 {
             entries.append(
                 BookDataHealthEntry(
                     title: "Series Size Unknown",
-                    missingCount: unknownSeriesCount,
-                    totalCount: series.count
+                    missingCount: stats.unknownSeriesCount,
+                    totalCount: stats.seriesCount
                 )
             )
         }
 
-        if incompleteSeriesCount > 0 {
+        if stats.incompleteSeriesCount > 0 {
             entries.append(
                 BookDataHealthEntry(
                     title: "Incomplete Series",
-                    missingCount: incompleteSeriesCount,
-                    totalCount: knownSeriesCount
+                    missingCount: stats.incompleteSeriesCount,
+                    totalCount: stats.knownSeriesCount
                 )
             )
         }
 
         return entries
-    }
-
-    private func hasCover(_ book: BookRecord) -> Bool {
-        book.mediaAssets.contains { $0.kind == .photo }
-    }
-
-    private func hasAuthor(_ book: BookRecord) -> Bool {
-        book.details.contributors.contains { contributor in
-            contributor.role == .author
-                && !contributor.person.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        }
     }
 
     private var placeholderSharingState: CollectionSharingState {
@@ -286,8 +229,7 @@ private struct BookDataHealthEntry: Identifiable {
 }
 
 private struct MetricStrip: View {
-    let books: [BookRecord]
-    let series: [BookSeries]
+    let stats: LibraryStats
     let tint: Color
 
     var body: some View {
@@ -295,71 +237,40 @@ private struct MetricStrip: View {
             HStack(spacing: CatalogMetrics.Spacing.sm) {
                 MetricPill(
                     title: "Total",
-                    value: "\(books.count)",
+                    value: "\(stats.totalCount)",
                     systemImage: "books.vertical.fill",
                     tint: tint
                 )
 
                 MetricPill(
                     title: "Authors",
-                    value: "\(authorCount)",
+                    value: "\(stats.authorCount)",
                     systemImage: "person.fill",
                     tint: tint
                 )
 
                 MetricPill(
                     title: "Series",
-                    value: "\(series.count)",
+                    value: "\(stats.seriesCount)",
                     systemImage: "books.vertical",
                     tint: tint
                 )
 
                 MetricPill(
                     title: "Languages",
-                    value: "\(languageCount)",
+                    value: "\(stats.languageCount)",
                     systemImage: "character.book.closed.fill",
                     tint: tint
                 )
 
                 MetricPill(
                     title: "Tags",
-                    value: "\(tagCount)",
+                    value: "\(stats.tagCount)",
                     systemImage: "tag.fill",
                     tint: tint
                 )
             }
         }
         .scrollClipDisabled()
-    }
-
-    private var authorCount: Int {
-        Set(
-            books.flatMap { book in
-                book.details.contributors
-                    .filter { $0.role == .author }
-                    .map(\.person.id)
-            }
-        ).count
-    }
-
-    private var languageCount: Int {
-        Set(
-            books.compactMap { $0.details.languageCode.map(normalizedMetricValue) }
-                .filter { !$0.isEmpty }
-        ).count
-    }
-
-    private var tagCount: Int {
-        Set(
-            books.flatMap(\.tags)
-                .map(normalizedMetricValue)
-                .filter { !$0.isEmpty }
-        ).count
-    }
-
-    private func normalizedMetricValue(_ value: String) -> String {
-        value.trimmingCharacters(in: .whitespacesAndNewlines)
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .lowercased()
     }
 }
