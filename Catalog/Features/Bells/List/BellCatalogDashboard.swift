@@ -87,20 +87,27 @@ private struct DashboardCardStrip: View {
                     )
                 }
 
-                DashboardDataHealthCard(
+                CatalogDashboardDataHealthCard(
                     progress: dataHealthProgress,
                     tint: tint
                 ) {
                     isPresentingDataHealthPopover = true
                 }
                 .popover(isPresented: $isPresentingDataHealthPopover) {
-                    DataHealthPopover(
+                    CatalogDashboardDataHealthPopover(
                         entries: dataHealthEntries,
-                        onSelect: { filter in
+                        onSelect: { entry in
                             isPresentingDataHealthPopover = false
-                            onFilterApply(filter)
+                            onFilterApply(entry.filter)
                         }
-                    )
+                    ) { entry in
+                        DashboardDataHealthRow(
+                            title: entry.title,
+                            countText: entry.countText,
+                            missingProgress: entry.missingProgress,
+                            showsDisclosureIndicator: true
+                        )
+                    }
                 }
             }
         }
@@ -232,21 +239,21 @@ private struct MetricStrip: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: CatalogMetrics.Spacing.sm) {
                 MetricPill(
-                    title: String(localized: "bell_catalog.dashboard.total"),
+                    title: String(localized: "catalog.dashboard.total"),
                     value: "\(stats.totalCount)",
                     systemImage: "bell.fill",
                     tint: tint
                 )
 
                 MetricPill(
-                    title: String(localized: "bell_catalog.dashboard.countries"),
+                    title: String(localized: "catalog.dashboard.countries"),
                     value: "\(stats.countryCount)",
                     systemImage: "globe.europe.africa.fill",
                     tint: tint
                 )
 
                 MetricPill(
-                    title: String(localized: "bell_catalog.dashboard.cities"),
+                    title: String(localized: "catalog.dashboard.cities"),
                     value: "\(stats.cityCount)",
                     systemImage: "building.2.fill",
                     tint: tint
@@ -268,42 +275,6 @@ private struct MetricStrip: View {
             }
         }
         .scrollClipDisabled()
-    }
-}
-
-/// Displays the dashboard data health card interface.
-struct DashboardDataHealthCard: View {
-    let progress: Double
-    let tint: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            DashboardCard {
-                ZStack {
-                    Circle()
-                        .stroke(Color(uiColor: .separator), lineWidth: 8)
-
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(tint, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-
-                    Text(progress.formatted(.percent.precision(.fractionLength(0))))
-                        .font(CatalogTypography.cardSubtitle)
-                }
-                .frame(width: 56, height: 56)
-            } content: {
-                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                    Text(String(localized: "bell_catalog.dashboard.health"))
-                        .font(CatalogTypography.sectionTitle)
-                    Text(String(localized: "bell_catalog.dashboard.health.subtitle"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -333,46 +304,6 @@ struct DashboardTopGeographyCard: View {
     }
 }
 
-private struct DashboardPopoverContainer<Entry, Content: View>: View {
-    let title: LocalizedStringKey
-    let entries: [Entry]
-    let onSelect: (Entry) -> Void
-    let content: (Entry) -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            Text(title)
-                .font(.title2.bold())
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(entries.indices, id: \.self) { index in
-                        let entry = entries[index]
-
-                        Button {
-                            onSelect(entry)
-                        } label: {
-                            content(entry)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-
-                        if index < entries.count - 1 {
-                            Divider()
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding()
-        .presentationDetents([.medium])
-    }
-}
-
 /// Represents data health entry data and behavior.
 struct DataHealthEntry: Identifiable {
     let title: String
@@ -381,66 +312,6 @@ struct DataHealthEntry: Identifiable {
     let filter: BellPresenceFilter
 
     var id: String { title }
-}
-
-/// Displays the data health popover interface.
-struct DataHealthPopover: View {
-    let entries: [DataHealthEntry]
-    let onSelect: (BellPresenceFilter) -> Void
-
-    var body: some View {
-        DashboardPopoverContainer(
-            title: "bell_catalog.dashboard.health",
-            entries: entries,
-            onSelect: { onSelect($0.filter) }
-        ) { entry in
-            HStack(spacing: CatalogMetrics.Spacing.md) {
-                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xxs) {
-                    Text(entry.title)
-                        .font(CatalogTypography.cardSubtitle)
-                        .foregroundStyle(.primary)
-
-                    GeometryReader { proxy in
-                        HStack(spacing: CatalogMetrics.Spacing.sm) {
-                            Text(entry.countText)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            Spacer(minLength: 0)
-
-                            DataHealthMissingProgressBar(progress: entry.missingProgress)
-                                .frame(width: proxy.size.width / 2)
-
-                            Image(systemName: "chevron.right")
-                                .font(CatalogTypography.chipLabel)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .frame(height: 14)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(CatalogMetrics.Spacing.md)
-        }
-    }
-}
-
-private struct DataHealthMissingProgressBar: View {
-    let progress: Double
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(.green.opacity(0.35))
-
-                Capsule()
-                    .fill(.red.opacity(0.8))
-                    .frame(width: proxy.size.width * min(max(progress, 0), 1))
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: 6, maxHeight: 6)
-    }
 }
 
 /// Displays the summary coverage row interface.
