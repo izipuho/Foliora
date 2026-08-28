@@ -6,7 +6,7 @@ enum LibraryOrderMode: String, CaseIterable {
     case title
     case author
     case publicationYearNewest
-    case recentlyAdded
+    case newestFirst = "recentlyAdded"
     case series
 
     var title: String {
@@ -17,8 +17,8 @@ enum LibraryOrderMode: String, CaseIterable {
             return "Author"
         case .publicationYearNewest:
             return "Publication year"
-        case .recentlyAdded:
-            return "Recently added"
+        case .newestFirst:
+            return "Newest first"
         case .series:
             return "Series"
         }
@@ -137,7 +137,7 @@ final class LibraryViewModel: ObservableObject {
                 layout = .grouped(authorSections(books: books))
             case .publicationYearNewest:
                 layout = .grouped(publicationYearSections(books: books))
-            case .recentlyAdded:
+            case .newestFirst:
                 layout = .flat(sorted(books))
             case .series:
                 layout = .grouped(seriesSections(books: books, series: series))
@@ -170,8 +170,8 @@ final class LibraryViewModel: ObservableObject {
             return books.sorted(by: authorLessThan)
         case .publicationYearNewest:
             return books.sorted(by: publicationYearLessThan)
-        case .recentlyAdded:
-            return books.sorted(using: recentlyAddedComparators)
+        case .newestFirst:
+            return books.sorted(using: newestFirstComparators)
         case .series:
             return books
         }
@@ -431,7 +431,7 @@ final class LibraryViewModel: ObservableObject {
         }
     }
 
-    private var recentlyAddedComparators: [KeyPathComparator<BookRecord>] {
+    private var newestFirstComparators: [KeyPathComparator<BookRecord>] {
         [
             KeyPathComparator(\.createdAt, order: .reverse),
             titleComparator
