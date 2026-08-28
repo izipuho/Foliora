@@ -70,7 +70,13 @@ private struct DashboardCardStrip: View {
                     isPresentingDataHealthPopover = true
                 }
                 .popover(isPresented: $isPresentingDataHealthPopover) {
-                    BookDataHealthPopover(entries: dataHealthEntries)
+                    CatalogDashboardDataHealthPopover(entries: dataHealthEntries) { entry in
+                        DashboardDataHealthRow(
+                            title: entry.title,
+                            countText: "\(entry.missingCount)/\(entry.totalCount)",
+                            missingProgress: entry.progress
+                        )
+                    }
                 }
             }
         }
@@ -247,23 +253,6 @@ private struct BookDataHealthEntry: Identifiable {
     var progress: Double {
         guard totalCount > 0 else { return 0 }
         return Double(missingCount) / Double(totalCount)
-    }
-}
-
-private struct BookDataHealthPopover: View {
-    let entries: [BookDataHealthEntry]
-
-    var body: some View {
-        DashboardPopoverContainer(
-            title: "Data Health",
-            entries: entries
-        ) { entry in
-            DashboardDataHealthRow(
-                title: entry.title,
-                countText: "\(entry.missingCount)/\(entry.totalCount)",
-                missingProgress: entry.progress
-            )
-        }
     }
 }
 
