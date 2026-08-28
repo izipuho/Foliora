@@ -6,7 +6,7 @@ enum LibraryOrderMode: String, CaseIterable {
     case title
     case author
     case publicationYearNewest
-    case newestFirst = "recentlyAdded"
+    case newestFirst
     case series
 
     var title: String {
