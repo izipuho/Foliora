@@ -8,6 +8,7 @@ enum LibraryOrderMode: String, CaseIterable {
     case publicationYearNewest
     case newestFirst
     case series
+    case storage
 
     var title: String {
         switch self {
@@ -21,6 +22,8 @@ enum LibraryOrderMode: String, CaseIterable {
             return "Newest first"
         case .series:
             return "Series"
+        case .storage:
+            return "Storage"
         }
     }
 }
@@ -141,6 +144,8 @@ final class LibraryViewModel: ObservableObject {
                 layout = .flat(sorted(books))
             case .series:
                 layout = .grouped(seriesSections(books: books, series: series))
+            case .storage:
+                layout = .grouped(storageSections(books: books))
             }
         }
 
@@ -174,6 +179,12 @@ final class LibraryViewModel: ObservableObject {
             return books.sorted(using: newestFirstComparators)
         case .series:
             return books
+        case .storage:
+            return CatalogStorageGrouping.sorted(
+                books,
+                storagePath: { $0.storagePath },
+                title: { $0.title }
+            )
         }
     }
 
@@ -366,6 +377,51 @@ final class LibraryViewModel: ObservableObject {
                 subgroups: []
             )
         }
+    }
+
+    private func storageSections(books: [BookRecord]) -> [LibraryGroupedSection] {
+        let sortedBooks = CatalogStorageGrouping.sorted(
+            books,
+            storagePath: { $0.storagePath },
+            title: { $0.title }
+        )
+
+        return CatalogStorageGrouping.sections(
+            fromSorted: sortedBooks,
+            storagePath: { $0.storagePath }
+        ).map { section in
+            let sectionID = storageSectionID(
+                floor: section.floor,
+                room: section.room
+            )
+            let title = section.pathComponents.isEmpty
+                ? String(localized: "common.unknown")
+                : section.pathComponents.joined(separator: " · ")
+            let subgroups = section.subgroups.map { subgroup in
+                LibraryBookSubgroup(
+                    id: "\(sectionID)-\(subgroup.kind.rawValue):\(storageIDComponent(subgroup.title))",
+                    title: subgroup.title,
+                    books: subgroup.elements
+                )
+            }
+
+            return LibraryGroupedSection(
+                id: sectionID,
+                title: title,
+                detailText: nil,
+                indexTitle: nil,
+                books: section.elements,
+                subgroups: subgroups
+            )
+        }
+    }
+
+    private func storageSectionID(floor: String?, room: String?) -> String {
+        "storage-floor:\(storageIDComponent(floor))-room:\(storageIDComponent(room))"
+    }
+
+    private func storageIDComponent(_ value: String?) -> String {
+        value.map { "value:\($0)" } ?? "nil"
     }
 
     private func titleLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
