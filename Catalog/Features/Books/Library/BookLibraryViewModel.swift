@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 /// Defines the supported ordering modes for a book library.
-enum LibraryOrderMode: String, CaseIterable {
+enum BookLibraryOrderMode: String, CaseIterable {
     case title
     case author
     case publicationYearNewest
@@ -49,13 +49,13 @@ struct BookLibraryStats {
 /// Prepares ordered book library content and dashboard statistics for display.
 @MainActor
 final class BookLibraryViewModel: ObservableObject {
-    var orderMode: LibraryOrderMode
+    var orderMode: BookLibraryOrderMode
     @Published private(set) var displayModel: BookLibraryDisplayModel
 
     private var sourceBooks: [BookRecord]?
     private var sourceSeries: [BookSeries]?
 
-    init(orderMode: LibraryOrderMode) {
+    init(orderMode: BookLibraryOrderMode) {
         self.orderMode = orderMode
         self.displayModel = BookLibraryDisplayModel(
             books: [],
@@ -92,7 +92,7 @@ final class BookLibraryViewModel: ObservableObject {
         )
     }
 
-    func updateContext(orderMode: LibraryOrderMode) {
+    func updateContext(orderMode: BookLibraryOrderMode) {
         guard self.orderMode != orderMode else { return }
         self.orderMode = orderMode
         refreshSource()
