@@ -46,11 +46,19 @@ struct LibraryGroupedSection: Identifiable {
     let detailText: String?
     let indexTitle: String?
     let books: [BookRecord]
+    let subgroups: [LibraryBookSubgroup]
 }
 
-private enum AuthorGroupKey: Hashable {
+/// Represents a nested group of books inside a library section.
+struct LibraryBookSubgroup: Identifiable {
+    let id: String
+    let title: String
+    let books: [BookRecord]
+}
+
+private enum AlphabetGroupKey: Hashable {
     case initial(String)
-    case noAuthor
+    case noValue
 }
 
 /// Represents the content rendered by a book library.
@@ -123,12 +131,16 @@ final class LibraryViewModel: ObservableObject {
             layout = .empty
         } else {
             switch orderMode {
+            case .title:
+                layout = .grouped(titleSections(books: books))
             case .author:
                 layout = .grouped(authorSections(books: books))
+            case .publicationYearNewest:
+                layout = .grouped(publicationYearSections(books: books))
+            case .recentlyAdded:
+                layout = .flat(sorted(books))
             case .series:
                 layout = .grouped(seriesSections(books: books, series: series))
-            case .title, .publicationYearNewest, .recentlyAdded:
-                layout = .flat(sorted(books))
             }
         }
 
@@ -187,10 +199,10 @@ final class LibraryViewModel: ObservableObject {
         })
     }
 
-    private func authorSections(books: [BookRecord]) -> [LibraryGroupedSection] {
-        let sortedBooks = books.sorted(by: authorLessThan)
-        let grouped = Dictionary(grouping: sortedBooks, by: authorGroupKey)
-        let orderedKeys = grouped.keys.sorted(by: authorGroupLessThan)
+    private func titleSections(books: [BookRecord]) -> [LibraryGroupedSection] {
+        let sortedBooks = books.sorted(by: titleLessThan)
+        let grouped = Dictionary(grouping: sortedBooks, by: titleGroupKey)
+        let orderedKeys = grouped.keys.sorted(by: alphabetGroupLessThan)
 
         return orderedKeys.map { key in
             let sectionBooks = grouped[key, default: []]
@@ -198,42 +210,124 @@ final class LibraryViewModel: ObservableObject {
             switch key {
             case .initial(let initial):
                 return LibraryGroupedSection(
-                    id: "author-\(initial)",
+                    id: "title-\(initial)",
                     title: initial,
                     detailText: nil,
                     indexTitle: initial,
-                    books: sectionBooks
+                    books: sectionBooks,
+                    subgroups: []
                 )
-            case .noAuthor:
+            case .noValue:
                 return LibraryGroupedSection(
-                    id: "author-none",
-                    title: "No Author",
+                    id: "title-none",
+                    title: "No Title",
                     detailText: nil,
                     indexTitle: nil,
-                    books: sectionBooks
+                    books: sectionBooks,
+                    subgroups: []
                 )
             }
         }
     }
 
-    private func authorGroupKey(for book: BookRecord) -> AuthorGroupKey {
-        let author = authorDisplayName(for: book)
-        guard let firstCharacter = author.first else {
-            return .noAuthor
+    private func authorSections(books: [BookRecord]) -> [LibraryGroupedSection] {
+        let sortedBooks = books.sorted(by: authorLessThan)
+        let grouped = Dictionary(grouping: sortedBooks, by: authorGroupKey)
+        let orderedKeys = grouped.keys.sorted(by: alphabetGroupLessThan)
+
+        return orderedKeys.map { key in
+            let sectionBooks = grouped[key, default: []]
+
+            switch key {
+            case .initial(let initial):
+                let booksByAuthor = Dictionary(grouping: sectionBooks, by: authorDisplayName)
+                let authorNames = booksByAuthor.keys.sorted {
+                    $0.localizedStandardCompare($1) == .orderedAscending
+                }
+                let subgroups = authorNames.map { authorName in
+                    LibraryBookSubgroup(
+                        id: "author-\(initial)-\(authorName)",
+                        title: authorName,
+                        books: booksByAuthor[authorName, default: []].sorted(by: titleLessThan)
+                    )
+                }
+
+                return LibraryGroupedSection(
+                    id: "author-\(initial)",
+                    title: initial,
+                    detailText: nil,
+                    indexTitle: initial,
+                    books: [],
+                    subgroups: subgroups
+                )
+            case .noValue:
+                return LibraryGroupedSection(
+                    id: "author-none",
+                    title: "No Author",
+                    detailText: nil,
+                    indexTitle: nil,
+                    books: sectionBooks.sorted(by: titleLessThan),
+                    subgroups: []
+                )
+            }
+        }
+    }
+
+    private func publicationYearSections(books: [BookRecord]) -> [LibraryGroupedSection] {
+        let grouped = Dictionary(grouping: books, by: { $0.details.publicationYear })
+        let orderedYears = grouped.keys.sorted { lhs, rhs in
+            switch (lhs, rhs) {
+            case let (lhs?, rhs?):
+                return lhs > rhs
+            case (.some, .none):
+                return true
+            case (.none, .some):
+                return false
+            case (.none, .none):
+                return false
+            }
+        }
+
+        return orderedYears.map { year in
+            let sectionBooks = grouped[year, default: []].sorted(by: titleLessThan)
+            return LibraryGroupedSection(
+                id: year.map { "year-\($0)" } ?? "year-unknown",
+                title: year.map(String.init) ?? "Unknown",
+                detailText: nil,
+                indexTitle: nil,
+                books: sectionBooks,
+                subgroups: []
+            )
+        }
+    }
+
+    private func titleGroupKey(for book: BookRecord) -> AlphabetGroupKey {
+        let title = book.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let firstCharacter = title.first else {
+            return .noValue
         }
 
         return .initial(String(firstCharacter).uppercased())
     }
 
-    private func authorGroupLessThan(_ lhs: AuthorGroupKey, _ rhs: AuthorGroupKey) -> Bool {
+    private func authorGroupKey(for book: BookRecord) -> AlphabetGroupKey {
+        let author = authorDisplayName(for: book)
+        guard let firstCharacter = author.first else {
+            return .noValue
+        }
+
+        return .initial(String(firstCharacter).uppercased())
+    }
+
+    private func alphabetGroupLessThan(_ lhs: AlphabetGroupKey, _ rhs: AlphabetGroupKey) -> Bool {
         switch (lhs, rhs) {
         case let (.initial(lhsInitial), .initial(rhsInitial)):
             return lhsInitial.localizedStandardCompare(rhsInitial) == .orderedAscending
-        case (.initial, .noAuthor):
+        case (.initial, .noValue):
             return true
-        case (.noAuthor, .initial):
+        case (.noValue, .initial):
             return false
-        case (.noAuthor, .noAuthor):
+        case (.noValue, .noValue):
             return false
         }
     }
@@ -262,7 +356,8 @@ final class LibraryViewModel: ObservableObject {
                     title: "No Series",
                     detailText: "\(sectionBooks.count) books",
                     indexTitle: nil,
-                    books: sectionBooks.sorted(by: titleLessThan)
+                    books: sectionBooks.sorted(by: titleLessThan),
+                    subgroups: []
                 )
             }
 
@@ -278,7 +373,8 @@ final class LibraryViewModel: ObservableObject {
                 title: bookSeries.name,
                 detailText: progressText,
                 indexTitle: nil,
-                books: sectionBooks
+                books: sectionBooks,
+                subgroups: []
             )
         }
     }
