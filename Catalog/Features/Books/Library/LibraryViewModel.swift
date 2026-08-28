@@ -29,7 +29,7 @@ enum LibraryOrderMode: String, CaseIterable {
 enum LibraryLayout {
     case empty
     case flat([BookRecord])
-    case grouped([LibrarySeriesSection])
+    case grouped([LibraryGroupedSection])
 
     var isGrouped: Bool {
         if case .grouped = self {
@@ -39,12 +39,18 @@ enum LibraryLayout {
     }
 }
 
-/// Represents a grouped book series section.
-struct LibrarySeriesSection: Identifiable {
+/// Represents a grouped book library section.
+struct LibraryGroupedSection: Identifiable {
     let id: String
     let title: String
-    let progressText: String
+    let detailText: String?
+    let indexTitle: String?
     let books: [BookRecord]
+}
+
+private enum AuthorGroupKey: Hashable {
+    case initial(String)
+    case noAuthor
 }
 
 /// Represents the content rendered by a book library.
@@ -115,10 +121,15 @@ final class LibraryViewModel: ObservableObject {
         let layout: LibraryLayout
         if books.isEmpty {
             layout = .empty
-        } else if orderMode == .series {
-            layout = .grouped(seriesSections(books: books, series: series))
         } else {
-            layout = .flat(sorted(books))
+            switch orderMode {
+            case .author:
+                layout = .grouped(authorSections(books: books))
+            case .series:
+                layout = .grouped(seriesSections(books: books, series: series))
+            case .title, .publicationYearNewest, .recentlyAdded:
+                layout = .flat(sorted(books))
+            }
         }
 
         displayModel = LibraryDisplayModel(
@@ -176,10 +187,61 @@ final class LibraryViewModel: ObservableObject {
         }
     }
 
+    private func authorSections(books: [BookRecord]) -> [LibraryGroupedSection] {
+        let sortedBooks = books.sorted(by: authorLessThan)
+        let grouped = Dictionary(grouping: sortedBooks, by: authorGroupKey)
+        let orderedKeys = grouped.keys.sorted(by: authorGroupLessThan)
+
+        return orderedKeys.map { key in
+            let sectionBooks = grouped[key, default: []]
+
+            switch key {
+            case .initial(let initial):
+                return LibraryGroupedSection(
+                    id: "author-\(initial)",
+                    title: initial,
+                    detailText: nil,
+                    indexTitle: initial,
+                    books: sectionBooks
+                )
+            case .noAuthor:
+                return LibraryGroupedSection(
+                    id: "author-none",
+                    title: "No Author",
+                    detailText: nil,
+                    indexTitle: nil,
+                    books: sectionBooks
+                )
+            }
+        }
+    }
+
+    private func authorGroupKey(for book: BookRecord) -> AuthorGroupKey {
+        let author = authorDisplayName(for: book)
+        guard let firstCharacter = author.first else {
+            return .noAuthor
+        }
+
+        return .initial(String(firstCharacter).uppercased())
+    }
+
+    private func authorGroupLessThan(_ lhs: AuthorGroupKey, _ rhs: AuthorGroupKey) -> Bool {
+        switch (lhs, rhs) {
+        case let (.initial(lhsInitial), .initial(rhsInitial)):
+            return lhsInitial.localizedStandardCompare(rhsInitial) == .orderedAscending
+        case (.initial, .noAuthor):
+            return true
+        case (.noAuthor, .initial):
+            return false
+        case (.noAuthor, .noAuthor):
+            return false
+        }
+    }
+
     private func seriesSections(
         books: [BookRecord],
         series: [BookSeries]
-    ) -> [LibrarySeriesSection] {
+    ) -> [LibraryGroupedSection] {
         let seriesByID = Dictionary(uniqueKeysWithValues: series.map { ($0.id, $0) })
         let grouped = Dictionary(grouping: books, by: { $0.details.series?.id })
         let orderedKeys = grouped.keys.sorted { lhsID, rhsID in
@@ -195,10 +257,11 @@ final class LibraryViewModel: ObservableObject {
 
             guard let bookSeries = seriesID.flatMap({ seriesByID[$0] })
                 ?? sectionBooks.first?.details.series else {
-                return LibrarySeriesSection(
+                return LibraryGroupedSection(
                     id: "series-none",
                     title: "No Series",
-                    progressText: "\(sectionBooks.count) books",
+                    detailText: "\(sectionBooks.count) books",
+                    indexTitle: nil,
                     books: sectionBooks.sorted(by: titleLessThan)
                 )
             }
@@ -210,10 +273,11 @@ final class LibraryViewModel: ObservableObject {
                 progressText = "\(sectionBooks.count) owned"
             }
 
-            return LibrarySeriesSection(
+            return LibraryGroupedSection(
                 id: "series-\(bookSeries.id.uuidString)",
                 title: bookSeries.name,
-                progressText: progressText,
+                detailText: progressText,
+                indexTitle: nil,
                 books: sectionBooks
             )
         }
@@ -224,8 +288,8 @@ final class LibraryViewModel: ObservableObject {
     }
 
     private func authorLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
-        let lhsAuthor = primaryAuthorName(for: lhs)
-        let rhsAuthor = primaryAuthorName(for: rhs)
+        let lhsAuthor = authorDisplayName(for: lhs)
+        let rhsAuthor = authorDisplayName(for: rhs)
 
         if lhsAuthor == rhsAuthor {
             return titleLessThan(lhs, rhs)
@@ -334,12 +398,18 @@ final class LibraryViewModel: ObservableObject {
         )
     }
 
-    private func primaryAuthorName(for book: BookRecord) -> String {
+    private func authorDisplayName(for book: BookRecord) -> String {
         book.details.contributors
             .filter { $0.role == .author }
-            .sorted { $0.order < $1.order }
-            .first?
-            .person.name ?? ""
+            .sorted { lhs, rhs in
+                if lhs.order != rhs.order {
+                    return lhs.order < rhs.order
+                }
+                return lhs.person.name.localizedStandardCompare(rhs.person.name) == .orderedAscending
+            }
+            .map { $0.person.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
     }
 
     private func ownedBookCount(
@@ -354,10 +424,7 @@ final class LibraryViewModel: ObservableObject {
     }
 
     private func hasAuthor(_ book: BookRecord) -> Bool {
-        book.details.contributors.contains { contributor in
-            contributor.role == .author
-                && !contributor.person.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        }
+        !authorDisplayName(for: book).isEmpty
     }
 
     private func authorCount(in books: [BookRecord]) -> Int {
