@@ -221,6 +221,12 @@ struct LibraryView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(libraryBackground)
         } else {
+            libraryContent
+        }
+    }
+
+    private var libraryContent: some View {
+        ScrollViewReader { scrollProxy in
             CatalogCardGrid(
                 layoutMode: layoutMode.wrappedValue,
                 usesGridLayout: false
@@ -281,31 +287,54 @@ struct LibraryView: View {
                             }
                         }
                     case .grouped(let sections):
-                        ForEach(sections) { section in
-                            Section {
-                                CatalogCardGrid(
-                                    layoutMode: layoutMode.wrappedValue,
-                                    layoutMetrics: (cardSize, gridMetrics, cardMetrics)
-                                ) { cardSize, _, cardMetrics in
-                                    ForEach(section.books) { book in
-                                        bookCard(
-                                            book,
-                                            cardSize: cardSize,
-                                            cardMetrics: cardMetrics
-                                        )
-                                    }
-                                }
-                            } header: {
-                                LibrarySeriesSectionHeader(
-                                    title: section.title,
-                                    progressText: section.progressText
-                                )
-                            }
-                        }
+                        groupedLibrarySections(
+                            sections,
+                            layoutMetrics: (cardSize, gridMetrics, cardMetrics)
+                        )
                     }
                 }
             }
             .background(libraryBackground)
+            .overlay(alignment: .trailing) {
+                if selectedOrder == .author,
+                   case .grouped(let sections) = displayModel.layout {
+                    LibraryAlphabetIndex(sections: sections) { sectionID in
+                        withAnimation(.snappy(duration: 0.2)) {
+                            scrollProxy.scrollTo(sectionID, anchor: .top)
+                        }
+                    }
+                    .padding(.trailing, CatalogMetrics.Spacing.xs)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func groupedLibrarySections(
+        _ sections: [LibraryGroupedSection],
+        layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics
+    ) -> some View {
+        ForEach(sections) { section in
+            Section {
+                CatalogCardGrid(
+                    layoutMode: layoutMode.wrappedValue,
+                    layoutMetrics: layoutMetrics
+                ) { cardSize, _, cardMetrics in
+                    ForEach(section.books) { book in
+                        bookCard(
+                            book,
+                            cardSize: cardSize,
+                            cardMetrics: cardMetrics
+                        )
+                    }
+                }
+            } header: {
+                LibraryGroupedSectionHeader(
+                    title: section.title,
+                    detailText: section.detailText
+                )
+                .id(section.id)
+            }
         }
     }
 
@@ -485,9 +514,9 @@ struct LibraryView: View {
     }
 }
 
-private struct LibrarySeriesSectionHeader: View {
+private struct LibraryGroupedSectionHeader: View {
     let title: String
-    let progressText: String
+    let detailText: String?
 
     var body: some View {
         HStack(spacing: CatalogMetrics.Spacing.sm) {
@@ -498,10 +527,12 @@ private struct LibrarySeriesSectionHeader: View {
 
             Spacer()
 
-            Text(progressText)
-                .font(CatalogTypography.chipLabel)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            if let detailText {
+                Text(detailText)
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
         .padding(.vertical, CatalogMetrics.Spacing.sm)
         .padding(.horizontal, CatalogMetrics.Spacing.md)
@@ -511,6 +542,31 @@ private struct LibrarySeriesSectionHeader: View {
                 .fill(Color(uiColor: .separator))
                 .frame(height: 0.5)
         }
+    }
+}
+
+private struct LibraryAlphabetIndex: View {
+    let sections: [LibraryGroupedSection]
+    let onSelect: (String) -> Void
+
+    var body: some View {
+        VStack(spacing: 1) {
+            ForEach(indexedSections) { section in
+                Button(section.indexTitle ?? "") {
+                    onSelect(section.id)
+                }
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .buttonStyle(.plain)
+                .frame(minWidth: 20, minHeight: 14)
+            }
+        }
+        .padding(.vertical, 4)
+        .background(.thinMaterial, in: Capsule())
+    }
+
+    private var indexedSections: [LibraryGroupedSection] {
+        sections.filter { $0.indexTitle != nil }
     }
 }
 
