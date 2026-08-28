@@ -58,26 +58,35 @@ private struct DashboardCardStrip: View {
                 sharingCard
 
                 if !series.isEmpty {
-                    Button {
-                        isPresentingSeriesPopover = true
-                    } label: {
+                    if seriesProgressEntries.isEmpty {
                         BookSeriesHealthCard(
                             completeCount: completeSeriesCount,
                             incompleteCount: incompleteSeriesCount,
                             unknownCount: unknownSeriesCount,
                             tint: tint
                         )
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $isPresentingSeriesPopover) {
-                        DashboardPopoverContainer(
-                            title: "Series",
-                            entries: seriesProgressEntries
-                        ) { entry in
-                            BookSeriesProgressRow(
-                                entry: entry,
+                    } else {
+                        Button {
+                            isPresentingSeriesPopover = true
+                        } label: {
+                            BookSeriesHealthCard(
+                                completeCount: completeSeriesCount,
+                                incompleteCount: incompleteSeriesCount,
+                                unknownCount: unknownSeriesCount,
                                 tint: tint
                             )
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $isPresentingSeriesPopover) {
+                            DashboardPopoverContainer(
+                                title: "Series",
+                                entries: seriesProgressEntries
+                            ) { entry in
+                                BookSeriesProgressRow(
+                                    entry: entry,
+                                    tint: tint
+                                )
+                            }
                         }
                     }
                 }
@@ -153,12 +162,14 @@ private struct DashboardCardStrip: View {
 
     private var seriesProgressEntries: [BookSeriesProgressEntry] {
         series
-            .map { series in
-                BookSeriesProgressEntry(
+            .compactMap { series in
+                guard let totalBookCount = series.totalBookCount, totalBookCount > 0 else { return nil }
+
+                return BookSeriesProgressEntry(
                     id: series.id,
                     name: series.name,
                     ownedBookCount: ownedBookCount(for: series),
-                    totalBookCount: series.totalBookCount.flatMap { $0 > 0 ? $0 : nil }
+                    totalBookCount: totalBookCount
                 )
             }
             .sorted {
@@ -281,7 +292,7 @@ private struct BookSeriesProgressEntry: Identifiable {
     let id: UUID
     let name: String
     let ownedBookCount: Int
-    let totalBookCount: Int?
+    let totalBookCount: Int
 }
 
 private struct BookSeriesProgressRow: View {
@@ -289,8 +300,7 @@ private struct BookSeriesProgressRow: View {
     let tint: Color
 
     private var progress: Double {
-        guard let totalBookCount = entry.totalBookCount, totalBookCount > 0 else { return 0 }
-        return min(max(Double(entry.ownedBookCount) / Double(totalBookCount), 0), 1)
+        min(max(Double(entry.ownedBookCount) / Double(entry.totalBookCount), 0), 1)
     }
 
     var body: some View {
@@ -310,30 +320,28 @@ private struct BookSeriesProgressRow: View {
                     .font(CatalogTypography.chipLabel)
             }
 
-            if let totalBookCount = entry.totalBookCount {
-                HStack {
-                    Text("Total")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            HStack {
+                Text("Total")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-                    Spacer()
+                Spacer()
 
-                    Text("\(totalBookCount)")
-                        .font(CatalogTypography.chipLabel)
-                }
-
-                GeometryReader { proxy in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color(uiColor: .separator))
-
-                        Capsule()
-                            .fill(tint)
-                            .frame(width: proxy.size.width * progress)
-                    }
-                }
-                .frame(height: 6)
+                Text("\(entry.totalBookCount)")
+                    .font(CatalogTypography.chipLabel)
             }
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color(uiColor: .separator))
+
+                    Capsule()
+                        .fill(tint)
+                        .frame(width: proxy.size.width * progress)
+                }
+            }
+            .frame(height: 6)
         }
         .padding(CatalogMetrics.Spacing.md)
     }
