@@ -5,6 +5,10 @@ struct LibraryDashboardView: View {
     let stats: LibraryStats
     let accentColor: Color
     let collection: CollectionSummary
+    let catalogSnapshot: CatalogSnapshot?
+    let repository: any CatalogRepository
+    let canEditCollection: Bool
+    let onBookSelected: ((UUID) -> Void)?
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
     let onSharingChanged: () -> Void
@@ -15,6 +19,10 @@ struct LibraryDashboardView: View {
             DashboardCardStrip(
                 stats: stats,
                 collection: collection,
+                catalogSnapshot: catalogSnapshot,
+                repository: repository,
+                canEditCollection: canEditCollection,
+                onBookSelected: onBookSelected,
                 sharingState: sharingState,
                 sharingService: sharingService,
                 tint: accentColor,
@@ -42,6 +50,10 @@ struct LibraryDashboardView: View {
 private struct DashboardCardStrip: View {
     let stats: LibraryStats
     let collection: CollectionSummary
+    let catalogSnapshot: CatalogSnapshot?
+    let repository: any CatalogRepository
+    let canEditCollection: Bool
+    let onBookSelected: ((UUID) -> Void)?
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
     let tint: Color
@@ -55,7 +67,15 @@ private struct DashboardCardStrip: View {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 sharingCard
 
-                if stats.seriesCount > 0 {
+                NavigationLink {
+                    SeriesView(
+                        collection: collection,
+                        catalogSnapshot: catalogSnapshot,
+                        repository: repository,
+                        canEditCollection: canEditCollection,
+                        onBookSelected: onBookSelected
+                    )
+                } label: {
                     BookSeriesHealthCard(
                         completeCount: stats.completeSeriesCount,
                         incompleteCount: stats.incompleteSeriesCount,
@@ -63,6 +83,7 @@ private struct DashboardCardStrip: View {
                         tint: tint
                     )
                 }
+                .buttonStyle(.plain)
 
                 CatalogDashboardDataHealthCard(
                     progress: stats.dataHealthProgress,

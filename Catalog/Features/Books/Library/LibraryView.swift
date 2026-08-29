@@ -273,6 +273,10 @@ struct LibraryView: View {
                         stats: displayModel.stats,
                         accentColor: collection.backgroundStyle.accentColor,
                         collection: collection,
+                        catalogSnapshot: catalogSnapshot,
+                        repository: repository,
+                        canEditCollection: canEditLibrary,
+                        onBookSelected: onBookSelected,
                         sharingState: collectionSharingState,
                         sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer),
                         onSharingChanged: {

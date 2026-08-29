@@ -191,7 +191,7 @@ struct CatalogCardContentStyle {
     }
 }
 
-private struct CatalogCardAccessoryRow: View {
+struct CatalogCardAccessoryRow: View {
     let accessories: [CatalogCardAccessory]
     let style: CatalogCardContentStyle.AccessoryRowStyle
     let bright: Bool
