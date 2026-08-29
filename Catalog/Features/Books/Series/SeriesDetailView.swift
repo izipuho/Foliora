@@ -208,3 +208,29 @@ struct SeriesDetailView: View {
         return nil
     }
 }
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.makeBooksMinimal()
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+
+    if let series = snapshot.bookSeries.first {
+        NavigationStack {
+            SeriesDetailView(
+                series: series,
+                books: snapshot.bookRecords.filter { $0.details.series?.id == series.id },
+                publishers: snapshot.bookSeries.compactMap(\.publisher),
+                repository: repository,
+                canEditCollection: true,
+                accentColor: .accentColor,
+                onSeriesSaved: { _ in }
+            )
+        }
+        .environment(\.managedObjectContext, container.viewContext)
+    }
+}
+#endif

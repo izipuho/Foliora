@@ -455,3 +455,28 @@ private struct SeriesPublisherSelectionView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.makeBooksMinimal()
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+
+    if let collection = snapshot.collections
+        .compactMap({ snapshot.collectionSummary(id: $0.id) })
+        .first(where: { $0.kind == .books }) {
+        NavigationStack {
+            SeriesView(
+                collection: collection,
+                catalogSnapshot: snapshot,
+                repository: repository,
+                canEditCollection: true
+            )
+        }
+        .environment(\.managedObjectContext, container.viewContext)
+    }
+}
+#endif
