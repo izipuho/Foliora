@@ -25,6 +25,26 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         saveContext()
     }
 
+    func deleteBookSeries(seriesID: UUID) {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "BookSeriesEntity")
+        request.predicate = NSPredicate(format: "id == %@", seriesID as NSUUID)
+        request.fetchLimit = 1
+
+        guard let seriesEntity = (try? context.fetch(request))?.first else { return }
+
+        let booksRequest = NSFetchRequest<NSManagedObject>(entityName: "BookEntity")
+        booksRequest.predicate = NSPredicate(format: "series == %@", seriesEntity)
+        let books = (try? context.fetch(booksRequest)) ?? []
+
+        for book in books {
+            book.setValue(nil, forKey: "series")
+            book.setValue(nil, forKey: "volumeNumber")
+        }
+
+        context.delete(seriesEntity)
+        saveContext()
+    }
+
     func deleteBookRecord(bookID: UUID) {
         guard let entity = fetchBookEntity(by: bookID) else { return }
         let persons = bookRelatedObjects(entity, "contributors").compactMap {
