@@ -298,8 +298,8 @@ struct PersonDetailView: View {
                     .map(\.role)
             }
         )
-        .sorted { peopleRoleDisplayName($0) < peopleRoleDisplayName($1) }
-        .map(peopleRoleDisplayName)
+        .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+        .map(\.displayName)
 
         return roles.isEmpty ? "—" : roles.joined(separator: ", ")
     }
@@ -331,7 +331,7 @@ struct PersonDetailView: View {
             }
             .map { role in
                 .label(
-                    text: peopleRoleDisplayName(role),
+                    text: role.displayName,
                     systemImage: "person.fill"
                 )
             }
