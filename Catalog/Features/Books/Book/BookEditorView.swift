@@ -19,6 +19,7 @@ struct BookEditorView: View {
     @State private var mediaAssets: [MediaAsset]
 
     @State private var languageCode: String
+    @State private var genre: String
     @State private var pageCount: String
     @State private var publicationYear: String
     @State private var volumeNumber: String
@@ -48,6 +49,7 @@ struct BookEditorView: View {
         _tags = State(initialValue: book?.tags ?? [])
         _mediaAssets = State(initialValue: book?.mediaAssets ?? initialMediaAssets)
         _languageCode = State(initialValue: book?.details.languageCode ?? "")
+        _genre = State(initialValue: book?.details.genre ?? "")
         _pageCount = State(initialValue: book?.details.pageCount.map(String.init) ?? "")
         _publicationYear = State(initialValue: book?.details.publicationYear.map(String.init) ?? "")
         _volumeNumber = State(initialValue: book?.details.volumeNumber.map(String.init) ?? "")
@@ -121,6 +123,7 @@ struct BookEditorView: View {
 
                 Section("common.book") {
                     TextField("Language", text: $languageCode)
+                    TextField("Genre", text: $genre)
                     TextField("Pages", text: $pageCount)
                     TextField("Publication year", text: $publicationYear)
                     TextField("Volume", text: $volumeNumber)
@@ -196,12 +199,14 @@ struct BookEditorView: View {
             details: BookDetails(
                 itemID: itemID,
                 languageCode: optionalString(languageCode)?.lowercased(),
+                genre: optionalString(genre),
                 pageCount: optionalInt(pageCount),
                 publicationYear: optionalInt(publicationYear),
                 volumeNumber: optionalInt(volumeNumber),
                 publisher: existingBook?.details.publisher,
                 contributors: existingBook?.details.contributors ?? [],
-                series: existingBook?.details.series
+                series: existingBook?.details.series,
+                identifiers: existingBook?.details.identifiers ?? []
             )
         )
 

@@ -120,6 +120,7 @@ extension PreviewData {
                     details: BookDetails(
                         itemID: item.id,
                         languageCode: "en",
+                        genre: "Magical realism",
                         pageCount: 320,
                         publicationYear: 1967,
                         volumeNumber: 1,
@@ -153,6 +154,7 @@ extension PreviewData {
                     details: BookDetails(
                         itemID: item.id,
                         languageCode: "ru",
+                        genre: "Novel",
                         pageCount: 480,
                         publicationYear: 1987,
                         volumeNumber: nil,
@@ -201,6 +203,7 @@ extension PreviewData {
                     details: BookDetails(
                         itemID: item.id,
                         languageCode: "en",
+                        genre: nil,
                         pageCount: nil,
                         publicationYear: nil,
                         volumeNumber: 2,

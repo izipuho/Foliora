@@ -38,6 +38,7 @@ enum BookIdentifierType: String, CaseIterable, Hashable, Identifiable, Codable {
 struct BookDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
     var languageCode: String?
+    var genre: String? = nil
     var pageCount: Int?
     var publicationYear: Int?
     var volumeNumber: Int?
