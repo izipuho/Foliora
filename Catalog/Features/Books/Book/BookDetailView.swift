@@ -368,90 +368,20 @@ struct BookDetailView: View {
 
     private var locationSection: some View {
         detailSection(String(localized: "bell.detail.section.location")) {
-            storageTile
-        }
-    }
-
-    @ViewBuilder
-    private var storageTile: some View {
-        if canEditCollection {
-            Button {
-                if availableLocations.isEmpty, let inferredCollection {
-                    presentHomeEditor(for: inferredCollection.homeID)
-                } else {
-                    isPresentingLocationPicker = true
-                }
-            } label: {
-                storageTileContent
-            }
-            .buttonStyle(.plain)
-        } else {
-            storageTileContent
-        }
-    }
-
-    @ViewBuilder
-    private var storageTileContent: some View {
-        if book.item.locationID != nil {
-            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                Label(String(localized: "common.field.storage"), systemImage: "square.stack.3d.up")
-                    .font(CatalogTypography.cardLabel)
-                    .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                    ForEach(Array(storagePathParts.enumerated()), id: \.offset) { index, part in
-                        Text(part)
-                            .font(index == storagePathParts.count - 1 ? CatalogTypography.cardLabel : CatalogTypography.cardSubtitle)
-                            .foregroundStyle(index == storagePathParts.count - 1 ? .primary : .secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
+            CatalogStorageTile(
+                storagePath: storageDisplayPath,
+                accentColor: detailAccentColor,
+                isAssigned: book.item.locationID != nil,
+                canEdit: canEditCollection,
+                onEdit: {
+                    if availableLocations.isEmpty, let inferredCollection {
+                        presentHomeEditor(for: inferredCollection.homeID)
+                    } else {
+                        isPresentingLocationPicker = true
                     }
                 }
-
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-            .catalogSurfaceTile()
-        } else if canEditCollection {
-            bookDetailCTA(
-                systemImage: "square.stack.3d.up.slash",
-                title: String(localized: "bell.detail.storage.assign.action")
             )
-        } else {
-            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                Label(String(localized: "common.field.storage"), systemImage: "square.stack.3d.up.slash")
-                    .font(CatalogTypography.cardLabel)
-                    .foregroundStyle(.secondary)
-
-                Spacer(minLength: 0)
-
-                Text(String(localized: "common.unassigned"))
-                    .font(CatalogTypography.cardSubtitle)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-            .catalogSurfaceTile()
         }
-    }
-
-    private func bookDetailCTA(systemImage: String, title: String) -> some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-            Label(title, systemImage: systemImage)
-                .font(CatalogTypography.cardLabel)
-                .foregroundStyle(.primary)
-
-            Spacer(minLength: 0)
-
-            Label(String(localized: "common.ui.tap_to_assign"), systemImage: "hand.tap")
-                .font(CatalogTypography.cardSubtitle)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-        .catalogSurfaceCTATile(tint: detailAccentColor)
     }
 
     private var notesAndTagsSection: some View {
@@ -643,13 +573,6 @@ struct BookDetailView: View {
         }
 
         return storagePath.displayPath
-    }
-
-    private var storagePathParts: [String] {
-        storageDisplayPath
-            .split(separator: "/")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
     }
 
     private var availableLocations: [Location] {
