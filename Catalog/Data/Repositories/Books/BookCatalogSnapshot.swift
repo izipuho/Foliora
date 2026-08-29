@@ -31,7 +31,9 @@ extension CatalogSnapshot {
 
     var publishers: [Publisher] {
         let publishersByID = Dictionary(
-            publisherEntities.map(CoreDataDomainMapper.publisher(from:)).map { ($0.id, $0) },
+            publisherEntities
+                .map { CoreDataDomainMapper.publisher(from: $0) }
+                .map { ($0.id, $0) },
             uniquingKeysWith: { first, _ in first }
         )
 
