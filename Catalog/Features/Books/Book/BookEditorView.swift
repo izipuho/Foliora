@@ -26,7 +26,6 @@ struct BookEditorView: View {
     @State private var genre: String
     @State private var pageCount: String
     @State private var selectedPublicationYearOption: String
-    @State private var volumeNumber: String
     @State private var catalogGenreSuggestions: [String] = []
 
     private let editorItemID: UUID
@@ -47,10 +46,6 @@ struct BookEditorView: View {
 
         years.sort { (Int($0) ?? 0) > (Int($1) ?? 0) }
         return [none] + years
-    }
-
-    private var series: BookSeries? {
-        existingBook?.details.series
     }
 
     private var genreSuggestions: [String] {
@@ -85,7 +80,6 @@ struct BookEditorView: View {
         _selectedPublicationYearOption = State(
             initialValue: book?.details.publicationYear.map(String.init) ?? String(localized: "common.none")
         )
-        _volumeNumber = State(initialValue: book?.details.volumeNumber.map(String.init) ?? "")
     }
 
     var body: some View {
@@ -110,9 +104,6 @@ struct BookEditorView: View {
                     TextField(String(localized: "common.field.title"), text: $title)
                         .focused($isTitleFocused)
 
-                    TextField(String(localized: "common.field.notes"), text: $notes, axis: .vertical)
-                        .lineLimit(4, reservesSpace: true)
-
                     if !isTitleValid {
                         Button {
                             isTitleFocused = true
@@ -125,6 +116,20 @@ struct BookEditorView: View {
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(CatalogSemanticColors.destructive)
+                    }
+
+                    TextField(String(localized: "common.field.notes"), text: $notes, axis: .vertical)
+                        .lineLimit(4, reservesSpace: true)
+
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                        Text(String(localized: "common.field.tags"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        TagEditorSection(
+                            tagInput: $tagInput,
+                            tags: $tags
+                        )
                     }
                 }
 
@@ -147,10 +152,6 @@ struct BookEditorView: View {
                         value: $genre,
                         suggestions: genreSuggestions
                     )
-
-                    if series != nil {
-                        volumeField
-                    }
                 }
 
                 Section(String(localized: "bell.detail.section.collection_info")) {
@@ -174,13 +175,6 @@ struct BookEditorView: View {
                         options: ItemCondition.allCases,
                         selection: $condition,
                         optionTitle: \.displayName
-                    )
-                }
-
-                Section(String(localized: "common.field.tags")) {
-                    TagEditorSection(
-                        tagInput: $tagInput,
-                        tags: $tags
                     )
                 }
             }
@@ -213,50 +207,10 @@ struct BookEditorView: View {
     private var canSave: Bool {
         isTitleValid
             && isOptionalPositiveIntegerValid(pageCount)
-            && isVolumeValid
     }
 
     private var isTitleValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var volumeField: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-            LabeledContent("Volume") {
-                numericTextField($volumeNumber)
-            }
-
-            if !isVolumeValid {
-                Label(
-                    volumeValidationMessage,
-                    systemImage: "exclamationmark.circle.fill"
-                )
-                .font(.footnote)
-                .foregroundStyle(CatalogSemanticColors.destructive)
-            }
-        }
-    }
-
-    private var isVolumeValid: Bool {
-        guard series != nil else { return true }
-
-        let trimmed = volumeNumber.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return true }
-        guard let number = Int(trimmed), number > 0 else { return false }
-
-        if let totalBookCount = series?.totalBookCount {
-            return number <= totalBookCount
-        }
-
-        return true
-    }
-
-    private var volumeValidationMessage: String {
-        if let totalBookCount = series?.totalBookCount {
-            return "Enter a whole number from 1 to \(totalBookCount)."
-        }
-
-        return "Enter a positive whole number."
     }
 
     private func optionalPositiveIntegerField(
@@ -319,6 +273,7 @@ struct BookEditorView: View {
             asset.with(itemID: itemID, sortOrder: index)
         }
         let existingItem = existingBook?.item
+        let existingSeries = existingBook?.details.series
 
         let book = BookRecord(
             item: ItemRecord(
@@ -347,10 +302,10 @@ struct BookEditorView: View {
                 genre: optionalString(genre),
                 pageCount: optionalPositiveInt(pageCount),
                 publicationYear: Int(selectedPublicationYearOption),
-                volumeNumber: series == nil ? nil : optionalPositiveInt(volumeNumber),
+                volumeNumber: existingSeries == nil ? nil : existingBook?.details.volumeNumber,
                 publisher: existingBook?.details.publisher,
                 contributors: existingBook?.details.contributors ?? [],
-                series: series,
+                series: existingSeries,
                 identifiers: existingBook?.details.identifiers ?? []
             )
         )
@@ -386,7 +341,7 @@ private struct BookLanguagePickerField: View {
 
     private var selectedLabel: String {
         guard !languageCode.isEmpty else { return String(localized: "common.none") }
-        return Locale.current.localizedString(forLanguageCode: languageCode) ?? languageCode.uppercased()
+        return bookLanguageDisplayName(for: languageCode)
     }
 
     var body: some View {
@@ -430,9 +385,11 @@ private struct BookLanguagePickerView: View {
     private var languageOptions: [LanguageOption] {
         Locale.LanguageCode.isoLanguageCodes
             .map(\.identifier)
-            .compactMap { code in
-                guard let name = Locale.current.localizedString(forLanguageCode: code) else { return nil }
-                return LanguageOption(code: code, name: name)
+            .map { code in
+                LanguageOption(
+                    code: code,
+                    name: bookLanguageDisplayName(for: code)
+                )
             }
             .sorted { lhs, rhs in
                 lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
@@ -523,17 +480,15 @@ private struct LookupTextField: View {
             TextField("—", text: $value)
                 .multilineTextAlignment(.trailing)
 
-            if !suggestions.isEmpty {
-                Button {
-                    isPresentingLookup = true
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(CatalogTypography.chipLabel)
-                        .foregroundStyle(.tertiary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Choose \(title)")
+            Button {
+                isPresentingLookup = true
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.tertiary)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Choose or add \(title)")
         }
         .sheet(isPresented: $isPresentingLookup) {
             LookupSelectionView(
@@ -559,9 +514,27 @@ private struct LookupSelectionView: View {
         return suggestions.filter { $0.localizedCaseInsensitiveContains(query) }
     }
 
+    private var newValueCandidate: String? {
+        let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        guard !suggestions.contains(where: { $0.caseInsensitiveCompare(candidate) == .orderedSame }) else {
+            return nil
+        }
+        return candidate
+    }
+
     var body: some View {
         NavigationStack {
             List {
+                if let newValueCandidate {
+                    Button {
+                        selection = newValueCandidate
+                        dismiss()
+                    } label: {
+                        Label("Add “\(newValueCandidate)”", systemImage: "plus.circle.fill")
+                    }
+                }
+
                 ForEach(filteredSuggestions, id: \.self) { suggestion in
                     Button {
                         selection = suggestion
@@ -583,7 +556,7 @@ private struct LookupSelectionView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText)
+            .searchable(text: $searchText, prompt: "Search or add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -594,6 +567,13 @@ private struct LookupSelectionView: View {
             }
         }
     }
+}
+
+private func bookLanguageDisplayName(for code: String) -> String {
+    let name = Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
+    guard let firstCharacter = name.first else { return name }
+
+    return String(firstCharacter).uppercased(with: Locale.current) + String(name.dropFirst())
 }
 
 #if DEBUG
