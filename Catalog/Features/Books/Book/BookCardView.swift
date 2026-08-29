@@ -30,23 +30,13 @@ struct BookCardView: View {
     var body: some View {
         Group {
             if let coverPhoto {
-                Color.clear
+                mediaContent
                     .catalogSurfaceCard(cardMetrics: cardMetrics) {
                         MediaPreviewImage(
                             identifier: coverPhoto.localIdentifier,
                             originalData: coverPhoto.originalData,
                             size: cardSize
                         )
-                    }
-                    .overlay(alignment: .bottomLeading) {
-                        if let accessoryRowStyle = style.accessoryRow, !accessories.isEmpty {
-                            CatalogCardAccessoryRow(
-                                accessories: accessories,
-                                style: accessoryRowStyle,
-                                bright: true
-                            )
-                            .padding(cardMetrics.cardPadding)
-                        }
                     }
             } else {
                 CatalogCardContent(
@@ -62,6 +52,28 @@ struct BookCardView: View {
             }
         }
         .frame(width: cardSize.width, height: cardSize.height)
+    }
+
+    @ViewBuilder
+    private var mediaContent: some View {
+        if let accessoryRowStyle = style.accessoryRow, !accessories.isEmpty {
+            CatalogCardAccessoryRow(
+                accessories: accessories,
+                style: accessoryRowStyle,
+                bright: true
+            )
+            .frame(
+                width: max(cardSize.width - (cardMetrics.cardPadding * 2), 0),
+                height: max(cardSize.height - (cardMetrics.cardPadding * 2), 0),
+                alignment: .bottomLeading
+            )
+        } else {
+            Color.clear
+                .frame(
+                    width: max(cardSize.width - (cardMetrics.cardPadding * 2), 0),
+                    height: max(cardSize.height - (cardMetrics.cardPadding * 2), 0)
+                )
+        }
     }
 
     private var coverPhoto: MediaAsset? {
