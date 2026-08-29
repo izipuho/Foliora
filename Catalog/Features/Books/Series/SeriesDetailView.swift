@@ -62,7 +62,10 @@ struct SeriesDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
+        CatalogCardGrid(
+            layoutMode: .compact,
+            usesGridLayout: false
+        ) { cardSize, gridMetrics, cardMetrics in
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
                 summaryCard
 
@@ -82,7 +85,7 @@ struct SeriesDetailView: View {
                         BookGridView(
                             books: sortedBooks,
                             layoutMode: .compact,
-                            bottomContentMargin: 0,
+                            layoutMetrics: (cardSize, gridMetrics, cardMetrics),
                             accessories: volumeAccessories,
                             onBookSelected: onBookSelected
                         )
