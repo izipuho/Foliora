@@ -30,15 +30,18 @@ extension CatalogSnapshot {
     }
 
     var publishers: [Publisher] {
-        publisherEntities
-            .map { CoreDataDomainMapper.publisher(from: $0) }
-            .sorted {
-                let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
-                if comparison != .orderedSame {
-                    return comparison == .orderedAscending
-                }
-                return $0.id.uuidString < $1.id.uuidString
+        let publishersByID = Dictionary(
+            publisherEntities.map(CoreDataDomainMapper.publisher(from:)).map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        return publishersByID.values.sorted {
+            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
+            if comparison != .orderedSame {
+                return comparison == .orderedAscending
             }
+            return $0.id.uuidString < $1.id.uuidString
+        }
     }
 
     var bookRecordsByID: [UUID: BookRecord] {
