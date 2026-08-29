@@ -1,5 +1,25 @@
 import SwiftUI
 
+private enum PublisherBookOrderMode: String, CaseIterable, Hashable {
+    case title
+    case author
+    case publicationYearNewest
+    case newestFirst
+
+    var title: String {
+        switch self {
+        case .title:
+            return "Title"
+        case .author:
+            return "Author"
+        case .publicationYearNewest:
+            return "Publication year"
+        case .newestFirst:
+            return "Newest first"
+        }
+    }
+}
+
 /// Displays a publisher and the books from the current library published by it.
 struct PublisherDetailView: View {
     @State private var publisher: Publisher
@@ -17,6 +37,8 @@ struct PublisherDetailView: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("bookPublisher.orderMode") private var selectedOrderRawValue = PublisherBookOrderMode.title.rawValue
+    @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = CatalogCardLayoutMode.mini.rawValue
     @State private var isPresentingEditor = false
 
     init(
@@ -47,15 +69,51 @@ struct PublisherDetailView: View {
         self.onBookSelected = onBookSelected
     }
 
+    private var selectedOrder: PublisherBookOrderMode {
+        get { PublisherBookOrderMode(rawValue: selectedOrderRawValue) ?? .title }
+        nonmutating set { selectedOrderRawValue = newValue.rawValue }
+    }
+
+    private var selectedOrderBinding: Binding<PublisherBookOrderMode> {
+        Binding(
+            get: { selectedOrder },
+            set: { selectedOrder = $0 }
+        )
+    }
+
+    private var layoutMode: CatalogCardLayoutMode {
+        get { CatalogCardLayoutMode(rawValue: layoutModeRawValue) ?? .mini }
+        nonmutating set { layoutModeRawValue = newValue.rawValue }
+    }
+
+    private var layoutModeBinding: Binding<CatalogCardLayoutMode> {
+        Binding(
+            get: { layoutMode },
+            set: { layoutMode = $0 }
+        )
+    }
+
     private var sortedBooks: [BookRecord] {
-        books.sorted {
-            $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+        switch selectedOrder {
+        case .title:
+            return books.sorted(by: titleLessThan)
+        case .author:
+            return books.sorted(by: authorLessThan)
+        case .publicationYearNewest:
+            return books.sorted(by: publicationYearLessThan)
+        case .newestFirst:
+            return books.sorted {
+                if $0.createdAt != $1.createdAt {
+                    return $0.createdAt > $1.createdAt
+                }
+                return titleLessThan($0, $1)
+            }
         }
     }
 
     var body: some View {
         CatalogCardGrid(
-            layoutMode: .compact,
+            layoutMode: layoutMode,
             usesGridLayout: false
         ) { cardSize, gridMetrics, cardMetrics in
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
@@ -76,7 +134,7 @@ struct PublisherDetailView: View {
 
                         BookGridView(
                             books: sortedBooks,
-                            layoutMode: .compact,
+                            layoutMode: layoutMode,
                             layoutMetrics: (cardSize, gridMetrics, cardMetrics),
                             onBookSelected: onBookSelected
                         )
@@ -103,6 +161,14 @@ struct PublisherDetailView: View {
                     .accessibilityLabel("Edit Publisher")
                 }
             }
+
+            CatalogSortLayoutToolbar(
+                selectedSort: selectedOrderBinding,
+                selectedLayoutMode: layoutModeBinding,
+                sortOptions: PublisherBookOrderMode.allCases,
+                sortSectionTitle: "Sort",
+                sortTitle: { $0.title }
+            )
         }
         .sheet(isPresented: $isPresentingEditor) {
             PublisherEditorView(
@@ -167,10 +233,7 @@ struct PublisherDetailView: View {
 
     @ViewBuilder
     private var publisherMark: some View {
-        if let logo = publisher.logos
-            .filter({ $0.kind == .photo })
-            .sorted(by: { $0.sortOrder < $1.sortOrder })
-            .first {
+        if let logo = publisher.logo, logo.kind == .photo {
             MediaPreviewImage(
                 identifier: logo.localIdentifier,
                 originalData: logo.originalData,
@@ -205,6 +268,49 @@ struct PublisherDetailView: View {
                 .font(CatalogTypography.cardLabel)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    private func titleLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
+        lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
+    }
+
+    private func authorLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
+        let lhsAuthor = authorDisplayName(for: lhs)
+        let rhsAuthor = authorDisplayName(for: rhs)
+
+        if lhsAuthor == rhsAuthor {
+            return titleLessThan(lhs, rhs)
+        }
+        if lhsAuthor.isEmpty { return false }
+        if rhsAuthor.isEmpty { return true }
+        return lhsAuthor.localizedStandardCompare(rhsAuthor) == .orderedAscending
+    }
+
+    private func publicationYearLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
+        switch (lhs.details.publicationYear, rhs.details.publicationYear) {
+        case let (.some(lhsYear), .some(rhsYear)) where lhsYear != rhsYear:
+            return lhsYear > rhsYear
+        case (.some, .none):
+            return true
+        case (.none, .some):
+            return false
+        default:
+            return titleLessThan(lhs, rhs)
+        }
+    }
+
+    private func authorDisplayName(for book: BookRecord) -> String {
+        book.details.contributors
+            .filter { $0.role == .author }
+            .sorted { lhs, rhs in
+                if lhs.order != rhs.order {
+                    return lhs.order < rhs.order
+                }
+                return lhs.person.name.localizedStandardCompare(rhs.person.name) == .orderedAscending
+            }
+            .map { $0.person.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
     }
 }
 
