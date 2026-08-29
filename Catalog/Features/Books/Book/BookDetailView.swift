@@ -227,8 +227,7 @@ struct BookDetailView: View {
 
                 if !otherContributors.isEmpty {
                     Text("Contributors")
-                        .font(CatalogTypography.cardLabel)
-                        .foregroundStyle(.secondary)
+                        .font(CatalogTypography.sectionTitle)
 
                     contributorsCard
                 }
