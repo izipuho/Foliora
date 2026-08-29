@@ -159,7 +159,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         entity.setValue(publisher.name, forKey: "name")
         entity.setValue(publisher.location.map(upsertBookPlace), forKey: "location")
         replaceReferenceMediaAssets(
-            publisher.logos,
+            publisher.logo.map { [$0.with(sortOrder: 0)] } ?? [],
             relationshipName: "logos",
             inverseRelationshipName: "publisher",
             for: entity
