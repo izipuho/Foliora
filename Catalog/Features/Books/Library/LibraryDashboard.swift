@@ -5,6 +5,10 @@ struct LibraryDashboardView: View {
     let stats: LibraryStats
     let accentColor: Color
     let collection: CollectionSummary
+    let catalogSnapshot: CatalogSnapshot?
+    let repository: any CatalogRepository
+    let canEditCollection: Bool
+    let onBookSelected: ((UUID) -> Void)?
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
     let onSharingChanged: () -> Void
@@ -15,6 +19,10 @@ struct LibraryDashboardView: View {
             DashboardCardStrip(
                 stats: stats,
                 collection: collection,
+                catalogSnapshot: catalogSnapshot,
+                repository: repository,
+                canEditCollection: canEditCollection,
+                onBookSelected: onBookSelected,
                 sharingState: sharingState,
                 sharingService: sharingService,
                 tint: accentColor,
@@ -42,6 +50,10 @@ struct LibraryDashboardView: View {
 private struct DashboardCardStrip: View {
     let stats: LibraryStats
     let collection: CollectionSummary
+    let catalogSnapshot: CatalogSnapshot?
+    let repository: any CatalogRepository
+    let canEditCollection: Bool
+    let onBookSelected: ((UUID) -> Void)?
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
     let tint: Color
@@ -50,24 +62,18 @@ private struct DashboardCardStrip: View {
 
     @State private var isPresentingDataHealthPopover = false
 
-    private var canEditCollection: Bool {
-        switch sharingState?.currentUserRole {
-        case .owner, .contributor:
-            return true
-        case .viewer, nil:
-            return false
-        }
-    }
-
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 sharingCard
 
                 NavigationLink {
-                    SeriesDashboardDestination(
+                    SeriesView(
                         collection: collection,
-                        canEditCollection: canEditCollection
+                        catalogSnapshot: catalogSnapshot,
+                        repository: repository,
+                        canEditCollection: canEditCollection,
+                        onBookSelected: onBookSelected
                     )
                 } label: {
                     BookSeriesHealthCard(
