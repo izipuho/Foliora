@@ -96,7 +96,6 @@ private struct DashboardCardStrip: View {
                 } label: {
                     BookPublisherDashboardCard(
                         libraryCount: libraryPublisherCount,
-                        catalogCount: catalogSnapshot?.publishers.count ?? 0,
                         tint: tint
                     )
                 }
@@ -280,7 +279,6 @@ private struct BookSeriesHealthCard: View {
 
 private struct BookPublisherDashboardCard: View {
     let libraryCount: Int
-    let catalogCount: Int
     let tint: Color
 
     var body: some View {
@@ -295,12 +293,6 @@ private struct BookPublisherDashboardCard: View {
 
                 Text("\(libraryCount) in this library")
                     .font(CatalogTypography.cardSubtitle)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-
-                Text("\(catalogCount) in catalog")
-                    .font(CatalogTypography.chipLabel)
-                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
             }
