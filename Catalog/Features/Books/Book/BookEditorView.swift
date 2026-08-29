@@ -830,8 +830,7 @@ private struct BookPublisherSelectionView: View {
                         let newPublisher = Publisher(
                             id: UUID(),
                             name: newPublisherName,
-                            location: nil,
-                            logos: []
+                            location: nil
                         )
                         onCreate(newPublisher)
                         selection = newPublisher

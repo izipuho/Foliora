@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 struct MediaSection: View {
     let itemID: UUID
     @Binding var mediaAssets: [MediaAsset]
+    var maxMediaCount: Int? = nil
     var analysisHighlightedAssetID: UUID? = nil
     var allowsAdding = true
     var allowsDeletion = true
@@ -55,7 +56,7 @@ struct MediaSection: View {
                         }
                     }
 
-                    if allowsAdding {
+                    if canAddMedia {
                         Button {
                             isPresentingAddMediaOptions = true
                         } label: {
@@ -75,7 +76,7 @@ struct MediaSection: View {
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
                 selection: $selectedPhotoItems,
-                maxSelectionCount: nil,
+                maxSelectionCount: photoPickerSelectionLimit,
                 matching: .images,
                 photoLibrary: .shared()
             )
@@ -127,6 +128,17 @@ struct MediaSection: View {
         }
     }
 
+    private var canAddMedia: Bool {
+        guard allowsAdding else { return false }
+        guard let maxMediaCount else { return true }
+        return mediaAssets.count < maxMediaCount
+    }
+
+    private var photoPickerSelectionLimit: Int? {
+        guard let maxMediaCount else { return nil }
+        return max(maxMediaCount - mediaAssets.count, 1)
+    }
+
     private var isEditing: Bool {
         allowsDeletion
     }
@@ -144,10 +156,11 @@ struct MediaSection: View {
 
     @MainActor
     private func addPhotos(from items: [PhotosPickerItem]) async {
-        guard allowsAdding else { return }
+        guard canAddMedia else { return }
         guard !items.isEmpty else { return }
 
         for item in items {
+            guard canAddMedia else { break }
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
             guard let image = UIImage(data: data) else { continue }
             let contentType = item.supportedContentTypes.first
@@ -171,7 +184,7 @@ struct MediaSection: View {
     }
 
     private func addCapturedPhoto(_ image: UIImage) {
-        guard allowsAdding else { return }
+        guard canAddMedia else { return }
         guard let data = image.jpegData(compressionQuality: 0.92) else { return }
         guard let media = try? imageMediaBuilder.build(
             from: data,

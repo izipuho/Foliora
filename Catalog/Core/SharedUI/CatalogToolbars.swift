@@ -49,46 +49,13 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         }
 
         ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Section(sortSectionTitle) {
-                    ForEach(sortOptions, id: \.self) { option in
-                        Button {
-                            selectedSort = option
-                        } label: {
-                            if selectedSort == option {
-                                Label(sortTitle(option), systemImage: "checkmark")
-                            } else {
-                                Text(sortTitle(option))
-                            }
-                        }
-                    }
-                }
-
-                Section(String(localized: "card_layout.menu")) {
-                    ControlGroup {
-                        Button {
-                            zoomOutLayout()
-                        } label: {
-                            Image(systemName: "minus")
-                        }
-                        .disabled(!canZoomOut)
-
-                        Text(layoutTitle(for: selectedLayoutMode))
-
-                        Button {
-                            zoomInLayout()
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .disabled(!canZoomIn)
-                    } label: {
-                        Label(String(localized: "card_layout.menu"), systemImage: "square.grid.2x2")
-                    }
-                    .menuActionDismissBehavior(.disabled)
-                }
-            } label: {
-                toolbarIcon(systemName: "line.3.horizontal.decrease")
-            }
+            CatalogSortLayoutMenu(
+                selectedSort: $selectedSort,
+                selectedLayoutMode: $selectedLayoutMode,
+                sortOptions: sortOptions,
+                sortSectionTitle: sortSectionTitle,
+                sortTitle: sortTitle
+            )
         }
 
         if canEdit {
@@ -115,6 +82,101 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         }
     }
 
+    private func toolbarIcon(systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.system(size: 17, weight: .semibold))
+            .frame(width: 30, height: 30)
+    }
+}
+
+/// Shared sort and card-scale toolbar for catalog grid detail screens.
+struct CatalogSortLayoutToolbar<SortOption: Hashable>: ToolbarContent {
+    @Binding private var selectedSort: SortOption
+    @Binding private var selectedLayoutMode: CatalogCardLayoutMode
+
+    private let sortOptions: [SortOption]
+    private let sortSectionTitle: String
+    private let sortTitle: (SortOption) -> String
+
+    init(
+        selectedSort: Binding<SortOption>,
+        selectedLayoutMode: Binding<CatalogCardLayoutMode>,
+        sortOptions: [SortOption],
+        sortSectionTitle: String,
+        sortTitle: @escaping (SortOption) -> String
+    ) {
+        self._selectedSort = selectedSort
+        self._selectedLayoutMode = selectedLayoutMode
+        self.sortOptions = sortOptions
+        self.sortSectionTitle = sortSectionTitle
+        self.sortTitle = sortTitle
+    }
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            CatalogSortLayoutMenu(
+                selectedSort: $selectedSort,
+                selectedLayoutMode: $selectedLayoutMode,
+                sortOptions: sortOptions,
+                sortSectionTitle: sortSectionTitle,
+                sortTitle: sortTitle
+            )
+        }
+    }
+}
+
+private struct CatalogSortLayoutMenu<SortOption: Hashable>: View {
+    @Binding var selectedSort: SortOption
+    @Binding var selectedLayoutMode: CatalogCardLayoutMode
+    let sortOptions: [SortOption]
+    let sortSectionTitle: String
+    let sortTitle: (SortOption) -> String
+
+    var body: some View {
+        Menu {
+            Section(sortSectionTitle) {
+                ForEach(sortOptions, id: \.self) { option in
+                    Button {
+                        selectedSort = option
+                    } label: {
+                        if selectedSort == option {
+                            Label(sortTitle(option), systemImage: "checkmark")
+                        } else {
+                            Text(sortTitle(option))
+                        }
+                    }
+                }
+            }
+
+            Section(String(localized: "card_layout.menu")) {
+                ControlGroup {
+                    Button {
+                        zoomOutLayout()
+                    } label: {
+                        Image(systemName: "minus")
+                    }
+                    .disabled(!canZoomOut)
+
+                    Text(layoutTitle(for: selectedLayoutMode))
+
+                    Button {
+                        zoomInLayout()
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .disabled(!canZoomIn)
+                } label: {
+                    Label(String(localized: "card_layout.menu"), systemImage: "square.grid.2x2")
+                }
+                .menuActionDismissBehavior(.disabled)
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease")
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 30, height: 30)
+        }
+    }
+
     private var orderedLayoutModes: [CatalogCardLayoutMode] {
         [.covers, .mini, .compact, .wide, .showcase]
     }
@@ -123,7 +185,6 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode) else {
             return false
         }
-
         return currentIndex > 0
     }
 
@@ -131,7 +192,6 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode) else {
             return false
         }
-
         return currentIndex < orderedLayoutModes.count - 1
     }
 
@@ -139,7 +199,6 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode), currentIndex > 0 else {
             return
         }
-
         selectedLayoutMode = orderedLayoutModes[currentIndex - 1]
     }
 
@@ -148,7 +207,6 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
               currentIndex < orderedLayoutModes.count - 1 else {
             return
         }
-
         selectedLayoutMode = orderedLayoutModes[currentIndex + 1]
     }
 
@@ -165,12 +223,6 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         case .showcase:
             return String(localized: "card_layout.showcase")
         }
-    }
-
-    private func toolbarIcon(systemName: String) -> some View {
-        Image(systemName: systemName)
-            .font(.system(size: 17, weight: .semibold))
-            .frame(width: 30, height: 30)
     }
 }
 

@@ -69,15 +69,13 @@ extension CoreDataDomainMapper {
         )
 
         let locationEntity = entity.value(forKey: "location") as? NSManagedObject
-        let logos = relatedObjects(entity, "logos")
-            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-            .map { mediaAsset(from: $0) }
+        let logoEntity = entity.value(forKey: "logo") as? NSManagedObject
 
         return Publisher(
             id: uuidValue(entity, "id"),
             name: stringValue(entity, "name"),
             location: locationEntity.map { place(from: $0) },
-            logos: logos
+            logo: logoEntity.map { mediaAsset(from: $0) }
         )
     }
 

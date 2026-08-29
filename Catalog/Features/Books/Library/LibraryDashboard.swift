@@ -85,6 +85,22 @@ private struct DashboardCardStrip: View {
                 }
                 .buttonStyle(.plain)
 
+                NavigationLink {
+                    PublishersView(
+                        collection: collection,
+                        catalogSnapshot: catalogSnapshot,
+                        repository: repository,
+                        canEditCollection: canEditCollection,
+                        onBookSelected: onBookSelected
+                    )
+                } label: {
+                    BookPublisherDashboardCard(
+                        libraryCount: libraryPublisherCount,
+                        tint: tint
+                    )
+                }
+                .buttonStyle(.plain)
+
                 CatalogDashboardDataHealthCard(
                     progress: stats.dataHealthProgress,
                     tint: tint
@@ -138,6 +154,16 @@ private struct DashboardCardStrip: View {
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
+    }
+
+    private var libraryPublisherCount: Int {
+        guard let catalogSnapshot else { return 0 }
+        let books = catalogSnapshot.bookRecords.filter { $0.collectionID == collection.id }
+        let series = catalogSnapshot.bookSeries.filter { $0.collectionID == collection.id }
+        return Set(
+            books.compactMap { $0.details.publisher?.id }
+                + series.compactMap { $0.publisher?.id }
+        ).count
     }
 
     private var dataHealthEntries: [BookDataHealthEntry] {
@@ -248,6 +274,29 @@ private struct BookSeriesHealthCard: View {
         }
 
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}
+
+private struct BookPublisherDashboardCard: View {
+    let libraryCount: Int
+    let tint: Color
+
+    var body: some View {
+        DashboardCard {
+            Image(systemName: "building.2.fill")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(tint)
+        } content: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Publishers")
+                    .font(CatalogTypography.sectionTitle)
+
+                Text("\(libraryCount) in this library")
+                    .font(CatalogTypography.cardSubtitle)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+        }
     }
 }
 
