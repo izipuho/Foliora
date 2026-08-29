@@ -95,7 +95,34 @@ struct BookEditorView: View {
                     }
                 }
 
-                Section(String(localized: "editor.acquisition_details")) {
+                Section("common.book") {
+                    optionalPositiveIntegerField(
+                        title: "Publication year",
+                        text: $publicationYear
+                    )
+
+                    optionalPositiveIntegerField(
+                        title: "Pages",
+                        text: $pageCount
+                    )
+
+                    LabeledContent("Language") {
+                        TextField("—", text: $languageCode)
+                            .multilineTextAlignment(.trailing)
+                    }
+
+                    LabeledContent("Genre") {
+                        TextField("—", text: $genre)
+                            .multilineTextAlignment(.trailing)
+                    }
+
+                    optionalPositiveIntegerField(
+                        title: "Volume",
+                        text: $volumeNumber
+                    )
+                }
+
+                Section(String(localized: "bell.detail.section.collection_info")) {
                     YearPickerField(
                         title: String(localized: "common.field.acquired_year"),
                         selection: $selectedAcquiredYearOption,
@@ -109,9 +136,7 @@ struct BookEditorView: View {
                         selection: $acquisitionMethod,
                         optionTitle: \.displayName
                     )
-                }
 
-                Section(String(localized: "editor.attributes")) {
                     EnumSelectionRow(
                         title: String(localized: "common.field.condition"),
                         selectedLabel: condition.displayName,
@@ -119,14 +144,6 @@ struct BookEditorView: View {
                         selection: $condition,
                         optionTitle: \.displayName
                     )
-                }
-
-                Section("common.book") {
-                    TextField("Language", text: $languageCode)
-                    TextField("Genre", text: $genre)
-                    TextField("Pages", text: $pageCount)
-                    TextField("Publication year", text: $publicationYear)
-                    TextField("Volume", text: $volumeNumber)
                 }
 
                 Section(String(localized: "common.field.tags")) {
@@ -152,20 +169,68 @@ struct BookEditorView: View {
                     } label: {
                         Image(systemName: "checkmark")
                     }
-                    .disabled(!isTitleValid)
+                    .disabled(!canSave)
                     .accessibilityLabel(String(localized: "common.save"))
                 }
             }
         }
     }
 
+    private var canSave: Bool {
+        isTitleValid
+            && isOptionalPositiveIntegerValid(publicationYear)
+            && isOptionalPositiveIntegerValid(pageCount)
+            && isOptionalPositiveIntegerValid(volumeNumber)
+    }
+
     private var isTitleValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private func optionalPositiveIntegerField(
+        title: String,
+        text: Binding<String>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+            LabeledContent(title) {
+                numericTextField(text)
+            }
+
+            if !isOptionalPositiveIntegerValid(text.wrappedValue) {
+                Label(
+                    "Enter a positive whole number.",
+                    systemImage: "exclamationmark.circle.fill"
+                )
+                .font(.footnote)
+                .foregroundStyle(CatalogSemanticColors.destructive)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func numericTextField(_ text: Binding<String>) -> some View {
+#if os(iOS)
+        TextField("—", text: text)
+            .keyboardType(.numberPad)
+            .multilineTextAlignment(.trailing)
+#else
+        TextField("—", text: text)
+            .multilineTextAlignment(.trailing)
+#endif
+    }
+
+    private func isOptionalPositiveIntegerValid(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return true }
+        guard let number = Int(trimmed) else { return false }
+        return number > 0
+    }
+
     private func saveBook() {
-        guard isTitleValid else {
-            isTitleFocused = true
+        guard canSave else {
+            if !isTitleValid {
+                isTitleFocused = true
+            }
             return
         }
 
@@ -200,9 +265,9 @@ struct BookEditorView: View {
                 itemID: itemID,
                 languageCode: optionalString(languageCode)?.lowercased(),
                 genre: optionalString(genre),
-                pageCount: optionalInt(pageCount),
-                publicationYear: optionalInt(publicationYear),
-                volumeNumber: optionalInt(volumeNumber),
+                pageCount: optionalPositiveInt(pageCount),
+                publicationYear: optionalPositiveInt(publicationYear),
+                volumeNumber: optionalPositiveInt(volumeNumber),
                 publisher: existingBook?.details.publisher,
                 contributors: existingBook?.details.contributors ?? [],
                 series: existingBook?.details.series,
@@ -219,7 +284,8 @@ struct BookEditorView: View {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    private func optionalInt(_ value: String) -> Int? {
-        optionalString(value).flatMap(Int.init)
+    private func optionalPositiveInt(_ value: String) -> Int? {
+        guard let number = optionalString(value).flatMap(Int.init), number > 0 else { return nil }
+        return number
     }
 }
