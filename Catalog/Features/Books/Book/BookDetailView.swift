@@ -213,44 +213,140 @@ struct BookDetailView: View {
 
     private var bookInformationSection: some View {
         detailSection(String(localized: "common.book")) {
-            if let publisher = book.details.publisher {
-                detailRow("Publisher", value: publisher.name)
-            }
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                if let publisher = book.details.publisher {
+                    metadataTile(
+                        title: "Publisher",
+                        value: publisher.name,
+                        systemImage: "building.2"
+                    )
+                }
 
-            if let publicationYear = book.details.publicationYear {
-                detailRow("Publication year", value: String(publicationYear))
-            }
+                LazyVGrid(
+                    columns: [
+                        GridItem(
+                            .adaptive(minimum: 140),
+                            spacing: CatalogMetrics.Spacing.md,
+                            alignment: .top
+                        )
+                    ],
+                    alignment: .leading,
+                    spacing: CatalogMetrics.Spacing.md
+                ) {
+                    if let publicationYear = book.details.publicationYear {
+                        metadataTile(
+                            title: "Publication year",
+                            value: String(publicationYear),
+                            systemImage: "calendar"
+                        )
+                    }
 
-            if let series = book.details.series {
-                detailRow("Series", value: series.name)
-            }
+                    if let pageCount = book.details.pageCount {
+                        metadataTile(
+                            title: "Pages",
+                            value: String(pageCount),
+                            systemImage: "doc.text"
+                        )
+                    }
 
-            if let volumeNumber = book.details.volumeNumber {
-                detailRow("Volume", value: volumeDisplayName(volumeNumber))
-            }
+                    if let languageCode = book.details.languageCode, !languageCode.isEmpty {
+                        metadataTile(
+                            title: "Language",
+                            value: languageCode.uppercased(),
+                            systemImage: "globe"
+                        )
+                    }
 
-            if let pageCount = book.details.pageCount {
-                detailRow("Pages", value: String(pageCount))
-            }
+                    if let volumeNumber = book.details.volumeNumber {
+                        metadataTile(
+                            title: "Volume",
+                            value: volumeDisplayName(volumeNumber),
+                            systemImage: "books.vertical"
+                        )
+                    }
+                }
 
-            if let languageCode = book.details.languageCode, !languageCode.isEmpty {
-                detailRow("Language", value: languageCode.uppercased())
-            }
+                if let series = book.details.series {
+                    metadataTile(
+                        title: "Series",
+                        value: series.name,
+                        systemImage: "books.vertical"
+                    )
+                }
 
-            ForEach(otherContributors, id: \.self) { contributor in
-                detailRow(contributor.role.title, value: contributor.person.name)
+                if !otherContributors.isEmpty {
+                    Text("Contributors")
+                        .font(CatalogTypography.cardLabel)
+                        .foregroundStyle(.secondary)
+
+                    contributorsCard
+                }
             }
+        }
+    }
+
+    private var contributorsCard: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(otherContributors.enumerated()), id: \.offset) { index, contributor in
+                HStack(alignment: .firstTextBaseline, spacing: CatalogMetrics.Spacing.md) {
+                    Label(contributor.role.title, systemImage: "person.crop.circle")
+                        .font(CatalogTypography.cardSubtitle)
+                        .foregroundStyle(.secondary)
+
+                    Spacer(minLength: CatalogMetrics.Spacing.md)
+
+                    Text(contributor.person.name)
+                        .font(CatalogTypography.cardLabel)
+                        .multilineTextAlignment(.trailing)
+                }
+
+                if index < otherContributors.count - 1 {
+                    Divider()
+                        .padding(.vertical, CatalogMetrics.Spacing.md)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(CatalogMetrics.Spacing.lg)
+        .background {
+            CatalogShapes.section
+                .fill(.ultraThinMaterial)
         }
     }
 
     private var collectionInformationSection: some View {
         detailSection(String(localized: "bell.detail.section.collection_info")) {
-            if let acquiredYear = book.acquiredYear {
-                detailRow(String(localized: "common.field.acquired_year"), value: String(acquiredYear))
-            }
+            LazyVGrid(
+                columns: [
+                    GridItem(
+                        .adaptive(minimum: 104),
+                        spacing: CatalogMetrics.Spacing.md,
+                        alignment: .top
+                    )
+                ],
+                alignment: .leading,
+                spacing: CatalogMetrics.Spacing.md
+            ) {
+                if let acquiredYear = book.acquiredYear {
+                    metadataTile(
+                        title: String(localized: "common.field.acquired_year"),
+                        value: String(acquiredYear),
+                        systemImage: "calendar.badge.plus"
+                    )
+                }
 
-            detailRow(String(localized: "bell.detail.acquisition"), value: book.acquisitionMethod.displayName)
-            detailRow(String(localized: "common.field.condition"), value: book.condition.displayName)
+                metadataTile(
+                    title: String(localized: "bell.detail.acquisition"),
+                    value: book.acquisitionMethod.displayName,
+                    systemImage: "bag"
+                )
+
+                metadataTile(
+                    title: String(localized: "common.field.condition"),
+                    value: book.condition.displayName,
+                    systemImage: "checkmark.seal"
+                )
+            }
         }
     }
 
@@ -440,16 +536,24 @@ struct BookDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func detailRow(_ title: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: CatalogMetrics.Spacing.md) {
-            Text(title)
+    private func metadataTile(
+        title: String,
+        value: String,
+        systemImage: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+            Label(title, systemImage: systemImage)
+                .font(CatalogTypography.cardSubtitle)
+                .foregroundStyle(.secondary)
 
-            Spacer(minLength: CatalogMetrics.Spacing.md)
+            Spacer(minLength: 0)
 
             Text(value)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.trailing)
+                .font(CatalogTypography.cardLabel)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
+        .catalogSurfaceTile()
     }
 
     private var coverPhoto: MediaAsset? {
