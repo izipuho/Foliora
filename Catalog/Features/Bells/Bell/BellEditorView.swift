@@ -336,6 +336,17 @@ struct BellEditorView: View {
 
                             TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
                                 .lineLimit(4, reservesSpace: true)
+
+                            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                                Text(String(localized: "common.field.tags"))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+
+                                TagEditorSection(
+                                    tagInput: $tagInput,
+                                    tags: $tags
+                                )
+                            }
                         }
 
                         Section(String(localized: "editor.acquisition_details")) {
@@ -394,13 +405,6 @@ struct BellEditorView: View {
                                 },
                                 presentationToken: locationPickerPresentationToken,
                                 selectedLocationID: $selectedLocationID
-                            )
-                        }
-
-                        Section(String(localized: "common.field.tags")) {
-                            TagEditorSection(
-                                tagInput: $tagInput,
-                                tags: $tags
                             )
                         }
                     }
