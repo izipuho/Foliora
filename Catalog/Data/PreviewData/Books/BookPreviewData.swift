@@ -35,16 +35,6 @@ extension PreviewData {
             latitude: 51.5072,
             longitude: -0.1276
         )
-        let originPlace = Place(
-            id: UUID(),
-            displayName: "Buenos Aires, Argentina",
-            countryCode: "AR",
-            countryName: "Argentina",
-            regionName: "Buenos Aires",
-            cityName: "Buenos Aires",
-            latitude: -34.6037,
-            longitude: -58.3816
-        )
         let publisher = Publisher(
             id: UUID(),
             name: "Preview Publisher",
@@ -70,7 +60,7 @@ extension PreviewData {
             birthYear: 1927,
             deathYear: 2014,
             biography: "Preview biography for the primary book author.",
-            birthPlace: originPlace,
+            birthPlace: nil,
             deathPlace: nil,
             photos: [
                 makePreviewPhoto(
@@ -120,7 +110,6 @@ extension PreviewData {
                 item.acquisitionMethod = .bought
                 item.isFavorite = true
                 item.tags = ["fiction", "classic", "latin america"]
-                item.setOriginPlace(originPlace)
                 item.mediaAssets = previewBookPhotos(
                     itemID: item.id,
                     names: ["IMG_7502.HEIC", "IMG_7503.HEIC", "IMG_7504.HEIC"]
