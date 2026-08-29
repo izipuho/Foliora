@@ -3,41 +3,19 @@ import Foundation
 
 extension CatalogSnapshot {
     var bookRecords: [BookRecord] {
-        itemEntities.compactMap { item in
-            guard
-                let rawKind = item.value(forKey: "kind") as? String,
-                rawKind == CollectionKind.books.rawValue,
-                let book = item.value(forKey: "book") as? NSManagedObject
-            else {
-                return nil
-            }
-
-            return CoreDataDomainMapper.bookRecord(from: book)
+        itemEntities.compactMap { itemEntity in
+            guard let bookEntity = itemEntity.value(forKey: "book") as? NSManagedObject else { return nil }
+            return CoreDataDomainMapper.bookRecord(from: bookEntity)
         }
     }
 
     var bookSeries: [BookSeries] {
-        collectionEntities.flatMap { collection in
-            let series: [NSManagedObject]
-            if let values = collection.value(forKey: "bookSeries") as? Set<NSManagedObject> {
-                series = Array(values)
-            } else {
-                series = (collection.value(forKey: "bookSeries") as? NSSet)?.allObjects.compactMap { $0 as? NSManagedObject } ?? []
-            }
-
-            return series.map { CoreDataDomainMapper.bookSeries(from: $0) }
+        let series = collectionEntities.flatMap { collectionEntity in
+            CoreDataDomainMapper.relatedObjects(collectionEntity, "bookSeries")
+                .map { CoreDataDomainMapper.bookSeries(from: $0) }
         }
-    }
-
-    var publishers: [Publisher] {
-        let publishersByID = Dictionary(
-            publisherEntities
-                .map { CoreDataDomainMapper.publisher(from: $0) }
-                .map { ($0.id, $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
-
-        return publishersByID.values.sorted {
+        let uniqueByID = Dictionary(series.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return uniqueByID.values.sorted {
             let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
             if comparison != .orderedSame {
                 return comparison == .orderedAscending
@@ -46,7 +24,19 @@ extension CatalogSnapshot {
         }
     }
 
-    var bookRecordsByID: [UUID: BookRecord] {
+    var publishers: [Publisher] {
+        let publishers = publisherEntities.map { CoreDataDomainMapper.publisher(from: $0) }
+        let uniqueByID = Dictionary(publishers.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return uniqueByID.values.sorted {
+            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
+            if comparison != .orderedSame {
+                return comparison == .orderedAscending
+            }
+            return $0.id.uuidString < $1.id.uuidString
+        }
+    }
+
+    var recordsByID: [UUID: BookRecord] {
         Dictionary(uniqueKeysWithValues: bookRecords.map { ($0.id, $0) })
     }
 }
