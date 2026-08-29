@@ -257,6 +257,14 @@ struct BookDetailView: View {
                         )
                     }
 
+                    if let genre = book.details.genre, !genre.isEmpty {
+                        metadataTile(
+                            title: "Genre",
+                            value: genre,
+                            systemImage: "tag"
+                        )
+                    }
+
                     if let volumeNumber = book.details.volumeNumber {
                         metadataTile(
                             title: "Volume",
@@ -600,6 +608,7 @@ struct BookDetailView: View {
             || book.details.volumeNumber != nil
             || book.details.pageCount != nil
             || !(book.details.languageCode?.isEmpty ?? true)
+            || !(book.details.genre?.isEmpty ?? true)
             || !otherContributors.isEmpty
     }
 
