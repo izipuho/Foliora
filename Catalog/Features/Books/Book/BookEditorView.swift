@@ -28,8 +28,10 @@ struct BookEditorView: View {
     @State private var selectedPublicationYearOption: String
     @State private var selectedSeries: BookSeries?
     @State private var volumeNumber: String
+    @State private var selectedPublisher: Publisher?
     @State private var catalogGenreSuggestions: [String] = []
     @State private var catalogSeries: [BookSeries] = []
+    @State private var catalogPublishers: [Publisher] = []
 
     private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
@@ -59,6 +61,21 @@ struct BookEditorView: View {
         var uniqueByID = Dictionary(catalogSeries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         if let selectedSeries {
             uniqueByID[selectedSeries.id] = selectedSeries
+        }
+
+        return uniqueByID.values.sorted {
+            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
+            if comparison != .orderedSame {
+                return comparison == .orderedAscending
+            }
+            return $0.id.uuidString < $1.id.uuidString
+        }
+    }
+
+    private var availablePublishers: [Publisher] {
+        var uniqueByID = Dictionary(catalogPublishers.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        if let selectedPublisher {
+            uniqueByID[selectedPublisher.id] = selectedPublisher
         }
 
         return uniqueByID.values.sorted {
@@ -100,6 +117,7 @@ struct BookEditorView: View {
         )
         _selectedSeries = State(initialValue: book?.details.series)
         _volumeNumber = State(initialValue: book?.details.volumeNumber.map(String.init) ?? "")
+        _selectedPublisher = State(initialValue: book?.details.publisher)
     }
 
     var body: some View {
@@ -188,6 +206,17 @@ struct BookEditorView: View {
                     if selectedSeries != nil {
                         volumeField
                     }
+                }
+
+                Section("Publisher") {
+                    BookPublisherPickerField(
+                        selection: $selectedPublisher,
+                        publishers: availablePublishers,
+                        onCreate: { newPublisher in
+                            catalogPublishers.append(newPublisher)
+                            selectedPublisher = newPublisher
+                        }
+                    )
                 }
 
                 Section(String(localized: "item.detail.section.collection_info")) {
@@ -331,11 +360,20 @@ struct BookEditorView: View {
     @MainActor
     private func loadCatalogMetadata() {
         let snapshot = CatalogSnapshot.load(from: managedObjectContext)
-        catalogGenreSuggestions = snapshot.bookRecords
+        let bookRecords = snapshot.bookRecords
+        let bookSeries = snapshot.bookSeries
+
+        catalogGenreSuggestions = bookRecords
             .filter { $0.collectionID == collection.id }
             .compactMap(\.details.genre)
-        catalogSeries = snapshot.bookSeries
+        catalogSeries = bookSeries
             .filter { $0.collectionID == collection.id }
+
+        var publishersByID: [UUID: Publisher] = [:]
+        for publisher in bookRecords.compactMap(\.details.publisher) + bookSeries.compactMap(\.publisher) {
+            publishersByID[publisher.id] = publisher
+        }
+        catalogPublishers = Array(publishersByID.values)
     }
 
     private func saveBook() {
@@ -380,7 +418,7 @@ struct BookEditorView: View {
                 pageCount: optionalPositiveInt(pageCount),
                 publicationYear: Int(selectedPublicationYearOption),
                 volumeNumber: selectedSeries == nil ? nil : optionalPositiveInt(volumeNumber),
-                publisher: existingBook?.details.publisher,
+                publisher: selectedPublisher,
                 contributors: existingBook?.details.contributors ?? [],
                 series: selectedSeries,
                 identifiers: existingBook?.details.identifiers ?? []
@@ -540,6 +578,136 @@ private struct BookSeriesSelectionView: View {
                 }
             }
             .navigationTitle("Series")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search or add")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+private struct BookPublisherPickerField: View {
+    @Binding var selection: Publisher?
+    let publishers: [Publisher]
+    let onCreate: (Publisher) -> Void
+
+    @State private var isPresentingPicker = false
+
+    var body: some View {
+        Button {
+            isPresentingPicker = true
+        } label: {
+            HStack {
+                Text("Publisher")
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Text(selection?.name ?? String(localized: "common.none"))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+
+                Image(systemName: "chevron.right")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isPresentingPicker) {
+            BookPublisherSelectionView(
+                selection: $selection,
+                publishers: publishers,
+                onCreate: onCreate
+            )
+        }
+    }
+}
+
+private struct BookPublisherSelectionView: View {
+    @Binding var selection: Publisher?
+    let publishers: [Publisher]
+    let onCreate: (Publisher) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredPublishers: [Publisher] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return publishers }
+        return publishers.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var newPublisherName: String? {
+        let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        guard !publishers.contains(where: { $0.name.caseInsensitiveCompare(candidate) == .orderedSame }) else {
+            return nil
+        }
+        return candidate
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let newPublisherName {
+                    Button {
+                        let newPublisher = Publisher(
+                            id: UUID(),
+                            name: newPublisherName,
+                            location: nil,
+                            logos: []
+                        )
+                        onCreate(newPublisher)
+                        selection = newPublisher
+                        dismiss()
+                    } label: {
+                        Label("Add “\(newPublisherName)”", systemImage: "plus.circle.fill")
+                    }
+                }
+
+                Button {
+                    selection = nil
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(String(localized: "common.none"))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if selection == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+
+                ForEach(filteredPublishers) { publisher in
+                    Button {
+                        selection = publisher
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(publisher.name)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            if selection?.id == publisher.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Publisher")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search or add")
             .toolbar {
