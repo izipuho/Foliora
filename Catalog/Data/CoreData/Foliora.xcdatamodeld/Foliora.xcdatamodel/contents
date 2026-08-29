@@ -24,7 +24,7 @@
     </entity>
     <entity name="BookIdentifierEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="type" optional="YES" attributeType="String"/>
-        <attribute name="value" optional="YES"/>
+        <attribute name="value" optional="YES" attributeType="String"/>
         <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="bookIdentifiers" inverseEntity="BookEntity"/>
     </entity>
     <entity name="BookSeriesEntity" representedClassName="NSManagedObject" syncable="YES">
