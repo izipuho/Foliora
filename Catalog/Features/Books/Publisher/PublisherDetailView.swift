@@ -66,19 +66,13 @@ struct PublisherDetailView: View {
                         Text("Series")
                             .font(CatalogTypography.sectionTitle)
 
-                        CatalogContainerList {
-                            Section {
-                                ForEach(series) { item in
-                                    CatalogContainerCard(
-                                        title: item.name,
-                                        supportingText: seriesSupportingText(item),
-                                        systemImage: "rectangle.stack.fill"
-                                    )
-                                    .catalogContainerListRow()
-                                }
-                            }
+                        ForEach(series) { item in
+                            CatalogContainerCard(
+                                title: item.name,
+                                supportingText: seriesSupportingText(item),
+                                systemImage: "rectangle.stack.fill"
+                            )
                         }
-                        .frame(minHeight: CGFloat(series.count) * 76)
                     }
                 }
 
