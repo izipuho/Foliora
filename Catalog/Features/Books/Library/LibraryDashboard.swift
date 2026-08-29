@@ -7,6 +7,7 @@ struct LibraryDashboardView: View {
     let collection: CollectionSummary
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
+    let seriesDestination: AnyView
     let onSharingChanged: () -> Void
     let onFilterApply: (BookPresenceFilter) -> Void
 
@@ -17,6 +18,7 @@ struct LibraryDashboardView: View {
                 collection: collection,
                 sharingState: sharingState,
                 sharingService: sharingService,
+                seriesDestination: seriesDestination,
                 tint: accentColor,
                 onSharingChanged: onSharingChanged,
                 onFilterApply: onFilterApply
@@ -44,6 +46,7 @@ private struct DashboardCardStrip: View {
     let collection: CollectionSummary
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
+    let seriesDestination: AnyView
     let tint: Color
     let onSharingChanged: () -> Void
     let onFilterApply: (BookPresenceFilter) -> Void
@@ -55,7 +58,9 @@ private struct DashboardCardStrip: View {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 sharingCard
 
-                if stats.seriesCount > 0 {
+                NavigationLink {
+                    seriesDestination
+                } label: {
                     BookSeriesHealthCard(
                         completeCount: stats.completeSeriesCount,
                         incompleteCount: stats.incompleteSeriesCount,
@@ -63,6 +68,7 @@ private struct DashboardCardStrip: View {
                         tint: tint
                     )
                 }
+                .buttonStyle(.plain)
 
                 CatalogDashboardDataHealthCard(
                     progress: stats.dataHealthProgress,
