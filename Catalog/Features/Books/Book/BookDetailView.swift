@@ -17,7 +17,6 @@ struct BookDetailView: View {
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
     @State private var isPresentingEditor = false
-    @State private var isPresentingOriginPicker = false
     @State private var isPresentingLocationPicker = false
     @State private var isPresentingHomeEditor = false
     @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
@@ -113,12 +112,6 @@ struct BookDetailView: View {
                         syncDraftsFromBook()
                     }
                 }
-            }
-            .sheet(isPresented: $isPresentingOriginPicker) {
-                PlacePickerView(
-                    places: availablePlaces,
-                    selectedPlace: originPlaceBinding
-                )
             }
             .sheet(isPresented: $isPresentingLocationPicker) {
                 LocationHierarchyPickerView(
@@ -263,62 +256,7 @@ struct BookDetailView: View {
 
     private var locationSection: some View {
         detailSection(String(localized: "bell.detail.section.location")) {
-            HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                originTile
-                storageTile
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var originTile: some View {
-        if canEditCollection {
-            Button {
-                isPresentingOriginPicker = true
-            } label: {
-                originTileContent
-            }
-            .buttonStyle(.plain)
-        } else {
-            originTileContent
-        }
-    }
-
-    @ViewBuilder
-    private var originTileContent: some View {
-        if let originPlace = book.originPlace {
-            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                Label(String(localized: "common.ui.origin"), systemImage: "mappin.and.ellipse")
-                    .font(CatalogTypography.cardLabel)
-                    .foregroundStyle(.secondary)
-
-                Spacer(minLength: 0)
-
-                Text(originPlace.displayName)
-                    .font(CatalogTypography.cardSubtitle)
-                    .lineLimit(2)
-            }
-            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-            .catalogSurfaceTile()
-        } else if canEditCollection {
-            bookDetailCTA(
-                systemImage: "mappin.slash",
-                title: String(localized: "common.unknown_origin")
-            )
-        } else {
-            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                Label(String(localized: "common.ui.origin"), systemImage: "mappin.slash")
-                    .font(CatalogTypography.cardLabel)
-                    .foregroundStyle(.secondary)
-
-                Spacer(minLength: 0)
-
-                Text(String(localized: "common.unknown_origin"))
-                    .font(CatalogTypography.cardSubtitle)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-            .catalogSurfaceTile()
+            storageTile
         }
     }
 
@@ -567,10 +505,6 @@ struct BookDetailView: View {
         return snapshot.locationsByHomeID[collection.homeID] ?? []
     }
 
-    private var availablePlaces: [Place] {
-        catalogSnapshot?.places ?? []
-    }
-
     private var inferredCollection: CollectionSummary? {
         catalogSnapshot?.collectionSummary(id: book.collectionID)
     }
@@ -613,16 +547,6 @@ struct BookDetailView: View {
             set: {
                 guard canEditCollection else { return }
                 persistStorage(locationID: $0)
-            }
-        )
-    }
-
-    private var originPlaceBinding: Binding<Place?> {
-        Binding(
-            get: { book.originPlace },
-            set: {
-                guard canEditCollection else { return }
-                persistOriginPlace($0)
             }
         )
     }
@@ -677,13 +601,6 @@ struct BookDetailView: View {
                 }
         }
 
-        save(updatedItem)
-    }
-
-    private func persistOriginPlace(_ place: Place?) {
-        guard canEditCollection else { return }
-        var updatedItem = book.item
-        updatedItem.setOriginPlace(place)
         save(updatedItem)
     }
 
