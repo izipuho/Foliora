@@ -179,6 +179,19 @@ struct BookDetailView: View {
                 Text(book.title)
                     .font(.title2.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
+
+                if let headerSeriesDisplayName {
+                    Text(headerSeriesDisplayName)
+                        .font(CatalogTypography.cardSubtitle)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let publicationYear = book.details.publicationYear {
+                    Text(String(publicationYear))
+                        .font(CatalogTypography.cardSubtitle)
+                        .foregroundStyle(.secondary)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -214,7 +227,9 @@ struct BookDetailView: View {
     private var bookInformationSection: some View {
         detailSection(String(localized: "common.book")) {
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                bookMetadataCard
+                if hasBookMetadataCardContent {
+                    bookMetadataCard
+                }
 
                 if !otherContributors.isEmpty {
                     Text("Contributors")
@@ -245,14 +260,6 @@ struct BookDetailView: View {
                 alignment: .leading,
                 spacing: CatalogMetrics.Spacing.lg
             ) {
-                if let publicationYear = book.details.publicationYear {
-                    metadataField(
-                        title: "Publication year",
-                        value: String(publicationYear),
-                        systemImage: "calendar"
-                    )
-                }
-
                 if let pageCount = book.details.pageCount {
                     metadataField(
                         title: "Pages",
@@ -277,49 +284,12 @@ struct BookDetailView: View {
                     )
                 }
             }
-
-            if book.details.series != nil || book.details.volumeNumber != nil {
-                seriesAndVolumeField
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(CatalogMetrics.Spacing.lg)
         .background {
             CatalogShapes.section
                 .fill(.ultraThinMaterial)
-        }
-    }
-
-    @ViewBuilder
-    private var seriesAndVolumeField: some View {
-        if let series = book.details.series {
-            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                Label("Series", systemImage: "books.vertical")
-                    .font(CatalogTypography.cardSubtitle)
-                    .foregroundStyle(.secondary)
-
-                HStack(alignment: .firstTextBaseline, spacing: CatalogMetrics.Spacing.md) {
-                    Text(series.name)
-                        .font(CatalogTypography.cardLabel)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Spacer(minLength: CatalogMetrics.Spacing.md)
-
-                    if let volumeNumber = book.details.volumeNumber {
-                        Text("Volume \(volumeDisplayName(volumeNumber))")
-                            .font(CatalogTypography.cardSubtitle)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: true, vertical: false)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-        } else if let volumeNumber = book.details.volumeNumber {
-            metadataField(
-                title: "Volume",
-                value: volumeDisplayName(volumeNumber),
-                systemImage: "books.vertical"
-            )
         }
     }
 
@@ -626,15 +596,30 @@ struct BookDetailView: View {
             .sorted { $0.order < $1.order }
     }
 
-    private var hasBookInformation: Bool {
+    private var headerSeriesDisplayName: String? {
+        if let series = book.details.series {
+            if let volumeNumber = book.details.volumeNumber {
+                return "\(series.name) · Volume \(volumeDisplayName(volumeNumber))"
+            }
+            return series.name
+        }
+
+        if let volumeNumber = book.details.volumeNumber {
+            return "Volume \(volumeDisplayName(volumeNumber))"
+        }
+
+        return nil
+    }
+
+    private var hasBookMetadataCardContent: Bool {
         book.details.publisher != nil
-            || book.details.publicationYear != nil
-            || book.details.series != nil
-            || book.details.volumeNumber != nil
             || book.details.pageCount != nil
             || !(book.details.languageCode?.isEmpty ?? true)
             || !(book.details.genre?.isEmpty ?? true)
-            || !otherContributors.isEmpty
+    }
+
+    private var hasBookInformation: Bool {
+        hasBookMetadataCardContent || !otherContributors.isEmpty
     }
 
     private func volumeDisplayName(_ volumeNumber: Int) -> String {
