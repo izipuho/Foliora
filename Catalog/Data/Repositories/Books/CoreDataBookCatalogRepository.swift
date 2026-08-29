@@ -63,7 +63,9 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
             bookRelatedObjects(publisher, "bookSeries").forEach {
                 $0.setValue(nil, forKey: "publisher")
             }
-            bookRelatedObjects(publisher, "logos").forEach(context.delete)
+            if let logo = publisher.value(forKey: "logo") as? NSManagedObject {
+                context.delete(logo)
+            }
             context.delete(publisher)
         }
 
@@ -158,13 +160,39 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         entity.setValue(publisher.id, forKey: "id")
         entity.setValue(publisher.name, forKey: "name")
         entity.setValue(publisher.location.map(upsertBookPlace), forKey: "location")
-        replaceReferenceMediaAssets(
-            publisher.logo.map { [$0.with(sortOrder: 0)] } ?? [],
-            relationshipName: "logos",
-            inverseRelationshipName: "publisher",
-            for: entity
-        )
+        replacePublisherLogo(publisher.logo, for: entity)
         return entity
+    }
+
+    private func replacePublisherLogo(_ logo: MediaAsset?, for publisher: NSManagedObject) {
+        let existingLogo = publisher.value(forKey: "logo") as? NSManagedObject
+
+        guard let logo else {
+            publisher.setValue(nil, forKey: "logo")
+            if let existingLogo {
+                context.delete(existingLogo)
+            }
+            return
+        }
+
+        let logoEntity: NSManagedObject
+        if let existingLogo,
+           existingLogo.value(forKey: "id") as? UUID == logo.id {
+            logoEntity = existingLogo
+        } else {
+            if let existingLogo {
+                context.delete(existingLogo)
+            }
+            logoEntity = makeEntity(named: "MediaAssetEntity")
+            if logoEntity.objectID.persistentStore == nil,
+               let store = publisher.objectID.persistentStore {
+                context.assign(logoEntity, to: store)
+            }
+        }
+
+        applyReferenceMediaAsset(logo.with(sortOrder: 0), to: logoEntity)
+        logoEntity.setValue(publisher, forKey: "publisher")
+        publisher.setValue(logoEntity, forKey: "logo")
     }
 
     private func replaceContributors(_ contributors: [BookContributor], for book: NSManagedObject) {
