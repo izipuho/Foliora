@@ -12,6 +12,7 @@ struct SeriesView: View {
     @State private var localSeries: [BookSeries]
     @State private var searchText = ""
     @State private var isPresentingNewSeries = false
+    @State private var selectedSeries: BookSeries?
 
     init(
         collection: CollectionSummary,
@@ -72,24 +73,14 @@ struct SeriesView: View {
                 CatalogContainerList {
                     Section {
                         ForEach(filteredSeries) { series in
-                            NavigationLink {
-                                SeriesDetailView(
-                                    series: series,
-                                    books: booksForSeries(series),
-                                    publishers: availablePublishers,
-                                    repository: repository,
-                                    canEditCollection: canEditCollection,
-                                    accentColor: collection.backgroundStyle.accentColor,
-                                    onSeriesSaved: upsertLocalSeries,
-                                    onBookSelected: onBookSelected
-                                )
+                            Button {
+                                selectedSeries = series
                             } label: {
                                 CatalogContainerCard(
                                     title: series.name,
                                     subtitle: series.publisher?.name,
-                                    accessory: .icon("chevron.right"),
                                     supportingText: completionText(for: series),
-                                    systemImage: "books.vertical.fill"
+                                    systemImage: "rectangle.stack.fill"
                                 )
                             }
                             .buttonStyle(.plain)
@@ -109,6 +100,18 @@ struct SeriesView: View {
         }
         .navigationTitle("Series")
         .navigationBarTitleDisplayMode(.large)
+        .navigationDestination(item: $selectedSeries) { series in
+            SeriesDetailView(
+                series: series,
+                books: booksForSeries(series),
+                publishers: availablePublishers,
+                repository: repository,
+                canEditCollection: canEditCollection,
+                accentColor: collection.backgroundStyle.accentColor,
+                onSeriesSaved: upsertLocalSeries,
+                onBookSelected: onBookSelected
+            )
+        }
         .toolbar {
             if canEditCollection {
                 ToolbarItem(placement: .topBarTrailing) {
