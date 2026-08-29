@@ -37,8 +37,8 @@ extension CoreDataCatalogRepository {
         guard !people.isEmpty else { return }
 
         for person in people {
-            relatedObjects(person, "bookContributions").forEach(context.delete)
-            relatedObjects(person, "photos").forEach(context.delete)
+            personRelatedObjects(person, "bookContributions").forEach(context.delete)
+            personRelatedObjects(person, "photos").forEach(context.delete)
             context.delete(person)
         }
 
@@ -81,7 +81,7 @@ extension CoreDataCatalogRepository {
     }
 
     private func replacePersonPhotos(_ photos: [MediaAsset], for person: NSManagedObject) {
-        let existingPhotos = Set(relatedObjects(person, "photos"))
+        let existingPhotos = Set(personRelatedObjects(person, "photos"))
         let incomingIDs = Set(photos.map(\.id))
         var existingByID: [UUID: NSManagedObject] = [:]
 
@@ -137,7 +137,7 @@ extension CoreDataCatalogRepository {
         }
     }
 
-    private func relatedObjects(_ entity: NSManagedObject, _ key: String) -> [NSManagedObject] {
+    private func personRelatedObjects(_ entity: NSManagedObject, _ key: String) -> [NSManagedObject] {
         if let objects = entity.value(forKey: key) as? Set<NSManagedObject> {
             return Array(objects)
         }
