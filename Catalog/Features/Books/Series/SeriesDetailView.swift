@@ -9,9 +9,11 @@ struct SeriesDetailView: View {
     let canEditCollection: Bool
     let accentColor: Color
     let onSeriesSaved: (BookSeries) -> Void
+    let onSeriesDeleted: (UUID) -> Void
     let onBookSelected: ((UUID) -> Void)?
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     @State private var isPresentingEditor = false
 
     init(
@@ -22,6 +24,7 @@ struct SeriesDetailView: View {
         canEditCollection: Bool,
         accentColor: Color,
         onSeriesSaved: @escaping (BookSeries) -> Void,
+        onSeriesDeleted: @escaping (UUID) -> Void = { _ in },
         onBookSelected: ((UUID) -> Void)? = nil
     ) {
         _series = State(initialValue: series)
@@ -31,6 +34,7 @@ struct SeriesDetailView: View {
         self.canEditCollection = canEditCollection
         self.accentColor = accentColor
         self.onSeriesSaved = onSeriesSaved
+        self.onSeriesDeleted = onSeriesDeleted
         self.onBookSelected = onBookSelected
     }
 
@@ -117,7 +121,14 @@ struct SeriesDetailView: View {
             SeriesEditorView(
                 collectionID: series.collectionID,
                 series: series,
-                publishers: publishers
+                publishers: publishers,
+                bookCount: books.count,
+                onDelete: {
+                    (repository as! any BookCatalogRepository).deleteBookSeries(seriesID: series.id)
+                    onSeriesDeleted(series.id)
+                    isPresentingEditor = false
+                    dismiss()
+                }
             ) { updatedSeries in
                 (repository as! any BookCatalogRepository).saveBookSeries(updatedSeries)
                 series = updatedSeries
