@@ -13,7 +13,17 @@ struct BookDetailView: View {
     let canChangeFavorite: Bool
     let onClose: (() -> Void)?
 
+    @State private var draftNotes = ""
+    @State private var draftTags: [String] = []
+    @State private var tagInput = ""
     @State private var isPresentingEditor = false
+    @State private var isPresentingOriginPicker = false
+    @State private var isPresentingLocationPicker = false
+    @State private var isPresentingHomeEditor = false
+    @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+    @State private var draftHomeLocations: [Location] = []
+    @State private var shouldPresentLocationPickerAfterHomeEditor = false
+    @State private var isPresentingUnsavedChangesConfirmation = false
 
     init(
         book: Binding<BookRecord>,
@@ -32,41 +42,121 @@ struct BookDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xl) {
-                header
-                metadata
+        MediaQuickLookPresenter(mediaAssets: book.mediaAssets) { preview in
+            ScrollView {
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
+                    header(preview: preview)
 
-                if !book.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    notes
+                    if hasBookInformation {
+                        bookInformationSection
+                            .padding(.horizontal, CatalogMetrics.Insets.screen)
+                    }
+
+                    collectionInformationSection
+                        .padding(.horizontal, CatalogMetrics.Insets.screen)
+
+                    locationSection
+                        .padding(.horizontal, CatalogMetrics.Insets.screen)
+
+                    notesAndTagsSection
+
+                    if !detailMediaAssets.isEmpty || canEditCollection {
+                        mediaSection
+                            .padding(.horizontal, CatalogMetrics.Insets.screen)
+                    }
+
+                    if !book.details.identifiers.isEmpty {
+                        identifiersSection
+                            .padding(.horizontal, CatalogMetrics.Insets.screen)
+                    }
+                }
+                .padding(.top, CatalogMetrics.Spacing.md)
+                .padding(.bottom, CatalogMetrics.Spacing.xl)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            .interactiveDismissDisabled(canEditCollection && isNotesOrTagsDirty)
+            .navigationTitle(book.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                CatalogItemDetailToolbar(
+                    onClose: onClose,
+                    favorite: favoriteToolbarAction,
+                    contentState: detailToolbarState
+                )
+            }
+            .confirmationDialog(
+                String(localized: "bell.detail.unsaved_changes.title"),
+                isPresented: $isPresentingUnsavedChangesConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "common.save")) {
+                    saveNotesAndTagsChanges()
+                }
+
+                Button(String(localized: "bell.detail.unsaved_changes.discard"), role: .destructive) {
+                    discardNotesAndTagsChanges()
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "bell.detail.unsaved_changes.message"))
+            }
+            .sheet(isPresented: $isPresentingEditor) {
+                if canEditCollection, let collection = inferredCollection {
+                    BookEditorView(
+                        collection: collection,
+                        book: book
+                    ) { updatedBook in
+                        save(updatedBook)
+                        syncDraftsFromBook()
+                    }
                 }
             }
-            .padding(CatalogMetrics.Insets.screen)
-        }
-        .navigationTitle(book.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbar {
-            CatalogItemDetailToolbar(
-                onClose: onClose,
-                favorite: favoriteToolbarAction,
-                contentState: detailToolbarState
-            )
-        }
-        .sheet(isPresented: $isPresentingEditor) {
-            if canEditCollection, let collection = inferredCollection {
-                BookEditorView(
-                    collection: collection,
-                    book: book
-                ) { updatedBook in
-                    save(updatedBook)
-                }
+            .sheet(isPresented: $isPresentingOriginPicker) {
+                PlacePickerView(
+                    places: availablePlaces,
+                    selectedPlace: originPlaceBinding
+                )
+            }
+            .sheet(isPresented: $isPresentingLocationPicker) {
+                LocationHierarchyPickerView(
+                    locations: availableLocations,
+                    selectedLocationID: locationIDBinding
+                )
+            }
+            .sheet(isPresented: $isPresentingHomeEditor) {
+                HomeEditorView(
+                    home: $draftHome,
+                    locations: $draftHomeLocations,
+                    onSave: {
+                        repository.saveHome(draftHome)
+                        repository.saveLocations(draftHomeLocations, in: draftHome.id)
+                        continueLocationSelectionIfNeeded()
+                    },
+                    onDelete: nil
+                )
+            }
+            .onAppear {
+                syncDraftsFromBook()
+            }
+            .onChange(of: book) { _, _ in
+                guard !isNotesOrTagsDirty else { return }
+                syncDraftsFromBook()
             }
         }
     }
 
     private var detailToolbarState: CatalogItemDetailToolbar.ContentState {
         guard canEditCollection else { return .readOnly }
+
+        if isNotesOrTagsDirty {
+            return .pendingChanges(
+                onCancel: requestDiscardNotesAndTagsChanges,
+                onSave: saveNotesAndTagsChanges
+            )
+        }
 
         return .viewing {
             isPresentingEditor = true
@@ -82,98 +172,315 @@ struct BookDetailView: View {
         )
     }
 
-    private var inferredCollection: CollectionSummary? {
-        catalogSnapshot?.collectionSummary(id: book.collectionID)
-    }
-
-    private var header: some View {
-        HStack(alignment: .top, spacing: CatalogMetrics.Spacing.xl) {
-            cover
+    private func header(preview: @escaping (MediaAsset) -> Void) -> some View {
+        HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
+            cover(preview: preview)
 
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                Text(book.title)
-                    .font(.title2.weight(.semibold))
-
                 if !authorNames.isEmpty {
                     Text(authorNames)
-                        .font(.headline)
+                        .font(CatalogTypography.cardLabel)
                         .foregroundStyle(.secondary)
                 }
 
-                if let publicationYear = book.details.publicationYear {
-                    Text(String(publicationYear))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                Text(book.title)
+                    .font(.title2.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, CatalogMetrics.Insets.screen)
+    }
+
+    @ViewBuilder
+    private func cover(preview: @escaping (MediaAsset) -> Void) -> some View {
+        if let coverPhoto {
+            MediaPreviewImage(
+                identifier: coverPhoto.localIdentifier.isEmpty ? nil : coverPhoto.localIdentifier,
+                originalData: coverPhoto.originalData,
+                size: CGSize(width: 112, height: 158)
+            )
+            .frame(width: 112, height: 158)
+            .clipShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                preview(coverPhoto)
+            }
+        } else {
+            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.thumbnail, style: .continuous)
+                .fill(.secondary.opacity(0.12))
+                .frame(width: 112, height: 158)
+                .overlay {
+                    Image(systemName: "book.closed")
+                        .font(.system(size: 36))
+                        .foregroundStyle(.secondary)
+                }
+        }
+    }
+
+    private var bookInformationSection: some View {
+        detailSection(String(localized: "common.book")) {
+            if let publisher = book.details.publisher {
+                detailRow("Publisher", value: publisher.name)
+            }
+
+            if let publicationYear = book.details.publicationYear {
+                detailRow("Publication year", value: String(publicationYear))
+            }
+
+            if let series = book.details.series {
+                detailRow("Series", value: series.name)
+            }
+
+            if let volumeNumber = book.details.volumeNumber {
+                detailRow("Volume", value: volumeDisplayName(volumeNumber))
+            }
+
+            if let pageCount = book.details.pageCount {
+                detailRow("Pages", value: String(pageCount))
+            }
+
+            if let languageCode = book.details.languageCode, !languageCode.isEmpty {
+                detailRow("Language", value: languageCode.uppercased())
+            }
+
+            ForEach(otherContributors, id: \.self) { contributor in
+                detailRow(contributor.role.title, value: contributor.person.name)
+            }
+        }
+    }
+
+    private var collectionInformationSection: some View {
+        detailSection(String(localized: "bell.detail.section.collection_info")) {
+            if let acquiredYear = book.acquiredYear {
+                detailRow(String(localized: "common.field.acquired_year"), value: String(acquiredYear))
+            }
+
+            detailRow(String(localized: "bell.detail.acquisition"), value: book.acquisitionMethod.displayName)
+            detailRow(String(localized: "common.field.condition"), value: book.condition.displayName)
+        }
+    }
+
+    private var locationSection: some View {
+        detailSection(String(localized: "bell.detail.section.location")) {
+            HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
+                originTile
+                storageTile
+            }
         }
     }
 
     @ViewBuilder
-    private var cover: some View {
-        if let coverPhoto {
-            MediaPreviewImage(
-                identifier: coverPhoto.localIdentifier,
-                originalData: coverPhoto.originalData,
-                size: CGSize(width: 128, height: 180)
-            )
-            .frame(width: 128, height: 180)
-            .clipShape(RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous))
+    private var originTile: some View {
+        if canEditCollection {
+            Button {
+                isPresentingOriginPicker = true
+            } label: {
+                originTileContent
+            }
+            .buttonStyle(.plain)
         } else {
-            RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous)
-                .fill(.secondary.opacity(0.12))
-                .frame(width: 128, height: 180)
-                .overlay {
-                    Image(systemName: "book.closed")
-                        .font(.system(size: 42))
-                        .foregroundStyle(.secondary)
+            originTileContent
+        }
+    }
+
+    @ViewBuilder
+    private var originTileContent: some View {
+        if let originPlace = book.originPlace {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                Label(String(localized: "common.ui.origin"), systemImage: "mappin.and.ellipse")
+                    .font(CatalogTypography.cardLabel)
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 0)
+
+                Text(originPlace.displayName)
+                    .font(CatalogTypography.cardSubtitle)
+                    .lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
+            .catalogSurfaceTile()
+        } else if canEditCollection {
+            bookDetailCTA(
+                systemImage: "mappin.slash",
+                title: String(localized: "common.unknown_origin")
+            )
+        } else {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                Label(String(localized: "common.ui.origin"), systemImage: "mappin.slash")
+                    .font(CatalogTypography.cardLabel)
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 0)
+
+                Text(String(localized: "common.unknown_origin"))
+                    .font(CatalogTypography.cardSubtitle)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
+            .catalogSurfaceTile()
+        }
+    }
+
+    @ViewBuilder
+    private var storageTile: some View {
+        if canEditCollection {
+            Button {
+                if availableLocations.isEmpty, let inferredCollection {
+                    presentHomeEditor(for: inferredCollection.homeID)
+                } else {
+                    isPresentingLocationPicker = true
                 }
+            } label: {
+                storageTileContent
+            }
+            .buttonStyle(.plain)
+        } else {
+            storageTileContent
         }
     }
 
-    private var metadata: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            if let pageCount = book.details.pageCount {
-                metadataRow("Pages", value: String(pageCount))
-            }
+    @ViewBuilder
+    private var storageTileContent: some View {
+        if book.item.locationID != nil {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                Label(String(localized: "common.field.storage"), systemImage: "square.stack.3d.up")
+                    .font(CatalogTypography.cardLabel)
+                    .foregroundStyle(.secondary)
 
-            if let languageCode = book.details.languageCode, !languageCode.isEmpty {
-                metadataRow("Language", value: languageCode.uppercased())
-            }
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                    ForEach(Array(storagePathParts.enumerated()), id: \.offset) { index, part in
+                        Text(part)
+                            .font(index == storagePathParts.count - 1 ? CatalogTypography.cardLabel : CatalogTypography.cardSubtitle)
+                            .foregroundStyle(index == storagePathParts.count - 1 ? .primary : .secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
 
-            if let volumeNumber = book.details.volumeNumber {
-                metadataRow("Volume", value: String(volumeNumber))
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
+            .catalogSurfaceTile()
+        } else if canEditCollection {
+            bookDetailCTA(
+                systemImage: "square.stack.3d.up.slash",
+                title: String(localized: "bell.detail.storage.assign.action")
+            )
+        } else {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                Label(String(localized: "common.field.storage"), systemImage: "square.stack.3d.up.slash")
+                    .font(CatalogTypography.cardLabel)
+                    .foregroundStyle(.secondary)
 
-            ForEach(otherContributors, id: \.self) { contributor in
-                metadataRow(contributor.role.title, value: contributor.person.name)
+                Spacer(minLength: 0)
+
+                Text(String(localized: "common.unassigned"))
+                    .font(CatalogTypography.cardSubtitle)
+                    .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
+            .catalogSurfaceTile()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .catalogSurfaceCard()
     }
 
-    private var notes: some View {
+    private func bookDetailCTA(systemImage: String, title: String) -> some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-            Text("Notes")
-                .font(.headline)
+            Label(title, systemImage: systemImage)
+                .font(CatalogTypography.cardLabel)
+                .foregroundStyle(.primary)
 
-            Text(book.notes)
-                .font(.body)
+            Spacer(minLength: 0)
+
+            Label(String(localized: "common.ui.tap_to_assign"), systemImage: "hand.tap")
+                .font(CatalogTypography.cardSubtitle)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .catalogSurfaceCard()
+        .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
+        .catalogSurfaceCTATile(tint: detailAccentColor)
     }
 
-    private func metadataRow(_ title: String, value: String) -> some View {
+    private var notesAndTagsSection: some View {
+        detailSection(String(localized: "common.field.notes")) {
+            if canEditCollection {
+                TextField(String(localized: "editor.note_history"), text: $draftNotes, axis: .vertical)
+                    .lineLimit(2...6)
+                    .textFieldStyle(.plain)
+
+                TagEditorSection(
+                    tagInput: $tagInput,
+                    tags: $draftTags
+                )
+            } else {
+                Text(book.notes.isEmpty ? String(localized: "editor.note_history") : book.notes)
+                    .foregroundStyle(book.notes.isEmpty ? .secondary : .primary)
+
+                if book.tags.isEmpty {
+                    Text(String(localized: "editor.tags.empty"))
+                        .font(CatalogTypography.cardSubtitle)
+                        .foregroundStyle(.secondary)
+                } else {
+                    TagFlowLayout(spacing: CatalogMetrics.Spacing.sm) {
+                        ForEach(book.tags, id: \.self) { tag in
+                            Text("#\(tag)")
+                                .font(CatalogTypography.cardSubtitle)
+                                .catalogSurfaceCapsule()
+                        }
+                    }
+                }
+            }
+        }
+        .padding(CatalogMetrics.Spacing.lg)
+        .background(
+            CatalogShapes.section
+                .fill(isNotesOrTagsDirty ? AnyShapeStyle(detailAccentColor.opacity(0.10)) : AnyShapeStyle(.ultraThinMaterial))
+        )
+        .padding(.horizontal, CatalogMetrics.Insets.screen)
+    }
+
+    private var mediaSection: some View {
+        detailSection(String(localized: "editor.docs_and_media")) {
+            MediaSection(
+                itemID: book.id,
+                mediaAssets: detailMediaAssetsBinding,
+                allowsAdding: canEditCollection,
+                allowsDeletion: false
+            )
+        }
+    }
+
+    private var identifiersSection: some View {
+        detailSection("Identifiers") {
+            ForEach(Array(book.details.identifiers.enumerated()), id: \.offset) { _, identifier in
+                detailRow(identifier.type.title, value: identifier.value)
+            }
+        }
+    }
+
+    private func detailSection<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+            Text(title)
+                .font(CatalogTypography.sectionTitle)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func detailRow(_ title: String, value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: CatalogMetrics.Spacing.md) {
             Text(title)
-                .foregroundStyle(.secondary)
 
             Spacer(minLength: CatalogMetrics.Spacing.md)
 
             Text(value)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.trailing)
         }
     }
@@ -183,6 +490,22 @@ struct BookDetailView: View {
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
             .first
+    }
+
+    private var detailMediaAssets: [MediaAsset] {
+        guard let coverPhoto else { return book.mediaAssets }
+        return book.mediaAssets.filter { $0.id != coverPhoto.id }
+    }
+
+    private var detailMediaAssetsBinding: Binding<[MediaAsset]> {
+        Binding(
+            get: { detailMediaAssets },
+            set: { updatedDetailAssets in
+                guard canEditCollection else { return }
+                let updatedAssets = coverPhoto.map { [$0] + updatedDetailAssets } ?? updatedDetailAssets
+                persist(mediaAssets: updatedAssets)
+            }
+        )
     }
 
     private var authorNames: String {
@@ -199,6 +522,129 @@ struct BookDetailView: View {
             .sorted { $0.order < $1.order }
     }
 
+    private var hasBookInformation: Bool {
+        book.details.publisher != nil
+            || book.details.publicationYear != nil
+            || book.details.series != nil
+            || book.details.volumeNumber != nil
+            || book.details.pageCount != nil
+            || !(book.details.languageCode?.isEmpty ?? true)
+            || !otherContributors.isEmpty
+    }
+
+    private func volumeDisplayName(_ volumeNumber: Int) -> String {
+        if let totalBookCount = book.details.series?.totalBookCount {
+            return "\(volumeNumber) / \(totalBookCount)"
+        }
+
+        return String(volumeNumber)
+    }
+
+    private var storageDisplayPath: String {
+        guard let storagePath = book.storagePath, !storagePath.isEmpty else {
+            return book.storageLocation?.name ?? String(localized: "common.unassigned")
+        }
+
+        return storagePath.displayPath
+    }
+
+    private var storagePathParts: [String] {
+        storageDisplayPath
+            .split(separator: "/")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private var availableLocations: [Location] {
+        guard let snapshot = catalogSnapshot,
+              let collection = inferredCollection else { return [] }
+
+        let collectionLocations = snapshot.collectionLocationsByCollectionID[collection.id] ?? []
+        if !collectionLocations.isEmpty {
+            return collectionLocations
+        }
+
+        return snapshot.locationsByHomeID[collection.homeID] ?? []
+    }
+
+    private var availablePlaces: [Place] {
+        catalogSnapshot?.places ?? []
+    }
+
+    private var inferredCollection: CollectionSummary? {
+        catalogSnapshot?.collectionSummary(id: book.collectionID)
+    }
+
+    private var detailAccentColor: Color {
+        inferredCollection?.backgroundStyle.accentColor ?? Color.accentColor
+    }
+
+    private var isNotesOrTagsDirty: Bool {
+        draftNotes != book.notes || draftTags != book.tags
+    }
+
+    private func syncDraftsFromBook() {
+        draftNotes = book.notes
+        draftTags = book.tags
+        tagInput = ""
+    }
+
+    private func presentHomeEditor(for homeID: UUID) {
+        guard let snapshot = catalogSnapshot,
+              let home = snapshot.homes.first(where: { $0.id == homeID }) else { return }
+        draftHome = home
+        draftHomeLocations = snapshot.locationsByHomeID[homeID] ?? []
+        shouldPresentLocationPickerAfterHomeEditor = true
+        isPresentingHomeEditor = true
+    }
+
+    private func continueLocationSelectionIfNeeded() {
+        guard shouldPresentLocationPickerAfterHomeEditor else { return }
+        shouldPresentLocationPickerAfterHomeEditor = false
+        isPresentingHomeEditor = false
+        DispatchQueue.main.async {
+            isPresentingLocationPicker = true
+        }
+    }
+
+    private var locationIDBinding: Binding<UUID?> {
+        Binding(
+            get: { book.item.locationID },
+            set: {
+                guard canEditCollection else { return }
+                persistStorage(locationID: $0)
+            }
+        )
+    }
+
+    private var originPlaceBinding: Binding<Place?> {
+        Binding(
+            get: { book.originPlace },
+            set: {
+                guard canEditCollection else { return }
+                persistOriginPlace($0)
+            }
+        )
+    }
+
+    private func requestDiscardNotesAndTagsChanges() {
+        guard canEditCollection, isNotesOrTagsDirty else { return }
+        isPresentingUnsavedChangesConfirmation = true
+    }
+
+    private func discardNotesAndTagsChanges() {
+        syncDraftsFromBook()
+    }
+
+    private func saveNotesAndTagsChanges() {
+        guard canEditCollection else { return }
+        persist(
+            notes: draftNotes.trimmingCharacters(in: .whitespacesAndNewlines),
+            tags: draftTags
+        )
+        syncDraftsFromBook()
+    }
+
     private func toggleFavorite() {
         guard canChangeFavorite else { return }
         var updatedItem = book.item
@@ -207,9 +653,83 @@ struct BookDetailView: View {
         repository.setFavorite(updatedItem.isFavorite, for: updatedItem.id)
     }
 
+    private func persist(
+        notes: String? = nil,
+        tags: [String]? = nil,
+        mediaAssets: [MediaAsset]? = nil
+    ) {
+        guard canEditCollection else { return }
+        var updatedItem = book.item
+
+        if let notes {
+            updatedItem.notes = notes
+        }
+
+        if let tags {
+            updatedItem.tags = tags
+        }
+
+        if let mediaAssets {
+            updatedItem.mediaAssets = mediaAssets
+                .enumerated()
+                .map { index, asset in
+                    asset.with(itemID: book.id, sortOrder: index)
+                }
+        }
+
+        save(updatedItem)
+    }
+
+    private func persistOriginPlace(_ place: Place?) {
+        guard canEditCollection else { return }
+        var updatedItem = book.item
+        updatedItem.setOriginPlace(place)
+        save(updatedItem)
+    }
+
+    private func persistStorage(locationID: UUID?) {
+        guard canEditCollection else { return }
+        var updatedItem = book.item
+        let location = locationID.flatMap { id in
+            availableLocations.first { $0.id == id }
+        }
+        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
+        let path = location.map { storagePath(for: $0, locationsByID: locationsByID) }
+        updatedItem.setStorageLocation(location, path: path)
+        save(updatedItem)
+    }
+
+    private func save(_ item: ItemRecord) {
+        let updatedBook = BookRecord(item: item, details: book.details)
+        save(updatedBook)
+    }
+
     private func save(_ updatedBook: BookRecord) {
         book = updatedBook
         (repository as! any BookCatalogRepository).saveBookRecord(updatedBook)
+    }
+
+    private func storagePath(for location: Location, locationsByID: [UUID: Location]) -> StoragePath {
+        var components = [
+            StoragePath.Component(
+                kind: location.kind,
+                name: location.name
+            )
+        ]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            components.insert(
+                StoragePath.Component(
+                    kind: parent.kind,
+                    name: parent.name
+                ),
+                at: 0
+            )
+            currentParentID = parent.parentLocationID
+        }
+
+        return StoragePath(components: components)
     }
 }
 
@@ -340,6 +860,18 @@ private extension BookContributorRole {
     }
 }
 
+private extension BookIdentifierType {
+    var title: String {
+        switch self {
+        case .isbn10: return "ISBN-10"
+        case .isbn13: return "ISBN-13"
+        case .asin: return "ASIN"
+        case .inventory: return "Inventory"
+        case .other: return "Other"
+        }
+    }
+}
+
 #if DEBUG
 #Preview {
     let container = PreviewContainer.makeBooksMinimal()
@@ -355,6 +887,7 @@ private extension BookContributorRole {
             repository: repository,
             catalogSnapshot: snapshot
         )
+        .environment(\.managedObjectContext, container.viewContext)
     }
 }
 #endif
