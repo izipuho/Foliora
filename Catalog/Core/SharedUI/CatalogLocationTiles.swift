@@ -157,7 +157,7 @@ struct CatalogStorageTile: View {
         } else if canEdit {
             CatalogDetailTileCTAContent(
                 systemImage: "square.stack.3d.up.slash",
-                title: "bell.detail.storage.assign.action",
+                title: "item.detail.storage.assign.action",
                 message: "common.ui.tap_to_assign"
             )
             .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)

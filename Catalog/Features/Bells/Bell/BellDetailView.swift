@@ -62,7 +62,7 @@ struct BellDetailView: View {
                 )
             }
             .confirmationDialog(
-                String(localized: "bell.detail.unsaved_changes.title"),
+                String(localized: "item.detail.unsaved_changes.title"),
                 isPresented: $isPresentingUnsavedChangesConfirmation,
                 titleVisibility: .visible
             ) {
@@ -70,13 +70,13 @@ struct BellDetailView: View {
                     saveNotesAndTagsChanges()
                 }
 
-                Button(String(localized: "bell.detail.unsaved_changes.discard"), role: .destructive) {
+                Button(String(localized: "item.detail.unsaved_changes.discard"), role: .destructive) {
                     discardNotesAndTagsChanges()
                 }
 
                 Button(String(localized: "common.cancel"), role: .cancel) {}
             } message: {
-                Text(String(localized: "bell.detail.unsaved_changes.message"))
+                Text(String(localized: "item.detail.unsaved_changes.message"))
             }
             .sheet(isPresented: $isPresentingEditor) {
                 if canEditCollection, let collection = inferredCollection {
@@ -156,7 +156,7 @@ struct BellDetailView: View {
 
     private var detailContent: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
-            detailSection(String(localized: "bell.detail.section.collection_info")) {
+            detailSection(String(localized: "item.detail.section.collection_info")) {
                 LazyVGrid(
                     columns: [
                         GridItem(.flexible(), spacing: CatalogMetrics.Spacing.lg, alignment: .top),
@@ -174,7 +174,7 @@ struct BellDetailView: View {
                     }
 
                     metadataField(
-                        title: String(localized: "bell.detail.acquisition"),
+                        title: String(localized: "item.detail.acquisition"),
                         value: bell.acquisitionMethod.displayName,
                         systemImage: "bag"
                     )
@@ -199,7 +199,7 @@ struct BellDetailView: View {
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)
 
-            detailSection(String(localized: "bell.detail.section.location")) {
+            detailSection(String(localized: "item.detail.section.location")) {
                 OriginStorageSection(
                     place: bell.originPlace,
                     storagePath: bell.storageDisplayPath,

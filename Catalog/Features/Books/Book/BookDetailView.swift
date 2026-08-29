@@ -86,7 +86,7 @@ struct BookDetailView: View {
                 )
             }
             .confirmationDialog(
-                String(localized: "bell.detail.unsaved_changes.title"),
+                String(localized: "item.detail.unsaved_changes.title"),
                 isPresented: $isPresentingUnsavedChangesConfirmation,
                 titleVisibility: .visible
             ) {
@@ -94,13 +94,13 @@ struct BookDetailView: View {
                     saveNotesAndTagsChanges()
                 }
 
-                Button(String(localized: "bell.detail.unsaved_changes.discard"), role: .destructive) {
+                Button(String(localized: "item.detail.unsaved_changes.discard"), role: .destructive) {
                     discardNotesAndTagsChanges()
                 }
 
                 Button(String(localized: "common.cancel"), role: .cancel) {}
             } message: {
-                Text(String(localized: "bell.detail.unsaved_changes.message"))
+                Text(String(localized: "item.detail.unsaved_changes.message"))
             }
             .sheet(isPresented: $isPresentingEditor) {
                 if canEditCollection, let collection = inferredCollection {
@@ -332,7 +332,7 @@ struct BookDetailView: View {
     }
 
     private var collectionInformationSection: some View {
-        detailSection(String(localized: "bell.detail.section.collection_info")) {
+        detailSection(String(localized: "item.detail.section.collection_info")) {
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 if let acquiredYear = book.acquiredYear {
                     metadataField(
@@ -344,7 +344,7 @@ struct BookDetailView: View {
                 }
 
                 metadataField(
-                    title: String(localized: "bell.detail.acquisition"),
+                    title: String(localized: "item.detail.acquisition"),
                     value: book.acquisitionMethod.displayName,
                     systemImage: "bag"
                 )
@@ -366,7 +366,7 @@ struct BookDetailView: View {
     }
 
     private var locationSection: some View {
-        detailSection(String(localized: "bell.detail.section.location")) {
+        detailSection(String(localized: "item.detail.section.location")) {
             CatalogStorageTile(
                 storagePath: storageDisplayPath,
                 accentColor: detailAccentColor,

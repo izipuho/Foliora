@@ -357,7 +357,7 @@ struct BellEditorView: View {
                             )
 
                             EnumSelectionRow(
-                                title: String(localized: "bell.detail.aquisition"),
+                                title: String(localized: "item.detail.acquisition"),
                                 selectedLabel: acquisitionMethod.displayName,
                                 options: AcquisitionMethod.allCases,
                                 selection: $acquisitionMethod,
@@ -388,7 +388,7 @@ struct BellEditorView: View {
 
                         }
 
-                        Section(String(localized: "bell.detail.section.location")) {
+                        Section(String(localized: "item.detail.section.location")) {
                             PlacePickerField(
                                 title: String(localized: "common.ui.origin"),
                                 selectedLabel: selectedOriginLabel,

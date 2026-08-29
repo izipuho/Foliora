@@ -52,7 +52,7 @@ struct BookBatchAddView: View {
                     )
 
                     EnumSelectionRow(
-                        title: String(localized: "bell.detail.aquisition"),
+                        title: String(localized: "item.detail.acquisition"),
                         selectedLabel: acquisitionMethod.displayName,
                         options: AcquisitionMethod.allCases,
                         selection: $acquisitionMethod,

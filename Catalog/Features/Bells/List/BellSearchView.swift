@@ -120,7 +120,7 @@ struct BellSearchView: View {
                 tokens: uniqueConditions.map(BellSearchToken.condition)
             ),
             SearchTokenGroup(
-                title: String(localized: "bell.detail.aquisition"),
+                title: String(localized: "item.detail.acquisition"),
                 systemImage: "tray.and.arrow.down",
                 tokens: uniqueAcquisitionMethods.map(BellSearchToken.acquisitionMethod)
             )

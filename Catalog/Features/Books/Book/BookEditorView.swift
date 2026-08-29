@@ -190,7 +190,7 @@ struct BookEditorView: View {
                     }
                 }
 
-                Section(String(localized: "bell.detail.section.collection_info")) {
+                Section(String(localized: "item.detail.section.collection_info")) {
                     YearPickerField(
                         title: String(localized: "common.field.acquired_year"),
                         selection: $selectedAcquiredYearOption,
@@ -198,7 +198,7 @@ struct BookEditorView: View {
                     )
 
                     EnumSelectionRow(
-                        title: String(localized: "bell.detail.aquisition"),
+                        title: String(localized: "item.detail.acquisition"),
                         selectedLabel: acquisitionMethod.displayName,
                         options: AcquisitionMethod.allCases,
                         selection: $acquisitionMethod,
