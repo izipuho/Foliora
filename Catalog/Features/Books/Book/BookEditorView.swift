@@ -459,7 +459,6 @@ private struct BookSeriesSelectionView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
-    @State private var isPresentingNewSeries = false
 
     private var filteredSeries: [BookSeries] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -467,9 +466,35 @@ private struct BookSeriesSelectionView: View {
         return series.filter { $0.name.localizedCaseInsensitiveContains(query) }
     }
 
+    private var newSeriesName: String? {
+        let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        guard !series.contains(where: { $0.name.caseInsensitiveCompare(candidate) == .orderedSame }) else {
+            return nil
+        }
+        return candidate
+    }
+
     var body: some View {
         NavigationStack {
             List {
+                if let newSeriesName {
+                    Button {
+                        let newSeries = BookSeries(
+                            id: UUID(),
+                            collectionID: collectionID,
+                            name: newSeriesName,
+                            totalBookCount: nil,
+                            publisher: nil
+                        )
+                        onCreate(newSeries)
+                        selection = newSeries
+                        dismiss()
+                    } label: {
+                        Label("Add “\(newSeriesName)”", systemImage: "plus.circle.fill")
+                    }
+                }
+
                 Button {
                     selection = nil
                     dismiss()
@@ -516,7 +541,7 @@ private struct BookSeriesSelectionView: View {
             }
             .navigationTitle("Series")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search series")
+            .searchable(text: $searchText, prompt: "Search or add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -524,117 +549,6 @@ private struct BookSeriesSelectionView: View {
                     }
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isPresentingNewSeries = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Add Series")
-                }
-            }
-            .sheet(isPresented: $isPresentingNewSeries) {
-                BookSeriesEditorView(collectionID: collectionID) { newSeries in
-                    onCreate(newSeries)
-                    selection = newSeries
-                    isPresentingNewSeries = false
-                    DispatchQueue.main.async {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct BookSeriesEditorView: View {
-    let collectionID: UUID
-    let onSave: (BookSeries) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @FocusState private var isNameFocused: Bool
-    @State private var name = ""
-    @State private var totalBookCount = ""
-
-    private var isNameValid: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var isTotalBookCountValid: Bool {
-        let trimmed = totalBookCount.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return true }
-        guard let number = Int(trimmed) else { return false }
-        return number > 0
-    }
-
-    private var canSave: Bool {
-        isNameValid && isTotalBookCountValid
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Series") {
-                    TextField("Name", text: $name)
-                        .focused($isNameFocused)
-
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                        LabeledContent("Total books") {
-#if os(iOS)
-                            TextField("—", text: $totalBookCount)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-#else
-                            TextField("—", text: $totalBookCount)
-                                .multilineTextAlignment(.trailing)
-#endif
-                        }
-
-                        if !isTotalBookCountValid {
-                            Label(
-                                "Enter a positive whole number.",
-                                systemImage: "exclamationmark.circle.fill"
-                            )
-                            .font(.footnote)
-                            .foregroundStyle(CatalogSemanticColors.destructive)
-                        }
-                    }
-                }
-            }
-            .navigationTitle("New Series")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                    }
-                    .accessibilityLabel(String(localized: "common.cancel"))
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                        let trimmedTotalBookCount = totalBookCount.trimmingCharacters(in: .whitespacesAndNewlines)
-                        onSave(
-                            BookSeries(
-                                id: UUID(),
-                                collectionID: collectionID,
-                                name: trimmedName,
-                                totalBookCount: trimmedTotalBookCount.isEmpty ? nil : Int(trimmedTotalBookCount),
-                                publisher: nil
-                            )
-                        )
-                        dismiss()
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
-                    .disabled(!canSave)
-                    .accessibilityLabel(String(localized: "common.save"))
-                }
-            }
-            .onAppear {
-                isNameFocused = true
             }
         }
     }
