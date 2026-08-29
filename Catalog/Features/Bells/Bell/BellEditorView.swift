@@ -336,6 +336,17 @@ struct BellEditorView: View {
 
                             TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
                                 .lineLimit(4, reservesSpace: true)
+
+                            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                                Text(String(localized: "common.field.tags"))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+
+                                TagEditorSection(
+                                    tagInput: $tagInput,
+                                    tags: $tags
+                                )
+                            }
                         }
 
                         Section(String(localized: "editor.acquisition_details")) {
@@ -346,7 +357,7 @@ struct BellEditorView: View {
                             )
 
                             EnumSelectionRow(
-                                title: String(localized: "bell.detail.aquisition"),
+                                title: String(localized: "item.detail.acquisition"),
                                 selectedLabel: acquisitionMethod.displayName,
                                 options: AcquisitionMethod.allCases,
                                 selection: $acquisitionMethod,
@@ -377,7 +388,7 @@ struct BellEditorView: View {
 
                         }
 
-                        Section(String(localized: "bell.detail.section.location")) {
+                        Section(String(localized: "item.detail.section.location")) {
                             PlacePickerField(
                                 title: String(localized: "common.ui.origin"),
                                 selectedLabel: selectedOriginLabel,
@@ -394,13 +405,6 @@ struct BellEditorView: View {
                                 },
                                 presentationToken: locationPickerPresentationToken,
                                 selectedLocationID: $selectedLocationID
-                            )
-                        }
-
-                        Section(String(localized: "common.field.tags")) {
-                            TagEditorSection(
-                                tagInput: $tagInput,
-                                tags: $tags
                             )
                         }
                     }

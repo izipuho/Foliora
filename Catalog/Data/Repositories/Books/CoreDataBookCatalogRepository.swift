@@ -50,6 +50,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         entity.setValue(book.details.publisher.map(upsertPublisher), forKey: "publisher")
         entity.setValue(book.details.series.map { upsertBookSeries($0, for: item) }, forKey: "series")
         replaceContributors(book.details.contributors, for: entity)
+        replaceBookIdentifiers(book.details.identifiers, for: entity)
         entity.setValue(item, forKey: "item")
         fillInverseRelationship(from: entity, relationshipName: "item", with: item)
 
@@ -58,6 +59,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
 
     private func apply(_ book: BookRecord, to entity: NSManagedObject) {
         entity.setValue(book.details.languageCode, forKey: "languageCode")
+        entity.setValue(book.details.genre, forKey: "genre")
         entity.setValue(book.details.pageCount, forKey: "pageCount")
         entity.setValue(book.details.publicationYear, forKey: "publicationYear")
         entity.setValue(book.details.volumeNumber, forKey: "volumeNumber")
@@ -133,6 +135,20 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         }
 
         book.setValue(Set(entities), forKey: "contributors")
+    }
+
+    private func replaceBookIdentifiers(_ identifiers: [BookIdentifier], for book: NSManagedObject) {
+        bookRelatedObjects(book, "bookIdentifiers").forEach(context.delete)
+
+        let entities = identifiers.map { identifier -> NSManagedObject in
+            let entity = makeEntity(named: "BookIdentifierEntity")
+            entity.setValue(identifier.type.rawValue, forKey: "type")
+            entity.setValue(identifier.value, forKey: "value")
+            entity.setValue(book, forKey: "book")
+            return entity
+        }
+
+        book.setValue(Set(entities), forKey: "bookIdentifiers")
     }
 
     private func upsertPerson(_ person: Person) -> NSManagedObject {

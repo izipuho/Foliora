@@ -62,7 +62,7 @@ struct BellDetailView: View {
                 )
             }
             .confirmationDialog(
-                String(localized: "bell.detail.unsaved_changes.title"),
+                String(localized: "item.detail.unsaved_changes.title"),
                 isPresented: $isPresentingUnsavedChangesConfirmation,
                 titleVisibility: .visible
             ) {
@@ -70,13 +70,13 @@ struct BellDetailView: View {
                     saveNotesAndTagsChanges()
                 }
 
-                Button(String(localized: "bell.detail.unsaved_changes.discard"), role: .destructive) {
+                Button(String(localized: "item.detail.unsaved_changes.discard"), role: .destructive) {
                     discardNotesAndTagsChanges()
                 }
 
                 Button(String(localized: "common.cancel"), role: .cancel) {}
             } message: {
-                Text(String(localized: "bell.detail.unsaved_changes.message"))
+                Text(String(localized: "item.detail.unsaved_changes.message"))
             }
             .sheet(isPresented: $isPresentingEditor) {
                 if canEditCollection, let collection = inferredCollection {
@@ -156,18 +156,50 @@ struct BellDetailView: View {
 
     private var detailContent: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
-            detailSection(String(localized: "bell.detail.section.collection_info")) {
-                if let acquiredYear = bell.acquiredYear {
-                    detailRow(String(localized: "common.field.acquired_year"), value: String(acquiredYear))
-                }
+            detailSection(String(localized: "item.detail.section.collection_info")) {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: CatalogMetrics.Spacing.lg, alignment: .top),
+                        GridItem(.flexible(), alignment: .top)
+                    ],
+                    alignment: .leading,
+                    spacing: CatalogMetrics.Spacing.lg
+                ) {
+                    if let acquiredYear = bell.acquiredYear {
+                        metadataField(
+                            title: String(localized: "common.field.acquired_year"),
+                            value: String(acquiredYear),
+                            systemImage: "calendar.badge.plus"
+                        )
+                    }
 
-                detailRow(String(localized: "bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
-                detailRow(String(localized: "common.field.condition"), value: bell.condition.displayName)
-                detailRow(String(localized: "common.field.material"), value: bell.materialDisplayName)
+                    metadataField(
+                        title: String(localized: "item.detail.acquisition"),
+                        value: bell.acquisitionMethod.displayName,
+                        systemImage: "bag"
+                    )
+
+                    metadataField(
+                        title: String(localized: "common.field.condition"),
+                        value: bell.condition.displayName,
+                        systemImage: "checkmark.seal"
+                    )
+
+                    metadataField(
+                        title: String(localized: "common.field.material"),
+                        value: bell.materialDisplayName,
+                        systemImage: "cube"
+                    )
+                }
+                .padding(CatalogMetrics.Spacing.lg)
+                .background {
+                    CatalogShapes.section
+                        .fill(.ultraThinMaterial)
+                }
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)
 
-            detailSection(String(localized: "bell.detail.section.location")) {
+            detailSection(String(localized: "item.detail.section.location")) {
                 OriginStorageSection(
                     place: bell.originPlace,
                     storagePath: bell.storageDisplayPath,
@@ -271,14 +303,21 @@ struct BellDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func detailRow(_ title: String, value: String) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text(value)
+    private func metadataField(
+        title: String,
+        value: String,
+        systemImage: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+            Label(title, systemImage: systemImage)
+                .font(CatalogTypography.cardSubtitle)
                 .foregroundStyle(.secondary)
-                .multilineTextAlignment(.trailing)
+
+            Text(value)
+                .font(CatalogTypography.cardLabel)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private func heroHeader(preview: @escaping (MediaAsset) -> Void) -> some View {
