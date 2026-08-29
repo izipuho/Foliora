@@ -441,7 +441,7 @@ private struct SeriesPublisherSelectionView: View {
                             id: UUID(),
                             name: newPublisherName,
                             location: nil,
-                            logos: []
+                            logo: nil
                         )
                         onCreate(publisher)
                         selection = publisher
