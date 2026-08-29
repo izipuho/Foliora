@@ -15,6 +15,14 @@ extension CoreDataDomainMapper {
         let contributors = relatedObjects(entity, "contributors")
             .sorted { intValue($0, "order") < intValue($1, "order") }
             .map { bookContributor(from: $0) }
+        let identifiers = relatedObjects(entity, "bookIdentifiers")
+            .map { bookIdentifier(from: $0) }
+            .sorted {
+                if $0.type.rawValue == $1.type.rawValue {
+                    return $0.value < $1.value
+                }
+                return $0.type.rawValue < $1.type.rawValue
+            }
 
         return BookRecord(
             item: itemRecord,
@@ -26,7 +34,8 @@ extension CoreDataDomainMapper {
                 volumeNumber: positiveIntValue(entity, "volumeNumber"),
                 publisher: publisherEntity.map { publisher(from: $0) },
                 contributors: contributors,
-                series: seriesEntity.map { bookSeries(from: $0) }
+                series: seriesEntity.map { bookSeries(from: $0) },
+                identifiers: identifiers
             )
         )
     }
@@ -90,6 +99,23 @@ extension CoreDataDomainMapper {
             role: role,
             order: intValue(entity, "order"),
             person: person(from: personEntity)
+        )
+    }
+
+    private static func bookIdentifier(from entity: NSManagedObject) -> BookIdentifier {
+        precondition(
+            entity.entity.name == "BookIdentifierEntity",
+            "CoreDataDomainMapper.bookIdentifier(from:) expects BookIdentifierEntity."
+        )
+
+        let rawType = stringValue(entity, "type")
+        guard let type = BookIdentifierType(rawValue: rawType) else {
+            preconditionFailure("BookIdentifierEntity has unsupported type: \(rawType).")
+        }
+
+        return BookIdentifier(
+            type: type,
+            value: stringValue(entity, "value")
         )
     }
 
