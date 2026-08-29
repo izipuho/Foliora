@@ -330,7 +330,7 @@ struct PersonDetailView: View {
                 }
             }
             .map { role in
-                CatalogCardAccessory(
+                .label(
                     text: role.bookEditorDisplayName,
                     systemImage: "person.fill"
                 )
