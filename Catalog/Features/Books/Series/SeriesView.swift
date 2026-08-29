@@ -109,6 +109,7 @@ struct SeriesView: View {
                 canEditCollection: canEditCollection,
                 accentColor: collection.backgroundStyle.accentColor,
                 onSeriesSaved: upsertLocalSeries,
+                onSeriesDeleted: removeLocalSeries,
                 onBookSelected: onBookSelected
             )
         }
@@ -199,6 +200,13 @@ struct SeriesView: View {
             localSeries.append(series)
         }
     }
+
+    private func removeLocalSeries(_ seriesID: UUID) {
+        localSeries.removeAll { $0.id == seriesID }
+        if selectedSeries?.id == seriesID {
+            selectedSeries = nil
+        }
+    }
 }
 
 /// Displays the editor used to create or update a book series.
@@ -206,6 +214,8 @@ struct SeriesEditorView: View {
     let collectionID: UUID
     private let existingSeries: BookSeries?
     private let publishers: [Publisher]
+    private let bookCount: Int
+    private let onDelete: (() -> Void)?
     private let onSave: (BookSeries) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -215,16 +225,21 @@ struct SeriesEditorView: View {
     @State private var selectedPublisher: Publisher?
     @State private var localPublishers: [Publisher]
     @State private var isPresentingPublisherPicker = false
+    @State private var isPresentingDeleteConfirmation = false
 
     init(
         collectionID: UUID,
         series: BookSeries?,
         publishers: [Publisher],
+        bookCount: Int = 0,
+        onDelete: (() -> Void)? = nil,
         onSave: @escaping (BookSeries) -> Void
     ) {
         self.collectionID = collectionID
         self.existingSeries = series
         self.publishers = publishers
+        self.bookCount = bookCount
+        self.onDelete = onDelete
         self.onSave = onSave
         _name = State(initialValue: series?.name ?? "")
         _totalBookCount = State(initialValue: series?.totalBookCount.map(String.init) ?? "")
@@ -264,7 +279,7 @@ struct SeriesEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Series") {
+                Section {
                     TextField("Name", text: $name)
                         .focused($isNameFocused)
 
@@ -310,6 +325,15 @@ struct SeriesEditorView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                if existingSeries != nil, onDelete != nil {
+                    Section {
+                        Button("Delete Series", role: .destructive) {
+                            isPresentingDeleteConfirmation = true
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                }
             }
             .navigationTitle(existingSeries == nil ? "Add Series" : "Edit Series")
             .navigationBarTitleDisplayMode(.inline)
@@ -340,6 +364,25 @@ struct SeriesEditorView: View {
                         selectedPublisher = publisher
                     }
                 )
+            }
+            .confirmationDialog(
+                "Delete Series?",
+                isPresented: $isPresentingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Series", role: .destructive) {
+                    onDelete?()
+                    dismiss()
+                }
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+            } message: {
+                if bookCount == 0 {
+                    Text("The series will be deleted.")
+                } else if bookCount == 1 {
+                    Text("The series will be deleted. 1 book will remain in the library without a series or volume number.")
+                } else {
+                    Text("The series will be deleted. \(bookCount) books will remain in the library without a series or volume number.")
+                }
             }
             .onAppear {
                 if existingSeries == nil {
