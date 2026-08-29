@@ -15,6 +15,19 @@ enum BookContributorRole: String, CaseIterable, Hashable, Identifiable, Codable 
     case illustrator
 
     var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .author:
+            return "Author"
+        case .translator:
+            return "Translator"
+        case .editor:
+            return "Editor"
+        case .illustrator:
+            return "Illustrator"
+        }
+    }
 }
 
 /// Represents a typed external or catalog identifier assigned to a book.
