@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 #if DEBUG
@@ -272,7 +273,7 @@ struct BookDetailView: View {
                 if let languageCode = book.details.languageCode, !languageCode.isEmpty {
                     metadataField(
                         title: "Language",
-                        value: languageCode.uppercased(),
+                        value: bookLanguageDisplayName(for: languageCode),
                         systemImage: "globe"
                     )
                 }
@@ -282,14 +283,6 @@ struct BookDetailView: View {
                         title: "Genre",
                         value: genre,
                         systemImage: "tag"
-                    )
-                }
-
-                if book.details.series == nil, let volumeNumber = book.details.volumeNumber {
-                    metadataField(
-                        title: "Volume",
-                        value: volumeDisplayName(volumeNumber),
-                        systemImage: "books.vertical"
                     )
                 }
             }
@@ -551,7 +544,6 @@ struct BookDetailView: View {
             || book.details.pageCount != nil
             || !(book.details.languageCode?.isEmpty ?? true)
             || !(book.details.genre?.isEmpty ?? true)
-            || (book.details.series == nil && book.details.volumeNumber != nil)
     }
 
     private var hasBookInformation: Bool {
@@ -564,6 +556,13 @@ struct BookDetailView: View {
         }
 
         return String(volumeNumber)
+    }
+
+    private func bookLanguageDisplayName(for code: String) -> String {
+        let name = Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
+        guard let firstCharacter = name.first else { return name }
+
+        return String(firstCharacter).uppercased(with: Locale.current) + String(name.dropFirst())
     }
 
     private var storageDisplayPath: String {
