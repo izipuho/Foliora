@@ -151,6 +151,14 @@ struct PublisherDetailView: View {
         .navigationTitle(publisher.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            CatalogSortLayoutToolbar(
+                selectedSort: selectedOrderBinding,
+                selectedLayoutMode: layoutModeBinding,
+                sortOptions: PublisherBookOrderMode.allCases,
+                sortSectionTitle: "Sort",
+                sortTitle: { $0.title }
+            )
+            
             if canEditCollection {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -161,14 +169,6 @@ struct PublisherDetailView: View {
                     .accessibilityLabel("Edit Publisher")
                 }
             }
-
-            CatalogSortLayoutToolbar(
-                selectedSort: selectedOrderBinding,
-                selectedLayoutMode: layoutModeBinding,
-                sortOptions: PublisherBookOrderMode.allCases,
-                sortSectionTitle: "Sort",
-                sortTitle: { $0.title }
-            )
         }
         .sheet(isPresented: $isPresentingEditor) {
             PublisherEditorView(
