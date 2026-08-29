@@ -831,7 +831,7 @@ private struct BookPublisherSelectionView: View {
                             id: UUID(),
                             name: newPublisherName,
                             location: nil,
-                            logos: []
+                            logo: nil
                         )
                         onCreate(newPublisher)
                         selection = newPublisher
