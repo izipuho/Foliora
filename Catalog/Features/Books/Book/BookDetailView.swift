@@ -393,8 +393,37 @@ struct BookDetailView: View {
 
     private var identifiersSection: some View {
         detailSection("Identifiers") {
-            ForEach(Array(book.details.identifiers.enumerated()), id: \.offset) { _, identifier in
-                detailRow(identifier.type.title, value: identifier.value)
+            Grid(
+                alignment: .leading,
+                horizontalSpacing: CatalogMetrics.Spacing.lg,
+                verticalSpacing: CatalogMetrics.Spacing.md
+            ) {
+                ForEach(Array(book.details.identifiers.enumerated()), id: \.offset) { index, identifier in
+                    GridRow(alignment: .firstTextBaseline) {
+                        Text(identifier.type.title)
+                            .font(CatalogTypography.cardLabel)
+                            .foregroundStyle(.secondary)
+                            .gridColumnAlignment(.leading)
+
+                        Text(identifier.value)
+                            .monospaced()
+                            .multilineTextAlignment(.trailing)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .gridColumnAlignment(.trailing)
+                    }
+
+                    if index < book.details.identifiers.count - 1 {
+                        Divider()
+                            .gridCellColumns(2)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(CatalogMetrics.Spacing.lg)
+            .background {
+                CatalogShapes.section
+                    .fill(.ultraThinMaterial)
             }
         }
     }
