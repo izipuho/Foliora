@@ -101,6 +101,22 @@ private struct DashboardCardStrip: View {
                 }
                 .buttonStyle(.plain)
 
+                NavigationLink {
+                    PeopleView(
+                        collection: collection,
+                        catalogSnapshot: catalogSnapshot,
+                        repository: repository,
+                        canEditCollection: canEditCollection,
+                        onBookSelected: onBookSelected
+                    )
+                } label: {
+                    BookPeopleDashboardCard(
+                        libraryCount: libraryPeopleCount,
+                        tint: tint
+                    )
+                }
+                .buttonStyle(.plain)
+
                 CatalogDashboardDataHealthCard(
                     progress: stats.dataHealthProgress,
                     tint: tint
@@ -163,6 +179,14 @@ private struct DashboardCardStrip: View {
         return Set(
             books.compactMap { $0.details.publisher?.id }
                 + series.compactMap { $0.publisher?.id }
+        ).count
+    }
+
+    private var libraryPeopleCount: Int {
+        guard let catalogSnapshot else { return 0 }
+        let books = catalogSnapshot.bookRecords.filter { $0.collectionID == collection.id }
+        return Set(
+            books.flatMap { $0.details.contributors.map(\.person.id) }
         ).count
     }
 
@@ -289,6 +313,29 @@ private struct BookPublisherDashboardCard: View {
         } content: {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Publishers")
+                    .font(CatalogTypography.sectionTitle)
+
+                Text("\(libraryCount) in this library")
+                    .font(CatalogTypography.cardSubtitle)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+        }
+    }
+}
+
+private struct BookPeopleDashboardCard: View {
+    let libraryCount: Int
+    let tint: Color
+
+    var body: some View {
+        DashboardCard {
+            Image(systemName: "person.2.fill")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(tint)
+        } content: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("People")
                     .font(CatalogTypography.sectionTitle)
 
                 Text("\(libraryCount) in this library")
