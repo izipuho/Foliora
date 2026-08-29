@@ -61,21 +61,6 @@ struct PublisherDetailView: View {
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
                 summaryCard
 
-                if !series.isEmpty {
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        Text("Series")
-                            .font(CatalogTypography.sectionTitle)
-
-                        ForEach(series) { item in
-                            CatalogContainerCard(
-                                title: item.name,
-                                supportingText: seriesSupportingText(item),
-                                systemImage: "rectangle.stack.fill"
-                            )
-                        }
-                    }
-                }
-
                 if sortedBooks.isEmpty {
                     CatalogEmptyStateView(
                         systemImage: "book.closed",
@@ -220,10 +205,6 @@ struct PublisherDetailView: View {
                 .font(CatalogTypography.cardLabel)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
-    }
-
-    private func seriesSupportingText(_ series: BookSeries) -> String? {
-        series.totalBookCount.map { "\($0) books" }
     }
 }
 
