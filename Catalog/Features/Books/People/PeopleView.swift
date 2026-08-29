@@ -136,8 +136,8 @@ struct PeopleView: View {
                     .map(\.role)
             }
         )
-        .sorted { $0.bookEditorDisplayName < $1.bookEditorDisplayName }
-        .map(\.bookEditorDisplayName)
+        .sorted { peopleRoleDisplayName($0) < peopleRoleDisplayName($1) }
+        .map(peopleRoleDisplayName)
 
         let bookText = "\(matchingBooks.count) \(matchingBooks.count == 1 ? "book" : "books")"
         guard !roles.isEmpty else { return bookText }
@@ -438,6 +438,19 @@ struct PersonEditorView: View {
 
         onSave(person)
         dismiss()
+    }
+}
+
+func peopleRoleDisplayName(_ role: BookContributorRole) -> String {
+    switch role {
+    case .author:
+        return "Author"
+    case .translator:
+        return "Translator"
+    case .editor:
+        return "Editor"
+    case .illustrator:
+        return "Illustrator"
     }
 }
 
