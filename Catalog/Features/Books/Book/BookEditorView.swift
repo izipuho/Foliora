@@ -1,9 +1,11 @@
+import Foundation
 import SwiftUI
 
 /// Displays the editor used to create or edit a book.
 struct BookEditorView: View {
     let collection: CollectionSummary
     private let existingBook: BookRecord?
+    private let genreSuggestions: [String]
     private let onSave: (BookRecord) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -52,10 +54,12 @@ struct BookEditorView: View {
         collection: CollectionSummary,
         initialMediaAssets: [MediaAsset] = [],
         book: BookRecord? = nil,
+        genreSuggestions: [String] = [],
         onSave: @escaping (BookRecord) -> Void
     ) {
         self.collection = collection
         self.existingBook = book
+        self.genreSuggestions = Self.normalizedGenreSuggestions(genreSuggestions)
         self.onSave = onSave
         self.editorItemID = book?.id ?? UUID()
 
@@ -129,15 +133,13 @@ struct BookEditorView: View {
                         text: $pageCount
                     )
 
-                    LabeledContent("Language") {
-                        TextField("—", text: $languageCode)
-                            .multilineTextAlignment(.trailing)
-                    }
+                    BookLanguagePickerField(languageCode: $languageCode)
 
-                    LabeledContent("Genre") {
-                        TextField("—", text: $genre)
-                            .multilineTextAlignment(.trailing)
-                    }
+                    LookupTextField(
+                        title: "Genre",
+                        value: $genre,
+                        suggestions: genreSuggestions
+                    )
 
                     if series != nil {
                         volumeField
@@ -348,6 +350,232 @@ struct BookEditorView: View {
         guard let number = optionalString(value).flatMap(Int.init), number > 0 else { return nil }
         return number
     }
+
+    private static func normalizedGenreSuggestions(_ values: [String]) -> [String] {
+        var seen: Set<String> = []
+
+        return values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { seen.insert($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)).inserted }
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+}
+
+private struct BookLanguagePickerField: View {
+    @Binding var languageCode: String
+    @State private var isPresentingPicker = false
+
+    private var selectedLabel: String {
+        guard !languageCode.isEmpty else { return String(localized: "common.none") }
+        return Locale.current.localizedString(forLanguageCode: languageCode) ?? languageCode.uppercased()
+    }
+
+    var body: some View {
+        Button {
+            isPresentingPicker = true
+        } label: {
+            HStack {
+                Text("Language")
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Text(selectedLabel)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+
+                Image(systemName: "chevron.right")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isPresentingPicker) {
+            BookLanguagePickerView(languageCode: $languageCode)
+        }
+    }
+}
+
+private struct BookLanguagePickerView: View {
+    @Binding var languageCode: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private struct LanguageOption: Identifiable {
+        let code: String
+        let name: String
+
+        var id: String { code }
+    }
+
+    private var languageOptions: [LanguageOption] {
+        Locale.LanguageCode.isoLanguageCodes
+            .map(\.identifier)
+            .compactMap { code in
+                guard let name = Locale.current.localizedString(forLanguageCode: code) else { return nil }
+                return LanguageOption(code: code, name: name)
+            }
+            .sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    private var filteredOptions: [LanguageOption] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return languageOptions }
+
+        return languageOptions.filter {
+            $0.name.localizedCaseInsensitiveContains(query)
+                || $0.code.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Button {
+                    languageCode = ""
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(String(localized: "common.none"))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if languageCode.isEmpty {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+
+                ForEach(filteredOptions) { option in
+                    Button {
+                        languageCode = option.code
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(option.name)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            Text(option.code.uppercased())
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            if languageCode.caseInsensitiveCompare(option.code) == .orderedSame {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Language")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search languages")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+private struct LookupTextField: View {
+    let title: String
+    @Binding var value: String
+    let suggestions: [String]
+
+    @State private var isPresentingLookup = false
+
+    var body: some View {
+        HStack {
+            Text(title)
+
+            Spacer()
+
+            TextField("—", text: $value)
+                .multilineTextAlignment(.trailing)
+
+            if !suggestions.isEmpty {
+                Button {
+                    isPresentingLookup = true
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(CatalogTypography.chipLabel)
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Choose \(title)")
+            }
+        }
+        .sheet(isPresented: $isPresentingLookup) {
+            LookupSelectionView(
+                title: title,
+                selection: $value,
+                suggestions: suggestions
+            )
+        }
+    }
+}
+
+private struct LookupSelectionView: View {
+    let title: String
+    @Binding var selection: String
+    let suggestions: [String]
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredSuggestions: [String] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return suggestions }
+        return suggestions.filter { $0.localizedCaseInsensitiveContains(query) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(filteredSuggestions, id: \.self) { suggestion in
+                    Button {
+                        selection = suggestion
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(suggestion)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            if suggestion.caseInsensitiveCompare(selection) == .orderedSame {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
 }
 
 #if DEBUG
@@ -363,10 +591,14 @@ struct BookEditorView: View {
         .compactMap({ snapshot.collectionSummary(id: $0.id) })
         .first(where: { $0.kind == .books }) {
         let book = snapshot.bookRecords.first { $0.item.collectionID == collection.id }
+        let genres = snapshot.bookRecords
+            .filter { $0.collectionID == collection.id }
+            .compactMap(\.details.genre)
 
         BookEditorView(
             collection: collection,
-            book: book
+            book: book,
+            genreSuggestions: genres
         ) { updatedBook in
             repository.saveBookRecord(updatedBook)
         }
