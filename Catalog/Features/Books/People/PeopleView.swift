@@ -73,7 +73,8 @@ struct PeopleView: View {
                             } label: {
                                 PersonCard(
                                     person: person,
-                                    supportingText: usageText(for: person),
+                                    roles: rolesForPerson(person),
+                                    bookCount: booksForPerson(person).count,
                                     accentColor: collection.backgroundStyle.accentColor
                                 )
                             }
@@ -127,21 +128,15 @@ struct PeopleView: View {
         }
     }
 
-    private func usageText(for person: Person) -> String {
-        let matchingBooks = booksForPerson(person)
-        let roles = Set(
-            matchingBooks.flatMap { book in
+    private func rolesForPerson(_ person: Person) -> [BookContributorRole] {
+        Set(
+            booksForPerson(person).flatMap { book in
                 book.details.contributors
                     .filter { $0.person.id == person.id }
                     .map(\.role)
             }
         )
-        .sorted { peopleRoleDisplayName($0) < peopleRoleDisplayName($1) }
-        .map(peopleRoleDisplayName)
-
-        let bookText = "\(matchingBooks.count) \(matchingBooks.count == 1 ? "book" : "books")"
-        guard !roles.isEmpty else { return bookText }
-        return roles.joined(separator: ", ") + " · " + bookText
+        .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
     }
 
     private func upsertLocalPerson(_ person: Person) {
@@ -177,7 +172,8 @@ struct PeopleView: View {
 
 private struct PersonCard: View {
     let person: Person
-    let supportingText: String
+    let roles: [BookContributorRole]
+    let bookCount: Int
     let accentColor: Color
 
     var body: some View {
@@ -194,11 +190,17 @@ private struct PersonCard: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Text(supportingText)
-                    .font(.footnote.weight(.medium))
+                if !roles.isEmpty {
+                    Text(roles.map(\.displayName).joined(separator: " · "))
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .padding(.top, CatalogMetrics.Spacing.sm)
+                }
+
+                Text("\(bookCount) \(bookCount == 1 ? "book" : "books")")
+                    .font(CatalogTypography.chipLabel)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .padding(.top, CatalogMetrics.Spacing.sm)
             }
 
             Spacer(minLength: CatalogMetrics.Spacing.md)
@@ -438,19 +440,6 @@ struct PersonEditorView: View {
 
         onSave(person)
         dismiss()
-    }
-}
-
-func peopleRoleDisplayName(_ role: BookContributorRole) -> String {
-    switch role {
-    case .author:
-        return "Author"
-    case .translator:
-        return "Translator"
-    case .editor:
-        return "Editor"
-    case .illustrator:
-        return "Illustrator"
     }
 }
 
