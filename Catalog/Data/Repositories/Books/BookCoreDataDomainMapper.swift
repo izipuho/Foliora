@@ -108,8 +108,8 @@ extension CoreDataDomainMapper {
         )
 
         let rawType = stringValue(entity, "type")
-        guard let type = BookIdentifierType(rawValue: rawRole) else {
-            preconditionFailure("BookIdentifierEntity has unsupported role: \(rawRole).")
+        guard let type = BookIdentifierType(rawValue: rawType) else {
+            preconditionFailure("BookIdentifierEntity has unsupported type: \(rawType).")
         }
 
         return BookIdentifier(
