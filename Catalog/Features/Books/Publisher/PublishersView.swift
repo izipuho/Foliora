@@ -319,7 +319,8 @@ struct PublisherEditorView: View {
                 Section("Logo") {
                     MediaSection(
                         itemID: editorPublisherID,
-                        mediaAssets: $logoAssets
+                        mediaAssets: $logoAssets,
+                        maxMediaCount: 1
                     )
                     .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -384,10 +385,6 @@ struct PublisherEditorView: View {
             } message: {
                 Text(deleteMessage)
             }
-            .onChange(of: logoAssets) { _, newValue in
-                guard newValue.count > 1, let newest = newValue.last else { return }
-                logoAssets = [newest.with(sortOrder: 0)]
-            }
             .onAppear {
                 if existingPublisher == nil {
                     isNameFocused = true
@@ -419,7 +416,7 @@ struct PublisherEditorView: View {
             id: existingPublisher?.id ?? editorPublisherID,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             location: selectedLocation,
-            logo: logoAssets.last?.with(sortOrder: 0)
+            logo: logoAssets.first?.with(sortOrder: 0)
         )
 
         onSave(publisher)
