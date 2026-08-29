@@ -214,73 +214,7 @@ struct BookDetailView: View {
     private var bookInformationSection: some View {
         detailSection(String(localized: "common.book")) {
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                if let publisher = book.details.publisher {
-                    metadataTile(
-                        title: "Publisher",
-                        value: publisher.name,
-                        systemImage: "building.2"
-                    )
-                }
-
-                LazyVGrid(
-                    columns: [
-                        GridItem(
-                            .adaptive(minimum: 140),
-                            spacing: CatalogMetrics.Spacing.md,
-                            alignment: .top
-                        )
-                    ],
-                    alignment: .leading,
-                    spacing: CatalogMetrics.Spacing.md
-                ) {
-                    if let publicationYear = book.details.publicationYear {
-                        metadataTile(
-                            title: "Publication year",
-                            value: String(publicationYear),
-                            systemImage: "calendar"
-                        )
-                    }
-
-                    if let pageCount = book.details.pageCount {
-                        metadataTile(
-                            title: "Pages",
-                            value: String(pageCount),
-                            systemImage: "doc.text"
-                        )
-                    }
-
-                    if let languageCode = book.details.languageCode, !languageCode.isEmpty {
-                        metadataTile(
-                            title: "Language",
-                            value: languageCode.uppercased(),
-                            systemImage: "globe"
-                        )
-                    }
-
-                    if let genre = book.details.genre, !genre.isEmpty {
-                        metadataTile(
-                            title: "Genre",
-                            value: genre,
-                            systemImage: "tag"
-                        )
-                    }
-
-                    if let volumeNumber = book.details.volumeNumber {
-                        metadataTile(
-                            title: "Volume",
-                            value: volumeDisplayName(volumeNumber),
-                            systemImage: "books.vertical"
-                        )
-                    }
-                }
-
-                if let series = book.details.series {
-                    metadataTile(
-                        title: "Series",
-                        value: series.name,
-                        systemImage: "books.vertical"
-                    )
-                }
+                bookMetadataCard
 
                 if !otherContributors.isEmpty {
                     Text("Contributors")
@@ -290,6 +224,81 @@ struct BookDetailView: View {
                     contributorsCard
                 }
             }
+        }
+    }
+
+    private var bookMetadataCard: some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
+            if let publisher = book.details.publisher {
+                metadataField(
+                    title: "Publisher",
+                    value: publisher.name,
+                    systemImage: "building.2"
+                )
+            }
+
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: CatalogMetrics.Spacing.lg, alignment: .top),
+                    GridItem(.flexible(), alignment: .top)
+                ],
+                alignment: .leading,
+                spacing: CatalogMetrics.Spacing.lg
+            ) {
+                if let publicationYear = book.details.publicationYear {
+                    metadataField(
+                        title: "Publication year",
+                        value: String(publicationYear),
+                        systemImage: "calendar"
+                    )
+                }
+
+                if let pageCount = book.details.pageCount {
+                    metadataField(
+                        title: "Pages",
+                        value: String(pageCount),
+                        systemImage: "doc.text"
+                    )
+                }
+
+                if let languageCode = book.details.languageCode, !languageCode.isEmpty {
+                    metadataField(
+                        title: "Language",
+                        value: languageCode.uppercased(),
+                        systemImage: "globe"
+                    )
+                }
+
+                if let genre = book.details.genre, !genre.isEmpty {
+                    metadataField(
+                        title: "Genre",
+                        value: genre,
+                        systemImage: "tag"
+                    )
+                }
+
+                if let volumeNumber = book.details.volumeNumber {
+                    metadataField(
+                        title: "Volume",
+                        value: volumeDisplayName(volumeNumber),
+                        systemImage: "books.vertical"
+                    )
+                }
+            }
+
+            if let series = book.details.series {
+                metadataField(
+                    title: "Series",
+                    value: series.name,
+                    systemImage: "books.vertical"
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(CatalogMetrics.Spacing.lg)
+        .background {
+            CatalogShapes.section
+                .fill(.ultraThinMaterial)
         }
     }
 
@@ -324,36 +333,34 @@ struct BookDetailView: View {
 
     private var collectionInformationSection: some View {
         detailSection(String(localized: "bell.detail.section.collection_info")) {
-            LazyVGrid(
-                columns: [
-                    GridItem(
-                        .adaptive(minimum: 104),
-                        spacing: CatalogMetrics.Spacing.md,
-                        alignment: .top
-                    )
-                ],
-                alignment: .leading,
-                spacing: CatalogMetrics.Spacing.md
-            ) {
+            HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 if let acquiredYear = book.acquiredYear {
-                    metadataTile(
+                    metadataField(
                         title: String(localized: "common.field.acquired_year"),
                         value: String(acquiredYear),
                         systemImage: "calendar.badge.plus"
                     )
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
 
-                metadataTile(
+                metadataField(
                     title: String(localized: "bell.detail.acquisition"),
                     value: book.acquisitionMethod.displayName,
                     systemImage: "bag"
                 )
+                .frame(maxWidth: .infinity, alignment: .topLeading)
 
-                metadataTile(
+                metadataField(
                     title: String(localized: "common.field.condition"),
                     value: book.condition.displayName,
                     systemImage: "checkmark.seal"
                 )
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+            .padding(CatalogMetrics.Spacing.lg)
+            .background {
+                CatalogShapes.section
+                    .fill(.ultraThinMaterial)
             }
         }
     }
@@ -497,33 +504,18 @@ struct BookDetailView: View {
 
     private var identifiersSection: some View {
         detailSection("Identifiers") {
-            Grid(
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: CatalogMetrics.Spacing.lg, alignment: .top),
+                    GridItem(.flexible(), alignment: .top)
+                ],
                 alignment: .leading,
-                horizontalSpacing: CatalogMetrics.Spacing.lg,
-                verticalSpacing: CatalogMetrics.Spacing.md
+                spacing: CatalogMetrics.Spacing.lg
             ) {
-                ForEach(Array(book.details.identifiers.enumerated()), id: \.offset) { index, identifier in
-                    GridRow(alignment: .firstTextBaseline) {
-                        Text(identifier.type.title)
-                            .font(CatalogTypography.cardLabel)
-                            .foregroundStyle(.secondary)
-                            .gridColumnAlignment(.leading)
-
-                        Text(identifier.value)
-                            .monospaced()
-                            .multilineTextAlignment(.trailing)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                            .gridColumnAlignment(.trailing)
-                    }
-
-                    if index < book.details.identifiers.count - 1 {
-                        Divider()
-                            .gridCellColumns(2)
-                    }
+                ForEach(Array(book.details.identifiers.enumerated()), id: \.offset) { _, identifier in
+                    identifierField(identifier)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(CatalogMetrics.Spacing.lg)
             .background {
                 CatalogShapes.section
@@ -544,7 +536,7 @@ struct BookDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func metadataTile(
+    private func metadataField(
         title: String,
         value: String,
         systemImage: String
@@ -554,14 +546,26 @@ struct BookDetailView: View {
                 .font(CatalogTypography.cardSubtitle)
                 .foregroundStyle(.secondary)
 
-            Spacer(minLength: 0)
-
             Text(value)
                 .font(CatalogTypography.cardLabel)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
-        .catalogSurfaceTile()
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    private func identifierField(_ identifier: BookIdentifier) -> some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+            Text(identifier.type.title)
+                .font(CatalogTypography.cardSubtitle)
+                .foregroundStyle(.secondary)
+
+            Text(identifier.value)
+                .monospaced()
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .textSelection(.enabled)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private var coverPhoto: MediaAsset? {
