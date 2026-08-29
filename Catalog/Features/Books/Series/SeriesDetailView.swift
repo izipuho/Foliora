@@ -79,28 +79,13 @@ struct SeriesDetailView: View {
                         Text("Books")
                             .font(CatalogTypography.sectionTitle)
 
-                        CatalogCardGrid(
+                        BookGridView(
+                            books: sortedBooks,
                             layoutMode: .compact,
-                            bottomContentMargin: 0
-                        ) { cardSize, _, cardMetrics in
-                            ForEach(sortedBooks) { book in
-                                Button {
-                                    onBookSelected?(book.id)
-                                } label: {
-                                    BookCardView(
-                                        book: book,
-                                        style: CatalogCardContentStyle.style(for: .compact),
-                                        cardSize: cardSize,
-                                        cardMetrics: cardMetrics,
-                                        accessories: volumeAccessories(for: book)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                                .frame(width: cardSize.width, height: cardSize.height)
-                                .contentShape(Rectangle())
-                            }
-                        }
-                        .frame(minHeight: seriesGridHeight)
+                            bottomContentMargin: 0,
+                            accessories: volumeAccessories,
+                            onBookSelected: onBookSelected
+                        )
                     }
                 }
             }
@@ -185,14 +170,6 @@ struct SeriesDetailView: View {
             CatalogShapes.section
                 .fill(.ultraThinMaterial)
         }
-    }
-
-    private var seriesGridHeight: CGFloat {
-        let columns = CatalogCardLayoutMode.compact.gridMetrics.columnCount
-        let rows = Int(ceil(Double(sortedBooks.count) / Double(columns)))
-        let height = CatalogCardLayoutMode.compact.cardMetrics.cardHeight
-        let spacing = CatalogCardLayoutMode.compact.gridMetrics.spacing
-        return CGFloat(rows) * height + CGFloat(max(rows - 1, 0)) * spacing
     }
 
     private func metadataField(
