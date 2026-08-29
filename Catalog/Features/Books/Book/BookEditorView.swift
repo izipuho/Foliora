@@ -29,9 +29,16 @@ struct BookEditorView: View {
     @State private var selectedSeries: BookSeries?
     @State private var volumeNumber: String
     @State private var selectedPublisher: Publisher?
+    @State private var contributors: [BookContributor]
+    @State private var identifiers: [BookIdentifier]
     @State private var catalogGenreSuggestions: [String] = []
     @State private var catalogSeries: [BookSeries] = []
     @State private var catalogPublishers: [Publisher] = []
+    @State private var catalogPeople: [Person] = []
+    @State private var editingContributorIndex: Int?
+    @State private var isPresentingContributorEditor = false
+    @State private var editingIdentifierIndex: Int?
+    @State private var isPresentingIdentifierEditor = false
 
     private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
@@ -87,6 +94,21 @@ struct BookEditorView: View {
         }
     }
 
+    private var availablePeople: [Person] {
+        var uniqueByID = Dictionary(catalogPeople.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for contributor in contributors {
+            uniqueByID[contributor.person.id] = contributor.person
+        }
+
+        return uniqueByID.values.sorted {
+            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
+            if comparison != .orderedSame {
+                return comparison == .orderedAscending
+            }
+            return $0.id.uuidString < $1.id.uuidString
+        }
+    }
+
     init(
         collection: CollectionSummary,
         initialMediaAssets: [MediaAsset] = [],
@@ -118,6 +140,13 @@ struct BookEditorView: View {
         _selectedSeries = State(initialValue: book?.details.series)
         _volumeNumber = State(initialValue: book?.details.volumeNumber.map(String.init) ?? "")
         _selectedPublisher = State(initialValue: book?.details.publisher)
+        _contributors = State(
+            initialValue: (book?.details.contributors ?? []).sorted {
+                if $0.order != $1.order { return $0.order < $1.order }
+                return $0.person.name.localizedCaseInsensitiveCompare($1.person.name) == .orderedAscending
+            }
+        )
+        _identifiers = State(initialValue: book?.details.identifiers ?? [])
     }
 
     var body: some View {
@@ -219,6 +248,76 @@ struct BookEditorView: View {
                     )
                 }
 
+                Section("Contributors") {
+                    ForEach(contributors.indices, id: \.self) { index in
+                        let contributor = contributors[index]
+
+                        Button {
+                            editingContributorIndex = index
+                            isPresentingContributorEditor = true
+                        } label: {
+                            HStack {
+                                Text(contributor.role.bookEditorDisplayName)
+                                    .foregroundStyle(.secondary)
+
+                                Spacer()
+
+                                Text(contributor.person.name)
+                                    .foregroundStyle(.primary)
+                                    .multilineTextAlignment(.trailing)
+
+                                Image(systemName: "chevron.right")
+                                    .font(CatalogTypography.chipLabel)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .onDelete(perform: deleteContributors)
+
+                    Button {
+                        editingContributorIndex = nil
+                        isPresentingContributorEditor = true
+                    } label: {
+                        Label("Add Contributor", systemImage: "plus")
+                    }
+                }
+
+                Section("Identifiers") {
+                    ForEach(identifiers.indices, id: \.self) { index in
+                        let identifier = identifiers[index]
+
+                        Button {
+                            editingIdentifierIndex = index
+                            isPresentingIdentifierEditor = true
+                        } label: {
+                            HStack {
+                                Text(identifier.type.bookEditorDisplayName)
+                                    .foregroundStyle(.secondary)
+
+                                Spacer()
+
+                                Text(identifier.value)
+                                    .foregroundStyle(.primary)
+                                    .multilineTextAlignment(.trailing)
+
+                                Image(systemName: "chevron.right")
+                                    .font(CatalogTypography.chipLabel)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .onDelete(perform: deleteIdentifiers)
+
+                    Button {
+                        editingIdentifierIndex = nil
+                        isPresentingIdentifierEditor = true
+                    } label: {
+                        Label("Add Identifier", systemImage: "plus")
+                    }
+                }
+
                 Section(String(localized: "item.detail.section.collection_info")) {
                     YearPickerField(
                         title: String(localized: "common.field.acquired_year"),
@@ -265,6 +364,30 @@ struct BookEditorView: View {
             }
             .task(id: collection.id) {
                 loadCatalogMetadata()
+            }
+            .sheet(isPresented: $isPresentingContributorEditor) {
+                BookContributorEditorView(
+                    contributor: editingContributorIndex.flatMap { index in
+                        contributors.indices.contains(index) ? contributors[index] : nil
+                    },
+                    people: availablePeople,
+                    existingContributors: contributors,
+                    editingIndex: editingContributorIndex,
+                    onCreatePerson: { newPerson in
+                        catalogPeople.append(newPerson)
+                    },
+                    onSave: saveContributor
+                )
+            }
+            .sheet(isPresented: $isPresentingIdentifierEditor) {
+                BookIdentifierEditorView(
+                    identifier: editingIdentifierIndex.flatMap { index in
+                        identifiers.indices.contains(index) ? identifiers[index] : nil
+                    },
+                    existingIdentifiers: identifiers,
+                    editingIndex: editingIdentifierIndex,
+                    onSave: saveIdentifier
+                )
             }
         }
     }
@@ -357,6 +480,42 @@ struct BookEditorView: View {
         return number > 0
     }
 
+    private func saveContributor(_ contributor: BookContributor) {
+        if let editingContributorIndex,
+           contributors.indices.contains(editingContributorIndex) {
+            contributors[editingContributorIndex] = contributor
+        } else {
+            contributors.append(contributor)
+        }
+        normalizeContributorOrder()
+    }
+
+    private func deleteContributors(at offsets: IndexSet) {
+        contributors.remove(atOffsets: offsets)
+        normalizeContributorOrder()
+    }
+
+    private func normalizeContributorOrder() {
+        contributors = contributors.enumerated().map { index, contributor in
+            var normalized = contributor
+            normalized.order = index
+            return normalized
+        }
+    }
+
+    private func saveIdentifier(_ identifier: BookIdentifier) {
+        if let editingIdentifierIndex,
+           identifiers.indices.contains(editingIdentifierIndex) {
+            identifiers[editingIdentifierIndex] = identifier
+        } else {
+            identifiers.append(identifier)
+        }
+    }
+
+    private func deleteIdentifiers(at offsets: IndexSet) {
+        identifiers.remove(atOffsets: offsets)
+    }
+
     @MainActor
     private func loadCatalogMetadata() {
         let snapshot = CatalogSnapshot.load(from: managedObjectContext)
@@ -374,6 +533,12 @@ struct BookEditorView: View {
             publishersByID[publisher.id] = publisher
         }
         catalogPublishers = Array(publishersByID.values)
+
+        var peopleByID: [UUID: Person] = [:]
+        for person in bookRecords.flatMap({ $0.details.contributors.map(\.person) }) {
+            peopleByID[person.id] = person
+        }
+        catalogPeople = Array(peopleByID.values)
     }
 
     private func saveBook() {
@@ -387,6 +552,11 @@ struct BookEditorView: View {
         let itemID = editorItemID
         let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
             asset.with(itemID: itemID, sortOrder: index)
+        }
+        let normalizedContributors = contributors.enumerated().map { index, contributor in
+            var normalized = contributor
+            normalized.order = index
+            return normalized
         }
         let existingItem = existingBook?.item
 
@@ -419,9 +589,9 @@ struct BookEditorView: View {
                 publicationYear: Int(selectedPublicationYearOption),
                 volumeNumber: selectedSeries == nil ? nil : optionalPositiveInt(volumeNumber),
                 publisher: selectedPublisher,
-                contributors: existingBook?.details.contributors ?? [],
+                contributors: normalizedContributors,
                 series: selectedSeries,
-                identifiers: existingBook?.details.identifiers ?? []
+                identifiers: identifiers
             )
         )
 
@@ -722,6 +892,342 @@ private struct BookPublisherSelectionView: View {
     }
 }
 
+private struct BookContributorEditorView: View {
+    let contributor: BookContributor?
+    let people: [Person]
+    let existingContributors: [BookContributor]
+    let editingIndex: Int?
+    let onCreatePerson: (Person) -> Void
+    let onSave: (BookContributor) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var role: BookContributorRole
+    @State private var selectedPerson: Person?
+    @State private var isPresentingPersonPicker = false
+
+    init(
+        contributor: BookContributor?,
+        people: [Person],
+        existingContributors: [BookContributor],
+        editingIndex: Int?,
+        onCreatePerson: @escaping (Person) -> Void,
+        onSave: @escaping (BookContributor) -> Void
+    ) {
+        self.contributor = contributor
+        self.people = people
+        self.existingContributors = existingContributors
+        self.editingIndex = editingIndex
+        self.onCreatePerson = onCreatePerson
+        self.onSave = onSave
+        _role = State(initialValue: contributor?.role ?? .author)
+        _selectedPerson = State(initialValue: contributor?.person)
+    }
+
+    private var isDuplicate: Bool {
+        guard let selectedPerson else { return false }
+
+        return existingContributors.enumerated().contains { index, existing in
+            index != editingIndex
+                && existing.role == role
+                && existing.person.id == selectedPerson.id
+        }
+    }
+
+    private var canSave: Bool {
+        selectedPerson != nil && !isDuplicate
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Contribution") {
+                    Picker("Role", selection: $role) {
+                        ForEach(BookContributorRole.allCases) { role in
+                            Text(role.bookEditorDisplayName).tag(role)
+                        }
+                    }
+
+                    Button {
+                        isPresentingPersonPicker = true
+                    } label: {
+                        HStack {
+                            Text("Person")
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            Text(selectedPerson?.name ?? String(localized: "common.none"))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.trailing)
+
+                            Image(systemName: "chevron.right")
+                                .font(CatalogTypography.chipLabel)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    if isDuplicate {
+                        Label(
+                            "This person already has this role.",
+                            systemImage: "exclamationmark.circle.fill"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
+                    }
+                }
+            }
+            .navigationTitle(contributor == nil ? "Add Contributor" : "Edit Contributor")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        guard let selectedPerson else { return }
+                        onSave(
+                            BookContributor(
+                                role: role,
+                                order: contributor?.order ?? existingContributors.count,
+                                person: selectedPerson
+                            )
+                        )
+                        dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .disabled(!canSave)
+                    .accessibilityLabel(String(localized: "common.save"))
+                }
+            }
+            .sheet(isPresented: $isPresentingPersonPicker) {
+                BookPersonSelectionView(
+                    selection: $selectedPerson,
+                    people: people,
+                    onCreate: onCreatePerson
+                )
+            }
+        }
+    }
+}
+
+private struct BookPersonSelectionView: View {
+    @Binding var selection: Person?
+    let people: [Person]
+    let onCreate: (Person) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredPeople: [Person] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return people }
+        return people.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var newPersonName: String? {
+        let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        guard !people.contains(where: { $0.name.caseInsensitiveCompare(candidate) == .orderedSame }) else {
+            return nil
+        }
+        return candidate
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let newPersonName {
+                    Button {
+                        let newPerson = Person(
+                            id: UUID(),
+                            name: newPersonName,
+                            birthYear: nil,
+                            deathYear: nil,
+                            biography: nil,
+                            birthPlace: nil,
+                            deathPlace: nil,
+                            photos: []
+                        )
+                        onCreate(newPerson)
+                        selection = newPerson
+                        dismiss()
+                    } label: {
+                        Label("Add “\(newPersonName)”", systemImage: "plus.circle.fill")
+                    }
+                }
+
+                Button {
+                    selection = nil
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(String(localized: "common.none"))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if selection == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+
+                ForEach(filteredPeople) { person in
+                    Button {
+                        selection = person
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(person.name)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            if selection?.id == person.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Person")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search or add")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+private struct BookIdentifierEditorView: View {
+    let identifier: BookIdentifier?
+    let existingIdentifiers: [BookIdentifier]
+    let editingIndex: Int?
+    let onSave: (BookIdentifier) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var type: BookIdentifierType
+    @State private var value: String
+
+    init(
+        identifier: BookIdentifier?,
+        existingIdentifiers: [BookIdentifier],
+        editingIndex: Int?,
+        onSave: @escaping (BookIdentifier) -> Void
+    ) {
+        self.identifier = identifier
+        self.existingIdentifiers = existingIdentifiers
+        self.editingIndex = editingIndex
+        self.onSave = onSave
+        _type = State(initialValue: identifier?.type ?? .isbn13)
+        _value = State(initialValue: identifier?.value ?? "")
+    }
+
+    private var trimmedValue: String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isDuplicate: Bool {
+        guard !trimmedValue.isEmpty else { return false }
+        let key = bookIdentifierDuplicateKey(type: type, value: trimmedValue)
+
+        return existingIdentifiers.enumerated().contains { index, existing in
+            index != editingIndex
+                && existing.type == type
+                && bookIdentifierDuplicateKey(type: existing.type, value: existing.value) == key
+        }
+    }
+
+    private var validationMessage: String? {
+        guard !trimmedValue.isEmpty else {
+            return "Value is required."
+        }
+
+        switch type {
+        case .isbn10:
+            guard isValidISBN10(trimmedValue) else {
+                return "ISBN-10 must contain 10 digits, with X allowed as the final character."
+            }
+        case .isbn13:
+            guard isValidISBN13(trimmedValue) else {
+                return "ISBN-13 must contain 13 digits."
+            }
+        case .asin, .inventory, .other:
+            break
+        }
+
+        if isDuplicate {
+            return "This identifier is already added."
+        }
+
+        return nil
+    }
+
+    private var canSave: Bool {
+        validationMessage == nil
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Identifier") {
+                    Picker("Type", selection: $type) {
+                        ForEach(BookIdentifierType.allCases) { type in
+                            Text(type.bookEditorDisplayName).tag(type)
+                        }
+                    }
+
+                    TextField("Value", text: $value)
+
+                    if let validationMessage {
+                        Label(
+                            validationMessage,
+                            systemImage: "exclamationmark.circle.fill"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
+                    }
+                }
+            }
+            .navigationTitle(identifier == nil ? "Add Identifier" : "Edit Identifier")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        onSave(BookIdentifier(type: type, value: trimmedValue))
+                        dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .disabled(!canSave)
+                    .accessibilityLabel(String(localized: "common.save"))
+                }
+            }
+        }
+    }
+}
+
 private struct BookLanguagePickerField: View {
     @Binding var languageCode: String
     @State private var isPresentingPicker = false
@@ -954,6 +1460,61 @@ private struct LookupSelectionView: View {
             }
         }
     }
+}
+
+private extension BookContributorRole {
+    var bookEditorDisplayName: String {
+        switch self {
+        case .author: "Author"
+        case .translator: "Translator"
+        case .editor: "Editor"
+        case .illustrator: "Illustrator"
+        }
+    }
+}
+
+private extension BookIdentifierType {
+    var bookEditorDisplayName: String {
+        switch self {
+        case .isbn10: "ISBN-10"
+        case .isbn13: "ISBN-13"
+        case .asin: "ASIN"
+        case .inventory: "Inventory"
+        case .other: "Other"
+        }
+    }
+}
+
+private func compactBookIdentifier(_ value: String) -> String {
+    value.filter { $0.isLetter || $0.isNumber }.uppercased()
+}
+
+private func bookIdentifierDuplicateKey(type: BookIdentifierType, value: String) -> String {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    switch type {
+    case .isbn10, .isbn13:
+        return compactBookIdentifier(trimmed)
+    case .asin:
+        return trimmed.uppercased()
+    case .inventory, .other:
+        return trimmed.folding(
+            options: [.caseInsensitive, .diacriticInsensitive],
+            locale: .current
+        )
+    }
+}
+
+private func isValidISBN10(_ value: String) -> Bool {
+    let characters = Array(compactBookIdentifier(value))
+    guard characters.count == 10 else { return false }
+    guard characters.dropLast().allSatisfy(\.isNumber), let last = characters.last else { return false }
+    return last.isNumber || last == "X"
+}
+
+private func isValidISBN13(_ value: String) -> Bool {
+    let characters = Array(compactBookIdentifier(value))
+    return characters.count == 13 && characters.allSatisfy(\.isNumber)
 }
 
 private func bookLanguageDisplayName(for code: String) -> String {
