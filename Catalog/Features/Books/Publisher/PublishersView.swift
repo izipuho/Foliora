@@ -74,11 +74,10 @@ struct PublishersView: View {
                             Button {
                                 selectedPublisher = publisher
                             } label: {
-                                CatalogContainerCard(
-                                    title: publisher.name,
-                                    subtitle: publisher.location?.displayName,
+                                PublisherCard(
+                                    publisher: publisher,
                                     supportingText: usageText(for: publisher),
-                                    systemImage: "building.2.fill"
+                                    accentColor: collection.backgroundStyle.accentColor
                                 )
                             }
                             .buttonStyle(.plain)
@@ -160,11 +159,7 @@ struct PublishersView: View {
     }
 
     private func booksForPublisher(_ publisher: Publisher) -> [BookRecord] {
-        books
-            .filter { $0.details.publisher?.id == publisher.id }
-            .sorted {
-                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
-            }
+        books.filter { $0.details.publisher?.id == publisher.id }
     }
 
     private func seriesForPublisher(_ publisher: Publisher) -> [BookSeries] {
@@ -188,7 +183,7 @@ struct PublishersView: View {
             parts.append("\(bookCount) \(bookCount == 1 ? "book" : "books")")
         }
         if seriesCount > 0 {
-            parts.append("\(seriesCount) \(seriesCount == 1 ? "series" : "series")")
+            parts.append("\(seriesCount) series")
         }
         return parts.joined(separator: " · ")
     }
@@ -209,6 +204,69 @@ struct PublishersView: View {
     }
 }
 
+private struct PublisherCard: View {
+    let publisher: Publisher
+    let supportingText: String
+    let accentColor: Color
+
+    var body: some View {
+        HStack(alignment: .center, spacing: CatalogMetrics.Spacing.md) {
+            mark
+
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                Text(publisher.name)
+                    .font(CatalogTypography.cardTitle)
+
+                if let location = publisher.location {
+                    Text(location.displayName)
+                        .font(CatalogTypography.cardSubtitle)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Text(supportingText)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .padding(.top, CatalogMetrics.Spacing.sm)
+            }
+
+            Spacer(minLength: CatalogMetrics.Spacing.md)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .catalogSurfaceCard()
+    }
+
+    @ViewBuilder
+    private var mark: some View {
+        if let logo = publisher.logo, logo.kind == .photo {
+            MediaPreviewImage(
+                identifier: logo.localIdentifier,
+                originalData: logo.originalData,
+                size: CGSize(width: 52, height: 52)
+            )
+            .frame(width: 52, height: 52)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: CatalogMetrics.CornerRadius.medium,
+                    style: .continuous
+                )
+            )
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: CatalogMetrics.CornerRadius.medium, style: .continuous)
+                    .fill(accentColor.opacity(0.12))
+                    .frame(width: 52, height: 52)
+
+                Image(systemName: "building.2.fill")
+                    .font(CatalogTypography.cardTitle)
+                    .foregroundStyle(accentColor)
+            }
+        }
+    }
+}
+
 /// Displays the editor used to create or update a publisher.
 struct PublisherEditorView: View {
     private let existingPublisher: Publisher?
@@ -222,7 +280,7 @@ struct PublisherEditorView: View {
     @FocusState private var isNameFocused: Bool
     @State private var name: String
     @State private var selectedLocation: Place?
-    @State private var logos: [MediaAsset]
+    @State private var logoAssets: [MediaAsset]
     @State private var isConfirmingDelete = false
 
     private let editorPublisherID: UUID
@@ -244,7 +302,7 @@ struct PublisherEditorView: View {
         self.editorPublisherID = publisher?.id ?? UUID()
         _name = State(initialValue: publisher?.name ?? "")
         _selectedLocation = State(initialValue: publisher?.location)
-        _logos = State(initialValue: publisher?.logos ?? [])
+        _logoAssets = State(initialValue: publisher?.logo.map { [$0] } ?? [])
     }
 
     private var canSave: Bool {
@@ -258,10 +316,10 @@ struct PublisherEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Logos") {
+                Section("Logo") {
                     MediaSection(
                         itemID: editorPublisherID,
-                        mediaAssets: $logos
+                        mediaAssets: $logoAssets
                     )
                     .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -326,6 +384,10 @@ struct PublisherEditorView: View {
             } message: {
                 Text(deleteMessage)
             }
+            .onChange(of: logoAssets) { _, newValue in
+                guard newValue.count > 1, let newest = newValue.last else { return }
+                logoAssets = [newest.with(sortOrder: 0)]
+            }
             .onAppear {
                 if existingPublisher == nil {
                     isNameFocused = true
@@ -353,14 +415,11 @@ struct PublisherEditorView: View {
     private func savePublisher() {
         guard canSave else { return }
 
-        let normalizedLogos = logos.enumerated().map { index, asset in
-            asset.with(sortOrder: index)
-        }
         let publisher = Publisher(
             id: existingPublisher?.id ?? editorPublisherID,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             location: selectedLocation,
-            logos: normalizedLogos
+            logo: logoAssets.last?.with(sortOrder: 0)
         )
 
         onSave(publisher)
