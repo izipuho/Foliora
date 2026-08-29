@@ -39,12 +39,10 @@ extension PreviewData {
             id: UUID(),
             name: "Preview Publisher",
             location: publisherLocation,
-            logos: [
-                makePreviewPhoto(
-                    resourcePath: "Media/IMG_7502.HEIC",
-                    sortOrder: 0
-                )
-            ]
+            logo: makePreviewPhoto(
+                resourcePath: "Media/IMG_7502.HEIC",
+                sortOrder: 0
+            )
         )
         let series = BookSeries(
             id: UUID(),
