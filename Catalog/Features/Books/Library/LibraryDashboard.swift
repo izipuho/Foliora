@@ -7,7 +7,6 @@ struct LibraryDashboardView: View {
     let collection: CollectionSummary
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
-    let seriesDestination: AnyView
     let onSharingChanged: () -> Void
     let onFilterApply: (BookPresenceFilter) -> Void
 
@@ -18,7 +17,6 @@ struct LibraryDashboardView: View {
                 collection: collection,
                 sharingState: sharingState,
                 sharingService: sharingService,
-                seriesDestination: seriesDestination,
                 tint: accentColor,
                 onSharingChanged: onSharingChanged,
                 onFilterApply: onFilterApply
@@ -46,12 +44,20 @@ private struct DashboardCardStrip: View {
     let collection: CollectionSummary
     let sharingState: CollectionSharingState?
     let sharingService: any CollectionSharingService
-    let seriesDestination: AnyView
     let tint: Color
     let onSharingChanged: () -> Void
     let onFilterApply: (BookPresenceFilter) -> Void
 
     @State private var isPresentingDataHealthPopover = false
+
+    private var canEditCollection: Bool {
+        switch sharingState?.currentUserRole {
+        case .owner, .contributor:
+            return true
+        case .viewer, nil:
+            return false
+        }
+    }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -59,7 +65,10 @@ private struct DashboardCardStrip: View {
                 sharingCard
 
                 NavigationLink {
-                    seriesDestination
+                    SeriesDashboardDestination(
+                        collection: collection,
+                        canEditCollection: canEditCollection
+                    )
                 } label: {
                     BookSeriesHealthCard(
                         completeCount: stats.completeSeriesCount,
