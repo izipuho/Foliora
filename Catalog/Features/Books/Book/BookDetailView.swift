@@ -276,22 +276,10 @@ struct BookDetailView: View {
                         systemImage: "tag"
                     )
                 }
-
-                if let volumeNumber = book.details.volumeNumber {
-                    metadataField(
-                        title: "Volume",
-                        value: volumeDisplayName(volumeNumber),
-                        systemImage: "books.vertical"
-                    )
-                }
             }
 
-            if let series = book.details.series {
-                metadataField(
-                    title: "Series",
-                    value: series.name,
-                    systemImage: "books.vertical"
-                )
+            if book.details.series != nil || book.details.volumeNumber != nil {
+                seriesAndVolumeField
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -299,6 +287,39 @@ struct BookDetailView: View {
         .background {
             CatalogShapes.section
                 .fill(.ultraThinMaterial)
+        }
+    }
+
+    @ViewBuilder
+    private var seriesAndVolumeField: some View {
+        if let series = book.details.series {
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                Label("Series", systemImage: "books.vertical")
+                    .font(CatalogTypography.cardSubtitle)
+                    .foregroundStyle(.secondary)
+
+                HStack(alignment: .firstTextBaseline, spacing: CatalogMetrics.Spacing.md) {
+                    Text(series.name)
+                        .font(CatalogTypography.cardLabel)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: CatalogMetrics.Spacing.md)
+
+                    if let volumeNumber = book.details.volumeNumber {
+                        Text("Volume \(volumeDisplayName(volumeNumber))")
+                            .font(CatalogTypography.cardSubtitle)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        } else if let volumeNumber = book.details.volumeNumber {
+            metadataField(
+                title: "Volume",
+                value: volumeDisplayName(volumeNumber),
+                systemImage: "books.vertical"
+            )
         }
     }
 
