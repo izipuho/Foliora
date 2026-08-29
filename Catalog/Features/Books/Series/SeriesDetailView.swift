@@ -214,11 +214,6 @@ struct SeriesDetailView: View {
 
     private func volumeAccessories(for book: BookRecord) -> [CatalogCardAccessory] {
         guard let volume = book.details.volumeNumber else { return [] }
-
-        if let totalBookCount = series.totalBookCount {
-            return [.chip("#\(volume)/\(totalBookCount)")]
-        }
-
         return [.chip("#\(volume)")]
     }
 }
