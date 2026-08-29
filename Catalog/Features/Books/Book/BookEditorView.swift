@@ -257,7 +257,7 @@ struct BookEditorView: View {
                             isPresentingContributorEditor = true
                         } label: {
                             HStack {
-                                Text(contributor.role.bookEditorDisplayName)
+                                Text(contributor.role.displayName)
                                     .foregroundStyle(.secondary)
 
                                 Spacer()
@@ -942,7 +942,7 @@ private struct BookContributorEditorView: View {
                 Section("Contribution") {
                     Picker("Role", selection: $role) {
                         ForEach(BookContributorRole.allCases) { role in
-                            Text(role.bookEditorDisplayName).tag(role)
+                            Text(role.displayName).tag(role)
                         }
                     }
 
@@ -1457,17 +1457,6 @@ private struct LookupSelectionView: View {
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
             }
-        }
-    }
-}
-
-private extension BookContributorRole {
-    var bookEditorDisplayName: String {
-        switch self {
-        case .author: "Author"
-        case .translator: "Translator"
-        case .editor: "Editor"
-        case .illustrator: "Illustrator"
         }
     }
 }
