@@ -73,8 +73,7 @@ struct PeopleView: View {
                             } label: {
                                 PersonCard(
                                     person: person,
-                                    roles: rolesForPerson(person),
-                                    bookCount: booksForPerson(person).count,
+                                    roleUsages: roleUsagesForPerson(person),
                                     accentColor: collection.backgroundStyle.accentColor
                                 )
                             }
@@ -128,15 +127,19 @@ struct PeopleView: View {
         }
     }
 
-    private func rolesForPerson(_ person: Person) -> [BookContributorRole] {
-        Set(
-            booksForPerson(person).flatMap { book in
-                book.details.contributors
-                    .filter { $0.person.id == person.id }
-                    .map(\.role)
-            }
-        )
-        .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+    private func roleUsagesForPerson(_ person: Person) -> [PersonRoleUsage] {
+        let matchingBooks = booksForPerson(person)
+
+        return BookContributorRole.allCases.compactMap { role in
+            let bookCount = matchingBooks.filter { book in
+                book.details.contributors.contains { contributor in
+                    contributor.person.id == person.id && contributor.role == role
+                }
+            }.count
+
+            guard bookCount > 0 else { return nil }
+            return PersonRoleUsage(role: role, bookCount: bookCount)
+        }
     }
 
     private func upsertLocalPerson(_ person: Person) {
@@ -170,10 +173,14 @@ struct PeopleView: View {
     }
 }
 
+private struct PersonRoleUsage {
+    let role: BookContributorRole
+    let bookCount: Int
+}
+
 private struct PersonCard: View {
     let person: Person
-    let roles: [BookContributorRole]
-    let bookCount: Int
+    let roleUsages: [PersonRoleUsage]
     let accentColor: Color
 
     var body: some View {
@@ -190,17 +197,17 @@ private struct PersonCard: View {
                         .foregroundStyle(.secondary)
                 }
 
-                if !roles.isEmpty {
-                    Text(roles.map(\.displayName).joined(separator: " · "))
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                        .padding(.top, CatalogMetrics.Spacing.sm)
+                if !roleUsages.isEmpty {
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                        ForEach(roleUsages, id: \.role) { usage in
+                            Text("\(usage.role.displayName) · \(usage.bookCount) \(usage.bookCount == 1 ? "book" : "books")")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .padding(.top, CatalogMetrics.Spacing.sm)
                 }
-
-                Text("\(bookCount) \(bookCount == 1 ? "book" : "books")")
-                    .font(CatalogTypography.chipLabel)
-                    .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: CatalogMetrics.Spacing.md)
