@@ -21,12 +21,32 @@ struct BookEditorView: View {
     @State private var languageCode: String
     @State private var genre: String
     @State private var pageCount: String
-    @State private var publicationYear: String
+    @State private var selectedPublicationYearOption: String
     @State private var volumeNumber: String
 
     private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
+
+    private var publicationYearOptions: [String] {
+        let none = String(localized: "common.none")
+        let currentYear = Calendar.current.component(.year, from: .now)
+        var years = Array(1900...currentYear).map(String.init)
+
+        if let existingYear = existingBook?.details.publicationYear {
+            let value = String(existingYear)
+            if !years.contains(value) {
+                years.append(value)
+            }
+        }
+
+        years.sort { (Int($0) ?? 0) > (Int($1) ?? 0) }
+        return [none] + years
+    }
+
+    private var series: BookSeries? {
+        existingBook?.details.series
+    }
 
     init(
         collection: CollectionSummary,
@@ -51,7 +71,9 @@ struct BookEditorView: View {
         _languageCode = State(initialValue: book?.details.languageCode ?? "")
         _genre = State(initialValue: book?.details.genre ?? "")
         _pageCount = State(initialValue: book?.details.pageCount.map(String.init) ?? "")
-        _publicationYear = State(initialValue: book?.details.publicationYear.map(String.init) ?? "")
+        _selectedPublicationYearOption = State(
+            initialValue: book?.details.publicationYear.map(String.init) ?? String(localized: "common.none")
+        )
         _volumeNumber = State(initialValue: book?.details.volumeNumber.map(String.init) ?? "")
     }
 
@@ -96,9 +118,10 @@ struct BookEditorView: View {
                 }
 
                 Section("common.book") {
-                    optionalPositiveIntegerField(
+                    YearPickerField(
                         title: "Publication year",
-                        text: $publicationYear
+                        selection: $selectedPublicationYearOption,
+                        options: publicationYearOptions
                     )
 
                     optionalPositiveIntegerField(
@@ -116,10 +139,9 @@ struct BookEditorView: View {
                             .multilineTextAlignment(.trailing)
                     }
 
-                    optionalPositiveIntegerField(
-                        title: "Volume",
-                        text: $volumeNumber
-                    )
+                    if series != nil {
+                        volumeField
+                    }
                 }
 
                 Section(String(localized: "bell.detail.section.collection_info")) {
@@ -178,13 +200,51 @@ struct BookEditorView: View {
 
     private var canSave: Bool {
         isTitleValid
-            && isOptionalPositiveIntegerValid(publicationYear)
             && isOptionalPositiveIntegerValid(pageCount)
-            && isOptionalPositiveIntegerValid(volumeNumber)
+            && isVolumeValid
     }
 
     private var isTitleValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var volumeField: some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+            LabeledContent("Volume") {
+                numericTextField($volumeNumber)
+            }
+
+            if !isVolumeValid {
+                Label(
+                    volumeValidationMessage,
+                    systemImage: "exclamationmark.circle.fill"
+                )
+                .font(.footnote)
+                .foregroundStyle(CatalogSemanticColors.destructive)
+            }
+        }
+    }
+
+    private var isVolumeValid: Bool {
+        guard series != nil else { return true }
+
+        let trimmed = volumeNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return true }
+        guard let number = Int(trimmed), number > 0 else { return false }
+
+        if let totalBookCount = series?.totalBookCount {
+            return number <= totalBookCount
+        }
+
+        return true
+    }
+
+    private var volumeValidationMessage: String {
+        if let totalBookCount = series?.totalBookCount {
+            return "Enter a whole number from 1 to \(totalBookCount)."
+        }
+
+        return "Enter a positive whole number."
     }
 
     private func optionalPositiveIntegerField(
@@ -266,11 +326,11 @@ struct BookEditorView: View {
                 languageCode: optionalString(languageCode)?.lowercased(),
                 genre: optionalString(genre),
                 pageCount: optionalPositiveInt(pageCount),
-                publicationYear: optionalPositiveInt(publicationYear),
-                volumeNumber: optionalPositiveInt(volumeNumber),
+                publicationYear: Int(selectedPublicationYearOption),
+                volumeNumber: series == nil ? nil : optionalPositiveInt(volumeNumber),
                 publisher: existingBook?.details.publisher,
                 contributors: existingBook?.details.contributors ?? [],
-                series: existingBook?.details.series,
+                series: series,
                 identifiers: existingBook?.details.identifiers ?? []
             )
         )
