@@ -79,20 +79,28 @@ struct SeriesDetailView: View {
                         Text("Books")
                             .font(CatalogTypography.sectionTitle)
 
-                        VStack(spacing: CatalogMetrics.Spacing.md) {
+                        CatalogCardGrid(
+                            layoutMode: .compact,
+                            bottomContentMargin: 0
+                        ) { cardSize, _, cardMetrics in
                             ForEach(sortedBooks) { book in
                                 Button {
                                     onBookSelected?(book.id)
                                 } label: {
-                                    SeriesBookCard(
+                                    BookCardView(
                                         book: book,
-                                        subtitle: bookSubtitle(book),
-                                        accentColor: accentColor
+                                        style: CatalogCardContentStyle.style(for: .compact),
+                                        cardSize: cardSize,
+                                        cardMetrics: cardMetrics,
+                                        accessories: volumeAccessories(for: book)
                                     )
                                 }
                                 .buttonStyle(.plain)
+                                .frame(width: cardSize.width, height: cardSize.height)
+                                .contentShape(Rectangle())
                             }
                         }
+                        .frame(minHeight: seriesGridHeight)
                     }
                 }
             }
@@ -179,6 +187,14 @@ struct SeriesDetailView: View {
         }
     }
 
+    private var seriesGridHeight: CGFloat {
+        let columns = CatalogCardLayoutMode.compact.gridMetrics.columnCount
+        let rows = Int(ceil(Double(sortedBooks.count) / Double(columns)))
+        let height = CatalogCardLayoutMode.compact.cardMetrics.cardHeight
+        let spacing = CatalogCardLayoutMode.compact.gridMetrics.spacing
+        return CGFloat(rows) * height + CGFloat(max(rows - 1, 0)) * spacing
+    }
+
     private func metadataField(
         title: String,
         value: String,
@@ -196,78 +212,14 @@ struct SeriesDetailView: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
-    private func bookSubtitle(_ book: BookRecord) -> String? {
-        guard let volume = book.details.volumeNumber else { return nil }
-        return "Volume \(volume)"
-    }
-}
+    private func volumeAccessories(for book: BookRecord) -> [CatalogCardAccessory] {
+        guard let volume = book.details.volumeNumber else { return [] }
 
-private struct SeriesBookCard: View {
-    let book: BookRecord
-    let subtitle: String?
-    let accentColor: Color
-
-    private let coverSize = CGSize(width: 48, height: 68)
-
-    var body: some View {
-        HStack(alignment: .center, spacing: CatalogMetrics.Spacing.md) {
-            cover
-
-            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                Text(book.title)
-                    .font(CatalogTypography.cardTitle)
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
-
-                if let subtitle {
-                    Text(subtitle)
-                        .font(CatalogTypography.cardSubtitle)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer(minLength: CatalogMetrics.Spacing.md)
+        if let totalBookCount = series.totalBookCount {
+            return [.chip("#\(volume)/\(totalBookCount)")]
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .catalogSurfaceCard()
-    }
 
-    @ViewBuilder
-    private var cover: some View {
-        if let coverPhoto {
-            MediaPreviewImage(
-                identifier: coverPhoto.localIdentifier.isEmpty ? nil : coverPhoto.localIdentifier,
-                originalData: coverPhoto.originalData,
-                size: coverSize
-            )
-            .frame(width: coverSize.width, height: coverSize.height)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: CatalogMetrics.CornerRadius.thumbnail,
-                    style: .continuous
-                )
-            )
-        } else {
-            RoundedRectangle(
-                cornerRadius: CatalogMetrics.CornerRadius.thumbnail,
-                style: .continuous
-            )
-            .fill(accentColor.opacity(0.12))
-            .frame(width: coverSize.width, height: coverSize.height)
-            .overlay {
-                Image(systemName: "book.closed")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(accentColor)
-            }
-        }
-    }
-
-    private var coverPhoto: MediaAsset? {
-        book.mediaAssets
-            .filter { $0.kind == .photo }
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .first
+        return [.chip("#\(volume)")]
     }
 }
 
