@@ -11,17 +11,20 @@ struct BookCardView: View {
 
     private let style: CatalogCardContentStyle
     private let cardMetrics: CatalogCardLayoutMode.CardMetrics
+    private let accessories: [CatalogCardAccessory]
 
     init(
         book: BookRecord,
         style: CatalogCardContentStyle,
         cardSize: CGSize,
-        cardMetrics: CatalogCardLayoutMode.CardMetrics
+        cardMetrics: CatalogCardLayoutMode.CardMetrics,
+        accessories: [CatalogCardAccessory] = []
     ) {
         self.book = book
         self.cardSize = cardSize
         self.style = style
         self.cardMetrics = cardMetrics
+        self.accessories = accessories
     }
 
     var body: some View {
@@ -35,11 +38,21 @@ struct BookCardView: View {
                             size: cardSize
                         )
                     }
+                    .overlay(alignment: .bottomLeading) {
+                        if let accessoryRowStyle = style.accessoryRow, !accessories.isEmpty {
+                            CatalogCardAccessoryRow(
+                                accessories: accessories,
+                                style: accessoryRowStyle,
+                                bright: true
+                            )
+                            .padding(cardMetrics.cardPadding)
+                        }
+                    }
             } else {
                 CatalogCardContent(
                     title: book.title,
                     subtitle: authorNames,
-                    accessories: [],
+                    accessories: accessories,
                     style: style,
                     bright: false,
                     cardSize: cardSize,
