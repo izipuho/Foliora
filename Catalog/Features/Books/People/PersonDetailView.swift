@@ -298,8 +298,8 @@ struct PersonDetailView: View {
                     .map(\.role)
             }
         )
-        .sorted { $0.bookEditorDisplayName < $1.bookEditorDisplayName }
-        .map(\.bookEditorDisplayName)
+        .sorted { peopleRoleDisplayName($0) < peopleRoleDisplayName($1) }
+        .map(peopleRoleDisplayName)
 
         return roles.isEmpty ? "—" : roles.joined(separator: ", ")
     }
@@ -331,7 +331,7 @@ struct PersonDetailView: View {
             }
             .map { role in
                 .label(
-                    text: role.bookEditorDisplayName,
+                    text: peopleRoleDisplayName(role),
                     systemImage: "person.fill"
                 )
             }
