@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Displays the publishers available in the book catalog.
+/// Displays the publishers used in a single book library.
 struct PublishersView: View {
     let collection: CollectionSummary
     let catalogSnapshot: CatalogSnapshot?
@@ -11,7 +11,6 @@ struct PublishersView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var localPublishers: [Publisher]
     @State private var searchText = ""
-    @State private var isPresentingNewPublisher = false
     @State private var selectedPublisher: Publisher?
 
     init(
@@ -26,7 +25,12 @@ struct PublishersView: View {
         self.repository = repository
         self.canEditCollection = canEditCollection
         self.onBookSelected = onBookSelected
-        _localPublishers = State(initialValue: catalogSnapshot?.publishers ?? [])
+        _localPublishers = State(
+            initialValue: Self.libraryPublishers(
+                collectionID: collection.id,
+                snapshot: catalogSnapshot
+            )
+        )
     }
 
     private var books: [BookRecord] {
@@ -113,49 +117,15 @@ struct PublishersView: View {
                 onBookSelected: onBookSelected
             )
         }
-        .toolbar {
-            if canEditCollection {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isPresentingNewPublisher = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Add Publisher")
-                }
-            }
-        }
-        .sheet(isPresented: $isPresentingNewPublisher) {
-            PublisherEditorView(
-                publisher: nil,
-                places: catalogSnapshot?.places ?? []
-            ) { publisher in
-                (repository as! any BookCatalogRepository).savePublisher(publisher)
-                upsertLocalPublisher(publisher)
-            }
-        }
     }
 
-    @ViewBuilder
     private var emptyState: some View {
-        if canEditCollection {
-            CatalogEmptyStateView(
-                systemImage: "building.2",
-                title: "No Publishers",
-                message: "No publishers have been added to the catalog yet.",
-                primaryActionTitle: "Add Publisher",
-                primaryActionSystemImage: "plus.circle.fill",
-                primaryTint: collection.backgroundStyle.accentColor,
-                primaryAction: { isPresentingNewPublisher = true }
-            )
-        } else {
-            CatalogEmptyStateView(
-                systemImage: "building.2",
-                title: "No Publishers",
-                message: "No publishers have been added to the catalog yet.",
-                primaryTint: collection.backgroundStyle.accentColor
-            )
-        }
+        CatalogEmptyStateView(
+            systemImage: "building.2",
+            title: "No Publishers",
+            message: "No publishers are used in this library yet.",
+            primaryTint: collection.backgroundStyle.accentColor
+        )
     }
 
     private func booksForPublisher(_ publisher: Publisher) -> [BookRecord] {
@@ -174,10 +144,6 @@ struct PublishersView: View {
         let bookCount = booksForPublisher(publisher).count
         let seriesCount = seriesForPublisher(publisher).count
 
-        if bookCount == 0 && seriesCount == 0 {
-            return "Not used in this library"
-        }
-
         var parts: [String] = []
         if bookCount > 0 {
             parts.append("\(bookCount) \(bookCount == 1 ? "book" : "books")")
@@ -191,8 +157,6 @@ struct PublishersView: View {
     private func upsertLocalPublisher(_ publisher: Publisher) {
         if let index = localPublishers.firstIndex(where: { $0.id == publisher.id }) {
             localPublishers[index] = publisher
-        } else {
-            localPublishers.append(publisher)
         }
     }
 
@@ -201,6 +165,29 @@ struct PublishersView: View {
         if selectedPublisher?.id == publisherID {
             selectedPublisher = nil
         }
+    }
+
+    private static func libraryPublishers(
+        collectionID: UUID,
+        snapshot: CatalogSnapshot?
+    ) -> [Publisher] {
+        guard let snapshot else { return [] }
+
+        let books = snapshot.bookRecords.filter { $0.collectionID == collectionID }
+        let series = snapshot.bookSeries.filter { $0.collectionID == collectionID }
+        let referencedPublishers = books.compactMap(\.details.publisher) + series.compactMap(\.publisher)
+        let referencedIDs = Set(referencedPublishers.map(\.id))
+
+        var publishersByID = Dictionary(
+            referencedPublishers.map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        for publisher in snapshot.publishers where referencedIDs.contains(publisher.id) {
+            publishersByID[publisher.id] = publisher
+        }
+
+        return Array(publishersByID.values)
     }
 }
 
