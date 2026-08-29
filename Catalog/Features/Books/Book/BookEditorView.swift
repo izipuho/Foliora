@@ -1,3 +1,4 @@
+import CoreData
 import Foundation
 import SwiftUI
 
@@ -5,10 +6,11 @@ import SwiftUI
 struct BookEditorView: View {
     let collection: CollectionSummary
     private let existingBook: BookRecord?
-    private let genreSuggestions: [String]
+    private let initialGenreSuggestions: [String]
     private let onSave: (BookRecord) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var managedObjectContext
     @FocusState private var isTitleFocused: Bool
 
     @State private var title: String
@@ -25,6 +27,7 @@ struct BookEditorView: View {
     @State private var pageCount: String
     @State private var selectedPublicationYearOption: String
     @State private var volumeNumber: String
+    @State private var catalogGenreSuggestions: [String] = []
 
     private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
@@ -50,6 +53,10 @@ struct BookEditorView: View {
         existingBook?.details.series
     }
 
+    private var genreSuggestions: [String] {
+        Self.normalizedGenreSuggestions(initialGenreSuggestions + catalogGenreSuggestions)
+    }
+
     init(
         collection: CollectionSummary,
         initialMediaAssets: [MediaAsset] = [],
@@ -59,7 +66,7 @@ struct BookEditorView: View {
     ) {
         self.collection = collection
         self.existingBook = book
-        self.genreSuggestions = Self.normalizedGenreSuggestions(genreSuggestions)
+        self.initialGenreSuggestions = genreSuggestions
         self.onSave = onSave
         self.editorItemID = book?.id ?? UUID()
 
@@ -197,6 +204,9 @@ struct BookEditorView: View {
                     .accessibilityLabel(String(localized: "common.save"))
                 }
             }
+            .task(id: collection.id) {
+                loadCatalogGenreSuggestions()
+            }
         }
     }
 
@@ -286,6 +296,14 @@ struct BookEditorView: View {
         guard !trimmed.isEmpty else { return true }
         guard let number = Int(trimmed) else { return false }
         return number > 0
+    }
+
+    @MainActor
+    private func loadCatalogGenreSuggestions() {
+        let snapshot = CatalogSnapshot.load(from: managedObjectContext)
+        catalogGenreSuggestions = snapshot.bookRecords
+            .filter { $0.collectionID == collection.id }
+            .compactMap(\.details.genre)
     }
 
     private func saveBook() {
@@ -591,14 +609,10 @@ private struct LookupSelectionView: View {
         .compactMap({ snapshot.collectionSummary(id: $0.id) })
         .first(where: { $0.kind == .books }) {
         let book = snapshot.bookRecords.first { $0.item.collectionID == collection.id }
-        let genres = snapshot.bookRecords
-            .filter { $0.collectionID == collection.id }
-            .compactMap(\.details.genre)
 
         BookEditorView(
             collection: collection,
-            book: book,
-            genreSuggestions: genres
+            book: book
         ) { updatedBook in
             repository.saveBookRecord(updatedBook)
         }
