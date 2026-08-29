@@ -69,16 +69,13 @@ extension CoreDataDomainMapper {
         )
 
         let locationEntity = entity.value(forKey: "location") as? NSManagedObject
-        let logo = relatedObjects(entity, "logos")
-            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-            .first
-            .map { mediaAsset(from: $0) }
+        let logoEntity = entity.value(forKey: "logo") as? NSManagedObject
 
         return Publisher(
             id: uuidValue(entity, "id"),
             name: stringValue(entity, "name"),
             location: locationEntity.map { place(from: $0) },
-            logo: logo
+            logo: logoEntity.map { mediaAsset(from: $0) }
         )
     }
 
@@ -111,8 +108,8 @@ extension CoreDataDomainMapper {
         )
 
         let rawType = stringValue(entity, "type")
-        guard let type = BookIdentifierType(rawValue: rawType) else {
-            preconditionFailure("BookIdentifierEntity has unsupported type: \(rawType).")
+        guard let type = BookIdentifierType(rawValue: rawRole) else {
+            preconditionFailure("BookIdentifierEntity has unsupported role: \(rawRole).")
         }
 
         return BookIdentifier(
