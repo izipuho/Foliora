@@ -84,11 +84,10 @@ struct SeriesDetailView: View {
                                 Button {
                                     onBookSelected?(book.id)
                                 } label: {
-                                    CatalogContainerCard(
-                                        title: book.title,
+                                    SeriesBookCard(
+                                        book: book,
                                         subtitle: bookSubtitle(book),
-                                        accessory: .icon("chevron.right"),
-                                        systemImage: "book.closed.fill"
+                                        accentColor: accentColor
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -112,7 +111,7 @@ struct SeriesDetailView: View {
                     Button {
                         isPresentingEditor = true
                     } label: {
-                        Image(systemName: "pencil")
+                        Image(systemName: "square.and.pencil")
                     }
                     .accessibilityLabel("Edit Series")
                 }
@@ -198,14 +197,77 @@ struct SeriesDetailView: View {
     }
 
     private func bookSubtitle(_ book: BookRecord) -> String? {
-        if let volume = book.details.volumeNumber {
-            if let total = series.totalBookCount {
-                return "Volume \(volume) / \(total)"
-            }
-            return "Volume \(volume)"
-        }
+        guard let volume = book.details.volumeNumber else { return nil }
+        return "Volume \(volume)"
+    }
+}
 
-        return nil
+private struct SeriesBookCard: View {
+    let book: BookRecord
+    let subtitle: String?
+    let accentColor: Color
+
+    private let coverSize = CGSize(width: 48, height: 68)
+
+    var body: some View {
+        HStack(alignment: .center, spacing: CatalogMetrics.Spacing.md) {
+            cover
+
+            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                Text(book.title)
+                    .font(CatalogTypography.cardTitle)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(CatalogTypography.cardSubtitle)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: CatalogMetrics.Spacing.md)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .catalogSurfaceCard()
+    }
+
+    @ViewBuilder
+    private var cover: some View {
+        if let coverPhoto {
+            MediaPreviewImage(
+                identifier: coverPhoto.localIdentifier.isEmpty ? nil : coverPhoto.localIdentifier,
+                originalData: coverPhoto.originalData,
+                size: coverSize
+            )
+            .frame(width: coverSize.width, height: coverSize.height)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: CatalogMetrics.CornerRadius.thumbnail,
+                    style: .continuous
+                )
+            )
+        } else {
+            RoundedRectangle(
+                cornerRadius: CatalogMetrics.CornerRadius.thumbnail,
+                style: .continuous
+            )
+            .fill(accentColor.opacity(0.12))
+            .frame(width: coverSize.width, height: coverSize.height)
+            .overlay {
+                Image(systemName: "book.closed")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(accentColor)
+            }
+        }
+    }
+
+    private var coverPhoto: MediaAsset? {
+        book.mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .first
     }
 }
 
