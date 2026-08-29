@@ -7,6 +7,8 @@ protocol BookCatalogRepository {
     func saveBookRecords(_ books: [BookRecord])
     func saveBookSeries(_ series: BookSeries)
     func deleteBookSeries(seriesID: UUID)
+    func savePublisher(_ publisher: Publisher)
+    func deletePublisher(publisherID: UUID)
     func deleteBookRecord(bookID: UUID)
 }
 
