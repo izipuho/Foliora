@@ -440,8 +440,7 @@ private struct SeriesPublisherSelectionView: View {
                         let publisher = Publisher(
                             id: UUID(),
                             name: newPublisherName,
-                            location: nil,
-                            logo: nil
+                            location: nil
                         )
                         onCreate(publisher)
                         selection = publisher
