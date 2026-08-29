@@ -186,12 +186,6 @@ struct BookDetailView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-
-                if let publicationYear = book.details.publicationYear {
-                    Text(String(publicationYear))
-                        .font(CatalogTypography.cardSubtitle)
-                        .foregroundStyle(.secondary)
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -260,6 +254,14 @@ struct BookDetailView: View {
                 alignment: .leading,
                 spacing: CatalogMetrics.Spacing.lg
             ) {
+                if let publicationYear = book.details.publicationYear {
+                    metadataField(
+                        title: "Publication year",
+                        value: String(publicationYear),
+                        systemImage: "calendar"
+                    )
+                }
+
                 if let pageCount = book.details.pageCount {
                     metadataField(
                         title: "Pages",
@@ -281,6 +283,14 @@ struct BookDetailView: View {
                         title: "Genre",
                         value: genre,
                         systemImage: "tag"
+                    )
+                }
+
+                if book.details.series == nil, let volumeNumber = book.details.volumeNumber {
+                    metadataField(
+                        title: "Volume",
+                        value: volumeDisplayName(volumeNumber),
+                        systemImage: "books.vertical"
                     )
                 }
             }
@@ -597,25 +607,22 @@ struct BookDetailView: View {
     }
 
     private var headerSeriesDisplayName: String? {
-        if let series = book.details.series {
-            if let volumeNumber = book.details.volumeNumber {
-                return "\(series.name) · Volume \(volumeDisplayName(volumeNumber))"
-            }
-            return series.name
-        }
+        guard let series = book.details.series else { return nil }
 
         if let volumeNumber = book.details.volumeNumber {
-            return "Volume \(volumeDisplayName(volumeNumber))"
+            return "\(series.name) · Volume \(volumeDisplayName(volumeNumber))"
         }
 
-        return nil
+        return series.name
     }
 
     private var hasBookMetadataCardContent: Bool {
         book.details.publisher != nil
+            || book.details.publicationYear != nil
             || book.details.pageCount != nil
             || !(book.details.languageCode?.isEmpty ?? true)
             || !(book.details.genre?.isEmpty ?? true)
+            || (book.details.series == nil && book.details.volumeNumber != nil)
     }
 
     private var hasBookInformation: Bool {
