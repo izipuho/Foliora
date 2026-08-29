@@ -30,10 +30,20 @@ extension PreviewData {
             displayName: "London, United Kingdom",
             countryCode: "GB",
             countryName: "United Kingdom",
-            regionName: nil,
+            regionName: "England",
             cityName: "London",
-            latitude: nil,
-            longitude: nil
+            latitude: 51.5072,
+            longitude: -0.1276
+        )
+        let originPlace = Place(
+            id: UUID(),
+            displayName: "Buenos Aires, Argentina",
+            countryCode: "AR",
+            countryName: "Argentina",
+            regionName: "Buenos Aires",
+            cityName: "Buenos Aires",
+            latitude: -34.6037,
+            longitude: -58.3816
         )
         let publisher = Publisher(
             id: UUID(),
@@ -54,6 +64,49 @@ extension PreviewData {
             publisher: publisher
         )
 
+        let author = Person(
+            id: UUID(),
+            name: "Author One",
+            birthYear: 1927,
+            deathYear: 2014,
+            biography: "Preview biography for the primary book author.",
+            birthPlace: originPlace,
+            deathPlace: nil,
+            photos: [
+                makePreviewPhoto(
+                    resourcePath: "Media/IMG_7503.HEIC",
+                    sortOrder: 0
+                )
+            ]
+        )
+        let translator = Person(
+            id: UUID(),
+            name: "Translator One",
+            birthYear: 1950,
+            deathYear: nil,
+            biography: nil,
+            birthPlace: nil,
+            deathPlace: nil
+        )
+        let editor = Person(
+            id: UUID(),
+            name: "Editor One",
+            birthYear: nil,
+            deathYear: nil,
+            biography: nil,
+            birthPlace: nil,
+            deathPlace: nil
+        )
+        let illustrator = Person(
+            id: UUID(),
+            name: "Illustrator One",
+            birthYear: nil,
+            deathYear: nil,
+            biography: nil,
+            birthPlace: nil,
+            deathPlace: nil
+        )
+
         return core.items.enumerated().map { index, sourceItem in
             var item = sourceItem
             item.kind = .books
@@ -61,8 +114,13 @@ extension PreviewData {
             switch index {
             case 0:
                 item.title = "First Book"
+                item.notes = "A fully populated preview record used to validate the book detail layout on iPhone and in the iPad inspector."
+                item.acquiredYear = 2021
+                item.condition = .good
+                item.acquisitionMethod = .bought
                 item.isFavorite = true
-                item.tags = ["fiction", "classic"]
+                item.tags = ["fiction", "classic", "latin america"]
+                item.setOriginPlace(originPlace)
                 item.mediaAssets = previewBookPhotos(
                     itemID: item.id,
                     names: ["IMG_7502.HEIC", "IMG_7503.HEIC", "IMG_7504.HEIC"]
@@ -74,31 +132,22 @@ extension PreviewData {
                         itemID: item.id,
                         languageCode: "en",
                         pageCount: 320,
-                        publicationYear: 1954,
+                        publicationYear: 1967,
                         volumeNumber: 1,
                         publisher: publisher,
                         contributors: [
-                            BookContributor(
-                                role: .author,
-                                order: 0,
-                                person: Person(
-                                    id: UUID(),
-                                    name: "Author One",
-                                    birthYear: nil,
-                                    deathYear: nil,
-                                    biography: nil,
-                                    birthPlace: nil,
-                                    deathPlace: nil,
-                                    photos: [
-                                        makePreviewPhoto(
-                                            resourcePath: "Media/IMG_7503.HEIC",
-                                            sortOrder: 0
-                                        )
-                                    ]
-                                )
-                            )
+                            BookContributor(role: .author, order: 0, person: author),
+                            BookContributor(role: .translator, order: 1, person: translator),
+                            BookContributor(role: .editor, order: 2, person: editor),
+                            BookContributor(role: .illustrator, order: 3, person: illustrator)
                         ],
-                        series: series
+                        series: series,
+                        identifiers: [
+                            BookIdentifier(type: .isbn13, value: "978-1-23456-789-0"),
+                            BookIdentifier(type: .isbn10, value: "1-23456-789-X"),
+                            BookIdentifier(type: .asin, value: "B012345678"),
+                            BookIdentifier(type: .inventory, value: "BOOK-0001")
+                        ]
                     )
                 )
 
@@ -138,7 +187,7 @@ extension PreviewData {
                                 order: 1,
                                 person: Person(
                                     id: UUID(),
-                                    name: "Translator One",
+                                    name: "Translator Two",
                                     birthYear: nil,
                                     deathYear: nil,
                                     biography: nil,
@@ -173,7 +222,7 @@ extension PreviewData {
                                 order: 0,
                                 person: Person(
                                     id: UUID(),
-                                    name: "Editor One",
+                                    name: "Editor Two",
                                     birthYear: nil,
                                     deathYear: nil,
                                     biography: nil,
