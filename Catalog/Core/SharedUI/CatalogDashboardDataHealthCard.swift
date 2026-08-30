@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Displays catalog data health status in a dashboard card that expands in place.
+/// Displays catalog data health status in a dashboard card that expands over surrounding content.
 struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     let progress: Double
     let tint: Color
@@ -25,57 +25,76 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.snappy) {
-                    isExpanded.toggle()
+        compactCard
+            .opacity(isExpanded ? 0 : 1)
+            .overlay(alignment: .topTrailing) {
+                if isExpanded {
+                    expandedCard
+                        .zIndex(1)
                 }
-            } label: {
-                HStack(spacing: CatalogMetrics.Spacing.md) {
-                    progressIndicator
-
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                        Text(String(localized: "catalog.dashboard.health"))
-                            .font(CatalogTypography.sectionTitle)
-                        Text(String(localized: "catalog.dashboard.health.subtitle"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .frame(height: 72)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .zIndex(isExpanded ? 1 : 0)
+            .animation(.snappy, value: isExpanded)
+    }
 
-            if isExpanded {
-                Divider()
+    private var compactCard: some View {
+        header
+            .catalogSurfaceCard()
+    }
 
-                VStack(spacing: 0) {
-                    ForEach(entries.indices, id: \.self) { index in
-                        let entry = entries[index]
+    private var expandedCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
 
-                        Button {
-                            withAnimation(.snappy) {
-                                isExpanded = false
-                            }
-                            onSelect(entry)
-                        } label: {
-                            content(entry)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
+            Divider()
+
+            VStack(spacing: 0) {
+                ForEach(entries.indices, id: \.self) { index in
+                    let entry = entries[index]
+
+                    Button {
+                        withAnimation(.snappy) {
+                            isExpanded = false
                         }
-                        .buttonStyle(.plain)
+                        onSelect(entry)
+                    } label: {
+                        content(entry)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
 
-                        if index < entries.count - 1 {
-                            Divider()
-                        }
+                    if index < entries.count - 1 {
+                        Divider()
                     }
                 }
             }
         }
-        .frame(minWidth: isExpanded ? 320 : nil, alignment: .leading)
+        .frame(minWidth: 320, alignment: .leading)
         .catalogSurfaceCard()
-        .animation(.snappy, value: isExpanded)
+    }
+
+    private var header: some View {
+        Button {
+            withAnimation(.snappy) {
+                isExpanded.toggle()
+            }
+        } label: {
+            HStack(spacing: CatalogMetrics.Spacing.md) {
+                progressIndicator
+
+                VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                    Text(String(localized: "catalog.dashboard.health"))
+                        .font(CatalogTypography.sectionTitle)
+                    Text(String(localized: "catalog.dashboard.health.subtitle"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(height: 72)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var progressIndicator: some View {
