@@ -195,35 +195,7 @@ final class LibraryViewModel: ObservableObject {
         )
 
         return books.filter { book in
-            guard BookSearchToken.matches(filters.tokens, book: book) else {
-                return false
-            }
-
-            if !filters.publicationYears.isEmpty {
-                guard let publicationYear = book.details.publicationYear,
-                      filters.publicationYears.contains(publicationYear) else {
-                    return false
-                }
-            }
-
-            if !filters.acquiredYears.isEmpty {
-                guard let acquiredYear = book.acquiredYear,
-                      filters.acquiredYears.contains(acquiredYear) else {
-                    return false
-                }
-            }
-
-            if !filters.conditions.isEmpty,
-               !filters.conditions.contains(book.condition) {
-                return false
-            }
-
-            if !filters.acquisitionMethods.isEmpty,
-               !filters.acquisitionMethods.contains(book.acquisitionMethod) {
-                return false
-            }
-
-            return filters.presence.allSatisfy { filter in
+            filters.presence.allSatisfy { filter in
                 switch filter {
                 case .missingCover:
                     return !hasCover(book)
