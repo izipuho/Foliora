@@ -291,17 +291,18 @@ struct PersonDetailView: View {
     }
 
     private var rolesText: String {
-        let roles = Set(
-            books.flatMap { book in
-                book.details.contributors
-                    .filter { $0.person.id == person.id }
-                    .map(\.role)
-            }
-        )
-        .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
-        .map(\.displayName)
+        let usages = BookContributorRole.allCases.compactMap { role -> String? in
+            let bookCount = books.filter { book in
+                book.details.contributors.contains { contributor in
+                    contributor.person.id == person.id && contributor.role == role
+                }
+            }.count
 
-        return roles.isEmpty ? "—" : roles.joined(separator: ", ")
+            guard bookCount > 0 else { return nil }
+            return "\(role.displayName) · \(bookCount)"
+        }
+
+        return usages.isEmpty ? "—" : usages.joined(separator: "\n")
     }
 
     private func metadataField(
