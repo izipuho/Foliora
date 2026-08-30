@@ -519,19 +519,6 @@ struct LibraryView: View {
 
     @ToolbarContentBuilder
     private var libraryToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button {
-                isPresentingFilters = true
-            } label: {
-                Image(systemName: hasActiveFilter
-                    ? "line.3.horizontal.decrease.circle.fill"
-                    : "line.3.horizontal.decrease.circle")
-                    .font(.system(size: 17, weight: .semibold))
-                    .frame(width: 30, height: 30)
-            }
-            .accessibilityLabel("Filters")
-        }
-
         CatalogCollectionToolbar(
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: layoutMode,
@@ -539,6 +526,10 @@ struct LibraryView: View {
             sortOptions: LibraryOrderMode.allCases,
             sortSectionTitle: "Sort",
             sortTitle: { $0.title },
+            hasActiveFilters: hasActiveFilter,
+            onFilters: {
+                isPresentingFilters = true
+            },
             canEdit: canEditLibrary,
             onEdit: {
                 isPresentingEditLibrary = true
