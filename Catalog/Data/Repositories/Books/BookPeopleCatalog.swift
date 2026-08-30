@@ -1,29 +1,6 @@
 import CoreData
 import Foundation
 
-extension CatalogSnapshot {
-    static func people(from context: NSManagedObjectContext) -> [Person] {
-        let request = NSFetchRequest<NSManagedObject>(entityName: "PersonEntity")
-        request.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
-
-        let people = ((try? context.fetch(request)) ?? [])
-            .map { CoreDataDomainMapper.person(from: $0) }
-
-        let uniqueByID = Dictionary(
-            people.map { ($0.id, $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
-
-        return uniqueByID.values.sorted {
-            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
-            if comparison != .orderedSame {
-                return comparison == .orderedAscending
-            }
-            return $0.id.uuidString < $1.id.uuidString
-        }
-    }
-}
-
 extension CoreDataCatalogRepository {
     func savePerson(_ person: Person) {
         _ = upsertCatalogPerson(person)
