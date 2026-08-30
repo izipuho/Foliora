@@ -10,6 +10,8 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
     private let sortOptions: [SortOption]
     private let sortSectionTitle: String
     private let sortTitle: (SortOption) -> String
+    private let hasActiveFilters: Bool
+    private let onFilters: (() -> Void)?
     private let canEdit: Bool
     private let onEdit: () -> Void
     private let onPhotoLibrary: () -> Void
@@ -22,6 +24,8 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         sortOptions: [SortOption],
         sortSectionTitle: String,
         sortTitle: @escaping (SortOption) -> String,
+        hasActiveFilters: Bool = false,
+        onFilters: (() -> Void)? = nil,
         canEdit: Bool,
         onEdit: @escaping () -> Void,
         onPhotoLibrary: @escaping () -> Void,
@@ -33,6 +37,8 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         self.sortOptions = sortOptions
         self.sortSectionTitle = sortSectionTitle
         self.sortTitle = sortTitle
+        self.hasActiveFilters = hasActiveFilters
+        self.onFilters = onFilters
         self.canEdit = canEdit
         self.onEdit = onEdit
         self.onPhotoLibrary = onPhotoLibrary
@@ -54,7 +60,9 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
                 selectedLayoutMode: $selectedLayoutMode,
                 sortOptions: sortOptions,
                 sortSectionTitle: sortSectionTitle,
-                sortTitle: sortTitle
+                sortTitle: sortTitle,
+                hasActiveFilters: hasActiveFilters,
+                onFilters: onFilters
             )
         }
 
@@ -97,19 +105,25 @@ struct CatalogSortLayoutToolbar<SortOption: Hashable>: ToolbarContent {
     private let sortOptions: [SortOption]
     private let sortSectionTitle: String
     private let sortTitle: (SortOption) -> String
+    private let hasActiveFilters: Bool
+    private let onFilters: (() -> Void)?
 
     init(
         selectedSort: Binding<SortOption>,
         selectedLayoutMode: Binding<CatalogCardLayoutMode>,
         sortOptions: [SortOption],
         sortSectionTitle: String,
-        sortTitle: @escaping (SortOption) -> String
+        sortTitle: @escaping (SortOption) -> String,
+        hasActiveFilters: Bool = false,
+        onFilters: (() -> Void)? = nil
     ) {
         self._selectedSort = selectedSort
         self._selectedLayoutMode = selectedLayoutMode
         self.sortOptions = sortOptions
         self.sortSectionTitle = sortSectionTitle
         self.sortTitle = sortTitle
+        self.hasActiveFilters = hasActiveFilters
+        self.onFilters = onFilters
     }
 
     var body: some ToolbarContent {
@@ -119,7 +133,9 @@ struct CatalogSortLayoutToolbar<SortOption: Hashable>: ToolbarContent {
                 selectedLayoutMode: $selectedLayoutMode,
                 sortOptions: sortOptions,
                 sortSectionTitle: sortSectionTitle,
-                sortTitle: sortTitle
+                sortTitle: sortTitle,
+                hasActiveFilters: hasActiveFilters,
+                onFilters: onFilters
             )
         }
     }
@@ -131,6 +147,8 @@ private struct CatalogSortLayoutMenu<SortOption: Hashable>: View {
     let sortOptions: [SortOption]
     let sortSectionTitle: String
     let sortTitle: (SortOption) -> String
+    let hasActiveFilters: Bool
+    let onFilters: (() -> Void)?
 
     var body: some View {
         Menu {
@@ -144,6 +162,19 @@ private struct CatalogSortLayoutMenu<SortOption: Hashable>: View {
                         } else {
                             Text(sortTitle(option))
                         }
+                    }
+                }
+            }
+
+            if let onFilters {
+                Section {
+                    Button(action: onFilters) {
+                        Label(
+                            "Filters",
+                            systemImage: hasActiveFilters
+                                ? "line.3.horizontal.decrease.circle.fill"
+                                : "line.3.horizontal.decrease.circle"
+                        )
                     }
                 }
             }
