@@ -4,12 +4,14 @@ enum CatalogDashboardScrollTarget: Hashable {
     case dataHealth
 }
 
+typealias CatalogDashboardDataHealthExpansionAction = @MainActor @Sendable (Bool) -> Void
+
 private struct CatalogDashboardDataHealthExpansionActionKey: EnvironmentKey {
-    static let defaultValue: (Bool) -> Void = { _ in }
+    static let defaultValue: CatalogDashboardDataHealthExpansionAction = { _ in }
 }
 
 extension EnvironmentValues {
-    var catalogDashboardDataHealthExpansionAction: (Bool) -> Void {
+    var catalogDashboardDataHealthExpansionAction: CatalogDashboardDataHealthExpansionAction {
         get { self[CatalogDashboardDataHealthExpansionActionKey.self] }
         set { self[CatalogDashboardDataHealthExpansionActionKey.self] = newValue }
     }
