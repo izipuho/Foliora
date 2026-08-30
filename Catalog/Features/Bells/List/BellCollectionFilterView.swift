@@ -291,8 +291,13 @@ struct BellCollectionFilterView: View {
                 Set(draftFilters.attributes.compactMap(value))
             },
             set: { selection in
+                let previous = Set(draftFilters.attributes.compactMap(value))
+                let selectedValue = selection.subtracting(previous).first ?? selection.first
                 let retained = draftFilters.attributes.filter { value($0) == nil }
-                draftFilters.attributes = Set(retained).union(selection.map(make))
+                draftFilters.attributes = Set(retained)
+                if let selectedValue {
+                    draftFilters.attributes.insert(make(selectedValue))
+                }
             }
         )
     }
