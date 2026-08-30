@@ -103,6 +103,31 @@ struct BookSearchView: View {
                 title: "Tags",
                 systemImage: "tag",
                 tokens: uniqueValues(books.flatMap(\.tags)).map(BookSearchToken.tag)
+            ),
+            SearchTokenGroup(
+                title: "Publication Year",
+                systemImage: "calendar",
+                tokens: uniquePublicationYears.map(BookSearchToken.publicationYear)
+            ),
+            SearchTokenGroup(
+                title: "Acquired Year",
+                systemImage: "calendar.badge.plus",
+                tokens: uniqueAcquiredYears.map(BookSearchToken.acquiredYear)
+            ),
+            SearchTokenGroup(
+                title: "Condition",
+                systemImage: "checkmark.seal",
+                tokens: uniqueConditions.map(BookSearchToken.condition)
+            ),
+            SearchTokenGroup(
+                title: "Acquisition",
+                systemImage: "bag",
+                tokens: uniqueAcquisitionMethods.map(BookSearchToken.acquisitionMethod)
+            ),
+            SearchTokenGroup(
+                title: "Data Health",
+                systemImage: "checklist",
+                tokens: BookPresenceFilter.allSearchFilters.map(BookSearchToken.presence)
             )
         ]
         .map { group in
@@ -119,7 +144,7 @@ struct BookSearchView: View {
         books
             .filter { book in
                 matchesQuery(query, book: book)
-                    && BookSearchToken.matches(tokens, book: book)
+                    && BookSearchToken.matches(tokens, book: book, allBooks: books)
             }
             .sorted {
                 let titleComparison = $0.title.localizedStandardCompare($1.title)
@@ -178,6 +203,14 @@ struct BookSearchView: View {
             return languageDisplayName(languageCode)
         case .genre(let genre), .tag(let genre):
             return genre
+        case .publicationYear(let year), .acquiredYear(let year):
+            return String(year)
+        case .condition(let condition):
+            return condition.displayName
+        case .acquisitionMethod(let method):
+            return method.displayName
+        case .presence(let filter):
+            return filter.searchTitle
         }
     }
 
@@ -197,6 +230,16 @@ struct BookSearchView: View {
             return "text.book.closed"
         case .tag:
             return "tag"
+        case .publicationYear:
+            return "calendar"
+        case .acquiredYear:
+            return "calendar.badge.plus"
+        case .condition:
+            return "checkmark.seal"
+        case .acquisitionMethod:
+            return "bag"
+        case .presence:
+            return "checklist"
         }
     }
 
@@ -242,6 +285,26 @@ struct BookSearchView: View {
         return values
     }
 
+    private var uniquePublicationYears: [Int] {
+        Array(Set(books.compactMap(\.details.publicationYear))).sorted(by: >)
+    }
+
+    private var uniqueAcquiredYears: [Int] {
+        Array(Set(books.compactMap(\.acquiredYear))).sorted(by: >)
+    }
+
+    private var uniqueConditions: [ItemCondition] {
+        ItemCondition.allCases.filter { condition in
+            books.contains { $0.condition == condition }
+        }
+    }
+
+    private var uniqueAcquisitionMethods: [AcquisitionMethod] {
+        AcquisitionMethod.allCases.filter { method in
+            books.contains { $0.acquisitionMethod == method }
+        }
+    }
+
     private func uniqueValues(_ values: [String]) -> [String] {
         var seen: Set<String> = []
 
@@ -261,6 +324,16 @@ struct BookSearchView: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
     }
+}
+
+private extension BookPresenceFilter {
+    static let allSearchFilters: [BookPresenceFilter] = [
+        .missingCover,
+        .missingAuthor,
+        .missingPublicationYear,
+        .incompleteSeries,
+        .unknownSeriesSize
+    ]
 }
 
 @MainActor
