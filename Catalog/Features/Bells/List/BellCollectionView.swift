@@ -22,6 +22,7 @@ struct BellCollectionView: View {
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
+    @State private var isPresentingFilters = false
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
     @State private var favoriteChangeRevision = 0
@@ -51,6 +52,10 @@ struct BellCollectionView: View {
 
     private var homes: [Home] {
         catalogSnapshot?.homes ?? []
+    }
+
+    private var collectionBells: [BellListItem] {
+        catalogSnapshot?.bells.filter { $0.collectionID == collection.id } ?? []
     }
 
     private var hasPlacedItems: Bool {
@@ -117,6 +122,10 @@ struct BellCollectionView: View {
                 }
 
                 return String(localized: option.title)
+            },
+            hasActiveFilters: !selectedSummaryFilter.isEmpty,
+            onFilters: {
+                isPresentingFilters = true
             },
             canEdit: canEditCollection,
             onEdit: {
@@ -185,6 +194,14 @@ struct BellCollectionView: View {
             }
             .sheet(isPresented: $isPresentingEditCollection) {
                 editCollectionSheet
+            }
+            .sheet(isPresented: $isPresentingFilters) {
+                BellCollectionFilterView(
+                    bells: collectionBells,
+                    filters: selectedSummaryFilter
+                ) { updatedFilters in
+                    selectedSummaryFilter = updatedFilters
+                }
             }
             .task(id: collection.id) {
                 await loadCollectionSharingState()
