@@ -8,6 +8,7 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     let onSelect: (Entry) -> Void
     let content: (Entry) -> Content
 
+    @Environment(\.catalogDashboardDataHealthExpansionAction) private var onExpansionChanged
     @State private var isExpanded = false
 
     init(
@@ -24,28 +25,21 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
         self.content = content
     }
 
-    @ViewBuilder
     var body: some View {
-        if isExpanded {
-            compactCard
-                .opacity(0)
-                .containerRelativeFrame(.horizontal)
-                .overlay(alignment: .topLeading) {
-                    expandedCard
-                }
-                .catalogDashboardMutationTarget(
-                    id: "catalog-dashboard-data-health",
-                    isExpanded: true
-                )
-                .animation(.snappy, value: isExpanded)
-        } else {
-            compactCard
-                .catalogDashboardMutationTarget(
-                    id: "catalog-dashboard-data-health",
-                    isExpanded: false
-                )
-                .animation(.snappy, value: isExpanded)
+        Group {
+            if isExpanded {
+                compactCard
+                    .opacity(0)
+                    .containerRelativeFrame(.horizontal)
+                    .overlay(alignment: .topLeading) {
+                        expandedCard
+                    }
+            } else {
+                compactCard
+            }
         }
+        .id(CatalogDashboardScrollTarget.dataHealth)
+        .animation(.snappy, value: isExpanded)
     }
 
     private var compactCard: some View {
@@ -124,5 +118,6 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
         withAnimation(.snappy) {
             isExpanded = expanded
         }
+        onExpansionChanged(expanded)
     }
 }

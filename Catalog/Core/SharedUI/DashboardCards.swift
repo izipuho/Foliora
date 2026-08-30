@@ -1,47 +1,43 @@
 import SwiftUI
 
-private struct CatalogDashboardMutationTargetPreferenceKey: PreferenceKey {
-    static var defaultValue: String? { nil }
+enum CatalogDashboardScrollTarget: Hashable {
+    case dataHealth
+}
 
-    static func reduce(value: inout String?, nextValue: () -> String?) {
-        value = nextValue() ?? value
+private struct CatalogDashboardDataHealthExpansionActionKey: EnvironmentKey {
+    static let defaultValue: (Bool) -> Void = { _ in }
+}
+
+extension EnvironmentValues {
+    var catalogDashboardDataHealthExpansionAction: (Bool) -> Void {
+        get { self[CatalogDashboardDataHealthExpansionActionKey.self] }
+        set { self[CatalogDashboardDataHealthExpansionActionKey.self] = newValue }
     }
 }
 
-extension View {
-    func catalogDashboardMutationTarget(id: String, isExpanded: Bool) -> some View {
-        self
-            .id(id)
-            .preference(
-                key: CatalogDashboardMutationTargetPreferenceKey.self,
-                value: isExpanded ? id : nil
-            )
-    }
-}
-
-/// Displays a horizontally scrolling dashboard card strip and keeps an expanded mutation target visible.
+/// Displays a horizontally scrolling dashboard card strip and keeps expanded data health visible.
 struct CatalogDashboardCardStrip<Content: View>: View {
     let content: Content
+
+    @State private var scrollTarget: CatalogDashboardScrollTarget?
 
     init(@ViewBuilder content: () -> Content) {
         self.content = content()
     }
 
     var body: some View {
-        ScrollViewReader { scrollProxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                    content
-                }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
+                content
             }
-            .scrollClipDisabled()
-            .onPreferenceChange(CatalogDashboardMutationTargetPreferenceKey.self) { targetID in
-                guard let targetID else { return }
-                DispatchQueue.main.async {
-                    withAnimation(.snappy) {
-                        scrollProxy.scrollTo(targetID, anchor: .center)
-                    }
-                }
+            .scrollTargetLayout()
+        }
+        .scrollClipDisabled()
+        .scrollPosition(id: $scrollTarget, anchor: .center)
+        .environment(\.catalogDashboardDataHealthExpansionAction) { isExpanded in
+            guard isExpanded else { return }
+            withAnimation(.snappy) {
+                scrollTarget = .dataHealth
             }
         }
         .frame(height: 104)
