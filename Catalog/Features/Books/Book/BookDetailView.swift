@@ -601,10 +601,7 @@ struct BookDetailView: View {
     }
 
     private func bookLanguageDisplayName(for code: String) -> String {
-        let name = Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
-        guard let firstCharacter = name.first else { return name }
-
-        return String(firstCharacter).uppercased(with: Locale.current) + String(name.dropFirst())
+        BookLanguageFormatter.displayName(for: code)
     }
 
     private var storageDisplayPath: String {

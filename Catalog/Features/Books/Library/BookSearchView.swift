@@ -316,7 +316,7 @@ struct BookSearchView: View {
     }
 
     private func languageDisplayName(_ code: String) -> String {
-        Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
+        BookLanguageFormatter.displayName(for: code)
     }
 
     private func normalized(_ value: String) -> String {
