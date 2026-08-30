@@ -533,12 +533,7 @@ struct BookEditorView: View {
             publishersByID[publisher.id] = publisher
         }
         catalogPublishers = Array(publishersByID.values)
-
-        var peopleByID: [UUID: Person] = [:]
-        for person in bookRecords.flatMap({ $0.details.contributors.map(\.person) }) {
-            peopleByID[person.id] = person
-        }
-        catalogPeople = Array(peopleByID.values)
+        catalogPeople = snapshot.people
     }
 
     private func saveBook() {
