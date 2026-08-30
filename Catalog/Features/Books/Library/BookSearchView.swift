@@ -316,7 +316,10 @@ struct BookSearchView: View {
     }
 
     private func languageDisplayName(_ code: String) -> String {
-        Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
+        let name = Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
+        guard let firstCharacter = name.first else { return name }
+
+        return String(firstCharacter).uppercased(with: Locale.current) + String(name.dropFirst())
     }
 
     private func normalized(_ value: String) -> String {
