@@ -5,7 +5,6 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     let progress: Double
     let tint: Color
     let entries: [Entry]
-    let onExpansionChanged: (Bool) -> Void
     let onSelect: (Entry) -> Void
     let content: (Entry) -> Content
 
@@ -15,14 +14,12 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
         progress: Double,
         tint: Color,
         entries: [Entry],
-        onExpansionChanged: @escaping (Bool) -> Void = { _ in },
         onSelect: @escaping (Entry) -> Void,
         @ViewBuilder content: @escaping (Entry) -> Content
     ) {
         self.progress = progress
         self.tint = tint
         self.entries = entries
-        self.onExpansionChanged = onExpansionChanged
         self.onSelect = onSelect
         self.content = content
     }
@@ -36,9 +33,17 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                 .overlay(alignment: .topLeading) {
                     expandedCard
                 }
+                .catalogDashboardMutationTarget(
+                    id: "catalog-dashboard-data-health",
+                    isExpanded: true
+                )
                 .animation(.snappy, value: isExpanded)
         } else {
             compactCard
+                .catalogDashboardMutationTarget(
+                    id: "catalog-dashboard-data-health",
+                    isExpanded: false
+                )
                 .animation(.snappy, value: isExpanded)
         }
     }
@@ -119,6 +124,5 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
         withAnimation(.snappy) {
             isExpanded = expanded
         }
-        onExpansionChanged(expanded)
     }
 }

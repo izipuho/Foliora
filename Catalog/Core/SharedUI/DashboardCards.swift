@@ -1,5 +1,53 @@
 import SwiftUI
 
+private struct CatalogDashboardMutationTargetPreferenceKey: PreferenceKey {
+    static var defaultValue: String? { nil }
+
+    static func reduce(value: inout String?, nextValue: () -> String?) {
+        value = nextValue() ?? value
+    }
+}
+
+extension View {
+    func catalogDashboardMutationTarget(id: String, isExpanded: Bool) -> some View {
+        self
+            .id(id)
+            .preference(
+                key: CatalogDashboardMutationTargetPreferenceKey.self,
+                value: isExpanded ? id : nil
+            )
+    }
+}
+
+/// Displays a horizontally scrolling dashboard card strip and keeps an expanded mutation target visible.
+struct CatalogDashboardCardStrip<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        ScrollViewReader { scrollProxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
+                    content
+                }
+            }
+            .scrollClipDisabled()
+            .onPreferenceChange(CatalogDashboardMutationTargetPreferenceKey.self) { targetID in
+                guard let targetID else { return }
+                DispatchQueue.main.async {
+                    withAnimation(.snappy) {
+                        scrollProxy.scrollTo(targetID, anchor: .center)
+                    }
+                }
+            }
+        }
+        .frame(height: 104)
+    }
+}
+
 /// Displays the dashboard card interface.
 struct DashboardCard<Leading: View, Content: View>: View {
     let leading: Leading

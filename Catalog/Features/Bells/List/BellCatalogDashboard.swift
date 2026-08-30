@@ -57,68 +57,51 @@ private struct DashboardCardStrip: View {
     let onBellSelected: ((UUID) -> Void)?
     let onFilterApply: (BellPresenceFilter) -> Void
 
-    private let dataHealthID = "bell-data-health"
-
     var body: some View {
-        ScrollViewReader { scrollProxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                    sharingCard
+        CatalogDashboardCardStrip {
+            sharingCard
 
-                    if let collection {
-                        NavigationLink {
-                            BellsOriginMapView(
-                                collection: collection,
-                                catalogSnapshot: catalogSnapshot,
-                                onBellSelected: onBellSelected
-                            )
-                        } label: {
-                            DashboardTopGeographyCard(
-                                countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                                flag: topGeography?.flag ?? "🌍",
-                                countText: topGeographyCountText,
-                                tint: tint
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        DashboardTopGeographyCard(
-                            countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                            flag: topGeography?.flag ?? "🌍",
-                            countText: topGeographyCountText,
-                            tint: tint
-                        )
-                    }
-
-                    CatalogDashboardDataHealthCard(
-                        progress: dataHealthProgress,
-                        tint: tint,
-                        entries: dataHealthEntries,
-                        onExpansionChanged: { isExpanded in
-                            guard isExpanded else { return }
-                            DispatchQueue.main.async {
-                                withAnimation(.snappy) {
-                                    scrollProxy.scrollTo(dataHealthID, anchor: .center)
-                                }
-                            }
-                        },
-                        onSelect: { entry in
-                            onFilterApply(entry.filter)
-                        }
-                    ) { entry in
-                        DashboardDataHealthRow(
-                            title: entry.title,
-                            countText: entry.countText,
-                            missingProgress: entry.missingProgress,
-                            showsDisclosureIndicator: true
-                        )
-                    }
-                    .id(dataHealthID)
+            if let collection {
+                NavigationLink {
+                    BellsOriginMapView(
+                        collection: collection,
+                        catalogSnapshot: catalogSnapshot,
+                        onBellSelected: onBellSelected
+                    )
+                } label: {
+                    DashboardTopGeographyCard(
+                        countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                        flag: topGeography?.flag ?? "🌍",
+                        countText: topGeographyCountText,
+                        tint: tint
+                    )
                 }
+                .buttonStyle(.plain)
+            } else {
+                DashboardTopGeographyCard(
+                    countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                    flag: topGeography?.flag ?? "🌍",
+                    countText: topGeographyCountText,
+                    tint: tint
+                )
             }
-            .scrollClipDisabled()
+
+            CatalogDashboardDataHealthCard(
+                progress: dataHealthProgress,
+                tint: tint,
+                entries: dataHealthEntries,
+                onSelect: { entry in
+                    onFilterApply(entry.filter)
+                }
+            ) { entry in
+                DashboardDataHealthRow(
+                    title: entry.title,
+                    countText: entry.countText,
+                    missingProgress: entry.missingProgress,
+                    showsDisclosureIndicator: true
+                )
+            }
         }
-        .frame(height: 104)
     }
 
     @ViewBuilder
