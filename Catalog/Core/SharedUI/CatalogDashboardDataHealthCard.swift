@@ -5,22 +5,22 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     let progress: Double
     let tint: Color
     let entries: [Entry]
+    @Binding var isExpanded: Bool
     let onSelect: (Entry) -> Void
     let content: (Entry) -> Content
-
-    @Environment(\.catalogDashboardDataHealthExpansionAction) private var onExpansionChanged
-    @State private var isExpanded = false
 
     init(
         progress: Double,
         tint: Color,
         entries: [Entry],
+        isExpanded: Binding<Bool>,
         onSelect: @escaping (Entry) -> Void,
         @ViewBuilder content: @escaping (Entry) -> Content
     ) {
         self.progress = progress
         self.tint = tint
         self.entries = entries
+        self._isExpanded = isExpanded
         self.onSelect = onSelect
         self.content = content
     }
@@ -118,6 +118,5 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
         withAnimation(.snappy) {
             isExpanded = expanded
         }
-        onExpansionChanged(expanded)
     }
 }

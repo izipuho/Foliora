@@ -4,49 +4,28 @@ enum CatalogDashboardScrollTarget: Hashable {
     case dataHealth
 }
 
-typealias CatalogDashboardDataHealthExpansionAction = @MainActor @Sendable (Bool) -> Void
-
-private struct CatalogDashboardDataHealthExpansionActionKey: EnvironmentKey {
-    static let defaultValue: CatalogDashboardDataHealthExpansionAction = { _ in }
-}
-
-extension EnvironmentValues {
-    var catalogDashboardDataHealthExpansionAction: CatalogDashboardDataHealthExpansionAction {
-        get { self[CatalogDashboardDataHealthExpansionActionKey.self] }
-        set { self[CatalogDashboardDataHealthExpansionActionKey.self] = newValue }
-    }
-}
-
 /// Displays a horizontally scrolling dashboard card strip and keeps expanded data health visible.
 struct CatalogDashboardCardStrip<Content: View>: View {
-    let content: Content
+    let content: (Binding<Bool>) -> Content
 
-    @State private var scrollTarget: CatalogDashboardScrollTarget?
     @State private var isDataHealthExpanded = false
+    @State private var scrollTarget: CatalogDashboardScrollTarget?
 
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
+    init(@ViewBuilder content: @escaping (Binding<Bool>) -> Content) {
+        self.content = content
     }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                content
-
-                if isDataHealthExpanded {
-                    Color.clear
-                        .containerRelativeFrame(.horizontal)
-                        .frame(height: 0)
-                        .allowsHitTesting(false)
-                }
+                content($isDataHealthExpanded)
             }
             .scrollTargetLayout()
         }
         .scrollClipDisabled()
         .scrollPosition(id: $scrollTarget, anchor: .leading)
-        .environment(\.catalogDashboardDataHealthExpansionAction) { isExpanded in
+        .onChange(of: isDataHealthExpanded) { _, isExpanded in
             withAnimation(.snappy) {
-                isDataHealthExpanded = isExpanded
                 scrollTarget = isExpanded ? .dataHealth : nil
             }
         }
