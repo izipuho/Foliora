@@ -41,13 +41,6 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-
-                    Spacer(minLength: 0)
-
-                    Image(systemName: "chevron.down")
-                        .font(CatalogTypography.chipLabel)
-                        .foregroundStyle(.tertiary)
-                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 }
                 .frame(height: 72)
                 .contentShape(Rectangle())
@@ -57,7 +50,7 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
             if isExpanded {
                 Divider()
 
-                LazyVStack(spacing: 0) {
+                VStack(spacing: 0) {
                     ForEach(entries.indices, id: \.self) { index in
                         let entry = entries[index]
 
@@ -78,7 +71,6 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                         }
                     }
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .frame(minWidth: isExpanded ? 320 : nil, alignment: .leading)
