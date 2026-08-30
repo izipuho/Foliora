@@ -5,6 +5,12 @@ import SwiftUI
 import CoreData
 #endif
 
+private enum BookReferenceDestination: Hashable {
+    case person(Person)
+    case publisher(Publisher)
+    case series(BookSeries)
+}
+
 /// Displays the catalog details for a single book.
 struct BookDetailView: View {
     @Binding var book: BookRecord
@@ -85,6 +91,9 @@ struct BookDetailView: View {
                     favorite: favoriteToolbarAction,
                     contentState: detailToolbarState
                 )
+            }
+            .navigationDestination(for: BookReferenceDestination.self) { destination in
+                referenceDestination(destination)
             }
             .confirmationDialog(
                 String(localized: "item.detail.unsaved_changes.title"),
@@ -171,21 +180,40 @@ struct BookDetailView: View {
             cover(preview: preview)
 
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                if !authorNames.isEmpty {
-                    Text(authorNames)
-                        .font(CatalogTypography.cardLabel)
-                        .foregroundStyle(.secondary)
+                if !authorContributors.isEmpty {
+                    TagFlowLayout(spacing: CatalogMetrics.Spacing.xs) {
+                        ForEach(Array(authorContributors.enumerated()), id: \.offset) { _, contributor in
+                            NavigationLink(value: BookReferenceDestination.person(contributor.person)) {
+                                HStack(spacing: CatalogMetrics.Spacing.xs) {
+                                    Text(contributor.person.name)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption2.weight(.semibold))
+                                }
+                                .font(CatalogTypography.cardLabel)
+                                .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
 
                 Text(book.title)
                     .font(.title2.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
 
-                if let headerSeriesDisplayName {
-                    Text(headerSeriesDisplayName)
+                if let series = book.details.series,
+                   let headerSeriesDisplayName {
+                    NavigationLink(value: BookReferenceDestination.series(series)) {
+                        HStack(spacing: CatalogMetrics.Spacing.xs) {
+                            Text(headerSeriesDisplayName)
+                            Image(systemName: "chevron.right")
+                                .font(.caption2.weight(.semibold))
+                        }
                         .font(CatalogTypography.cardSubtitle)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -239,11 +267,20 @@ struct BookDetailView: View {
     private var bookMetadataCard: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
             if let publisher = book.details.publisher {
-                metadataField(
-                    title: "Publisher",
-                    value: publisher.name,
-                    systemImage: "building.2"
-                )
+                NavigationLink(value: BookReferenceDestination.publisher(publisher)) {
+                    HStack(alignment: .center, spacing: CatalogMetrics.Spacing.sm) {
+                        metadataField(
+                            title: "Publisher",
+                            value: publisher.name,
+                            systemImage: "building.2"
+                        )
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
             }
 
             LazyVGrid(
@@ -298,17 +335,24 @@ struct BookDetailView: View {
     private var contributorsCard: some View {
         VStack(spacing: 0) {
             ForEach(Array(otherContributors.enumerated()), id: \.offset) { index, contributor in
-                HStack(alignment: .firstTextBaseline, spacing: CatalogMetrics.Spacing.md) {
-                    Label(contributor.role.title, systemImage: "person.crop.circle")
-                        .font(CatalogTypography.cardSubtitle)
-                        .foregroundStyle(.secondary)
+                NavigationLink(value: BookReferenceDestination.person(contributor.person)) {
+                    HStack(alignment: .firstTextBaseline, spacing: CatalogMetrics.Spacing.md) {
+                        Label(contributor.role.title, systemImage: "person.crop.circle")
+                            .font(CatalogTypography.cardSubtitle)
+                            .foregroundStyle(.secondary)
 
-                    Spacer(minLength: CatalogMetrics.Spacing.md)
+                        Spacer(minLength: CatalogMetrics.Spacing.md)
 
-                    Text(contributor.person.name)
-                        .font(CatalogTypography.cardLabel)
-                        .multilineTextAlignment(.trailing)
+                        Text(contributor.person.name)
+                            .font(CatalogTypography.cardLabel)
+                            .multilineTextAlignment(.trailing)
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
+                .buttonStyle(.plain)
 
                 if index < otherContributors.count - 1 {
                     Divider()
@@ -514,12 +558,10 @@ struct BookDetailView: View {
         )
     }
 
-    private var authorNames: String {
+    private var authorContributors: [BookContributor] {
         book.details.contributors
             .filter { $0.role == .author }
             .sorted { $0.order < $1.order }
-            .map(\.person.name)
-            .joined(separator: ", ")
     }
 
     private var otherContributors: [BookContributor] {
@@ -591,6 +633,123 @@ struct BookDetailView: View {
 
     private var detailAccentColor: Color {
         inferredCollection?.backgroundStyle.accentColor ?? Color.accentColor
+    }
+
+    private var libraryBooks: [BookRecord] {
+        catalogSnapshot?.bookRecords.filter { $0.collectionID == book.collectionID } ?? []
+    }
+
+    private var allBooks: [BookRecord] {
+        catalogSnapshot?.bookRecords ?? []
+    }
+
+    private var librarySeries: [BookSeries] {
+        catalogSnapshot?.bookSeries.filter { $0.collectionID == book.collectionID } ?? []
+    }
+
+    private var allSeries: [BookSeries] {
+        catalogSnapshot?.bookSeries ?? []
+    }
+
+    private var availablePublishersForSeries: [Publisher] {
+        var publishersByID: [UUID: Publisher] = [:]
+
+        for publisher in libraryBooks.compactMap(\.details.publisher) + librarySeries.compactMap(\.publisher) {
+            publishersByID[publisher.id] = publisher
+        }
+
+        for publisher in catalogSnapshot?.publishers ?? [] where publishersByID[publisher.id] != nil {
+            publishersByID[publisher.id] = publisher
+        }
+
+        return publishersByID.values.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    @ViewBuilder
+    private func referenceDestination(_ destination: BookReferenceDestination) -> some View {
+        switch destination {
+        case .person(let person):
+            let resolvedPerson = catalogSnapshot?.people.first(where: { $0.id == person.id }) ?? person
+            PersonDetailView(
+                person: resolvedPerson,
+                books: libraryBooks.filter { candidate in
+                    candidate.details.contributors.contains { $0.person.id == person.id }
+                },
+                allBookCount: allBooks.filter { candidate in
+                    candidate.details.contributors.contains { $0.person.id == person.id }
+                }.count,
+                places: catalogSnapshot?.places ?? [],
+                repository: repository,
+                canEditCollection: canEditCollection,
+                accentColor: detailAccentColor,
+                onPersonSaved: updatePersonReference,
+                onPersonDeleted: { _ in }
+            )
+
+        case .publisher(let publisher):
+            let resolvedPublisher = catalogSnapshot?.publishers.first(where: { $0.id == publisher.id }) ?? publisher
+            PublisherDetailView(
+                publisher: resolvedPublisher,
+                books: libraryBooks.filter { $0.details.publisher?.id == publisher.id },
+                series: librarySeries.filter { $0.publisher?.id == publisher.id },
+                allBookCount: allBooks.filter { $0.details.publisher?.id == publisher.id }.count,
+                allSeriesCount: allSeries.filter { $0.publisher?.id == publisher.id }.count,
+                places: catalogSnapshot?.places ?? [],
+                repository: repository,
+                canEditCollection: canEditCollection,
+                accentColor: detailAccentColor,
+                onPublisherSaved: updatePublisherReference,
+                onPublisherDeleted: { _ in }
+            )
+
+        case .series(let series):
+            let resolvedSeries = catalogSnapshot?.bookSeries.first(where: { $0.id == series.id }) ?? series
+            SeriesDetailView(
+                series: resolvedSeries,
+                books: libraryBooks.filter { $0.details.series?.id == series.id },
+                publishers: availablePublishersForSeries,
+                repository: repository,
+                canEditCollection: canEditCollection,
+                accentColor: detailAccentColor,
+                onSeriesSaved: updateSeriesReference,
+                onSeriesDeleted: { _ in }
+            )
+        }
+    }
+
+    private func updatePersonReference(_ person: Person) {
+        var details = book.details
+        details.contributors = details.contributors.map { contributor in
+            guard contributor.person.id == person.id else { return contributor }
+            var updatedContributor = contributor
+            updatedContributor.person = person
+            return updatedContributor
+        }
+        book = BookRecord(item: book.item, details: details)
+    }
+
+    private func updatePublisherReference(_ publisher: Publisher) {
+        var details = book.details
+
+        if details.publisher?.id == publisher.id {
+            details.publisher = publisher
+        }
+
+        if var series = details.series, series.publisher?.id == publisher.id {
+            series.publisher = publisher
+            details.series = series
+        }
+
+        book = BookRecord(item: book.item, details: details)
+    }
+
+    private func updateSeriesReference(_ series: BookSeries) {
+        guard book.details.series?.id == series.id else { return }
+        var details = book.details
+        details.series = series
+        book = BookRecord(item: book.item, details: details)
     }
 
     private var isNotesOrTagsDirty: Bool {
