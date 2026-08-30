@@ -29,6 +29,7 @@ struct LibraryDashboardView: View {
                 onSharingChanged: onSharingChanged,
                 onFilterApply: onFilterApply
             )
+            .zIndex(1)
 
             MetricStrip(
                 stats: stats,
@@ -44,6 +45,7 @@ struct LibraryDashboardView: View {
                 .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
                 .opacity(phase.isIdentity ? 1 : 0.82)
         }
+        .zIndex(1)
     }
 }
 
@@ -60,79 +62,96 @@ private struct DashboardCardStrip: View {
     let onSharingChanged: () -> Void
     let onFilterApply: (BookPresenceFilter) -> Void
 
+    private let dataHealthID = "book-data-health"
+
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                sharingCard
+        GeometryReader { proxy in
+            ScrollViewReader { scrollProxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
+                        sharingCard
 
-                NavigationLink {
-                    SeriesView(
-                        collection: collection,
-                        catalogSnapshot: catalogSnapshot,
-                        repository: repository,
-                        canEditCollection: canEditCollection,
-                        onBookSelected: onBookSelected
-                    )
-                } label: {
-                    BookSeriesHealthCard(
-                        completeCount: stats.completeSeriesCount,
-                        incompleteCount: stats.incompleteSeriesCount,
-                        unknownCount: stats.unknownSeriesCount,
-                        tint: tint
-                    )
-                }
-                .buttonStyle(.plain)
+                        NavigationLink {
+                            SeriesView(
+                                collection: collection,
+                                catalogSnapshot: catalogSnapshot,
+                                repository: repository,
+                                canEditCollection: canEditCollection,
+                                onBookSelected: onBookSelected
+                            )
+                        } label: {
+                            BookSeriesHealthCard(
+                                completeCount: stats.completeSeriesCount,
+                                incompleteCount: stats.incompleteSeriesCount,
+                                unknownCount: stats.unknownSeriesCount,
+                                tint: tint
+                            )
+                        }
+                        .buttonStyle(.plain)
 
-                NavigationLink {
-                    PublishersView(
-                        collection: collection,
-                        catalogSnapshot: catalogSnapshot,
-                        repository: repository,
-                        canEditCollection: canEditCollection,
-                        onBookSelected: onBookSelected
-                    )
-                } label: {
-                    BookPublisherDashboardCard(
-                        libraryCount: libraryPublisherCount,
-                        tint: tint
-                    )
-                }
-                .buttonStyle(.plain)
+                        NavigationLink {
+                            PublishersView(
+                                collection: collection,
+                                catalogSnapshot: catalogSnapshot,
+                                repository: repository,
+                                canEditCollection: canEditCollection,
+                                onBookSelected: onBookSelected
+                            )
+                        } label: {
+                            BookPublisherDashboardCard(
+                                libraryCount: libraryPublisherCount,
+                                tint: tint
+                            )
+                        }
+                        .buttonStyle(.plain)
 
-                NavigationLink {
-                    PeopleView(
-                        collection: collection,
-                        catalogSnapshot: catalogSnapshot,
-                        repository: repository,
-                        canEditCollection: canEditCollection,
-                        onBookSelected: onBookSelected
-                    )
-                } label: {
-                    BookPeopleDashboardCard(
-                        libraryCount: libraryPeopleCount,
-                        tint: tint
-                    )
-                }
-                .buttonStyle(.plain)
+                        NavigationLink {
+                            PeopleView(
+                                collection: collection,
+                                catalogSnapshot: catalogSnapshot,
+                                repository: repository,
+                                canEditCollection: canEditCollection,
+                                onBookSelected: onBookSelected
+                            )
+                        } label: {
+                            BookPeopleDashboardCard(
+                                libraryCount: libraryPeopleCount,
+                                tint: tint
+                            )
+                        }
+                        .buttonStyle(.plain)
 
-                CatalogDashboardDataHealthCard(
-                    progress: stats.dataHealthProgress,
-                    tint: tint,
-                    entries: dataHealthEntries,
-                    onSelect: { entry in
-                        onFilterApply(entry.filter)
+                        CatalogDashboardDataHealthCard(
+                            progress: stats.dataHealthProgress,
+                            tint: tint,
+                            entries: dataHealthEntries,
+                            expandedWidth: proxy.size.width,
+                            onExpansionChanged: { isExpanded in
+                                guard isExpanded else { return }
+                                DispatchQueue.main.async {
+                                    withAnimation(.snappy) {
+                                        scrollProxy.scrollTo(dataHealthID, anchor: .center)
+                                    }
+                                }
+                            },
+                            onSelect: { entry in
+                                onFilterApply(entry.filter)
+                            }
+                        ) { entry in
+                            DashboardDataHealthRow(
+                                title: entry.title,
+                                countText: "\(entry.missingCount)/\(entry.totalCount)",
+                                missingProgress: entry.progress,
+                                showsDisclosureIndicator: true
+                            )
+                        }
+                        .id(dataHealthID)
                     }
-                ) { entry in
-                    DashboardDataHealthRow(
-                        title: entry.title,
-                        countText: "\(entry.missingCount)/\(entry.totalCount)",
-                        missingProgress: entry.progress,
-                        showsDisclosureIndicator: true
-                    )
                 }
+                .scrollClipDisabled()
             }
         }
-        .scrollClipDisabled()
+        .frame(height: 104)
     }
 
     @ViewBuilder
