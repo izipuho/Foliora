@@ -22,6 +22,7 @@ struct CatalogDashboardCardStrip<Content: View>: View {
     let content: Content
 
     @State private var scrollTarget: CatalogDashboardScrollTarget?
+    @State private var isDataHealthExpanded = false
 
     init(@ViewBuilder content: () -> Content) {
         self.content = content()
@@ -31,15 +32,22 @@ struct CatalogDashboardCardStrip<Content: View>: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
                 content
+
+                if isDataHealthExpanded {
+                    Color.clear
+                        .containerRelativeFrame(.horizontal)
+                        .frame(height: 0)
+                        .allowsHitTesting(false)
+                }
             }
             .scrollTargetLayout()
         }
         .scrollClipDisabled()
         .scrollPosition(id: $scrollTarget, anchor: .leading)
         .environment(\.catalogDashboardDataHealthExpansionAction) { isExpanded in
-            guard isExpanded else { return }
             withAnimation(.snappy) {
-                scrollTarget = .dataHealth
+                isDataHealthExpanded = isExpanded
+                scrollTarget = isExpanded ? .dataHealth : nil
             }
         }
         .frame(height: 104)
