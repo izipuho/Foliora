@@ -695,7 +695,10 @@ private struct BookBatchLookupSelectionView: View {
 }
 
 private func batchBookLanguageDisplayName(for code: String) -> String {
-    Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
+    let name = Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
+    guard let firstCharacter = name.first else { return name }
+
+    return String(firstCharacter).uppercased(with: Locale.current) + String(name.dropFirst())
 }
 
 #if DEBUG
