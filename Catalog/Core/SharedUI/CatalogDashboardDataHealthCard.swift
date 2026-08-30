@@ -5,7 +5,6 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     let progress: Double
     let tint: Color
     let entries: [Entry]
-    let expandedWidth: CGFloat?
     let onExpansionChanged: (Bool) -> Void
     let onSelect: (Entry) -> Void
     let content: (Entry) -> Content
@@ -16,7 +15,6 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
         progress: Double,
         tint: Color,
         entries: [Entry],
-        expandedWidth: CGFloat? = nil,
         onExpansionChanged: @escaping (Bool) -> Void = { _ in },
         onSelect: @escaping (Entry) -> Void,
         @ViewBuilder content: @escaping (Entry) -> Content
@@ -24,24 +22,25 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
         self.progress = progress
         self.tint = tint
         self.entries = entries
-        self.expandedWidth = expandedWidth
         self.onExpansionChanged = onExpansionChanged
         self.onSelect = onSelect
         self.content = content
     }
 
+    @ViewBuilder
     var body: some View {
-        compactCard
-            .opacity(isExpanded ? 0 : 1)
-            .frame(width: isExpanded ? expandedWidth : nil, alignment: .leading)
-            .overlay(alignment: .topLeading) {
-                if isExpanded {
+        if isExpanded {
+            compactCard
+                .opacity(0)
+                .containerRelativeFrame(.horizontal)
+                .overlay(alignment: .topLeading) {
                     expandedCard
-                        .frame(width: expandedWidth, alignment: .leading)
-                        .zIndex(1)
                 }
-            }
-            .animation(.snappy, value: isExpanded)
+                .animation(.snappy, value: isExpanded)
+        } else {
+            compactCard
+                .animation(.snappy, value: isExpanded)
+        }
     }
 
     private var compactCard: some View {
@@ -75,6 +74,7 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .catalogSurfaceCard()
     }
 
