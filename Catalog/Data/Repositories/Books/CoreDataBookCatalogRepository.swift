@@ -74,13 +74,9 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
 
     func deleteBookRecord(bookID: UUID) {
         guard let entity = fetchBookEntity(by: bookID) else { return }
-        let persons = bookRelatedObjects(entity, "contributors").compactMap {
-            $0.value(forKey: "person") as? NSManagedObject
-        }
         guard let item = entity.value(forKey: "item") as? NSManagedObject else { return }
 
         context.delete(item)
-        persons.forEach(deletePersonIfOrphaned)
         deleteOrphanItemTags()
         saveContext()
     }
@@ -89,9 +85,6 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         guard let item = saveItemRecordWithoutSavingContext(book.item) else { return }
 
         let entity = fetchBookEntity(by: book.id) ?? makeEntity(named: "BookEntity")
-        let previousPersons = bookRelatedObjects(entity, "contributors").compactMap {
-            $0.value(forKey: "person") as? NSManagedObject
-        }
 
         apply(book, to: entity)
         entity.setValue(book.details.publisher.map(upsertPublisher), forKey: "publisher")
@@ -100,8 +93,6 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         replaceBookIdentifiers(book.details.identifiers, for: entity)
         entity.setValue(item, forKey: "item")
         fillInverseRelationship(from: entity, relationshipName: "item", with: item)
-
-        previousPersons.forEach(deletePersonIfOrphaned)
     }
 
     private func apply(_ book: BookRecord, to entity: NSManagedObject) {
@@ -203,7 +194,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
             entity.setValue(contributor.role.rawValue, forKey: "role")
             entity.setValue(contributor.order, forKey: "order")
             entity.setValue(book, forKey: "book")
-            entity.setValue(upsertPerson(contributor.person), forKey: "person")
+            entity.setValue(upsertCatalogPerson(contributor.person), forKey: "person")
             return entity
         }
 
@@ -222,67 +213,6 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         }
 
         book.setValue(Set(entities), forKey: "bookIdentifiers")
-    }
-
-    private func upsertPerson(_ person: Person) -> NSManagedObject {
-        let request = NSFetchRequest<NSManagedObject>(entityName: "PersonEntity")
-        request.predicate = NSPredicate(format: "id == %@", person.id as NSUUID)
-        request.fetchLimit = 1
-
-        let entity = (try? context.fetch(request))?.first ?? makeEntity(named: "PersonEntity")
-        entity.setValue(person.id, forKey: "id")
-        entity.setValue(person.name, forKey: "name")
-        entity.setValue(person.birthYear, forKey: "birthYear")
-        entity.setValue(person.deathYear, forKey: "deathYear")
-        entity.setValue(person.biography, forKey: "biography")
-        entity.setValue(person.birthPlace.map(upsertBookPlace), forKey: "birthPlace")
-        entity.setValue(person.deathPlace.map(upsertBookPlace), forKey: "deathPlace")
-        replaceReferenceMediaAssets(
-            person.photos,
-            relationshipName: "photos",
-            inverseRelationshipName: "person",
-            for: entity
-        )
-        return entity
-    }
-
-    private func replaceReferenceMediaAssets(
-        _ mediaAssets: [MediaAsset],
-        relationshipName: String,
-        inverseRelationshipName: String,
-        for owner: NSManagedObject
-    ) {
-        let existingAssets = Set(bookRelatedObjects(owner, relationshipName))
-        let incomingIDs = Set(mediaAssets.map(\.id))
-        var existingByID: [UUID: NSManagedObject] = [:]
-
-        for entity in existingAssets {
-            guard let id = entity.value(forKey: "id") as? UUID else { continue }
-            existingByID[id] = entity
-        }
-
-        let updatedAssets = mediaAssets.map { asset -> NSManagedObject in
-            let entity = existingByID[asset.id] ?? makeEntity(named: "MediaAssetEntity")
-            if entity.objectID.persistentStore == nil,
-               let store = owner.objectID.persistentStore {
-                context.assign(entity, to: store)
-            }
-            applyReferenceMediaAsset(asset, to: entity)
-            entity.setValue(owner, forKey: inverseRelationshipName)
-            return entity
-        }
-
-        for entity in existingAssets {
-            guard
-                let id = entity.value(forKey: "id") as? UUID,
-                !incomingIDs.contains(id)
-            else {
-                continue
-            }
-            context.delete(entity)
-        }
-
-        owner.setValue(Set(updatedAssets), forKey: relationshipName)
     }
 
     private func applyReferenceMediaAsset(_ asset: MediaAsset, to entity: NSManagedObject) {
@@ -306,16 +236,6 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         if shouldUpdateOriginalData {
             entity.setValue(asset.originalData, forKey: "originalData")
         }
-    }
-
-    private func deletePersonIfOrphaned(_ person: NSManagedObject) {
-        let request = NSFetchRequest<NSManagedObject>(entityName: "BookContributorEntity")
-        request.predicate = NSPredicate(format: "person == %@", person)
-        request.fetchLimit = 1
-
-        let hasRemainingContribution = (try? context.fetch(request))?.contains(where: { !$0.isDeleted }) == true
-        guard !hasRemainingContribution else { return }
-        context.delete(person)
     }
 
     private func fetchBookEntity(by itemID: UUID) -> NSManagedObject? {

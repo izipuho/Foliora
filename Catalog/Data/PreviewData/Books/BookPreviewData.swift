@@ -85,15 +85,6 @@ extension PreviewData {
             birthPlace: nil,
             deathPlace: nil
         )
-        let illustrator = Person(
-            id: UUID(),
-            name: "Illustrator One",
-            birthYear: nil,
-            deathYear: nil,
-            biography: nil,
-            birthPlace: nil,
-            deathPlace: nil
-        )
 
         return core.items.enumerated().map { index, sourceItem in
             var item = sourceItem
@@ -127,7 +118,7 @@ extension PreviewData {
                             BookContributor(role: .author, order: 0, person: author),
                             BookContributor(role: .translator, order: 1, person: translator),
                             BookContributor(role: .editor, order: 2, person: editor),
-                            BookContributor(role: .illustrator, order: 3, person: illustrator)
+                            BookContributor(role: .illustrator, order: 3, person: author)
                         ],
                         series: series,
                         identifiers: [

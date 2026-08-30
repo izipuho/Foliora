@@ -93,6 +93,11 @@
 			path = BellRecognitionDebugML;
 			sourceTree = "<group>";
 		};
+		2448AA5B3044061E0008B135 /* People */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = People;
+			sourceTree = "<group>";
+		};
 		246FD6602FA8BB2900B8859A /* BellRecognition */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BellRecognition;
@@ -316,6 +321,7 @@
 		C00000000000000000000038 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				2448AA5B3044061E0008B135 /* People */,
 				24C45D09303D996B00404BD4 /* Settings */,
 				24C45D11303D996E00404BD4 /* Collections */,
 				24C45D19303D997200404BD4 /* Search */,
@@ -389,6 +395,7 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
+				2448AA5B3044061E0008B135 /* People */,
 				24C44993303C789200404BD4 /* Core */,
 				24C44A0A303C78C800404BD4 /* Domain */,
 				24C44A40303C7CDE00404BD4 /* App */,
