@@ -1,17 +1,34 @@
 import SwiftUI
 
-private enum BellPresenceRequirement: String, CaseIterable, Identifiable {
-    case any
-    case present
-    case missing
-
-    var id: String { rawValue }
-
+private extension BellPresenceFilter {
     var title: String {
         switch self {
-        case .any: return "Any"
-        case .present: return "Present"
-        case .missing: return "Missing"
+        case .withOrigin:
+            return String(localized: "bell_catalog.summary.with_origin")
+        case .missingOrigin:
+            return String(localized: "bell_catalog.summary.missing_origin")
+        case .withYear:
+            return String(localized: "bell_catalog.summary.with_year")
+        case .missingYear:
+            return String(localized: "bell_catalog.summary.missing_year")
+        case .withCity:
+            return String(localized: "bell_catalog.summary.with_city")
+        case .withStorage:
+            return String(localized: "bell_catalog.summary.with_storage")
+        case .missingStorage:
+            return String(localized: "bell_catalog.summary.missing_storage")
+        case .withNotes:
+            return String(localized: "bell_catalog.summary.with_notes")
+        case .missingNotes:
+            return String(localized: "bell_catalog.summary.missing_notes")
+        case .withTags:
+            return String(localized: "bell_catalog.summary.with_tags")
+        case .missingTags:
+            return String(localized: "bell_catalog.summary.missing_tags")
+        case .withMaterial:
+            return String(localized: "bell_catalog.summary.with_material")
+        case .missingMaterial:
+            return String(localized: "bell_catalog.summary.missing_material")
         }
     }
 }
@@ -36,86 +53,68 @@ struct BellCollectionFilterView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Catalog") {
-                    singleSelectionLink(
-                        title: "Country",
+                Section {
+                    filterLink(
+                        title: String(localized: "bell_catalog.summary.countries"),
                         systemImage: "globe.europe.africa",
                         values: countries,
-                        selection: countryBinding,
+                        selection: countrySelection,
                         label: { $0 }
                     )
 
-                    singleSelectionLink(
-                        title: "Material",
+                    filterLink(
+                        title: String(localized: "common.field.material"),
                         systemImage: "square.stack.3d.up",
                         values: materials,
-                        selection: materialBinding,
+                        selection: materialSelection,
                         label: { $0 }
                     )
 
-                    singleSelectionLink(
-                        title: "Tag",
+                    filterLink(
+                        title: String(localized: "common.field.tags"),
                         systemImage: "tag",
                         values: tags,
-                        selection: tagBinding,
+                        selection: tagSelection,
                         label: { $0 }
                     )
 
-                    singleSelectionLink(
-                        title: "Condition",
+                    filterLink(
+                        title: String(localized: "common.field.condition"),
                         systemImage: "checkmark.seal",
                         values: conditions,
-                        selection: conditionBinding,
+                        selection: conditionSelection,
                         label: { $0.displayName }
                     )
 
-                    singleSelectionLink(
-                        title: "Acquisition",
+                    filterLink(
+                        title: String(localized: "item.detail.acquisition"),
                         systemImage: "bag",
                         values: acquisitionMethods,
-                        selection: acquisitionMethodBinding,
+                        selection: acquisitionMethodSelection,
                         label: { $0.displayName }
                     )
                 }
 
-                Section("Data") {
-                    presencePicker(
-                        title: "Origin",
-                        systemImage: "mappin.and.ellipse",
-                        selection: presenceBinding(present: .withOrigin, missing: .missingOrigin)
-                    )
-                    presencePicker(
-                        title: "Acquired year",
-                        systemImage: "calendar",
-                        selection: presenceBinding(present: .withYear, missing: .missingYear)
-                    )
-                    presencePicker(
-                        title: "Storage",
-                        systemImage: "archivebox",
-                        selection: presenceBinding(present: .withStorage, missing: .missingStorage)
-                    )
-                    presencePicker(
-                        title: "Notes",
-                        systemImage: "note.text",
-                        selection: presenceBinding(present: .withNotes, missing: .missingNotes)
-                    )
-                    presencePicker(
-                        title: "Tags",
-                        systemImage: "tag",
-                        selection: presenceBinding(present: .withTags, missing: .missingTags)
-                    )
-                    presencePicker(
-                        title: "Material",
-                        systemImage: "square.stack.3d.up",
-                        selection: presenceBinding(present: .withMaterial, missing: .missingMaterial)
-                    )
-
-                    Toggle("Has city", isOn: cityBinding)
+                Section(String(localized: "catalog.dashboard.health")) {
+                    NavigationLink {
+                        CatalogFilterSelectionView(
+                            title: String(localized: "catalog.dashboard.health"),
+                            values: presenceFilters,
+                            selection: presenceSelection,
+                            label: { $0.title }
+                        )
+                    } label: {
+                        filterLabel(
+                            title: String(localized: "catalog.dashboard.health"),
+                            systemImage: "checklist",
+                            count: draftFilters.presence.count
+                        )
+                    }
                 }
 
                 if !draftFilters.isEmpty {
                     Section {
-                        Button("Clear All", role: .destructive) {
+                        Button(String(localized: "common.clear"), role: .destructive) {
                             draftFilters = BellFilters()
                         }
                     }
@@ -142,46 +141,43 @@ struct BellCollectionFilterView: View {
     }
 
     @ViewBuilder
-    private func singleSelectionLink<Value: Hashable>(
+    private func filterLink<Value: Hashable>(
         title: String,
         systemImage: String,
         values: [Value],
-        selection: Binding<Value?>,
+        selection: Binding<Set<Value>>,
         label: @escaping (Value) -> String
     ) -> some View {
         if !values.isEmpty {
             NavigationLink {
-                BellSingleFilterSelectionView(
+                CatalogFilterSelectionView(
                     title: title,
                     values: values,
                     selection: selection,
                     label: label
                 )
             } label: {
-                HStack {
-                    Label(title, systemImage: systemImage)
-                    Spacer()
-                    if let value = selection.wrappedValue {
-                        Text(label(value))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
+                filterLabel(
+                    title: title,
+                    systemImage: systemImage,
+                    count: selection.wrappedValue.count
+                )
             }
         }
     }
 
-    private func presencePicker(
+    private func filterLabel(
         title: String,
         systemImage: String,
-        selection: Binding<BellPresenceRequirement>
+        count: Int
     ) -> some View {
-        Picker(selection: selection) {
-            ForEach(BellPresenceRequirement.allCases) { requirement in
-                Text(requirement.title).tag(requirement)
-            }
-        } label: {
+        HStack {
             Label(title, systemImage: systemImage)
+            Spacer()
+            if count > 0 {
+                Text(String(count))
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -209,8 +205,26 @@ struct BellCollectionFilterView: View {
         }
     }
 
-    private var countryBinding: Binding<String?> {
-        attributeBinding(
+    private var presenceFilters: [BellPresenceFilter] {
+        [
+            .withOrigin,
+            .missingOrigin,
+            .withYear,
+            .missingYear,
+            .withCity,
+            .withStorage,
+            .missingStorage,
+            .withNotes,
+            .missingNotes,
+            .withTags,
+            .missingTags,
+            .withMaterial,
+            .missingMaterial
+        ]
+    }
+
+    private var countrySelection: Binding<Set<String>> {
+        attributeSelection(
             value: { attribute in
                 if case .country(let value) = attribute { return value }
                 return nil
@@ -219,8 +233,8 @@ struct BellCollectionFilterView: View {
         )
     }
 
-    private var materialBinding: Binding<String?> {
-        attributeBinding(
+    private var materialSelection: Binding<Set<String>> {
+        attributeSelection(
             value: { attribute in
                 if case .material(let value) = attribute { return value }
                 return nil
@@ -229,8 +243,8 @@ struct BellCollectionFilterView: View {
         )
     }
 
-    private var tagBinding: Binding<String?> {
-        attributeBinding(
+    private var tagSelection: Binding<Set<String>> {
+        attributeSelection(
             value: { attribute in
                 if case .tag(let value) = attribute { return value }
                 return nil
@@ -239,8 +253,8 @@ struct BellCollectionFilterView: View {
         )
     }
 
-    private var conditionBinding: Binding<ItemCondition?> {
-        attributeBinding(
+    private var conditionSelection: Binding<Set<ItemCondition>> {
+        attributeSelection(
             value: { attribute in
                 if case .condition(let value) = attribute { return value }
                 return nil
@@ -249,8 +263,8 @@ struct BellCollectionFilterView: View {
         )
     }
 
-    private var acquisitionMethodBinding: Binding<AcquisitionMethod?> {
-        attributeBinding(
+    private var acquisitionMethodSelection: Binding<Set<AcquisitionMethod>> {
+        attributeSelection(
             value: { attribute in
                 if case .acquisitionMethod(let value) = attribute { return value }
                 return nil
@@ -259,62 +273,60 @@ struct BellCollectionFilterView: View {
         )
     }
 
-    private func attributeBinding<Value: Hashable>(
+    private var presenceSelection: Binding<Set<BellPresenceFilter>> {
+        Binding(
+            get: { draftFilters.presence },
+            set: { newSelection in
+                draftFilters.presence = normalizedPresenceSelection(newSelection)
+            }
+        )
+    }
+
+    private func attributeSelection<Value: Hashable>(
         value: @escaping (BellAttributeFilter) -> Value?,
         make: @escaping (Value) -> BellAttributeFilter
-    ) -> Binding<Value?> {
+    ) -> Binding<Set<Value>> {
         Binding(
             get: {
-                draftFilters.attributes.compactMap(value).first
+                Set(draftFilters.attributes.compactMap(value))
             },
-            set: { newValue in
-                draftFilters.attributes = Set(
-                    draftFilters.attributes.filter { value($0) == nil }
-                )
-                if let newValue {
-                    draftFilters.attributes.insert(make(newValue))
-                }
+            set: { selection in
+                let retained = draftFilters.attributes.filter { value($0) == nil }
+                draftFilters.attributes = Set(retained).union(selection.map(make))
             }
         )
     }
 
-    private func presenceBinding(
-        present: BellPresenceFilter,
-        missing: BellPresenceFilter
-    ) -> Binding<BellPresenceRequirement> {
-        Binding(
-            get: {
-                if draftFilters.presence.contains(present) { return .present }
-                if draftFilters.presence.contains(missing) { return .missing }
-                return .any
-            },
-            set: { requirement in
-                draftFilters.presence.remove(present)
-                draftFilters.presence.remove(missing)
+    private func normalizedPresenceSelection(
+        _ selection: Set<BellPresenceFilter>
+    ) -> Set<BellPresenceFilter> {
+        var normalized = selection
 
-                switch requirement {
-                case .any:
-                    break
-                case .present:
-                    draftFilters.presence.insert(present)
-                case .missing:
-                    draftFilters.presence.insert(missing)
-                }
+        for pair in presencePairs {
+            guard normalized.contains(pair.present), normalized.contains(pair.missing) else {
+                continue
             }
-        )
+
+            let presentWasSelected = !draftFilters.presence.contains(pair.present)
+            if presentWasSelected {
+                normalized.remove(pair.missing)
+            } else {
+                normalized.remove(pair.present)
+            }
+        }
+
+        return normalized
     }
 
-    private var cityBinding: Binding<Bool> {
-        Binding(
-            get: { draftFilters.presence.contains(.withCity) },
-            set: { enabled in
-                if enabled {
-                    draftFilters.presence.insert(.withCity)
-                } else {
-                    draftFilters.presence.remove(.withCity)
-                }
-            }
-        )
+    private var presencePairs: [(present: BellPresenceFilter, missing: BellPresenceFilter)] {
+        [
+            (.withOrigin, .missingOrigin),
+            (.withYear, .missingYear),
+            (.withStorage, .missingStorage),
+            (.withNotes, .missingNotes),
+            (.withTags, .missingTags),
+            (.withMaterial, .missingMaterial)
+        ]
     }
 
     private func uniqueValues(_ values: [String]) -> [String] {
@@ -330,46 +342,5 @@ struct BellCollectionFilterView: View {
     private func normalized(_ value: String) -> String {
         value
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-    }
-}
-
-private struct BellSingleFilterSelectionView<Value: Hashable>: View {
-    let title: String
-    let values: [Value]
-    @Binding var selection: Value?
-    let label: (Value) -> String
-
-    var body: some View {
-        List {
-            Button {
-                selection = nil
-            } label: {
-                selectionRow(title: "Any", isSelected: selection == nil)
-            }
-
-            ForEach(values, id: \.self) { value in
-                Button {
-                    selection = value
-                } label: {
-                    selectionRow(title: label(value), isSelected: selection == value)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func selectionRow(title: String, isSelected: Bool) -> some View {
-        HStack {
-            Text(title)
-                .foregroundStyle(.primary)
-            Spacer()
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .fontWeight(.semibold)
-            }
-        }
-        .contentShape(Rectangle())
     }
 }
