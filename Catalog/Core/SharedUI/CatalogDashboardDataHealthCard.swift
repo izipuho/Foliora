@@ -5,6 +5,8 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     let progress: Double
     let tint: Color
     let entries: [Entry]
+    let expandedWidth: CGFloat?
+    let onExpansionChanged: (Bool) -> Void
     let onSelect: (Entry) -> Void
     let content: (Entry) -> Content
 
@@ -14,12 +16,16 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
         progress: Double,
         tint: Color,
         entries: [Entry],
+        expandedWidth: CGFloat? = nil,
+        onExpansionChanged: @escaping (Bool) -> Void = { _ in },
         onSelect: @escaping (Entry) -> Void,
         @ViewBuilder content: @escaping (Entry) -> Content
     ) {
         self.progress = progress
         self.tint = tint
         self.entries = entries
+        self.expandedWidth = expandedWidth
+        self.onExpansionChanged = onExpansionChanged
         self.onSelect = onSelect
         self.content = content
     }
@@ -27,13 +33,14 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     var body: some View {
         compactCard
             .opacity(isExpanded ? 0 : 1)
-            .overlay(alignment: .topTrailing) {
+            .frame(width: isExpanded ? expandedWidth : nil, alignment: .leading)
+            .overlay(alignment: .topLeading) {
                 if isExpanded {
                     expandedCard
+                        .frame(width: expandedWidth, alignment: .leading)
                         .zIndex(1)
                 }
             }
-            .zIndex(isExpanded ? 1 : 0)
             .animation(.snappy, value: isExpanded)
     }
 
@@ -53,9 +60,7 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                     let entry = entries[index]
 
                     Button {
-                        withAnimation(.snappy) {
-                            isExpanded = false
-                        }
+                        setExpanded(false)
                         onSelect(entry)
                     } label: {
                         content(entry)
@@ -70,15 +75,12 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                 }
             }
         }
-        .frame(minWidth: 320, alignment: .leading)
         .catalogSurfaceCard()
     }
 
     private var header: some View {
         Button {
-            withAnimation(.snappy) {
-                isExpanded.toggle()
-            }
+            setExpanded(!isExpanded)
         } label: {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 progressIndicator
@@ -111,5 +113,12 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                 .font(CatalogTypography.cardSubtitle)
         }
         .frame(width: 56, height: 56)
+    }
+
+    private func setExpanded(_ expanded: Bool) {
+        withAnimation(.snappy) {
+            isExpanded = expanded
+        }
+        onExpansionChanged(expanded)
     }
 }
