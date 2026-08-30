@@ -11,6 +11,7 @@ struct CatalogSnapshot {
     private(set) var collectionEntities: [NSManagedObject] = []
     private(set) var itemEntities: [NSManagedObject] = []
     private(set) var publisherEntities: [NSManagedObject] = []
+    private(set) var personEntities: [NSManagedObject] = []
     private(set) var locationsByHomeID: [UUID: [Location]] = [:]
     private(set) var collectionLocationsByCollectionID: [UUID: [Location]] = [:]
     private(set) var collectionCountsByHomeID: [UUID: Int] = [:]
@@ -58,6 +59,11 @@ struct CatalogSnapshot {
         )
         let publisherEntities = fetchEntities(
             named: "PublisherEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+        )
+        let personEntities = fetchEntities(
+            named: "PersonEntity",
             in: context,
             sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
         )
@@ -141,6 +147,7 @@ struct CatalogSnapshot {
         snapshot.collectionEntities = collectionEntities
         snapshot.itemEntities = itemEntities
         snapshot.publisherEntities = publisherEntities
+        snapshot.personEntities = personEntities
         snapshot.locationsByHomeID = Dictionary(grouping: locationEntities.compactMap { locationRow(from: $0, sortOrderByItemID: sortOrderByItemID) }, by: \.0)
             .mapValues { rows in
                 rows.map(\.1).sorted { lhs, rhs in
