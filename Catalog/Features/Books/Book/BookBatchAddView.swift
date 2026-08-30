@@ -242,3 +242,38 @@ struct BookBatchAddView: View {
         return trimmed.isEmpty ? nil : trimmed
     }
 }
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.makeBooksMinimal()
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+    let collection = snapshot.collections.first { $0.kind == .books }!
+    let itemCount = snapshot.bookRecords.filter { $0.collectionID == collection.id }.count
+    let summary = CollectionSummary(
+        id: collection.id,
+        homeID: collection.homeID,
+        kind: collection.kind,
+        name: collection.title,
+        subtitle: collection.notes,
+        backgroundStyle: collection.backgroundStyle,
+        itemCount: itemCount,
+        status: .active,
+        sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+    )
+    let mediaAssets = snapshot.bookRecords
+        .flatMap(\.mediaAssets)
+        .prefix(3)
+        .map { $0.with(itemID: nil) }
+
+    BookBatchAddView(
+        collection: summary,
+        initialMediaAssets: mediaAssets,
+        repository: repository
+    )
+    .environment(\.managedObjectContext, container.viewContext)
+}
+#endif
