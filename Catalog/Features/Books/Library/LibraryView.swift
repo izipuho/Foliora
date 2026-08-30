@@ -21,8 +21,23 @@ private extension BookPresenceFilter {
 }
 
 private extension BookFilters {
+    var activeSelectionCount: Int {
+        tokens.count
+            + publicationYears.count
+            + acquiredYears.count
+            + conditions.count
+            + acquisitionMethods.count
+            + presence.count
+    }
+
     var title: String? {
-        presence.first?.title
+        guard activeSelectionCount > 0 else { return nil }
+
+        if activeSelectionCount == 1, let presenceFilter = presence.first {
+            return presenceFilter.title
+        }
+
+        return "\(activeSelectionCount) \(activeSelectionCount == 1 ? "filter" : "filters")"
     }
 }
 
@@ -40,6 +55,7 @@ struct LibraryView: View {
 
     @AppStorage("bookLibrary.orderMode") private var selectedOrderRawValue = LibraryOrderMode.title.rawValue
     @State private var filters = BookFilters()
+    @State private var isPresentingFilters = false
     @State private var isPresentingEditLibrary = false
     @State private var isPresentingAddBookOptions = false
     @State private var isPresentingPhotoPicker = false
@@ -233,6 +249,14 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $isPresentingEditLibrary) {
                 editLibrarySheet
+            }
+            .sheet(isPresented: $isPresentingFilters) {
+                BookLibraryFilterView(
+                    books: sourceBooks,
+                    filters: filters
+                ) { updatedFilters in
+                    filters = updatedFilters
+                }
             }
             .task(id: collection.id) {
                 await loadCollectionSharingState()
@@ -493,7 +517,21 @@ struct LibraryView: View {
         .ignoresSafeArea()
     }
 
+    @ToolbarContentBuilder
     private var libraryToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                isPresentingFilters = true
+            } label: {
+                Image(systemName: hasActiveFilter
+                    ? "line.3.horizontal.decrease.circle.fill"
+                    : "line.3.horizontal.decrease.circle")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(width: 30, height: 30)
+            }
+            .accessibilityLabel("Filters")
+        }
+
         CatalogCollectionToolbar(
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: layoutMode,
@@ -628,6 +666,399 @@ struct LibraryView: View {
         } catch {
             collectionSharingLoadError = error
         }
+    }
+}
+
+private struct BookLibraryFilterView: View {
+    let books: [BookRecord]
+    let onApply: (BookFilters) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var draftFilters: BookFilters
+
+    init(
+        books: [BookRecord],
+        filters: BookFilters,
+        onApply: @escaping (BookFilters) -> Void
+    ) {
+        self.books = books
+        self.onApply = onApply
+        _draftFilters = State(initialValue: filters)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Catalog") {
+                    tokenFilterLink(
+                        title: "People",
+                        systemImage: "person.text.rectangle",
+                        category: .person,
+                        tokens: personTokens
+                    )
+                    tokenFilterLink(
+                        title: "Publishers",
+                        systemImage: "building.2",
+                        category: .publisher,
+                        tokens: publisherTokens
+                    )
+                    tokenFilterLink(
+                        title: "Series",
+                        systemImage: "books.vertical",
+                        category: .series,
+                        tokens: seriesTokens
+                    )
+                    tokenFilterLink(
+                        title: "Languages",
+                        systemImage: "character.book.closed",
+                        category: .language,
+                        tokens: languageTokens
+                    )
+                    tokenFilterLink(
+                        title: "Genres",
+                        systemImage: "text.book.closed",
+                        category: .genre,
+                        tokens: genreTokens
+                    )
+                    tokenFilterLink(
+                        title: "Tags",
+                        systemImage: "tag",
+                        category: .tag,
+                        tokens: tagTokens
+                    )
+                }
+
+                Section("Dates") {
+                    if !publicationYears.isEmpty {
+                        NavigationLink {
+                            BookFilterSelectionView(
+                                title: "Publication year",
+                                values: publicationYears,
+                                selection: $draftFilters.publicationYears,
+                                label: String.init
+                            )
+                        } label: {
+                            filterLabel(
+                                title: "Publication year",
+                                systemImage: "calendar",
+                                count: draftFilters.publicationYears.count
+                            )
+                        }
+                    }
+
+                    if !acquiredYears.isEmpty {
+                        NavigationLink {
+                            BookFilterSelectionView(
+                                title: "Acquired year",
+                                values: acquiredYears,
+                                selection: $draftFilters.acquiredYears,
+                                label: String.init
+                            )
+                        } label: {
+                            filterLabel(
+                                title: "Acquired year",
+                                systemImage: "calendar.badge.plus",
+                                count: draftFilters.acquiredYears.count
+                            )
+                        }
+                    }
+                }
+
+                Section("Collection") {
+                    if !conditions.isEmpty {
+                        NavigationLink {
+                            BookFilterSelectionView(
+                                title: "Condition",
+                                values: conditions,
+                                selection: $draftFilters.conditions,
+                                label: { $0.displayName }
+                            )
+                        } label: {
+                            filterLabel(
+                                title: "Condition",
+                                systemImage: "checkmark.seal",
+                                count: draftFilters.conditions.count
+                            )
+                        }
+                    }
+
+                    if !acquisitionMethods.isEmpty {
+                        NavigationLink {
+                            BookFilterSelectionView(
+                                title: "Acquisition",
+                                values: acquisitionMethods,
+                                selection: $draftFilters.acquisitionMethods,
+                                label: { $0.displayName }
+                            )
+                        } label: {
+                            filterLabel(
+                                title: "Acquisition",
+                                systemImage: "bag",
+                                count: draftFilters.acquisitionMethods.count
+                            )
+                        }
+                    }
+                }
+
+                Section("Data Quality") {
+                    NavigationLink {
+                        BookFilterSelectionView(
+                            title: "Data Quality",
+                            values: presenceFilters,
+                            selection: $draftFilters.presence,
+                            label: { $0.title }
+                        )
+                    } label: {
+                        filterLabel(
+                            title: "Missing or incomplete data",
+                            systemImage: "checklist",
+                            count: draftFilters.presence.count
+                        )
+                    }
+                }
+
+                if !draftFilters.isEmpty {
+                    Section {
+                        Button("Clear All", role: .destructive) {
+                            draftFilters = BookFilters()
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Filters")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(String(localized: "common.cancel")) {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(String(localized: "common.apply")) {
+                        onApply(draftFilters)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tokenFilterLink(
+        title: String,
+        systemImage: String,
+        category: BookSearchToken.Category,
+        tokens: [BookSearchToken]
+    ) -> some View {
+        if !tokens.isEmpty {
+            NavigationLink {
+                BookFilterSelectionView(
+                    title: title,
+                    values: tokens,
+                    selection: tokenSelectionBinding(for: category),
+                    label: tokenTitle
+                )
+            } label: {
+                filterLabel(
+                    title: title,
+                    systemImage: systemImage,
+                    count: selectedTokenCount(for: category)
+                )
+            }
+        }
+    }
+
+    private func filterLabel(
+        title: String,
+        systemImage: String,
+        count: Int
+    ) -> some View {
+        HStack {
+            Label(title, systemImage: systemImage)
+
+            Spacer()
+
+            if count > 0 {
+                Text(String(count))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func tokenSelectionBinding(
+        for category: BookSearchToken.Category
+    ) -> Binding<Set<BookSearchToken>> {
+        Binding(
+            get: {
+                Set(draftFilters.tokens.filter { $0.category == category })
+            },
+            set: { selection in
+                draftFilters.tokens = Set(
+                    draftFilters.tokens.filter { $0.category != category }
+                ).union(selection)
+            }
+        )
+    }
+
+    private func selectedTokenCount(for category: BookSearchToken.Category) -> Int {
+        draftFilters.tokens.filter { $0.category == category }.count
+    }
+
+    private var peopleByID: [UUID: Person] {
+        Dictionary(
+            books
+                .flatMap { $0.details.contributors.map(\.person) }
+                .map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+    }
+
+    private var publishersByID: [UUID: Publisher] {
+        Dictionary(
+            books.compactMap(\.details.publisher).map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+    }
+
+    private var seriesByID: [UUID: BookSeries] {
+        Dictionary(
+            books.compactMap(\.details.series).map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+    }
+
+    private var personTokens: [BookSearchToken] {
+        peopleByID.values
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            .map { .person($0.id) }
+    }
+
+    private var publisherTokens: [BookSearchToken] {
+        publishersByID.values
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            .map { .publisher($0.id) }
+    }
+
+    private var seriesTokens: [BookSearchToken] {
+        seriesByID.values
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            .map { .series($0.id) }
+    }
+
+    private var languageTokens: [BookSearchToken] {
+        uniqueValues(books.compactMap(\.details.languageCode)).map(BookSearchToken.language)
+    }
+
+    private var genreTokens: [BookSearchToken] {
+        uniqueValues(books.compactMap(\.details.genre)).map(BookSearchToken.genre)
+    }
+
+    private var tagTokens: [BookSearchToken] {
+        uniqueValues(books.flatMap(\.tags)).map(BookSearchToken.tag)
+    }
+
+    private var publicationYears: [Int] {
+        Array(Set(books.compactMap(\.details.publicationYear))).sorted(by: >)
+    }
+
+    private var acquiredYears: [Int] {
+        Array(Set(books.compactMap(\.acquiredYear))).sorted(by: >)
+    }
+
+    private var conditions: [ItemCondition] {
+        ItemCondition.allCases.filter { condition in
+            books.contains { $0.condition == condition }
+        }
+    }
+
+    private var acquisitionMethods: [AcquisitionMethod] {
+        AcquisitionMethod.allCases.filter { method in
+            books.contains { $0.acquisitionMethod == method }
+        }
+    }
+
+    private var presenceFilters: [BookPresenceFilter] {
+        [
+            .missingCover,
+            .missingAuthor,
+            .missingPublicationYear,
+            .incompleteSeries,
+            .unknownSeriesSize
+        ]
+    }
+
+    private func tokenTitle(_ token: BookSearchToken) -> String {
+        switch token {
+        case .library:
+            return "Library"
+        case .person(let personID):
+            return peopleByID[personID]?.name ?? "Person"
+        case .publisher(let publisherID):
+            return publishersByID[publisherID]?.name ?? "Publisher"
+        case .series(let seriesID):
+            return seriesByID[seriesID]?.name ?? "Series"
+        case .language(let languageCode):
+            return Locale.current.localizedString(forLanguageCode: languageCode) ?? languageCode.uppercased()
+        case .genre(let genre):
+            return genre
+        case .tag(let tag):
+            return tag
+        }
+    }
+
+    private func uniqueValues(_ values: [String]) -> [String] {
+        var seen: Set<String> = []
+
+        return values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { seen.insert(normalized($0)).inserted }
+            .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+    }
+
+    private func normalized(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+    }
+}
+
+private struct BookFilterSelectionView<Value: Hashable>: View {
+    let title: String
+    let values: [Value]
+    @Binding var selection: Set<Value>
+    let label: (Value) -> String
+
+    var body: some View {
+        List {
+            ForEach(values, id: \.self) { value in
+                Button {
+                    if selection.contains(value) {
+                        selection.remove(value)
+                    } else {
+                        selection.insert(value)
+                    }
+                } label: {
+                    HStack {
+                        Text(label(value))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if selection.contains(value) {
+                            Image(systemName: "checkmark")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
