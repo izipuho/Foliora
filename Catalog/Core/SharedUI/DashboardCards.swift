@@ -35,7 +35,7 @@ struct CatalogDashboardCardStrip<Content: View>: View {
             .scrollTargetLayout()
         }
         .scrollClipDisabled()
-        .scrollPosition(id: $scrollTarget, anchor: .center)
+        .scrollPosition(id: $scrollTarget, anchor: .leading)
         .environment(\.catalogDashboardDataHealthExpansionAction) { isExpanded in
             guard isExpanded else { return }
             withAnimation(.snappy) {
