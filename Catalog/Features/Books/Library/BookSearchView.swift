@@ -210,7 +210,7 @@ struct BookSearchView: View {
     }
 
     private func searchableValues(for book: BookRecord) -> [String] {
-        var values = [book.title]
+        var values = [book.title, book.notes]
 
         values += book.details.contributors.map { $0.person.name }
         values += book.tags
@@ -231,6 +231,12 @@ struct BookSearchView: View {
         if let languageCode = book.details.languageCode {
             values.append(languageCode)
             values.append(languageDisplayName(languageCode))
+        }
+        if let storagePath = book.storagePath {
+            values.append(storagePath.displayPath)
+            values += storagePath.components.map(\.name)
+        } else if let storageLocation = book.storageLocation {
+            values.append(storageLocation.name)
         }
 
         return values
