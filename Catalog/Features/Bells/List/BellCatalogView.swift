@@ -505,7 +505,6 @@ struct BellCatalogView: View {
                 filters = BellFilters()
             }
         )
-        .frame(maxHeight: min(max(screenHeight * 0.36, 220), 320), alignment: .top)
     }
 
     private func favoritesSection(bells: [BellListItem], screenWidth: CGFloat) -> some View {
