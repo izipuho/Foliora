@@ -11,6 +11,16 @@ enum BellSearchToken: Identifiable, Hashable {
     case acquisitionMethod(AcquisitionMethod)
     case presence(BellPresenceFilter)
 
+    enum Category: Hashable {
+        case collection
+        case country
+        case material
+        case tag
+        case condition
+        case acquisitionMethod
+        case presence
+    }
+
     var id: String {
         switch self {
         case .collection(let collectionID):
@@ -27,6 +37,25 @@ enum BellSearchToken: Identifiable, Hashable {
             return "acquisition:\(method.rawValue)"
         case .presence(let filter):
             return "presence:\(filter.searchID)"
+        }
+    }
+
+    var category: Category {
+        switch self {
+        case .collection:
+            return .collection
+        case .country:
+            return .country
+        case .material:
+            return .material
+        case .tag:
+            return .tag
+        case .condition:
+            return .condition
+        case .acquisitionMethod:
+            return .acquisitionMethod
+        case .presence:
+            return .presence
         }
     }
 }
@@ -256,7 +285,14 @@ struct BellSearchView: View {
 
     private func matches(bell: BellListItem, searchState: BellCatalogSearchState) -> Bool {
         matchesQuery(searchState.query, in: bell, scope: searchState.scope)
-        && searchState.tokens.allSatisfy { matches(token: $0, in: bell) }
+            && matches(tokens: searchState.tokens, in: bell)
+    }
+
+    private func matches(tokens: [BellSearchToken], in bell: BellListItem) -> Bool {
+        let groupedTokens = Dictionary(grouping: tokens, by: \.category)
+        return groupedTokens.values.allSatisfy { group in
+            group.contains { matches(token: $0, in: bell) }
+        }
     }
 
     private func matchesQuery(
