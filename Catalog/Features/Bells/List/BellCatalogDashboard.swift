@@ -26,6 +26,7 @@ struct BellCatalogDashboardView: View {
                 onBellSelected: onBellSelected,
                 onFilterApply: onFilterApply
             )
+            .zIndex(1)
 
             MetricStrip(
                 stats: stats,
@@ -41,6 +42,7 @@ struct BellCatalogDashboardView: View {
                 .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
                 .opacity(phase.isIdentity ? 1 : 0.82)
         }
+        .zIndex(1)
     }
 }
 
@@ -55,54 +57,71 @@ private struct DashboardCardStrip: View {
     let onBellSelected: ((UUID) -> Void)?
     let onFilterApply: (BellPresenceFilter) -> Void
 
+    private let dataHealthID = "bell-data-health"
+
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                sharingCard
+        GeometryReader { proxy in
+            ScrollViewReader { scrollProxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
+                        sharingCard
 
-                if let collection {
-                    NavigationLink {
-                        BellsOriginMapView(
-                            collection: collection,
-                            catalogSnapshot: catalogSnapshot,
-                            onBellSelected: onBellSelected
-                        )
-                    } label: {
-                        DashboardTopGeographyCard(
-                            countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                            flag: topGeography?.flag ?? "🌍",
-                            countText: topGeographyCountText,
-                            tint: tint
-                        )
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    DashboardTopGeographyCard(
-                        countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                        flag: topGeography?.flag ?? "🌍",
-                        countText: topGeographyCountText,
-                        tint: tint
-                    )
-                }
+                        if let collection {
+                            NavigationLink {
+                                BellsOriginMapView(
+                                    collection: collection,
+                                    catalogSnapshot: catalogSnapshot,
+                                    onBellSelected: onBellSelected
+                                )
+                            } label: {
+                                DashboardTopGeographyCard(
+                                    countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                                    flag: topGeography?.flag ?? "🌍",
+                                    countText: topGeographyCountText,
+                                    tint: tint
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            DashboardTopGeographyCard(
+                                countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                                flag: topGeography?.flag ?? "🌍",
+                                countText: topGeographyCountText,
+                                tint: tint
+                            )
+                        }
 
-                CatalogDashboardDataHealthCard(
-                    progress: dataHealthProgress,
-                    tint: tint,
-                    entries: dataHealthEntries,
-                    onSelect: { entry in
-                        onFilterApply(entry.filter)
+                        CatalogDashboardDataHealthCard(
+                            progress: dataHealthProgress,
+                            tint: tint,
+                            entries: dataHealthEntries,
+                            expandedWidth: proxy.size.width,
+                            onExpansionChanged: { isExpanded in
+                                guard isExpanded else { return }
+                                DispatchQueue.main.async {
+                                    withAnimation(.snappy) {
+                                        scrollProxy.scrollTo(dataHealthID, anchor: .center)
+                                    }
+                                }
+                            },
+                            onSelect: { entry in
+                                onFilterApply(entry.filter)
+                            }
+                        ) { entry in
+                            DashboardDataHealthRow(
+                                title: entry.title,
+                                countText: entry.countText,
+                                missingProgress: entry.missingProgress,
+                                showsDisclosureIndicator: true
+                            )
+                        }
+                        .id(dataHealthID)
                     }
-                ) { entry in
-                    DashboardDataHealthRow(
-                        title: entry.title,
-                        countText: entry.countText,
-                        missingProgress: entry.missingProgress,
-                        showsDisclosureIndicator: true
-                    )
                 }
+                .scrollClipDisabled()
             }
         }
-        .scrollClipDisabled()
+        .frame(height: 104)
     }
 
     @ViewBuilder
