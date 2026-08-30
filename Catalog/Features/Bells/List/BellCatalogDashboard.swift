@@ -55,11 +55,9 @@ private struct DashboardCardStrip: View {
     let onBellSelected: ((UUID) -> Void)?
     let onFilterApply: (BellPresenceFilter) -> Void
 
-    @State private var isPresentingDataHealthPopover = false
-
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: CatalogMetrics.Spacing.md) {
+            HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
                 sharingCard
 
                 if let collection {
@@ -89,25 +87,18 @@ private struct DashboardCardStrip: View {
 
                 CatalogDashboardDataHealthCard(
                     progress: dataHealthProgress,
-                    tint: tint
-                ) {
-                    isPresentingDataHealthPopover = true
-                }
-                .popover(isPresented: $isPresentingDataHealthPopover) {
-                    CatalogDashboardDataHealthPopover(
-                        entries: dataHealthEntries,
-                        onSelect: { entry in
-                            isPresentingDataHealthPopover = false
-                            onFilterApply(entry.filter)
-                        }
-                    ) { entry in
-                        DashboardDataHealthRow(
-                            title: entry.title,
-                            countText: entry.countText,
-                            missingProgress: entry.missingProgress,
-                            showsDisclosureIndicator: true
-                        )
+                    tint: tint,
+                    entries: dataHealthEntries,
+                    onSelect: { entry in
+                        onFilterApply(entry.filter)
                     }
+                ) { entry in
+                    DashboardDataHealthRow(
+                        title: entry.title,
+                        countText: entry.countText,
+                        missingProgress: entry.missingProgress,
+                        showsDisclosureIndicator: true
+                    )
                 }
             }
         }
