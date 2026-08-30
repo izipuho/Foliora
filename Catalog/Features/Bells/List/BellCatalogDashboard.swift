@@ -60,29 +60,19 @@ private struct DashboardCardStrip: View {
     private let dataHealthID = "bell-data-health"
 
     var body: some View {
-        GeometryReader { proxy in
-            ScrollViewReader { scrollProxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                        sharingCard
+        ScrollViewReader { scrollProxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
+                    sharingCard
 
-                        if let collection {
-                            NavigationLink {
-                                BellsOriginMapView(
-                                    collection: collection,
-                                    catalogSnapshot: catalogSnapshot,
-                                    onBellSelected: onBellSelected
-                                )
-                            } label: {
-                                DashboardTopGeographyCard(
-                                    countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                                    flag: topGeography?.flag ?? "🌍",
-                                    countText: topGeographyCountText,
-                                    tint: tint
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        } else {
+                    if let collection {
+                        NavigationLink {
+                            BellsOriginMapView(
+                                collection: collection,
+                                catalogSnapshot: catalogSnapshot,
+                                onBellSelected: onBellSelected
+                            )
+                        } label: {
                             DashboardTopGeographyCard(
                                 countryName: topGeography?.name ?? String(localized: "common.unknown"),
                                 flag: topGeography?.flag ?? "🌍",
@@ -90,36 +80,43 @@ private struct DashboardCardStrip: View {
                                 tint: tint
                             )
                         }
-
-                        CatalogDashboardDataHealthCard(
-                            progress: dataHealthProgress,
-                            tint: tint,
-                            entries: dataHealthEntries,
-                            expandedWidth: proxy.size.width,
-                            onExpansionChanged: { isExpanded in
-                                guard isExpanded else { return }
-                                DispatchQueue.main.async {
-                                    withAnimation(.snappy) {
-                                        scrollProxy.scrollTo(dataHealthID, anchor: .center)
-                                    }
-                                }
-                            },
-                            onSelect: { entry in
-                                onFilterApply(entry.filter)
-                            }
-                        ) { entry in
-                            DashboardDataHealthRow(
-                                title: entry.title,
-                                countText: entry.countText,
-                                missingProgress: entry.missingProgress,
-                                showsDisclosureIndicator: true
-                            )
-                        }
-                        .id(dataHealthID)
+                        .buttonStyle(.plain)
+                    } else {
+                        DashboardTopGeographyCard(
+                            countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                            flag: topGeography?.flag ?? "🌍",
+                            countText: topGeographyCountText,
+                            tint: tint
+                        )
                     }
+
+                    CatalogDashboardDataHealthCard(
+                        progress: dataHealthProgress,
+                        tint: tint,
+                        entries: dataHealthEntries,
+                        onExpansionChanged: { isExpanded in
+                            guard isExpanded else { return }
+                            DispatchQueue.main.async {
+                                withAnimation(.snappy) {
+                                    scrollProxy.scrollTo(dataHealthID, anchor: .center)
+                                }
+                            }
+                        },
+                        onSelect: { entry in
+                            onFilterApply(entry.filter)
+                        }
+                    ) { entry in
+                        DashboardDataHealthRow(
+                            title: entry.title,
+                            countText: entry.countText,
+                            missingProgress: entry.missingProgress,
+                            showsDisclosureIndicator: true
+                        )
+                    }
+                    .id(dataHealthID)
                 }
-                .scrollClipDisabled()
             }
+            .scrollClipDisabled()
         }
         .frame(height: 104)
     }
