@@ -26,6 +26,7 @@ struct BookBatchAddView: View {
     @State private var catalogPeople: [Person] = []
     @State private var catalogPublishers: [Publisher] = []
     @State private var catalogSeries: [BookSeries] = []
+    @State private var catalogGenreSuggestions: [String] = []
 
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -46,41 +47,70 @@ struct BookBatchAddView: View {
         NavigationStack {
             Form {
                 Section("common.book") {
-                    Picker("Author", selection: $selectedAuthor) {
-                        Text(String(localized: "common.none"))
-                            .tag(Person?.none)
+                    BookBatchNamedPickerField(
+                        title: "Author",
+                        selection: $selectedAuthor,
+                        values: catalogPeople,
+                        name: \.name,
+                        subtitle: { _ in nil },
+                        create: { name in
+                            Person(
+                                id: UUID(),
+                                name: name,
+                                birthYear: nil,
+                                deathYear: nil,
+                                biography: nil,
+                                birthPlace: nil,
+                                deathPlace: nil,
+                                photos: []
+                            )
+                        },
+                        onCreate: { catalogPeople.append($0) }
+                    )
 
-                        ForEach(catalogPeople) { person in
-                            Text(person.name)
-                                .tag(Optional(person))
-                        }
-                    }
+                    BookBatchNamedPickerField(
+                        title: "Publisher",
+                        selection: $selectedPublisher,
+                        values: catalogPublishers,
+                        name: \.name,
+                        subtitle: { _ in nil },
+                        create: { name in
+                            Publisher(
+                                id: UUID(),
+                                name: name,
+                                location: nil
+                            )
+                        },
+                        onCreate: { catalogPublishers.append($0) }
+                    )
 
-                    Picker("Publisher", selection: $selectedPublisher) {
-                        Text(String(localized: "common.none"))
-                            .tag(Publisher?.none)
+                    BookBatchNamedPickerField(
+                        title: "Series",
+                        selection: $selectedSeries,
+                        values: catalogSeries,
+                        name: \.name,
+                        subtitle: { series in
+                            series.totalBookCount.map { "\($0) books" }
+                        },
+                        create: { name in
+                            BookSeries(
+                                id: UUID(),
+                                collectionID: collection.id,
+                                name: name,
+                                totalBookCount: nil,
+                                publisher: nil
+                            )
+                        },
+                        onCreate: { catalogSeries.append($0) }
+                    )
 
-                        ForEach(catalogPublishers) { publisher in
-                            Text(publisher.name)
-                                .tag(Optional(publisher))
-                        }
-                    }
+                    BookBatchLanguagePickerField(languageCode: $languageCode)
 
-                    Picker("Series", selection: $selectedSeries) {
-                        Text(String(localized: "common.none"))
-                            .tag(BookSeries?.none)
-
-                        ForEach(catalogSeries) { series in
-                            Text(series.name)
-                                .tag(Optional(series))
-                        }
-                    }
-
-                    TextField("Language", text: $languageCode)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-
-                    TextField("Genre", text: $genre)
+                    BookBatchLookupTextField(
+                        title: "Genre",
+                        value: $genre,
+                        suggestions: catalogGenreSuggestions
+                    )
                 }
 
                 Section(String(localized: "item.detail.section.collection_info")) {
@@ -154,32 +184,26 @@ struct BookBatchAddView: View {
     @MainActor
     private func loadCatalogMetadata() {
         let snapshot = CatalogSnapshot.load(from: managedObjectContext)
+        let bookRecords = snapshot.bookRecords
+        let bookSeries = snapshot.bookSeries
 
-        catalogPeople = snapshot.people.sorted {
-            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
-            if comparison != .orderedSame {
-                return comparison == .orderedAscending
-            }
-            return $0.id.uuidString < $1.id.uuidString
-        }
+        catalogPeople = snapshot.people.sorted(by: namedPersonLessThan)
 
-        catalogPublishers = snapshot.publishers.sorted {
-            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
-            if comparison != .orderedSame {
-                return comparison == .orderedAscending
-            }
-            return $0.id.uuidString < $1.id.uuidString
-        }
-
-        catalogSeries = snapshot.bookSeries
+        catalogSeries = bookSeries
             .filter { $0.collectionID == collection.id }
-            .sorted {
-                let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
-                if comparison != .orderedSame {
-                    return comparison == .orderedAscending
-                }
-                return $0.id.uuidString < $1.id.uuidString
-            }
+            .sorted(by: namedSeriesLessThan)
+
+        var publishersByID: [UUID: Publisher] = [:]
+        for publisher in bookRecords.compactMap(\.details.publisher) + bookSeries.compactMap(\.publisher) {
+            publishersByID[publisher.id] = publisher
+        }
+        catalogPublishers = Array(publishersByID.values).sorted(by: namedPublisherLessThan)
+
+        catalogGenreSuggestions = normalizedGenreSuggestions(
+            bookRecords
+                .filter { $0.collectionID == collection.id }
+                .compactMap(\.details.genre)
+        )
     }
 
     @MainActor
@@ -241,6 +265,437 @@ struct BookBatchAddView: View {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
+
+    private func normalizedGenreSuggestions(_ values: [String]) -> [String] {
+        var seen: Set<String> = []
+
+        return values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter {
+                seen.insert(
+                    $0.folding(
+                        options: [.caseInsensitive, .diacriticInsensitive],
+                        locale: .current
+                    )
+                ).inserted
+            }
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    private func namedPersonLessThan(_ lhs: Person, _ rhs: Person) -> Bool {
+        namedLessThan(lhs.name, lhs.id, rhs.name, rhs.id)
+    }
+
+    private func namedPublisherLessThan(_ lhs: Publisher, _ rhs: Publisher) -> Bool {
+        namedLessThan(lhs.name, lhs.id, rhs.name, rhs.id)
+    }
+
+    private func namedSeriesLessThan(_ lhs: BookSeries, _ rhs: BookSeries) -> Bool {
+        namedLessThan(lhs.name, lhs.id, rhs.name, rhs.id)
+    }
+
+    private func namedLessThan(
+        _ lhsName: String,
+        _ lhsID: UUID,
+        _ rhsName: String,
+        _ rhsID: UUID
+    ) -> Bool {
+        let comparison = lhsName.localizedCaseInsensitiveCompare(rhsName)
+        if comparison != .orderedSame {
+            return comparison == .orderedAscending
+        }
+        return lhsID.uuidString < rhsID.uuidString
+    }
+}
+
+private struct BookBatchNamedPickerField<Value: Identifiable & Hashable>: View {
+    let title: String
+    @Binding var selection: Value?
+    let values: [Value]
+    let name: KeyPath<Value, String>
+    let subtitle: (Value) -> String?
+    let create: (String) -> Value
+    let onCreate: (Value) -> Void
+
+    @State private var isPresentingPicker = false
+
+    var body: some View {
+        Button {
+            isPresentingPicker = true
+        } label: {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Text(selection.map { $0[keyPath: name] } ?? String(localized: "common.none"))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+
+                Image(systemName: "chevron.right")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isPresentingPicker) {
+            BookBatchNamedSelectionView(
+                title: title,
+                selection: $selection,
+                values: values,
+                name: name,
+                subtitle: subtitle,
+                create: create,
+                onCreate: onCreate
+            )
+        }
+    }
+}
+
+private struct BookBatchNamedSelectionView<Value: Identifiable & Hashable>: View {
+    let title: String
+    @Binding var selection: Value?
+    let values: [Value]
+    let name: KeyPath<Value, String>
+    let subtitle: (Value) -> String?
+    let create: (String) -> Value
+    let onCreate: (Value) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredValues: [Value] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return values }
+        return values.filter {
+            $0[keyPath: name].localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    private var newValueName: String? {
+        let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        guard !values.contains(where: {
+            $0[keyPath: name].caseInsensitiveCompare(candidate) == .orderedSame
+        }) else {
+            return nil
+        }
+        return candidate
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let newValueName {
+                    Button {
+                        let newValue = create(newValueName)
+                        onCreate(newValue)
+                        selection = newValue
+                        dismiss()
+                    } label: {
+                        Label("Add “\(newValueName)”", systemImage: "plus.circle.fill")
+                    }
+                }
+
+                Button {
+                    selection = nil
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(String(localized: "common.none"))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if selection == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+
+                ForEach(filteredValues) { value in
+                    Button {
+                        selection = value
+                        dismiss()
+                    } label: {
+                        HStack(alignment: .firstTextBaseline) {
+                            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                                Text(value[keyPath: name])
+                                    .foregroundStyle(.primary)
+
+                                if let subtitle = subtitle(value) {
+                                    Text(subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            if selection?.id == value.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search or add")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+private struct BookBatchLanguagePickerField: View {
+    @Binding var languageCode: String
+    @State private var isPresentingPicker = false
+
+    private var selectedLabel: String {
+        guard !languageCode.isEmpty else { return String(localized: "common.none") }
+        return batchBookLanguageDisplayName(for: languageCode)
+    }
+
+    var body: some View {
+        Button {
+            isPresentingPicker = true
+        } label: {
+            HStack {
+                Text("Language")
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Text(selectedLabel)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+
+                Image(systemName: "chevron.right")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isPresentingPicker) {
+            BookBatchLanguagePickerView(languageCode: $languageCode)
+        }
+    }
+}
+
+private struct BookBatchLanguagePickerView: View {
+    @Binding var languageCode: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private struct LanguageOption: Identifiable {
+        let code: String
+        let name: String
+
+        var id: String { code }
+    }
+
+    private var languageOptions: [LanguageOption] {
+        Locale.LanguageCode.isoLanguageCodes
+            .map(\.identifier)
+            .map { code in
+                LanguageOption(
+                    code: code,
+                    name: batchBookLanguageDisplayName(for: code)
+                )
+            }
+            .sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    private var filteredOptions: [LanguageOption] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return languageOptions }
+
+        return languageOptions.filter {
+            $0.name.localizedCaseInsensitiveContains(query)
+                || $0.code.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Button {
+                    languageCode = ""
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(String(localized: "common.none"))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if languageCode.isEmpty {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+
+                ForEach(filteredOptions) { option in
+                    Button {
+                        languageCode = option.code
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(option.name)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            Text(option.code.uppercased())
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            if languageCode.caseInsensitiveCompare(option.code) == .orderedSame {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Language")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search languages")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+private struct BookBatchLookupTextField: View {
+    let title: String
+    @Binding var value: String
+    let suggestions: [String]
+
+    @State private var isPresentingLookup = false
+
+    var body: some View {
+        HStack {
+            Text(title)
+
+            Spacer()
+
+            TextField("—", text: $value)
+                .multilineTextAlignment(.trailing)
+
+            Button {
+                isPresentingLookup = true
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.tertiary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Choose or add \(title)")
+        }
+        .sheet(isPresented: $isPresentingLookup) {
+            BookBatchLookupSelectionView(
+                title: title,
+                selection: $value,
+                suggestions: suggestions
+            )
+        }
+    }
+}
+
+private struct BookBatchLookupSelectionView: View {
+    let title: String
+    @Binding var selection: String
+    let suggestions: [String]
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredSuggestions: [String] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return suggestions }
+        return suggestions.filter { $0.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var newValueCandidate: String? {
+        let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        guard !suggestions.contains(where: {
+            $0.caseInsensitiveCompare(candidate) == .orderedSame
+        }) else {
+            return nil
+        }
+        return candidate
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let newValueCandidate {
+                    Button {
+                        selection = newValueCandidate
+                        dismiss()
+                    } label: {
+                        Label("Add “\(newValueCandidate)”", systemImage: "plus.circle.fill")
+                    }
+                }
+
+                ForEach(filteredSuggestions, id: \.self) { suggestion in
+                    Button {
+                        selection = suggestion
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(suggestion)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            if suggestion.caseInsensitiveCompare(selection) == .orderedSame {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search or add")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+private func batchBookLanguageDisplayName(for code: String) -> String {
+    Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
 }
 
 #if DEBUG
