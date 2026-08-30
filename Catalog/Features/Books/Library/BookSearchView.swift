@@ -313,3 +313,17 @@ func makeItemDetailContent(
         )
     )
 }
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.makeBooksMinimal()
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+
+    NavigationStack {
+        BookSearchView(
+            layoutMode: .constant(.compact),
+            catalogSnapshot: snapshot
+        )
+    }
+}
+#endif
