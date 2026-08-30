@@ -60,11 +60,9 @@ private struct DashboardCardStrip: View {
     let onSharingChanged: () -> Void
     let onFilterApply: (BookPresenceFilter) -> Void
 
-    @State private var isPresentingDataHealthPopover = false
-
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: CatalogMetrics.Spacing.md) {
+            HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
                 sharingCard
 
                 NavigationLink {
@@ -119,25 +117,18 @@ private struct DashboardCardStrip: View {
 
                 CatalogDashboardDataHealthCard(
                     progress: stats.dataHealthProgress,
-                    tint: tint
-                ) {
-                    isPresentingDataHealthPopover = true
-                }
-                .popover(isPresented: $isPresentingDataHealthPopover) {
-                    CatalogDashboardDataHealthPopover(
-                        entries: dataHealthEntries,
-                        onSelect: { entry in
-                            isPresentingDataHealthPopover = false
-                            onFilterApply(entry.filter)
-                        }
-                    ) { entry in
-                        DashboardDataHealthRow(
-                            title: entry.title,
-                            countText: "\(entry.missingCount)/\(entry.totalCount)",
-                            missingProgress: entry.progress,
-                            showsDisclosureIndicator: true
-                        )
+                    tint: tint,
+                    entries: dataHealthEntries,
+                    onSelect: { entry in
+                        onFilterApply(entry.filter)
                     }
+                ) { entry in
+                    DashboardDataHealthRow(
+                        title: entry.title,
+                        countText: "\(entry.missingCount)/\(entry.totalCount)",
+                        missingProgress: entry.progress,
+                        showsDisclosureIndicator: true
+                    )
                 }
             }
         }
