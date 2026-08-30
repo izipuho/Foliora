@@ -330,7 +330,7 @@ private struct BookPeopleDashboardCard: View {
 
     var body: some View {
         DashboardCard {
-            Image(systemName: "person.2.fill")
+            Image(systemName: "person.text.rectangle.fill")
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(tint)
         } content: {
