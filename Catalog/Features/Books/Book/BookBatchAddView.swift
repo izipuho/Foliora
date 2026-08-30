@@ -1,3 +1,4 @@
+import CoreData
 import SwiftUI
 
 /// Creates one book per selected photo using a shared set of direct item and book fields.
@@ -8,8 +9,8 @@ struct BookBatchAddView: View {
     private let onComplete: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var managedObjectContext
 
-    @State private var notes = ""
     @State private var selectedAcquiredYearOption = String(localized: "common.none")
     @State private var condition: ItemCondition = .good
     @State private var acquisitionMethod: AcquisitionMethod = .bought
@@ -17,9 +18,14 @@ struct BookBatchAddView: View {
     @State private var tags: [String] = []
 
     @State private var languageCode = ""
-    @State private var pageCount = ""
-    @State private var publicationYear = ""
-    @State private var volumeNumber = ""
+    @State private var genre = ""
+    @State private var selectedAuthor: Person?
+    @State private var selectedPublisher: Publisher?
+    @State private var selectedSeries: BookSeries?
+
+    @State private var catalogPeople: [Person] = []
+    @State private var catalogPublishers: [Publisher] = []
+    @State private var catalogSeries: [BookSeries] = []
 
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -39,12 +45,45 @@ struct BookBatchAddView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(String(localized: "common.field.description")) {
-                    TextField(String(localized: "common.field.notes"), text: $notes, axis: .vertical)
-                        .lineLimit(4, reservesSpace: true)
+                Section("common.book") {
+                    Picker("Author", selection: $selectedAuthor) {
+                        Text(String(localized: "common.none"))
+                            .tag(Person?.none)
+
+                        ForEach(catalogPeople) { person in
+                            Text(person.name)
+                                .tag(Optional(person))
+                        }
+                    }
+
+                    Picker("Publisher", selection: $selectedPublisher) {
+                        Text(String(localized: "common.none"))
+                            .tag(Publisher?.none)
+
+                        ForEach(catalogPublishers) { publisher in
+                            Text(publisher.name)
+                                .tag(Optional(publisher))
+                        }
+                    }
+
+                    Picker("Series", selection: $selectedSeries) {
+                        Text(String(localized: "common.none"))
+                            .tag(BookSeries?.none)
+
+                        ForEach(catalogSeries) { series in
+                            Text(series.name)
+                                .tag(Optional(series))
+                        }
+                    }
+
+                    TextField("Language", text: $languageCode)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    TextField("Genre", text: $genre)
                 }
 
-                Section(String(localized: "editor.acquisition_details")) {
+                Section(String(localized: "item.detail.section.collection_info")) {
                     YearPickerField(
                         title: String(localized: "common.field.acquired_year"),
                         selection: $selectedAcquiredYearOption,
@@ -58,9 +97,7 @@ struct BookBatchAddView: View {
                         selection: $acquisitionMethod,
                         optionTitle: \.displayName
                     )
-                }
 
-                Section(String(localized: "editor.attributes")) {
                     EnumSelectionRow(
                         title: String(localized: "common.field.condition"),
                         selectedLabel: condition.displayName,
@@ -68,13 +105,6 @@ struct BookBatchAddView: View {
                         selection: $condition,
                         optionTitle: \.displayName
                     )
-                }
-
-                Section("common.book") {
-                    TextField("Language", text: $languageCode)
-                    TextField("Pages", text: $pageCount)
-                    TextField("Publication year", text: $publicationYear)
-                    TextField("Volume", text: $volumeNumber)
                 }
 
                 Section(String(localized: "common.field.tags")) {
@@ -101,6 +131,9 @@ struct BookBatchAddView: View {
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
             }
+            .task(id: collection.id) {
+                loadCatalogMetadata()
+            }
         }
     }
 
@@ -119,12 +152,47 @@ struct BookBatchAddView: View {
     }
 
     @MainActor
+    private func loadCatalogMetadata() {
+        let snapshot = CatalogSnapshot.load(from: managedObjectContext)
+
+        catalogPeople = snapshot.people.sorted {
+            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
+            if comparison != .orderedSame {
+                return comparison == .orderedAscending
+            }
+            return $0.id.uuidString < $1.id.uuidString
+        }
+
+        catalogPublishers = snapshot.publishers.sorted {
+            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
+            if comparison != .orderedSame {
+                return comparison == .orderedAscending
+            }
+            return $0.id.uuidString < $1.id.uuidString
+        }
+
+        catalogSeries = snapshot.bookSeries
+            .filter { $0.collectionID == collection.id }
+            .sorted {
+                let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
+                if comparison != .orderedSame {
+                    return comparison == .orderedAscending
+                }
+                return $0.id.uuidString < $1.id.uuidString
+            }
+    }
+
+    @MainActor
     private func createBooks() {
         guard !initialMediaAssets.isEmpty else { return }
 
         let timestamp = Date()
         let batchPrefix = "Book \(timestamp.formatted(date: .numeric, time: .shortened))"
-        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedLanguageCode = optionalString(languageCode)?.lowercased()
+        let trimmedGenre = optionalString(genre)
+        let contributors = selectedAuthor.map {
+            [BookContributor(role: .author, order: 0, person: $0)]
+        } ?? []
 
         let books = initialMediaAssets.enumerated().map { index, mediaAsset in
             let itemID = UUID()
@@ -139,7 +207,7 @@ struct BookBatchAddView: View {
                     createdAt: timestamp,
                     createdBy: "me",
                     title: "\(batchPrefix) · \(index + 1)",
-                    notes: trimmedNotes,
+                    notes: "",
                     acquiredYear: Int(selectedAcquiredYearOption),
                     condition: condition,
                     acquisitionMethod: acquisitionMethod,
@@ -152,12 +220,14 @@ struct BookBatchAddView: View {
                 ),
                 details: BookDetails(
                     itemID: itemID,
-                    languageCode: optionalString(languageCode)?.lowercased(),
-                    pageCount: optionalInt(pageCount),
-                    publicationYear: optionalInt(publicationYear),
-                    volumeNumber: optionalInt(volumeNumber),
-                    publisher: nil,
-                    contributors: []
+                    languageCode: trimmedLanguageCode,
+                    genre: trimmedGenre,
+                    pageCount: nil,
+                    publicationYear: nil,
+                    volumeNumber: nil,
+                    publisher: selectedPublisher,
+                    contributors: contributors,
+                    series: selectedSeries
                 )
             )
         }
@@ -170,9 +240,5 @@ struct BookBatchAddView: View {
     private func optionalString(_ value: String) -> String? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
-    }
-
-    private func optionalInt(_ value: String) -> Int? {
-        optionalString(value).flatMap(Int.init)
     }
 }
