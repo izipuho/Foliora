@@ -63,66 +63,6 @@ struct MetricPill: View {
     }
 }
 
-/// Displays a shared dashboard popover list container.
-struct DashboardPopoverContainer<Entry, Content: View>: View {
-    let title: String
-    let entries: [Entry]
-    let onSelect: ((Entry) -> Void)?
-    let content: (Entry) -> Content
-
-    init(
-        title: String,
-        entries: [Entry],
-        onSelect: ((Entry) -> Void)? = nil,
-        @ViewBuilder content: @escaping (Entry) -> Content
-    ) {
-        self.title = title
-        self.entries = entries
-        self.onSelect = onSelect
-        self.content = content
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            Text(title)
-                .font(.title2.bold())
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(entries.indices, id: \.self) { index in
-                        let entry = entries[index]
-
-                        Group {
-                            if let onSelect {
-                                Button {
-                                    onSelect(entry)
-                                } label: {
-                                    content(entry)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                            } else {
-                                content(entry)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
-
-                        if index < entries.count - 1 {
-                            Divider()
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding()
-        .presentationDetents([.medium])
-    }
-}
-
 /// Displays a shared data-health entry row.
 struct DashboardDataHealthRow: View {
     let title: String
