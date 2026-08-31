@@ -1,6 +1,5 @@
 # Хорошие кандидаты
 
-* Condition [3755] → common.field.condition [3260], ru: Состояние
 * Data Health [3766] → catalog.dashboard.health [1399], ru: Заполненность
 * Location [6218] → editor.location [3929], ru: Расположение
 * Name [6235] → common.name [3390], ru: Имя

@@ -261,7 +261,7 @@ struct BellEditorView: View {
 
                                     if let conditionSuggestion = photoAnalysis.suggestions.condition {
                                         PhotoSuggestionRow(
-                                            title: String(localized: "editor.photo_analysis.condition"),
+                                            title: String(localized: "common.field.condition"),
                                             suggestedValue: conditionSuggestion.value.displayName,
                                             confidence: conditionSuggestion.confidence,
                                             onAccept: {

@@ -115,7 +115,7 @@ struct BookSearchView: View {
                 tokens: uniqueAcquiredYears.map(BookSearchToken.acquiredYear)
             ),
             SearchTokenGroup(
-                title: String(localized: "Condition"),
+                title: String(localized: "common.field.condition"),
                 systemImage: "checkmark.seal",
                 tokens: uniqueConditions.map(BookSearchToken.condition)
             ),
