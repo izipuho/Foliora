@@ -320,7 +320,7 @@ struct BookEditorView: View {
 
                 Section(String(localized: "item.detail.section.collection_info")) {
                     YearPickerField(
-                        title: String(localized: "common.field.acquired_year"),
+                        title: String(localized: "item.detail.acquisition_year"),
                         selection: $selectedAcquiredYearOption,
                         options: acquiredYearOptions
                     )

@@ -373,7 +373,7 @@ struct BookDetailView: View {
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 if let acquiredYear = book.acquiredYear {
                     metadataField(
-                        title: String(localized: "common.field.acquired_year"),
+                        title: String(localized: "item.detail.acquisition_year"),
                         value: String(acquiredYear),
                         systemImage: "calendar.badge.plus"
                     )

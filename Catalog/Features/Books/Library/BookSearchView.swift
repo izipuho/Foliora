@@ -120,7 +120,7 @@ struct BookSearchView: View {
                 tokens: uniqueConditions.map(BookSearchToken.condition)
             ),
             SearchTokenGroup(
-                title: String(localized: "Acquisition"),
+                title: String(localized: "item.detail.acquisition"),
                 systemImage: "bag",
                 tokens: uniqueAcquisitionMethods.map(BookSearchToken.acquisitionMethod)
             ),

@@ -194,7 +194,7 @@ struct BellBatchAddView: View {
                 )
 
                 YearPickerField(
-                    title: String(localized: "common.field.acquired_year"),
+                    title: String(localized: "item.detail.acquisition_year"),
                     selection: $selectedAcquiredYearOption,
                     options: acquiredYearOptions
                 )

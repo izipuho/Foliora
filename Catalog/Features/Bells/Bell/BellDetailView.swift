@@ -167,7 +167,7 @@ struct BellDetailView: View {
                 ) {
                     if let acquiredYear = bell.acquiredYear {
                         metadataField(
-                            title: String(localized: "common.field.acquired_year"),
+                            title: String(localized: "item.detail.acquisition_year"),
                             value: String(acquiredYear),
                             systemImage: "calendar.badge.plus"
                         )
