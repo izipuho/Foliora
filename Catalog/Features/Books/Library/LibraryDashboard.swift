@@ -63,7 +63,7 @@ private struct DashboardCardStrip: View {
     let onFilterApply: (BookPresenceFilter) -> Void
 
     var body: some View {
-        CatalogDashboardCardStrip { dataHealthExpansion in
+        CatalogDashboardCardStrip {
             sharingCard
 
             NavigationLink {
@@ -120,8 +120,6 @@ private struct DashboardCardStrip: View {
                 progress: stats.dataHealthProgress,
                 tint: tint,
                 entries: dataHealthEntries,
-                isExpanded: dataHealthExpansion.isExpanded,
-                setExpanded: dataHealthExpansion.setExpanded,
                 onSelect: { entry in
                     onFilterApply(entry.filter)
                 }
@@ -133,7 +131,6 @@ private struct DashboardCardStrip: View {
                     showsDisclosureIndicator: true
                 )
             }
-            .id(CatalogDashboardScrollTarget.dataHealth)
         }
     }
 

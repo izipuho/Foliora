@@ -1,63 +1,21 @@
 import SwiftUI
 
-enum CatalogDashboardScrollTarget: Hashable, Sendable {
-    case dataHealth
-}
-
-struct CatalogDashboardDataHealthExpansion {
-    let isExpanded: Bool
-    let setExpanded: (Bool) -> Void
-}
-
-/// Displays a horizontally scrolling dashboard card strip and keeps expanded data health visible.
+/// Displays a horizontally scrolling dashboard card strip.
 struct CatalogDashboardCardStrip<Content: View>: View {
-    private let content: (CatalogDashboardDataHealthExpansion) -> Content
+    private let content: Content
 
-    @State private var isDataHealthExpanded = false
-    @State private var scrollPosition = ScrollPosition(idType: CatalogDashboardScrollTarget.self)
-
-    init(@ViewBuilder content: @escaping (CatalogDashboardDataHealthExpansion) -> Content) {
-        self.content = content
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
     }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                content(
-                    CatalogDashboardDataHealthExpansion(
-                        isExpanded: isDataHealthExpanded,
-                        setExpanded: setDataHealthExpanded
-                    )
-                )
+                content
             }
-            .scrollTargetLayout()
         }
         .scrollClipDisabled()
-        .scrollPosition($scrollPosition)
         .frame(height: 104)
-    }
-
-    private func setDataHealthExpanded(_ isExpanded: Bool) {
-        guard isExpanded != isDataHealthExpanded else { return }
-
-        if isExpanded {
-            withAnimation(.snappy, completionCriteria: .logicallyComplete) {
-                isDataHealthExpanded = true
-            } completion: {
-                guard isDataHealthExpanded else { return }
-
-                withAnimation(.snappy) {
-                    scrollPosition.scrollTo(
-                        id: CatalogDashboardScrollTarget.dataHealth,
-                        anchor: .leading
-                    )
-                }
-            }
-        } else {
-            withAnimation(.snappy) {
-                isDataHealthExpanded = false
-            }
-        }
     }
 }
 
@@ -180,25 +138,21 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     private let progress: Double
     private let tint: Color
     private let entries: [Entry]
-    private let isExpanded: Bool
-    private let setExpanded: (Bool) -> Void
     private let onSelect: (Entry) -> Void
     private let content: (Entry) -> Content
+
+    @State private var isExpanded = false
 
     init(
         progress: Double,
         tint: Color,
         entries: [Entry],
-        isExpanded: Bool,
-        setExpanded: @escaping (Bool) -> Void,
         onSelect: @escaping (Entry) -> Void,
         @ViewBuilder content: @escaping (Entry) -> Content
     ) {
         self.progress = progress
         self.tint = tint
         self.entries = entries
-        self.isExpanded = isExpanded
-        self.setExpanded = setExpanded
         self.onSelect = onSelect
         self.content = content
     }
@@ -208,7 +162,6 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
             if isExpanded {
                 compactCard
                     .opacity(0)
-                    .frame(width: 320)
                     .overlay(alignment: .topLeading) {
                         expandedCard
                     }
@@ -216,6 +169,7 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                 compactCard
             }
         }
+        .frame(width: 320)
     }
 
     private var compactCard: some View {
@@ -234,7 +188,9 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                     let entry = entries[index]
 
                     Button {
-                        setExpanded(false)
+                        withAnimation(.snappy) {
+                            isExpanded = false
+                        }
                         onSelect(entry)
                     } label: {
                         content(entry)
@@ -255,7 +211,9 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
 
     private var header: some View {
         Button {
-            setExpanded(!isExpanded)
+            withAnimation(.snappy) {
+                isExpanded.toggle()
+            }
         } label: {
             HStack(spacing: CatalogMetrics.Spacing.md) {
                 progressIndicator
