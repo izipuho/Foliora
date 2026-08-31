@@ -38,7 +38,6 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                 compactCard
             }
         }
-        .id(CatalogDashboardScrollTarget.dataHealth)
         .animation(.snappy, value: isExpanded)
     }
 

@@ -10,7 +10,7 @@ struct CatalogDashboardCardStrip<Content: View>: View {
     let content: (Binding<Bool>) -> Content
 
     @State private var isDataHealthExpanded = false
-    @State private var scrollPosition = ScrollPosition(idType: CatalogDashboardScrollTarget.self)
+    @State private var scrollTarget: CatalogDashboardScrollTarget?
 
     init(@ViewBuilder content: @escaping (Binding<Bool>) -> Content) {
         self.content = content
@@ -24,7 +24,7 @@ struct CatalogDashboardCardStrip<Content: View>: View {
             .scrollTargetLayout()
         }
         .scrollClipDisabled()
-        .scrollPosition($scrollPosition)
+        .scrollPosition(id: $scrollTarget)
         .frame(height: 104)
     }
 
@@ -32,13 +32,10 @@ struct CatalogDashboardCardStrip<Content: View>: View {
         Binding(
             get: { isDataHealthExpanded },
             set: { isExpanded in
-                isDataHealthExpanded = isExpanded
-                scrollPosition = isExpanded
-                    ? ScrollPosition(
-                        id: CatalogDashboardScrollTarget.dataHealthExpanded,
-                        anchor: .leading
-                    )
-                    : ScrollPosition(idType: CatalogDashboardScrollTarget.self)
+                withTransaction(\.scrollTargetAnchor, .leading) {
+                    isDataHealthExpanded = isExpanded
+                    scrollTarget = isExpanded ? .dataHealthExpanded : nil
+                }
             }
         )
     }
