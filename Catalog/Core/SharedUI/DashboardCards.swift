@@ -24,12 +24,14 @@ struct CatalogDashboardCardStrip<Content: View>: View {
         }
         .scrollClipDisabled()
         .scrollPosition($scrollPosition)
-        .onChange(of: isDataHealthExpanded) { _, isExpanded in
-            guard isExpanded else { return }
-
-            withAnimation(.snappy) {
-                scrollPosition.scrollTo(id: CatalogDashboardScrollTarget.dataHealth, anchor: .leading)
-            }
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.contentSize.width
+        } action: { oldWidth, newWidth in
+            guard isDataHealthExpanded, oldWidth != newWidth else { return }
+            scrollPosition.scrollTo(
+                id: CatalogDashboardScrollTarget.dataHealth,
+                anchor: .leading
+            )
         }
         .frame(height: 104)
     }
