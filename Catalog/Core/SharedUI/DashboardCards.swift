@@ -1,7 +1,8 @@
 import SwiftUI
 
 enum CatalogDashboardScrollTarget: Hashable, Sendable {
-    case dataHealth
+    case dataHealthCompact
+    case dataHealthExpanded
 }
 
 /// Displays a horizontally scrolling dashboard card strip and keeps expanded data health visible.
@@ -18,22 +19,28 @@ struct CatalogDashboardCardStrip<Content: View>: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                content($isDataHealthExpanded)
+                content(dataHealthExpansion)
             }
             .scrollTargetLayout()
         }
         .scrollClipDisabled()
         .scrollPosition($scrollPosition)
-        .onScrollGeometryChange(for: CGFloat.self) { geometry in
-            geometry.contentSize.width
-        } action: { oldWidth, newWidth in
-            guard isDataHealthExpanded, oldWidth != newWidth else { return }
-            scrollPosition.scrollTo(
-                id: CatalogDashboardScrollTarget.dataHealth,
-                anchor: .leading
-            )
-        }
         .frame(height: 104)
+    }
+
+    private var dataHealthExpansion: Binding<Bool> {
+        Binding(
+            get: { isDataHealthExpanded },
+            set: { isExpanded in
+                isDataHealthExpanded = isExpanded
+                scrollPosition = isExpanded
+                    ? ScrollPosition(
+                        id: CatalogDashboardScrollTarget.dataHealthExpanded,
+                        anchor: .leading
+                    )
+                    : ScrollPosition(idType: CatalogDashboardScrollTarget.self)
+            }
+        )
     }
 }
 
