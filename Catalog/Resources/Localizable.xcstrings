@@ -431,22 +431,6 @@
         }
       }
     },
-    "bell_catalog.sort.newest_first" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Newest First"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сначала новые"
-          }
-        }
-      }
-    },
     "bell_catalog.sort.oldest_first" : {
       "localizations" : {
         "en" : {
@@ -6124,9 +6108,6 @@
     "Missing Publication year" : {
 
     },
-    "Newest first" : {
-
-    },
     "No Author" : {
 
     },
@@ -7103,6 +7084,22 @@
     },
     "Sort" : {
 
+    },
+    "sort.newest_first" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest First"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала новые"
+          }
+        }
+      }
     },
     "splash.greeting_name" : {
       "extractionState" : "manual",

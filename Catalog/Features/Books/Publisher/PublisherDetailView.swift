@@ -15,7 +15,7 @@ private enum PublisherBookOrderMode: String, CaseIterable, Hashable {
         case .publicationYearNewest:
             return String(localized: "Publication year")
         case .newestFirst:
-            return String(localized: "Newest first")
+            return String(localized: "sort.newest_first")
         }
     }
 }

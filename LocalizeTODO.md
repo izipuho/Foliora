@@ -1,6 +1,5 @@
 # Хорошие кандидаты
 
-* Newest first [6239] → bell_catalog.sort.newest_first [457], ru: Сначала новые
 * Other [6438] → enum.acquisition.other [4641] / enum.bell_material.other [4753], ru: Другое
 * Places [6582] → editor.origin.places [4259], ru: Места
 * Sort [7232] → bell_catalog.sort.menu [441], ru: Сортировка

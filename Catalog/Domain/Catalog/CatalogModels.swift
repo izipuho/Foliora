@@ -31,7 +31,7 @@ enum BellOrderMode: String, CaseIterable, Hashable {
     var title: LocalizedStringResource {
         switch self {
             case .title: "bell_catalog.sort.title"
-            case .newestFirst: "bell_catalog.sort.newest_first"
+            case .newestFirst: "sort.newest_first"
             case .oldestFirst: "bell_catalog.sort.oldest_first"
             case .geography: "common.ui.geography"
             case .acquisitionYear: "item.detail.acquisition_year"
