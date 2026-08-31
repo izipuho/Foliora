@@ -9,7 +9,7 @@ struct CatalogDashboardCardStrip<Content: View>: View {
     let content: (Binding<Bool>) -> Content
 
     @State private var isDataHealthExpanded = false
-    @State private var scrollPosition = ScrollPosition(idType: CatalogDashboardScrollTarget.self)
+    @State private var scrollTarget: CatalogDashboardScrollTarget?
 
     init(@ViewBuilder content: @escaping (Binding<Bool>) -> Content) {
         self.content = content
@@ -18,28 +18,16 @@ struct CatalogDashboardCardStrip<Content: View>: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                content(dataHealthExpansion)
+                content($isDataHealthExpanded)
             }
             .scrollTargetLayout()
         }
         .scrollClipDisabled()
-        .scrollPosition($scrollPosition)
+        .scrollPosition(id: $scrollTarget, anchor: .leading)
+        .onChange(of: isDataHealthExpanded) { _, isExpanded in
+            scrollTarget = isExpanded ? .dataHealth : nil
+        }
         .frame(height: 104)
-    }
-
-    private var dataHealthExpansion: Binding<Bool> {
-        Binding(
-            get: { isDataHealthExpanded },
-            set: { isExpanded in
-                if isExpanded {
-                    scrollPosition.scrollTo(
-                        id: CatalogDashboardScrollTarget.dataHealth,
-                        anchor: .leading
-                    )
-                }
-                isDataHealthExpanded = isExpanded
-            }
-        )
     }
 }
 
