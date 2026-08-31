@@ -360,7 +360,7 @@ private struct MetricStrip: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: CatalogMetrics.Spacing.sm) {
                 MetricPill(
-                    title: String(localized: "Total"),
+                    title: String(localized: "catalog.dashboard.total"),
                     value: "\(stats.totalCount)",
                     systemImage: "books.vertical.fill",
                     tint: tint

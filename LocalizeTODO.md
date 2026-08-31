@@ -1,6 +1,5 @@
 # Хорошие кандидаты
 
-* Total [7653] → catalog.dashboard.total [1499], ru: Всего
 * Type [7700] → collection.editor.section_type [2237], ru: Тип
 *ужно проверить контекст
 * Shared [7229] → collection.sharing.status.shared [2866], ru: Общая
