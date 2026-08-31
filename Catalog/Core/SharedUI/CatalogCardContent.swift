@@ -232,7 +232,7 @@ private extension CatalogCardBadge {
     var title: String {
         switch self {
         case .shared:
-            return String(localized: "Shared")
+            return String(localized: "collection.sharing.status.shared")
         case .warning:
             return String(localized: "Warning")
         case .success:
