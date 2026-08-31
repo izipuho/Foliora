@@ -129,7 +129,7 @@ struct PublisherDetailView: View {
                     .frame(minHeight: 260)
                 } else {
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        Text("Books")
+                        Text("common.books")
                             .font(CatalogTypography.sectionTitle)
 
                         BookGridView(
@@ -211,7 +211,7 @@ struct PublisherDetailView: View {
 
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 metadataField(
-                    title: String(localized: "Books"),
+                    title: String(localized: "common.books"),
                     value: String(books.count),
                     systemImage: "book.closed"
                 )

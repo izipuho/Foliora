@@ -436,7 +436,7 @@ final class LibraryViewModel: ObservableObject {
                 return LibraryGroupedSection(
                     id: "series-none",
                     title: String(localized: "No Series"),
-                    detailText: String(localized: "\(sectionBooks.count) books"),
+                    detailText: CollectionKind.bookCountLabel(for: sectionBooks.count),
                     indexTitle: nil,
                     books: sectionBooks.sorted(by: titleLessThan),
                     subgroups: []

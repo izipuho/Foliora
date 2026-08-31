@@ -726,7 +726,7 @@ private struct BookSeriesSelectionView: View {
                                     .foregroundStyle(.primary)
 
                                 if let totalBookCount = item.totalBookCount {
-                                    Text("\(totalBookCount) books")
+                                    Text(CollectionKind.bookCountLabel(for: totalBookCount))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }

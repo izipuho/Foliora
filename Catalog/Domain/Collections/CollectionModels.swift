@@ -194,7 +194,7 @@ enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
         case .bells:
             return String(localized: "collection_kind.bells")
         case .books:
-            return String(localized: "collection_kind.books")
+            return String(localized: "common.books")
         }
     }
 
@@ -228,6 +228,10 @@ enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
 
         let format = String(localized: LocalizedStringResource(stringLiteral: key))
         return String(format: format, locale: locale, count)
+    }
+
+    static func bookCountLabel(for count: Int, locale: Locale = .autoupdatingCurrent) -> String {
+        CollectionKind.books.countLabel(for: count, locale: locale)
     }
 }
 

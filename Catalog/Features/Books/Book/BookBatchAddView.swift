@@ -90,7 +90,7 @@ struct BookBatchAddView: View {
                         values: catalogSeries,
                         name: \.name,
                         subtitle: { series in
-                            series.totalBookCount.map { String(localized: "\($0) books") }
+                            series.totalBookCount.map { CollectionKind.bookCountLabel(for: $0) }
                         },
                         create: { name in
                             BookSeries(
@@ -168,10 +168,7 @@ struct BookBatchAddView: View {
     }
 
     private var localizedBookCount: String {
-        String.localizedStringWithFormat(
-            String(localized: "collection.count.books"),
-            initialMediaAssets.count
-        )
+        CollectionKind.bookCountLabel(for: initialMediaAssets.count)
     }
 
     private var createButtonLabel: String {

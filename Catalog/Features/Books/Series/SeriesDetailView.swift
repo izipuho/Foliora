@@ -83,7 +83,7 @@ struct SeriesDetailView: View {
                     .frame(minHeight: 260)
                 } else {
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        Text("Books")
+                        Text("common.books")
                             .font(CatalogTypography.sectionTitle)
 
                         BookGridView(

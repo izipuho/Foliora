@@ -146,7 +146,7 @@ struct PublishersView: View {
 
         var parts: [String] = []
         if bookCount > 0 {
-            parts.append(String(localized: "\(bookCount) books"))
+            parts.append(CollectionKind.bookCountLabel(for: bookCount))
         }
         if seriesCount > 0 {
             parts.append(String(localized: "\(seriesCount) series"))
@@ -383,7 +383,7 @@ struct PublisherEditorView: View {
     private var deleteMessage: String {
         var parts: [String] = []
         if bookCount > 0 {
-            parts.append(String(localized: "\(bookCount) books"))
+            parts.append(CollectionKind.bookCountLabel(for: bookCount))
         }
         if seriesCount > 0 {
             parts.append(String(localized: "\(seriesCount) series"))

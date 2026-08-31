@@ -1,0 +1,24 @@
+Хорошие кандидаты
+
+- Collection [1573] → collection.editor.section_collection [2204] / search.scope.collection [6688], ru: Коллекция
+- Condition [3755] → common.field.condition [3260], ru: Состояние
+- Data Health [3766] → catalog.dashboard.health [1399], ru: Заполненность
+- Location [6218] → editor.location [3929], ru: Расположение
+- Name [6235] → common.name [3390], ru: Имя
+- Newest first [6239] → bell_catalog.sort.newest_first [457], ru: Сначала новые
+- Other [6438] → enum.acquisition.other [4641] / enum.bell_material.other [4753], ru: Другое
+- Places [6582] → editor.origin.places [4259], ru: Места
+- Sort [7232] → bell_catalog.sort.menu [441], ru: Сортировка
+- Storage [7592] → common.field.storage [3324] / settings.storage.title [7212], ru: Хранение
+- Title [7650] → common.field.title [3356], ru: Название
+- Total [7653] → catalog.dashboard.total [1499], ru: Всего
+- Type [7700] → collection.editor.section_type [2237], ru: Тип
+Нужно проверить контекст
+- Shared [7229] → collection.sharing.status.shared [2866], ru: Общая
+  Может не подойти, если согласование не с Collection.
+- Tags [7598] → common.field.tags [3340], ru: Теги
+  Есть конфликт: старые bell-ключи переведены как Тэги, лучше выбрать единый вариант.
+- Photos [6578] → enum.media_kind.photo [5042], ru: Фото
+  В русском совпадает, но source singular/plural разный.
+- This book is no longer available. [7605] и This collection is no longer available. [7609] → по шаблону рядом с home.not_found.description [5762], ru: Этот дом больше недоступен.
+  Не reuse напрямую, но переводческий шаблон очевидный.
