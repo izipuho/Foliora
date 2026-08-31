@@ -5,7 +5,8 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     let progress: Double
     let tint: Color
     let entries: [Entry]
-    @Binding var isExpanded: Bool
+    let isExpanded: Bool
+    let setExpanded: (Bool) -> Void
     let onSelect: (Entry) -> Void
     let content: (Entry) -> Content
 
@@ -13,14 +14,16 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
         progress: Double,
         tint: Color,
         entries: [Entry],
-        isExpanded: Binding<Bool>,
+        isExpanded: Bool,
+        setExpanded: @escaping (Bool) -> Void,
         onSelect: @escaping (Entry) -> Void,
         @ViewBuilder content: @escaping (Entry) -> Content
     ) {
         self.progress = progress
         self.tint = tint
         self.entries = entries
-        self._isExpanded = isExpanded
+        self.isExpanded = isExpanded
+        self.setExpanded = setExpanded
         self.onSelect = onSelect
         self.content = content
     }
@@ -38,7 +41,6 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                 compactCard
             }
         }
-        .animation(.snappy, value: isExpanded)
     }
 
     private var compactCard: some View {
@@ -111,11 +113,5 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
                 .font(CatalogTypography.cardSubtitle)
         }
         .frame(width: 56, height: 56)
-    }
-
-    private func setExpanded(_ expanded: Bool) {
-        withAnimation(.snappy) {
-            isExpanded = expanded
-        }
     }
 }

@@ -63,7 +63,7 @@ private struct DashboardCardStrip: View {
     let onFilterApply: (BookPresenceFilter) -> Void
 
     var body: some View {
-        CatalogDashboardCardStrip { isDataHealthExpanded in
+        CatalogDashboardCardStrip { dataHealthExpansion in
             sharingCard
 
             NavigationLink {
@@ -120,7 +120,8 @@ private struct DashboardCardStrip: View {
                 progress: stats.dataHealthProgress,
                 tint: tint,
                 entries: dataHealthEntries,
-                isExpanded: isDataHealthExpanded,
+                isExpanded: dataHealthExpansion.isExpanded,
+                setExpanded: dataHealthExpansion.setExpanded,
                 onSelect: { entry in
                     onFilterApply(entry.filter)
                 }

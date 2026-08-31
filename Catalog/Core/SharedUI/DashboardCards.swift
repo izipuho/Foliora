@@ -4,30 +4,60 @@ enum CatalogDashboardScrollTarget: Hashable, Sendable {
     case dataHealth
 }
 
+struct CatalogDashboardDataHealthExpansion {
+    let isExpanded: Bool
+    let setExpanded: (Bool) -> Void
+}
+
 /// Displays a horizontally scrolling dashboard card strip and keeps expanded data health visible.
 struct CatalogDashboardCardStrip<Content: View>: View {
-    let content: (Binding<Bool>) -> Content
+    let content: (CatalogDashboardDataHealthExpansion) -> Content
 
     @State private var isDataHealthExpanded = false
-    @State private var scrollTarget: CatalogDashboardScrollTarget?
+    @State private var scrollPosition = ScrollPosition(idType: CatalogDashboardScrollTarget.self)
 
-    init(@ViewBuilder content: @escaping (Binding<Bool>) -> Content) {
+    init(@ViewBuilder content: @escaping (CatalogDashboardDataHealthExpansion) -> Content) {
         self.content = content
     }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                content($isDataHealthExpanded)
+                content(
+                    CatalogDashboardDataHealthExpansion(
+                        isExpanded: isDataHealthExpanded,
+                        setExpanded: setDataHealthExpanded
+                    )
+                )
             }
             .scrollTargetLayout()
         }
         .scrollClipDisabled()
-        .scrollPosition(id: $scrollTarget, anchor: .leading)
-        .onChange(of: isDataHealthExpanded) { _, isExpanded in
-            scrollTarget = isExpanded ? .dataHealth : nil
-        }
+        .scrollPosition($scrollPosition)
         .frame(height: 104)
+    }
+
+    private func setDataHealthExpanded(_ isExpanded: Bool) {
+        guard isExpanded != isDataHealthExpanded else { return }
+
+        if isExpanded {
+            withAnimation(.snappy, completionCriteria: .removed) {
+                isDataHealthExpanded = true
+            } completion: {
+                guard isDataHealthExpanded else { return }
+
+                withAnimation(.snappy) {
+                    scrollPosition.scrollTo(
+                        id: CatalogDashboardScrollTarget.dataHealth,
+                        anchor: .leading
+                    )
+                }
+            }
+        } else {
+            withAnimation(.snappy) {
+                isDataHealthExpanded = false
+            }
+        }
     }
 }
 
