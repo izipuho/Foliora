@@ -1,20 +1,30 @@
 import SwiftUI
 
+private enum CatalogDashboardScrollTarget: Hashable {
+    case dataHealth
+}
+
 /// Displays a horizontally scrolling dashboard card strip.
 struct CatalogDashboardCardStrip<Content: View>: View {
-    private let content: Content
+    private let content: (() -> Void) -> Content
 
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
+    init(@ViewBuilder content: @escaping (() -> Void) -> Content) {
+        self.content = content
     }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-                content
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
+                    content {
+                        withAnimation(.snappy) {
+                            proxy.scrollTo(CatalogDashboardScrollTarget.dataHealth, anchor: .center)
+                        }
+                    }
+                }
             }
+            .scrollClipDisabled()
         }
-        .scrollClipDisabled()
         .frame(height: 104)
     }
 }
@@ -138,6 +148,7 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
     private let progress: Double
     private let tint: Color
     private let entries: [Entry]
+    private let onExpand: () -> Void
     private let onSelect: (Entry) -> Void
     private let content: (Entry) -> Content
 
@@ -147,12 +158,14 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
         progress: Double,
         tint: Color,
         entries: [Entry],
+        onExpand: @escaping () -> Void,
         onSelect: @escaping (Entry) -> Void,
         @ViewBuilder content: @escaping (Entry) -> Content
     ) {
         self.progress = progress
         self.tint = tint
         self.entries = entries
+        self.onExpand = onExpand
         self.onSelect = onSelect
         self.content = content
     }
@@ -170,6 +183,7 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
             }
         }
         .frame(width: 320)
+        .id(CatalogDashboardScrollTarget.dataHealth)
     }
 
     private var compactCard: some View {
@@ -211,8 +225,14 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
 
     private var header: some View {
         Button {
+            let willExpand = !isExpanded
+
             withAnimation(.snappy) {
                 isExpanded.toggle()
+            }
+
+            if willExpand {
+                onExpand()
             }
         } label: {
             HStack(spacing: CatalogMetrics.Spacing.md) {

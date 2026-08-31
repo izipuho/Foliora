@@ -58,7 +58,7 @@ private struct DashboardCardStrip: View {
     let onFilterApply: (BellPresenceFilter) -> Void
 
     var body: some View {
-        CatalogDashboardCardStrip {
+        CatalogDashboardCardStrip { onDataHealthExpand in
             sharingCard
 
             if let collection {
@@ -90,6 +90,7 @@ private struct DashboardCardStrip: View {
                 progress: dataHealthProgress,
                 tint: tint,
                 entries: dataHealthEntries,
+                onExpand: onDataHealthExpand,
                 onSelect: { entry in
                     onFilterApply(entry.filter)
                 }
