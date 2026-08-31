@@ -337,7 +337,7 @@ struct PersonEditorView: View {
                         .lineLimit(4...10)
                 }
 
-                Section("Places") {
+                Section("editor.origin.places") {
                     PlacePickerField(
                         title: String(localized: "Birth place"),
                         selectedLabel: birthPlace?.displayName ?? String(localized: "common.none"),
