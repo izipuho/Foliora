@@ -41,7 +41,7 @@ struct CatalogDashboardCardStrip<Content: View>: View {
         guard isExpanded != isDataHealthExpanded else { return }
 
         if isExpanded {
-            withAnimation(.snappy, completionCriteria: .removed) {
+            withAnimation(.snappy, completionCriteria: .logicallyComplete) {
                 isDataHealthExpanded = true
             } completion: {
                 guard isDataHealthExpanded else { return }
