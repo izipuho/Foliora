@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum CatalogDashboardScrollTarget: Hashable {
+enum CatalogDashboardScrollTarget: Hashable, Sendable {
     case dataHealth
 }
 
@@ -9,7 +9,7 @@ struct CatalogDashboardCardStrip<Content: View>: View {
     let content: (Binding<Bool>) -> Content
 
     @State private var isDataHealthExpanded = false
-    @State private var scrollTarget: CatalogDashboardScrollTarget?
+    @State private var scrollPosition = ScrollPosition(idType: CatalogDashboardScrollTarget.self)
 
     init(@ViewBuilder content: @escaping (Binding<Bool>) -> Content) {
         self.content = content
@@ -23,18 +23,12 @@ struct CatalogDashboardCardStrip<Content: View>: View {
             .scrollTargetLayout()
         }
         .scrollClipDisabled()
-        .scrollPosition(id: $scrollTarget, anchor: .leading)
+        .scrollPosition($scrollPosition)
         .onChange(of: isDataHealthExpanded) { _, isExpanded in
-            guard isExpanded else {
-                scrollTarget = nil
-                return
-            }
+            guard isExpanded else { return }
 
-            Task { @MainActor in
-                await Task.yield()
-                withAnimation(.snappy) {
-                    scrollTarget = .dataHealth
-                }
+            withAnimation(.snappy) {
+                scrollPosition.scrollTo(id: CatalogDashboardScrollTarget.dataHealth, anchor: .leading)
             }
         }
         .frame(height: 104)
