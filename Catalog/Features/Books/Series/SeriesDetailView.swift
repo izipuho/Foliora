@@ -55,14 +55,14 @@ struct SeriesDetailView: View {
 
     private var completionText: String {
         guard let totalBookCount = series.totalBookCount else {
-            return "\(books.count) collected · total unknown"
+            return String(localized: "\(books.count) collected · total unknown")
         }
 
         if books.count >= totalBookCount {
-            return "\(books.count) of \(totalBookCount) collected · complete"
+            return String(localized: "\(books.count) of \(totalBookCount) collected · complete")
         }
 
-        return "\(books.count) of \(totalBookCount) collected"
+        return String(localized: "\(books.count) of \(totalBookCount) collected")
     }
 
     var body: some View {
@@ -164,14 +164,14 @@ struct SeriesDetailView: View {
 
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 metadataField(
-                    title: "Total books",
-                    value: series.totalBookCount.map(String.init) ?? "Unknown",
+                    title: String(localized: "Total books"),
+                    value: series.totalBookCount.map(String.init) ?? String(localized: "common.unknown"),
                     systemImage: "number"
                 )
 
                 if let publisher = series.publisher {
                     metadataField(
-                        title: "Publisher",
+                        title: String(localized: "Publisher"),
                         value: publisher.name,
                         systemImage: "building.2"
                     )

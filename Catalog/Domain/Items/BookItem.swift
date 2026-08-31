@@ -19,13 +19,13 @@ enum BookContributorRole: String, CaseIterable, Hashable, Identifiable, Codable 
     var displayName: String {
         switch self {
         case .author:
-            return "Author"
+            return String(localized: "Author")
         case .translator:
-            return "Translator"
+            return String(localized: "Translator")
         case .editor:
-            return "Editor"
+            return String(localized: "Editor")
         case .illustrator:
-            return "Illustrator"
+            return String(localized: "Illustrator")
         }
     }
 }

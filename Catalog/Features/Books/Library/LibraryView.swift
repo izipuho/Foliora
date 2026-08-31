@@ -7,15 +7,15 @@ private extension BookPresenceFilter {
     var title: String {
         switch self {
         case .missingCover:
-            return "Missing Cover"
+            return String(localized: "Missing Cover")
         case .missingAuthor:
-            return "Missing Author"
+            return String(localized: "Missing Author")
         case .missingPublicationYear:
-            return "Missing Publication Year"
+            return String(localized: "Missing Publication Year")
         case .incompleteSeries:
-            return "Incomplete Series"
+            return String(localized: "Incomplete Series")
         case .unknownSeriesSize:
-            return "Series Size Unknown"
+            return String(localized: "Series Size Unknown")
         }
     }
 }
@@ -499,7 +499,7 @@ struct LibraryView: View {
             selectedLayoutMode: layoutMode,
             isPresentingAddOptions: $isPresentingAddBookOptions,
             sortOptions: LibraryOrderMode.allCases,
-            sortSectionTitle: "Sort",
+            sortSectionTitle: String(localized: "Sort"),
             sortTitle: { $0.title },
             canEdit: canEditLibrary,
             onEdit: {
@@ -519,7 +519,7 @@ struct LibraryView: View {
     private var editLibrarySheet: some View {
         CollectionEditorView(
             homes: homes,
-            screenTitle: "Edit Library",
+            screenTitle: String(localized: "Edit Library"),
             initialTitle: collection.name,
             initialNotes: collection.subtitle,
             initialHomeID: collection.homeID,

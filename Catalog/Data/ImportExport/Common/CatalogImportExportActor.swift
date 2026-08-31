@@ -101,7 +101,7 @@ final class CatalogImportExportActor {
         var errorDescription: String? {
             switch self {
             case .emptySelection:
-                return "Select at least one collection to import."
+                return String(localized: "Select at least one collection to import.")
             }
         }
     }

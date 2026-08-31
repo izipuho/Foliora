@@ -48,7 +48,7 @@ struct BookBatchAddView: View {
             Form {
                 Section("common.book") {
                     BookBatchNamedPickerField(
-                        title: "Author",
+                        title: String(localized: "Author"),
                         selection: $selectedAuthor,
                         values: catalogPeople,
                         name: \.name,
@@ -69,7 +69,7 @@ struct BookBatchAddView: View {
                     )
 
                     BookBatchNamedPickerField(
-                        title: "Publisher",
+                        title: String(localized: "Publisher"),
                         selection: $selectedPublisher,
                         values: catalogPublishers,
                         name: \.name,
@@ -85,12 +85,12 @@ struct BookBatchAddView: View {
                     )
 
                     BookBatchNamedPickerField(
-                        title: "Series",
+                        title: String(localized: "Series"),
                         selection: $selectedSeries,
                         values: catalogSeries,
                         name: \.name,
                         subtitle: { series in
-                            series.totalBookCount.map { "\($0) books" }
+                            series.totalBookCount.map { String(localized: "\($0) books") }
                         },
                         create: { name in
                             BookSeries(
@@ -107,7 +107,7 @@ struct BookBatchAddView: View {
                     BookBatchLanguagePickerField(languageCode: $languageCode)
 
                     BookBatchLookupTextField(
-                        title: "Genre",
+                        title: String(localized: "Genre"),
                         value: $genre,
                         suggestions: catalogGenreSuggestions
                     )

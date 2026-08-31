@@ -270,7 +270,7 @@ struct BookDetailView: View {
                 NavigationLink(value: BookReferenceDestination.publisher(publisher)) {
                     HStack(alignment: .center, spacing: CatalogMetrics.Spacing.sm) {
                         metadataField(
-                            title: "Publisher",
+                            title: String(localized: "Publisher"),
                             value: publisher.name,
                             systemImage: "building.2"
                         )
@@ -293,7 +293,7 @@ struct BookDetailView: View {
             ) {
                 if let publicationYear = book.details.publicationYear {
                     metadataField(
-                        title: "Publication year",
+                        title: String(localized: "Publication year"),
                         value: String(publicationYear),
                         systemImage: "calendar"
                     )
@@ -301,7 +301,7 @@ struct BookDetailView: View {
 
                 if let pageCount = book.details.pageCount {
                     metadataField(
-                        title: "Pages",
+                        title: String(localized: "Pages"),
                         value: String(pageCount),
                         systemImage: "doc.text"
                     )
@@ -309,7 +309,7 @@ struct BookDetailView: View {
 
                 if let languageCode = book.details.languageCode, !languageCode.isEmpty {
                     metadataField(
-                        title: "Language",
+                        title: String(localized: "Language"),
                         value: bookLanguageDisplayName(for: languageCode),
                         systemImage: "globe"
                     )
@@ -317,7 +317,7 @@ struct BookDetailView: View {
 
                 if let genre = book.details.genre, !genre.isEmpty {
                     metadataField(
-                        title: "Genre",
+                        title: String(localized: "Genre"),
                         value: genre,
                         systemImage: "tag"
                     )
@@ -574,7 +574,7 @@ struct BookDetailView: View {
         guard let series = book.details.series else { return nil }
 
         if let volumeNumber = book.details.volumeNumber {
-            return "\(series.name) · Volume \(volumeDisplayName(volumeNumber))"
+            return String(localized: "\(series.name) · Volume \(volumeDisplayName(volumeNumber))")
         }
 
         return series.name
@@ -1005,10 +1005,10 @@ struct BookDetailContainer: View {
 private extension BookContributorRole {
     var title: String {
         switch self {
-        case .author: return "Author"
-        case .translator: return "Translator"
-        case .editor: return "Editor"
-        case .illustrator: return "Illustrator"
+        case .author: return String(localized: "Author")
+        case .translator: return String(localized: "Translator")
+        case .editor: return String(localized: "Editor")
+        case .illustrator: return String(localized: "Illustrator")
         }
     }
 }
@@ -1019,8 +1019,8 @@ private extension BookIdentifierType {
         case .isbn10: return "ISBN-10"
         case .isbn13: return "ISBN-13"
         case .asin: return "ASIN"
-        case .inventory: return "Inventory"
-        case .other: return "Other"
+        case .inventory: return String(localized: "Inventory")
+        case .other: return String(localized: "Other")
         }
     }
 }

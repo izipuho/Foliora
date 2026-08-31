@@ -146,10 +146,10 @@ struct PublishersView: View {
 
         var parts: [String] = []
         if bookCount > 0 {
-            parts.append("\(bookCount) \(bookCount == 1 ? "book" : "books")")
+            parts.append(String(localized: "\(bookCount) books"))
         }
         if seriesCount > 0 {
-            parts.append("\(seriesCount) series")
+            parts.append(String(localized: "\(seriesCount) series"))
         }
         return parts.joined(separator: " · ")
     }
@@ -324,7 +324,7 @@ struct PublisherEditorView: View {
                         .focused($isNameFocused)
 
                     PlacePickerField(
-                        title: "Location",
+                        title: String(localized: "Location"),
                         selectedLabel: selectedLocationLabel,
                         places: places,
                         selectedPlace: $selectedLocation
@@ -339,7 +339,7 @@ struct PublisherEditorView: View {
                     }
                 }
             }
-            .navigationTitle(existingPublisher == nil ? "Add Publisher" : "Edit Publisher")
+            .navigationTitle(existingPublisher == nil ? String(localized: "Add Publisher") : String(localized: "Edit Publisher"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -383,17 +383,17 @@ struct PublisherEditorView: View {
     private var deleteMessage: String {
         var parts: [String] = []
         if bookCount > 0 {
-            parts.append("\(bookCount) \(bookCount == 1 ? "book" : "books")")
+            parts.append(String(localized: "\(bookCount) books"))
         }
         if seriesCount > 0 {
-            parts.append("\(seriesCount) series")
+            parts.append(String(localized: "\(seriesCount) series"))
         }
 
         guard !parts.isEmpty else {
-            return "This publisher will be deleted from the catalog."
+            return String(localized: "This publisher will be deleted from the catalog.")
         }
 
-        return "This publisher will be removed from \(parts.joined(separator: " and ")) across the catalog. The books and series will be kept."
+        return String(localized: "This publisher will be removed from \(parts.joined(separator: " and ")) across the catalog. The books and series will be kept.")
     }
 
     private func savePublisher() {

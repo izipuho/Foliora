@@ -183,14 +183,14 @@ struct SeriesView: View {
         let collectedCount = booksForSeries(series).count
 
         guard let totalBookCount = series.totalBookCount else {
-            return "\(collectedCount) collected · total unknown"
+            return String(localized: "\(collectedCount) collected · total unknown")
         }
 
         if collectedCount >= totalBookCount {
-            return "\(collectedCount) of \(totalBookCount) collected · complete"
+            return String(localized: "\(collectedCount) of \(totalBookCount) collected · complete")
         }
 
-        return "\(collectedCount) of \(totalBookCount) collected"
+        return String(localized: "\(collectedCount) of \(totalBookCount) collected")
     }
 
     private func upsertLocalSeries(_ series: BookSeries) {
@@ -335,7 +335,7 @@ struct SeriesEditorView: View {
                     }
                 }
             }
-            .navigationTitle(existingSeries == nil ? "Add Series" : "Edit Series")
+            .navigationTitle(existingSeries == nil ? String(localized: "Add Series") : String(localized: "Edit Series"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

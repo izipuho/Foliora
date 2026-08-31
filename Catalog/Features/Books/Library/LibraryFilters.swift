@@ -147,11 +147,11 @@ enum BookPresenceFilter: Hashable {
 
     var searchTitle: String {
         switch self {
-        case .missingCover: return "Missing Cover"
-        case .missingAuthor: return "Missing Author"
-        case .missingPublicationYear: return "Missing Publication Year"
-        case .incompleteSeries: return "Incomplete Series"
-        case .unknownSeriesSize: return "Series Size Unknown"
+        case .missingCover: return String(localized: "Missing Cover")
+        case .missingAuthor: return String(localized: "Missing Author")
+        case .missingPublicationYear: return String(localized: "Missing Publication Year")
+        case .incompleteSeries: return String(localized: "Incomplete Series")
+        case .unknownSeriesSize: return String(localized: "Series Size Unknown")
         }
     }
 

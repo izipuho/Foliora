@@ -248,9 +248,9 @@ private struct PersonCard: View {
         case let (birth?, death?):
             return "\(birth)–\(death)"
         case let (birth?, nil):
-            return "Born \(birth)"
+            return String(localized: "Born \(birth)")
         case let (nil, death?):
-            return "Died \(death)"
+            return String(localized: "Died \(death)")
         case (nil, nil):
             return nil
         }
@@ -339,14 +339,14 @@ struct PersonEditorView: View {
 
                 Section("Places") {
                     PlacePickerField(
-                        title: "Birth place",
+                        title: String(localized: "Birth place"),
                         selectedLabel: birthPlace?.displayName ?? String(localized: "common.none"),
                         places: places,
                         selectedPlace: $birthPlace
                     )
 
                     PlacePickerField(
-                        title: "Death place",
+                        title: String(localized: "Death place"),
                         selectedLabel: deathPlace?.displayName ?? String(localized: "common.none"),
                         places: places,
                         selectedPlace: $deathPlace

@@ -64,68 +64,68 @@ struct BookSearchView: View {
 
         return [
             SearchTokenGroup(
-                title: "Libraries",
+                title: String(localized: "Libraries"),
                 systemImage: "rectangle.stack",
                 tokens: libraries.map { .library($0.id) }
             ),
             SearchTokenGroup(
-                title: "People",
+                title: String(localized: "People"),
                 systemImage: "person.text.rectangle",
                 tokens: peopleByID.values
                     .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
                     .map { .person($0.id) }
             ),
             SearchTokenGroup(
-                title: "Publishers",
+                title: String(localized: "Publishers"),
                 systemImage: "building.2",
                 tokens: publishersByID.values
                     .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
                     .map { .publisher($0.id) }
             ),
             SearchTokenGroup(
-                title: "Series",
+                title: String(localized: "Series"),
                 systemImage: "books.vertical",
                 tokens: seriesByID.values
                     .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
                     .map { .series($0.id) }
             ),
             SearchTokenGroup(
-                title: "Languages",
+                title: String(localized: "Languages"),
                 systemImage: "character.book.closed",
                 tokens: uniqueValues(books.compactMap(\.details.languageCode)).map(BookSearchToken.language)
             ),
             SearchTokenGroup(
-                title: "Genres",
+                title: String(localized: "Genres"),
                 systemImage: "text.book.closed",
                 tokens: uniqueValues(books.compactMap(\.details.genre)).map(BookSearchToken.genre)
             ),
             SearchTokenGroup(
-                title: "Tags",
+                title: String(localized: "Tags"),
                 systemImage: "tag",
                 tokens: uniqueValues(books.flatMap(\.tags)).map(BookSearchToken.tag)
             ),
             SearchTokenGroup(
-                title: "Publication Year",
+                title: String(localized: "Publication Year"),
                 systemImage: "calendar",
                 tokens: uniquePublicationYears.map(BookSearchToken.publicationYear)
             ),
             SearchTokenGroup(
-                title: "Acquired Year",
+                title: String(localized: "Acquired Year"),
                 systemImage: "calendar.badge.plus",
                 tokens: uniqueAcquiredYears.map(BookSearchToken.acquiredYear)
             ),
             SearchTokenGroup(
-                title: "Condition",
+                title: String(localized: "Condition"),
                 systemImage: "checkmark.seal",
                 tokens: uniqueConditions.map(BookSearchToken.condition)
             ),
             SearchTokenGroup(
-                title: "Acquisition",
+                title: String(localized: "Acquisition"),
                 systemImage: "bag",
                 tokens: uniqueAcquisitionMethods.map(BookSearchToken.acquisitionMethod)
             ),
             SearchTokenGroup(
-                title: "Data Health",
+                title: String(localized: "Data Health"),
                 systemImage: "checklist",
                 tokens: BookPresenceFilter.allSearchFilters.map(BookSearchToken.presence)
             )
@@ -192,13 +192,13 @@ struct BookSearchView: View {
     private func tokenTitle(_ token: BookSearchToken) -> String {
         switch token {
         case .library(let libraryID):
-            return libraryTitlesByID[libraryID] ?? "Library"
+            return libraryTitlesByID[libraryID] ?? String(localized: "Library")
         case .person(let personID):
-            return peopleByID[personID]?.name ?? "Person"
+            return peopleByID[personID]?.name ?? String(localized: "Person")
         case .publisher(let publisherID):
-            return publishersByID[publisherID]?.name ?? "Publisher"
+            return publishersByID[publisherID]?.name ?? String(localized: "Publisher")
         case .series(let seriesID):
-            return seriesByID[seriesID]?.name ?? "Series"
+            return seriesByID[seriesID]?.name ?? String(localized: "Series")
         case .language(let languageCode):
             return languageDisplayName(languageCode)
         case .genre(let genre), .tag(let genre):

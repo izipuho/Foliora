@@ -14,19 +14,19 @@ enum LibraryOrderMode: String, CaseIterable {
     var title: String {
         switch self {
         case .title:
-            return "Title"
+            return String(localized: "Title")
         case .author:
-            return "Author"
+            return String(localized: "Author")
         case .publisher:
-            return "Publisher"
+            return String(localized: "Publisher")
         case .publicationYearNewest:
-            return "Publication year"
+            return String(localized: "Publication year")
         case .newestFirst:
-            return "Newest first"
+            return String(localized: "Newest first")
         case .series:
-            return "Series"
+            return String(localized: "Series")
         case .storage:
-            return "Storage"
+            return String(localized: "Storage")
         }
     }
 }
@@ -280,7 +280,7 @@ final class LibraryViewModel: ObservableObject {
             case .noValue:
                 return LibraryGroupedSection(
                     id: "title-none",
-                    title: "No Title",
+                    title: String(localized: "No Title"),
                     detailText: nil,
                     indexTitle: nil,
                     books: sectionBooks,
@@ -323,7 +323,7 @@ final class LibraryViewModel: ObservableObject {
             case .noValue:
                 return LibraryGroupedSection(
                     id: "author-none",
-                    title: "No Author",
+                    title: String(localized: "No Author"),
                     detailText: nil,
                     indexTitle: nil,
                     books: sectionBooks.sorted(by: titleLessThan),
@@ -347,7 +347,7 @@ final class LibraryViewModel: ObservableObject {
             guard let publisher = sectionBooks.first?.details.publisher else {
                 return LibraryGroupedSection(
                     id: "publisher-none",
-                    title: "No Publisher",
+                    title: String(localized: "No Publisher"),
                     detailText: nil,
                     indexTitle: nil,
                     books: sectionBooks,
@@ -435,8 +435,8 @@ final class LibraryViewModel: ObservableObject {
                 ?? sectionBooks.first?.details.series else {
                 return LibraryGroupedSection(
                     id: "series-none",
-                    title: "No Series",
-                    detailText: "\(sectionBooks.count) books",
+                    title: String(localized: "No Series"),
+                    detailText: String(localized: "\(sectionBooks.count) books"),
                     indexTitle: nil,
                     books: sectionBooks.sorted(by: titleLessThan),
                     subgroups: []
@@ -445,9 +445,9 @@ final class LibraryViewModel: ObservableObject {
 
             let progressText: String
             if let totalBookCount = bookSeries.totalBookCount, totalBookCount > 0 {
-                progressText = "\(sectionBooks.count) of \(totalBookCount)"
+                progressText = String(localized: "\(sectionBooks.count) of \(totalBookCount)")
             } else {
-                progressText = "\(sectionBooks.count) owned"
+                progressText = String(localized: "\(sectionBooks.count) owned")
             }
 
             return LibraryGroupedSection(

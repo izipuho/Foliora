@@ -202,20 +202,20 @@ struct BookEditorView: View {
 
                 Section("common.book") {
                     YearPickerField(
-                        title: "Publication year",
+                        title: String(localized: "Publication year"),
                         selection: $selectedPublicationYearOption,
                         options: publicationYearOptions
                     )
 
                     optionalPositiveIntegerField(
-                        title: "Pages",
+                        title: String(localized: "Pages"),
                         text: $pageCount
                     )
 
                     BookLanguagePickerField(languageCode: $languageCode)
 
                     LookupTextField(
-                        title: "Genre",
+                        title: String(localized: "Genre"),
                         value: $genre,
                         suggestions: genreSuggestions
                     )
@@ -342,7 +342,7 @@ struct BookEditorView: View {
                     )
                 }
             }
-            .navigationTitle(existingBook == nil ? "Add Book" : "Edit Book")
+            .navigationTitle(existingBook == nil ? String(localized: "Add Book") : String(localized: "Edit Book"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -435,10 +435,10 @@ struct BookEditorView: View {
 
     private var volumeValidationMessage: String {
         if let totalBookCount = selectedSeries?.totalBookCount {
-            return "Enter a whole number from 1 to \(totalBookCount)."
+            return String(localized: "Enter a whole number from 1 to \(totalBookCount).")
         }
 
-        return "Enter a positive whole number."
+        return String(localized: "Enter a positive whole number.")
     }
 
     private func optionalPositiveIntegerField(
@@ -971,7 +971,7 @@ private struct BookContributorEditorView: View {
                     }
                 }
             }
-            .navigationTitle(contributor == nil ? "Add Contributor" : "Edit Contributor")
+            .navigationTitle(contributor == nil ? String(localized: "Add Contributor") : String(localized: "Edit Contributor"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -1148,24 +1148,24 @@ private struct BookIdentifierEditorView: View {
 
     private var validationMessage: String? {
         guard !trimmedValue.isEmpty else {
-            return "Value is required."
+            return String(localized: "Value is required.")
         }
 
         switch type {
         case .isbn10:
             guard isValidISBN10(trimmedValue) else {
-                return "ISBN-10 must contain 10 digits, with X allowed as the final character."
+                return String(localized: "ISBN-10 must contain 10 digits, with X allowed as the final character.")
             }
         case .isbn13:
             guard isValidISBN13(trimmedValue) else {
-                return "ISBN-13 must contain 13 digits."
+                return String(localized: "ISBN-13 must contain 13 digits.")
             }
         case .asin, .inventory, .other:
             break
         }
 
         if isDuplicate {
-            return "This identifier is already added."
+            return String(localized: "This identifier is already added.")
         }
 
         return nil
@@ -1197,7 +1197,7 @@ private struct BookIdentifierEditorView: View {
                     }
                 }
             }
-            .navigationTitle(identifier == nil ? "Add Identifier" : "Edit Identifier")
+            .navigationTitle(identifier == nil ? String(localized: "Add Identifier") : String(localized: "Edit Identifier"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

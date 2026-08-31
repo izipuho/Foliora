@@ -8,11 +8,11 @@ private enum PersonBookOrderMode: String, CaseIterable, Hashable {
     var title: String {
         switch self {
         case .title:
-            return "Title"
+            return String(localized: "Title")
         case .publicationYearNewest:
-            return "Publication year"
+            return String(localized: "Publication year")
         case .newestFirst:
-            return "Newest first"
+            return String(localized: "Newest first")
         }
     }
 }
@@ -145,7 +145,7 @@ struct PersonDetailView: View {
                 selectedSort: selectedOrderBinding,
                 selectedLayoutMode: layoutModeBinding,
                 sortOptions: PersonBookOrderMode.allCases,
-                sortSectionTitle: "Sort",
+                sortSectionTitle: String(localized: "Sort"),
                 sortTitle: { $0.title }
             )
 
@@ -211,7 +211,7 @@ struct PersonDetailView: View {
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                     if let birthPlace = person.birthPlace {
                         metadataField(
-                            title: "Birth place",
+                            title: String(localized: "Birth place"),
                             value: birthPlace.displayName,
                             systemImage: "mappin.and.ellipse"
                         )
@@ -219,7 +219,7 @@ struct PersonDetailView: View {
 
                     if let deathPlace = person.deathPlace {
                         metadataField(
-                            title: "Death place",
+                            title: String(localized: "Death place"),
                             value: deathPlace.displayName,
                             systemImage: "mappin.and.ellipse"
                         )
@@ -231,13 +231,13 @@ struct PersonDetailView: View {
 
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 metadataField(
-                    title: "Books",
+                    title: String(localized: "Books"),
                     value: String(books.count),
                     systemImage: "book.closed"
                 )
 
                 metadataField(
-                    title: "Roles",
+                    title: String(localized: "Roles"),
                     value: rolesText,
                     systemImage: "person.text.rectangle"
                 )
@@ -282,9 +282,9 @@ struct PersonDetailView: View {
         case let (birth?, death?):
             return "\(birth)–\(death)"
         case let (birth?, nil):
-            return "Born \(birth)"
+            return String(localized: "Born \(birth)")
         case let (nil, death?):
-            return "Died \(death)"
+            return String(localized: "Died \(death)")
         case (nil, nil):
             return nil
         }

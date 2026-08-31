@@ -9,13 +9,13 @@ private enum PublisherBookOrderMode: String, CaseIterable, Hashable {
     var title: String {
         switch self {
         case .title:
-            return "Title"
+            return String(localized: "Title")
         case .author:
-            return "Author"
+            return String(localized: "Author")
         case .publicationYearNewest:
-            return "Publication year"
+            return String(localized: "Publication year")
         case .newestFirst:
-            return "Newest first"
+            return String(localized: "Newest first")
         }
     }
 }
@@ -155,7 +155,7 @@ struct PublisherDetailView: View {
                 selectedSort: selectedOrderBinding,
                 selectedLayoutMode: layoutModeBinding,
                 sortOptions: PublisherBookOrderMode.allCases,
-                sortSectionTitle: "Sort",
+                sortSectionTitle: String(localized: "Sort"),
                 sortTitle: { $0.title }
             )
             
@@ -211,13 +211,13 @@ struct PublisherDetailView: View {
 
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 metadataField(
-                    title: "Books",
+                    title: String(localized: "Books"),
                     value: String(books.count),
                     systemImage: "book.closed"
                 )
 
                 metadataField(
-                    title: "Series",
+                    title: String(localized: "Series"),
                     value: String(series.count),
                     systemImage: "rectangle.stack"
                 )
