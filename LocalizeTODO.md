@@ -1,6 +1,5 @@
 # Хорошие кандидаты
 
-* Other [6438] → enum.acquisition.other [4641] / enum.bell_material.other [4753], ru: Другое
 * Places [6582] → editor.origin.places [4259], ru: Места
 * Sort [7232] → bell_catalog.sort.menu [441], ru: Сортировка
 * Storage [7592] → common.field.storage [3324] / settings.storage.title [7212], ru: Хранение

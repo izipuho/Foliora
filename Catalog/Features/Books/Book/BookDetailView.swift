@@ -1020,7 +1020,7 @@ private extension BookIdentifierType {
         case .isbn13: return "ISBN-13"
         case .asin: return "ASIN"
         case .inventory: return String(localized: "Inventory")
-        case .other: return String(localized: "Other")
+        case .other: return String(localized: "common.other")
         }
     }
 }
