@@ -450,7 +450,10 @@ private struct SeriesPublisherSelectionView: View {
                         selection = publisher
                         dismiss()
                     } label: {
-                        Label("Add “\(newPublisherName)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newPublisherName),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 

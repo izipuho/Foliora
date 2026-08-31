@@ -248,9 +248,9 @@ private struct PersonCard: View {
         case let (birth?, death?):
             return "\(birth)–\(death)"
         case let (birth?, nil):
-            return String(localized: "Born \(birth)")
+            return String.localizedStringWithFormat(String(localized: "person.lifespan.born_year"), birth)
         case let (nil, death?):
-            return String(localized: "Died \(death)")
+            return String.localizedStringWithFormat(String(localized: "person.lifespan.died_year"), death)
         case (nil, nil):
             return nil
         }

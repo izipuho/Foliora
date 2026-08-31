@@ -149,7 +149,8 @@ struct PublishersView: View {
             parts.append(CollectionKind.bookCountLabel(for: bookCount))
         }
         if seriesCount > 0 {
-            parts.append(String(localized: "\(seriesCount) series"))
+            let format = String(localized: "publisher.summary.series_count")
+            parts.append(String(format: format, locale: .autoupdatingCurrent, seriesCount))
         }
         return parts.joined(separator: " · ")
     }
@@ -386,7 +387,8 @@ struct PublisherEditorView: View {
             parts.append(CollectionKind.bookCountLabel(for: bookCount))
         }
         if seriesCount > 0 {
-            parts.append(String(localized: "\(seriesCount) series"))
+            let format = String(localized: "publisher.summary.series_count")
+            parts.append(String(format: format, locale: .autoupdatingCurrent, seriesCount))
         }
 
         guard !parts.isEmpty else {

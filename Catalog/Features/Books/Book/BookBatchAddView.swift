@@ -392,7 +392,10 @@ private struct BookBatchNamedSelectionView<Value: Identifiable & Hashable>: View
                         selection = newValue
                         dismiss()
                     } label: {
-                        Label("Add “\(newValueName)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newValueName),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
@@ -608,7 +611,9 @@ private struct BookBatchLookupTextField: View {
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Choose or add \(title)")
+            .accessibilityLabel(
+                String.localizedStringWithFormat(String(localized: "common.accessibility.choose_or_add"), title)
+            )
         }
         .sheet(isPresented: $isPresentingLookup) {
             BookBatchLookupSelectionView(
@@ -653,7 +658,10 @@ private struct BookBatchLookupSelectionView: View {
                         selection = newValueCandidate
                         dismiss()
                     } label: {
-                        Label("Add “\(newValueCandidate)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newValueCandidate),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 

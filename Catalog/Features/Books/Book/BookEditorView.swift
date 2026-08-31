@@ -435,7 +435,10 @@ struct BookEditorView: View {
 
     private var volumeValidationMessage: String {
         if let totalBookCount = selectedSeries?.totalBookCount {
-            return String(localized: "Enter a whole number from 1 to \(totalBookCount).")
+            return String.localizedStringWithFormat(
+                String(localized: "common.validation.whole_number_range_1_to_max"),
+                totalBookCount
+            )
         }
 
         return String(localized: "book.validation.positive_whole_number")
@@ -694,7 +697,10 @@ private struct BookSeriesSelectionView: View {
                         selection = newSeries
                         dismiss()
                     } label: {
-                        Label("Add “\(newSeriesName)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newSeriesName),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
@@ -831,7 +837,10 @@ private struct BookPublisherSelectionView: View {
                         selection = newPublisher
                         dismiss()
                     } label: {
-                        Label("Add “\(newPublisherName)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newPublisherName),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
@@ -1052,7 +1061,10 @@ private struct BookPersonSelectionView: View {
                         selection = newPerson
                         dismiss()
                     } label: {
-                        Label("Add “\(newPersonName)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newPersonName),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
@@ -1375,7 +1387,9 @@ private struct LookupTextField: View {
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Choose or add \(title)")
+            .accessibilityLabel(
+                String.localizedStringWithFormat(String(localized: "common.accessibility.choose_or_add"), title)
+            )
         }
         .sheet(isPresented: $isPresentingLookup) {
             LookupSelectionView(
@@ -1418,7 +1432,10 @@ private struct LookupSelectionView: View {
                         selection = newValueCandidate
                         dismiss()
                     } label: {
-                        Label("Add “\(newValueCandidate)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newValueCandidate),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
