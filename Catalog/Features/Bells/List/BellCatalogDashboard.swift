@@ -258,7 +258,7 @@ private struct MetricStrip: View {
                 )
 
                 MetricPill(
-                    title: String(localized: "bell_catalog.summary.tags"),
+                    title: String(localized: "common.field.tags"),
                     value: "\(stats.tagCount)",
                     systemImage: "tag.fill",
                     tint: tint

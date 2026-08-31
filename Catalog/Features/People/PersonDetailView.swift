@@ -8,11 +8,11 @@ private enum PersonBookOrderMode: String, CaseIterable, Hashable {
     var title: String {
         switch self {
         case .title:
-            return "Title"
+            return String(localized: "common.field_title")
         case .publicationYearNewest:
-            return "Publication year"
+            return String(localized: "book.field.publication_year")
         case .newestFirst:
-            return "Newest first"
+            return String(localized: "sort.newest_first")
         }
     }
 }
@@ -111,14 +111,14 @@ struct PersonDetailView: View {
                 if sortedBooks.isEmpty {
                     CatalogEmptyStateView(
                         systemImage: "book.closed",
-                        title: "No Books",
-                        message: "No books in this library currently reference this person.",
+                        title: "library.empty.books.title",
+                        message: "person.detail.empty_books.message",
                         primaryTint: accentColor
                     )
                     .frame(minHeight: 260)
                 } else {
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        Text("Books")
+                        Text("common.books")
                             .font(CatalogTypography.sectionTitle)
 
                         BookGridView(
@@ -145,7 +145,7 @@ struct PersonDetailView: View {
                 selectedSort: selectedOrderBinding,
                 selectedLayoutMode: layoutModeBinding,
                 sortOptions: PersonBookOrderMode.allCases,
-                sortSectionTitle: "Sort",
+                sortSectionTitle: String(localized: "common.sort"),
                 sortTitle: { $0.title }
             )
 
@@ -156,7 +156,7 @@ struct PersonDetailView: View {
                     } label: {
                         Image(systemName: "square.and.pencil")
                     }
-                    .accessibilityLabel("Edit Person")
+                    .accessibilityLabel("person.action.edit")
                 }
             }
         }
@@ -211,7 +211,7 @@ struct PersonDetailView: View {
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                     if let birthPlace = person.birthPlace {
                         metadataField(
-                            title: "Birth place",
+                            title: String(localized: "person.field.birth_place"),
                             value: birthPlace.displayName,
                             systemImage: "mappin.and.ellipse"
                         )
@@ -219,7 +219,7 @@ struct PersonDetailView: View {
 
                     if let deathPlace = person.deathPlace {
                         metadataField(
-                            title: "Death place",
+                            title: String(localized: "person.field.death_place"),
                             value: deathPlace.displayName,
                             systemImage: "mappin.and.ellipse"
                         )
@@ -231,13 +231,13 @@ struct PersonDetailView: View {
 
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 metadataField(
-                    title: "Books",
+                    title: String(localized: "common.books"),
                     value: String(books.count),
                     systemImage: "book.closed"
                 )
 
                 metadataField(
-                    title: "Roles",
+                    title: String(localized: "person.section.roles"),
                     value: rolesText,
                     systemImage: "person.text.rectangle"
                 )
@@ -282,9 +282,9 @@ struct PersonDetailView: View {
         case let (birth?, death?):
             return "\(birth)–\(death)"
         case let (birth?, nil):
-            return "Born \(birth)"
+            return String.localizedStringWithFormat(String(localized: "person.lifespan.born_year"), birth)
         case let (nil, death?):
-            return "Died \(death)"
+            return String.localizedStringWithFormat(String(localized: "person.lifespan.died_year"), death)
         case (nil, nil):
             return nil
         }

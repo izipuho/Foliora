@@ -168,7 +168,7 @@ struct BookEditorView: View {
                 }
 
                 Section(String(localized: "common.field.description")) {
-                    TextField(String(localized: "common.field.title"), text: $title)
+                    TextField(String(localized: "common.field_title"), text: $title)
                         .focused($isTitleFocused)
 
                     if !isTitleValid {
@@ -202,26 +202,26 @@ struct BookEditorView: View {
 
                 Section("common.book") {
                     YearPickerField(
-                        title: "Publication year",
+                        title: String(localized: "book.field.publication_year"),
                         selection: $selectedPublicationYearOption,
                         options: publicationYearOptions
                     )
 
                     optionalPositiveIntegerField(
-                        title: "Pages",
+                        title: String(localized: "book.field.pages"),
                         text: $pageCount
                     )
 
                     BookLanguagePickerField(languageCode: $languageCode)
 
                     LookupTextField(
-                        title: "Genre",
+                        title: String(localized: "book.field.genre"),
                         value: $genre,
                         suggestions: genreSuggestions
                     )
                 }
 
-                Section("Series") {
+                Section("series.title") {
                     BookSeriesPickerField(
                         selection: $selectedSeries,
                         series: availableSeries,
@@ -237,7 +237,7 @@ struct BookEditorView: View {
                     }
                 }
 
-                Section("Publisher") {
+                Section("publisher.title") {
                     BookPublisherPickerField(
                         selection: $selectedPublisher,
                         publishers: availablePublishers,
@@ -248,7 +248,7 @@ struct BookEditorView: View {
                     )
                 }
 
-                Section("Contributors") {
+                Section("book.section.contributors") {
                     ForEach(contributors.indices, id: \.self) { index in
                         let contributor = contributors[index]
 
@@ -279,11 +279,11 @@ struct BookEditorView: View {
                         editingContributorIndex = nil
                         isPresentingContributorEditor = true
                     } label: {
-                        Label("Add Contributor", systemImage: "plus")
+                        Label("book_contributor.action.add", systemImage: "plus")
                     }
                 }
 
-                Section("Identifiers") {
+                Section("book.section.identifiers") {
                     ForEach(identifiers.indices, id: \.self) { index in
                         let identifier = identifiers[index]
 
@@ -314,13 +314,13 @@ struct BookEditorView: View {
                         editingIdentifierIndex = nil
                         isPresentingIdentifierEditor = true
                     } label: {
-                        Label("Add Identifier", systemImage: "plus")
+                        Label("book_identifier.action.add", systemImage: "plus")
                     }
                 }
 
                 Section(String(localized: "item.detail.section.collection_info")) {
                     YearPickerField(
-                        title: String(localized: "common.field.acquired_year"),
+                        title: String(localized: "item.detail.acquisition_year"),
                         selection: $selectedAcquiredYearOption,
                         options: acquiredYearOptions
                     )
@@ -342,7 +342,7 @@ struct BookEditorView: View {
                     )
                 }
             }
-            .navigationTitle(existingBook == nil ? "Add Book" : "Edit Book")
+            .navigationTitle(existingBook == nil ? String(localized: "book.action.add") : String(localized: "book.action.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -404,7 +404,7 @@ struct BookEditorView: View {
 
     private var volumeField: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-            LabeledContent("Volume") {
+            LabeledContent("book.field.volume") {
                 numericTextField($volumeNumber)
             }
 
@@ -435,10 +435,13 @@ struct BookEditorView: View {
 
     private var volumeValidationMessage: String {
         if let totalBookCount = selectedSeries?.totalBookCount {
-            return "Enter a whole number from 1 to \(totalBookCount)."
+            return String.localizedStringWithFormat(
+                String(localized: "common.validation.whole_number_range_1_to_max"),
+                totalBookCount
+            )
         }
 
-        return "Enter a positive whole number."
+        return String(localized: "book.validation.positive_whole_number")
     }
 
     private func optionalPositiveIntegerField(
@@ -452,7 +455,7 @@ struct BookEditorView: View {
 
             if !isOptionalPositiveIntegerValid(text.wrappedValue) {
                 Label(
-                    "Enter a positive whole number.",
+                    "book.validation.positive_whole_number",
                     systemImage: "exclamationmark.circle.fill"
                 )
                 .font(.footnote)
@@ -628,7 +631,7 @@ private struct BookSeriesPickerField: View {
             isPresentingPicker = true
         } label: {
             HStack {
-                Text("Series")
+                Text("series.title")
                     .foregroundStyle(.primary)
 
                 Spacer()
@@ -694,7 +697,10 @@ private struct BookSeriesSelectionView: View {
                         selection = newSeries
                         dismiss()
                     } label: {
-                        Label("Add “\(newSeriesName)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newSeriesName),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
@@ -726,7 +732,7 @@ private struct BookSeriesSelectionView: View {
                                     .foregroundStyle(.primary)
 
                                 if let totalBookCount = item.totalBookCount {
-                                    Text("\(totalBookCount) books")
+                                    Text(CollectionKind.bookCountLabel(for: totalBookCount))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -742,9 +748,9 @@ private struct BookSeriesSelectionView: View {
                     }
                 }
             }
-            .navigationTitle("Series")
+            .navigationTitle("series.title")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search or add")
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -769,7 +775,7 @@ private struct BookPublisherPickerField: View {
             isPresentingPicker = true
         } label: {
             HStack {
-                Text("Publisher")
+                Text("publisher.title")
                     .foregroundStyle(.primary)
 
                 Spacer()
@@ -831,7 +837,10 @@ private struct BookPublisherSelectionView: View {
                         selection = newPublisher
                         dismiss()
                     } label: {
-                        Label("Add “\(newPublisherName)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newPublisherName),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
@@ -871,9 +880,9 @@ private struct BookPublisherSelectionView: View {
                     }
                 }
             }
-            .navigationTitle("Publisher")
+            .navigationTitle("publisher.title")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search or add")
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -934,8 +943,8 @@ private struct BookContributorEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Contribution") {
-                    Picker("Role", selection: $role) {
+                Section("book_contributor.section.contribution") {
+                    Picker("book_contributor.field.role", selection: $role) {
                         ForEach(BookContributorRole.allCases) { role in
                             Text(role.displayName).tag(role)
                         }
@@ -945,7 +954,7 @@ private struct BookContributorEditorView: View {
                         isPresentingPersonPicker = true
                     } label: {
                         HStack {
-                            Text("Person")
+                            Text("person.title")
                                 .foregroundStyle(.primary)
 
                             Spacer()
@@ -963,7 +972,7 @@ private struct BookContributorEditorView: View {
 
                     if isDuplicate {
                         Label(
-                            "This person already has this role.",
+                            "book_contributor.validation.duplicate_role",
                             systemImage: "exclamationmark.circle.fill"
                         )
                         .font(.footnote)
@@ -971,7 +980,7 @@ private struct BookContributorEditorView: View {
                     }
                 }
             }
-            .navigationTitle(contributor == nil ? "Add Contributor" : "Edit Contributor")
+            .navigationTitle(contributor == nil ? String(localized: "book_contributor.action.add") : String(localized: "book_contributor.action.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -1052,7 +1061,10 @@ private struct BookPersonSelectionView: View {
                         selection = newPerson
                         dismiss()
                     } label: {
-                        Label("Add “\(newPersonName)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newPersonName),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
@@ -1092,9 +1104,9 @@ private struct BookPersonSelectionView: View {
                     }
                 }
             }
-            .navigationTitle("Person")
+            .navigationTitle("person.title")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search or add")
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -1148,24 +1160,24 @@ private struct BookIdentifierEditorView: View {
 
     private var validationMessage: String? {
         guard !trimmedValue.isEmpty else {
-            return "Value is required."
+            return String(localized: "book_identifier.validation.value_required")
         }
 
         switch type {
         case .isbn10:
             guard isValidISBN10(trimmedValue) else {
-                return "ISBN-10 must contain 10 digits, with X allowed as the final character."
+                return String(localized: "book_identifier.validation.isbn10_invalid")
             }
         case .isbn13:
             guard isValidISBN13(trimmedValue) else {
-                return "ISBN-13 must contain 13 digits."
+                return String(localized: "book_identifier.validation.isbn13_invalid")
             }
         case .asin, .inventory, .other:
             break
         }
 
         if isDuplicate {
-            return "This identifier is already added."
+            return String(localized: "book_identifier.validation.duplicate")
         }
 
         return nil
@@ -1178,14 +1190,14 @@ private struct BookIdentifierEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Identifier") {
-                    Picker("Type", selection: $type) {
+                Section("book_identifier.title") {
+                    Picker("common.type", selection: $type) {
                         ForEach(BookIdentifierType.allCases) { type in
                             Text(type.bookEditorDisplayName).tag(type)
                         }
                     }
 
-                    TextField("Value", text: $value)
+                    TextField("book_identifier.field.value", text: $value)
 
                     if let validationMessage {
                         Label(
@@ -1197,7 +1209,7 @@ private struct BookIdentifierEditorView: View {
                     }
                 }
             }
-            .navigationTitle(identifier == nil ? "Add Identifier" : "Edit Identifier")
+            .navigationTitle(identifier == nil ? String(localized: "book_identifier.action.add") : String(localized: "book_identifier.action.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -1236,7 +1248,7 @@ private struct BookLanguagePickerField: View {
             isPresentingPicker = true
         } label: {
             HStack {
-                Text("Language")
+                Text("book.field.language")
                     .foregroundStyle(.primary)
 
                 Spacer()
@@ -1336,9 +1348,9 @@ private struct BookLanguagePickerView: View {
                     }
                 }
             }
-            .navigationTitle("Language")
+            .navigationTitle("book.field.language")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search languages")
+            .searchable(text: $searchText, prompt: "picker.search_languages")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -1375,7 +1387,9 @@ private struct LookupTextField: View {
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Choose or add \(title)")
+            .accessibilityLabel(
+                String.localizedStringWithFormat(String(localized: "common.accessibility.choose_or_add"), title)
+            )
         }
         .sheet(isPresented: $isPresentingLookup) {
             LookupSelectionView(
@@ -1418,7 +1432,10 @@ private struct LookupSelectionView: View {
                         selection = newValueCandidate
                         dismiss()
                     } label: {
-                        Label("Add “\(newValueCandidate)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newValueCandidate),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
@@ -1443,7 +1460,7 @@ private struct LookupSelectionView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search or add")
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -1462,8 +1479,8 @@ private extension BookIdentifierType {
         case .isbn10: "ISBN-10"
         case .isbn13: "ISBN-13"
         case .asin: "ASIN"
-        case .inventory: "Inventory"
-        case .other: "Other"
+        case .inventory: String(localized: "book.field.inventory")
+        case .other: String(localized: "common.other")
         }
     }
 }

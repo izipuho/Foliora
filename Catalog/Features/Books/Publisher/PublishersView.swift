@@ -89,7 +89,7 @@ struct PublishersView: View {
                         }
                     }
                 }
-                .searchable(text: $searchText, prompt: "Search publishers")
+                .searchable(text: $searchText, prompt: "publisher.search.prompt")
             }
         }
         .background {
@@ -99,7 +99,7 @@ struct PublishersView: View {
             )
             .ignoresSafeArea()
         }
-        .navigationTitle("Publishers")
+        .navigationTitle("publisher.title.plural")
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(item: $selectedPublisher) { publisher in
             PublisherDetailView(
@@ -122,8 +122,8 @@ struct PublishersView: View {
     private var emptyState: some View {
         CatalogEmptyStateView(
             systemImage: "building.2",
-            title: "No Publishers",
-            message: "No publishers are used in this library yet.",
+            title: "publisher.empty.title",
+            message: "publisher.empty.message",
             primaryTint: collection.backgroundStyle.accentColor
         )
     }
@@ -146,10 +146,11 @@ struct PublishersView: View {
 
         var parts: [String] = []
         if bookCount > 0 {
-            parts.append("\(bookCount) \(bookCount == 1 ? "book" : "books")")
+            parts.append(CollectionKind.bookCountLabel(for: bookCount))
         }
         if seriesCount > 0 {
-            parts.append("\(seriesCount) series")
+            let format = String(localized: "publisher.summary.series_count")
+            parts.append(String(format: format, locale: .autoupdatingCurrent, seriesCount))
         }
         return parts.joined(separator: " · ")
     }
@@ -303,7 +304,7 @@ struct PublisherEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Logo") {
+                Section("publisher.field.logo") {
                     MediaSection(
                         itemID: editorPublisherID,
                         mediaAssets: $logoAssets,
@@ -320,11 +321,11 @@ struct PublisherEditorView: View {
                 }
 
                 Section {
-                    TextField("Name", text: $name)
+                    TextField("common.name", text: $name)
                         .focused($isNameFocused)
 
                     PlacePickerField(
-                        title: "Location",
+                        title: String(localized: "common.location"),
                         selectedLabel: selectedLocationLabel,
                         places: places,
                         selectedPlace: $selectedLocation
@@ -333,13 +334,13 @@ struct PublisherEditorView: View {
 
                 if existingPublisher != nil, onDelete != nil {
                     Section {
-                        Button("Delete Publisher", role: .destructive) {
+                        Button("publisher.action.delete", role: .destructive) {
                             isConfirmingDelete = true
                         }
                     }
                 }
             }
-            .navigationTitle(existingPublisher == nil ? "Add Publisher" : "Edit Publisher")
+            .navigationTitle(existingPublisher == nil ? String(localized: "publisher.action.add") : String(localized: "publisher.action.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -360,11 +361,11 @@ struct PublisherEditorView: View {
                 }
             }
             .confirmationDialog(
-                "Delete Publisher?",
+                "publisher.delete.title",
                 isPresented: $isConfirmingDelete,
                 titleVisibility: .visible
             ) {
-                Button("Delete Publisher", role: .destructive) {
+                Button("publisher.action.delete", role: .destructive) {
                     onDelete?()
                     dismiss()
                 }
@@ -383,17 +384,21 @@ struct PublisherEditorView: View {
     private var deleteMessage: String {
         var parts: [String] = []
         if bookCount > 0 {
-            parts.append("\(bookCount) \(bookCount == 1 ? "book" : "books")")
+            parts.append(CollectionKind.bookCountLabel(for: bookCount))
         }
         if seriesCount > 0 {
-            parts.append("\(seriesCount) series")
+            let format = String(localized: "publisher.summary.series_count")
+            parts.append(String(format: format, locale: .autoupdatingCurrent, seriesCount))
         }
 
         guard !parts.isEmpty else {
-            return "This publisher will be deleted from the catalog."
+            return String(localized: "publisher.delete.message")
         }
 
-        return "This publisher will be removed from \(parts.joined(separator: " and ")) across the catalog. The books and series will be kept."
+        return String.localizedStringWithFormat(
+            String(localized: "publisher.delete.references_message"),
+            parts.joined(separator: String(localized: "common.list.and_separator"))
+        )
     }
 
     private func savePublisher() {

@@ -64,68 +64,68 @@ struct BookSearchView: View {
 
         return [
             SearchTokenGroup(
-                title: "Libraries",
+                title: String(localized: "library.title.plural"),
                 systemImage: "rectangle.stack",
                 tokens: libraries.map { .library($0.id) }
             ),
             SearchTokenGroup(
-                title: "People",
+                title: String(localized: "person.title.plural"),
                 systemImage: "person.text.rectangle",
                 tokens: peopleByID.values
                     .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
                     .map { .person($0.id) }
             ),
             SearchTokenGroup(
-                title: "Publishers",
+                title: String(localized: "publisher.title.plural"),
                 systemImage: "building.2",
                 tokens: publishersByID.values
                     .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
                     .map { .publisher($0.id) }
             ),
             SearchTokenGroup(
-                title: "Series",
+                title: String(localized: "series.title"),
                 systemImage: "books.vertical",
                 tokens: seriesByID.values
                     .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
                     .map { .series($0.id) }
             ),
             SearchTokenGroup(
-                title: "Languages",
+                title: String(localized: "book.field.languages"),
                 systemImage: "character.book.closed",
                 tokens: uniqueValues(books.compactMap(\.details.languageCode)).map(BookSearchToken.language)
             ),
             SearchTokenGroup(
-                title: "Genres",
+                title: String(localized: "book.field.genres"),
                 systemImage: "text.book.closed",
                 tokens: uniqueValues(books.compactMap(\.details.genre)).map(BookSearchToken.genre)
             ),
             SearchTokenGroup(
-                title: "Tags",
+                title: String(localized: "common.field.tags"),
                 systemImage: "tag",
                 tokens: uniqueValues(books.flatMap(\.tags)).map(BookSearchToken.tag)
             ),
             SearchTokenGroup(
-                title: "Publication Year",
+                title: String(localized: "book.field.publication_year"),
                 systemImage: "calendar",
                 tokens: uniquePublicationYears.map(BookSearchToken.publicationYear)
             ),
             SearchTokenGroup(
-                title: "Acquired Year",
+                title: String(localized: "book.field.acquired_year"),
                 systemImage: "calendar.badge.plus",
                 tokens: uniqueAcquiredYears.map(BookSearchToken.acquiredYear)
             ),
             SearchTokenGroup(
-                title: "Condition",
+                title: String(localized: "common.field.condition"),
                 systemImage: "checkmark.seal",
                 tokens: uniqueConditions.map(BookSearchToken.condition)
             ),
             SearchTokenGroup(
-                title: "Acquisition",
+                title: String(localized: "item.detail.acquisition"),
                 systemImage: "bag",
                 tokens: uniqueAcquisitionMethods.map(BookSearchToken.acquisitionMethod)
             ),
             SearchTokenGroup(
-                title: "Data Health",
+                title: String(localized: "catalog.dashboard.health"),
                 systemImage: "checklist",
                 tokens: BookPresenceFilter.allSearchFilters.map(BookSearchToken.presence)
             )
@@ -174,8 +174,8 @@ struct BookSearchView: View {
         if filteredBooks.isEmpty {
             CatalogEmptyStateView(
                 systemImage: "magnifyingglass",
-                title: "No Books",
-                message: "No books match the current search."
+                title: "library.search.no_books.title",
+                message: "library.search.no_books.message"
             )
             .frame(maxWidth: .infinity)
             .padding(.vertical, 40)
@@ -192,13 +192,13 @@ struct BookSearchView: View {
     private func tokenTitle(_ token: BookSearchToken) -> String {
         switch token {
         case .library(let libraryID):
-            return libraryTitlesByID[libraryID] ?? "Library"
+            return libraryTitlesByID[libraryID] ?? String(localized: "library.title")
         case .person(let personID):
-            return peopleByID[personID]?.name ?? "Person"
+            return peopleByID[personID]?.name ?? String(localized: "person.title")
         case .publisher(let publisherID):
-            return publishersByID[publisherID]?.name ?? "Publisher"
+            return publishersByID[publisherID]?.name ?? String(localized: "publisher.title")
         case .series(let seriesID):
-            return seriesByID[seriesID]?.name ?? "Series"
+            return seriesByID[seriesID]?.name ?? String(localized: "series.title")
         case .language(let languageCode):
             return languageDisplayName(languageCode)
         case .genre(let genre), .tag(let genre):

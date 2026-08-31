@@ -30,12 +30,12 @@ enum BellOrderMode: String, CaseIterable, Hashable {
 
     var title: LocalizedStringResource {
         switch self {
-            case .title: "bell_catalog.sort.title"
-            case .newestFirst: "bell_catalog.sort.newest_first"
-            case .oldestFirst: "bell_catalog.sort.oldest_first"
+            case .title: "sort.title"
+            case .newestFirst: "sort.newest_first"
+            case .oldestFirst: "sort.oldest_first"
             case .geography: "common.ui.geography"
-            case .acquisitionYear: "bell_catalog.sort.acquisition_year"
-            case .storage: "bell_catalog.sort.storage"
+            case .acquisitionYear: "item.detail.acquisition_year"
+            case .storage: "common.storage"
         }
     }
 }

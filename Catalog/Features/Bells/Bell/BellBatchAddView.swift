@@ -176,7 +176,7 @@ struct BellBatchAddView: View {
         Form {
             Section {
                 LocationPickerField(
-                    title: String(localized: "editor.location"),
+                    title: String(localized: "common.location"),
                     selectedLabel: selectedLocationLabel,
                     locations: availableLocations,
                     onManageLocations: {
@@ -194,7 +194,7 @@ struct BellBatchAddView: View {
                 )
 
                 YearPickerField(
-                    title: String(localized: "common.field.acquired_year"),
+                    title: String(localized: "item.detail.acquisition_year"),
                     selection: $selectedAcquiredYearOption,
                     options: acquiredYearOptions
                 )

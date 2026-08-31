@@ -48,7 +48,7 @@ enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
         case .wood:
             return String(localized: "enum.bell_material.wood")
         case .other:
-            return String(localized: "enum.bell_material.other")
+            return String(localized: "common.other")
         }
     }
 }

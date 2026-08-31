@@ -7,15 +7,15 @@ private extension BookPresenceFilter {
     var title: String {
         switch self {
         case .missingCover:
-            return "Missing Cover"
+            return String(localized: "library.health.missing_cover")
         case .missingAuthor:
-            return "Missing Author"
+            return String(localized: "library.health.missing_author")
         case .missingPublicationYear:
-            return "Missing Publication Year"
+            return String(localized: "library.health.missing_publication_year")
         case .incompleteSeries:
-            return "Incomplete Series"
+            return String(localized: "library.health.incomplete_series")
         case .unknownSeriesSize:
-            return "Series Size Unknown"
+            return String(localized: "library.health.series_size_unknown")
         }
     }
 }
@@ -244,9 +244,9 @@ struct LibraryView: View {
         if canEditLibrary && collection.itemCount == 0 {
             CatalogEmptyStateView(
                 systemImage: "books.vertical",
-                title: "No Books",
-                message: "This library does not contain any books yet.",
-                primaryActionTitle: "Add Book",
+                title: "library.empty.books.title",
+                message: "library.empty.books.message",
+                primaryActionTitle: "book.action.add",
                 primaryActionSystemImage: "plus.circle.fill",
                 primaryTint: collection.backgroundStyle.accentColor,
                 primaryAction: { isPresentingAddBookOptions = true }
@@ -310,7 +310,7 @@ struct LibraryView: View {
                         }
 
                         if !displayModel.layout.isGrouped {
-                            CatalogSectionHeader(title: String(localized: "Library"))
+                            CatalogSectionHeader(title: String(localized: "library.title"))
                         }
                     }
 
@@ -499,7 +499,7 @@ struct LibraryView: View {
             selectedLayoutMode: layoutMode,
             isPresentingAddOptions: $isPresentingAddBookOptions,
             sortOptions: LibraryOrderMode.allCases,
-            sortSectionTitle: "Sort",
+            sortSectionTitle: String(localized: "common.sort"),
             sortTitle: { $0.title },
             canEdit: canEditLibrary,
             onEdit: {
@@ -519,7 +519,7 @@ struct LibraryView: View {
     private var editLibrarySheet: some View {
         CollectionEditorView(
             homes: homes,
-            screenTitle: "Edit Library",
+            screenTitle: String(localized: "library.action.edit"),
             initialTitle: collection.name,
             initialNotes: collection.subtitle,
             initialHomeID: collection.homeID,

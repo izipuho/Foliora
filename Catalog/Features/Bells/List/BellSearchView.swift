@@ -142,7 +142,7 @@ struct BellSearchView: View {
                 tokens: uniqueValues(bells.map(\.materialDisplayName)).map(BellSearchToken.material)
             ),
             SearchTokenGroup(
-                title: String(localized: "bell_catalog.summary.tags"),
+                title: String(localized: "common.field.tags"),
                 systemImage: "tag",
                 tokens: uniqueValues(bells.flatMap(\.tagValues)).map(BellSearchToken.tag)
             ),
@@ -229,7 +229,7 @@ struct BellSearchView: View {
         switch token {
         case .collection(let collectionID):
             return collectionTitlesByID[collectionID]
-                ?? String(localized: "search.scope.collection")
+                ?? String(localized: "common.collection")
         case .country(let value), .material(let value), .tag(let value):
             return value
         case .condition(let condition):

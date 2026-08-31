@@ -48,7 +48,7 @@ struct BookBatchAddView: View {
             Form {
                 Section("common.book") {
                     BookBatchNamedPickerField(
-                        title: "Author",
+                        title: String(localized: "book.field.author"),
                         selection: $selectedAuthor,
                         values: catalogPeople,
                         name: \.name,
@@ -69,7 +69,7 @@ struct BookBatchAddView: View {
                     )
 
                     BookBatchNamedPickerField(
-                        title: "Publisher",
+                        title: String(localized: "publisher.title"),
                         selection: $selectedPublisher,
                         values: catalogPublishers,
                         name: \.name,
@@ -85,12 +85,12 @@ struct BookBatchAddView: View {
                     )
 
                     BookBatchNamedPickerField(
-                        title: "Series",
+                        title: String(localized: "series.title"),
                         selection: $selectedSeries,
                         values: catalogSeries,
                         name: \.name,
                         subtitle: { series in
-                            series.totalBookCount.map { "\($0) books" }
+                            series.totalBookCount.map { CollectionKind.bookCountLabel(for: $0) }
                         },
                         create: { name in
                             BookSeries(
@@ -107,7 +107,7 @@ struct BookBatchAddView: View {
                     BookBatchLanguagePickerField(languageCode: $languageCode)
 
                     BookBatchLookupTextField(
-                        title: "Genre",
+                        title: String(localized: "book.field.genre"),
                         value: $genre,
                         suggestions: catalogGenreSuggestions
                     )
@@ -115,7 +115,7 @@ struct BookBatchAddView: View {
 
                 Section(String(localized: "item.detail.section.collection_info")) {
                     YearPickerField(
-                        title: String(localized: "common.field.acquired_year"),
+                        title: String(localized: "item.detail.acquisition_year"),
                         selection: $selectedAcquiredYearOption,
                         options: acquiredYearOptions
                     )
@@ -168,10 +168,7 @@ struct BookBatchAddView: View {
     }
 
     private var localizedBookCount: String {
-        String.localizedStringWithFormat(
-            String(localized: "collection.count.books"),
-            initialMediaAssets.count
-        )
+        CollectionKind.bookCountLabel(for: initialMediaAssets.count)
     }
 
     private var createButtonLabel: String {
@@ -395,7 +392,10 @@ private struct BookBatchNamedSelectionView<Value: Identifiable & Hashable>: View
                         selection = newValue
                         dismiss()
                     } label: {
-                        Label("Add “\(newValueName)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newValueName),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
@@ -445,7 +445,7 @@ private struct BookBatchNamedSelectionView<Value: Identifiable & Hashable>: View
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search or add")
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -472,7 +472,7 @@ private struct BookBatchLanguagePickerField: View {
             isPresentingPicker = true
         } label: {
             HStack {
-                Text("Language")
+                Text("book.field.language")
                     .foregroundStyle(.primary)
 
                 Spacer()
@@ -572,9 +572,9 @@ private struct BookBatchLanguagePickerView: View {
                     }
                 }
             }
-            .navigationTitle("Language")
+            .navigationTitle("book.field.language")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search languages")
+            .searchable(text: $searchText, prompt: "picker.search_languages")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -611,7 +611,9 @@ private struct BookBatchLookupTextField: View {
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Choose or add \(title)")
+            .accessibilityLabel(
+                String.localizedStringWithFormat(String(localized: "common.accessibility.choose_or_add"), title)
+            )
         }
         .sheet(isPresented: $isPresentingLookup) {
             BookBatchLookupSelectionView(
@@ -656,7 +658,10 @@ private struct BookBatchLookupSelectionView: View {
                         selection = newValueCandidate
                         dismiss()
                     } label: {
-                        Label("Add “\(newValueCandidate)”", systemImage: "plus.circle.fill")
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newValueCandidate),
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
 
@@ -681,7 +686,7 @@ private struct BookBatchLookupSelectionView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search or add")
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {

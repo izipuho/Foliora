@@ -9,13 +9,13 @@ private enum PublisherBookOrderMode: String, CaseIterable, Hashable {
     var title: String {
         switch self {
         case .title:
-            return "Title"
+            return String(localized: "common.field_title")
         case .author:
-            return "Author"
+            return String(localized: "book.field.author")
         case .publicationYearNewest:
-            return "Publication year"
+            return String(localized: "book.field.publication_year")
         case .newestFirst:
-            return "Newest first"
+            return String(localized: "sort.newest_first")
         }
     }
 }
@@ -122,14 +122,14 @@ struct PublisherDetailView: View {
                 if sortedBooks.isEmpty {
                     CatalogEmptyStateView(
                         systemImage: "book.closed",
-                        title: "No Books",
-                        message: "No books in this library currently use this publisher.",
+                        title: "library.empty.books.title",
+                        message: "publisher.detail.empty_books.message",
                         primaryTint: accentColor
                     )
                     .frame(minHeight: 260)
                 } else {
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        Text("Books")
+                        Text("common.books")
                             .font(CatalogTypography.sectionTitle)
 
                         BookGridView(
@@ -155,7 +155,7 @@ struct PublisherDetailView: View {
                 selectedSort: selectedOrderBinding,
                 selectedLayoutMode: layoutModeBinding,
                 sortOptions: PublisherBookOrderMode.allCases,
-                sortSectionTitle: "Sort",
+                sortSectionTitle: String(localized: "common.sort"),
                 sortTitle: { $0.title }
             )
             
@@ -166,7 +166,7 @@ struct PublisherDetailView: View {
                     } label: {
                         Image(systemName: "square.and.pencil")
                     }
-                    .accessibilityLabel("Edit Publisher")
+                    .accessibilityLabel("publisher.action.edit")
                 }
             }
         }
@@ -211,13 +211,13 @@ struct PublisherDetailView: View {
 
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 metadataField(
-                    title: "Books",
+                    title: String(localized: "common.books"),
                     value: String(books.count),
                     systemImage: "book.closed"
                 )
 
                 metadataField(
-                    title: "Series",
+                    title: String(localized: "series.title"),
                     value: String(series.count),
                     systemImage: "rectangle.stack"
                 )

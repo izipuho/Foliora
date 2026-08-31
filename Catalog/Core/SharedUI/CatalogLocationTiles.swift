@@ -169,7 +169,7 @@ struct CatalogStorageTile: View {
 
     private var storageContent: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            Label(String(localized: "common.field.storage"), systemImage: "square.stack.3d.up")
+            Label(String(localized: "common.storage"), systemImage: "square.stack.3d.up")
                 .font(CatalogTypography.cardLabel)
                 .foregroundStyle(.secondary)
 
@@ -191,7 +191,7 @@ struct CatalogStorageTile: View {
 
     private var unassignedStorageContent: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            Label(String(localized: "common.field.storage"), systemImage: "square.stack.3d.up.slash")
+            Label(String(localized: "common.storage"), systemImage: "square.stack.3d.up.slash")
                 .font(CatalogTypography.cardLabel)
                 .foregroundStyle(.secondary)
 

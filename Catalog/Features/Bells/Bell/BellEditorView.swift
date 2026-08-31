@@ -216,7 +216,7 @@ struct BellEditorView: View {
 
                                     if let titleSuggestion = photoAnalysis.suggestions.title {
                                         PhotoSuggestionRow(
-                                            title: String(localized: "editor.photo_analysis.title"),
+                                            title: String(localized: "common.field_title"),
                                             suggestedValue: localizedPhotoSuggestions?.title ?? titleSuggestion.value,
                                             confidence: titleSuggestion.confidence,
                                             onAccept: {
@@ -261,7 +261,7 @@ struct BellEditorView: View {
 
                                     if let conditionSuggestion = photoAnalysis.suggestions.condition {
                                         PhotoSuggestionRow(
-                                            title: String(localized: "editor.photo_analysis.condition"),
+                                            title: String(localized: "common.field.condition"),
                                             suggestedValue: conditionSuggestion.value.displayName,
                                             confidence: conditionSuggestion.confidence,
                                             onAccept: {
@@ -297,7 +297,7 @@ struct BellEditorView: View {
 
                                     if !photoAnalysis.suggestions.suggestedTags.isEmpty {
                                         PhotoSuggestedTagsRow(
-                                            title: String(localized: "editor.photo_analysis.tags"),
+                                            title: String(localized: "common.field.tags"),
                                             suggestions: photoAnalysis.suggestions.suggestedTags,
                                             localizedSuggestions: localizedPhotoSuggestions?.suggestedTags,
                                             onAccept: { newValues in
@@ -351,7 +351,7 @@ struct BellEditorView: View {
 
                         Section(String(localized: "editor.acquisition_details")) {
                             YearPickerField(
-                                title: String(localized: "common.field.acquired_year"),
+                                title: String(localized: "item.detail.acquisition_year"),
                                 selection: $selectedAcquiredYearOption,
                                 options: acquiredYearOptions
                             )
@@ -397,7 +397,7 @@ struct BellEditorView: View {
                             )
 
                             LocationPickerField(
-                                title: String(localized: "editor.location"),
+                                title: String(localized: "common.location"),
                                 selectedLabel: selectedLocationLabel,
                                 locations: availableLocations,
                                 onManageLocations: {

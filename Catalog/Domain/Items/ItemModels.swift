@@ -177,7 +177,7 @@ enum AcquisitionMethod: String, CaseIterable, Identifiable, Codable {
         case .found:
             return String(localized: "enum.acquisition.found")
         case .other:
-            return String(localized: "enum.acquisition.other")
+            return String(localized: "common.other")
         }
     }
 }

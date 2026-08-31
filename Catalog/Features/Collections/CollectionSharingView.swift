@@ -70,7 +70,7 @@ struct CollectionSharingView: View {
                 }
             }
         }
-        .navigationTitle(String(localized: "collection.sharing.title"))
+        .navigationTitle(String(localized: "catalog.dashboard.sharing"))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(
             item: $sharingControllerMode,

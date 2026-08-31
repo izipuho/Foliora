@@ -110,10 +110,10 @@ struct BellCollectionView: View {
             selectedLayoutMode: selectedLayoutModeBinding,
             isPresentingAddOptions: $isPresentingAddBellOptions,
             sortOptions: [.newestFirst, .title, .geography, .acquisitionYear, .storage],
-            sortSectionTitle: String(localized: "bell_catalog.sort.menu"),
+            sortSectionTitle: String(localized: "common.sort"),
             sortTitle: { option in
                 if option == .newestFirst {
-                    return String(localized: "bell_catalog.sort.recently_added")
+                    return String(localized: "sort.recently_added")
                 }
 
                 return String(localized: option.title)

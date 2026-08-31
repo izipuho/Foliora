@@ -54,15 +54,23 @@ struct SeriesDetailView: View {
     }
 
     private var completionText: String {
+        let collected = String(localized: "series.progress.collected")
+
         guard let totalBookCount = series.totalBookCount else {
-            return "\(books.count) collected · total unknown"
+            return "\(collected): \(books.count) · \(String(localized: "series.progress.total_unknown"))"
         }
+
+        let progress = String.localizedStringWithFormat(
+            String(localized: "common.progress.count_of_total"),
+            books.count,
+            totalBookCount
+        )
 
         if books.count >= totalBookCount {
-            return "\(books.count) of \(totalBookCount) collected · complete"
+            return "\(collected): \(progress) · \(String(localized: "series.progress.complete"))"
         }
 
-        return "\(books.count) of \(totalBookCount) collected"
+        return "\(collected): \(progress)"
     }
 
     var body: some View {
@@ -76,14 +84,14 @@ struct SeriesDetailView: View {
                 if sortedBooks.isEmpty {
                     CatalogEmptyStateView(
                         systemImage: "book.closed",
-                        title: "No Books",
-                        message: "No books in this library currently belong to this series.",
+                        title: "library.empty.books.title",
+                        message: "series.detail.empty_books.message",
                         primaryTint: accentColor
                     )
                     .frame(minHeight: 260)
                 } else {
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        Text("Books")
+                        Text("common.books")
                             .font(CatalogTypography.sectionTitle)
 
                         BookGridView(
@@ -113,7 +121,7 @@ struct SeriesDetailView: View {
                     } label: {
                         Image(systemName: "square.and.pencil")
                     }
-                    .accessibilityLabel("Edit Series")
+                    .accessibilityLabel("series.action.edit")
                 }
             }
         }
@@ -164,14 +172,14 @@ struct SeriesDetailView: View {
 
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 metadataField(
-                    title: "Total books",
-                    value: series.totalBookCount.map(String.init) ?? "Unknown",
+                    title: String(localized: "series.field.total_books"),
+                    value: series.totalBookCount.map(String.init) ?? String(localized: "common.unknown"),
                     systemImage: "number"
                 )
 
                 if let publisher = series.publisher {
                     metadataField(
-                        title: "Publisher",
+                        title: String(localized: "publisher.title"),
                         value: publisher.name,
                         systemImage: "building.2"
                     )
