@@ -311,7 +311,7 @@ private struct BookPublisherDashboardCard: View {
                 Text("publisher.title.plural")
                     .font(CatalogTypography.sectionTitle)
 
-                Text(String(localized: "\(libraryCount) in this library"))
+                Text(String.localizedStringWithFormat(String(localized: "library.dashboard.count_in_library"), libraryCount))
                     .font(CatalogTypography.cardSubtitle)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
@@ -334,7 +334,7 @@ private struct BookPeopleDashboardCard: View {
                 Text("person.title.plural")
                     .font(CatalogTypography.sectionTitle)
 
-                Text(String(localized: "\(libraryCount) in this library"))
+                Text(String.localizedStringWithFormat(String(localized: "library.dashboard.count_in_library"), libraryCount))
                     .font(CatalogTypography.cardSubtitle)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)

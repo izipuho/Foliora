@@ -395,7 +395,10 @@ struct PublisherEditorView: View {
             return String(localized: "publisher.delete.message")
         }
 
-        return String(localized: "This publisher will be removed from \(parts.joined(separator: " and ")) across the catalog. The books and series will be kept.")
+        return String.localizedStringWithFormat(
+            String(localized: "publisher.delete.references_message"),
+            parts.joined(separator: String(localized: "common.list.and_separator"))
+        )
     }
 
     private func savePublisher() {

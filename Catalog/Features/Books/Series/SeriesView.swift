@@ -385,7 +385,8 @@ struct SeriesEditorView: View {
             } message: {
                 Text("series.delete.message")
                 if bookCount > 0 {
-                    Text("\(bookCount) books will remain in the library without a series or volume number.")
+                    let format = String(localized: "series.delete.books_remain_without_series_count")
+                    Text(String(format: format, locale: .autoupdatingCurrent, bookCount))
                 }
             }
             .onAppear {

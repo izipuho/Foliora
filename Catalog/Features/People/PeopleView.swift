@@ -395,7 +395,8 @@ struct PersonEditorView: View {
                 if bookCount == 0 {
                     Text("person.delete.message")
                 } else {
-                    Text("This person will be removed from \(bookCount) \(bookCount == 1 ? "book" : "books") across the catalog. The books will be kept.")
+                    let format = String(localized: "person.delete.references_count")
+                    Text(String(format: format, locale: .autoupdatingCurrent, bookCount))
                 }
             }
             .onAppear {
