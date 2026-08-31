@@ -1,7 +1,5 @@
 # Хорошие кандидаты
 
-* Type [7700] → collection.editor.section_type [2237], ru: Тип
-*ужно проверить контекст
 * Shared [7229] → collection.sharing.status.shared [2866], ru: Общая
 * Может не подойти, если согласование не с Collection.
 * Tags [7598] → common.field.tags [3340], ru: Теги

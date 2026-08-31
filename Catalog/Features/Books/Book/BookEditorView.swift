@@ -1179,7 +1179,7 @@ private struct BookIdentifierEditorView: View {
         NavigationStack {
             Form {
                 Section("Identifier") {
-                    Picker("Type", selection: $type) {
+                    Picker("common.type", selection: $type) {
                         ForEach(BookIdentifierType.allCases) { type in
                             Text(type.bookEditorDisplayName).tag(type)
                         }
