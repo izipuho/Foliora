@@ -5,6 +5,7 @@ import Combine
 enum LibraryOrderMode: String, CaseIterable {
     case title
     case author
+    case publisher
     case publicationYearNewest
     case newestFirst
     case series
@@ -16,6 +17,8 @@ enum LibraryOrderMode: String, CaseIterable {
             return "Title"
         case .author:
             return "Author"
+        case .publisher:
+            return "Publisher"
         case .publicationYearNewest:
             return "Publication year"
         case .newestFirst:
@@ -144,6 +147,8 @@ final class LibraryViewModel: ObservableObject {
                 layout = .grouped(titleSections(books: filteredBooks))
             case .author:
                 layout = .grouped(authorSections(books: filteredBooks))
+            case .publisher:
+                layout = .grouped(publisherSections(books: filteredBooks))
             case .publicationYearNewest:
                 layout = .grouped(publicationYearSections(books: filteredBooks))
             case .newestFirst:
@@ -237,6 +242,8 @@ final class LibraryViewModel: ObservableObject {
             return books.sorted(by: titleLessThan)
         case .author:
             return books.sorted(by: authorLessThan)
+        case .publisher:
+            return books.sorted(by: publisherLessThan)
         case .publicationYearNewest:
             return books.sorted(by: publicationYearLessThan)
         case .newestFirst:
@@ -323,6 +330,39 @@ final class LibraryViewModel: ObservableObject {
                     subgroups: []
                 )
             }
+        }
+    }
+
+    private func publisherSections(books: [BookRecord]) -> [LibraryGroupedSection] {
+        let grouped = Dictionary(grouping: books, by: { $0.details.publisher?.id })
+        let orderedKeys = grouped.keys.sorted { lhsID, rhsID in
+            let lhsPublisher = grouped[lhsID]?.first?.details.publisher
+            let rhsPublisher = grouped[rhsID]?.first?.details.publisher
+            return comparePublishers(lhsPublisher, rhsPublisher) == .orderedAscending
+        }
+
+        return orderedKeys.map { publisherID in
+            let sectionBooks = grouped[publisherID, default: []].sorted(by: titleLessThan)
+
+            guard let publisher = sectionBooks.first?.details.publisher else {
+                return LibraryGroupedSection(
+                    id: "publisher-none",
+                    title: "No Publisher",
+                    detailText: nil,
+                    indexTitle: nil,
+                    books: sectionBooks,
+                    subgroups: []
+                )
+            }
+
+            return LibraryGroupedSection(
+                id: "publisher-\(publisher.id.uuidString)",
+                title: publisher.name,
+                detailText: nil,
+                indexTitle: nil,
+                books: sectionBooks,
+                subgroups: []
+            )
         }
     }
 
@@ -483,6 +523,14 @@ final class LibraryViewModel: ObservableObject {
         return lhsAuthor.localizedStandardCompare(rhsAuthor) == .orderedAscending
     }
 
+    private func publisherLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
+        let result = comparePublishers(lhs.details.publisher, rhs.details.publisher)
+        if result == .orderedSame {
+            return titleLessThan(lhs, rhs)
+        }
+        return result == .orderedAscending
+    }
+
     private func publicationYearLessThan(_ lhs: BookRecord, _ rhs: BookRecord) -> Bool {
         let lhsYear = lhs.details.publicationYear
         let rhsYear = rhs.details.publicationYear
@@ -509,6 +557,23 @@ final class LibraryViewModel: ObservableObject {
             return false
         default:
             return titleLessThan(lhs, rhs)
+        }
+    }
+
+    private func comparePublishers(_ lhs: Publisher?, _ rhs: Publisher?) -> ComparisonResult {
+        switch (lhs, rhs) {
+        case let (lhs?, rhs?):
+            let nameComparison = lhs.name.localizedStandardCompare(rhs.name)
+            if nameComparison != .orderedSame {
+                return nameComparison
+            }
+            return lhs.id.uuidString.compare(rhs.id.uuidString)
+        case (.some, .none):
+            return .orderedAscending
+        case (.none, .some):
+            return .orderedDescending
+        case (.none, .none):
+            return .orderedSame
         }
     }
 
