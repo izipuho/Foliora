@@ -29,6 +29,7 @@ struct LibraryDashboardView: View {
                 onSharingChanged: onSharingChanged,
                 onFilterApply: onFilterApply
             )
+            .zIndex(1)
 
             MetricStrip(
                 stats: stats,
@@ -44,6 +45,7 @@ struct LibraryDashboardView: View {
                 .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
                 .opacity(phase.isIdentity ? 1 : 0.82)
         }
+        .zIndex(1)
     }
 }
 
@@ -60,88 +62,77 @@ private struct DashboardCardStrip: View {
     let onSharingChanged: () -> Void
     let onFilterApply: (BookPresenceFilter) -> Void
 
-    @State private var isPresentingDataHealthPopover = false
-
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: CatalogMetrics.Spacing.md) {
-                sharingCard
+        CatalogDashboardCardStrip { onDataHealthExpand in
+            sharingCard
 
-                NavigationLink {
-                    SeriesView(
-                        collection: collection,
-                        catalogSnapshot: catalogSnapshot,
-                        repository: repository,
-                        canEditCollection: canEditCollection,
-                        onBookSelected: onBookSelected
-                    )
-                } label: {
-                    BookSeriesHealthCard(
-                        completeCount: stats.completeSeriesCount,
-                        incompleteCount: stats.incompleteSeriesCount,
-                        unknownCount: stats.unknownSeriesCount,
-                        tint: tint
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink {
-                    PublishersView(
-                        collection: collection,
-                        catalogSnapshot: catalogSnapshot,
-                        repository: repository,
-                        canEditCollection: canEditCollection,
-                        onBookSelected: onBookSelected
-                    )
-                } label: {
-                    BookPublisherDashboardCard(
-                        libraryCount: libraryPublisherCount,
-                        tint: tint
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink {
-                    PeopleView(
-                        collection: collection,
-                        catalogSnapshot: catalogSnapshot,
-                        repository: repository,
-                        canEditCollection: canEditCollection,
-                        onBookSelected: onBookSelected
-                    )
-                } label: {
-                    BookPeopleDashboardCard(
-                        libraryCount: libraryPeopleCount,
-                        tint: tint
-                    )
-                }
-                .buttonStyle(.plain)
-
-                CatalogDashboardDataHealthCard(
-                    progress: stats.dataHealthProgress,
+            NavigationLink {
+                SeriesView(
+                    collection: collection,
+                    catalogSnapshot: catalogSnapshot,
+                    repository: repository,
+                    canEditCollection: canEditCollection,
+                    onBookSelected: onBookSelected
+                )
+            } label: {
+                BookSeriesHealthCard(
+                    completeCount: stats.completeSeriesCount,
+                    incompleteCount: stats.incompleteSeriesCount,
+                    unknownCount: stats.unknownSeriesCount,
                     tint: tint
-                ) {
-                    isPresentingDataHealthPopover = true
+                )
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink {
+                PublishersView(
+                    collection: collection,
+                    catalogSnapshot: catalogSnapshot,
+                    repository: repository,
+                    canEditCollection: canEditCollection,
+                    onBookSelected: onBookSelected
+                )
+            } label: {
+                BookPublisherDashboardCard(
+                    libraryCount: libraryPublisherCount,
+                    tint: tint
+                )
+            }
+            .buttonStyle(.plain)
+
+            NavigationLink {
+                PeopleView(
+                    collection: collection,
+                    catalogSnapshot: catalogSnapshot,
+                    repository: repository,
+                    canEditCollection: canEditCollection,
+                    onBookSelected: onBookSelected
+                )
+            } label: {
+                BookPeopleDashboardCard(
+                    libraryCount: libraryPeopleCount,
+                    tint: tint
+                )
+            }
+            .buttonStyle(.plain)
+
+            CatalogDashboardDataHealthCard(
+                progress: stats.dataHealthProgress,
+                tint: tint,
+                entries: dataHealthEntries,
+                onExpand: onDataHealthExpand,
+                onSelect: { entry in
+                    onFilterApply(entry.filter)
                 }
-                .popover(isPresented: $isPresentingDataHealthPopover) {
-                    CatalogDashboardDataHealthPopover(
-                        entries: dataHealthEntries,
-                        onSelect: { entry in
-                            isPresentingDataHealthPopover = false
-                            onFilterApply(entry.filter)
-                        }
-                    ) { entry in
-                        DashboardDataHealthRow(
-                            title: entry.title,
-                            countText: "\(entry.missingCount)/\(entry.totalCount)",
-                            missingProgress: entry.progress,
-                            showsDisclosureIndicator: true
-                        )
-                    }
-                }
+            ) { entry in
+                DashboardDataHealthRow(
+                    title: entry.title,
+                    countText: "\(entry.missingCount)/\(entry.totalCount)",
+                    missingProgress: entry.progress,
+                    showsDisclosureIndicator: true
+                )
             }
         }
-        .scrollClipDisabled()
     }
 
     @ViewBuilder

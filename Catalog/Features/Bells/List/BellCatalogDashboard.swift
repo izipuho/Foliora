@@ -26,6 +26,7 @@ struct BellCatalogDashboardView: View {
                 onBellSelected: onBellSelected,
                 onFilterApply: onFilterApply
             )
+            .zIndex(1)
 
             MetricStrip(
                 stats: stats,
@@ -41,6 +42,7 @@ struct BellCatalogDashboardView: View {
                 .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .top)
                 .opacity(phase.isIdentity ? 1 : 0.82)
         }
+        .zIndex(1)
     }
 }
 
@@ -55,30 +57,18 @@ private struct DashboardCardStrip: View {
     let onBellSelected: ((UUID) -> Void)?
     let onFilterApply: (BellPresenceFilter) -> Void
 
-    @State private var isPresentingDataHealthPopover = false
-
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: CatalogMetrics.Spacing.md) {
-                sharingCard
+        CatalogDashboardCardStrip { onDataHealthExpand in
+            sharingCard
 
-                if let collection {
-                    NavigationLink {
-                        BellsOriginMapView(
-                            collection: collection,
-                            catalogSnapshot: catalogSnapshot,
-                            onBellSelected: onBellSelected
-                        )
-                    } label: {
-                        DashboardTopGeographyCard(
-                            countryName: topGeography?.name ?? String(localized: "common.unknown"),
-                            flag: topGeography?.flag ?? "🌍",
-                            countText: topGeographyCountText,
-                            tint: tint
-                        )
-                    }
-                    .buttonStyle(.plain)
-                } else {
+            if let collection {
+                NavigationLink {
+                    BellsOriginMapView(
+                        collection: collection,
+                        catalogSnapshot: catalogSnapshot,
+                        onBellSelected: onBellSelected
+                    )
+                } label: {
                     DashboardTopGeographyCard(
                         countryName: topGeography?.name ?? String(localized: "common.unknown"),
                         flag: topGeography?.flag ?? "🌍",
@@ -86,32 +76,33 @@ private struct DashboardCardStrip: View {
                         tint: tint
                     )
                 }
-
-                CatalogDashboardDataHealthCard(
-                    progress: dataHealthProgress,
+                .buttonStyle(.plain)
+            } else {
+                DashboardTopGeographyCard(
+                    countryName: topGeography?.name ?? String(localized: "common.unknown"),
+                    flag: topGeography?.flag ?? "🌍",
+                    countText: topGeographyCountText,
                     tint: tint
-                ) {
-                    isPresentingDataHealthPopover = true
+                )
+            }
+
+            CatalogDashboardDataHealthCard(
+                progress: dataHealthProgress,
+                tint: tint,
+                entries: dataHealthEntries,
+                onExpand: onDataHealthExpand,
+                onSelect: { entry in
+                    onFilterApply(entry.filter)
                 }
-                .popover(isPresented: $isPresentingDataHealthPopover) {
-                    CatalogDashboardDataHealthPopover(
-                        entries: dataHealthEntries,
-                        onSelect: { entry in
-                            isPresentingDataHealthPopover = false
-                            onFilterApply(entry.filter)
-                        }
-                    ) { entry in
-                        DashboardDataHealthRow(
-                            title: entry.title,
-                            countText: entry.countText,
-                            missingProgress: entry.missingProgress,
-                            showsDisclosureIndicator: true
-                        )
-                    }
-                }
+            ) { entry in
+                DashboardDataHealthRow(
+                    title: entry.title,
+                    countText: entry.countText,
+                    missingProgress: entry.missingProgress,
+                    showsDisclosureIndicator: true
+                )
             }
         }
-        .scrollClipDisabled()
     }
 
     @ViewBuilder
