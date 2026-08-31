@@ -10,7 +10,7 @@ private enum PersonBookOrderMode: String, CaseIterable, Hashable {
         case .title:
             return String(localized: "common.field_title")
         case .publicationYearNewest:
-            return String(localized: "Publication year")
+            return String(localized: "book.field.publication_year")
         case .newestFirst:
             return String(localized: "sort.newest_first")
         }
@@ -111,8 +111,8 @@ struct PersonDetailView: View {
                 if sortedBooks.isEmpty {
                     CatalogEmptyStateView(
                         systemImage: "book.closed",
-                        title: "No Books",
-                        message: "No books in this library currently reference this person.",
+                        title: "library.empty.books.title",
+                        message: "person.detail.empty_books.message",
                         primaryTint: accentColor
                     )
                     .frame(minHeight: 260)
@@ -156,7 +156,7 @@ struct PersonDetailView: View {
                     } label: {
                         Image(systemName: "square.and.pencil")
                     }
-                    .accessibilityLabel("Edit Person")
+                    .accessibilityLabel("person.action.edit")
                 }
             }
         }
@@ -211,7 +211,7 @@ struct PersonDetailView: View {
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                     if let birthPlace = person.birthPlace {
                         metadataField(
-                            title: String(localized: "Birth place"),
+                            title: String(localized: "person.field.birth_place"),
                             value: birthPlace.displayName,
                             systemImage: "mappin.and.ellipse"
                         )
@@ -219,7 +219,7 @@ struct PersonDetailView: View {
 
                     if let deathPlace = person.deathPlace {
                         metadataField(
-                            title: String(localized: "Death place"),
+                            title: String(localized: "person.field.death_place"),
                             value: deathPlace.displayName,
                             systemImage: "mappin.and.ellipse"
                         )
@@ -237,7 +237,7 @@ struct PersonDetailView: View {
                 )
 
                 metadataField(
-                    title: String(localized: "Roles"),
+                    title: String(localized: "person.section.roles"),
                     value: rolesText,
                     systemImage: "person.text.rectangle"
                 )

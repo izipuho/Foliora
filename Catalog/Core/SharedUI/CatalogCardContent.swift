@@ -234,11 +234,11 @@ private extension CatalogCardBadge {
         case .shared:
             return String(localized: "collection.sharing.status.shared")
         case .warning:
-            return String(localized: "Warning")
+            return String(localized: "collection.sharing.status.warning")
         case .success:
-            return String(localized: "Success")
+            return String(localized: "collection.sharing.status.success")
         case .error:
-            return String(localized: "Error")
+            return String(localized: "collection.sharing.status.error")
         case .custom(let text):
             return text
         }

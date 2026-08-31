@@ -133,8 +133,8 @@ struct AppShellView: View {
             } else {
                 CatalogEmptyStateView(
                     systemImage: "square.grid.2x2",
-                    title: "Collection not found",
-                    message: "This collection is no longer available."
+                    title: "collection.not_found.title",
+                    message: "collection.not_found.message"
                 )
             }
         case .home(let homeID):

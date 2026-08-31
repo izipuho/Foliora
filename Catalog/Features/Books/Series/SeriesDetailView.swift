@@ -76,8 +76,8 @@ struct SeriesDetailView: View {
                 if sortedBooks.isEmpty {
                     CatalogEmptyStateView(
                         systemImage: "book.closed",
-                        title: "No Books",
-                        message: "No books in this library currently belong to this series.",
+                        title: "library.empty.books.title",
+                        message: "series.detail.empty_books.message",
                         primaryTint: accentColor
                     )
                     .frame(minHeight: 260)
@@ -113,7 +113,7 @@ struct SeriesDetailView: View {
                     } label: {
                         Image(systemName: "square.and.pencil")
                     }
-                    .accessibilityLabel("Edit Series")
+                    .accessibilityLabel("series.action.edit")
                 }
             }
         }
@@ -164,14 +164,14 @@ struct SeriesDetailView: View {
 
             HStack(alignment: .top, spacing: CatalogMetrics.Spacing.lg) {
                 metadataField(
-                    title: String(localized: "Total books"),
+                    title: String(localized: "series.field.total_books"),
                     value: series.totalBookCount.map(String.init) ?? String(localized: "common.unknown"),
                     systemImage: "number"
                 )
 
                 if let publisher = series.publisher {
                     metadataField(
-                        title: String(localized: "Publisher"),
+                        title: String(localized: "publisher.title"),
                         value: publisher.name,
                         systemImage: "building.2"
                     )

@@ -89,7 +89,7 @@ struct PublishersView: View {
                         }
                     }
                 }
-                .searchable(text: $searchText, prompt: "Search publishers")
+                .searchable(text: $searchText, prompt: "publisher.search.prompt")
             }
         }
         .background {
@@ -99,7 +99,7 @@ struct PublishersView: View {
             )
             .ignoresSafeArea()
         }
-        .navigationTitle("Publishers")
+        .navigationTitle("publisher.title.plural")
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(item: $selectedPublisher) { publisher in
             PublisherDetailView(
@@ -122,8 +122,8 @@ struct PublishersView: View {
     private var emptyState: some View {
         CatalogEmptyStateView(
             systemImage: "building.2",
-            title: "No Publishers",
-            message: "No publishers are used in this library yet.",
+            title: "publisher.empty.title",
+            message: "publisher.empty.message",
             primaryTint: collection.backgroundStyle.accentColor
         )
     }
@@ -303,7 +303,7 @@ struct PublisherEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Logo") {
+                Section("publisher.field.logo") {
                     MediaSection(
                         itemID: editorPublisherID,
                         mediaAssets: $logoAssets,
@@ -333,13 +333,13 @@ struct PublisherEditorView: View {
 
                 if existingPublisher != nil, onDelete != nil {
                     Section {
-                        Button("Delete Publisher", role: .destructive) {
+                        Button("publisher.action.delete", role: .destructive) {
                             isConfirmingDelete = true
                         }
                     }
                 }
             }
-            .navigationTitle(existingPublisher == nil ? String(localized: "Add Publisher") : String(localized: "Edit Publisher"))
+            .navigationTitle(existingPublisher == nil ? String(localized: "publisher.action.add") : String(localized: "publisher.action.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -360,11 +360,11 @@ struct PublisherEditorView: View {
                 }
             }
             .confirmationDialog(
-                "Delete Publisher?",
+                "publisher.delete.title",
                 isPresented: $isConfirmingDelete,
                 titleVisibility: .visible
             ) {
-                Button("Delete Publisher", role: .destructive) {
+                Button("publisher.action.delete", role: .destructive) {
                     onDelete?()
                     dismiss()
                 }
@@ -390,7 +390,7 @@ struct PublisherEditorView: View {
         }
 
         guard !parts.isEmpty else {
-            return String(localized: "This publisher will be deleted from the catalog.")
+            return String(localized: "publisher.delete.message")
         }
 
         return String(localized: "This publisher will be removed from \(parts.joined(separator: " and ")) across the catalog. The books and series will be kept.")
