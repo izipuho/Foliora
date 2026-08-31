@@ -48,16 +48,6 @@ struct BellCatalogStats {
     let filledTagsCount: Int
 }
 
-private struct StorageGroupKey: Hashable {
-    let floor: String?
-    let room: String?
-}
-
-private struct StorageSubgroupKey: Hashable {
-    let kind: LocationKind
-    let title: String
-}
-
 /// Represents bell catalog view model data and behavior.
 @MainActor
 final class BellCatalogViewModel: ObservableObject {
@@ -289,7 +279,11 @@ final class BellCatalogViewModel: ObservableObject {
 
     func sorted(_ bellRecords: [BellListItem]) -> [BellListItem] {
         if orderMode == .storage {
-            return bellRecords.sorted(by: storageLessThan)
+            return CatalogStorageGrouping.sorted(
+                bellRecords,
+                storagePath: { $0.storagePath },
+                title: { $0.title }
+            )
         }
 
         return bellRecords.sorted(using: sortComparators)
@@ -316,140 +310,62 @@ final class BellCatalogViewModel: ObservableObject {
                 )
             }
         case .acquisitionYear:
-            let grouped = Dictionary(grouping: bellRecords, by: { acquisitionYearGroupTitle(for: $0) })
-            let orderedTitles = grouped.keys.sorted { lhs, rhs in
-                switch (Int(lhs), Int(rhs)) {
-                case let (left?, right?):
-                    return left > right
-                case (_?, nil):
-                    return true
-                case (nil, _?):
-                    return false
-                default:
-                    return compareDisplayValues(lhs, rhs, unknown: unknownTitle) == .orderedAscending
+            return CatalogYearGrouping.descending(
+                bellRecords,
+                year: { $0.acquiredYear },
+                sortedBy: { lhs, rhs in
+                    lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
                 }
-            }
-
-            return orderedTitles.map { title in
-                BellGroupedSection(
+            ).map { group in
+                let title = group.year.map(String.init) ?? unknownTitle
+                return BellGroupedSection(
                     id: "year-\(title)",
                     title: title,
                     jumpTitle: title,
                     indexTitle: nil,
-                    bells: grouped[title, default: []],
+                    bells: group.elements,
                     storageGroups: []
                 )
             }
         case .storage:
-            let grouped = Dictionary(grouping: bellRecords) { bell in
-                StorageGroupKey(
-                    floor: normalizedStorageValue(bell.storagePath?.floor),
-                    room: normalizedStorageValue(bell.storagePath?.room)
+            return CatalogStorageGrouping.sections(
+                fromSorted: bellRecords,
+                storagePath: { $0.storagePath }
+            ).map { section in
+                let header = section.pathComponents.isEmpty
+                    ? unknownTitle
+                    : section.pathComponents.joined(separator: " · ")
+                let sectionID = storageSectionID(
+                    floor: section.floor,
+                    room: section.room
                 )
-            }
-            let orderedKeys = grouped.keys.sorted { lhs, rhs in
-                let floorComparison = compareStorageValues(lhs.floor, rhs.floor)
-                if floorComparison != .orderedSame {
-                    return floorComparison == .orderedAscending
+                let storageGroups = section.subgroups.map { subgroup in
+                    BellStorageGroup(
+                        id: "\(sectionID)-\(subgroup.kind.rawValue):\(storageIDComponent(subgroup.title))",
+                        kind: subgroup.kind,
+                        title: subgroup.title,
+                        bells: subgroup.elements
+                    )
                 }
-
-                return compareStorageValues(lhs.room, rhs.room) == .orderedAscending
-            }
-
-            return orderedKeys.map { sectionKey in
-                let header = storageHeaderTitle(for: sectionKey)
-                let sectionBells = grouped[sectionKey, default: []]
-                let directBells = sectionBells.filter {
-                    storageSubgroupKey(for: $0) == nil
-                }
-                let storageGroups = Dictionary(grouping: sectionBells.compactMap { bell in
-                    storageSubgroupKey(for: bell).map { ($0, bell) }
-                }, by: \.0)
-                    .map { subgroupKey, value in
-                        BellStorageGroup(
-                            id: "\(storageSectionID(for: sectionKey))-\(subgroupKey.kind.rawValue):\(storageIDComponent(subgroupKey.title))",
-                            kind: subgroupKey.kind,
-                            title: subgroupKey.title,
-                            bells: value.map(\.1)
-                        )
-                    }
-                    .sorted {
-                        if $0.kind != $1.kind {
-                            return $0.kind == .cabinet
-                        }
-
-                        return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
-                    }
 
                 return BellGroupedSection(
-                    id: storageSectionID(for: sectionKey),
+                    id: sectionID,
                     title: header,
                     jumpTitle: header,
                     indexTitle: nil,
-                    bells: directBells,
+                    bells: section.elements,
                     storageGroups: storageGroups
                 )
             }
         }
     }
 
-    private func acquisitionYearGroupTitle(for bell: BellListItem) -> String {
-        bell.acquiredYear.map(String.init) ?? unknownTitle
-    }
-
-    private func storageHeaderTitle(for key: StorageGroupKey) -> String {
-        let components = [key.floor, key.room].compactMap { $0 }
-        return components.isEmpty ? unknownTitle : components.joined(separator: " · ")
-    }
-
-    private func storageSectionID(for key: StorageGroupKey) -> String {
-        "storage-floor:\(storageIDComponent(key.floor))-room:\(storageIDComponent(key.room))"
-    }
-
-    private func storageSubgroupKey(for bell: BellListItem) -> StorageSubgroupKey? {
-        if let cabinet = normalizedStorageValue(bell.storagePath?.cabinet) {
-            return StorageSubgroupKey(kind: .cabinet, title: cabinet)
-        }
-
-        if let shelf = normalizedStorageValue(bell.storagePath?.shelf) {
-            return StorageSubgroupKey(kind: .shelf, title: shelf)
-        }
-
-        return nil
+    private func storageSectionID(floor: String?, room: String?) -> String {
+        "storage-floor:\(storageIDComponent(floor))-room:\(storageIDComponent(room))"
     }
 
     private func storageIDComponent(_ value: String?) -> String {
         value.map { "value:\($0)" } ?? "nil"
-    }
-
-    private func normalizedStorageValue(_ value: String?) -> String? {
-        let trimmedValue = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmedValue.isEmpty ? nil : trimmedValue
-    }
-
-    private func compareStorageValues(_ lhs: String?, _ rhs: String?) -> ComparisonResult {
-        switch (lhs, rhs) {
-        case let (left?, right?):
-            return left.localizedCaseInsensitiveCompare(right)
-        case (_?, nil):
-            return .orderedAscending
-        case (nil, _?):
-            return .orderedDescending
-        case (nil, nil):
-            return .orderedSame
-        }
-    }
-
-    private func storageLessThan(_ lhs: BellListItem, _ rhs: BellListItem) -> Bool {
-        let comparisons = [
-            compareStorageValues(normalizedStorageValue(lhs.storagePath?.floor), normalizedStorageValue(rhs.storagePath?.floor)),
-            compareStorageValues(normalizedStorageValue(lhs.storagePath?.room), normalizedStorageValue(rhs.storagePath?.room)),
-            compareStorageValues(normalizedStorageValue(lhs.storagePath?.cabinet), normalizedStorageValue(rhs.storagePath?.cabinet)),
-            compareStorageValues(normalizedStorageValue(lhs.storagePath?.shelf), normalizedStorageValue(rhs.storagePath?.shelf)),
-            lhs.title.localizedCaseInsensitiveCompare(rhs.title)
-        ]
-
-        return comparisons.first { $0 != .orderedSame } == .orderedAscending
     }
 
     private func compareDisplayValues(_ lhs: String, _ rhs: String, unknown: String) -> ComparisonResult {

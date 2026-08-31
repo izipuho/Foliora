@@ -65,14 +65,19 @@ enum CoreDataDomainMapper {
 
         let birthPlaceEntity = entity.value(forKey: "birthPlace") as? NSManagedObject
         let deathPlaceEntity = entity.value(forKey: "deathPlace") as? NSManagedObject
+        let photos = relatedObjects(entity, "photos")
+            .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
+            .map { mediaAsset(from: $0) }
 
         return Person(
+            id: uuidValue(entity, "id"),
             name: stringValue(entity, "name"),
             birthYear: optionalIntValue(entity, "birthYear"),
             deathYear: optionalIntValue(entity, "deathYear"),
             biography: entity.value(forKey: "biography") as? String,
             birthPlace: birthPlaceEntity.map(place),
-            deathPlace: deathPlaceEntity.map(place)
+            deathPlace: deathPlaceEntity.map(place),
+            photos: photos
         )
     }
 
@@ -88,7 +93,7 @@ enum CoreDataDomainMapper {
         )
     }
 
-    static func mediaAsset(from entity: NSManagedObject, itemID: UUID) -> MediaAsset {
+    static func mediaAsset(from entity: NSManagedObject, itemID: UUID? = nil) -> MediaAsset {
         MediaAsset(
             id: uuidValue(entity, "id"),
             itemID: itemID,

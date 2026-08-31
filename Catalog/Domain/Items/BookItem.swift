@@ -15,18 +15,50 @@ enum BookContributorRole: String, CaseIterable, Hashable, Identifiable, Codable 
     case illustrator
 
     var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .author:
+            return "Author"
+        case .translator:
+            return "Translator"
+        case .editor:
+            return "Editor"
+        case .illustrator:
+            return "Illustrator"
+        }
+    }
+}
+
+/// Represents a typed external or catalog identifier assigned to a book.
+struct BookIdentifier: Hashable, Codable {
+    var type: BookIdentifierType
+    var value: String
+}
+
+/// Defines the supported book identifier types.
+enum BookIdentifierType: String, CaseIterable, Hashable, Identifiable, Codable {
+    case isbn10
+    case isbn13
+    case asin
+    case inventory
+    case other
+
+    var id: String { rawValue }
 }
 
 /// Represents book-specific details attached to a catalog item.
 struct BookDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
     var languageCode: String?
+    var genre: String? = nil
     var pageCount: Int?
-    var publicationPlaceName: String?
     var publicationYear: Int?
     var volumeNumber: Int?
-    var publicationPlace: Place?
+    var publisher: Publisher? = nil
     var contributors: [BookContributor]
+    var series: BookSeries? = nil
+    var identifiers: [BookIdentifier] = []
 
     var id: UUID { itemID }
 }

@@ -9,6 +9,17 @@ enum BellSearchToken: Identifiable, Hashable {
     case tag(String)
     case condition(ItemCondition)
     case acquisitionMethod(AcquisitionMethod)
+    case presence(BellPresenceFilter)
+
+    enum Category: Hashable {
+        case collection
+        case country
+        case material
+        case tag
+        case condition
+        case acquisitionMethod
+        case presence
+    }
 
     var id: String {
         switch self {
@@ -24,6 +35,27 @@ enum BellSearchToken: Identifiable, Hashable {
             return "condition:\(condition.rawValue)"
         case .acquisitionMethod(let method):
             return "acquisition:\(method.rawValue)"
+        case .presence(let filter):
+            return "presence:\(filter.searchID)"
+        }
+    }
+
+    var category: Category {
+        switch self {
+        case .collection:
+            return .collection
+        case .country:
+            return .country
+        case .material:
+            return .material
+        case .tag:
+            return .tag
+        case .condition:
+            return .condition
+        case .acquisitionMethod:
+            return .acquisitionMethod
+        case .presence:
+            return .presence
         }
     }
 }
@@ -54,7 +86,6 @@ struct BellSearchView: View {
     let onBellSelected: ((UUID) -> Void)?
     private let initialQuery: String?
     @Binding var layoutMode: CatalogCardLayoutMode
-    @State private var selectedBellID: UUID?
     @State private var searchState = BellCatalogSearchState()
 
     init(
@@ -121,9 +152,14 @@ struct BellSearchView: View {
                 tokens: uniqueConditions.map(BellSearchToken.condition)
             ),
             SearchTokenGroup(
-                title: String(localized: "bell.detail.aquisition"),
+                title: String(localized: "item.detail.acquisition"),
                 systemImage: "tray.and.arrow.down",
                 tokens: uniqueAcquisitionMethods.map(BellSearchToken.acquisitionMethod)
+            ),
+            SearchTokenGroup(
+                title: String(localized: "catalog.dashboard.health"),
+                systemImage: "checklist",
+                tokens: BellPresenceFilter.allSearchFilters.map(BellSearchToken.presence)
             )
         ]
         .map { group in
@@ -148,17 +184,6 @@ struct BellSearchView: View {
             }
     }
 
-    private var isBellDetailPresented: Binding<Bool> {
-        Binding(
-            get: { selectedBellID != nil },
-            set: { isPresented in
-                if !isPresented {
-                    selectedBellID = nil
-                }
-            }
-        )
-    }
-
     var body: some View {
         SearchShellView(
             layoutMode: $layoutMode,
@@ -170,16 +195,6 @@ struct BellSearchView: View {
             tokenSystemImage: searchTokenSystemImage
         ) { layoutMetrics in
             searchResults(layoutMetrics: layoutMetrics)
-        }
-        .sheet(isPresented: isBellDetailPresented) {
-            if let selectedBellID {
-                BellDetailContainer(
-                    bellID: selectedBellID,
-                    repository: repository,
-                    catalogSnapshot: catalogSnapshot
-                )
-                    .presentationDragIndicator(.visible)
-            }
         }
     }
 
@@ -207,11 +222,7 @@ struct BellSearchView: View {
     }
 
     private func openBell(_ bell: BellListItem) {
-        if let onBellSelected {
-            onBellSelected(bell.id)
-        } else {
-            selectedBellID = bell.id
-        }
+        onBellSelected?(bell.id)
     }
 
     private func searchTokenTitle(_ token: BellSearchToken) -> String {
@@ -225,6 +236,8 @@ struct BellSearchView: View {
             return condition.displayName
         case .acquisitionMethod(let method):
             return method.displayName
+        case .presence(let filter):
+            return filter.searchTitle
         }
     }
 
@@ -242,6 +255,8 @@ struct BellSearchView: View {
             return "checkmark.seal"
         case .acquisitionMethod:
             return "tray.and.arrow.down"
+        case .presence:
+            return "checklist"
         }
     }
 
@@ -270,7 +285,14 @@ struct BellSearchView: View {
 
     private func matches(bell: BellListItem, searchState: BellCatalogSearchState) -> Bool {
         matchesQuery(searchState.query, in: bell, scope: searchState.scope)
-        && searchState.tokens.allSatisfy { matches(token: $0, in: bell) }
+            && matches(tokens: searchState.tokens, in: bell)
+    }
+
+    private func matches(tokens: [BellSearchToken], in bell: BellListItem) -> Bool {
+        let groupedTokens = Dictionary(grouping: tokens, by: \.category)
+        return groupedTokens.values.allSatisfy { group in
+            group.contains { matches(token: $0, in: bell) }
+        }
     }
 
     private func matchesQuery(
@@ -327,6 +349,8 @@ struct BellSearchView: View {
             return bell.condition == condition
         case .acquisitionMethod(let method):
             return bell.acquisitionMethod == method
+        case .presence(let filter):
+            return filter.matches(bell)
         }
     }
 
@@ -358,6 +382,104 @@ struct BellSearchView: View {
 
     private func collectionTitle(for bell: BellListItem) -> String {
         bell.collectionID.flatMap { collectionTitlesByID[$0] } ?? ""
+    }
+}
+
+private extension BellPresenceFilter {
+    static let allSearchFilters: [BellPresenceFilter] = [
+        .withOrigin,
+        .missingOrigin,
+        .withYear,
+        .missingYear,
+        .withCity,
+        .withStorage,
+        .missingStorage,
+        .withNotes,
+        .missingNotes,
+        .withTags,
+        .missingTags,
+        .withMaterial,
+        .missingMaterial
+    ]
+
+    var searchID: String {
+        switch self {
+        case .withOrigin: return "with-origin"
+        case .missingOrigin: return "missing-origin"
+        case .withYear: return "with-year"
+        case .missingYear: return "missing-year"
+        case .withCity: return "with-city"
+        case .withStorage: return "with-storage"
+        case .missingStorage: return "missing-storage"
+        case .withNotes: return "with-notes"
+        case .missingNotes: return "missing-notes"
+        case .withTags: return "with-tags"
+        case .missingTags: return "missing-tags"
+        case .withMaterial: return "with-material"
+        case .missingMaterial: return "missing-material"
+        }
+    }
+
+    var searchTitle: String {
+        switch self {
+        case .withOrigin:
+            return String(localized: "bell_catalog.summary.with_origin")
+        case .missingOrigin:
+            return String(localized: "bell_catalog.summary.missing_origin")
+        case .withYear:
+            return String(localized: "bell_catalog.summary.with_year")
+        case .missingYear:
+            return String(localized: "bell_catalog.summary.missing_year")
+        case .withCity:
+            return String(localized: "bell_catalog.summary.with_city")
+        case .withStorage:
+            return String(localized: "bell_catalog.summary.with_storage")
+        case .missingStorage:
+            return String(localized: "bell_catalog.summary.missing_storage")
+        case .withNotes:
+            return String(localized: "bell_catalog.summary.with_notes")
+        case .missingNotes:
+            return String(localized: "bell_catalog.summary.missing_notes")
+        case .withTags:
+            return String(localized: "bell_catalog.summary.with_tags")
+        case .missingTags:
+            return String(localized: "bell_catalog.summary.missing_tags")
+        case .withMaterial:
+            return String(localized: "bell_catalog.summary.with_material")
+        case .missingMaterial:
+            return String(localized: "bell_catalog.summary.missing_material")
+        }
+    }
+
+    func matches(_ bell: BellListItem) -> Bool {
+        switch self {
+        case .withOrigin:
+            return bell.hasOrigin
+        case .missingOrigin:
+            return !bell.hasOrigin
+        case .withYear:
+            return bell.acquiredYear != nil
+        case .missingYear:
+            return bell.acquiredYear == nil
+        case .withCity:
+            return !bell.cityName.isEmpty
+        case .withStorage:
+            return bell.hasStorage
+        case .missingStorage:
+            return !bell.hasStorage
+        case .withNotes:
+            return bell.hasNotes
+        case .missingNotes:
+            return !bell.hasNotes
+        case .withTags:
+            return !bell.tagValues.isEmpty
+        case .missingTags:
+            return bell.tagValues.isEmpty
+        case .withMaterial:
+            return bell.material != .unknown
+        case .missingMaterial:
+            return bell.material == .unknown
+        }
     }
 }
 
@@ -404,26 +526,18 @@ func makeCollectionDestinationContent(
 }
 
 @MainActor
-func makeItemInspectorContent(
+func makeItemDetailContent(
     itemID: UUID,
     repository: any CatalogRepository,
     catalogSnapshot: CatalogSnapshot?,
-    onClose: @escaping () -> Void
+    onClose: (() -> Void)?
 ) -> AnyView {
     AnyView(
-        NavigationStack {
-            BellDetailContainer(
-                bellID: itemID,
-                repository: repository,
-                catalogSnapshot: catalogSnapshot
-            )
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                    }
-                }
-            }
-        }
+        BellItemDetailContainer(
+            bellID: itemID,
+            repository: repository,
+            catalogSnapshot: catalogSnapshot,
+            onClose: onClose
+        )
     )
 }

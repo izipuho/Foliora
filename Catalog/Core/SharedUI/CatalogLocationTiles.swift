@@ -1,49 +1,26 @@
-import SwiftUI
 import MapKit
+import SwiftUI
 
-/// Displays the origin storage section interface.
-struct OriginStorageSection: View {
+/// Displays a reusable origin tile for catalog item details.
+struct CatalogOriginTile: View {
     let place: Place?
-    let storagePath: String
     let accentColor: Color
-    let isStorageAssigned: Bool
     let canEdit: Bool
-    let onEditOrigin: () -> Void
-    let onEditStorage: () -> Void
+    let onEdit: () -> Void
 
-    var body: some View {
-        HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
-            OriginTile(
-                place: place,
-                accentColor: accentColor,
-                canEditOrigin: canEdit,
-                onEditOrigin: onEditOrigin
-            )
-
-            StorageTile(
-                storagePath: storagePath,
-                accentColor: accentColor,
-                isAssigned: isStorageAssigned,
-                canEditStorage: canEdit,
-                onEditStorage: onEditStorage
-            )
-        }
-    }
-}
-
-private struct OriginTile: View {
-    let place: Place?
-    let accentColor: Color
-    let canEditOrigin: Bool
-    let onEditOrigin: () -> Void
     private let coordinate: CLLocationCoordinate2D?
     private let region: MKCoordinateRegion?
 
-    init(place: Place?, accentColor: Color, canEditOrigin: Bool, onEditOrigin: @escaping () -> Void) {
+    init(
+        place: Place?,
+        accentColor: Color,
+        canEdit: Bool,
+        onEdit: @escaping () -> Void
+    ) {
         self.place = place
         self.accentColor = accentColor
-        self.canEditOrigin = canEditOrigin
-        self.onEditOrigin = onEditOrigin
+        self.canEdit = canEdit
+        self.onEdit = onEdit
 
         guard let latitude = place?.latitude, let longitude = place?.longitude else {
             coordinate = nil
@@ -61,8 +38,8 @@ private struct OriginTile: View {
 
     var body: some View {
         Group {
-            if canEditOrigin {
-                Button(action: onEditOrigin) {
+            if canEdit {
+                Button(action: onEdit) {
                     tileContent
                 }
                 .buttonStyle(.plain)
@@ -73,24 +50,24 @@ private struct OriginTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    @ViewBuilder
     private var tileContent: some View {
-        Group {
-            if place == nil {
-                DetailTileCTAContent(
-                    systemImage: "mappin.slash",
-                    title: "common.unknown_origin",
-                    message: "common.ui.tap_to_assign",
-                    accentColor: accentColor
-                )
-                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-                .catalogSurfaceCTATile(tint: accentColor)
-            } else {
-                originContent
-                    .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottomLeading)
-                    .catalogSurfaceTile {
-                        originMedia
-                    }
-            }
+        if place != nil {
+            originContent
+                .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottomLeading)
+                .catalogSurfaceTile {
+                    originMedia
+                }
+        } else if canEdit {
+            CatalogDetailTileCTAContent(
+                systemImage: "mappin.slash",
+                title: "common.unknown_origin",
+                message: "common.ui.tap_to_assign"
+            )
+            .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+            .catalogSurfaceCTATile(tint: accentColor)
+        } else {
+            unassignedOriginContent
         }
     }
 
@@ -108,6 +85,22 @@ private struct OriginTile: View {
                 .lineLimit(2)
         }
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+    }
+
+    private var unassignedOriginContent: some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+            Label(String(localized: "common.ui.origin"), systemImage: "mappin.slash")
+                .font(CatalogTypography.cardLabel)
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 0)
+
+            Text(String(localized: "common.unassigned"))
+                .font(CatalogTypography.cardSubtitle)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+        .catalogSurfaceTile()
     }
 
     @ViewBuilder
@@ -128,12 +121,13 @@ private struct OriginTile: View {
     }
 }
 
-private struct StorageTile: View {
+/// Displays a reusable storage tile for catalog item details.
+struct CatalogStorageTile: View {
     let storagePath: String
     let accentColor: Color
     let isAssigned: Bool
-    let canEditStorage: Bool
-    let onEditStorage: () -> Void
+    let canEdit: Bool
+    let onEdit: () -> Void
 
     private var pathParts: [String] {
         storagePath
@@ -144,8 +138,8 @@ private struct StorageTile: View {
 
     var body: some View {
         Group {
-            if canEditStorage {
-                Button(action: onEditStorage) {
+            if canEdit {
+                Button(action: onEdit) {
                     tileContent
                 }
                 .buttonStyle(.plain)
@@ -156,13 +150,20 @@ private struct StorageTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    @ViewBuilder
     private var tileContent: some View {
-        Group {
-            if isAssigned {
-                storageContent
-            } else {
-                placeholderTileContent
-            }
+        if isAssigned {
+            storageContent
+        } else if canEdit {
+            CatalogDetailTileCTAContent(
+                systemImage: "square.stack.3d.up.slash",
+                title: "item.detail.storage.assign.action",
+                message: "common.ui.tap_to_assign"
+            )
+            .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+            .catalogSurfaceCTATile(tint: accentColor)
+        } else {
+            unassignedStorageContent
         }
     }
 
@@ -188,23 +189,27 @@ private struct StorageTile: View {
         .catalogSurfaceTile()
     }
 
-    private var placeholderTileContent: some View {
-        DetailTileCTAContent(
-            systemImage: "square.stack.3d.up.slash",
-            title: "bell.detail.storage.assign.action",
-            message: "common.ui.tap_to_assign",
-            accentColor: accentColor
-        )
-        .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-        .catalogSurfaceCTATile(tint: accentColor)
+    private var unassignedStorageContent: some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+            Label(String(localized: "common.field.storage"), systemImage: "square.stack.3d.up.slash")
+                .font(CatalogTypography.cardLabel)
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 0)
+
+            Text(String(localized: "common.unassigned"))
+                .font(CatalogTypography.cardSubtitle)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+        .catalogSurfaceTile()
     }
 }
 
-private struct DetailTileCTAContent: View {
+private struct CatalogDetailTileCTAContent: View {
     let systemImage: String
     let title: LocalizedStringResource
     let message: LocalizedStringResource
-    let accentColor: Color
 
     var body: some View {
         VStack(spacing: CatalogMetrics.Spacing.sm) {

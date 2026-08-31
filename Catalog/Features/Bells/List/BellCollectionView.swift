@@ -22,9 +22,9 @@ struct BellCollectionView: View {
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
-    @State private var selectedBellID: UUID?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
+    @State private var favoriteChangeRevision = 0
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
     private let layoutMode: Binding<CatalogCardLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
@@ -79,17 +79,6 @@ struct BellCollectionView: View {
         layoutMode
     }
 
-    private var isBellDetailPresented: Binding<Bool> {
-        Binding(
-            get: { selectedBellID != nil },
-            set: { isPresented in
-                if !isPresented {
-                    selectedBellID = nil
-                }
-            }
-        )
-    }
-
     private var canEditCollection: Bool {
         guard collectionSharingLoadError == nil else { return false }
 
@@ -115,32 +104,57 @@ struct BellCollectionView: View {
         ))
     }
 
+    private var collectionToolbar: some ToolbarContent {
+        CatalogCollectionToolbar(
+            selectedSort: selectedOrderBinding,
+            selectedLayoutMode: selectedLayoutModeBinding,
+            isPresentingAddOptions: $isPresentingAddBellOptions,
+            sortOptions: [.newestFirst, .title, .geography, .acquisitionYear, .storage],
+            sortSectionTitle: String(localized: "bell_catalog.sort.menu"),
+            sortTitle: { option in
+                if option == .newestFirst {
+                    return String(localized: "bell_catalog.sort.recently_added")
+                }
+
+                return String(localized: option.title)
+            },
+            canEdit: canEditCollection,
+            onEdit: {
+                guard canEditCollection else { return }
+                isPresentingEditCollection = true
+            },
+            onPhotoLibrary: {
+                guard canEditCollection else { return }
+                isPresentingPhotoPicker = true
+            },
+            onCamera: {
+                guard canEditCollection else { return }
+                isPresentingCamera = true
+            }
+        )
+    }
+
     var body: some View {
+        let _ = favoriteChangeRevision
+
         content
             .toolbar {
                 if !isBellCatalogSelectionMode {
-                    CollectionShellToolbar(
-                        selectedOrder: selectedOrderBinding,
-                        selectedLayoutMode: selectedLayoutModeBinding,
-                        isPresentingAddBellOptions: $isPresentingAddBellOptions,
-                        canEditCollection: canEditCollection,
-                        onEdit: {
-                            guard canEditCollection else { return }
-                            isPresentingEditCollection = true
-                        },
-                        onLibrary: {
-                            guard canEditCollection else { return }
-                            isPresentingPhotoPicker = true
-                        },
-                        onCamera: {
-                            guard canEditCollection else { return }
-                            isPresentingCamera = true
-                        }
-                    )
+                    collectionToolbar
                 }
             }
             .onPreferenceChange(BellCatalogSelectionModePreferenceKey.self) { isSelectionMode in
                 isBellCatalogSelectionMode = isSelectionMode
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .catalogItemFavoriteDidChange)) { notification in
+                guard
+                    let change = notification.object as? CatalogItemFavoriteChange,
+                    change.collectionID == collection.id
+                else {
+                    return
+                }
+
+                favoriteChangeRevision &+= 1
             }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
@@ -171,16 +185,6 @@ struct BellCollectionView: View {
             }
             .sheet(isPresented: $isPresentingEditCollection) {
                 editCollectionSheet
-            }
-            .sheet(isPresented: isBellDetailPresented) {
-                if let selectedBellID {
-                    BellDetailContainer(
-                        bellID: selectedBellID,
-                        repository: repository,
-                        catalogSnapshot: catalogSnapshot
-                    )
-                        .presentationDragIndicator(.visible)
-                }
             }
             .task(id: collection.id) {
                 await loadCollectionSharingState()
@@ -223,7 +227,7 @@ struct BellCollectionView: View {
                         }
                     },
                     canEditCollection: canEditCollection,
-                    onBellSelected: openBell
+                    onBellSelected: onBellSelected
                 )
             }
         }
@@ -323,14 +327,6 @@ struct BellCollectionView: View {
 
         if case .reviewResults = action {
             onBatchAddComplete(action)
-        }
-    }
-
-    private func openBell(_ bellID: UUID) {
-        if let onBellSelected {
-            onBellSelected(bellID)
-        } else {
-            selectedBellID = bellID
         }
     }
 
@@ -457,165 +453,37 @@ private extension CollectionSharingState {
     )
 }
 
-private struct CollectionShellToolbar: ToolbarContent {
-    @Binding var selectedOrder: BellOrderMode
-    @Binding var selectedLayoutMode: CatalogCardLayoutMode
-    @Binding var isPresentingAddBellOptions: Bool
-    let canEditCollection: Bool
-    let onEdit: () -> Void
-    let onLibrary: () -> Void
-    let onCamera: () -> Void
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.makeBellsMinimal()
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+    let collection = snapshot.collections.first { $0.kind == .bells }!
+    let itemCount = snapshot.bellRecords.filter { $0.item.collectionID == collection.id }.count
+    let summary = CollectionSummary(
+        id: collection.id,
+        homeID: collection.homeID,
+        kind: collection.kind,
+        name: collection.title,
+        subtitle: collection.notes,
+        backgroundStyle: collection.backgroundStyle,
+        itemCount: itemCount,
+        status: .active,
+        sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+    )
 
-    var body: some ToolbarContent {
-        if canEditCollection {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(action: onEdit) {
-                    floatingToolbarIcon(systemName: "square.and.pencil")
-                }
-            }
-        }
-
-        ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Section(String(localized: "bell_catalog.sort.menu")) {
-                    Button {
-                        selectedOrder = .newestFirst
-                    } label: {
-                        if selectedOrder == .newestFirst {
-                            Label(String(localized: "bell_catalog.sort.recently_added"), systemImage: "checkmark")
-                        } else {
-                            Text(String(localized: "bell_catalog.sort.recently_added"))
-                        }
-                    }
-
-                    ForEach(listedOrderModes, id: \.self) { option in
-                        Button {
-                            selectedOrder = option
-                        } label: {
-                            if selectedOrder == option {
-                                Label(String(localized: option.title), systemImage: "checkmark")
-                            } else {
-                                Text(String(localized: option.title))
-                            }
-                        }
-                    }
-                }
-
-                Section(String(localized: "bell_catalog.layout.menu")) {
-                    ControlGroup {
-                        Button {
-                            zoomOutLayout()
-                        } label: {
-                            Image(systemName: "minus")
-                        }
-                        .disabled(!canZoomOut)
-
-                        Text(String(localized: selectedLayoutMode.title))
-
-                        Button {
-                            zoomInLayout()
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .disabled(!canZoomIn)
-                    } label: {
-                        Label(String(localized: "bell_catalog.layout.menu"), systemImage: "square.grid.2x2")
-                    }
-                    .menuActionDismissBehavior(.disabled)
-                }
-            } label: {
-                floatingToolbarIcon(systemName: "line.3.horizontal.decrease")
-            }
-        }
-
-        if canEditCollection {
-            ToolbarItem(placement: .topBarTrailing) {
-                AddBellMenu(
-                    isPresented: $isPresentingAddBellOptions,
-                    onCamera: onCamera,
-                    onLibrary: onLibrary
-                )
-            }
-        }
-    }
-
-    private var orderedLayoutModes: [CatalogCardLayoutMode] {
-        [.covers, .mini, .compact, .wide, .showcase]
-    }
-
-    private var listedOrderModes: [BellOrderMode] {
-        [.title, .geography, .acquisitionYear, .storage]
-    }
-
-    private var canZoomOut: Bool {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode) else { return false }
-        return currentIndex > 0
-    }
-
-    private var canZoomIn: Bool {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode) else { return false }
-        return currentIndex < orderedLayoutModes.count - 1
-    }
-
-    private func zoomOutLayout() {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode), currentIndex > 0 else {
-            return
-        }
-
-        selectedLayoutMode = orderedLayoutModes[currentIndex - 1]
-    }
-
-    private func zoomInLayout() {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: selectedLayoutMode), currentIndex < orderedLayoutModes.count - 1 else {
-            return
-        }
-
-        selectedLayoutMode = orderedLayoutModes[currentIndex + 1]
+    NavigationStack {
+        BellCollectionView(
+            collection: summary,
+            catalogSnapshot: snapshot,
+            repository: repository,
+            coreDataContainer: container,
+            layoutMode: .constant(.mini)
+        )
+        .environment(\.managedObjectContext, container.viewContext)
     }
 }
-
-private extension CatalogCardLayoutMode {
-    var title: LocalizedStringResource {
-        switch self {
-        case .covers:
-            return "bell_catalog.layout.covers"
-        case .mini:
-            return "bell_catalog.layout.mini"
-        case .compact:
-            return "bell_catalog.layout.compact"
-        case .wide:
-            return "bell_catalog.layout.wide"
-        case .showcase:
-            return "bell_catalog.layout.showcase"
-        }
-    }
-}
-
-private struct AddBellMenu: View {
-    @Binding var isPresented: Bool
-    let onCamera: () -> Void
-    let onLibrary: () -> Void
-
-    var body: some View {
-        Button {
-            isPresented = true
-        } label: {
-            floatingToolbarIcon(systemName: "plus")
-        }
-        .confirmationDialog(String(localized: "editor.bell.add"), isPresented: $isPresented, titleVisibility: .visible) {
-            Button(String(localized: "editor.media.photo_library"), action: onLibrary)
-
-            if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button(String(localized: "editor.media.camera"), action: onCamera)
-            }
-
-            Button(String(localized: "common.cancel"), role: .cancel) {}
-        }
-    }
-}
-
-private func floatingToolbarIcon(systemName: String) -> some View {
-    Image(systemName: systemName)
-        .font(.system(size: 17, weight: .semibold))
-        .frame(width: 30, height: 30)
-}
+#endif

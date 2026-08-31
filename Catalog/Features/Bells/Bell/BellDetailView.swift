@@ -8,6 +8,7 @@ struct BellDetailView: View {
     let catalogSnapshot: CatalogSnapshot?
     let canEditCollection: Bool
     let canChangeFavorite: Bool
+    let onClose: (() -> Void)?
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
@@ -27,7 +28,8 @@ struct BellDetailView: View {
         repository: any CatalogRepository,
         catalogSnapshot: CatalogSnapshot?,
         canEditCollection: Bool,
-        canChangeFavorite: Bool = false
+        canChangeFavorite: Bool = false,
+        onClose: (() -> Void)? = nil
     ) {
         _bell = bell
         _selectedHeroPhotoID = State(initialValue: Self.heroPhotoAssets(in: bell.wrappedValue).first?.id)
@@ -35,6 +37,7 @@ struct BellDetailView: View {
         self.catalogSnapshot = catalogSnapshot
         self.canEditCollection = canEditCollection
         self.canChangeFavorite = canChangeFavorite
+        self.onClose = onClose
     }
 
     var body: some View {
@@ -52,34 +55,14 @@ struct BellDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
-                if canChangeFavorite {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { toggleFavorite() } label: {
-                            Image(systemName: bell.isFavorite ? "star.fill" : "star")
-                        }
-                        .accessibilityLabel(bell.isFavorite ? "bell.favorite.remove" : "bell.favorite.add")
-                    }
-                }
-
-                if canEditCollection && isNotesOrTagsDirty {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { requestDiscardNotesAndTagsChanges() } label: { Image(systemName: "xmark") }
-                        .accessibilityLabel(String(localized: "common.cancel"))
-                    }
-
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { saveNotesAndTagsChanges() } label: { Image(systemName: "checkmark") }
-                        .accessibilityLabel(String(localized: "common.save"))
-                    }
-                } else if canEditCollection {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button { isPresentingEditor = true } label: { Image(systemName: "square.and.pencil") }
-                        .accessibilityLabel(String(localized: "common.edit"))
-                    }
-                }
+                CatalogItemDetailToolbar(
+                    onClose: onClose,
+                    favorite: favoriteToolbarAction,
+                    contentState: detailToolbarState
+                )
             }
             .confirmationDialog(
-                String(localized: "bell.detail.unsaved_changes.title"),
+                String(localized: "item.detail.unsaved_changes.title"),
                 isPresented: $isPresentingUnsavedChangesConfirmation,
                 titleVisibility: .visible
             ) {
@@ -87,13 +70,13 @@ struct BellDetailView: View {
                     saveNotesAndTagsChanges()
                 }
 
-                Button(String(localized: "bell.detail.unsaved_changes.discard"), role: .destructive) {
+                Button(String(localized: "item.detail.unsaved_changes.discard"), role: .destructive) {
                     discardNotesAndTagsChanges()
                 }
 
                 Button(String(localized: "common.cancel"), role: .cancel) {}
             } message: {
-                Text(String(localized: "bell.detail.unsaved_changes.message"))
+                Text(String(localized: "item.detail.unsaved_changes.message"))
             }
             .sheet(isPresented: $isPresentingEditor) {
                 if canEditCollection, let collection = inferredCollection {
@@ -147,20 +130,76 @@ struct BellDetailView: View {
         }
     }
 
+    private var detailToolbarState: CatalogItemDetailToolbar.ContentState {
+        guard canEditCollection else { return .readOnly }
+
+        if isNotesOrTagsDirty {
+            return .pendingChanges(
+                onCancel: requestDiscardNotesAndTagsChanges,
+                onSave: saveNotesAndTagsChanges
+            )
+        }
+
+        return .viewing {
+            isPresentingEditor = true
+        }
+    }
+
+    private var favoriteToolbarAction: CatalogItemDetailToolbar.FavoriteAction? {
+        guard canChangeFavorite else { return nil }
+
+        return CatalogItemDetailToolbar.FavoriteAction(
+            isFavorite: bell.isFavorite,
+            action: toggleFavorite
+        )
+    }
+
     private var detailContent: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
-            detailSection(String(localized: "bell.detail.section.collection_info")) {
-                if let acquiredYear = bell.acquiredYear {
-                    detailRow(String(localized: "common.field.acquired_year"), value: String(acquiredYear))
-                }
+            detailSection(String(localized: "item.detail.section.collection_info")) {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: CatalogMetrics.Spacing.lg, alignment: .top),
+                        GridItem(.flexible(), alignment: .top)
+                    ],
+                    alignment: .leading,
+                    spacing: CatalogMetrics.Spacing.lg
+                ) {
+                    if let acquiredYear = bell.acquiredYear {
+                        metadataField(
+                            title: String(localized: "common.field.acquired_year"),
+                            value: String(acquiredYear),
+                            systemImage: "calendar.badge.plus"
+                        )
+                    }
 
-                detailRow(String(localized: "bell.detail.acquisition"), value: bell.acquisitionMethod.displayName)
-                detailRow(String(localized: "common.field.condition"), value: bell.condition.displayName)
-                detailRow(String(localized: "common.field.material"), value: bell.materialDisplayName)
+                    metadataField(
+                        title: String(localized: "item.detail.acquisition"),
+                        value: bell.acquisitionMethod.displayName,
+                        systemImage: "bag"
+                    )
+
+                    metadataField(
+                        title: String(localized: "common.field.condition"),
+                        value: bell.condition.displayName,
+                        systemImage: "checkmark.seal"
+                    )
+
+                    metadataField(
+                        title: String(localized: "common.field.material"),
+                        value: bell.materialDisplayName,
+                        systemImage: "cube"
+                    )
+                }
+                .padding(CatalogMetrics.Spacing.lg)
+                .background {
+                    CatalogShapes.section
+                        .fill(.ultraThinMaterial)
+                }
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)
 
-            detailSection(String(localized: "bell.detail.section.location")) {
+            detailSection(String(localized: "item.detail.section.location")) {
                 OriginStorageSection(
                     place: bell.originPlace,
                     storagePath: bell.storageDisplayPath,
@@ -264,14 +303,21 @@ struct BellDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func detailRow(_ title: String, value: String) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text(value)
+    private func metadataField(
+        title: String,
+        value: String,
+        systemImage: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+            Label(title, systemImage: systemImage)
+                .font(CatalogTypography.cardSubtitle)
                 .foregroundStyle(.secondary)
-                .multilineTextAlignment(.trailing)
+
+            Text(value)
+                .font(CatalogTypography.cardLabel)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private func heroHeader(preview: @escaping (MediaAsset) -> Void) -> some View {
@@ -466,7 +512,8 @@ struct BellDetailView: View {
         guard canChangeFavorite else { return }
         var updatedItem = bell.item
         updatedItem.isFavorite.toggle()
-        save(updatedItem)
+        bell = BellRecord(item: updatedItem, details: bell.details)
+        repository.setFavorite(updatedItem.isFavorite, for: updatedItem.id)
     }
 
     private func persist(

@@ -151,6 +151,7 @@ final class CatalogImportExportActor {
             exportedItemEntities = []
         }
 
+        let exportedCollectionIDs = Set(exportedCollectionEntities.map { uuidValue($0, "id") })
         let exportedItemIDs = Set(exportedItemEntities.map { uuidValue($0, "id") })
         let transferItems = exportedItemEntities.map { entity in
             let item = CoreDataDomainMapper.itemRecord(from: entity)
@@ -164,6 +165,7 @@ final class CatalogImportExportActor {
         }
         let domainPayloads = try domainTransferAdapter.exportPayloads(
             from: context,
+            collectionIDs: exportedCollectionIDs,
             itemIDs: exportedItemIDs
         )
 
@@ -198,6 +200,7 @@ final class CatalogImportExportActor {
         copy.items = items
         copy.domainPayloads = domainTransferAdapter.filteredPayloads(
             bundle.domainPayloads,
+            collectionIDs: collectionIDs,
             itemIDs: itemIDs
         )
         return copy
@@ -327,6 +330,7 @@ final class CatalogImportExportActor {
 
         domainTransferAdapter.applyPayloads(
             bundle.domainPayloads,
+            collectionEntitiesByID: collectionEntities,
             itemEntitiesByID: itemEntitiesByID,
             in: context
         )
@@ -524,6 +528,7 @@ final class CatalogImportExportActor {
 
         domainTransferAdapter.applyPayloads(
             bundle.domainPayloads,
+            collectionEntitiesByID: collectionEntities,
             itemEntitiesByID: itemEntitiesByID,
             in: context
         )
