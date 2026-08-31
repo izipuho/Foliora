@@ -208,7 +208,7 @@ struct CatalogDashboardDataHealthCard<Entry, Content: View>: View {
             if isExpanded {
                 compactCard
                     .opacity(0)
-                    .containerRelativeFrame(.horizontal)
+                    .frame(width: 320)
                     .overlay(alignment: .topLeading) {
                         expandedCard
                     }
