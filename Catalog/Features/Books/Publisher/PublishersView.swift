@@ -320,7 +320,7 @@ struct PublisherEditorView: View {
                 }
 
                 Section {
-                    TextField("Name", text: $name)
+                    TextField("common.name", text: $name)
                         .focused($isNameFocused)
 
                     PlacePickerField(

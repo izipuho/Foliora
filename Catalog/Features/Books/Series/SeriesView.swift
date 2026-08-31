@@ -280,7 +280,7 @@ struct SeriesEditorView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Name", text: $name)
+                    TextField("common.name", text: $name)
                         .focused($isNameFocused)
 
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {

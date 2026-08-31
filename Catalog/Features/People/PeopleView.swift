@@ -322,7 +322,7 @@ struct PersonEditorView: View {
                 }
 
                 Section("Person") {
-                    TextField("Name", text: $name)
+                    TextField("common.name", text: $name)
                         .focused($isNameFocused)
 
                     LabeledContent("Birth year") {
