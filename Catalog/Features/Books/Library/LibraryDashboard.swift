@@ -132,11 +132,7 @@ private struct DashboardCardStrip: View {
                     showsDisclosureIndicator: true
                 )
             }
-            .id(
-                isDataHealthExpanded.wrappedValue
-                    ? CatalogDashboardScrollTarget.dataHealthExpanded
-                    : CatalogDashboardScrollTarget.dataHealthCompact
-            )
+            .id(CatalogDashboardScrollTarget.dataHealth)
         }
     }
 
