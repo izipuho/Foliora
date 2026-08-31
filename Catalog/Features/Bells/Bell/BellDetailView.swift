@@ -200,23 +200,30 @@ struct BellDetailView: View {
             .padding(.horizontal, CatalogMetrics.Insets.screen)
 
             detailSection(String(localized: "item.detail.section.location")) {
-                OriginStorageSection(
-                    place: bell.originPlace,
-                    storagePath: bell.storageDisplayPath,
-                    accentColor: detailAccentColor,
-                    isStorageAssigned: bell.item.locationID != nil,
-                    canEdit: canEditCollection,
-                    onEditOrigin: {
-                        isPresentingOriginPicker = true
-                    },
-                    onEditStorage: {
-                        if availableLocations.isEmpty, let inferredCollection {
-                            presentHomeEditor(for: inferredCollection.homeID)
-                        } else {
-                            isPresentingLocationPicker = true
+                HStack(alignment: .top, spacing: CatalogMetrics.Spacing.md) {
+                    CatalogOriginTile(
+                        place: bell.originPlace,
+                        accentColor: detailAccentColor,
+                        canEdit: canEditCollection,
+                        onEdit: {
+                            isPresentingOriginPicker = true
                         }
-                    }
-                )
+                    )
+
+                    CatalogStorageTile(
+                        storagePath: bell.storageDisplayPath,
+                        accentColor: detailAccentColor,
+                        isAssigned: bell.item.locationID != nil,
+                        canEdit: canEditCollection,
+                        onEdit: {
+                            if availableLocations.isEmpty, let inferredCollection {
+                                presentHomeEditor(for: inferredCollection.homeID)
+                            } else {
+                                isPresentingLocationPicker = true
+                            }
+                        }
+                    )
+                }
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)
 
