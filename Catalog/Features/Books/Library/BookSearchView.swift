@@ -125,7 +125,7 @@ struct BookSearchView: View {
                 tokens: uniqueAcquisitionMethods.map(BookSearchToken.acquisitionMethod)
             ),
             SearchTokenGroup(
-                title: String(localized: "Data Health"),
+                title: String(localized: "catalog.dashboard.health"),
                 systemImage: "checklist",
                 tokens: BookPresenceFilter.allSearchFilters.map(BookSearchToken.presence)
             )
