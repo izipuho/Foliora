@@ -415,137 +415,6 @@
         }
       }
     },
-    "bell_catalog.sort.menu" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sort"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сортировка"
-          }
-        }
-      }
-    },
-    "bell_catalog.sort.oldest_first" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Oldest First"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сначала старые"
-          }
-        }
-      }
-    },
-    "bell_catalog.sort.origin" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "By Origin"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "По происхождению"
-          }
-        }
-      }
-    },
-    "bell_catalog.sort.recently_added" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recently Added"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Последние добавленные"
-          }
-        }
-      }
-    },
-    "bell_catalog.sort.storage" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Storage"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Хранение"
-          }
-        }
-      }
-    },
-    "bell_catalog.sort.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "By Title"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "По названию"
-          }
-        }
-      }
-    },
-    "bell_catalog.sort.year_newest" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Newest Year"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сначала новые"
-          }
-        }
-      }
-    },
-    "bell_catalog.sort.year_oldest" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Oldest Year"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сначала старые"
-          }
-        }
-      }
-    },
     "bell_catalog.summary.all" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3206,22 +3075,6 @@
         }
       }
     },
-    "common.field.storage" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Storage"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Хранение"
-          }
-        }
-      }
-    },
     "common.field.tags" : {
       "localizations" : {
         "en" : {
@@ -3470,6 +3323,22 @@
         }
       }
     },
+    "common.sort" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сортировка"
+          }
+        }
+      }
+    },
     "common.state.none" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3500,6 +3369,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не указан"
+          }
+        }
+      }
+    },
+    "common.storage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранение"
           }
         }
       }
@@ -7039,27 +6924,7 @@
         }
       }
     },
-    "settings.storage.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Storage"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Хранение"
-          }
-        }
-      }
-    },
     "Shared" : {
-
-    },
-    "Sort" : {
 
     },
     "sort.newest_first" : {
@@ -7074,6 +6939,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Сначала новые"
+          }
+        }
+      }
+    },
+    "sort.oldest_first" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oldest First"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала старые"
+          }
+        }
+      }
+    },
+    "sort.recently_added" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recently Added"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последние добавленные"
+          }
+        }
+      }
+    },
+    "sort.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By Title"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По названию"
           }
         }
       }
@@ -7434,9 +7347,6 @@
           }
         }
       }
-    },
-    "Storage" : {
-
     },
     "Success" : {
 

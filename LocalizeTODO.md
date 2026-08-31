@@ -1,7 +1,5 @@
 # Хорошие кандидаты
 
-* Sort [7232] → bell_catalog.sort.menu [441], ru: Сортировка
-* Storage [7592] → common.field.storage [3324] / settings.storage.title [7212], ru: Хранение
 * Title [7650] → common.field.title [3356], ru: Название
 * Total [7653] → catalog.dashboard.total [1499], ru: Всего
 * Type [7700] → collection.editor.section_type [2237], ru: Тип

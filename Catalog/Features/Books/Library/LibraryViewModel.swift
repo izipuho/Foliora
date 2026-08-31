@@ -26,7 +26,7 @@ enum LibraryOrderMode: String, CaseIterable {
         case .series:
             return String(localized: "Series")
         case .storage:
-            return String(localized: "Storage")
+            return String(localized: "common.storage")
         }
     }
 }

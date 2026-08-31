@@ -155,7 +155,7 @@ struct PublisherDetailView: View {
                 selectedSort: selectedOrderBinding,
                 selectedLayoutMode: layoutModeBinding,
                 sortOptions: PublisherBookOrderMode.allCases,
-                sortSectionTitle: String(localized: "Sort"),
+                sortSectionTitle: String(localized: "common.sort"),
                 sortTitle: { $0.title }
             )
             

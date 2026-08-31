@@ -145,7 +145,7 @@ struct PersonDetailView: View {
                 selectedSort: selectedOrderBinding,
                 selectedLayoutMode: layoutModeBinding,
                 sortOptions: PersonBookOrderMode.allCases,
-                sortSectionTitle: String(localized: "Sort"),
+                sortSectionTitle: String(localized: "common.sort"),
                 sortTitle: { $0.title }
             )
 
