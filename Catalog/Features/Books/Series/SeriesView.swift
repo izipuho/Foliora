@@ -181,16 +181,23 @@ struct SeriesView: View {
 
     private func completionText(for series: BookSeries) -> String {
         let collectedCount = booksForSeries(series).count
+        let collected = String(localized: "series.progress.collected")
 
         guard let totalBookCount = series.totalBookCount else {
-            return String(localized: "\(collectedCount) collected · total unknown")
+            return "\(collected): \(collectedCount) · \(String(localized: "series.progress.total_unknown"))"
         }
+
+        let progress = String.localizedStringWithFormat(
+            String(localized: "common.progress.count_of_total"),
+            collectedCount,
+            totalBookCount
+        )
 
         if collectedCount >= totalBookCount {
-            return String(localized: "\(collectedCount) of \(totalBookCount) collected · complete")
+            return "\(collected): \(progress) · \(String(localized: "series.progress.complete"))"
         }
 
-        return String(localized: "\(collectedCount) of \(totalBookCount) collected")
+        return "\(collected): \(progress)"
     }
 
     private func upsertLocalSeries(_ series: BookSeries) {

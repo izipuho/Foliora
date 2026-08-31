@@ -574,7 +574,7 @@ struct BookDetailView: View {
         guard let series = book.details.series else { return nil }
 
         if let volumeNumber = book.details.volumeNumber {
-            return String(localized: "\(series.name) · Volume \(volumeDisplayName(volumeNumber))")
+            return "\(series.name) · \(String(localized: "book.field.volume")) \(volumeDisplayName(volumeNumber))"
         }
 
         return series.name
@@ -594,7 +594,11 @@ struct BookDetailView: View {
 
     private func volumeDisplayName(_ volumeNumber: Int) -> String {
         if let totalBookCount = book.details.series?.totalBookCount {
-            return "\(volumeNumber) / \(totalBookCount)"
+            return String.localizedStringWithFormat(
+                String(localized: "common.progress.count_of_total"),
+                volumeNumber,
+                totalBookCount
+            )
         }
 
         return String(volumeNumber)

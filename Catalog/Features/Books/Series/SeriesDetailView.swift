@@ -54,15 +54,23 @@ struct SeriesDetailView: View {
     }
 
     private var completionText: String {
+        let collected = String(localized: "series.progress.collected")
+
         guard let totalBookCount = series.totalBookCount else {
-            return String(localized: "\(books.count) collected · total unknown")
+            return "\(collected): \(books.count) · \(String(localized: "series.progress.total_unknown"))"
         }
+
+        let progress = String.localizedStringWithFormat(
+            String(localized: "common.progress.count_of_total"),
+            books.count,
+            totalBookCount
+        )
 
         if books.count >= totalBookCount {
-            return String(localized: "\(books.count) of \(totalBookCount) collected · complete")
+            return "\(collected): \(progress) · \(String(localized: "series.progress.complete"))"
         }
 
-        return String(localized: "\(books.count) of \(totalBookCount) collected")
+        return "\(collected): \(progress)"
     }
 
     var body: some View {

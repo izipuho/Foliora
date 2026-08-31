@@ -445,9 +445,13 @@ final class LibraryViewModel: ObservableObject {
 
             let progressText: String
             if let totalBookCount = bookSeries.totalBookCount, totalBookCount > 0 {
-                progressText = String(localized: "\(sectionBooks.count) of \(totalBookCount)")
+                progressText = String.localizedStringWithFormat(
+                    String(localized: "common.progress.count_of_total"),
+                    sectionBooks.count,
+                    totalBookCount
+                )
             } else {
-                progressText = String(localized: "\(sectionBooks.count) owned")
+                progressText = "\(String(localized: "series.progress.owned")): \(sectionBooks.count)"
             }
 
             return LibraryGroupedSection(

@@ -274,18 +274,23 @@ private struct BookSeriesHealthCard: View {
             return String(localized: "library.dashboard.no_completion_data")
         }
 
-        return String(localized: "\(completeCount) of \(knownCount) complete")
+        let progress = String.localizedStringWithFormat(
+            String(localized: "common.progress.count_of_total"),
+            completeCount,
+            knownCount
+        )
+        return "\(progress) · \(String(localized: "series.progress.complete"))"
     }
 
     private var detailText: String? {
         var parts: [String] = []
 
         if incompleteCount > 0 {
-            parts.append(String(localized: "\(incompleteCount) incomplete"))
+            parts.append("\(String(localized: "series.progress.incomplete")): \(incompleteCount)")
         }
 
         if unknownCount > 0 {
-            parts.append(String(localized: "\(unknownCount) unknown"))
+            parts.append("\(String(localized: "series.progress.unknown")): \(unknownCount)")
         }
 
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
