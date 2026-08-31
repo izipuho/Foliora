@@ -255,7 +255,7 @@ struct CollectionsView: View {
                     Button {
                         collectionPendingSharing = collection
                     } label: {
-                        Label(String(localized: "collection.sharing.swipe_action"), systemImage: "square.and.arrow.up")
+                        Label(String(localized: "common.share"), systemImage: "square.and.arrow.up")
                     }
                 }
             }
