@@ -6,9 +6,9 @@ private enum CatalogDashboardScrollTarget: Hashable {
 
 /// Displays a horizontally scrolling dashboard card strip.
 struct CatalogDashboardCardStrip<Content: View>: View {
-    private let content: (() -> Void) -> Content
+    private let content: (@escaping () -> Void) -> Content
 
-    init(@ViewBuilder content: @escaping (() -> Void) -> Content) {
+    init(@ViewBuilder content: @escaping (@escaping () -> Void) -> Content) {
         self.content = content
     }
 
