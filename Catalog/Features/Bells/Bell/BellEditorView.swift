@@ -297,7 +297,7 @@ struct BellEditorView: View {
 
                                     if !photoAnalysis.suggestions.suggestedTags.isEmpty {
                                         PhotoSuggestedTagsRow(
-                                            title: String(localized: "editor.photo_analysis.tags"),
+                                            title: String(localized: "common.field.tags"),
                                             suggestions: photoAnalysis.suggestions.suggestedTags,
                                             localizedSuggestions: localizedPhotoSuggestions?.suggestedTags,
                                             onAccept: { newValues in

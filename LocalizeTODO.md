@@ -1,7 +1,5 @@
 # Хорошие кандидаты
 
-* Tags [7598] → common.field.tags [3340], ru: Теги
-* Есть конфликт: старые bell-ключи переведены как Тэги, лучше выбрать единый вариант.
 * Photos [6578] → enum.media_kind.photo [5042], ru: Фото
 * В русском совпадает, но source singular/plural разный.
 * This book is no longer available. [7605] и This collection is no longer available. [7609] → по шаблону рядом с home.not_found.description [5762], ru: Этот дом больше недоступен.

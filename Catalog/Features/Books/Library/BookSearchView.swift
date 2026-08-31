@@ -100,7 +100,7 @@ struct BookSearchView: View {
                 tokens: uniqueValues(books.compactMap(\.details.genre)).map(BookSearchToken.genre)
             ),
             SearchTokenGroup(
-                title: String(localized: "Tags"),
+                title: String(localized: "common.field.tags"),
                 systemImage: "tag",
                 tokens: uniqueValues(books.flatMap(\.tags)).map(BookSearchToken.tag)
             ),

@@ -644,23 +644,6 @@
         }
       }
     },
-    "bell_catalog.summary.no_tags" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No tags yet."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Тэгов пока нет."
-          }
-        }
-      }
-    },
     "bell_catalog.summary.none" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -691,39 +674,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Последние добавленные"
-          }
-        }
-      }
-    },
-    "bell_catalog.summary.tag_cloud" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tags"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Тэги"
-          }
-        }
-      }
-    },
-    "bell_catalog.summary.tags" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tags"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Тэги"
           }
         }
       }
@@ -4155,22 +4105,6 @@
         }
       }
     },
-    "editor.photo_analysis.tags" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tags"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Теги"
-          }
-        }
-      }
-    },
     "editor.photo_analysis.year" : {
       "localizations" : {
         "en" : {
@@ -7266,9 +7200,6 @@
       }
     },
     "Success" : {
-
-    },
-    "Tags" : {
 
     },
     "The series will be deleted." : {

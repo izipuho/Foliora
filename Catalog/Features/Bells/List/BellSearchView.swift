@@ -142,7 +142,7 @@ struct BellSearchView: View {
                 tokens: uniqueValues(bells.map(\.materialDisplayName)).map(BellSearchToken.material)
             ),
             SearchTokenGroup(
-                title: String(localized: "bell_catalog.summary.tags"),
+                title: String(localized: "common.field.tags"),
                 systemImage: "tag",
                 tokens: uniqueValues(bells.flatMap(\.tagValues)).map(BellSearchToken.tag)
             ),

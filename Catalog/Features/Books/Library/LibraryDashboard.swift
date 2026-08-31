@@ -388,7 +388,7 @@ private struct MetricStrip: View {
                 )
 
                 MetricPill(
-                    title: String(localized: "Tags"),
+                    title: String(localized: "common.field.tags"),
                     value: "\(stats.tagCount)",
                     systemImage: "tag.fill",
                     tint: tint
