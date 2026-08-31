@@ -25,8 +25,16 @@ struct CatalogDashboardCardStrip<Content: View>: View {
         .scrollClipDisabled()
         .scrollPosition(id: $scrollTarget, anchor: .leading)
         .onChange(of: isDataHealthExpanded) { _, isExpanded in
-            withAnimation(.snappy) {
-                scrollTarget = isExpanded ? .dataHealth : nil
+            guard isExpanded else {
+                scrollTarget = nil
+                return
+            }
+
+            Task { @MainActor in
+                await Task.yield()
+                withAnimation(.snappy) {
+                    scrollTarget = .dataHealth
+                }
             }
         }
         .frame(height: 104)
