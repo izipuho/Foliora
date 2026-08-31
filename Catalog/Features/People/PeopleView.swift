@@ -306,7 +306,7 @@ struct PersonEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Photos") {
+                Section("enum.media_kind.photo") {
                     MediaSection(
                         itemID: existingPerson.id,
                         mediaAssets: $photos
