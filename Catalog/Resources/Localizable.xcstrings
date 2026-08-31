@@ -3011,6 +3011,23 @@
         }
       }
     },
+    "common.field_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Название"
+          }
+        }
+      }
+    },
     "common.field.condition" : {
       "localizations" : {
         "en" : {
@@ -3087,23 +3104,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Теги"
-          }
-        }
-      }
-    },
-    "common.field.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Title"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Название"
           }
         }
       }
@@ -4214,22 +4214,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Теги"
-          }
-        }
-      }
-    },
-    "editor.photo_analysis.title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Title"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Название"
           }
         }
       }
@@ -7401,9 +7385,6 @@
 
     },
     "This publisher will be removed from %@ across the catalog. The books and series will be kept." : {
-
-    },
-    "Title" : {
 
     },
     "Total" : {

@@ -1,6 +1,5 @@
 # Хорошие кандидаты
 
-* Title [7650] → common.field.title [3356], ru: Название
 * Total [7653] → catalog.dashboard.total [1499], ru: Всего
 * Type [7700] → collection.editor.section_type [2237], ru: Тип
 *ужно проверить контекст

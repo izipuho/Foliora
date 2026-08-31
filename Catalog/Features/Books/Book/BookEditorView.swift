@@ -168,7 +168,7 @@ struct BookEditorView: View {
                 }
 
                 Section(String(localized: "common.field.description")) {
-                    TextField(String(localized: "common.field.title"), text: $title)
+                    TextField(String(localized: "common.field_title"), text: $title)
                         .focused($isTitleFocused)
 
                     if !isTitleValid {
