@@ -196,7 +196,7 @@ private struct DashboardCardStrip: View {
                 filter: .missingAuthor
             ),
             BookDataHealthEntry(
-                title: String(localized: "Missing Publication Year"),
+                title: String(localized: "Missing Publication year"),
                 missingCount: stats.missingPublicationYearCount,
                 totalCount: stats.totalCount,
                 filter: .missingPublicationYear

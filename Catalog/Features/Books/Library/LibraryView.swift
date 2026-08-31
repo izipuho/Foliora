@@ -11,7 +11,7 @@ private extension BookPresenceFilter {
         case .missingAuthor:
             return String(localized: "Missing Author")
         case .missingPublicationYear:
-            return String(localized: "Missing Publication Year")
+            return String(localized: "Missing Publication year")
         case .incompleteSeries:
             return String(localized: "Incomplete Series")
         case .unknownSeriesSize:

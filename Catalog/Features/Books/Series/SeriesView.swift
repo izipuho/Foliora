@@ -376,12 +376,9 @@ struct SeriesEditorView: View {
                 }
                 Button(String(localized: "common.cancel"), role: .cancel) {}
             } message: {
-                if bookCount == 0 {
-                    Text("The series will be deleted.")
-                } else if bookCount == 1 {
-                    Text("The series will be deleted. 1 book will remain in the library without a series or volume number.")
-                } else {
-                    Text("The series will be deleted. \(bookCount) books will remain in the library without a series or volume number.")
+                Text("The series will be deleted.")
+                if bookCount > 0 {
+                    Text("\(bookCount) books will remain in the library without a series or volume number.")
                 }
             }
             .onAppear {

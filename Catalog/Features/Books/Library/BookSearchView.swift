@@ -105,7 +105,7 @@ struct BookSearchView: View {
                 tokens: uniqueValues(books.flatMap(\.tags)).map(BookSearchToken.tag)
             ),
             SearchTokenGroup(
-                title: String(localized: "Publication Year"),
+                title: String(localized: "Publication year"),
                 systemImage: "calendar",
                 tokens: uniquePublicationYears.map(BookSearchToken.publicationYear)
             ),
