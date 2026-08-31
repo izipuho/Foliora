@@ -229,7 +229,7 @@ struct BellSearchView: View {
         switch token {
         case .collection(let collectionID):
             return collectionTitlesByID[collectionID]
-                ?? String(localized: "search.scope.collection")
+                ?? String(localized: "common.collection")
         case .country(let value), .material(let value), .tag(let value):
             return value
         case .condition(let condition):
