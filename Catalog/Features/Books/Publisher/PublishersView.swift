@@ -324,7 +324,7 @@ struct PublisherEditorView: View {
                         .focused($isNameFocused)
 
                     PlacePickerField(
-                        title: String(localized: "Location"),
+                        title: String(localized: "common.location"),
                         selectedLabel: selectedLocationLabel,
                         places: places,
                         selectedPlace: $selectedLocation

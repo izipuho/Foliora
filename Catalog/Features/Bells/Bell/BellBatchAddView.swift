@@ -176,7 +176,7 @@ struct BellBatchAddView: View {
         Form {
             Section {
                 LocationPickerField(
-                    title: String(localized: "editor.location"),
+                    title: String(localized: "common.location"),
                     selectedLabel: selectedLocationLabel,
                     locations: availableLocations,
                     onManageLocations: {

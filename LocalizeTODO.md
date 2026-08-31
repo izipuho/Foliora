@@ -1,7 +1,5 @@
 # Хорошие кандидаты
 
-* Data Health [3766] → catalog.dashboard.health [1399], ru: Заполненность
-* Location [6218] → editor.location [3929], ru: Расположение
 * Name [6235] → common.name [3390], ru: Имя
 * Newest first [6239] → bell_catalog.sort.newest_first [457], ru: Сначала новые
 * Other [6438] → enum.acquisition.other [4641] / enum.bell_material.other [4753], ru: Другое

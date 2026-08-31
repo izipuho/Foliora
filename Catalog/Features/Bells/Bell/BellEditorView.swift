@@ -397,7 +397,7 @@ struct BellEditorView: View {
                             )
 
                             LocationPickerField(
-                                title: String(localized: "editor.location"),
+                                title: String(localized: "common.location"),
                                 selectedLabel: selectedLocationLabel,
                                 locations: availableLocations,
                                 onManageLocations: {
