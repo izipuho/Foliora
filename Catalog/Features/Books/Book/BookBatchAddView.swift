@@ -48,7 +48,7 @@ struct BookBatchAddView: View {
             Form {
                 Section("common.book") {
                     BookBatchNamedPickerField(
-                        title: String(localized: "Author"),
+                        title: String(localized: "book.field.author"),
                         selection: $selectedAuthor,
                         values: catalogPeople,
                         name: \.name,
@@ -69,7 +69,7 @@ struct BookBatchAddView: View {
                     )
 
                     BookBatchNamedPickerField(
-                        title: String(localized: "Publisher"),
+                        title: String(localized: "publisher.title"),
                         selection: $selectedPublisher,
                         values: catalogPublishers,
                         name: \.name,
@@ -85,7 +85,7 @@ struct BookBatchAddView: View {
                     )
 
                     BookBatchNamedPickerField(
-                        title: String(localized: "Series"),
+                        title: String(localized: "series.title"),
                         selection: $selectedSeries,
                         values: catalogSeries,
                         name: \.name,
@@ -107,7 +107,7 @@ struct BookBatchAddView: View {
                     BookBatchLanguagePickerField(languageCode: $languageCode)
 
                     BookBatchLookupTextField(
-                        title: String(localized: "Genre"),
+                        title: String(localized: "book.field.genre"),
                         value: $genre,
                         suggestions: catalogGenreSuggestions
                     )
@@ -442,7 +442,7 @@ private struct BookBatchNamedSelectionView<Value: Identifiable & Hashable>: View
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search or add")
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -469,7 +469,7 @@ private struct BookBatchLanguagePickerField: View {
             isPresentingPicker = true
         } label: {
             HStack {
-                Text("Language")
+                Text("book.field.language")
                     .foregroundStyle(.primary)
 
                 Spacer()
@@ -569,9 +569,9 @@ private struct BookBatchLanguagePickerView: View {
                     }
                 }
             }
-            .navigationTitle("Language")
+            .navigationTitle("book.field.language")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search languages")
+            .searchable(text: $searchText, prompt: "picker.search_languages")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {
@@ -678,7 +678,7 @@ private struct BookBatchLookupSelectionView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search or add")
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {

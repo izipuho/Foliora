@@ -11,9 +11,9 @@ private enum PublisherBookOrderMode: String, CaseIterable, Hashable {
         case .title:
             return String(localized: "common.field_title")
         case .author:
-            return String(localized: "Author")
+            return String(localized: "book.field.author")
         case .publicationYearNewest:
-            return String(localized: "Publication year")
+            return String(localized: "book.field.publication_year")
         case .newestFirst:
             return String(localized: "sort.newest_first")
         }
@@ -122,8 +122,8 @@ struct PublisherDetailView: View {
                 if sortedBooks.isEmpty {
                     CatalogEmptyStateView(
                         systemImage: "book.closed",
-                        title: "No Books",
-                        message: "No books in this library currently use this publisher.",
+                        title: "library.empty.books.title",
+                        message: "publisher.detail.empty_books.message",
                         primaryTint: accentColor
                     )
                     .frame(minHeight: 260)
@@ -166,7 +166,7 @@ struct PublisherDetailView: View {
                     } label: {
                         Image(systemName: "square.and.pencil")
                     }
-                    .accessibilityLabel("Edit Publisher")
+                    .accessibilityLabel("publisher.action.edit")
                 }
             }
         }
@@ -217,7 +217,7 @@ struct PublisherDetailView: View {
                 )
 
                 metadataField(
-                    title: String(localized: "Series"),
+                    title: String(localized: "series.title"),
                     value: String(series.count),
                     systemImage: "rectangle.stack"
                 )

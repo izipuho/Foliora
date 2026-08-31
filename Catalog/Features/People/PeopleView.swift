@@ -82,7 +82,7 @@ struct PeopleView: View {
                         }
                     }
                 }
-                .searchable(text: $searchText, prompt: "Search people")
+                .searchable(text: $searchText, prompt: "person.search.prompt")
             }
         }
         .background {
@@ -92,7 +92,7 @@ struct PeopleView: View {
             )
             .ignoresSafeArea()
         }
-        .navigationTitle("People")
+        .navigationTitle("person.title.plural")
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(item: $selectedPerson) { person in
             PersonDetailView(
@@ -115,8 +115,8 @@ struct PeopleView: View {
     private var emptyState: some View {
         CatalogEmptyStateView(
             systemImage: "person.2",
-            title: "No People",
-            message: "No people are referenced by books in this library yet.",
+            title: "person.empty.title",
+            message: "person.empty.message",
             primaryTint: collection.backgroundStyle.accentColor
         )
     }
@@ -321,32 +321,32 @@ struct PersonEditorView: View {
                     .listRowInsets(.init())
                 }
 
-                Section("Person") {
+                Section("person.title") {
                     TextField("common.name", text: $name)
                         .focused($isNameFocused)
 
-                    LabeledContent("Birth year") {
+                    LabeledContent("person.field.birth_year") {
                         yearField($birthYear)
                     }
 
-                    LabeledContent("Death year") {
+                    LabeledContent("person.field.death_year") {
                         yearField($deathYear)
                     }
 
-                    TextField("Biography", text: $biography, axis: .vertical)
+                    TextField("person.field.biography", text: $biography, axis: .vertical)
                         .lineLimit(4...10)
                 }
 
                 Section("editor.origin.places") {
                     PlacePickerField(
-                        title: String(localized: "Birth place"),
+                        title: String(localized: "person.field.birth_place"),
                         selectedLabel: birthPlace?.displayName ?? String(localized: "common.none"),
                         places: places,
                         selectedPlace: $birthPlace
                     )
 
                     PlacePickerField(
-                        title: String(localized: "Death place"),
+                        title: String(localized: "person.field.death_place"),
                         selectedLabel: deathPlace?.displayName ?? String(localized: "common.none"),
                         places: places,
                         selectedPlace: $deathPlace
@@ -355,13 +355,13 @@ struct PersonEditorView: View {
 
                 if onDelete != nil {
                     Section {
-                        Button("Delete Person", role: .destructive) {
+                        Button("person.action.delete", role: .destructive) {
                             isConfirmingDelete = true
                         }
                     }
                 }
             }
-            .navigationTitle("Edit Person")
+            .navigationTitle("person.action.edit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -382,18 +382,18 @@ struct PersonEditorView: View {
                 }
             }
             .confirmationDialog(
-                "Delete Person?",
+                "person.delete.title",
                 isPresented: $isConfirmingDelete,
                 titleVisibility: .visible
             ) {
-                Button("Delete Person", role: .destructive) {
+                Button("person.action.delete", role: .destructive) {
                     onDelete?()
                     dismiss()
                 }
                 Button(String(localized: "common.cancel"), role: .cancel) {}
             } message: {
                 if bookCount == 0 {
-                    Text("This person will be deleted from the catalog.")
+                    Text("person.delete.message")
                 } else {
                     Text("This person will be removed from \(bookCount) \(bookCount == 1 ? "book" : "books") across the catalog. The books will be kept.")
                 }

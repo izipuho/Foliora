@@ -88,7 +88,7 @@ struct SeriesView: View {
                         }
                     }
                 }
-                .searchable(text: $searchText, prompt: "Search series")
+                .searchable(text: $searchText, prompt: "series.search.prompt")
             }
         }
         .background {
@@ -98,7 +98,7 @@ struct SeriesView: View {
             )
             .ignoresSafeArea()
         }
-        .navigationTitle("Series")
+        .navigationTitle("series.title")
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(item: $selectedSeries) { series in
             SeriesDetailView(
@@ -121,7 +121,7 @@ struct SeriesView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
-                    .accessibilityLabel("Add Series")
+                    .accessibilityLabel("series.action.add")
                 }
             }
         }
@@ -145,9 +145,9 @@ struct SeriesView: View {
         if canEditCollection {
             CatalogEmptyStateView(
                 systemImage: "books.vertical",
-                title: "No Series",
-                message: "This library does not contain any series yet.",
-                primaryActionTitle: "Add Series",
+                title: "series.empty.title",
+                message: "series.empty.message",
+                primaryActionTitle: "series.action.add",
                 primaryActionSystemImage: "plus.circle.fill",
                 primaryTint: collection.backgroundStyle.accentColor,
                 primaryAction: { isPresentingNewSeries = true }
@@ -155,8 +155,8 @@ struct SeriesView: View {
         } else {
             CatalogEmptyStateView(
                 systemImage: "books.vertical",
-                title: "No Series",
-                message: "This library does not contain any series yet.",
+                title: "series.empty.title",
+                message: "series.empty.message",
                 primaryTint: collection.backgroundStyle.accentColor
             )
         }
@@ -284,7 +284,7 @@ struct SeriesEditorView: View {
                         .focused($isNameFocused)
 
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                        LabeledContent("Total books") {
+                        LabeledContent("series.field.total_books") {
 #if os(iOS)
                             TextField("—", text: $totalBookCount)
                                 .keyboardType(.numberPad)
@@ -297,7 +297,7 @@ struct SeriesEditorView: View {
 
                         if !isTotalBookCountValid {
                             Label(
-                                "Enter a positive whole number.",
+                                "book.validation.positive_whole_number",
                                 systemImage: "exclamationmark.circle.fill"
                             )
                             .font(.footnote)
@@ -309,7 +309,7 @@ struct SeriesEditorView: View {
                         isPresentingPublisherPicker = true
                     } label: {
                         HStack {
-                            Text("Publisher")
+                            Text("publisher.title")
                                 .foregroundStyle(.primary)
 
                             Spacer()
@@ -328,14 +328,14 @@ struct SeriesEditorView: View {
 
                 if existingSeries != nil, onDelete != nil {
                     Section {
-                        Button("Delete Series", role: .destructive) {
+                        Button("series.action.delete", role: .destructive) {
                             isPresentingDeleteConfirmation = true
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
                     }
                 }
             }
-            .navigationTitle(existingSeries == nil ? String(localized: "Add Series") : String(localized: "Edit Series"))
+            .navigationTitle(existingSeries == nil ? String(localized: "series.action.add") : String(localized: "series.action.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -366,17 +366,17 @@ struct SeriesEditorView: View {
                 )
             }
             .confirmationDialog(
-                "Delete Series?",
+                "series.delete.title",
                 isPresented: $isPresentingDeleteConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Delete Series", role: .destructive) {
+                Button("series.action.delete", role: .destructive) {
                     onDelete?()
                     dismiss()
                 }
                 Button(String(localized: "common.cancel"), role: .cancel) {}
             } message: {
-                Text("The series will be deleted.")
+                Text("series.delete.message")
                 if bookCount > 0 {
                     Text("\(bookCount) books will remain in the library without a series or volume number.")
                 }
@@ -483,9 +483,9 @@ private struct SeriesPublisherSelectionView: View {
                     }
                 }
             }
-            .navigationTitle("Publisher")
+            .navigationTitle("publisher.title")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search or add")
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: {

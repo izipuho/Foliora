@@ -255,7 +255,7 @@ struct BookDetailView: View {
                 }
 
                 if !otherContributors.isEmpty {
-                    Text("Contributors")
+                    Text("book.section.contributors")
                         .font(CatalogTypography.sectionTitle)
 
                     contributorsCard
@@ -270,7 +270,7 @@ struct BookDetailView: View {
                 NavigationLink(value: BookReferenceDestination.publisher(publisher)) {
                     HStack(alignment: .center, spacing: CatalogMetrics.Spacing.sm) {
                         metadataField(
-                            title: String(localized: "Publisher"),
+                            title: String(localized: "publisher.title"),
                             value: publisher.name,
                             systemImage: "building.2"
                         )
@@ -293,7 +293,7 @@ struct BookDetailView: View {
             ) {
                 if let publicationYear = book.details.publicationYear {
                     metadataField(
-                        title: String(localized: "Publication year"),
+                        title: String(localized: "book.field.publication_year"),
                         value: String(publicationYear),
                         systemImage: "calendar"
                     )
@@ -301,7 +301,7 @@ struct BookDetailView: View {
 
                 if let pageCount = book.details.pageCount {
                     metadataField(
-                        title: String(localized: "Pages"),
+                        title: String(localized: "book.field.pages"),
                         value: String(pageCount),
                         systemImage: "doc.text"
                     )
@@ -309,7 +309,7 @@ struct BookDetailView: View {
 
                 if let languageCode = book.details.languageCode, !languageCode.isEmpty {
                     metadataField(
-                        title: String(localized: "Language"),
+                        title: String(localized: "book.field.language"),
                         value: bookLanguageDisplayName(for: languageCode),
                         systemImage: "globe"
                     )
@@ -317,7 +317,7 @@ struct BookDetailView: View {
 
                 if let genre = book.details.genre, !genre.isEmpty {
                     metadataField(
-                        title: String(localized: "Genre"),
+                        title: String(localized: "book.field.genre"),
                         value: genre,
                         systemImage: "tag"
                     )
@@ -470,7 +470,7 @@ struct BookDetailView: View {
     }
 
     private var identifiersSection: some View {
-        detailSection("Identifiers") {
+        detailSection("book.section.identifiers") {
             LazyVGrid(
                 columns: [
                     GridItem(.flexible(), spacing: CatalogMetrics.Spacing.lg, alignment: .top),
@@ -923,8 +923,8 @@ struct BookDetailContainer: View {
             } else {
                 CatalogEmptyStateView(
                     systemImage: "book.closed",
-                    title: "Book not found",
-                    message: "This book is no longer available."
+                    title: "book.not_found.title",
+                    message: "book.not_found.message"
                 )
             }
         }
@@ -1005,10 +1005,10 @@ struct BookDetailContainer: View {
 private extension BookContributorRole {
     var title: String {
         switch self {
-        case .author: return String(localized: "Author")
-        case .translator: return String(localized: "Translator")
-        case .editor: return String(localized: "Editor")
-        case .illustrator: return String(localized: "Illustrator")
+        case .author: return String(localized: "book_contributor.role.author")
+        case .translator: return String(localized: "book_contributor.role.translator")
+        case .editor: return String(localized: "book_contributor.role.editor")
+        case .illustrator: return String(localized: "book_contributor.role.illustrator")
         }
     }
 }
@@ -1019,7 +1019,7 @@ private extension BookIdentifierType {
         case .isbn10: return "ISBN-10"
         case .isbn13: return "ISBN-13"
         case .asin: return "ASIN"
-        case .inventory: return String(localized: "Inventory")
+        case .inventory: return String(localized: "book.field.inventory")
         case .other: return String(localized: "common.other")
         }
     }

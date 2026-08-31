@@ -184,19 +184,19 @@ private struct DashboardCardStrip: View {
     private var dataHealthEntries: [BookDataHealthEntry] {
         var entries = [
             BookDataHealthEntry(
-                title: String(localized: "Missing Cover"),
+                title: String(localized: "library.health.missing_cover"),
                 missingCount: stats.missingCoverCount,
                 totalCount: stats.totalCount,
                 filter: .missingCover
             ),
             BookDataHealthEntry(
-                title: String(localized: "Missing Author"),
+                title: String(localized: "library.health.missing_author"),
                 missingCount: stats.missingAuthorCount,
                 totalCount: stats.totalCount,
                 filter: .missingAuthor
             ),
             BookDataHealthEntry(
-                title: String(localized: "Missing Publication year"),
+                title: String(localized: "library.health.missing_publication_year"),
                 missingCount: stats.missingPublicationYearCount,
                 totalCount: stats.totalCount,
                 filter: .missingPublicationYear
@@ -206,7 +206,7 @@ private struct DashboardCardStrip: View {
         if stats.unknownSeriesCount > 0 {
             entries.append(
                 BookDataHealthEntry(
-                    title: String(localized: "Series Size Unknown"),
+                    title: String(localized: "library.health.series_size_unknown"),
                     missingCount: stats.unknownSeriesCount,
                     totalCount: stats.seriesCount,
                     filter: .unknownSeriesSize
@@ -217,7 +217,7 @@ private struct DashboardCardStrip: View {
         if stats.incompleteSeriesCount > 0 {
             entries.append(
                 BookDataHealthEntry(
-                    title: String(localized: "Incomplete Series"),
+                    title: String(localized: "library.health.incomplete_series"),
                     missingCount: stats.incompleteSeriesCount,
                     totalCount: stats.knownSeriesCount,
                     filter: .incompleteSeries
@@ -249,7 +249,7 @@ private struct BookSeriesHealthCard: View {
                 .foregroundStyle(tint)
         } content: {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Series")
+                Text("series.title")
                     .font(CatalogTypography.sectionTitle)
 
                 Text(primaryText)
@@ -271,7 +271,7 @@ private struct BookSeriesHealthCard: View {
     private var primaryText: String {
         let knownCount = completeCount + incompleteCount
         guard knownCount > 0 else {
-            return String(localized: "No completion data")
+            return String(localized: "library.dashboard.no_completion_data")
         }
 
         return String(localized: "\(completeCount) of \(knownCount) complete")
@@ -303,7 +303,7 @@ private struct BookPublisherDashboardCard: View {
                 .foregroundStyle(tint)
         } content: {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Publishers")
+                Text("publisher.title.plural")
                     .font(CatalogTypography.sectionTitle)
 
                 Text(String(localized: "\(libraryCount) in this library"))
@@ -326,7 +326,7 @@ private struct BookPeopleDashboardCard: View {
                 .foregroundStyle(tint)
         } content: {
             VStack(alignment: .leading, spacing: 2) {
-                Text("People")
+                Text("person.title.plural")
                     .font(CatalogTypography.sectionTitle)
 
                 Text(String(localized: "\(libraryCount) in this library"))
@@ -367,21 +367,21 @@ private struct MetricStrip: View {
                 )
 
                 MetricPill(
-                    title: String(localized: "Authors"),
+                    title: String(localized: "book.field.authors"),
                     value: "\(stats.authorCount)",
                     systemImage: "person.fill",
                     tint: tint
                 )
 
                 MetricPill(
-                    title: String(localized: "Series"),
+                    title: String(localized: "series.title"),
                     value: "\(stats.seriesCount)",
                     systemImage: "books.vertical",
                     tint: tint
                 )
 
                 MetricPill(
-                    title: String(localized: "Languages"),
+                    title: String(localized: "book.field.languages"),
                     value: "\(stats.languageCount)",
                     systemImage: "character.book.closed.fill",
                     tint: tint
