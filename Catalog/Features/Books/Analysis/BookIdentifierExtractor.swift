@@ -5,7 +5,7 @@ protocol BookIdentifierExtracting: Sendable {
     nonisolated func extract(from analysis: PhotoAnalysisResult) -> [SuggestedFieldValue<BookIdentifier>]
 }
 
-/// Extracts and validates ISBN identifiers from barcode and OCR evidence.
+/// Extracts and validates ISBN and SBN identifiers from barcode and OCR evidence.
 struct BookIdentifierExtractor: BookIdentifierExtracting {
     private enum EvidenceSource: Int, Sendable {
         case barcode
@@ -65,6 +65,12 @@ struct BookIdentifierExtractor: BookIdentifierExtracting {
         return nil
     }
 
+    private nonisolated func sbnIdentifier(fromExactValue rawValue: String) -> BookIdentifier? {
+        let normalized = normalizedIdentifier(rawValue)
+        guard isValidSBN(normalized) else { return nil }
+        return BookIdentifier(type: .sbn, value: normalized)
+    }
+
     private nonisolated func identifiers(in text: String) -> [BookIdentifier] {
         let isbn13Matches = matches(
             pattern: #"(?<![0-9A-Za-z])97[89](?:[\s-]*[0-9]){10}(?![0-9A-Za-z])"#,
@@ -86,20 +92,38 @@ struct BookIdentifierExtractor: BookIdentifierExtracting {
             }
         }
 
+        let sbnMatches = matches(
+            pattern: #"(?i)(?<![A-Za-z])S\.?\s*B\.?\s*N\.?\s*[:#]?\s*([0-9](?:[\s-]*[0-9]){7}[\s-]*[0-9Xx])(?![0-9A-Za-z])"#,
+            captureGroup: 1,
+            in: text
+        )
+        for match in sbnMatches {
+            if let identifier = sbnIdentifier(fromExactValue: match.value) {
+                identifiers.append(identifier)
+            }
+        }
+
         return identifiers
     }
 
-    private nonisolated func matches(pattern: String, in text: String) -> [(value: String, range: NSRange)] {
+    private nonisolated func matches(
+        pattern: String,
+        captureGroup: Int = 0,
+        in text: String
+    ) -> [(value: String, range: NSRange)] {
         guard let expression = try? NSRegularExpression(pattern: pattern) else {
             return []
         }
 
         let searchRange = NSRange(text.startIndex..<text.endIndex, in: text)
         return expression.matches(in: text, range: searchRange).compactMap { match in
-            guard let range = Range(match.range, in: text) else {
+            guard captureGroup < match.numberOfRanges else { return nil }
+            let matchedRange = match.range(at: captureGroup)
+            guard matchedRange.location != NSNotFound,
+                  let range = Range(matchedRange, in: text) else {
                 return nil
             }
-            return (String(text[range]), match.range)
+            return (String(text[range]), matchedRange)
         }
     }
 
@@ -107,6 +131,11 @@ struct BookIdentifierExtractor: BookIdentifierExtracting {
         rawValue
             .filter { !$0.isWhitespace && $0 != "-" }
             .uppercased()
+    }
+
+    private nonisolated func isValidSBN(_ value: String) -> Bool {
+        guard value.count == 9 else { return false }
+        return isValidISBN10("0" + value)
     }
 
     private nonisolated func isValidISBN10(_ value: String) -> Bool {
@@ -156,6 +185,17 @@ struct BookIdentifierExtractor: BookIdentifierExtracting {
         min(max(confidence, 0), 1)
     }
 
+    private nonisolated func identifierTypeRank(_ type: BookIdentifierType) -> Int {
+        switch type {
+        case .isbn13: 0
+        case .isbn10: 1
+        case .sbn: 2
+        case .asin: 3
+        case .inventory: 4
+        case .other: 5
+        }
+    }
+
     private nonisolated func deduplicated(_ candidates: [Candidate]) -> [Candidate] {
         var bestByIdentifier: [BookIdentifier: Candidate] = [:]
 
@@ -178,8 +218,10 @@ struct BookIdentifierExtractor: BookIdentifierExtracting {
             if lhs.confidence != rhs.confidence {
                 return lhs.confidence > rhs.confidence
             }
-            if lhs.identifier.type != rhs.identifier.type {
-                return lhs.identifier.type == .isbn13
+            let lhsTypeRank = identifierTypeRank(lhs.identifier.type)
+            let rhsTypeRank = identifierTypeRank(rhs.identifier.type)
+            if lhsTypeRank != rhsTypeRank {
+                return lhsTypeRank < rhsTypeRank
             }
             return lhs.identifier.value < rhs.identifier.value
         }

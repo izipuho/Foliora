@@ -1022,6 +1022,7 @@ private extension BookIdentifierType {
         switch self {
         case .isbn10: return "ISBN-10"
         case .isbn13: return "ISBN-13"
+        case .sbn: return "SBN"
         case .asin: return "ASIN"
         case .inventory: return String(localized: "book.field.inventory")
         case .other: return String(localized: "common.other")

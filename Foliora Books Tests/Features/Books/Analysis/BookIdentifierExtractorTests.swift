@@ -95,6 +95,46 @@ struct BookIdentifierExtractorTests {
     }
 
     @Test
+    func recognizesSBNFromExplicitOCRLabel() {
+        let result = extract(
+            mainText: [text("SBN 664-22661-2")]
+        )
+
+        #expect(result.map(\.value) == [
+            BookIdentifier(type: .sbn, value: "664226612")
+        ])
+    }
+
+    @Test
+    func recognizesSBNEndingInXAndNormalizesCase() {
+        let result = extract(
+            mainText: [text("S.B.N. 804-42957-x")]
+        )
+
+        #expect(result.map(\.value) == [
+            BookIdentifier(type: .sbn, value: "80442957X")
+        ])
+    }
+
+    @Test
+    func rejectsUnlabeledNineCharacterNumberAsSBN() {
+        let result = extract(
+            mainText: [text("664226612")]
+        )
+
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func rejectsSBNWithInvalidCheckDigit() {
+        let result = extract(
+            mainText: [text("SBN 664-22661-3")]
+        )
+
+        #expect(result.isEmpty)
+    }
+
+    @Test
     func prefersBarcodeEvidenceOverDuplicateOCRValue() {
         let result = extract(
             mainBarcodes: [barcode("9780804178747", confidence: 0.42)],

@@ -1172,7 +1172,7 @@ private struct BookIdentifierEditorView: View {
             guard isValidISBN13(trimmedValue) else {
                 return String(localized: "book_identifier.validation.isbn13_invalid")
             }
-        case .asin, .inventory, .other:
+        case .sbn, .asin, .inventory, .other:
             break
         }
 
@@ -1478,6 +1478,7 @@ private extension BookIdentifierType {
         switch self {
         case .isbn10: "ISBN-10"
         case .isbn13: "ISBN-13"
+        case .sbn: "SBN"
         case .asin: "ASIN"
         case .inventory: String(localized: "book.field.inventory")
         case .other: String(localized: "common.other")
@@ -1493,7 +1494,7 @@ private func bookIdentifierDuplicateKey(type: BookIdentifierType, value: String)
     let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
 
     switch type {
-    case .isbn10, .isbn13:
+    case .isbn10, .isbn13, .sbn:
         return compactBookIdentifier(trimmed)
     case .asin:
         return trimmed.uppercased()

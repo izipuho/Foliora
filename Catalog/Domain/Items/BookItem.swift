@@ -40,6 +40,7 @@ struct BookIdentifier: Hashable, Codable, Sendable {
 enum BookIdentifierType: String, CaseIterable, Hashable, Identifiable, Codable, Sendable {
     case isbn10
     case isbn13
+    case sbn
     case asin
     case inventory
     case other
