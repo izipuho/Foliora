@@ -47,6 +47,7 @@ struct LibraryView: View {
     @State private var shouldPresentEditorAfterCamera = false
     @State private var isPresentingAddBook = false
     @State private var isPresentingBatchAdd = false
+    @State private var isPresentingPhotoCreationChoice = false
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var collectionSharingState: CollectionSharingState?
@@ -194,6 +195,12 @@ struct LibraryView: View {
                 maxSelectionCount: nil,
                 matching: .images,
                 photoLibrary: .shared()
+            )
+            .catalogMultiPhotoCreationDialog(
+                isPresented: $isPresentingPhotoCreationChoice,
+                photoCount: draftMediaAssets.count,
+                onSelect: handlePhotoCreationMode,
+                onCancel: clearDraftBook
             )
             .fullScreenCover(isPresented: $isPresentingCamera) {
                 CameraPicker { image in
@@ -551,6 +558,15 @@ struct LibraryView: View {
         draftMediaAssets = []
     }
 
+    private func handlePhotoCreationMode(_ mode: CatalogMultiPhotoCreationMode) {
+        switch mode {
+        case .singleItem:
+            isPresentingAddBook = true
+        case .batch:
+            isPresentingBatchAdd = true
+        }
+    }
+
     @MainActor
     private func addDraftPhotosAndPresentEditor(from items: [PhotosPickerItem]) async {
         guard canEditLibrary, !items.isEmpty else { return }
@@ -580,7 +596,7 @@ struct LibraryView: View {
         if newAssets.count == 1 {
             isPresentingAddBook = true
         } else {
-            isPresentingBatchAdd = true
+            isPresentingPhotoCreationChoice = true
         }
     }
 
