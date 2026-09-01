@@ -14,18 +14,22 @@ private struct CatalogMultiPhotoCreationDialogModifier: ViewModifier {
     @State private var didSelectMode = false
 
     func body(content: Content) -> some View {
+        let addPhotosFormat = String(localized: "batch_add.import.add_photos_count")
+        let singleItemFormat = String(localized: "batch_add.import.single_item_photos_count")
+        let separateItemsFormat = String(localized: "batch_add.import.separate_items_count")
+
         content
             .confirmationDialog(
-                "Add \(photoCount) Photos",
+                String(format: addPhotosFormat, locale: .autoupdatingCurrent, photoCount),
                 isPresented: $isPresented,
                 titleVisibility: .visible
             ) {
-                Button("One Item with \(photoCount) Photos") {
+                Button(String(format: singleItemFormat, locale: .autoupdatingCurrent, photoCount)) {
                     didSelectMode = true
                     onSelect(.singleItem)
                 }
 
-                Button("\(photoCount) Separate Items") {
+                Button(String(format: separateItemsFormat, locale: .autoupdatingCurrent, photoCount)) {
                     didSelectMode = true
                     onSelect(.batch)
                 }
