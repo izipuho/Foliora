@@ -331,7 +331,7 @@ private struct RootShellView<Destination: View>: View {
 
     private var iPhoneRootContainer: some View {
         TabView(selection: $selectedRootTab) {
-            Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage, value: RootTab.collections) {
+            Tab(RootTab.collections.title, image: "ProductSymbol", value: RootTab.collections) {
                 collectionsStack(path: $collectionsPath, onItemSelected: openItemDetail)
             }
 
