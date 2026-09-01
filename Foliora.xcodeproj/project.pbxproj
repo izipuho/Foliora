@@ -81,7 +81,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Analysis/BellPhotoAnalysis.swift,
-				Analysis/SuggestedFieldValue.swift,
 			);
 			target = 246FD65E2FA8BB2900B8859A /* BellRecognition */;
 		};
