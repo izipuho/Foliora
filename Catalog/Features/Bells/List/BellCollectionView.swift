@@ -14,6 +14,7 @@ struct BellCollectionView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var isPresentingAddBell = false
     @State private var isPresentingBatchAdd = false
+    @State private var isPresentingPhotoCreationChoice = false
     @State private var isPresentingAddBellOptions = false
     @State private var isPresentingPhotoPicker = false
     @State private var isPresentingCamera = false
@@ -163,6 +164,12 @@ struct BellCollectionView: View {
                 matching: .images,
                 photoLibrary: .shared()
             )
+            .catalogMultiPhotoCreationDialog(
+                isPresented: $isPresentingPhotoCreationChoice,
+                photoCount: draftMediaAssets.count,
+                onSelect: handlePhotoCreationMode,
+                onCancel: clearDraftBell
+            )
             .fullScreenCover(isPresented: $isPresentingCamera) {
                 cameraPicker
             }
@@ -291,6 +298,15 @@ struct BellCollectionView: View {
         draftAnalysisImage = nil
     }
 
+    private func handlePhotoCreationMode(_ mode: CatalogMultiPhotoCreationMode) {
+        switch mode {
+        case .singleItem:
+            isPresentingAddBell = true
+        case .batch:
+            isPresentingBatchAdd = true
+        }
+    }
+
     private func saveCollectionEdits(title: String, notes: String, homeID: UUID, backgroundStyle: CollectionBackgroundStyle) {
         guard canEditCollection else { return }
 
@@ -366,7 +382,7 @@ struct BellCollectionView: View {
         if newAssets.count == 1 {
             isPresentingAddBell = true
         } else {
-            isPresentingBatchAdd = true
+            isPresentingPhotoCreationChoice = true
         }
     }
 

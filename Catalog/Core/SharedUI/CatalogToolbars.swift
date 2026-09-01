@@ -1,6 +1,69 @@
 import SwiftUI
 import UIKit
 
+enum CatalogMultiPhotoCreationMode {
+    case singleItem
+    case batch
+}
+
+private struct CatalogMultiPhotoCreationDialogModifier: ViewModifier {
+    @Binding var isPresented: Bool
+    let photoCount: Int
+    let onSelect: (CatalogMultiPhotoCreationMode) -> Void
+    let onCancel: () -> Void
+    @State private var didSelectMode = false
+
+    func body(content: Content) -> some View {
+        let addPhotosFormat = String(localized: "batch_add.import.add_photos_count")
+        let singleItemFormat = String(localized: "batch_add.import.single_item_photos_count")
+        let separateItemsFormat = String(localized: "batch_add.import.separate_items_count")
+
+        content
+            .confirmationDialog(
+                String(format: addPhotosFormat, locale: .autoupdatingCurrent, photoCount),
+                isPresented: $isPresented,
+                titleVisibility: .visible
+            ) {
+                Button(String(format: singleItemFormat, locale: .autoupdatingCurrent, photoCount)) {
+                    didSelectMode = true
+                    onSelect(.singleItem)
+                }
+
+                Button(String(format: separateItemsFormat, locale: .autoupdatingCurrent, photoCount)) {
+                    didSelectMode = true
+                    onSelect(.batch)
+                }
+            }
+            .onChange(of: isPresented) { _, isPresented in
+                if isPresented {
+                    didSelectMode = false
+                } else if didSelectMode {
+                    didSelectMode = false
+                } else {
+                    onCancel()
+                }
+            }
+    }
+}
+
+extension View {
+    func catalogMultiPhotoCreationDialog(
+        isPresented: Binding<Bool>,
+        photoCount: Int,
+        onSelect: @escaping (CatalogMultiPhotoCreationMode) -> Void,
+        onCancel: @escaping () -> Void
+    ) -> some View {
+        modifier(
+            CatalogMultiPhotoCreationDialogModifier(
+                isPresented: isPresented,
+                photoCount: photoCount,
+                onSelect: onSelect,
+                onCancel: onCancel
+            )
+        )
+    }
+}
+
 /// Shared edit, sort/layout, and add toolbar for collection-style catalog screens.
 struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
     @Binding private var selectedSort: SortOption
