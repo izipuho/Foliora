@@ -31,13 +31,13 @@ enum BookContributorRole: String, CaseIterable, Hashable, Identifiable, Codable 
 }
 
 /// Represents a typed external or catalog identifier assigned to a book.
-struct BookIdentifier: Hashable, Codable {
+struct BookIdentifier: Hashable, Codable, Sendable {
     var type: BookIdentifierType
     var value: String
 }
 
 /// Defines the supported book identifier types.
-enum BookIdentifierType: String, CaseIterable, Hashable, Identifiable, Codable {
+enum BookIdentifierType: String, CaseIterable, Hashable, Identifiable, Codable, Sendable {
     case isbn10
     case isbn13
     case asin
