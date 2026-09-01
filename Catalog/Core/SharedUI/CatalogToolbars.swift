@@ -11,6 +11,7 @@ private struct CatalogMultiPhotoCreationDialogModifier: ViewModifier {
     let photoCount: Int
     let onSelect: (CatalogMultiPhotoCreationMode) -> Void
     let onCancel: () -> Void
+    @State private var didSelectMode = false
 
     func body(content: Content) -> some View {
         content
@@ -20,14 +21,23 @@ private struct CatalogMultiPhotoCreationDialogModifier: ViewModifier {
                 titleVisibility: .visible
             ) {
                 Button("One Item with \(photoCount) Photos") {
+                    didSelectMode = true
                     onSelect(.singleItem)
                 }
 
                 Button("\(photoCount) Separate Items") {
+                    didSelectMode = true
                     onSelect(.batch)
                 }
-
-                Button("Cancel", role: .cancel, action: onCancel)
+            }
+            .onChange(of: isPresented) { _, isPresented in
+                if isPresented {
+                    didSelectMode = false
+                } else if didSelectMode {
+                    didSelectMode = false
+                } else {
+                    onCancel()
+                }
             }
     }
 }
