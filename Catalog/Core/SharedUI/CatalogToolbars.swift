@@ -1,6 +1,55 @@
 import SwiftUI
 import UIKit
 
+enum CatalogMultiPhotoCreationMode {
+    case singleItem
+    case batch
+}
+
+private struct CatalogMultiPhotoCreationDialogModifier: ViewModifier {
+    @Binding var isPresented: Bool
+    let photoCount: Int
+    let onSelect: (CatalogMultiPhotoCreationMode) -> Void
+    let onCancel: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .confirmationDialog(
+                "Add \(photoCount) Photos",
+                isPresented: $isPresented,
+                titleVisibility: .visible
+            ) {
+                Button("One Item with \(photoCount) Photos") {
+                    onSelect(.singleItem)
+                }
+
+                Button("\(photoCount) Separate Items") {
+                    onSelect(.batch)
+                }
+
+                Button("Cancel", role: .cancel, action: onCancel)
+            }
+    }
+}
+
+extension View {
+    func catalogMultiPhotoCreationDialog(
+        isPresented: Binding<Bool>,
+        photoCount: Int,
+        onSelect: @escaping (CatalogMultiPhotoCreationMode) -> Void,
+        onCancel: @escaping () -> Void
+    ) -> some View {
+        modifier(
+            CatalogMultiPhotoCreationDialogModifier(
+                isPresented: isPresented,
+                photoCount: photoCount,
+                onSelect: onSelect,
+                onCancel: onCancel
+            )
+        )
+    }
+}
+
 /// Shared edit, sort/layout, and add toolbar for collection-style catalog screens.
 struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
     @Binding private var selectedSort: SortOption
