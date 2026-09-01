@@ -22,11 +22,13 @@ struct PhotoAnalysisFeatureScope: Sendable {
     let classifications: [VisionFeature]
     let recognizedText: [RecognizedTextFeature]
     let recognizedObjects: [RecognizedObjectFeature]
+    let recognizedBarcodes: [RecognizedBarcodeFeature]
 
     static let empty = PhotoAnalysisFeatureScope(
         classifications: [],
         recognizedText: [],
-        recognizedObjects: []
+        recognizedObjects: [],
+        recognizedBarcodes: []
     )
 }
 
@@ -52,6 +54,14 @@ struct RecognizedObjectFeature: Hashable, Sendable {
 /// Represents recognized text feature data and behavior.
 struct RecognizedTextFeature: Hashable, Sendable {
     let text: String
+    let confidence: Double
+    let boundingBox: CGRect
+}
+
+/// Represents a barcode detected by system Vision.
+struct RecognizedBarcodeFeature: Hashable, Sendable {
+    let payload: String
+    let symbology: String
     let confidence: Double
     let boundingBox: CGRect
 }
@@ -186,6 +196,38 @@ private struct VisionAnalyzer: Sendable {
             .map { $0 }
     }
 
+    func detectBarcodes(image: CGImage) async throws -> [RecognizedBarcodeFeature] {
+        let maxResults = 16
+
+        let request = VNDetectBarcodesRequest()
+        let handler = makeHandler(for: image)
+        try handler.perform([request])
+
+        let features = (request.results ?? []).compactMap { observation -> RecognizedBarcodeFeature? in
+            guard let rawPayload = observation.payloadStringValue else { return nil }
+
+            let payload = rawPayload.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !payload.isEmpty else { return nil }
+
+            return RecognizedBarcodeFeature(
+                payload: payload,
+                symbology: observation.symbology.rawValue,
+                confidence: PhotoAnalysisNormalization.normalizedConfidence(Double(observation.confidence)),
+                boundingBox: observation.boundingBox
+            )
+        }
+
+        return PhotoAnalysisNormalization
+            .deduplicatedByBestConfidence(
+                features,
+                key: { "\($0.symbology)\u{1F}\($0.payload)" },
+                confidence: \.confidence
+            )
+            .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.payload))
+            .prefix(maxResults)
+            .map { $0 }
+    }
+
     func detectSaliency(image: CGImage) async throws -> [ImageRegionFeature] {
         let maxResults = 8
 
@@ -264,10 +306,12 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
     func analyze(image: CGImage) async -> PhotoAnalysisResult {
         async let extractedFeatures = try? vision.classify(image: image)
         async let extractedText = try? vision.recognizeText(image: image)
+        async let extractedBarcodes = try? vision.detectBarcodes(image: image)
         async let extractedSaliencyRegions = try? vision.detectSaliency(image: image)
         async let extractedRecognizedObjects = try? vision.recognizeAnimals(image: image)
 
         let textFeatures = await extractedText ?? []
+        let barcodeFeatures = await extractedBarcodes ?? []
         let saliencyRegions = await extractedSaliencyRegions ?? []
         let backgroundVisionFeatures = await extractedFeatures ?? []
         let backgroundRecognizedObjects = await extractedRecognizedObjects ?? []
@@ -279,6 +323,7 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             crop(image: image, to: $0.boundingBox.insetBy(dx: -0.04, dy: -0.04))
         }
         let splitRecognizedText = splitText(textFeatures, mainObject: mainObjectRegion?.boundingBox)
+        let splitRecognizedBarcodes = splitBarcodes(barcodeFeatures, mainObject: mainObjectRegion?.boundingBox)
         let mainVisionFeatures: [VisionFeature]
         let mainRecognizedObjects: [RecognizedObjectFeature]
         if let mainObjectImage {
@@ -292,12 +337,14 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             visionFeatures: mainVisionFeatures,
             textFeatures: splitRecognizedText.main,
             recognizedObjects: mainRecognizedObjects,
+            barcodeFeatures: splitRecognizedBarcodes.main,
             excludedLabels: []
         )
         let backgroundScope = makeScope(
             visionFeatures: backgroundVisionFeatures,
             textFeatures: splitRecognizedText.background,
             recognizedObjects: backgroundRecognizedObjects,
+            barcodeFeatures: splitRecognizedBarcodes.background,
             excludedLabels: Set(mainVisionFeatures.map(\.label))
         )
 
@@ -337,10 +384,33 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         return (main: main, background: background)
     }
 
+    private func splitBarcodes(
+        _ recognizedBarcodes: [RecognizedBarcodeFeature],
+        mainObject: CGRect?
+    ) -> (main: [RecognizedBarcodeFeature], background: [RecognizedBarcodeFeature]) {
+        guard let mainObject else {
+            return (main: [], background: recognizedBarcodes)
+        }
+
+        var main: [RecognizedBarcodeFeature] = []
+        var background: [RecognizedBarcodeFeature] = []
+
+        for barcode in recognizedBarcodes {
+            if intersectionRatio(barcode.boundingBox, mainObject) >= 0.15 {
+                main.append(barcode)
+            } else {
+                background.append(barcode)
+            }
+        }
+
+        return (main: main, background: background)
+    }
+
     private func makeScope(
         visionFeatures: [VisionFeature],
         textFeatures: [RecognizedTextFeature],
         recognizedObjects: [RecognizedObjectFeature],
+        barcodeFeatures: [RecognizedBarcodeFeature],
         excludedLabels: Set<String>
     ) -> PhotoAnalysisFeatureScope {
         let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
@@ -382,11 +452,24 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
                 boundingBox: object.boundingBox
             )
         }
+        let barcodes = barcodeFeatures.compactMap { feature -> RecognizedBarcodeFeature? in
+            let payload = feature.payload.trimmingCharacters(in: .whitespacesAndNewlines)
+            let symbology = feature.symbology.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !payload.isEmpty, !symbology.isEmpty else { return nil }
+
+            return RecognizedBarcodeFeature(
+                payload: payload,
+                symbology: symbology,
+                confidence: PhotoAnalysisNormalization.normalizedConfidence(feature.confidence),
+                boundingBox: feature.boundingBox
+            )
+        }
 
         return PhotoAnalysisFeatureScope(
             classifications: labels,
             recognizedText: textLines,
-            recognizedObjects: objects
+            recognizedObjects: objects,
+            recognizedBarcodes: barcodes
         )
     }
 
