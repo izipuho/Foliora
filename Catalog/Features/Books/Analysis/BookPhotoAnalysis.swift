@@ -100,7 +100,7 @@ final class BookPhotoAnalysisController {
     }
 
     func analyze(image: UIImage) {
-        guard let cgImage = image.cgImage else {
+        guard let cgImage = image.photoAnalysisCGImage else {
             photoAnalysisFailures = []
             analysisError = BookPhotoAnalysisError.imageUnavailable
             isAnalyzing = false
@@ -200,5 +200,28 @@ final class BookPhotoAnalysisController {
             series: bibliography.series,
             volumeNumber: bibliography.volumeNumber
         )
+    }
+}
+
+private extension UIImage {
+    /// Bakes UIImage orientation metadata into pixels before passing the image to Vision.
+    var photoAnalysisCGImage: CGImage? {
+        guard imageOrientation != .up else {
+            return cgImage
+        }
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = false
+
+        let normalizedImage = UIGraphicsImageRenderer(
+            size: size,
+            format: format
+        ).image { _ in
+            // UIImage drawing respects imageOrientation; the rendered bitmap is therefore orientation-normalized.
+            draw(in: CGRect(origin: .zero, size: size))
+        }
+
+        return normalizedImage.cgImage
     }
 }
