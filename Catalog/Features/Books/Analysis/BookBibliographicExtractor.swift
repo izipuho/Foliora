@@ -22,9 +22,21 @@ struct BookBibliographicExtraction: Sendable {
     )
 }
 
+/// Defines expected failures that prevent Foundation Models bibliographic extraction.
+enum BookBibliographicExtractionError: LocalizedError, Sendable {
+    case modelUnavailable
+
+    var errorDescription: String? {
+        switch self {
+        case .modelUnavailable:
+            return "Foundation Models system language model is unavailable."
+        }
+    }
+}
+
 /// Defines book-specific bibliographic extraction from generic photo-analysis evidence.
 protocol BookBibliographicExtracting: Sendable {
-    func extract(from analysis: PhotoAnalysisResult) async -> BookBibliographicExtraction
+    func extract(from analysis: PhotoAnalysisResult) async throws -> BookBibliographicExtraction
 }
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
@@ -80,36 +92,32 @@ private struct BookBibliographicGeneratedResponse {
 
 /// Extracts book bibliographic metadata from Vision-provided OCR context using Foundation Models.
 struct BookBibliographicExtractor: BookBibliographicExtracting {
-    func extract(from analysis: PhotoAnalysisResult) async -> BookBibliographicExtraction {
+    func extract(from analysis: PhotoAnalysisResult) async throws -> BookBibliographicExtraction {
         let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
         guard !recognizedText.isEmpty else {
             return .empty
         }
 
-        do {
-            let model = SystemLanguageModel.default
-            guard model.isAvailable else {
-                return .empty
-            }
-
-            let session = LanguageModelSession(
-                model: model,
-                instructions: instructions
-            )
-            let response = try await session.respond(
-                generating: BookBibliographicGeneratedResponse.self,
-                options: GenerationOptions(sampling: .greedy)
-            ) {
-                promptText(
-                    mainText: analysis.main.recognizedText,
-                    backgroundText: analysis.background.recognizedText
-                )
-            }
-
-            return extraction(from: response.content)
-        } catch {
-            return .empty
+        let model = SystemLanguageModel.default
+        guard model.isAvailable else {
+            throw BookBibliographicExtractionError.modelUnavailable
         }
+
+        let session = LanguageModelSession(
+            model: model,
+            instructions: instructions
+        )
+        let response = try await session.respond(
+            generating: BookBibliographicGeneratedResponse.self,
+            options: GenerationOptions(sampling: .greedy)
+        ) {
+            promptText(
+                mainText: analysis.main.recognizedText,
+                backgroundText: analysis.background.recognizedText
+            )
+        }
+
+        return extraction(from: response.content)
     }
 
     private var instructions: String {
