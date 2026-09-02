@@ -36,6 +36,21 @@ struct BookPhotoSuggestions: Sendable {
     }
 }
 
+/// Defines failures owned by the book photo-analysis orchestration layer.
+enum BookPhotoAnalysisError: LocalizedError, Sendable {
+    case imageUnavailable
+    case bibliographicTimeout
+
+    var errorDescription: String? {
+        switch self {
+        case .imageUnavailable:
+            return "The source image cannot be analyzed as a CGImage."
+        case .bibliographicTimeout:
+            return "Foundation Models bibliographic extraction timed out."
+        }
+    }
+}
+
 /// Orchestrates generic photo analysis and book-specific recognition for one image.
 @MainActor
 @Observable
@@ -53,25 +68,30 @@ final class BookPhotoAnalysisController {
 
     private(set) var isAnalyzing = false
     private(set) var suggestions: BookPhotoSuggestions = .empty
+    private(set) var analysisError: (any Error)?
 
     private let service: any PhotoAnalysisService
     private let identifierExtractor: any BookIdentifierExtracting
     private let bibliographicExtractor: any BookBibliographicExtracting
+    private let bibliographicTimeout: Duration
 
     init() {
         self.service = DefaultPhotoAnalysisService()
         self.identifierExtractor = BookIdentifierExtractor()
         self.bibliographicExtractor = BookBibliographicExtractor()
+        self.bibliographicTimeout = .seconds(30)
     }
 
     init(
         service: any PhotoAnalysisService,
         identifierExtractor: any BookIdentifierExtracting,
-        bibliographicExtractor: any BookBibliographicExtracting
+        bibliographicExtractor: any BookBibliographicExtracting,
+        bibliographicTimeout: Duration = .seconds(30)
     ) {
         self.service = service
         self.identifierExtractor = identifierExtractor
         self.bibliographicExtractor = bibliographicExtractor
+        self.bibliographicTimeout = bibliographicTimeout
     }
 
     var hasSuggestions: Bool {
@@ -80,30 +100,38 @@ final class BookPhotoAnalysisController {
 
     func analyze(image: UIImage) {
         guard let cgImage = image.cgImage else {
+            analysisError = BookPhotoAnalysisError.imageUnavailable
             isAnalyzing = false
             return
         }
 
+        suggestions = .empty
+        analysisError = nil
         isAnalyzing = true
 
         Task {
+            defer {
+                isAnalyzing = false
+            }
+
             let analysis = await service.analyze(image: cgImage)
             let identifiers = identifierExtractor.extract(from: analysis)
-            let bibliography = await bibliographicExtractor.extract(from: analysis)
-            let mappedSuggestions = BookPhotoSuggestions(
-                title: bibliography.title,
-                authors: bibliography.authors,
-                identifiers: identifiers,
-                publisher: bibliography.publisher,
-                publicationYear: bibliography.publicationYear,
-                languageCode: bibliography.languageCode,
-                series: bibliography.series,
-                volumeNumber: bibliography.volumeNumber
+
+            // Deterministic identifiers remain useful even if Foundation Models is unavailable or fails.
+            suggestions = suggestions(
+                bibliography: .empty,
+                identifiers: identifiers
             )
 
-            await MainActor.run {
-                self.suggestions = mappedSuggestions
-                self.isAnalyzing = false
+            do {
+                let bibliography = try await extractBibliography(from: analysis)
+                suggestions = suggestions(
+                    bibliography: bibliography,
+                    identifiers: identifiers
+                )
+            } catch {
+                // Convert the failure into explicit controller state without discarding partial results.
+                analysisError = error
             }
         }
     }
@@ -123,6 +151,47 @@ final class BookPhotoAnalysisController {
 
     func clear() {
         suggestions = .empty
+        analysisError = nil
         isAnalyzing = false
+    }
+
+    private func extractBibliography(
+        from analysis: PhotoAnalysisResult
+    ) async throws -> BookBibliographicExtraction {
+        let extractor = bibliographicExtractor
+        let timeout = bibliographicTimeout
+
+        return try await withThrowingTaskGroup(of: BookBibliographicExtraction.self) { group in
+            group.addTask {
+                try await extractor.extract(from: analysis)
+            }
+            group.addTask {
+                try await Task.sleep(for: timeout)
+                throw BookPhotoAnalysisError.bibliographicTimeout
+            }
+
+            guard let result = try await group.next() else {
+                throw CancellationError()
+            }
+
+            group.cancelAll()
+            return result
+        }
+    }
+
+    private func suggestions(
+        bibliography: BookBibliographicExtraction,
+        identifiers: [SuggestedFieldValue<BookIdentifier>]
+    ) -> BookPhotoSuggestions {
+        BookPhotoSuggestions(
+            title: bibliography.title,
+            authors: bibliography.authors,
+            identifiers: identifiers,
+            publisher: bibliography.publisher,
+            publicationYear: bibliography.publicationYear,
+            languageCode: bibliography.languageCode,
+            series: bibliography.series,
+            volumeNumber: bibliography.volumeNumber
+        )
     }
 }
