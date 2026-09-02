@@ -68,6 +68,7 @@ final class BookPhotoAnalysisController {
 
     private(set) var isAnalyzing = false
     private(set) var suggestions: BookPhotoSuggestions = .empty
+    private(set) var recognizedText: [RecognizedTextFeature] = []
     private(set) var analysisError: (any Error)?
     private(set) var photoAnalysisFailures: [PhotoAnalysisFailure] = []
 
@@ -101,6 +102,7 @@ final class BookPhotoAnalysisController {
 
     func analyze(image: UIImage) {
         guard let cgImage = image.photoAnalysisCGImage else {
+            recognizedText = []
             photoAnalysisFailures = []
             analysisError = BookPhotoAnalysisError.imageUnavailable
             isAnalyzing = false
@@ -108,6 +110,7 @@ final class BookPhotoAnalysisController {
         }
 
         suggestions = .empty
+        recognizedText = []
         photoAnalysisFailures = []
         analysisError = nil
         isAnalyzing = true
@@ -118,6 +121,10 @@ final class BookPhotoAnalysisController {
             }
 
             let analysis = await service.analyze(image: cgImage)
+            // Keep raw OCR evidence available to the editor even when Foundation Models cannot run.
+            recognizedText = Self.readingOrderedText(
+                analysis.main.recognizedText + analysis.background.recognizedText
+            )
             // Preserve every partial Vision failure so callers can distinguish "nothing found" from "request failed".
             photoAnalysisFailures = analysis.failures
 
@@ -157,9 +164,24 @@ final class BookPhotoAnalysisController {
 
     func clear() {
         suggestions = .empty
+        recognizedText = []
         photoAnalysisFailures = []
         analysisError = nil
         isAnalyzing = false
+    }
+
+    private static func readingOrderedText(
+        _ features: [RecognizedTextFeature]
+    ) -> [RecognizedTextFeature] {
+        features.sorted { lhs, rhs in
+            // Vision coordinates start at the lower-left. Quantizing Y keeps fragments on the same visual row ordered by X.
+            let lhsRow = Int((lhs.boundingBox.midY * 50).rounded())
+            let rhsRow = Int((rhs.boundingBox.midY * 50).rounded())
+            if lhsRow != rhsRow {
+                return lhsRow > rhsRow
+            }
+            return lhs.boundingBox.minX < rhs.boundingBox.minX
+        }
     }
 
     private func extractBibliography(

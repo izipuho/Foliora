@@ -3,6 +3,13 @@ import Foundation
 import SwiftUI
 import UIKit
 
+private enum BookOCRScalarDropTarget: Hashable {
+    case title
+    case publisher
+    case series
+    case volume
+}
+
 /// Displays the editor used to create or edit a book.
 struct BookEditorView: View {
     let collection: CollectionSummary
@@ -43,6 +50,9 @@ struct BookEditorView: View {
     @State private var isPresentingIdentifierEditor = false
     @State private var photoAnalysis = BookPhotoAnalysisController()
     @State private var didStartInitialAnalysis = false
+    @State private var ocrScalarAssignments: [BookOCRScalarDropTarget: [RecognizedTextFeature]] = [:]
+    @State private var ocrAuthorAssignments: [Int: [RecognizedTextFeature]] = [:]
+    @State private var ocrAuthorBaseNames: [Int: String] = [:]
 
     private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
@@ -313,6 +323,9 @@ struct BookEditorView: View {
                 Section(String(localized: "common.field.description")) {
                     TextField(String(localized: "common.field_title"), text: $title)
                         .focused($isTitleFocused)
+                        .dropDestination(for: String.self) { items, _ in
+                            applyOCRScalarFragments(items, to: .title)
+                        }
 
                     if !isTitleValid {
                         Button {
@@ -374,6 +387,9 @@ struct BookEditorView: View {
                             selectedSeries = newSeries
                         }
                     )
+                    .dropDestination(for: String.self) { items, _ in
+                        applyOCRScalarFragments(items, to: .series)
+                    }
 
                     if selectedSeries != nil {
                         volumeField
@@ -389,6 +405,9 @@ struct BookEditorView: View {
                             selectedPublisher = newPublisher
                         }
                     )
+                    .dropDestination(for: String.self) { items, _ in
+                        applyOCRScalarFragments(items, to: .publisher)
+                    }
                 }
 
                 Section("book.section.contributors") {
@@ -415,6 +434,9 @@ struct BookEditorView: View {
                             }
                         }
                         .buttonStyle(.plain)
+                        .dropDestination(for: String.self) { items, _ in
+                            appendOCRFragments(items, toContributorAt: index)
+                        }
                     }
                     .onDelete(perform: deleteContributors)
 
@@ -423,6 +445,9 @@ struct BookEditorView: View {
                         isPresentingContributorEditor = true
                     } label: {
                         Label("book_contributor.action.add", systemImage: "plus")
+                    }
+                    .dropDestination(for: String.self) { items, _ in
+                        createOCRAuthor(from: items)
                     }
                 }
 
@@ -485,6 +510,14 @@ struct BookEditorView: View {
                     )
                 }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if !photoAnalysis.recognizedText.isEmpty {
+                    BookOCRBottomPalette(
+                        fragments: photoAnalysis.recognizedText,
+                        usedTexts: usedOCRTexts
+                    )
+                }
+            }
             .navigationTitle(existingBook == nil ? String(localized: "book.action.add") : String(localized: "book.action.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -536,6 +569,12 @@ struct BookEditorView: View {
         }
     }
 
+    private var usedOCRTexts: Set<String> {
+        let scalarTexts = ocrScalarAssignments.values.flatMap { $0.map(\.text) }
+        let authorTexts = ocrAuthorAssignments.values.flatMap { $0.map(\.text) }
+        return Set(scalarTexts + authorTexts)
+    }
+
     private var canSave: Bool {
         isTitleValid
             && isOptionalPositiveIntegerValid(pageCount)
@@ -560,6 +599,9 @@ struct BookEditorView: View {
                 .font(.footnote)
                 .foregroundStyle(CatalogSemanticColors.destructive)
             }
+        }
+        .dropDestination(for: String.self) { items, _ in
+            applyOCRScalarFragments(items, to: .volume)
         }
     }
 
@@ -634,6 +676,156 @@ struct BookEditorView: View {
 
         didStartInitialAnalysis = true
         photoAnalysis.analyze(image: initialAnalysisImage)
+    }
+
+    private func applyOCRScalarFragments(
+        _ droppedTexts: [String],
+        to target: BookOCRScalarDropTarget
+    ) -> Bool {
+        let newFragments = droppedTexts.compactMap(ocrFeature(matching:))
+        guard !newFragments.isEmpty else { return false }
+
+        var assigned = ocrScalarAssignments[target, default: []]
+        for fragment in newFragments where !assigned.contains(fragment) {
+            assigned.append(fragment)
+        }
+        assigned.sort(by: Self.ocrReadingOrder)
+
+        let value = assigned.map(\.text).joined(separator: " ")
+        let confidence = assigned.map(\.confidence).min() ?? 0
+
+        if target == .volume {
+            guard let number = firstPositiveInteger(in: value) else { return false }
+            volumeNumber = String(number)
+        }
+
+        ocrScalarAssignments[target] = assigned
+
+        switch target {
+        case .title:
+            title = value
+        case .publisher:
+            applyPublisherSuggestion(
+                SuggestedFieldValue(value: value, confidence: confidence)
+            )
+        case .series:
+            applySeriesSuggestion(
+                SuggestedFieldValue(value: value, confidence: confidence)
+            )
+        case .volume:
+            break
+        }
+
+        return true
+    }
+
+    private func createOCRAuthor(from droppedTexts: [String]) -> Bool {
+        var fragments = droppedTexts.compactMap(ocrFeature(matching:))
+        guard !fragments.isEmpty else { return false }
+        fragments.sort(by: Self.ocrReadingOrder)
+
+        let name = fragments.map(\.text).joined(separator: " ")
+        guard !name.isEmpty else { return false }
+
+        // A drop on the empty "add contributor" row creates the first concrete author target.
+        let person = personForOCRName(name)
+        let index = contributors.count
+        contributors.append(
+            BookContributor(
+                role: .author,
+                order: index,
+                person: person
+            )
+        )
+        normalizeContributorOrder()
+        ocrAuthorAssignments[index] = fragments
+        ocrAuthorBaseNames[index] = ""
+        return true
+    }
+
+    private func appendOCRFragments(
+        _ droppedTexts: [String],
+        toContributorAt index: Int
+    ) -> Bool {
+        guard contributors.indices.contains(index), contributors[index].role == .author else {
+            return false
+        }
+
+        let newFragments = droppedTexts.compactMap(ocrFeature(matching:))
+        guard !newFragments.isEmpty else { return false }
+
+        let contributor = contributors[index]
+        if ocrAuthorBaseNames[index] == nil {
+            // A manually-created author remains the stable prefix; OCR fragments are appended rather than renaming it implicitly.
+            ocrAuthorBaseNames[index] = contributor.person.name
+        }
+
+        var assigned = ocrAuthorAssignments[index, default: []]
+        for fragment in newFragments where !assigned.contains(fragment) {
+            assigned.append(fragment)
+        }
+        assigned.sort(by: Self.ocrReadingOrder)
+        ocrAuthorAssignments[index] = assigned
+
+        let fragmentName = assigned.map(\.text).joined(separator: " ")
+        let baseName = ocrAuthorBaseNames[index] ?? ""
+        let name = [baseName, fragmentName]
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .joined(separator: " ")
+
+        guard !name.isEmpty else { return false }
+
+        contributors[index] = BookContributor(
+            role: contributor.role,
+            order: contributor.order,
+            person: personForOCRName(name)
+        )
+        return true
+    }
+
+    private func personForOCRName(_ rawName: String) -> Person {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = normalizedReferenceKey(name)
+
+        if let existing = catalogPeople.first(where: { normalizedReferenceKey($0.name) == key }) {
+            return existing
+        }
+
+        let person = Person(
+            id: UUID(),
+            name: name,
+            birthYear: nil,
+            deathYear: nil,
+            biography: nil,
+            birthPlace: nil,
+            deathPlace: nil,
+            photos: []
+        )
+        catalogPeople.append(person)
+        return person
+    }
+
+    private func ocrFeature(matching text: String) -> RecognizedTextFeature? {
+        photoAnalysis.recognizedText.first { $0.text == text }
+    }
+
+    private static func ocrReadingOrder(
+        _ lhs: RecognizedTextFeature,
+        _ rhs: RecognizedTextFeature
+    ) -> Bool {
+        let lhsRow = Int((lhs.boundingBox.midY * 50).rounded())
+        let rhsRow = Int((rhs.boundingBox.midY * 50).rounded())
+        if lhsRow != rhsRow {
+            return lhsRow > rhsRow
+        }
+        return lhs.boundingBox.minX < rhs.boundingBox.minX
+    }
+
+    private func firstPositiveInteger(in value: String) -> Int? {
+        value
+            .split(whereSeparator: { !$0.isNumber })
+            .compactMap { Int(String($0)) }
+            .first(where: { $0 > 0 })
     }
 
     private func applyAuthorSuggestions(_ suggestions: [SuggestedFieldValue<String>]) {
@@ -876,6 +1068,64 @@ struct BookEditorView: View {
             .filter { !$0.isEmpty }
             .filter { seen.insert($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)).inserted }
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+}
+
+private struct BookOCRBottomPalette: View {
+    let fragments: [RecognizedTextFeature]
+    let usedTexts: Set<String>
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Divider()
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: CatalogMetrics.Spacing.sm) {
+                    ForEach(Array(fragments.enumerated()), id: \.offset) { _, feature in
+                        BookOCRFragmentChip(
+                            feature: feature,
+                            isUsed: usedTexts.contains(feature.text)
+                        )
+                    }
+                }
+                .padding(.horizontal, CatalogMetrics.Insets.screen)
+                .padding(.vertical, CatalogMetrics.Spacing.sm)
+            }
+        }
+        .background(.ultraThinMaterial)
+    }
+}
+
+private struct BookOCRFragmentChip: View {
+    let feature: RecognizedTextFeature
+    let isUsed: Bool
+
+    var body: some View {
+        HStack(spacing: CatalogMetrics.Spacing.xs) {
+            Image(systemName: "line.3.horizontal")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+
+            Text(feature.text)
+                .lineLimit(1)
+
+            if isUsed {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.tint)
+            }
+        }
+        .font(.subheadline)
+        .padding(.horizontal, CatalogMetrics.Spacing.sm)
+        .padding(.vertical, CatalogMetrics.Spacing.xs)
+        .frame(maxWidth: 240)
+        .background(
+            Capsule()
+                .fill(Color(uiColor: .tertiarySystemFill))
+        )
+        .contentShape(Capsule())
+        .draggable(feature.text)
+        .accessibilityLabel(feature.text)
     }
 }
 
