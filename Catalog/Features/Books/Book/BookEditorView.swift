@@ -511,10 +511,10 @@ struct BookEditorView: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !photoAnalysis.recognizedText.isEmpty {
+                if !unusedOCRFragments.isEmpty {
                     BookOCRBottomPalette(
-                        fragments: photoAnalysis.recognizedText,
-                        usedTexts: usedOCRTexts
+                        fragments: unusedOCRFragments,
+                        usedTexts: []
                     )
                 }
             }
@@ -572,7 +572,44 @@ struct BookEditorView: View {
     private var usedOCRTexts: Set<String> {
         let scalarTexts = ocrScalarAssignments.values.flatMap { $0.map(\.text) }
         let authorTexts = ocrAuthorAssignments.values.flatMap { $0.map(\.text) }
-        return Set(scalarTexts + authorTexts)
+        var used = Set(scalarTexts + authorTexts)
+
+        // TextField can accept a dragged String directly before our dropDestination runs.
+        // Derive usage from the actual editor state as well, so the palette never disagrees with what the user sees.
+        let editorValues = [
+            title,
+            notes,
+            genre,
+            pageCount,
+            volumeNumber,
+            selectedPublisher?.name ?? "",
+            selectedSeries?.name ?? ""
+        ] + tags + contributors.map(\.person.name) + identifiers.map(\.value)
+
+        for feature in photoAnalysis.recognizedText {
+            let fragment = Self.normalizedOCRUsageText(feature.text)
+            guard !fragment.isEmpty else { continue }
+
+            if editorValues.contains(where: { value in
+                Self.normalizedOCRUsageText(value).contains(fragment)
+            }) {
+                used.insert(feature.text)
+            }
+        }
+
+        return used
+    }
+
+    private var unusedOCRFragments: [RecognizedTextFeature] {
+        photoAnalysis.recognizedText.filter { !usedOCRTexts.contains($0.text) }
+    }
+
+    private static func normalizedOCRUsageText(_ value: String) -> String {
+        value
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 
     private var canSave: Bool {
@@ -1116,14 +1153,15 @@ private struct BookOCRFragmentChip: View {
             }
         }
         .font(.subheadline)
-        .padding(.horizontal, CatalogMetrics.Spacing.sm)
-        .padding(.vertical, CatalogMetrics.Spacing.xs)
+        .padding(.horizontal, CatalogMetrics.Spacing.md)
+        .frame(minHeight: 44)
         .frame(maxWidth: 240)
         .background(
             Capsule()
                 .fill(Color(uiColor: .tertiarySystemFill))
         )
-        .contentShape(Capsule())
+        // Give the whole 44pt chip a drag hit target instead of making the user catch the small glyph or text.
+        .contentShape(Rectangle())
         .draggable(feature.text)
         .accessibilityLabel(feature.text)
     }
