@@ -24,13 +24,16 @@ struct BookBibliographicExtraction: Sendable {
 
 /// Defines expected failures that prevent Foundation Models bibliographic extraction.
 enum BookBibliographicExtractionError: LocalizedError, Sendable {
-    case modelUnavailable
+    case modelUnavailable(SystemLanguageModel.Availability.UnavailableReason)
+    case unknownModelAvailability
     case textRecognitionFailed(PhotoAnalysisFailure)
 
     var errorDescription: String? {
         switch self {
-        case .modelUnavailable:
-            return "Foundation Models system language model is unavailable."
+        case .modelUnavailable(let reason):
+            return "Foundation Models system language model is unavailable: \(reason)."
+        case .unknownModelAvailability:
+            return "Foundation Models system language model has an unknown availability state."
         case .textRecognitionFailed(let failure):
             return "Vision text recognition failed before bibliographic extraction: \(failure)"
         }
@@ -107,10 +110,17 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
         }
 
         let model = SystemLanguageModel.default
-        guard model.isAvailable else {
-            throw BookBibliographicExtractionError.modelUnavailable
-        }
 
+        // Preserve the concrete system reason instead of collapsing every
+        // unavailable state into one indistinguishable error.
+        switch model.availability {
+        case .available:
+            break
+        case .unavailable(let reason):
+            throw BookBibliographicExtractionError.modelUnavailable(reason)
+        @unknown default:
+            throw BookBibliographicExtractionError.unknownModelAvailability
+        }
         let prompt = try promptText(
             mainText: analysis.main.recognizedText,
             backgroundText: analysis.background.recognizedText
