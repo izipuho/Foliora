@@ -25,11 +25,14 @@ struct BookBibliographicExtraction: Sendable {
 /// Defines expected failures that prevent Foundation Models bibliographic extraction.
 enum BookBibliographicExtractionError: LocalizedError, Sendable {
     case modelUnavailable
+    case textRecognitionFailed(PhotoAnalysisFailure)
 
     var errorDescription: String? {
         switch self {
         case .modelUnavailable:
             return "Foundation Models system language model is unavailable."
+        case .textRecognitionFailed(let failure):
+            return "Vision text recognition failed before bibliographic extraction: \(failure)"
         }
     }
 }
@@ -93,6 +96,11 @@ private struct BookBibliographicGeneratedResponse {
 /// Extracts book bibliographic metadata from Vision-provided OCR context using Foundation Models.
 struct BookBibliographicExtractor: BookBibliographicExtracting {
     func extract(from analysis: PhotoAnalysisResult) async throws -> BookBibliographicExtraction {
+        if let textFailure = analysis.failures.first(where: { $0.stage == .textRecognition }) {
+            // A failed OCR request must not be interpreted as a successful request that found no text.
+            throw BookBibliographicExtractionError.textRecognitionFailed(textFailure)
+        }
+
         let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
         guard !recognizedText.isEmpty else {
             return .empty

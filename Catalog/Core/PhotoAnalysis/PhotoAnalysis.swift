@@ -9,12 +9,61 @@ struct PhotoAnalysisResult: Sendable {
     let main: PhotoAnalysisFeatureScope
     let background: PhotoAnalysisFeatureScope
 
+    /// Partial Vision failures are preserved separately from successful feature results.
+    let failures: [PhotoAnalysisFailure]
+
+    init(
+        mainObjectImage: CGImage?,
+        mainObjectRegion: ImageRegionFeature?,
+        main: PhotoAnalysisFeatureScope,
+        background: PhotoAnalysisFeatureScope,
+        failures: [PhotoAnalysisFailure] = []
+    ) {
+        self.mainObjectImage = mainObjectImage
+        self.mainObjectRegion = mainObjectRegion
+        self.main = main
+        self.background = background
+        self.failures = failures
+    }
+
     static let empty = PhotoAnalysisResult(
         mainObjectImage: nil,
         mainObjectRegion: nil,
         main: .empty,
         background: .empty
     )
+}
+
+/// Describes one failed Vision feature request without discarding successful sibling results.
+struct PhotoAnalysisFailure: Hashable, Sendable, CustomStringConvertible {
+    enum Stage: String, Hashable, Sendable {
+        case classification
+        case textRecognition
+        case barcodeRecognition
+        case saliency
+        case objectRecognition
+        case mainClassification
+        case mainObjectRecognition
+    }
+
+    let stage: Stage
+    let errorType: String
+    let errorDomain: String
+    let errorCode: Int
+    let message: String
+
+    init(stage: Stage, error: any Error) {
+        let nsError = error as NSError
+        self.stage = stage
+        self.errorType = String(reflecting: type(of: error))
+        self.errorDomain = nsError.domain
+        self.errorCode = nsError.code
+        self.message = nsError.localizedDescription
+    }
+
+    var description: String {
+        "\(stage.rawValue): \(errorType) [\(errorDomain):\(errorCode)] \(message)"
+    }
 }
 
 /// Represents photo analysis feature scope data and behavior.
@@ -70,6 +119,21 @@ struct RecognizedBarcodeFeature: Hashable, Sendable {
 struct ImageRegionFeature: Hashable, Sendable {
     let boundingBox: CGRect
     let confidence: Double
+}
+
+private enum PhotoAnalysisAttempt<Value: Sendable>: Sendable {
+    case success(Value)
+    case failure(PhotoAnalysisFailure)
+
+    var value: Value? {
+        guard case .success(let value) = self else { return nil }
+        return value
+    }
+
+    var failure: PhotoAnalysisFailure? {
+        guard case .failure(let failure) = self else { return nil }
+        return failure
+    }
 }
 
 private enum PhotoAnalysisNormalization {
@@ -304,17 +368,50 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
     private let vision = VisionAnalyzer()
 
     func analyze(image: CGImage) async -> PhotoAnalysisResult {
-        async let extractedFeatures = try? vision.classify(image: image)
-        async let extractedText = try? vision.recognizeText(image: image)
-        async let extractedBarcodes = try? vision.detectBarcodes(image: image)
-        async let extractedSaliencyRegions = try? vision.detectSaliency(image: image)
-        async let extractedRecognizedObjects = try? vision.recognizeAnimals(image: image)
+        let vision = vision
 
-        let textFeatures = await extractedText ?? []
-        let barcodeFeatures = await extractedBarcodes ?? []
-        let saliencyRegions = await extractedSaliencyRegions ?? []
-        let backgroundVisionFeatures = await extractedFeatures ?? []
-        let backgroundRecognizedObjects = await extractedRecognizedObjects ?? []
+        async let extractedFeatures = Self.capture(stage: .classification) {
+            try await vision.classify(image: image)
+        }
+        async let extractedText = Self.capture(stage: .textRecognition) {
+            try await vision.recognizeText(image: image)
+        }
+        async let extractedBarcodes = Self.capture(stage: .barcodeRecognition) {
+            try await vision.detectBarcodes(image: image)
+        }
+        async let extractedSaliencyRegions = Self.capture(stage: .saliency) {
+            try await vision.detectSaliency(image: image)
+        }
+        async let extractedRecognizedObjects = Self.capture(stage: .objectRecognition) {
+            try await vision.recognizeAnimals(image: image)
+        }
+
+        let (
+            featuresAttempt,
+            textAttempt,
+            barcodeAttempt,
+            saliencyAttempt,
+            objectsAttempt
+        ) = await (
+            extractedFeatures,
+            extractedText,
+            extractedBarcodes,
+            extractedSaliencyRegions,
+            extractedRecognizedObjects
+        )
+
+        let textFeatures = textAttempt.value ?? []
+        let barcodeFeatures = barcodeAttempt.value ?? []
+        let saliencyRegions = saliencyAttempt.value ?? []
+        let backgroundVisionFeatures = featuresAttempt.value ?? []
+        let backgroundRecognizedObjects = objectsAttempt.value ?? []
+        var failures = [
+            featuresAttempt.failure,
+            textAttempt.failure,
+            barcodeAttempt.failure,
+            saliencyAttempt.failure,
+            objectsAttempt.failure
+        ].compactMap { $0 }
 
         let mainObjectRegion = detectMainObject(
             saliencyRegions: saliencyRegions
@@ -324,15 +421,27 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         }
         let splitRecognizedText = splitText(textFeatures, mainObject: mainObjectRegion?.boundingBox)
         let splitRecognizedBarcodes = splitBarcodes(barcodeFeatures, mainObject: mainObjectRegion?.boundingBox)
-        let mainVisionFeatures: [VisionFeature]
-        let mainRecognizedObjects: [RecognizedObjectFeature]
+
+        var mainVisionFeatures: [VisionFeature] = []
+        var mainRecognizedObjects: [RecognizedObjectFeature] = []
         if let mainObjectImage {
-            mainVisionFeatures = (try? await vision.classify(image: mainObjectImage)) ?? []
-            mainRecognizedObjects = (try? await vision.recognizeAnimals(image: mainObjectImage)) ?? []
-        } else {
-            mainVisionFeatures = []
-            mainRecognizedObjects = []
+            // These crop-only requests are independent, so do not serialize their latency.
+            async let mainFeatures = Self.capture(stage: .mainClassification) {
+                try await vision.classify(image: mainObjectImage)
+            }
+            async let mainObjects = Self.capture(stage: .mainObjectRecognition) {
+                try await vision.recognizeAnimals(image: mainObjectImage)
+            }
+
+            let (mainFeaturesAttempt, mainObjectsAttempt) = await (mainFeatures, mainObjects)
+            mainVisionFeatures = mainFeaturesAttempt.value ?? []
+            mainRecognizedObjects = mainObjectsAttempt.value ?? []
+            failures.append(contentsOf: [
+                mainFeaturesAttempt.failure,
+                mainObjectsAttempt.failure
+            ].compactMap { $0 })
         }
+
         let mainScope = makeScope(
             visionFeatures: mainVisionFeatures,
             textFeatures: splitRecognizedText.main,
@@ -352,8 +461,21 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             mainObjectImage: mainObjectImage,
             mainObjectRegion: mainObjectRegion,
             main: mainScope,
-            background: backgroundScope
+            background: backgroundScope,
+            failures: failures
         )
+    }
+
+    private static func capture<Value: Sendable>(
+        stage: PhotoAnalysisFailure.Stage,
+        operation: @Sendable () async throws -> Value
+    ) async -> PhotoAnalysisAttempt<Value> {
+        do {
+            return .success(try await operation())
+        } catch {
+            // A failed request is not equivalent to a successful request with zero results.
+            return .failure(PhotoAnalysisFailure(stage: stage, error: error))
+        }
     }
 
     private func detectMainObject(

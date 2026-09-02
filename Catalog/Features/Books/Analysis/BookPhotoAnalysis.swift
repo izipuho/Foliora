@@ -69,6 +69,7 @@ final class BookPhotoAnalysisController {
     private(set) var isAnalyzing = false
     private(set) var suggestions: BookPhotoSuggestions = .empty
     private(set) var analysisError: (any Error)?
+    private(set) var photoAnalysisFailures: [PhotoAnalysisFailure] = []
 
     private let service: any PhotoAnalysisService
     private let identifierExtractor: any BookIdentifierExtracting
@@ -100,12 +101,14 @@ final class BookPhotoAnalysisController {
 
     func analyze(image: UIImage) {
         guard let cgImage = image.cgImage else {
+            photoAnalysisFailures = []
             analysisError = BookPhotoAnalysisError.imageUnavailable
             isAnalyzing = false
             return
         }
 
         suggestions = .empty
+        photoAnalysisFailures = []
         analysisError = nil
         isAnalyzing = true
 
@@ -115,6 +118,9 @@ final class BookPhotoAnalysisController {
             }
 
             let analysis = await service.analyze(image: cgImage)
+            // Preserve every partial Vision failure so callers can distinguish "nothing found" from "request failed".
+            photoAnalysisFailures = analysis.failures
+
             let identifiers = identifierExtractor.extract(from: analysis)
 
             // Deterministic identifiers remain useful even if Foundation Models is unavailable or fails.
@@ -151,6 +157,7 @@ final class BookPhotoAnalysisController {
 
     func clear() {
         suggestions = .empty
+        photoAnalysisFailures = []
         analysisError = nil
         isAnalyzing = false
     }
