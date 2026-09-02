@@ -1,12 +1,14 @@
 import CoreData
 import Foundation
 import SwiftUI
+import UIKit
 
 /// Displays the editor used to create or edit a book.
 struct BookEditorView: View {
     let collection: CollectionSummary
     private let existingBook: BookRecord?
     private let initialGenreSuggestions: [String]
+    private let initialAnalysisImage: UIImage?
     private let onSave: (BookRecord) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -39,6 +41,8 @@ struct BookEditorView: View {
     @State private var isPresentingContributorEditor = false
     @State private var editingIdentifierIndex: Int?
     @State private var isPresentingIdentifierEditor = false
+    @State private var photoAnalysis = BookPhotoAnalysisController()
+    @State private var didStartInitialAnalysis = false
 
     private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
@@ -54,6 +58,11 @@ struct BookEditorView: View {
             if !years.contains(value) {
                 years.append(value)
             }
+        }
+
+        if Int(selectedPublicationYearOption) != nil,
+           !years.contains(selectedPublicationYearOption) {
+            years.append(selectedPublicationYearOption)
         }
 
         years.sort { (Int($0) ?? 0) > (Int($1) ?? 0) }
@@ -109,9 +118,22 @@ struct BookEditorView: View {
         }
     }
 
+    private var shouldShowPhotoAnalysisSection: Bool {
+        photoAnalysis.isAnalyzing || photoAnalysis.suggestions.hasSuggestions
+    }
+
+    private var firstPhotoAssetID: UUID? {
+        mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .first?
+            .id
+    }
+
     init(
         collection: CollectionSummary,
         initialMediaAssets: [MediaAsset] = [],
+        initialAnalysisImage: UIImage? = nil,
         book: BookRecord? = nil,
         genreSuggestions: [String] = [],
         onSave: @escaping (BookRecord) -> Void
@@ -119,6 +141,14 @@ struct BookEditorView: View {
         self.collection = collection
         self.existingBook = book
         self.initialGenreSuggestions = genreSuggestions
+        self.initialAnalysisImage = initialAnalysisImage ?? initialMediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { asset -> UIImage? in
+                guard let data = asset.originalData else { return nil }
+                return UIImage(data: data)
+            }
+            .first
         self.onSave = onSave
         self.editorItemID = book?.id ?? UUID()
 
@@ -155,7 +185,8 @@ struct BookEditorView: View {
                 Section(String(localized: "editor.docs_and_media")) {
                     MediaSection(
                         itemID: editorItemID,
-                        mediaAssets: $mediaAssets
+                        mediaAssets: $mediaAssets,
+                        analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
                     )
                     .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -165,6 +196,118 @@ struct BookEditorView: View {
                             .fill(Color(uiColor: .secondarySystemGroupedBackground))
                     )
                     .listRowInsets(.init())
+                }
+
+                if shouldShowPhotoAnalysisSection {
+                    Section(String(localized: "editor.photo_analysis.section")) {
+                        if photoAnalysis.isAnalyzing {
+                            HStack(spacing: CatalogMetrics.Spacing.sm) {
+                                ProgressView()
+                                Text(String(localized: "editor.photo_analysis.analyzing"))
+                                    .foregroundStyle(.secondary)
+                            }
+                        } else {
+                            if let suggestion = photoAnalysis.suggestions.title {
+                                PhotoSuggestionRow(
+                                    title: String(localized: "common.field_title"),
+                                    suggestedValue: suggestion.value,
+                                    confidence: suggestion.confidence,
+                                    onAccept: {
+                                        title = suggestion.value
+                                        photoAnalysis.dismiss(.title)
+                                    }
+                                )
+                            }
+
+                            if !photoAnalysis.suggestions.authors.isEmpty {
+                                let suggestions = photoAnalysis.suggestions.authors
+                                PhotoSuggestionRow(
+                                    title: String(localized: "book_contributor.role.author"),
+                                    suggestedValue: suggestions.map(\.value).joined(separator: ", "),
+                                    confidence: suggestions.map(\.confidence).min() ?? 0,
+                                    onAccept: {
+                                        applyAuthorSuggestions(suggestions)
+                                        photoAnalysis.dismiss(.authors)
+                                    }
+                                )
+                            }
+
+                            if !photoAnalysis.suggestions.identifiers.isEmpty {
+                                let suggestions = photoAnalysis.suggestions.identifiers
+                                PhotoSuggestionRow(
+                                    title: String(localized: "book.section.identifiers"),
+                                    suggestedValue: suggestions
+                                        .map { "\($0.value.type.bookEditorDisplayName): \($0.value.value)" }
+                                        .joined(separator: "\n"),
+                                    confidence: suggestions.map(\.confidence).min() ?? 0,
+                                    onAccept: {
+                                        applyIdentifierSuggestions(suggestions)
+                                        photoAnalysis.dismiss(.identifiers)
+                                    }
+                                )
+                            }
+
+                            if let suggestion = photoAnalysis.suggestions.publisher {
+                                PhotoSuggestionRow(
+                                    title: String(localized: "publisher.title"),
+                                    suggestedValue: suggestion.value,
+                                    confidence: suggestion.confidence,
+                                    onAccept: {
+                                        applyPublisherSuggestion(suggestion)
+                                        photoAnalysis.dismiss(.publisher)
+                                    }
+                                )
+                            }
+
+                            if let suggestion = photoAnalysis.suggestions.publicationYear {
+                                PhotoSuggestionRow(
+                                    title: String(localized: "book.field.publication_year"),
+                                    suggestedValue: String(suggestion.value),
+                                    confidence: suggestion.confidence,
+                                    onAccept: {
+                                        selectedPublicationYearOption = String(suggestion.value)
+                                        photoAnalysis.dismiss(.publicationYear)
+                                    }
+                                )
+                            }
+
+                            if let suggestion = photoAnalysis.suggestions.languageCode {
+                                PhotoSuggestionRow(
+                                    title: String(localized: "book.field.language"),
+                                    suggestedValue: "\(bookLanguageDisplayName(for: suggestion.value)) (\(suggestion.value.uppercased()))",
+                                    confidence: suggestion.confidence,
+                                    onAccept: {
+                                        languageCode = suggestion.value
+                                        photoAnalysis.dismiss(.languageCode)
+                                    }
+                                )
+                            }
+
+                            if let suggestion = photoAnalysis.suggestions.series {
+                                PhotoSuggestionRow(
+                                    title: String(localized: "series.title"),
+                                    suggestedValue: suggestion.value,
+                                    confidence: suggestion.confidence,
+                                    onAccept: {
+                                        applySeriesSuggestion(suggestion)
+                                        photoAnalysis.dismiss(.series)
+                                    }
+                                )
+                            }
+
+                            if let suggestion = photoAnalysis.suggestions.volumeNumber {
+                                PhotoSuggestionRow(
+                                    title: String(localized: "book.field.volume"),
+                                    suggestedValue: String(suggestion.value),
+                                    confidence: suggestion.confidence,
+                                    onAccept: {
+                                        volumeNumber = String(suggestion.value)
+                                        photoAnalysis.dismiss(.volumeNumber)
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
 
                 Section(String(localized: "common.field.description")) {
@@ -364,6 +507,7 @@ struct BookEditorView: View {
             }
             .task(id: collection.id) {
                 loadCatalogMetadata()
+                startInitialPhotoAnalysisIfNeeded()
             }
             .sheet(isPresented: $isPresentingContributorEditor) {
                 BookContributorEditorView(
@@ -481,6 +625,123 @@ struct BookEditorView: View {
         guard !trimmed.isEmpty else { return true }
         guard let number = Int(trimmed) else { return false }
         return number > 0
+    }
+
+    private func startInitialPhotoAnalysisIfNeeded() {
+        guard !didStartInitialAnalysis,
+              existingBook == nil,
+              let initialAnalysisImage else { return }
+
+        didStartInitialAnalysis = true
+        photoAnalysis.analyze(image: initialAnalysisImage)
+    }
+
+    private func applyAuthorSuggestions(_ suggestions: [SuggestedFieldValue<String>]) {
+        let originalAuthorIndex = contributors.firstIndex { $0.role == .author } ?? contributors.count
+        var seen: Set<String> = []
+        var authorPeople: [Person] = []
+
+        for suggestion in suggestions {
+            let name = suggestion.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            let key = normalizedReferenceKey(name)
+            guard !name.isEmpty, seen.insert(key).inserted else { continue }
+
+            if let existing = catalogPeople.first(where: { normalizedReferenceKey($0.name) == key }) {
+                authorPeople.append(existing)
+            } else {
+                let person = Person(
+                    id: UUID(),
+                    name: name,
+                    birthYear: nil,
+                    deathYear: nil,
+                    biography: nil,
+                    birthPlace: nil,
+                    deathPlace: nil,
+                    photos: []
+                )
+                catalogPeople.append(person)
+                authorPeople.append(person)
+            }
+        }
+
+        var updated = contributors.filter { $0.role != .author }
+        let insertionIndex = min(originalAuthorIndex, updated.count)
+        let newAuthors = authorPeople.enumerated().map { index, person in
+            BookContributor(
+                role: .author,
+                order: insertionIndex + index,
+                person: person
+            )
+        }
+        updated.insert(contentsOf: newAuthors, at: insertionIndex)
+        contributors = updated.enumerated().map { index, contributor in
+            var normalized = contributor
+            normalized.order = index
+            return normalized
+        }
+    }
+
+    private func applyIdentifierSuggestions(_ suggestions: [SuggestedFieldValue<BookIdentifier>]) {
+        for suggestion in suggestions {
+            let candidate = suggestion.value
+            let candidateKey = bookIdentifierDuplicateKey(type: candidate.type, value: candidate.value)
+            let isDuplicate = identifiers.contains { existing in
+                existing.type == candidate.type
+                    && bookIdentifierDuplicateKey(type: existing.type, value: existing.value) == candidateKey
+            }
+
+            if !isDuplicate {
+                identifiers.append(candidate)
+            }
+        }
+    }
+
+    private func applyPublisherSuggestion(_ suggestion: SuggestedFieldValue<String>) {
+        let name = suggestion.value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+
+        let key = normalizedReferenceKey(name)
+        if let existing = catalogPublishers.first(where: { normalizedReferenceKey($0.name) == key }) {
+            selectedPublisher = existing
+            return
+        }
+
+        let publisher = Publisher(
+            id: UUID(),
+            name: name,
+            location: nil
+        )
+        catalogPublishers.append(publisher)
+        selectedPublisher = publisher
+    }
+
+    private func applySeriesSuggestion(_ suggestion: SuggestedFieldValue<String>) {
+        let name = suggestion.value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+
+        let key = normalizedReferenceKey(name)
+        if let existing = catalogSeries.first(where: { normalizedReferenceKey($0.name) == key }) {
+            selectedSeries = existing
+            return
+        }
+
+        let series = BookSeries(
+            id: UUID(),
+            collectionID: collection.id,
+            name: name,
+            totalBookCount: nil,
+            publisher: nil
+        )
+        catalogSeries.append(series)
+        selectedSeries = series
+    }
+
+    private func normalizedReferenceKey(_ value: String) -> String {
+        value
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 
     private func saveContributor(_ contributor: BookContributor) {
