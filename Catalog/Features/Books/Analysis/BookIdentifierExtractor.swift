@@ -111,9 +111,8 @@ struct BookIdentifierExtractor: BookIdentifierExtracting {
         captureGroup: Int = 0,
         in text: String
     ) -> [(value: String, range: NSRange)] {
-        guard let expression = try? NSRegularExpression(pattern: pattern) else {
-            return []
-        }
+        // Patterns are static implementation details; an invalid one is a programmer error, not "no match".
+        let expression = try! NSRegularExpression(pattern: pattern)
 
         let searchRange = NSRange(text.startIndex..<text.endIndex, in: text)
         return expression.matches(in: text, range: searchRange).compactMap { match in
