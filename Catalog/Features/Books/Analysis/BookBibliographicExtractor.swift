@@ -103,6 +103,10 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
             throw BookBibliographicExtractionError.modelUnavailable
         }
 
+        let prompt = try promptText(
+            mainText: analysis.main.recognizedText,
+            backgroundText: analysis.background.recognizedText
+        )
         let session = LanguageModelSession(
             model: model,
             instructions: instructions
@@ -111,10 +115,7 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
             generating: BookBibliographicGeneratedResponse.self,
             options: GenerationOptions(sampling: .greedy)
         ) {
-            promptText(
-                mainText: analysis.main.recognizedText,
-                backgroundText: analysis.background.recognizedText
-            )
+            prompt
         }
 
         return extraction(from: response.content)
@@ -139,29 +140,28 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
     private func promptText(
         mainText: [RecognizedTextFeature],
         backgroundText: [RecognizedTextFeature]
-    ) -> String {
+    ) throws -> String {
         """
         Analyze these already-collected OCR results from system Vision APIs.
         Do not assume access to the source image and do not perform additional OCR.
 
         Main-object OCR:
-        \(encodedRecognizedText(mainText))
+        \(try encodedRecognizedText(mainText))
 
         Background OCR:
-        \(encodedRecognizedText(backgroundText))
+        \(try encodedRecognizedText(backgroundText))
         """
     }
 
-    private func encodedRecognizedText(_ text: [RecognizedTextFeature]) -> String {
+    private func encodedRecognizedText(_ text: [RecognizedTextFeature]) throws -> String {
         let promptItems = text.map {
             BookBibliographicPromptText(
                 value: $0.text,
                 confidence: $0.confidence
             )
         }
-
-        return (try? JSONEncoder().encode(promptItems))
-            .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+        let data = try JSONEncoder().encode(promptItems)
+        return String(decoding: data, as: UTF8.self)
     }
 
     private func extraction(
