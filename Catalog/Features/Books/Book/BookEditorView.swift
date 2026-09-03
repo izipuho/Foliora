@@ -373,23 +373,10 @@ struct BookEditorView: View {
                                         removeOCRFragment(fragment, from: .title)
                                     }
                                 }
-
-                                TextField(
-                                    "",
-                                    text: Binding(
-                                        get: { "" },
-                                        set: { manualInput in
-                                            beginManualOCRTextEditing(manualInput, in: .title)
-                                        }
-                                    )
-                                )
-                                .frame(width: 96)
-                                .focused($isTitleFocused)
-                                .accessibilityLabel(String(localized: "common.field.title"))
                             }
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                isTitleFocused = true
+                                beginManualOCRTextEditing(in: .title)
                             }
                         } else {
                             TextField(String(localized: "common.field.title"), text: $title)
@@ -414,23 +401,10 @@ struct BookEditorView: View {
                                         removeOCRFragment(fragment, from: .subtitle)
                                     }
                                 }
-
-                                TextField(
-                                    "",
-                                    text: Binding(
-                                        get: { "" },
-                                        set: { manualInput in
-                                            beginManualOCRTextEditing(manualInput, in: .subtitle)
-                                        }
-                                    )
-                                )
-                                .frame(width: 96)
-                                .focused($isSubtitleFocused)
-                                .accessibilityLabel(String(localized: "book.field.subtitle"))
                             }
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                isSubtitleFocused = true
+                                beginManualOCRTextEditing(in: .subtitle)
                             }
                         } else {
                             TextField("book.field.subtitle", text: $subtitle, axis: .vertical)
@@ -863,36 +837,23 @@ struct BookEditorView: View {
         }
     }
 
-    private func beginManualOCRTextEditing(_ manualInput: String, in field: BookOCRField) {
-        guard !manualInput.isEmpty,
-              field == .title || field == .subtitle,
+    private func beginManualOCRTextEditing(in field: BookOCRField) {
+        guard field == .title || field == .subtitle,
               let assignedFragments = ocrFieldAssignments[field],
               !assignedFragments.isEmpty else { return }
 
-        // Once the user edits manually, the OCR tokens become ordinary text and stop being individually reversible.
+        // The field already contains the assembled OCR text; collapsing only changes its presentation and ends per-fragment undo.
         consumedOCRFragments.formUnion(assignedFragments)
         ocrFieldAssignments.removeValue(forKey: field)
 
         switch field {
         case .title:
-            title = appendingManualOCRInput(manualInput, to: title)
+            isTitleFocused = true
         case .subtitle:
-            subtitle = appendingManualOCRInput(manualInput, to: subtitle)
+            isSubtitleFocused = true
         case .publisher, .series, .volume:
             break
         }
-    }
-
-    private func appendingManualOCRInput(_ manualInput: String, to existingText: String) -> String {
-        guard !existingText.isEmpty else { return manualInput }
-        guard let firstCharacter = manualInput.first else { return existingText }
-
-        let punctuationWithoutLeadingSpace = ",.;:!?…)]}»"
-        if firstCharacter.isWhitespace || punctuationWithoutLeadingSpace.contains(firstCharacter) {
-            return existingText + manualInput
-        }
-
-        return existingText + " " + manualInput
     }
 
     @discardableResult
