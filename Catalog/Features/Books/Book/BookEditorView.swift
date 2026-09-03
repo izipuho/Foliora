@@ -858,6 +858,37 @@ struct BookEditorView: View {
         guard !fragments.isEmpty else { return false }
         fragments.sort(by: Self.ocrReadingOrder)
 
+        // Repeated drops on the add row can be fragments of the same OCR author. Merge only when
+        // the combined OCR text exactly resolves to an existing catalog person; otherwise a new
+        // fragment starts another author so unrelated names are never joined heuristically.
+        for index in ocrAuthorAssignments.keys.sorted() {
+            guard contributors.indices.contains(index),
+                  contributors[index].role == .author,
+                  ocrAuthorBaseNames[index] == "",
+                  let existingFragments = ocrAuthorAssignments[index] else { continue }
+
+            var combinedFragments = existingFragments
+            for fragment in fragments where !combinedFragments.contains(fragment) {
+                combinedFragments.append(fragment)
+            }
+            combinedFragments.sort(by: Self.ocrReadingOrder)
+
+            let combinedName = combinedFragments.map(\.text).joined(separator: " ")
+            let combinedKey = normalizedReferenceKey(combinedName)
+            guard let existingPerson = catalogPeople.first(where: {
+                normalizedReferenceKey($0.name) == combinedKey
+            }) else { continue }
+
+            let contributor = contributors[index]
+            ocrAuthorAssignments[index] = combinedFragments
+            contributors[index] = BookContributor(
+                role: contributor.role,
+                order: contributor.order,
+                person: existingPerson
+            )
+            return true
+        }
+
         let name = fragments.map(\.text).joined(separator: " ")
         guard let person = resolvePerson(named: name) else { return false }
 
