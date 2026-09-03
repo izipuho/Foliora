@@ -6,6 +6,8 @@ extension View {
             .padding(.horizontal, CatalogMetrics.Spacing.md)
             .padding(.vertical, CatalogMetrics.Spacing.xs)
             .glassEffect(.regular.interactive(), in: CatalogShapes.capsule)
+            // Keep drag previews aligned with the visible capsule while callers can define a larger interaction hit area separately.
+            .contentShape(.dragPreview, CatalogShapes.capsule)
     }
 
     func catalogSurfaceCard(
@@ -81,7 +83,7 @@ extension View {
                         endPoint: .bottom
                     )
                 }
-                .clipShape(CatalogShapes.tile)
+                .clipShape(shape)
             }
             .glassEffect(Glass.regular.tint(tint), in: CatalogShapes.tile)
     }
