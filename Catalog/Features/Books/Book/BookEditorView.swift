@@ -337,7 +337,7 @@ struct BookEditorView: View {
                 }
 
                 Section(String(localized: "common.field.description")) {
-                    // Title and subtitle form one bibliographic identity block; notes and tags stay as separate item metadata below it.
+                    // Title and subtitle stay together as the book's bibliographic identity.
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
                         TextField(String(localized: "common.field_title"), text: $title)
                             .focused($isTitleFocused)
@@ -361,20 +361,6 @@ struct BookEditorView: View {
                             .buttonStyle(.plain)
                             .foregroundStyle(CatalogSemanticColors.destructive)
                         }
-                    }
-
-                    TextField(String(localized: "common.field.notes"), text: $notes, axis: .vertical)
-                        .lineLimit(4, reservesSpace: true)
-
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        Text(String(localized: "common.field.tags"))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        TagEditorSection(
-                            tagInput: $tagInput,
-                            tags: $tags
-                        )
                     }
                 }
 
@@ -530,6 +516,23 @@ struct BookEditorView: View {
                         selection: $condition,
                         optionTitle: \.displayName
                     )
+                }
+
+                // Free-form item metadata intentionally stays at the very end of the editor.
+                Section(String(localized: "common.field.notes")) {
+                    TextField(String(localized: "common.field.notes"), text: $notes, axis: .vertical)
+                        .lineLimit(4, reservesSpace: true)
+
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                        Text(String(localized: "common.field.tags"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        TagEditorSection(
+                            tagInput: $tagInput,
+                            tags: $tags
+                        )
+                    }
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -1047,7 +1050,6 @@ struct BookEditorView: View {
             return normalized
         }
         let existingItem = existingBook?.item
-
         let book = BookRecord(
             item: ItemRecord(
                 id: itemID,
@@ -1339,7 +1341,7 @@ private struct BookPublisherPickerField: View {
         .sheet(isPresented: $isPresentingPicker) {
             BookPublisherSelectionView(
                 selection: $selection,
-                publishers: publishers,
+                publishers: availablePublishers,
                 onCreate: onCreate
             )
         }
@@ -1642,7 +1644,7 @@ private struct BookPersonSelectionView: View {
 
                             Spacer()
 
-                            if selection?.id == person.id {
+                            if selectedPerson?.id == person.id {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(.tint)
                             }
