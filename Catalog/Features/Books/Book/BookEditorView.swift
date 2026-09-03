@@ -1167,26 +1167,15 @@ private struct BookOCRFragmentChip: View {
     let transfer: BookOCRFragmentTransfer
 
     var body: some View {
-        HStack(spacing: CatalogMetrics.Spacing.xs) {
-            Image(systemName: "line.3.horizontal")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-
-            Text(feature.text)
-                .lineLimit(1)
-        }
-        .font(.subheadline)
-        .padding(.horizontal, CatalogMetrics.Spacing.md)
-        .frame(minHeight: 44)
-        .frame(maxWidth: 240)
-        .background(
-            Capsule()
-                .fill(Color(uiColor: .tertiarySystemFill))
-        )
-        // Give the whole 44pt chip a drag hit target instead of making the user catch the small glyph or text.
-        .contentShape(Rectangle())
-        .draggable(transfer)
-        .accessibilityLabel(feature.text)
+        Text(feature.text)
+            .font(.subheadline)
+            .lineLimit(1)
+            .frame(maxWidth: 240)
+            .catalogSurfaceCapsule()
+            // The capsule itself is the drag affordance; avoid a grab-handle glyph with unrelated semantics.
+            .contentShape(Rectangle())
+            .draggable(transfer)
+            .accessibilityLabel(feature.text)
     }
 }
 
