@@ -455,12 +455,10 @@ struct BookEditorView: View {
                     )
                     .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
                         assignOCRFragments(items, to: .series) { assignment in
-                            applySeriesSuggestion(
-                                SuggestedFieldValue(
-                                    value: assignment.text,
-                                    confidence: assignment.confidence
-                                )
-                            )
+                            guard let series = resolveSeries(named: assignment.text) else {
+                                return false
+                            }
+                            selectedSeries = series
                             return true
                         }
                     }
@@ -1055,24 +1053,27 @@ struct BookEditorView: View {
     }
 
     private func applySeriesSuggestion(_ suggestion: SuggestedFieldValue<String>) {
-        let name = suggestion.value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
+        selectedSeries = resolveSeries(named: suggestion.value)
+    }
+
+    private func resolveSeries(named rawName: String) -> BookSeries? {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
 
         let key = normalizedReferenceKey(name)
+        // catalogSeries is scoped to the edited collection, so an exact match cannot cross collection boundaries.
         if let existing = catalogSeries.first(where: { normalizedReferenceKey($0.name) == key }) {
-            selectedSeries = existing
-            return
+            return existing
         }
 
-        let series = BookSeries(
+        // Keep the recognized series transient until the book is saved; later OCR fragments can replace this draft cleanly.
+        return BookSeries(
             id: UUID(),
             collectionID: collection.id,
             name: name,
             totalBookCount: nil,
             publisher: nil
         )
-        catalogSeries.append(series)
-        selectedSeries = series
     }
 
     private func normalizedReferenceKey(_ value: String) -> String {
