@@ -64,8 +64,6 @@ struct BookDetailView: View {
                     locationSection
                         .padding(.horizontal, CatalogMetrics.Insets.screen)
 
-                    notesAndTagsSection
-
                     if !detailMediaAssets.isEmpty || canEditCollection {
                         mediaSection
                             .padding(.horizontal, CatalogMetrics.Insets.screen)
@@ -75,6 +73,9 @@ struct BookDetailView: View {
                         identifiersSection
                             .padding(.horizontal, CatalogMetrics.Insets.screen)
                     }
+
+                    // Free-form notes and tags stay last, after all structured book data.
+                    notesAndTagsSection
                 }
                 .padding(.top, CatalogMetrics.Spacing.md)
                 .padding(.bottom, CatalogMetrics.Spacing.xl)
