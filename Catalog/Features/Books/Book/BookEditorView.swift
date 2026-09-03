@@ -859,10 +859,9 @@ struct BookEditorView: View {
         fragments.sort(by: Self.ocrReadingOrder)
 
         let name = fragments.map(\.text).joined(separator: " ")
-        guard !name.isEmpty else { return false }
+        guard let person = resolvePerson(named: name) else { return false }
 
         // A drop on the empty "add contributor" row creates the first concrete author target.
-        let person = personForOCRName(name)
         let index = contributors.count
         contributors.append(
             BookContributor(
@@ -900,33 +899,36 @@ struct BookEditorView: View {
             assigned.append(fragment)
         }
         assigned.sort(by: Self.ocrReadingOrder)
-        ocrAuthorAssignments[index] = assigned
 
         let fragmentName = assigned.map(\.text).joined(separator: " ")
         let baseName = ocrAuthorBaseNames[index] ?? ""
         let name = [baseName, fragmentName]
             .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             .joined(separator: " ")
+        guard let person = resolvePerson(named: name) else { return false }
 
-        guard !name.isEmpty else { return false }
-
+        // Commit the fragment assignment only after the complete name resolves to a concrete Person value.
+        ocrAuthorAssignments[index] = assigned
         contributors[index] = BookContributor(
             role: contributor.role,
             order: contributor.order,
-            person: personForOCRName(name)
+            person: person
         )
         return true
     }
 
-    private func personForOCRName(_ rawName: String) -> Person {
+    private func resolvePerson(named rawName: String) -> Person? {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let key = normalizedReferenceKey(name)
+        guard !name.isEmpty else { return nil }
 
-        if let existing = catalogPeople.first(where: { normalizedReferenceKey($0.name) == key }) {
+        let key = normalizedReferenceKey(name)
+        // Include current contributors so an OCR value can reuse both persisted people and unsaved people already selected in this editor.
+        if let existing = availablePeople.first(where: { normalizedReferenceKey($0.name) == key }) {
             return existing
         }
 
-        let person = Person(
+        // An unmatched recognized person remains an editor draft; saving the book persists the referenced Person once.
+        return Person(
             id: UUID(),
             name: name,
             birthYear: nil,
@@ -936,8 +938,6 @@ struct BookEditorView: View {
             deathPlace: nil,
             photos: []
         )
-        catalogPeople.append(person)
-        return person
     }
 
     private func ocrFeatures(
@@ -978,24 +978,9 @@ struct BookEditorView: View {
         for suggestion in suggestions {
             let name = suggestion.value.trimmingCharacters(in: .whitespacesAndNewlines)
             let key = normalizedReferenceKey(name)
-            guard !name.isEmpty, seen.insert(key).inserted else { continue }
-
-            if let existing = catalogPeople.first(where: { normalizedReferenceKey($0.name) == key }) {
-                authorPeople.append(existing)
-            } else {
-                let person = Person(
-                    id: UUID(),
-                    name: name,
-                    birthYear: nil,
-                    deathYear: nil,
-                    biography: nil,
-                    birthPlace: nil,
-                    deathPlace: nil,
-                    photos: []
-                )
-                catalogPeople.append(person)
-                authorPeople.append(person)
-            }
+            guard !name.isEmpty, seen.insert(key).inserted,
+                  let person = resolvePerson(named: name) else { continue }
+            authorPeople.append(person)
         }
 
         var updated = contributors.filter { $0.role != .author }
