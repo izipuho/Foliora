@@ -1295,7 +1295,8 @@ private struct BookOCRFragmentChip: View {
             .frame(maxWidth: 240)
             .catalogSurfaceCapsule()
             // The capsule itself is the drag affordance; avoid a grab-handle glyph with unrelated semantics.
-            .contentShape(Rectangle())
+            .contentShape(.interaction, Rectangle())
+            .contentShape(.dragPreview, CatalogShapes.capsule)
             .draggable(transfer)
             .accessibilityLabel(feature.text)
     }

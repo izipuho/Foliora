@@ -5,9 +5,7 @@ extension View {
         self
             .padding(.horizontal, CatalogMetrics.Spacing.md)
             .padding(.vertical, CatalogMetrics.Spacing.xs)
-            .glassEffect(.regular.interactive(), in: CatalogShapes.capsule)
-            // Keep drag previews aligned with the visible capsule while callers can define a larger interaction hit area separately.
-            .contentShape(.dragPreview, CatalogShapes.capsule)
+            .glassEffect(.regular, in: CatalogShapes.capsule)
     }
 
     func catalogSurfaceCard(
