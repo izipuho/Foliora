@@ -83,7 +83,7 @@ extension View {
                         endPoint: .bottom
                     )
                 }
-                .clipShape(shape)
+                .clipShape(CatalogShapes.tile)
             }
             .glassEffect(Glass.regular.tint(tint), in: CatalogShapes.tile)
     }
