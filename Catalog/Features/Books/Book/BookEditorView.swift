@@ -43,6 +43,7 @@ struct BookEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var managedObjectContext
     @FocusState private var isTitleFocused: Bool
+    @FocusState private var isSubtitleFocused: Bool
 
     @State private var title: String
     @State private var subtitle: String
@@ -76,6 +77,8 @@ struct BookEditorView: View {
     @State private var ocrFieldAssignments: [BookOCRField: [RecognizedTextFeature]] = [:]
     @State private var ocrAuthorAssignments: [Int: [RecognizedTextFeature]] = [:]
     @State private var ocrAuthorBaseNames: [Int: String] = [:]
+    // Once OCR chips collapse into editable text, keep their source fragments consumed so they do not reappear below.
+    @State private var consumedOCRFragments: Set<RecognizedTextFeature> = []
 
     private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
@@ -361,27 +364,88 @@ struct BookEditorView: View {
                         .listRowSeparator(.hidden, edges: .bottom)
                     }
 
-                    TextField(String(localized: "common.field.title"), text: $title)
-                        .font(.body.weight(.medium))
-                        .focused($isTitleFocused)
-                        .listRowSeparator(.hidden, edges: .bottom)
-                        .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                            assignOCRFragments(items, to: .title) { assignment in
-                                title = assignment.text
-                                return true
-                            }
-                        }
+                    Group {
+                        if let assignedFragments = ocrFieldAssignments[.title],
+                           !assignedFragments.isEmpty {
+                            TagFlowLayout(spacing: CatalogMetrics.Spacing.xs) {
+                                ForEach(assignedFragments, id: \.self) { fragment in
+                                    BookOCRAssignedFragmentChip(feature: fragment) {
+                                        removeOCRFragment(fragment, from: .title)
+                                    }
+                                }
 
-                    TextField("book.field.subtitle", text: $subtitle, axis: .vertical)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1...3)
-                        .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                            assignOCRFragments(items, to: .subtitle) { assignment in
-                                subtitle = assignment.text
-                                return true
+                                TextField(
+                                    "",
+                                    text: Binding(
+                                        get: { "" },
+                                        set: { manualInput in
+                                            beginManualOCRTextEditing(manualInput, in: .title)
+                                        }
+                                    )
+                                )
+                                .frame(width: 96)
+                                .focused($isTitleFocused)
+                                .accessibilityLabel(String(localized: "common.field.title"))
                             }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                isTitleFocused = true
+                            }
+                        } else {
+                            TextField(String(localized: "common.field.title"), text: $title)
+                                .focused($isTitleFocused)
                         }
+                    }
+                    .font(.body.weight(.medium))
+                    .listRowSeparator(.hidden, edges: .bottom)
+                    .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
+                        assignOCRFragments(items, to: .title) { assignment in
+                            title = assignment.text
+                            return true
+                        }
+                    }
+
+                    Group {
+                        if let assignedFragments = ocrFieldAssignments[.subtitle],
+                           !assignedFragments.isEmpty {
+                            TagFlowLayout(spacing: CatalogMetrics.Spacing.xs) {
+                                ForEach(assignedFragments, id: \.self) { fragment in
+                                    BookOCRAssignedFragmentChip(feature: fragment) {
+                                        removeOCRFragment(fragment, from: .subtitle)
+                                    }
+                                }
+
+                                TextField(
+                                    "",
+                                    text: Binding(
+                                        get: { "" },
+                                        set: { manualInput in
+                                            beginManualOCRTextEditing(manualInput, in: .subtitle)
+                                        }
+                                    )
+                                )
+                                .frame(width: 96)
+                                .focused($isSubtitleFocused)
+                                .accessibilityLabel(String(localized: "book.field.subtitle"))
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                isSubtitleFocused = true
+                            }
+                        } else {
+                            TextField("book.field.subtitle", text: $subtitle, axis: .vertical)
+                                .focused($isSubtitleFocused)
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1...3)
+                    .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
+                        assignOCRFragments(items, to: .subtitle) { assignment in
+                            subtitle = assignment.text
+                            return true
+                        }
+                    }
                 }
 
                 Section("common.book") {
@@ -633,7 +697,9 @@ struct BookEditorView: View {
     private var usedOCRFragments: Set<RecognizedTextFeature> {
         let fieldFragments = ocrFieldAssignments.values.flatMap { $0 }
         let authorFragments = ocrAuthorAssignments.values.flatMap { $0 }
-        return Set(fieldFragments + authorFragments)
+        var usedFragments = Set(fieldFragments + authorFragments)
+        usedFragments.formUnion(consumedOCRFragments)
+        return usedFragments
     }
 
     private var hasUnusedOCRFragments: Bool {
@@ -771,6 +837,62 @@ struct BookEditorView: View {
         guard apply(assignment) else { return false }
         ocrFieldAssignments[field] = assigned
         return true
+    }
+
+    private func removeOCRFragment(_ fragment: RecognizedTextFeature, from field: BookOCRField) {
+        guard field == .title || field == .subtitle,
+              var assignedFragments = ocrFieldAssignments[field] else { return }
+
+        assignedFragments.removeAll { $0 == fragment }
+        assignedFragments.sort(by: Self.ocrReadingOrder)
+
+        if assignedFragments.isEmpty {
+            ocrFieldAssignments.removeValue(forKey: field)
+        } else {
+            ocrFieldAssignments[field] = assignedFragments
+        }
+
+        let rebuiltText = assignedFragments.map(\.text).joined(separator: " ")
+        switch field {
+        case .title:
+            title = rebuiltText
+        case .subtitle:
+            subtitle = rebuiltText
+        case .publisher, .series, .volume:
+            break
+        }
+    }
+
+    private func beginManualOCRTextEditing(_ manualInput: String, in field: BookOCRField) {
+        guard !manualInput.isEmpty,
+              field == .title || field == .subtitle,
+              let assignedFragments = ocrFieldAssignments[field],
+              !assignedFragments.isEmpty else { return }
+
+        // Once the user edits manually, the OCR tokens become ordinary text and stop being individually reversible.
+        consumedOCRFragments.formUnion(assignedFragments)
+        ocrFieldAssignments.removeValue(forKey: field)
+
+        switch field {
+        case .title:
+            title = appendingManualOCRInput(manualInput, to: title)
+        case .subtitle:
+            subtitle = appendingManualOCRInput(manualInput, to: subtitle)
+        case .publisher, .series, .volume:
+            break
+        }
+    }
+
+    private func appendingManualOCRInput(_ manualInput: String, to existingText: String) -> String {
+        guard !existingText.isEmpty else { return manualInput }
+        guard let firstCharacter = manualInput.first else { return existingText }
+
+        let punctuationWithoutLeadingSpace = ",.;:!?…)]}»"
+        if firstCharacter.isWhitespace || punctuationWithoutLeadingSpace.contains(firstCharacter) {
+            return existingText + manualInput
+        }
+
+        return existingText + " " + manualInput
     }
 
     @discardableResult
@@ -1176,6 +1298,29 @@ private struct BookOCRFragmentChip: View {
             .contentShape(Rectangle())
             .draggable(transfer)
             .accessibilityLabel(feature.text)
+    }
+}
+
+private struct BookOCRAssignedFragmentChip: View {
+    let feature: RecognizedTextFeature
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: CatalogMetrics.Spacing.xxs) {
+            Text(feature.text)
+                .lineLimit(1)
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "common.delete"))
+        }
+        .font(.subheadline)
+        .frame(maxWidth: 240)
+        .catalogSurfaceCapsule()
     }
 }
 
