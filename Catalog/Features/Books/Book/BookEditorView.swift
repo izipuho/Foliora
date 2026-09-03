@@ -481,12 +481,10 @@ struct BookEditorView: View {
                     )
                     .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
                         assignOCRFragments(items, to: .publisher) { assignment in
-                            applyPublisherSuggestion(
-                                SuggestedFieldValue(
-                                    value: assignment.text,
-                                    confidence: assignment.confidence
-                                )
-                            )
+                            guard let publisher = resolvePublisher(named: assignment.text) else {
+                                return false
+                            }
+                            selectedPublisher = publisher
                             return true
                         }
                     }
@@ -1035,22 +1033,25 @@ struct BookEditorView: View {
     }
 
     private func applyPublisherSuggestion(_ suggestion: SuggestedFieldValue<String>) {
-        let name = suggestion.value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
+        selectedPublisher = resolvePublisher(named: suggestion.value)
+    }
+
+    private func resolvePublisher(named rawName: String) -> Publisher? {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
 
         let key = normalizedReferenceKey(name)
+        // Only exact normalized matches are safe to resolve automatically; fuzzy matches remain distinct for user review.
         if let existing = catalogPublishers.first(where: { normalizedReferenceKey($0.name) == key }) {
-            selectedPublisher = existing
-            return
+            return existing
         }
 
-        let publisher = Publisher(
+        // Keep an unmatched recognized value as the selected draft only. Appending each intermediate OCR name would leave stale drafts when more fragments are added.
+        return Publisher(
             id: UUID(),
             name: name,
             location: nil
         )
-        catalogPublishers.append(publisher)
-        selectedPublisher = publisher
     }
 
     private func applySeriesSuggestion(_ suggestion: SuggestedFieldValue<String>) {
@@ -1122,19 +1123,14 @@ struct BookEditorView: View {
     private func loadCatalogMetadata() {
         let snapshot = CatalogSnapshot.load(from: managedObjectContext)
         let bookRecords = snapshot.bookRecords
-        let bookSeries = snapshot.bookSeries
 
         catalogGenreSuggestions = bookRecords
             .filter { $0.collectionID == collection.id }
             .compactMap(\.details.genre)
-        catalogSeries = bookSeries
+        catalogSeries = snapshot.bookSeries
             .filter { $0.collectionID == collection.id }
-
-        var publishersByID: [UUID: Publisher] = [:]
-        for publisher in bookRecords.compactMap(\.details.publisher) + bookSeries.compactMap(\.publisher) {
-            publishersByID[publisher.id] = publisher
-        }
-        catalogPublishers = Array(publishersByID.values)
+        // Resolve OCR against the complete publisher catalog, including publishers not currently referenced by a book or series.
+        catalogPublishers = snapshot.publishers
         catalogPeople = snapshot.people
     }
 
