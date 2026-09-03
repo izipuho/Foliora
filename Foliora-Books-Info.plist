@@ -13,6 +13,19 @@
 	</array>
 	<key>FolioraCollectionKind</key>
 	<string>books</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Foliora Book OCR Fragment</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.izipuho.foliora.book-ocr-fragment</string>
+		</dict>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
