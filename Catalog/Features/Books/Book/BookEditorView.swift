@@ -345,41 +345,43 @@ struct BookEditorView: View {
                 }
 
                 Section(String(localized: "common.field.title")) {
-                    // Title and subtitle stay together as the book's bibliographic identity.
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                        
-                        if !isTitleValid {
-                            Button {
-                                isTitleFocused = true
-                            } label: {
-                                Label(
-                                    String(localized: "editor.title.required"),
-                                    systemImage: "exclamationmark.circle.fill"
-                                )
-                                .font(.footnote)
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(CatalogSemanticColors.destructive)
+                    // Keep each bibliographic field in its own Form row so SwiftUI resolves OCR drops independently.
+                    if !isTitleValid {
+                        Button {
+                            isTitleFocused = true
+                        } label: {
+                            Label(
+                                String(localized: "editor.title.required"),
+                                systemImage: "exclamationmark.circle.fill"
+                            )
+                            .font(.footnote)
                         }
-                        
-                        TextField(String(localized: "common.field.title"), text: $title)
-                            .focused($isTitleFocused)
-                            .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                                assignOCRFragments(items, to: .title) { assignment in
-                                    title = assignment.text
-                                    return true
-                                }
-                            }
-
-                        TextField("book.field.subtitle", text: $subtitle, axis: .vertical)
-                            .lineLimit(1...3)
-                            .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                                assignOCRFragments(items, to: .subtitle) { assignment in
-                                    subtitle = assignment.text
-                                    return true
-                                }
-                            }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
+                        .listRowSeparator(.hidden, edges: .bottom)
                     }
+
+                    TextField(String(localized: "common.field.title"), text: $title)
+                        .font(.body.weight(.medium))
+                        .focused($isTitleFocused)
+                        .listRowSeparator(.hidden, edges: .bottom)
+                        .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
+                            assignOCRFragments(items, to: .title) { assignment in
+                                title = assignment.text
+                                return true
+                            }
+                        }
+
+                    TextField("book.field.subtitle", text: $subtitle, axis: .vertical)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1...3)
+                        .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
+                            assignOCRFragments(items, to: .subtitle) { assignment in
+                                subtitle = assignment.text
+                                return true
+                            }
+                        }
                 }
 
                 Section("common.book") {
