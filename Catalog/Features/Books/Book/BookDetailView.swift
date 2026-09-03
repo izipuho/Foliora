@@ -201,6 +201,14 @@ struct BookDetailView: View {
                     .font(.title2.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
 
+                // Subtitle belongs to the bibliographic identity, so it stays directly under the title rather than in metadata.
+                if let subtitle = book.details.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(CatalogTypography.cardSubtitle)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 if let series = book.details.series,
                    let headerSeriesDisplayName {
                     NavigationLink(value: BookReferenceDestination.series(series)) {
