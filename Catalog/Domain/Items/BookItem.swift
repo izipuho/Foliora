@@ -51,6 +51,8 @@ enum BookIdentifierType: String, CaseIterable, Hashable, Identifiable, Codable, 
 /// Represents book-specific details attached to a catalog item.
 struct BookDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
+    // Subtitle is bibliographic metadata; free-form user notes remain on the shared ItemRecord.
+    var subtitle: String? = nil
     var languageCode: String?
     var genre: String? = nil
     var pageCount: Int?

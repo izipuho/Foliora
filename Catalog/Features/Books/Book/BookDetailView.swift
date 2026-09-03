@@ -64,8 +64,6 @@ struct BookDetailView: View {
                     locationSection
                         .padding(.horizontal, CatalogMetrics.Insets.screen)
 
-                    notesAndTagsSection
-
                     if !detailMediaAssets.isEmpty || canEditCollection {
                         mediaSection
                             .padding(.horizontal, CatalogMetrics.Insets.screen)
@@ -75,6 +73,9 @@ struct BookDetailView: View {
                         identifiersSection
                             .padding(.horizontal, CatalogMetrics.Insets.screen)
                     }
+
+                    // Free-form notes and tags stay last, after all structured book data.
+                    notesAndTagsSection
                 }
                 .padding(.top, CatalogMetrics.Spacing.md)
                 .padding(.bottom, CatalogMetrics.Spacing.xl)
@@ -200,6 +201,14 @@ struct BookDetailView: View {
                 Text(book.title)
                     .font(.title2.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
+
+                // Subtitle belongs to the bibliographic identity, so it stays directly under the title rather than in metadata.
+                if let subtitle = book.details.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(CatalogTypography.cardSubtitle)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 if let series = book.details.series,
                    let headerSeriesDisplayName {

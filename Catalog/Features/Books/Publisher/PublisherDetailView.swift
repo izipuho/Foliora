@@ -9,7 +9,7 @@ private enum PublisherBookOrderMode: String, CaseIterable, Hashable {
     var title: String {
         switch self {
         case .title:
-            return String(localized: "common.field_title")
+            return String(localized: "common.field.title")
         case .author:
             return String(localized: "book.field.author")
         case .publicationYearNewest:
