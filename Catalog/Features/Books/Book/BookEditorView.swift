@@ -18,12 +18,10 @@ private struct BookOCRFragmentTransfer: Codable, Sendable, Transferable {
     let index: Int
 
     static var transferRepresentation: some TransferRepresentation {
-        CodableRepresentation(contentType: .folioraBookOCRFragment)
+        // OCR fragments never leave Foliora; JSON is only the Codable transport encoding for this in-process drag.
+        CodableRepresentation(contentType: .json)
+            .visibility(.ownProcess)
     }
-}
-
-private extension UTType {
-    static let folioraBookOCRFragment = UTType(exportedAs: "com.izipuho.foliora.book-ocr-fragment")
 }
 
 /// Displays the editor used to create or edit a book.
