@@ -96,6 +96,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
     }
 
     private func apply(_ book: BookRecord, to entity: NSManagedObject) {
+        entity.setValue(book.details.subtitle, forKey: "subtitle")
         entity.setValue(book.details.languageCode, forKey: "languageCode")
         entity.setValue(book.details.genre, forKey: "genre")
         entity.setValue(book.details.pageCount, forKey: "pageCount")
