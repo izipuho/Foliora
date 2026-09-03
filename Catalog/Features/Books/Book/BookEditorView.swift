@@ -1172,9 +1172,8 @@ private struct BookOCRFragmentChip: View {
             .lineLimit(1)
             .frame(maxWidth: 240)
             .catalogSurfaceCapsule()
-            // Keep the generous rectangular hit area, but make the lifted drag preview match the visible capsule.
+            // The capsule itself is the drag affordance; avoid a grab-handle glyph with unrelated semantics.
             .contentShape(Rectangle())
-            .contentShape(.dragPreview, CatalogShapes.capsule)
             .draggable(transfer)
             .accessibilityLabel(feature.text)
     }
@@ -1354,13 +1353,757 @@ private struct BookPublisherPickerField: View {
         .buttonStyle(.plain)
         .sheet(isPresented: $isPresentingPicker) {
             BookPublisherSelectionView(
-                selection: $selectedPublisher,
-                publishers: availablePublishers,
-                onCreate: { newPublisher in
-                    catalogPublishers.append(newPublisher)
-                    selectedPublisher = newPublisher
-                }
+                selection: $selection,
+                publishers: publishers,
+                onCreate: onCreate
             )
         }
     }
 }
+
+private struct BookPublisherSelectionView: View {
+    @Binding var selection: Publisher?
+    let publishers: [Publisher]
+    let onCreate: (Publisher) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredPublishers: [Publisher] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return publishers }
+        return publishers.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var newPublisherName: String? {
+        let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        guard !publishers.contains(where: { $0.name.caseInsensitiveCompare(candidate) == .orderedSame }) else {
+            return nil
+        }
+        return candidate
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let newPublisherName {
+                    Button {
+                        let newPublisher = Publisher(
+                            id: UUID(),
+                            name: newPublisherName,
+                            location: nil
+                        )
+                        onCreate(newPublisher)
+                        selection = newPublisher
+                        dismiss()
+                    } label: {
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newPublisherName),
+                            systemImage: "plus.circle.fill"
+                        )
+                    }
+                }
+
+                Button {
+                    selection = nil
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(String(localized: "common.none"))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if selection == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+
+                ForEach(filteredPublishers) { publisher in
+                    Button {
+                        selection = publisher
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(publisher.name)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            if selection?.id == publisher.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("publisher.title")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+private struct BookContributorEditorView: View {
+    let contributor: BookContributor?
+    let people: [Person]
+    let existingContributors: [BookContributor]
+    let editingIndex: Int?
+    let onCreatePerson: (Person) -> Void
+    let onSave: (BookContributor) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var role: BookContributorRole
+    @State private var selectedPerson: Person?
+    @State private var isPresentingPersonPicker = false
+
+    init(
+        contributor: BookContributor?,
+        people: [Person],
+        existingContributors: [BookContributor],
+        editingIndex: Int?,
+        onCreatePerson: @escaping (Person) -> Void,
+        onSave: @escaping (BookContributor) -> Void
+    ) {
+        self.contributor = contributor
+        self.people = people
+        self.existingContributors = existingContributors
+        self.editingIndex = editingIndex
+        self.onCreatePerson = onCreatePerson
+        self.onSave = onSave
+        _role = State(initialValue: contributor?.role ?? .author)
+        _selectedPerson = State(initialValue: contributor?.person)
+    }
+
+    private var isDuplicate: Bool {
+        guard let selectedPerson else { return false }
+
+        return existingContributors.enumerated().contains { index, existing in
+            index != editingIndex
+                && existing.role == role
+                && existing.person.id == selectedPerson.id
+        }
+    }
+
+    private var canSave: Bool {
+        selectedPerson != nil && !isDuplicate
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("book_contributor.section.contribution") {
+                    Picker("book_contributor.field.role", selection: $role) {
+                        ForEach(BookContributorRole.allCases) { role in
+                            Text(role.displayName).tag(role)
+                        }
+                    }
+
+                    Button {
+                        isPresentingPersonPicker = true
+                    } label: {
+                        HStack {
+                            Text("person.title")
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            Text(selectedPerson?.name ?? String(localized: "common.none"))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.trailing)
+
+                            Image(systemName: "chevron.right")
+                                .font(CatalogTypography.chipLabel)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    if isDuplicate {
+                        Label(
+                            "book_contributor.validation.duplicate_role",
+                            systemImage: "exclamationmark.circle.fill"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
+                    }
+                }
+            }
+            .navigationTitle(contributor == nil ? String(localized: "book_contributor.action.add") : String(localized: "book_contributor.action.edit"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        guard let selectedPerson else { return }
+                        onSave(
+                            BookContributor(
+                                role: role,
+                                order: contributor?.order ?? existingContributors.count,
+                                person: selectedPerson
+                            )
+                        )
+                        dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .disabled(!canSave)
+                    .accessibilityLabel(String(localized: "common.save"))
+                }
+            }
+            .sheet(isPresented: $isPresentingPersonPicker) {
+                BookPersonSelectionView(
+                    selection: $selectedPerson,
+                    people: people,
+                    onCreate: onCreatePerson
+                )
+            }
+        }
+    }
+}
+
+private struct BookPersonSelectionView: View {
+    @Binding var selection: Person?
+    let people: [Person]
+    let onCreate: (Person) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredPeople: [Person] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return people }
+        return people.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var newPersonName: String? {
+        let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        guard !people.contains(where: { $0.name.caseInsensitiveCompare(candidate) == .orderedSame }) else {
+            return nil
+        }
+        return candidate
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let newPersonName {
+                    Button {
+                        let newPerson = Person(
+                            id: UUID(),
+                            name: newPersonName,
+                            birthYear: nil,
+                            deathYear: nil,
+                            biography: nil,
+                            birthPlace: nil,
+                            deathPlace: nil,
+                            photos: []
+                        )
+                        onCreate(newPerson)
+                        selection = newPerson
+                        dismiss()
+                    } label: {
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newPersonName),
+                            systemImage: "plus.circle.fill"
+                        )
+                    }
+                }
+
+                Button {
+                    selection = nil
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(String(localized: "common.none"))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if selection == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+
+                ForEach(filteredPeople) { person in
+                    Button {
+                        selection = person
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(person.name)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            if selection?.id == person.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("person.title")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+private struct BookIdentifierEditorView: View {
+    let identifier: BookIdentifier?
+    let existingIdentifiers: [BookIdentifier]
+    let editingIndex: Int?
+    let onSave: (BookIdentifier) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var type: BookIdentifierType
+    @State private var value: String
+
+    init(
+        identifier: BookIdentifier?,
+        existingIdentifiers: [BookIdentifier],
+        editingIndex: Int?,
+        onSave: @escaping (BookIdentifier) -> Void
+    ) {
+        self.identifier = identifier
+        self.existingIdentifiers = existingIdentifiers
+        self.editingIndex = editingIndex
+        self.onSave = onSave
+        _type = State(initialValue: identifier?.type ?? .isbn13)
+        _value = State(initialValue: identifier?.value ?? "")
+    }
+
+    private var trimmedValue: String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isDuplicate: Bool {
+        guard !trimmedValue.isEmpty else { return false }
+        let key = bookIdentifierDuplicateKey(type: type, value: trimmedValue)
+
+        return existingIdentifiers.enumerated().contains { index, existing in
+            index != editingIndex
+                && existing.type == type
+                && bookIdentifierDuplicateKey(type: existing.type, value: existing.value) == key
+        }
+    }
+
+    private var validationMessage: String? {
+        guard !trimmedValue.isEmpty else {
+            return String(localized: "book_identifier.validation.value_required")
+        }
+
+        switch type {
+        case .isbn10:
+            guard isValidISBN10(trimmedValue) else {
+                return String(localized: "book_identifier.validation.isbn10_invalid")
+            }
+        case .isbn13:
+            guard isValidISBN13(trimmedValue) else {
+                return String(localized: "book_identifier.validation.isbn13_invalid")
+            }
+        case .sbn, .asin, .inventory, .other:
+            break
+        }
+
+        if isDuplicate {
+            return String(localized: "book_identifier.validation.duplicate")
+        }
+
+        return nil
+    }
+
+    private var canSave: Bool {
+        validationMessage == nil
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("book_identifier.title") {
+                    Picker("common.type", selection: $type) {
+                        ForEach(BookIdentifierType.allCases) { type in
+                            Text(type.bookEditorDisplayName).tag(type)
+                        }
+                    }
+
+                    TextField("book_identifier.field.value", text: $value)
+
+                    if let validationMessage {
+                        Label(
+                            validationMessage,
+                            systemImage: "exclamationmark.circle.fill"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
+                    }
+                }
+            }
+            .navigationTitle(identifier == nil ? String(localized: "book_identifier.action.add") : String(localized: "book_identifier.action.edit"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        onSave(BookIdentifier(type: type, value: trimmedValue))
+                        dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .disabled(!canSave)
+                    .accessibilityLabel(String(localized: "common.save"))
+                }
+            }
+        }
+    }
+}
+
+private struct BookLanguagePickerField: View {
+    @Binding var languageCode: String
+    @State private var isPresentingPicker = false
+
+    private var selectedLabel: String {
+        guard !languageCode.isEmpty else { return String(localized: "common.none") }
+        return bookLanguageDisplayName(for: languageCode)
+    }
+
+    var body: some View {
+        Button {
+            isPresentingPicker = true
+        } label: {
+            HStack {
+                Text("book.field.language")
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Text(selectedLabel)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+
+                Image(systemName: "chevron.right")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $isPresentingPicker) {
+            BookLanguagePickerView(languageCode: $languageCode)
+        }
+    }
+}
+
+private struct BookLanguagePickerView: View {
+    @Binding var languageCode: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private struct LanguageOption: Identifiable {
+        let code: String
+        let name: String
+
+        var id: String { code }
+    }
+
+    private var languageOptions: [LanguageOption] {
+        Locale.LanguageCode.isoLanguageCodes
+            .map(\.identifier)
+            .map { code in
+                LanguageOption(
+                    code: code,
+                    name: bookLanguageDisplayName(for: code)
+                )
+            }
+            .sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    private var filteredOptions: [LanguageOption] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return languageOptions }
+
+        return languageOptions.filter {
+            $0.name.localizedCaseInsensitiveContains(query)
+                || $0.code.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Button {
+                    languageCode = ""
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(String(localized: "common.none"))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if languageCode.isEmpty {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+
+                ForEach(filteredOptions) { option in
+                    Button {
+                        languageCode = option.code
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(option.name)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            Text(option.code.uppercased())
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            if languageCode.caseInsensitiveCompare(option.code) == .orderedSame {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("book.field.language")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "picker.search_languages")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+private struct LookupTextField: View {
+    let title: String
+    @Binding var value: String
+    let suggestions: [String]
+
+    @State private var isPresentingLookup = false
+
+    var body: some View {
+        HStack {
+            Text(title)
+
+            Spacer()
+
+            TextField("—", text: $value)
+                .multilineTextAlignment(.trailing)
+
+            Button {
+                isPresentingLookup = true
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.tertiary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                String.localizedStringWithFormat(String(localized: "common.accessibility.choose_or_add"), title)
+            )
+        }
+        .sheet(isPresented: $isPresentingLookup) {
+            LookupSelectionView(
+                title: title,
+                selection: $value,
+                suggestions: suggestions
+            )
+        }
+    }
+}
+
+private struct LookupSelectionView: View {
+    let title: String
+    @Binding var selection: String
+    let suggestions: [String]
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredSuggestions: [String] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return suggestions }
+        return suggestions.filter { $0.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var newValueCandidate: String? {
+        let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        guard !suggestions.contains(where: { $0.caseInsensitiveCompare(candidate) == .orderedSame }) else {
+            return nil
+        }
+        return candidate
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let newValueCandidate {
+                    Button {
+                        selection = newValueCandidate
+                        dismiss()
+                    } label: {
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newValueCandidate),
+                            systemImage: "plus.circle.fill"
+                        )
+                    }
+                }
+
+                ForEach(filteredSuggestions, id: \.self) { suggestion in
+                    Button {
+                        selection = suggestion
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(suggestion)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            if suggestion.caseInsensitiveCompare(selection) == .orderedSame {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+private extension BookIdentifierType {
+    var bookEditorDisplayName: String {
+        switch self {
+        case .isbn10: "ISBN-10"
+        case .isbn13: "ISBN-13"
+        case .sbn: "SBN"
+        case .asin: "ASIN"
+        case .inventory: String(localized: "book.field.inventory")
+        case .other: String(localized: "common.other")
+        }
+    }
+}
+
+private func compactBookIdentifier(_ value: String) -> String {
+    value.filter { $0.isLetter || $0.isNumber }.uppercased()
+}
+
+private func bookIdentifierDuplicateKey(type: BookIdentifierType, value: String) -> String {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    switch type {
+    case .isbn10, .isbn13, .sbn:
+        return compactBookIdentifier(trimmed)
+    case .asin:
+        return trimmed.uppercased()
+    case .inventory, .other:
+        return trimmed.folding(
+            options: [.caseInsensitive, .diacriticInsensitive],
+            locale: .current
+        )
+    }
+}
+
+private func isValidISBN10(_ value: String) -> Bool {
+    let characters = Array(compactBookIdentifier(value))
+    guard characters.count == 10 else { return false }
+    guard characters.dropLast().allSatisfy(\.isNumber), let last = characters.last else { return false }
+    return last.isNumber || last == "X"
+}
+
+private func isValidISBN13(_ value: String) -> Bool {
+    let characters = Array(compactBookIdentifier(value))
+    return characters.count == 13 && characters.allSatisfy(\.isNumber)
+}
+
+private func bookLanguageDisplayName(for code: String) -> String {
+    BookLanguageFormatter.displayName(for: code)
+}
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.makeBooksMinimal()
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+
+    if let collection = snapshot.collections
+        .compactMap({ snapshot.collectionSummary(id: $0.id) })
+        .first(where: { $0.kind == .books }) {
+        let book = snapshot.bookRecords.first { $0.item.collectionID == collection.id }
+
+        BookEditorView(
+            collection: collection,
+            book: book
+        ) { updatedBook in
+            repository.saveBookRecord(updatedBook)
+        }
+        .environment(\.managedObjectContext, container.viewContext)
+    }
+}
+#endif
