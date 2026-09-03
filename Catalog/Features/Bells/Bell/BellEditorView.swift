@@ -216,7 +216,7 @@ struct BellEditorView: View {
 
                                     if let titleSuggestion = photoAnalysis.suggestions.title {
                                         PhotoSuggestionRow(
-                                            title: String(localized: "common.field_title"),
+                                            title: String(localized: "common.field.title"),
                                             suggestedValue: localizedPhotoSuggestions?.title ?? titleSuggestion.value,
                                             confidence: titleSuggestion.confidence,
                                             onAccept: {

@@ -3621,23 +3621,6 @@
         }
       }
     },
-    "common.field_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Title"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Название"
-          }
-        }
-      }
-    },
     "common.field.condition" : {
       "localizations" : {
         "en" : {
@@ -3714,6 +3697,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Теги"
+          }
+        }
+      }
+    },
+    "common.field.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Название"
           }
         }
       }

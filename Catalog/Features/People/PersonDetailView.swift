@@ -8,7 +8,7 @@ private enum PersonBookOrderMode: String, CaseIterable, Hashable {
     var title: String {
         switch self {
         case .title:
-            return String(localized: "common.field_title")
+            return String(localized: "common.field.title")
         case .publicationYearNewest:
             return String(localized: "book.field.publication_year")
         case .newestFirst:

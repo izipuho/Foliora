@@ -243,7 +243,7 @@ struct BookEditorView: View {
                         } else {
                             if let suggestion = photoAnalysis.suggestions.title {
                                 PhotoSuggestionRow(
-                                    title: String(localized: "common.field_title"),
+                                    title: String(localized: "common.field.title"),
                                     suggestedValue: suggestion.value,
                                     confidence: suggestion.confidence,
                                     onAccept: {
@@ -347,7 +347,7 @@ struct BookEditorView: View {
                 Section(String(localized: "common.field.description")) {
                     // Title and subtitle stay together as the book's bibliographic identity.
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                        TextField(String(localized: "common.field_title"), text: $title)
+                        TextField(String(localized: "common.field.title"), text: $title)
                             .focused($isTitleFocused)
                             .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
                                 assignOCRFragments(items, to: .title) { assignment in
