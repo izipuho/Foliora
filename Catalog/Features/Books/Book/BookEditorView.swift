@@ -344,9 +344,24 @@ struct BookEditorView: View {
                     }
                 }
 
-                Section(String(localized: "common.field.description")) {
+                Section(String(localized: "common.field.title")) {
                     // Title and subtitle stay together as the book's bibliographic identity.
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                        
+                        if !isTitleValid {
+                            Button {
+                                isTitleFocused = true
+                            } label: {
+                                Label(
+                                    String(localized: "editor.title.required"),
+                                    systemImage: "exclamationmark.circle.fill"
+                                )
+                                .font(.footnote)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(CatalogSemanticColors.destructive)
+                        }
+                        
                         TextField(String(localized: "common.field.title"), text: $title)
                             .focused($isTitleFocused)
                             .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
@@ -364,20 +379,6 @@ struct BookEditorView: View {
                                     return true
                                 }
                             }
-
-                        if !isTitleValid {
-                            Button {
-                                isTitleFocused = true
-                            } label: {
-                                Label(
-                                    String(localized: "editor.title.required"),
-                                    systemImage: "exclamationmark.circle.fill"
-                                )
-                                .font(.footnote)
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(CatalogSemanticColors.destructive)
-                        }
                     }
                 }
 
