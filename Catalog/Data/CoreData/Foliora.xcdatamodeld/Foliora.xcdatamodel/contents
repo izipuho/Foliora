@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24837" systemVersion="25F84" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24837" systemVersion="25G83" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="BellEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="customMaterialName" optional="YES" attributeType="String"/>
         <attribute name="material" optional="YES" attributeType="String" defaultValueString="unknown"/>
@@ -16,6 +16,7 @@
         <attribute name="languageCode" optional="YES" attributeType="String"/>
         <attribute name="pageCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="publicationYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
+        <attribute name="subtitle" optional="YES" attributeType="String"/>
         <attribute name="volumeNumber" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="bookIdentifiers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookIdentifierEntity" inverseName="book" inverseEntity="BookIdentifierEntity"/>
         <relationship name="contributors" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="book" inverseEntity="BookContributorEntity"/>
