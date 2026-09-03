@@ -5,11 +5,19 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-private enum BookOCRScalarDropTarget: Hashable {
+/// Identifies editor fields that can receive OCR text; field-specific interpretation stays at each drop site.
+private enum BookOCRField: Hashable {
     case title
+    case subtitle
     case publisher
     case series
     case volume
+}
+
+/// Holds the normalized OCR text assembled from exact recognized fragments in geometric reading order.
+private struct BookOCRTextAssignment {
+    let text: String
+    let confidence: Double
 }
 
 /// Carries only the position of one OCR fragment inside the current analysis result.
@@ -65,7 +73,7 @@ struct BookEditorView: View {
     @State private var isPresentingIdentifierEditor = false
     @State private var photoAnalysis = BookPhotoAnalysisController()
     @State private var didStartInitialAnalysis = false
-    @State private var ocrScalarAssignments: [BookOCRScalarDropTarget: [RecognizedTextFeature]] = [:]
+    @State private var ocrFieldAssignments: [BookOCRField: [RecognizedTextFeature]] = [:]
     @State private var ocrAuthorAssignments: [Int: [RecognizedTextFeature]] = [:]
     @State private var ocrAuthorBaseNames: [Int: String] = [:]
 
@@ -342,11 +350,20 @@ struct BookEditorView: View {
                         TextField(String(localized: "common.field_title"), text: $title)
                             .focused($isTitleFocused)
                             .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                                applyOCRScalarFragments(items, to: .title)
+                                assignOCRFragments(items, to: .title) { assignment in
+                                    title = assignment.text
+                                    return true
+                                }
                             }
 
                         TextField("book.field.subtitle", text: $subtitle, axis: .vertical)
                             .lineLimit(1...3)
+                            .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
+                                assignOCRFragments(items, to: .subtitle) { assignment in
+                                    subtitle = assignment.text
+                                    return true
+                                }
+                            }
 
                         if !isTitleValid {
                             Button {
@@ -396,7 +413,15 @@ struct BookEditorView: View {
                         }
                     )
                     .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                        applyOCRScalarFragments(items, to: .series)
+                        assignOCRFragments(items, to: .series) { assignment in
+                            applySeriesSuggestion(
+                                SuggestedFieldValue(
+                                    value: assignment.text,
+                                    confidence: assignment.confidence
+                                )
+                            )
+                            return true
+                        }
                     }
 
                     if selectedSeries != nil {
@@ -414,7 +439,15 @@ struct BookEditorView: View {
                         }
                     )
                     .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                        applyOCRScalarFragments(items, to: .publisher)
+                        assignOCRFragments(items, to: .publisher) { assignment in
+                            applyPublisherSuggestion(
+                                SuggestedFieldValue(
+                                    value: assignment.text,
+                                    confidence: assignment.confidence
+                                )
+                            )
+                            return true
+                        }
                     }
                 }
 
@@ -595,9 +628,9 @@ struct BookEditorView: View {
     }
 
     private var usedOCRFragments: Set<RecognizedTextFeature> {
-        let scalarFragments = ocrScalarAssignments.values.flatMap { $0 }
+        let fieldFragments = ocrFieldAssignments.values.flatMap { $0 }
         let authorFragments = ocrAuthorAssignments.values.flatMap { $0 }
-        return Set(scalarFragments + authorFragments)
+        return Set(fieldFragments + authorFragments)
     }
 
     private var hasUnusedOCRFragments: Bool {
@@ -630,7 +663,11 @@ struct BookEditorView: View {
             }
         }
         .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-            applyOCRScalarFragments(items, to: .volume)
+            assignOCRFragments(items, to: .volume) { assignment in
+                guard let number = firstPositiveInteger(in: assignment.text) else { return false }
+                volumeNumber = String(number)
+                return true
+            }
         }
     }
 
@@ -707,46 +744,29 @@ struct BookEditorView: View {
         photoAnalysis.analyze(image: initialAnalysisImage)
     }
 
-    // iOS 26 drop destinations don't consume these helpers' success flags, but direct callers may still use them.
+    // Common OCR assignment only assembles and tracks fragments; each field decides how to interpret the resulting text.
     @discardableResult
-    private func applyOCRScalarFragments(
+    private func assignOCRFragments(
         _ droppedFragments: [BookOCRFragmentTransfer],
-        to target: BookOCRScalarDropTarget
+        to field: BookOCRField,
+        apply: (BookOCRTextAssignment) -> Bool
     ) -> Bool {
         let newFragments = ocrFeatures(matching: droppedFragments)
         guard !newFragments.isEmpty else { return false }
 
-        var assigned = ocrScalarAssignments[target, default: []]
+        var assigned = ocrFieldAssignments[field, default: []]
         for fragment in newFragments where !assigned.contains(fragment) {
             assigned.append(fragment)
         }
         assigned.sort(by: Self.ocrReadingOrder)
 
-        let value = assigned.map(\.text).joined(separator: " ")
-        let confidence = assigned.map(\.confidence).min() ?? 0
+        let assignment = BookOCRTextAssignment(
+            text: assigned.map(\.text).joined(separator: " "),
+            confidence: assigned.map(\.confidence).min() ?? 0
+        )
 
-        if target == .volume {
-            guard let number = firstPositiveInteger(in: value) else { return false }
-            volumeNumber = String(number)
-        }
-
-        ocrScalarAssignments[target] = assigned
-
-        switch target {
-        case .title:
-            title = value
-        case .publisher:
-            applyPublisherSuggestion(
-                SuggestedFieldValue(value: value, confidence: confidence)
-            )
-        case .series:
-            applySeriesSuggestion(
-                SuggestedFieldValue(value: value, confidence: confidence)
-            )
-        case .volume:
-            break
-        }
-
+        guard apply(assignment) else { return false }
+        ocrFieldAssignments[field] = assigned
         return true
     }
 
