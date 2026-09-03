@@ -698,6 +698,8 @@ struct BookEditorView: View {
         photoAnalysis.analyze(image: initialAnalysisImage)
     }
 
+    // iOS 26 drop destinations don't consume these helpers' success flags, but direct callers may still use them.
+    @discardableResult
     private func applyOCRScalarFragments(
         _ droppedFragments: [BookOCRFragmentTransfer],
         to target: BookOCRScalarDropTarget
@@ -739,6 +741,7 @@ struct BookEditorView: View {
         return true
     }
 
+    @discardableResult
     private func createOCRAuthor(from droppedFragments: [BookOCRFragmentTransfer]) -> Bool {
         var fragments = ocrFeatures(matching: droppedFragments)
         guard !fragments.isEmpty else { return false }
@@ -763,6 +766,7 @@ struct BookEditorView: View {
         return true
     }
 
+    @discardableResult
     private func appendOCRFragments(
         _ droppedFragments: [BookOCRFragmentTransfer],
         toContributorAt index: Int
