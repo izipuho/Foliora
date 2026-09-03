@@ -1050,6 +1050,7 @@ struct BookEditorView: View {
             return normalized
         }
         let existingItem = existingBook?.item
+
         let book = BookRecord(
             item: ItemRecord(
                 id: itemID,
@@ -1341,7 +1342,7 @@ private struct BookPublisherPickerField: View {
         .sheet(isPresented: $isPresentingPicker) {
             BookPublisherSelectionView(
                 selection: $selection,
-                publishers: availablePublishers,
+                publishers: publishers,
                 onCreate: onCreate
             )
         }
@@ -1644,7 +1645,7 @@ private struct BookPersonSelectionView: View {
 
                             Spacer()
 
-                            if selectedPerson?.id == person.id {
+                            if selection?.id == person.id {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(.tint)
                             }
