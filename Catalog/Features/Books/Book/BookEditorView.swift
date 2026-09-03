@@ -37,6 +37,7 @@ struct BookEditorView: View {
     @FocusState private var isTitleFocused: Bool
 
     @State private var title: String
+    @State private var subtitle: String
     @State private var notes: String
     @State private var selectedAcquiredYearOption: String
     @State private var condition: ItemCondition
@@ -177,6 +178,7 @@ struct BookEditorView: View {
         self.editorItemID = book?.id ?? UUID()
 
         _title = State(initialValue: book?.title ?? "")
+        _subtitle = State(initialValue: book?.details.subtitle ?? "")
         _notes = State(initialValue: book?.notes ?? "")
         _selectedAcquiredYearOption = State(
             initialValue: book?.acquiredYear.map(String.init) ?? String(localized: "common.none")
@@ -335,24 +337,30 @@ struct BookEditorView: View {
                 }
 
                 Section(String(localized: "common.field.description")) {
-                    TextField(String(localized: "common.field_title"), text: $title)
-                        .focused($isTitleFocused)
-                        .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                            applyOCRScalarFragments(items, to: .title)
-                        }
+                    // Title and subtitle form one bibliographic identity block; notes and tags stay as separate item metadata below it.
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                        TextField(String(localized: "common.field_title"), text: $title)
+                            .focused($isTitleFocused)
+                            .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
+                                applyOCRScalarFragments(items, to: .title)
+                            }
 
-                    if !isTitleValid {
-                        Button {
-                            isTitleFocused = true
-                        } label: {
-                            Label(
-                                String(localized: "editor.title.required"),
-                                systemImage: "exclamationmark.circle.fill"
-                            )
-                            .font(.footnote)
+                        TextField("book.field.subtitle", text: $subtitle, axis: .vertical)
+                            .lineLimit(1...3)
+
+                        if !isTitleValid {
+                            Button {
+                                isTitleFocused = true
+                            } label: {
+                                Label(
+                                    String(localized: "editor.title.required"),
+                                    systemImage: "exclamationmark.circle.fill"
+                                )
+                                .font(.footnote)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(CatalogSemanticColors.destructive)
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(CatalogSemanticColors.destructive)
                     }
 
                     TextField(String(localized: "common.field.notes"), text: $notes, axis: .vertical)
@@ -1063,6 +1071,7 @@ struct BookEditorView: View {
             ),
             details: BookDetails(
                 itemID: itemID,
+                subtitle: optionalString(subtitle),
                 languageCode: optionalString(languageCode)?.lowercased(),
                 genre: optionalString(genre),
                 pageCount: optionalPositiveInt(pageCount),
