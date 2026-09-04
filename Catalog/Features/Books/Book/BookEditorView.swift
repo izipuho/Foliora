@@ -409,6 +409,7 @@ struct BookEditorView: View {
                             selection: $selectedSeries,
                             series: availableSeries,
                             collectionID: collection.id,
+                            statusSystemImage: assignedReferenceStatusSystemImage(for: .field(.series)),
                             onCreate: { newSeries in
                                 catalogSeries.append(newSeries)
                                 selectedSeries = newSeries
@@ -431,6 +432,7 @@ struct BookEditorView: View {
                         BookPublisherPickerField(
                             selection: $selectedPublisher,
                             publishers: availablePublishers,
+                            statusSystemImage: assignedReferenceStatusSystemImage(for: .field(.publisher)),
                             onCreate: { newPublisher in
                                 catalogPublishers.append(newPublisher)
                                 selectedPublisher = newPublisher
@@ -462,6 +464,12 @@ struct BookEditorView: View {
                                     Text(contributor.person.displayName)
                                         .foregroundStyle(.primary)
                                         .multilineTextAlignment(.trailing)
+
+                                    if let statusSystemImage = assignedReferenceStatusSystemImage(for: .author(index)) {
+                                        Image(systemName: statusSystemImage)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
 
                                     Image(systemName: "chevron.right")
                                         .font(CatalogTypography.chipLabel)
@@ -631,18 +639,22 @@ struct BookEditorView: View {
     @ViewBuilder
     private func assignedTextFragments(for target: BookTextTarget) -> some View {
         if let fragments = textAssignments[target], !fragments.isEmpty {
-            let status = referenceResolutionStatus(for: target)
             TagFlowLayout(spacing: CatalogMetrics.Spacing.xs) {
-                ForEach(Array(fragments.enumerated()), id: \.element.id) { index, fragment in
+                ForEach(Array(fragments.enumerated()), id: \.element.id) { _, fragment in
                     AssignedTextFragmentChip(
                         fragment: fragment,
-                        statusSystemImage: index == fragments.indices.last ? status?.systemImage : nil
+                        statusSystemImage: nil
                     ) {
                         removeTextFragment(fragment, from: target)
                     }
                 }
             }
         }
+    }
+
+    private func assignedReferenceStatusSystemImage(for target: BookTextTarget) -> String? {
+        guard let fragments = textAssignments[target], !fragments.isEmpty else { return nil }
+        return referenceResolutionStatus(for: target)?.systemImage
     }
 
     private func referenceResolutionStatus(for target: BookTextTarget) -> BookReferenceResolutionStatus? {
@@ -1277,6 +1289,7 @@ private struct BookSeriesPickerField: View {
     @Binding var selection: BookSeries?
     let series: [BookSeries]
     let collectionID: UUID
+    let statusSystemImage: String?
     let onCreate: (BookSeries) -> Void
 
     @State private var isPresentingPicker = false
@@ -1294,6 +1307,12 @@ private struct BookSeriesPickerField: View {
                 Text(selection?.name ?? String(localized: "common.none"))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
+
+                if let statusSystemImage {
+                    Image(systemName: statusSystemImage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Image(systemName: "chevron.right")
                     .font(CatalogTypography.chipLabel)
@@ -1421,6 +1440,7 @@ private struct BookSeriesSelectionView: View {
 private struct BookPublisherPickerField: View {
     @Binding var selection: Publisher?
     let publishers: [Publisher]
+    let statusSystemImage: String?
     let onCreate: (Publisher) -> Void
 
     @State private var isPresentingPicker = false
@@ -1438,6 +1458,12 @@ private struct BookPublisherPickerField: View {
                 Text(selection?.name ?? String(localized: "common.none"))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
+
+                if let statusSystemImage {
+                    Image(systemName: statusSystemImage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Image(systemName: "chevron.right")
                     .font(CatalogTypography.chipLabel)
