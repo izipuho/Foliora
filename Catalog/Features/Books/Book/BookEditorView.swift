@@ -21,6 +21,18 @@ private enum BookTextTarget: Hashable {
     case author(Int)
 }
 
+private enum BookReferenceResolutionStatus {
+    case existing
+    case new
+
+    var systemImage: String {
+        switch self {
+        case .existing: "checkmark.circle.fill"
+        case .new: "plus.circle"
+        }
+    }
+}
+
 /// Mutable text fragment used by the editor after recognition has completed.
 private struct BookTextFragment: Identifiable, Hashable {
     let id: UUID
@@ -492,16 +504,6 @@ struct BookEditorView: View {
                     .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
                         assignTextFragments(items, to: .field(.publisher))
                     }
-
-#if DEBUG
-                    if let selectedPublisher {
-                        Text(
-                            catalogPublishers.contains(where: { $0.id == selectedPublisher.id })
-                                ? "Existing publisher"
-                                : "New publisher"
-                        )
-                    }
-#endif
                 }
 
                 Section("book.section.contributors") {
@@ -691,13 +693,30 @@ struct BookEditorView: View {
     @ViewBuilder
     private func assignedTextFragments(for target: BookTextTarget) -> some View {
         if let fragments = textAssignments[target], !fragments.isEmpty {
+            let status = referenceResolutionStatus(for: target)
             TagFlowLayout(spacing: CatalogMetrics.Spacing.xs) {
-                ForEach(fragments) { fragment in
-                    BookAssignedTextFragmentChip(fragment: fragment) {
+                ForEach(Array(fragments.enumerated()), id: \.element.id) { index, fragment in
+                    BookAssignedTextFragmentChip(
+                        fragment: fragment,
+                        referenceStatus: index == fragments.indices.last ? status : nil
+                    ) {
                         removeTextFragment(fragment, from: target)
                     }
                 }
             }
+        }
+    }
+
+    private func referenceResolutionStatus(for target: BookTextTarget) -> BookReferenceResolutionStatus? {
+        switch target {
+        case .field(.publisher):
+            guard let selectedPublisher else { return nil }
+            return catalogPublishers.contains(where: { $0.id == selectedPublisher.id }) ? .existing : .new
+        case .field(.series):
+            guard let selectedSeries else { return nil }
+            return catalogSeries.contains(where: { $0.id == selectedSeries.id }) ? .existing : .new
+        default:
+            return nil
         }
     }
 
@@ -1457,12 +1476,20 @@ private struct BookTextFragmentChip: View {
 
 private struct BookAssignedTextFragmentChip: View {
     let fragment: BookTextFragment
+    let referenceStatus: BookReferenceResolutionStatus?
     let onRemove: () -> Void
 
     var body: some View {
         HStack(spacing: CatalogMetrics.Spacing.xxs) {
             Text(fragment.text)
                 .lineLimit(1)
+
+            if let referenceStatus {
+                Image(systemName: referenceStatus.systemImage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
 
             Button(action: onRemove) {
                 Image(systemName: "xmark.circle.fill")
