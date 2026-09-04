@@ -3,7 +3,7 @@ import Foundation
 /// Represents book-specific transfer payload data and behavior.
 struct BookCatalogTransferPayload: Codable {
     static let domain = "books"
-    static let version = 1
+    static let version = 2
 
     var items: [BookCatalogTransferItem]
     var series: [BookSeries]
