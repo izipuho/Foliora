@@ -698,3 +698,39 @@ private struct BookBatchLookupSelectionView: View {
         }
     }
 }
+
+private func batchBookLanguageDisplayName(for code: String) -> String {
+    BookLanguageFormatter.displayName(for: code)
+}
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.makeBooksMinimal()
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+
+    if let collection = snapshot.collections
+        .compactMap({ snapshot.collectionSummary(id: $0.id) })
+        .first(where: { $0.kind == .books }) {
+        let assets = [
+            MediaAsset(
+                id: UUID(),
+                itemID: UUID(),
+                kind: .photo,
+                localIdentifier: "",
+                sortOrder: 0
+            )
+        ]
+
+        BookBatchAddView(
+            collection: collection,
+            initialMediaAssets: assets,
+            repository: repository
+        )
+        .environment(\.managedObjectContext, container.viewContext)
+    }
+}
+#endif
