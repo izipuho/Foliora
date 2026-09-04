@@ -222,7 +222,10 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
     func makePersonEntity(from person: Person) -> NSManagedObject {
         let entity = makeEntity(named: "PersonEntity")
-        entity.setValue(person.name, forKey: "name")
+        entity.setValue(person.id, forKey: "id")
+        entity.setValue(person.givenName, forKey: "givenName")
+        entity.setValue(person.familyName, forKey: "familyName")
+        entity.setValue(person.middleName, forKey: "middleName")
         entity.setValue(person.birthYear, forKey: "birthYear")
         entity.setValue(person.deathYear, forKey: "deathYear")
         entity.setValue(person.biography, forKey: "biography")

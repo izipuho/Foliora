@@ -54,7 +54,8 @@ extension PreviewData {
 
         let author = Person(
             id: UUID(),
-            name: "Author One",
+            givenName: "Author",
+            familyName: "One",
             birthYear: 1927,
             deathYear: 2014,
             biography: "Preview biography for the primary book author.",
@@ -69,7 +70,8 @@ extension PreviewData {
         )
         let translator = Person(
             id: UUID(),
-            name: "Translator One",
+            givenName: "Translator",
+            familyName: "One",
             birthYear: 1950,
             deathYear: nil,
             biography: nil,
@@ -78,7 +80,8 @@ extension PreviewData {
         )
         let editor = Person(
             id: UUID(),
-            name: "Editor One",
+            givenName: "Editor",
+            familyName: "One",
             birthYear: nil,
             deathYear: nil,
             biography: nil,
@@ -154,7 +157,8 @@ extension PreviewData {
                                 order: 0,
                                 person: Person(
                                     id: UUID(),
-                                    name: "Author Two",
+                                    givenName: "Author",
+                                    familyName: "Two",
                                     birthYear: nil,
                                     deathYear: nil,
                                     biography: nil,
@@ -167,7 +171,8 @@ extension PreviewData {
                                 order: 1,
                                 person: Person(
                                     id: UUID(),
-                                    name: "Translator Two",
+                                    givenName: "Translator",
+                                    familyName: "Two",
                                     birthYear: nil,
                                     deathYear: nil,
                                     biography: nil,
@@ -203,7 +208,8 @@ extension PreviewData {
                                 order: 0,
                                 person: Person(
                                     id: UUID(),
-                                    name: "Editor Two",
+                                    givenName: "Editor",
+                                    familyName: "Two",
                                     birthYear: nil,
                                     deathYear: nil,
                                     biography: nil,

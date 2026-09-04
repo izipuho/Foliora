@@ -64,8 +64,7 @@ struct CatalogSnapshot {
         )
         let personEntities = fetchEntities(
             named: "PersonEntity",
-            in: context,
-            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+            in: context
         )
         let privateStore = context.persistentStoreCoordinator?.persistentStores.first {
             $0.url?.lastPathComponent == "Private.sqlite"

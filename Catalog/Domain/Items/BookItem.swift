@@ -31,15 +31,16 @@ enum BookContributorRole: String, CaseIterable, Hashable, Identifiable, Codable 
 }
 
 /// Represents a typed external or catalog identifier assigned to a book.
-struct BookIdentifier: Hashable, Codable {
+struct BookIdentifier: Hashable, Codable, Sendable {
     var type: BookIdentifierType
     var value: String
 }
 
 /// Defines the supported book identifier types.
-enum BookIdentifierType: String, CaseIterable, Hashable, Identifiable, Codable {
+enum BookIdentifierType: String, CaseIterable, Hashable, Identifiable, Codable, Sendable {
     case isbn10
     case isbn13
+    case sbn
     case asin
     case inventory
     case other
@@ -50,6 +51,8 @@ enum BookIdentifierType: String, CaseIterable, Hashable, Identifiable, Codable {
 /// Represents book-specific details attached to a catalog item.
 struct BookDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
+    // Subtitle is bibliographic metadata; free-form user notes remain on the shared ItemRecord.
+    var subtitle: String? = nil
     var languageCode: String?
     var genre: String? = nil
     var pageCount: Int?
