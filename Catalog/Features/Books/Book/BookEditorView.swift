@@ -715,6 +715,10 @@ struct BookEditorView: View {
         case .field(.series):
             guard let selectedSeries else { return nil }
             return catalogSeries.contains(where: { $0.id == selectedSeries.id }) ? .existing : .new
+        case let .author(index):
+            guard contributors.indices.contains(index), contributors[index].role == .author else { return nil }
+            let person = contributors[index].person
+            return catalogPeople.contains(where: { $0.id == person.id }) ? .existing : .new
         default:
             return nil
         }
