@@ -375,77 +375,6 @@ struct BookEditorView: View {
                     }
                 }
 
-                Section("common.book") {
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                        YearPickerField(
-                            title: String(localized: "book.field.publication_year"),
-                            selection: $selectedPublicationYearOption,
-                            options: publicationYearOptions
-                        )
-
-                        assignedTextFragments(for: .field(.publicationYear))
-                    }
-                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
-                        assignTextFragments(items, to: .field(.publicationYear))
-                    }
-
-                    optionalPositiveIntegerField(
-                        title: String(localized: "book.field.pages"),
-                        text: $pageCount
-                    )
-
-                    BookLanguagePickerField(languageCode: $languageCode)
-
-                    LookupTextField(
-                        title: String(localized: "book.field.genre"),
-                        value: $genre,
-                        suggestions: genreSuggestions
-                    )
-                }
-
-                Section("series.title") {
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                        BookSeriesPickerField(
-                            selection: $selectedSeries,
-                            series: availableSeries,
-                            collectionID: collection.id,
-                            statusSystemImage: assignedReferenceStatusSystemImage(for: .field(.series)),
-                            onCreate: { newSeries in
-                                catalogSeries.append(newSeries)
-                                selectedSeries = newSeries
-                            }
-                        )
-
-                        assignedTextFragments(for: .field(.series))
-                    }
-                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
-                        assignTextFragments(items, to: .field(.series))
-                    }
-
-                    if selectedSeries != nil {
-                        volumeField
-                    }
-                }
-
-                Section("publisher.title") {
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                        BookPublisherPickerField(
-                            selection: $selectedPublisher,
-                            publishers: availablePublishers,
-                            statusSystemImage: assignedReferenceStatusSystemImage(for: .field(.publisher)),
-                            onCreate: { newPublisher in
-                                catalogPublishers.append(newPublisher)
-                                selectedPublisher = newPublisher
-                            }
-                        )
-
-                        assignedTextFragments(for: .field(.publisher))
-                    }
-                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
-                        assignTextFragments(items, to: .field(.publisher))
-                    }
-                }
-
                 Section("book.section.contributors") {
                     ForEach(contributors.indices, id: \.self) { index in
                         let contributor = contributors[index]
@@ -497,6 +426,77 @@ struct BookEditorView: View {
                     .dropDestination(for: TextFragmentTransfer.self) { items, _ in
                         createAuthor(from: items)
                     }
+                }
+
+                Section("series.title") {
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                        BookSeriesPickerField(
+                            selection: $selectedSeries,
+                            series: availableSeries,
+                            collectionID: collection.id,
+                            statusSystemImage: assignedReferenceStatusSystemImage(for: .field(.series)),
+                            onCreate: { newSeries in
+                                catalogSeries.append(newSeries)
+                                selectedSeries = newSeries
+                            }
+                        )
+
+                        assignedTextFragments(for: .field(.series))
+                    }
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.series))
+                    }
+
+                    if selectedSeries != nil {
+                        volumeField
+                    }
+                }
+
+                Section("publisher.title") {
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                        BookPublisherPickerField(
+                            selection: $selectedPublisher,
+                            publishers: availablePublishers,
+                            statusSystemImage: assignedReferenceStatusSystemImage(for: .field(.publisher)),
+                            onCreate: { newPublisher in
+                                catalogPublishers.append(newPublisher)
+                                selectedPublisher = newPublisher
+                            }
+                        )
+
+                        assignedTextFragments(for: .field(.publisher))
+                    }
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.publisher))
+                    }
+                }
+
+                Section("common.book") {
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                        YearPickerField(
+                            title: String(localized: "book.field.publication_year"),
+                            selection: $selectedPublicationYearOption,
+                            options: publicationYearOptions
+                        )
+
+                        assignedTextFragments(for: .field(.publicationYear))
+                    }
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.publicationYear))
+                    }
+
+                    optionalPositiveIntegerField(
+                        title: String(localized: "book.field.pages"),
+                        text: $pageCount
+                    )
+
+                    BookLanguagePickerField(languageCode: $languageCode)
+
+                    LookupTextField(
+                        title: String(localized: "book.field.genre"),
+                        value: $genre,
+                        suggestions: genreSuggestions
+                    )
                 }
 
                 Section("book.section.identifiers") {
