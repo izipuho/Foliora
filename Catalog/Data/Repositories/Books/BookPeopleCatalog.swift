@@ -33,7 +33,6 @@ extension CoreDataCatalogRepository {
         entity.setValue(person.givenName, forKey: "givenName")
         entity.setValue(person.familyName, forKey: "familyName")
         entity.setValue(person.middleName, forKey: "middleName")
-        entity.setValue(person.displayName, forKey: "name")
         entity.setValue(person.birthYear, forKey: "birthYear")
         entity.setValue(person.deathYear, forKey: "deathYear")
         entity.setValue(person.biography, forKey: "biography")
