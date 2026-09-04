@@ -1,70 +1,7 @@
 import CoreData
-import CoreTransferable
 import Foundation
 import SwiftUI
 import UIKit
-import UniformTypeIdentifiers
-
-/// Identifies editor fields that can receive recognized text; field-specific interpretation stays at each drop site.
-private enum BookTextField: Hashable {
-    case title
-    case subtitle
-    case publicationYear
-    case publisher
-    case series
-    case volume
-}
-
-/// Identifies any editor target that owns assigned text fragments.
-private enum BookTextTarget: Hashable {
-    case field(BookTextField)
-    case author(Int)
-}
-
-private enum BookReferenceResolutionStatus {
-    case existing
-    case new
-
-    var systemImage: String {
-        switch self {
-        case .existing: "checkmark.circle.fill"
-        case .new: "plus.circle"
-        }
-    }
-}
-
-/// Mutable text fragment used by the editor after recognition has completed.
-private struct BookTextFragment: Identifiable, Hashable {
-    let id: UUID
-    var text: String
-    let confidence: Double
-    let boundingBox: CGRect
-    let sourceIndex: Int?
-
-    static func == (lhs: BookTextFragment, rhs: BookTextFragment) -> Bool {
-        lhs.id == rhs.id
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-}
-
-/// Holds text assembled from editor fragments in geometric reading order.
-private struct BookTextAssignment {
-    let text: String
-    let confidence: Double
-}
-
-/// Carries only one editor fragment identity during an in-process drag.
-private struct BookTextFragmentTransfer: Codable, Sendable, Transferable {
-    let id: UUID
-
-    static var transferRepresentation: some TransferRepresentation {
-        CodableRepresentation(contentType: .json)
-            .visibility(.ownProcess)
-    }
-}
 
 /// Displays the editor used to create or edit a book.
 struct BookEditorView: View {
@@ -108,11 +45,8 @@ struct BookEditorView: View {
     @State private var isPresentingIdentifierEditor = false
     @State private var photoAnalysis = BookPhotoAnalysisController()
     @State private var didStartInitialAnalysis = false
-    @State private var textFragments: [BookTextFragment] = []
-    @State private var textAssignments: [BookTextTarget: [BookTextFragment]] = [:]
+    @State private var textFragmentState = TextFragmentState<BookTextTarget>()
     @State private var authorBaseNames: [Int: String] = [:]
-    // Once chips collapse into editable text, keep their fragments consumed so they do not reappear below.
-    @State private var consumedTextFragmentIDs: Set<UUID> = []
 
     private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
@@ -198,6 +132,10 @@ struct BookEditorView: View {
             .sorted { $0.sortOrder < $1.sortOrder }
             .first?
             .id
+    }
+
+    private var textAssignments: [BookTextTarget: [TextFragment]] {
+        textFragmentState.assignments
     }
 
     init(
@@ -412,7 +350,7 @@ struct BookEditorView: View {
                     }
                     .font(.body.weight(.medium))
                     .listRowSeparator(.hidden, edges: .bottom)
-                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
                         assignTextFragments(items, to: .field(.title))
                     }
 
@@ -432,7 +370,7 @@ struct BookEditorView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1...3)
-                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
                         assignTextFragments(items, to: .field(.subtitle))
                     }
                 }
@@ -447,7 +385,7 @@ struct BookEditorView: View {
 
                         assignedTextFragments(for: .field(.publicationYear))
                     }
-                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
                         assignTextFragments(items, to: .field(.publicationYear))
                     }
 
@@ -479,7 +417,7 @@ struct BookEditorView: View {
 
                         assignedTextFragments(for: .field(.series))
                     }
-                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
                         assignTextFragments(items, to: .field(.series))
                     }
 
@@ -501,7 +439,7 @@ struct BookEditorView: View {
 
                         assignedTextFragments(for: .field(.publisher))
                     }
-                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
                         assignTextFragments(items, to: .field(.publisher))
                     }
                 }
@@ -536,7 +474,7 @@ struct BookEditorView: View {
                                 assignedTextFragments(for: .author(index))
                             }
                         }
-                        .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                        .dropDestination(for: TextFragmentTransfer.self) { items, _ in
                             appendTextFragments(items, toContributorAt: index)
                         }
                     }
@@ -548,7 +486,7 @@ struct BookEditorView: View {
                     } label: {
                         Label("book_contributor.action.add", systemImage: "plus")
                     }
-                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
                         createAuthor(from: items)
                     }
                 }
@@ -629,10 +567,10 @@ struct BookEditorView: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if hasUnusedTextFragments {
-                    BookTextBottomPalette(
-                        fragments: textFragments,
-                        usedFragmentIDs: usedTextFragmentIDs
+                if textFragmentState.hasUnusedFragments {
+                    TextFragmentBar(
+                        fragments: textFragmentState.fragments,
+                        usedFragmentIDs: textFragmentState.usedFragmentIDs
                     )
                 }
             }
@@ -696,9 +634,9 @@ struct BookEditorView: View {
             let status = referenceResolutionStatus(for: target)
             TagFlowLayout(spacing: CatalogMetrics.Spacing.xs) {
                 ForEach(Array(fragments.enumerated()), id: \.element.id) { index, fragment in
-                    BookAssignedTextFragmentChip(
+                    AssignedTextFragmentChip(
                         fragment: fragment,
-                        referenceStatus: index == fragments.indices.last ? status : nil
+                        statusSystemImage: index == fragments.indices.last ? status?.systemImage : nil
                     ) {
                         removeTextFragment(fragment, from: target)
                     }
@@ -722,16 +660,6 @@ struct BookEditorView: View {
         default:
             return nil
         }
-    }
-
-    private var usedTextFragmentIDs: Set<UUID> {
-        var usedIDs = Set(textAssignments.values.flatMap { $0 }.map(\.id))
-        usedIDs.formUnion(consumedTextFragmentIDs)
-        return usedIDs
-    }
-
-    private var hasUnusedTextFragments: Bool {
-        textFragments.contains { !usedTextFragmentIDs.contains($0.id) }
     }
 
     private var canSave: Bool {
@@ -761,7 +689,7 @@ struct BookEditorView: View {
                 .foregroundStyle(CatalogSemanticColors.destructive)
             }
         }
-        .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+        .dropDestination(for: TextFragmentTransfer.self) { items, _ in
             assignTextFragments(items, to: .field(.volume))
         }
     }
@@ -840,27 +768,23 @@ struct BookEditorView: View {
     }
 
     private func syncTextFragments(from recognizedText: [RecognizedTextFeature]) {
-        for (index, feature) in recognizedText.enumerated()
-        where !textFragments.contains(where: { $0.sourceIndex == index }) {
-            textFragments.append(
-                BookTextFragment(
-                    id: UUID(),
-                    text: feature.text,
-                    confidence: feature.confidence,
-                    boundingBox: feature.boundingBox,
-                    sourceIndex: index
-                )
+        let sources = recognizedText.enumerated().map { index, feature in
+            TextFragmentSource(
+                text: feature.text,
+                confidence: feature.confidence,
+                boundingBox: feature.boundingBox,
+                sourceIndex: index
             )
         }
-        textFragments.sort(by: Self.textReadingOrder)
+        textFragmentState.sync(from: sources)
     }
 
     @discardableResult
     private func assignTextFragments(
-        _ droppedFragments: [BookTextFragmentTransfer],
+        _ droppedFragments: [TextFragmentTransfer],
         to target: BookTextTarget
     ) -> Bool {
-        var newFragments = textFragments(matching: droppedFragments)
+        var newFragments = textFragmentState.matching(droppedFragments)
         guard !newFragments.isEmpty else { return false }
 
         switch target {
@@ -874,89 +798,43 @@ struct BookEditorView: View {
             break
         }
 
-        var assigned = textAssignments[target, default: []]
-        for fragment in newFragments where !assigned.contains(fragment) {
-            assigned.append(fragment)
-        }
-        assigned.sort(by: Self.textReadingOrder)
-
-        let assignment = makeTextAssignment(from: assigned)
+        let assigned = textFragmentState.mergedAssignment(adding: newFragments, to: target)
+        let assignment = BookTextAssignmentRules.makeAssignment(from: assigned)
         guard applyTextAssignment(assignment, to: target) else { return false }
 
-        textAssignments[target] = assigned
+        textFragmentState.setAssignment(assigned, for: target)
         return true
     }
 
-    private func prepareVolumeFragment(_ fragment: BookTextFragment) -> BookTextFragment? {
-        guard let range = fragment.text.range(of: #"\d+"#, options: .regularExpression),
-              let number = Int(fragment.text[range]),
-              number > 0 else { return nil }
-
-        return splitTextFragment(fragment, extracting: range, replacementText: String(number))
+    private func prepareVolumeFragment(_ fragment: TextFragment) -> TextFragment? {
+        guard let extraction = BookTextAssignmentRules.volumeExtraction(in: fragment.text) else { return nil }
+        return textFragmentState.split(
+            fragment,
+            extracting: extraction.range,
+            replacementText: extraction.replacementText
+        )
     }
 
-    private func preparePublicationYearFragment(_ fragment: BookTextFragment) -> BookTextFragment? {
-        let currentYear = Calendar.current.component(.year, from: .now)
-        guard let range = fragment.text.range(of: #"\b\d{4}\b"#, options: .regularExpression),
-              let year = Int(fragment.text[range]),
-              (1000...currentYear).contains(year) else { return nil }
-
-        return splitTextFragment(fragment, extracting: range, replacementText: String(year))
+    private func preparePublicationYearFragment(_ fragment: TextFragment) -> TextFragment? {
+        guard let extraction = BookTextAssignmentRules.publicationYearExtraction(in: fragment.text) else { return nil }
+        return textFragmentState.split(
+            fragment,
+            extracting: extraction.range,
+            replacementText: extraction.replacementText
+        )
     }
 
-    private func splitTextFragment(
-        _ fragment: BookTextFragment,
-        extracting range: Range<String.Index>,
-        replacementText: String
-    ) -> BookTextFragment {
-        let remainder = String(fragment.text[..<range.lowerBound] + fragment.text[range.upperBound...])
-            .split(whereSeparator: { $0.isWhitespace })
-            .joined(separator: " ")
+    private func removeTextFragment(_ fragment: TextFragment, from target: BookTextTarget) {
+        let assignedFragments = textFragmentState.remove(fragment, from: target)
 
-        guard !remainder.isEmpty else { return fragment }
-
-        if let index = textFragments.firstIndex(where: { $0.id == fragment.id }) {
-            textFragments[index].text = remainder
+        if assignedFragments.isEmpty,
+           case let .author(index) = target,
+           authorBaseNames[index] == "" {
+            deleteContributors(at: IndexSet(integer: index))
+            return
         }
 
-        let extractedFragment = BookTextFragment(
-            id: UUID(),
-            text: replacementText,
-            confidence: fragment.confidence,
-            boundingBox: fragment.boundingBox,
-            sourceIndex: nil
-        )
-        textFragments.append(extractedFragment)
-        textFragments.sort(by: Self.textReadingOrder)
-        return extractedFragment
-    }
-
-    private func removeTextFragment(_ fragment: BookTextFragment, from target: BookTextTarget) {
-        guard var assignedFragments = textAssignments[target] else { return }
-
-        assignedFragments.removeAll { $0.id == fragment.id }
-        assignedFragments.sort(by: Self.textReadingOrder)
-
-        if assignedFragments.isEmpty {
-            textAssignments.removeValue(forKey: target)
-
-            if case let .author(index) = target,
-               authorBaseNames[index] == "" {
-                deleteContributors(at: IndexSet(integer: index))
-                return
-            }
-        } else {
-            textAssignments[target] = assignedFragments
-        }
-
-        _ = applyTextAssignment(makeTextAssignment(from: assignedFragments), to: target)
-    }
-
-    private func makeTextAssignment(from fragments: [BookTextFragment]) -> BookTextAssignment {
-        BookTextAssignment(
-            text: fragments.map(\.text).joined(separator: " "),
-            confidence: fragments.map(\.confidence).min() ?? 0
-        )
+        _ = applyTextAssignment(BookTextAssignmentRules.makeAssignment(from: assignedFragments), to: target)
     }
 
     @discardableResult
@@ -1002,7 +880,7 @@ struct BookEditorView: View {
                     volumeNumber = ""
                     return true
                 }
-                guard let number = firstPositiveInteger(in: assignment.text) else { return false }
+                guard let number = BookTextAssignmentRules.firstPositiveInteger(in: assignment.text) else { return false }
                 volumeNumber = String(number)
                 return true
             }
@@ -1032,11 +910,7 @@ struct BookEditorView: View {
         guard field == .title || field == .subtitle else { return }
 
         let target = BookTextTarget.field(field)
-        guard let assignedFragments = textAssignments[target],
-              !assignedFragments.isEmpty else { return }
-
-        consumedTextFragmentIDs.formUnion(assignedFragments.map(\.id))
-        textAssignments.removeValue(forKey: target)
+        guard !textFragmentState.consumeAssignment(for: target).isEmpty else { return }
 
         switch field {
         case .title:
@@ -1049,10 +923,10 @@ struct BookEditorView: View {
     }
 
     @discardableResult
-    private func createAuthor(from droppedFragments: [BookTextFragmentTransfer]) -> Bool {
-        var fragments = textFragments(matching: droppedFragments)
+    private func createAuthor(from droppedFragments: [TextFragmentTransfer]) -> Bool {
+        var fragments = textFragmentState.matching(droppedFragments)
         guard !fragments.isEmpty else { return false }
-        fragments.sort(by: Self.textReadingOrder)
+        fragments.sort(by: TextFragment.readingOrder)
 
         let authorIndices = textAssignments.keys.compactMap { target -> Int? in
             guard case let .author(index) = target else { return nil }
@@ -1070,7 +944,7 @@ struct BookEditorView: View {
             for fragment in fragments where !combinedFragments.contains(fragment) {
                 combinedFragments.append(fragment)
             }
-            combinedFragments.sort(by: Self.textReadingOrder)
+            combinedFragments.sort(by: TextFragment.readingOrder)
 
             let combinedName = combinedFragments.map(\.text).joined(separator: " ")
             let combinedKey = normalizedReferenceKey(combinedName)
@@ -1079,7 +953,7 @@ struct BookEditorView: View {
             }) else { continue }
 
             let contributor = contributors[index]
-            textAssignments[target] = combinedFragments
+            textFragmentState.setAssignment(combinedFragments, for: target)
             contributors[index] = BookContributor(
                 role: contributor.role,
                 order: contributor.order,
@@ -1100,21 +974,21 @@ struct BookEditorView: View {
             )
         )
         normalizeContributorOrder()
-        textAssignments[.author(index)] = fragments
+        textFragmentState.setAssignment(fragments, for: .author(index))
         authorBaseNames[index] = ""
         return true
     }
 
     @discardableResult
     private func appendTextFragments(
-        _ droppedFragments: [BookTextFragmentTransfer],
+        _ droppedFragments: [TextFragmentTransfer],
         toContributorAt index: Int
     ) -> Bool {
         guard contributors.indices.contains(index), contributors[index].role == .author else {
             return false
         }
 
-        let newFragments = textFragments(matching: droppedFragments)
+        let newFragments = textFragmentState.matching(droppedFragments)
         guard !newFragments.isEmpty else { return false }
 
         let target = BookTextTarget.author(index)
@@ -1122,17 +996,12 @@ struct BookEditorView: View {
             authorBaseNames[index] = contributors[index].person.name
         }
 
-        var assigned = textAssignments[target, default: []]
-        for fragment in newFragments where !assigned.contains(fragment) {
-            assigned.append(fragment)
-        }
-        assigned.sort(by: Self.textReadingOrder)
-
-        guard applyTextAssignment(makeTextAssignment(from: assigned), to: target) else {
+        let assigned = textFragmentState.mergedAssignment(adding: newFragments, to: target)
+        guard applyTextAssignment(BookTextAssignmentRules.makeAssignment(from: assigned), to: target) else {
             return false
         }
 
-        textAssignments[target] = assigned
+        textFragmentState.setAssignment(assigned, for: target)
         return true
     }
 
@@ -1155,36 +1024,6 @@ struct BookEditorView: View {
             deathPlace: nil,
             photos: []
         )
-    }
-
-    private func textFragments(
-        matching transfers: [BookTextFragmentTransfer]
-    ) -> [BookTextFragment] {
-        transfers.compactMap { transfer in
-            textFragments.first { $0.id == transfer.id }
-        }
-    }
-
-    private static func textReadingOrder(
-        _ lhs: BookTextFragment,
-        _ rhs: BookTextFragment
-    ) -> Bool {
-        let lhsRow = Int((lhs.boundingBox.midY * 50).rounded())
-        let rhsRow = Int((rhs.boundingBox.midY * 50).rounded())
-        if lhsRow != rhsRow {
-            return lhsRow > rhsRow
-        }
-        if lhs.boundingBox.minX != rhs.boundingBox.minX {
-            return lhs.boundingBox.minX < rhs.boundingBox.minX
-        }
-        return lhs.id.uuidString < rhs.id.uuidString
-    }
-
-    private func firstPositiveInteger(in value: String) -> Int? {
-        value
-            .split(whereSeparator: { !$0.isNumber })
-            .compactMap { Int(String($0)) }
-            .first(where: { $0 > 0 })
     }
 
     private func applyAuthorSuggestions(_ suggestions: [SuggestedFieldValue<String>]) {
@@ -1296,7 +1135,7 @@ struct BookEditorView: View {
         let removedIndices = Set(offsets)
         let survivingIndices = contributors.indices.filter { !removedIndices.contains($0) }
 
-        var remappedAssignments: [BookTextTarget: [BookTextFragment]] = [:]
+        var remappedAssignments: [BookTextTarget: [TextFragment]] = [:]
         for (target, fragments) in textAssignments {
             if case .field = target {
                 remappedAssignments[target] = fragments
@@ -1314,7 +1153,7 @@ struct BookEditorView: View {
         }
 
         contributors.remove(atOffsets: offsets)
-        textAssignments = remappedAssignments
+        textFragmentState.assignments = remappedAssignments
         authorBaseNames = remappedBaseNames
         normalizeContributorOrder()
     }
@@ -1431,81 +1270,6 @@ struct BookEditorView: View {
             .filter { !$0.isEmpty }
             .filter { seen.insert($0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)).inserted }
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
-    }
-}
-
-private struct BookTextBottomPalette: View {
-    let fragments: [BookTextFragment]
-    let usedFragmentIDs: Set<UUID>
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Divider()
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: CatalogMetrics.Spacing.sm) {
-                    ForEach(fragments) { fragment in
-                        if !usedFragmentIDs.contains(fragment.id) {
-                            BookTextFragmentChip(
-                                fragment: fragment,
-                                transfer: BookTextFragmentTransfer(id: fragment.id)
-                            )
-                        }
-                    }
-                }
-                .padding(.horizontal, CatalogMetrics.Insets.screen)
-                .padding(.vertical, CatalogMetrics.Spacing.sm)
-            }
-        }
-        .background(.ultraThinMaterial)
-    }
-}
-
-private struct BookTextFragmentChip: View {
-    let fragment: BookTextFragment
-    let transfer: BookTextFragmentTransfer
-
-    var body: some View {
-        Text(fragment.text)
-            .font(.subheadline)
-            .lineLimit(1)
-            .frame(maxWidth: 240)
-            .catalogSurfaceCapsule()
-            .contentShape(.interaction, Rectangle())
-            .contentShape(.dragPreview, CatalogShapes.capsule)
-            .draggable(transfer)
-            .accessibilityLabel(fragment.text)
-    }
-}
-
-private struct BookAssignedTextFragmentChip: View {
-    let fragment: BookTextFragment
-    let referenceStatus: BookReferenceResolutionStatus?
-    let onRemove: () -> Void
-
-    var body: some View {
-        HStack(spacing: CatalogMetrics.Spacing.xxs) {
-            Text(fragment.text)
-                .lineLimit(1)
-
-            if let referenceStatus {
-                Image(systemName: referenceStatus.systemImage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-            }
-
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(String(localized: "common.delete"))
-        }
-        .font(.subheadline)
-        .frame(maxWidth: 240)
-        .catalogSurfaceCapsule()
     }
 }
 
