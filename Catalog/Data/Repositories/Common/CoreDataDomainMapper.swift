@@ -68,13 +68,10 @@ enum CoreDataDomainMapper {
         let photos = relatedObjects(entity, "photos")
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
             .map { mediaAsset(from: $0) }
-        let givenName = optionalStringValue(entity, "givenName")
-            ?? optionalStringValue(entity, "name")
-            ?? ""
 
         return Person(
             id: uuidValue(entity, "id"),
-            givenName: givenName,
+            givenName: stringValue(entity, "givenName"),
             familyName: optionalStringValue(entity, "familyName"),
             middleName: optionalStringValue(entity, "middleName"),
             birthYear: optionalIntValue(entity, "birthYear"),
