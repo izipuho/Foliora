@@ -959,10 +959,9 @@ struct BookEditorView: View {
             combinedFragments.sort(by: TextFragment.readingOrder)
 
             let combinedName = combinedFragments.map(\.text).joined(separator: " ")
-            let combinedKey = normalizedReferenceKey(combinedName)
-            guard let existingPerson = catalogPeople.first(where: {
-                normalizedReferenceKey($0.displayName) == combinedKey
-            }) else { continue }
+            guard let existingPerson = uniqueMatchingPerson(named: combinedName, in: catalogPeople) else {
+                continue
+            }
 
             let contributor = contributors[index]
             textFragmentState.setAssignment(combinedFragments, for: target)
@@ -1021,8 +1020,7 @@ struct BookEditorView: View {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return nil }
 
-        let key = normalizedReferenceKey(name)
-        if let existing = availablePeople.first(where: { normalizedReferenceKey($0.displayName) == key }) {
+        if let existing = uniqueMatchingPerson(named: name, in: availablePeople) {
             return existing
         }
 
@@ -1036,6 +1034,94 @@ struct BookEditorView: View {
             deathPlace: nil,
             photos: []
         )
+    }
+
+    private func uniqueMatchingPerson(named rawName: String, in people: [Person]) -> Person? {
+        let matches = people.compactMap { person -> (person: Person, score: Int)? in
+            guard let score = personReferenceMatchScore(for: rawName, person: person) else { return nil }
+            return (person, score)
+        }
+
+        guard let bestScore = matches.map({ $0.score }).max() else { return nil }
+        let bestMatches = matches.filter { $0.score == bestScore }
+        guard bestMatches.count == 1 else { return nil }
+        return bestMatches[0].person
+    }
+
+    private func personReferenceMatchScore(for rawName: String, person: Person) -> Int? {
+        let rawKey = normalizedReferenceKey(rawName)
+        guard !rawKey.isEmpty else { return nil }
+
+        if normalizedReferenceKey(person.displayName) == rawKey {
+            return 300
+        }
+
+        let queryTokens = normalizedPersonNameTokens(rawName)
+        let personNameParts: [String?] = [person.givenName, person.middleName, person.familyName]
+        let personTokens = personNameParts
+            .compactMap { $0 }
+            .flatMap(normalizedPersonNameTokens)
+
+        guard queryTokens.count >= 2,
+              queryTokens.count <= personTokens.count else { return nil }
+
+        if queryTokens.count == personTokens.count,
+           queryTokens.sorted() == personTokens.sorted() {
+            return 200
+        }
+
+        guard let fullTokenMatchCount = personNameFullTokenMatchCount(
+            queryTokens,
+            against: personTokens
+        ), fullTokenMatchCount > 0 else {
+            return nil
+        }
+
+        return 100 + fullTokenMatchCount
+    }
+
+    private func normalizedPersonNameTokens(_ value: String) -> [String] {
+        value
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .map(String.init)
+    }
+
+    private func personNameFullTokenMatchCount(
+        _ queryTokens: [String],
+        against personTokens: [String]
+    ) -> Int? {
+        var remainingTokens = personTokens
+        var fullTokenMatchCount = 0
+
+        let orderedQueryTokens = queryTokens.sorted { lhs, rhs in
+            let lhsIsInitial = lhs.count == 1
+            let rhsIsInitial = rhs.count == 1
+            if lhsIsInitial != rhsIsInitial {
+                return !lhsIsInitial
+            }
+            return lhs.count > rhs.count
+        }
+
+        for queryToken in orderedQueryTokens {
+            if let index = remainingTokens.firstIndex(of: queryToken) {
+                if queryToken.count > 1 {
+                    fullTokenMatchCount += 1
+                }
+                remainingTokens.remove(at: index)
+                continue
+            }
+
+            guard queryToken.count == 1,
+                  let initial = queryToken.first,
+                  let index = remainingTokens.firstIndex(where: { $0.first == initial }) else {
+                return nil
+            }
+            remainingTokens.remove(at: index)
+        }
+
+        return fullTokenMatchCount
     }
 
     private func applyAuthorSuggestions(_ suggestions: [SuggestedFieldValue<String>]) {
