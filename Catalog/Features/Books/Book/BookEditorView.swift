@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
 private enum BookTextField: Hashable {
     case title
     case subtitle
+    case publicationYear
     case publisher
     case series
     case volume
@@ -425,11 +426,18 @@ struct BookEditorView: View {
                 }
 
                 Section("common.book") {
-                    YearPickerField(
-                        title: String(localized: "book.field.publication_year"),
-                        selection: $selectedPublicationYearOption,
-                        options: publicationYearOptions
-                    )
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                        YearPickerField(
+                            title: String(localized: "book.field.publication_year"),
+                            selection: $selectedPublicationYearOption,
+                            options: publicationYearOptions
+                        )
+
+                        assignedTextFragments(for: .field(.publicationYear))
+                    }
+                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.publicationYear))
+                    }
 
                     optionalPositiveIntegerField(
                         title: String(localized: "book.field.pages"),
@@ -832,9 +840,15 @@ struct BookEditorView: View {
         var newFragments = textFragments(matching: droppedFragments)
         guard !newFragments.isEmpty else { return false }
 
-        if target == .field(.volume) {
+        switch target {
+        case .field(.volume):
             newFragments = newFragments.compactMap(prepareVolumeFragment)
             guard !newFragments.isEmpty else { return false }
+        case .field(.publicationYear):
+            newFragments = newFragments.compactMap(preparePublicationYearFragment)
+            guard !newFragments.isEmpty else { return false }
+        default:
+            break
         }
 
         var assigned = textAssignments[target, default: []]
@@ -855,6 +869,23 @@ struct BookEditorView: View {
               let number = Int(fragment.text[range]),
               number > 0 else { return nil }
 
+        return splitTextFragment(fragment, extracting: range, replacementText: String(number))
+    }
+
+    private func preparePublicationYearFragment(_ fragment: BookTextFragment) -> BookTextFragment? {
+        let currentYear = Calendar.current.component(.year, from: .now)
+        guard let range = fragment.text.range(of: #"\b\d{4}\b"#, options: .regularExpression),
+              let year = Int(fragment.text[range]),
+              (1000...currentYear).contains(year) else { return nil }
+
+        return splitTextFragment(fragment, extracting: range, replacementText: String(year))
+    }
+
+    private func splitTextFragment(
+        _ fragment: BookTextFragment,
+        extracting range: Range<String.Index>,
+        replacementText: String
+    ) -> BookTextFragment {
         let remainder = String(fragment.text[..<range.lowerBound] + fragment.text[range.upperBound...])
             .split(whereSeparator: { $0.isWhitespace })
             .joined(separator: " ")
@@ -865,16 +896,16 @@ struct BookEditorView: View {
             textFragments[index].text = remainder
         }
 
-        let numberFragment = BookTextFragment(
+        let extractedFragment = BookTextFragment(
             id: UUID(),
-            text: String(number),
+            text: replacementText,
             confidence: fragment.confidence,
             boundingBox: fragment.boundingBox,
             sourceIndex: nil
         )
-        textFragments.append(numberFragment)
+        textFragments.append(extractedFragment)
         textFragments.sort(by: Self.textReadingOrder)
-        return numberFragment
+        return extractedFragment
     }
 
     private func removeTextFragment(_ fragment: BookTextFragment, from target: BookTextTarget) {
@@ -918,6 +949,14 @@ struct BookEditorView: View {
                 return true
             case .subtitle:
                 subtitle = assignment.text
+                return true
+            case .publicationYear:
+                guard !assignment.text.isEmpty else {
+                    selectedPublicationYearOption = String(localized: "common.none")
+                    return true
+                }
+                guard let year = Int(assignment.text) else { return false }
+                selectedPublicationYearOption = String(year)
                 return true
             case .publisher:
                 guard !assignment.text.isEmpty else {
@@ -981,7 +1020,7 @@ struct BookEditorView: View {
             isTitleFocused = true
         case .subtitle:
             isSubtitleFocused = true
-        case .publisher, .series, .volume:
+        case .publicationYear, .publisher, .series, .volume:
             break
         }
     }
