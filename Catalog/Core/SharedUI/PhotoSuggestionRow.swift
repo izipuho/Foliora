@@ -24,6 +24,8 @@ struct PhotoSuggestionRow: View {
             HStack {
                 Spacer()
 
+                ISBNMetadataFetchButton(sourceText: suggestedValue)
+
                 Button(action: onAccept) {
                     Image(systemName: "checkmark")
                 }
