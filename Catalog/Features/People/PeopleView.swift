@@ -329,12 +329,12 @@ struct PersonEditorView: View {
                 }
 
                 Section("person.title") {
-                    TextField("Given name", text: $givenName)
+                    TextField("person.given_name", text: $givenName)
                         .focused($isGivenNameFocused)
 
-                    TextField("Family name", text: $familyName)
+                    TextField("person.family_name", text: $familyName)
 
-                    TextField("Middle name", text: $middleName)
+                    TextField("person.middle_name", text: $middleName)
 
                     LabeledContent("person.field.birth_year") {
                         yearField($birthYear)
