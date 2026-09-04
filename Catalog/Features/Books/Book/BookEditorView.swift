@@ -114,7 +114,7 @@ struct BookEditorView: View {
         }
 
         return uniqueByID.values.sorted {
-            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
+            let comparison = $0.sortName.localizedCaseInsensitiveCompare($1.sortName)
             if comparison != .orderedSame {
                 return comparison == .orderedAscending
             }
@@ -182,7 +182,7 @@ struct BookEditorView: View {
         _contributors = State(
             initialValue: (book?.details.contributors ?? []).sorted {
                 if $0.order != $1.order { return $0.order < $1.order }
-                return $0.person.name.localizedCaseInsensitiveCompare($1.person.name) == .orderedAscending
+                return $0.person.sortName.localizedCaseInsensitiveCompare($1.person.sortName) == .orderedAscending
             }
         )
         _identifiers = State(initialValue: book?.details.identifiers ?? [])
@@ -459,7 +459,7 @@ struct BookEditorView: View {
 
                                     Spacer()
 
-                                    Text(contributor.person.name)
+                                    Text(contributor.person.displayName)
                                         .foregroundStyle(.primary)
                                         .multilineTextAlignment(.trailing)
 
@@ -949,7 +949,7 @@ struct BookEditorView: View {
             let combinedName = combinedFragments.map(\.text).joined(separator: " ")
             let combinedKey = normalizedReferenceKey(combinedName)
             guard let existingPerson = catalogPeople.first(where: {
-                normalizedReferenceKey($0.name) == combinedKey
+                normalizedReferenceKey($0.displayName) == combinedKey
             }) else { continue }
 
             let contributor = contributors[index]
@@ -993,7 +993,7 @@ struct BookEditorView: View {
 
         let target = BookTextTarget.author(index)
         if authorBaseNames[index] == nil {
-            authorBaseNames[index] = contributors[index].person.name
+            authorBaseNames[index] = contributors[index].person.displayName
         }
 
         let assigned = textFragmentState.mergedAssignment(adding: newFragments, to: target)
@@ -1010,13 +1010,13 @@ struct BookEditorView: View {
         guard !name.isEmpty else { return nil }
 
         let key = normalizedReferenceKey(name)
-        if let existing = availablePeople.first(where: { normalizedReferenceKey($0.name) == key }) {
+        if let existing = availablePeople.first(where: { normalizedReferenceKey($0.displayName) == key }) {
             return existing
         }
 
         return Person(
             id: UUID(),
-            name: name,
+            givenName: name,
             birthYear: nil,
             deathYear: nil,
             biography: nil,
@@ -1614,7 +1614,7 @@ private struct BookContributorEditorView: View {
 
                             Spacer()
 
-                            Text(selectedPerson?.name ?? String(localized: "common.none"))
+                            Text(selectedPerson?.displayName ?? String(localized: "common.none"))
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.trailing)
 
@@ -1685,13 +1685,13 @@ private struct BookPersonSelectionView: View {
     private var filteredPeople: [Person] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return people }
-        return people.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        return people.filter { $0.displayName.localizedCaseInsensitiveContains(query) }
     }
 
     private var newPersonName: String? {
         let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !candidate.isEmpty else { return nil }
-        guard !people.contains(where: { $0.name.caseInsensitiveCompare(candidate) == .orderedSame }) else {
+        guard !people.contains(where: { $0.displayName.caseInsensitiveCompare(candidate) == .orderedSame }) else {
             return nil
         }
         return candidate
@@ -1704,7 +1704,7 @@ private struct BookPersonSelectionView: View {
                     Button {
                         let newPerson = Person(
                             id: UUID(),
-                            name: newPersonName,
+                            givenName: newPersonName,
                             birthYear: nil,
                             deathYear: nil,
                             biography: nil,
@@ -1746,7 +1746,7 @@ private struct BookPersonSelectionView: View {
                         dismiss()
                     } label: {
                         HStack {
-                            Text(person.name)
+                            Text(person.displayName)
                                 .foregroundStyle(.primary)
 
                             Spacer()
