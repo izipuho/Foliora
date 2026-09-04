@@ -186,7 +186,7 @@ struct BookDetailView: View {
                         ForEach(Array(authorContributors.enumerated()), id: \.offset) { _, contributor in
                             NavigationLink(value: BookReferenceDestination.person(contributor.person)) {
                                 HStack(spacing: CatalogMetrics.Spacing.xs) {
-                                    Text(contributor.person.name)
+                                    Text(contributor.person.displayName)
                                     Image(systemName: "chevron.right")
                                         .font(.caption2.weight(.semibold))
                                 }
@@ -352,7 +352,7 @@ struct BookDetailView: View {
 
                         Spacer(minLength: CatalogMetrics.Spacing.md)
 
-                        Text(contributor.person.name)
+                        Text(contributor.person.displayName)
                             .font(CatalogTypography.cardLabel)
                             .multilineTextAlignment(.trailing)
 
