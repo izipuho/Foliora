@@ -5,19 +5,32 @@ struct TextFragmentBar: View {
     let fragments: [TextFragment]
     let usedFragmentIDs: Set<UUID>
 
+    private var availableFragments: [TextFragment] {
+        fragments
+            .filter { !usedFragmentIDs.contains($0.id) }
+            .sorted { lhs, rhs in
+                let lhsPriority = presentationPriority(for: lhs.text)
+                let rhsPriority = presentationPriority(for: rhs.text)
+
+                if lhsPriority != rhsPriority {
+                    return lhsPriority < rhsPriority
+                }
+
+                return TextFragment.readingOrder(lhs, rhs)
+            }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Divider()
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: CatalogMetrics.Spacing.sm) {
-                    ForEach(fragments) { fragment in
-                        if !usedFragmentIDs.contains(fragment.id) {
-                            TextFragmentChip(
-                                fragment: fragment,
-                                transfer: TextFragmentTransfer(id: fragment.id)
-                            )
-                        }
+                    ForEach(availableFragments) { fragment in
+                        TextFragmentChip(
+                            fragment: fragment,
+                            transfer: TextFragmentTransfer(id: fragment.id)
+                        )
                     }
                 }
                 .padding(.horizontal, CatalogMetrics.Insets.screen)
@@ -25,6 +38,40 @@ struct TextFragmentBar: View {
             }
         }
         .background(.ultraThinMaterial)
+    }
+
+    private func presentationPriority(for rawText: String) -> Int {
+        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let wordCount = text.split(whereSeparator: { $0.isWhitespace }).count
+        let letterCount = text.lazy.filter { $0.isLetter }.count
+        let lowercaseText = text.lowercased()
+        let looksLikeWebAddress = lowercaseText.contains("http://")
+            || lowercaseText.contains("https://")
+            || lowercaseText.contains("www.")
+            || text.contains("@")
+        let endsLikeSentence = text.last.map { ".!?".contains($0) } ?? false
+
+        if looksLikeWebAddress {
+            return 3
+        }
+
+        if letterCount >= 3, wordCount <= 5, text.count <= 50 {
+            return 0
+        }
+
+        if wordCount >= 6, endsLikeSentence {
+            return 2
+        }
+
+        if letterCount >= 3, wordCount <= 10, text.count <= 90 {
+            return 1
+        }
+
+        if text.count <= 90 {
+            return 2
+        }
+
+        return 3
     }
 }
 
