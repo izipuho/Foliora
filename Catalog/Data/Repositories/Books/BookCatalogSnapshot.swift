@@ -40,7 +40,7 @@ extension CatalogSnapshot {
         let people = personEntities.map { CoreDataDomainMapper.person(from: $0) }
         let uniqueByID = Dictionary(people.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return uniqueByID.values.sorted {
-            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
+            let comparison = $0.sortName.localizedCaseInsensitiveCompare($1.sortName)
             if comparison != .orderedSame {
                 return comparison == .orderedAscending
             }
