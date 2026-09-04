@@ -72,7 +72,7 @@ struct BookSearchView: View {
                 title: String(localized: "person.title.plural"),
                 systemImage: "person.text.rectangle",
                 tokens: peopleByID.values
-                    .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+                    .sorted { $0.sortName.localizedStandardCompare($1.sortName) == .orderedAscending }
                     .map { .person($0.id) }
             ),
             SearchTokenGroup(
@@ -194,7 +194,7 @@ struct BookSearchView: View {
         case .library(let libraryID):
             return libraryTitlesByID[libraryID] ?? String(localized: "library.title")
         case .person(let personID):
-            return peopleByID[personID]?.name ?? String(localized: "person.title")
+            return peopleByID[personID]?.displayName ?? String(localized: "person.title")
         case .publisher(let publisherID):
             return publishersByID[publisherID]?.name ?? String(localized: "publisher.title")
         case .series(let seriesID):
@@ -255,7 +255,7 @@ struct BookSearchView: View {
     private func searchableValues(for book: BookRecord) -> [String] {
         var values = [book.title, book.notes]
 
-        values += book.details.contributors.map { $0.person.name }
+        values += book.details.contributors.map { $0.person.displayName }
         values += book.tags
         values += book.details.identifiers.flatMap { [$0.value, $0.type.rawValue] }
 

@@ -661,9 +661,9 @@ final class LibraryViewModel: ObservableObject {
                 if lhs.order != rhs.order {
                     return lhs.order < rhs.order
                 }
-                return lhs.person.name.localizedStandardCompare(rhs.person.name) == .orderedAscending
+                return lhs.person.sortName.localizedStandardCompare(rhs.person.sortName) == .orderedAscending
             }
-            .map { $0.person.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .map { $0.person.displayName.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: ", ")
     }

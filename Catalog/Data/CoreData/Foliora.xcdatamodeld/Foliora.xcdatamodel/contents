@@ -134,8 +134,10 @@
         <attribute name="biography" optional="YES" attributeType="String"/>
         <attribute name="birthYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
         <attribute name="deathYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
+        <attribute name="familyName" optional="YES" attributeType="String"/>
+        <attribute name="givenName" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="middleName" optional="YES" attributeType="String"/>
         <relationship name="birthPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="bornPersons" inverseEntity="PlaceEntity"/>
         <relationship name="bookContributions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="person" inverseEntity="BookContributorEntity"/>
         <relationship name="deathPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="diedPersons" inverseEntity="PlaceEntity"/>

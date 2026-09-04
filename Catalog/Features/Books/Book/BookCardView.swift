@@ -87,7 +87,7 @@ struct BookCardView: View {
         book.details.contributors
             .filter { $0.role == .author }
             .sorted { $0.order < $1.order }
-            .map(\.person.name)
+            .map(\.person.displayName)
             .joined(separator: ", ")
     }
 }

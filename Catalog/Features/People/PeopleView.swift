@@ -47,12 +47,15 @@ struct PeopleView: View {
         return localPeople
             .filter { person in
                 query.isEmpty
-                    || person.name.localizedCaseInsensitiveContains(query)
+                    || person.displayName.localizedCaseInsensitiveContains(query)
+                    || person.givenName.localizedCaseInsensitiveContains(query)
+                    || (person.familyName?.localizedCaseInsensitiveContains(query) ?? false)
+                    || (person.middleName?.localizedCaseInsensitiveContains(query) ?? false)
                     || (person.birthPlace?.displayName.localizedCaseInsensitiveContains(query) ?? false)
                     || (person.deathPlace?.displayName.localizedCaseInsensitiveContains(query) ?? false)
             }
             .sorted { lhs, rhs in
-                let comparison = lhs.name.localizedCaseInsensitiveCompare(rhs.name)
+                let comparison = lhs.sortName.localizedCaseInsensitiveCompare(rhs.sortName)
                 if comparison != .orderedSame {
                     return comparison == .orderedAscending
                 }
@@ -188,7 +191,7 @@ private struct PersonCard: View {
             mark
 
             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                Text(person.name)
+                Text(person.displayName)
                     .font(CatalogTypography.cardTitle)
 
                 if let lifeSpanText {
@@ -266,8 +269,10 @@ struct PersonEditorView: View {
     private let onSave: (Person) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @FocusState private var isNameFocused: Bool
-    @State private var name: String
+    @FocusState private var isGivenNameFocused: Bool
+    @State private var givenName: String
+    @State private var familyName: String
+    @State private var middleName: String
     @State private var birthYear: String
     @State private var deathYear: String
     @State private var biography: String
@@ -288,7 +293,9 @@ struct PersonEditorView: View {
         self.bookCount = bookCount
         self.onDelete = onDelete
         self.onSave = onSave
-        _name = State(initialValue: person.name)
+        _givenName = State(initialValue: person.givenName)
+        _familyName = State(initialValue: person.familyName ?? "")
+        _middleName = State(initialValue: person.middleName ?? "")
         _birthYear = State(initialValue: person.birthYear.map(String.init) ?? "")
         _deathYear = State(initialValue: person.deathYear.map(String.init) ?? "")
         _biography = State(initialValue: person.biography ?? "")
@@ -298,7 +305,7 @@ struct PersonEditorView: View {
     }
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !givenName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && validYear(birthYear)
             && validYear(deathYear)
     }
@@ -322,8 +329,12 @@ struct PersonEditorView: View {
                 }
 
                 Section("person.title") {
-                    TextField("common.name", text: $name)
-                        .focused($isNameFocused)
+                    TextField("person.given_name", text: $givenName)
+                        .focused($isGivenNameFocused)
+
+                    TextField("person.family_name", text: $familyName)
+
+                    TextField("person.middle_name", text: $middleName)
 
                     LabeledContent("person.field.birth_year") {
                         yearField($birthYear)
@@ -400,7 +411,7 @@ struct PersonEditorView: View {
                 }
             }
             .onAppear {
-                isNameFocused = false
+                isGivenNameFocused = false
             }
         }
     }
@@ -435,7 +446,9 @@ struct PersonEditorView: View {
 
         let person = Person(
             id: existingPerson.id,
-            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            givenName: givenName.trimmingCharacters(in: .whitespacesAndNewlines),
+            familyName: familyName.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+            middleName: middleName.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
             birthYear: optionalYear(birthYear),
             deathYear: optionalYear(deathYear),
             biography: biography.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
