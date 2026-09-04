@@ -486,6 +486,16 @@ struct BookEditorView: View {
                             return true
                         }
                     }
+
+#if DEBUG
+                    if let selectedPublisher {
+                        Text(
+                            catalogPublishers.contains(where: { $0.id == selectedPublisher.id })
+                                ? "Existing publisher"
+                                : "New publisher"
+                        )
+                    }
+#endif
                 }
 
                 Section("book.section.contributors") {
