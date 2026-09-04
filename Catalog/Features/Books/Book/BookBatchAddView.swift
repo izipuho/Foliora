@@ -51,12 +51,12 @@ struct BookBatchAddView: View {
                         title: String(localized: "book.field.author"),
                         selection: $selectedAuthor,
                         values: catalogPeople,
-                        name: \.name,
+                        name: \.displayName,
                         subtitle: { _ in nil },
                         create: { name in
                             Person(
                                 id: UUID(),
-                                name: name,
+                                givenName: name,
                                 birthYear: nil,
                                 deathYear: nil,
                                 biography: nil,
@@ -281,7 +281,7 @@ struct BookBatchAddView: View {
     }
 
     private func namedPersonLessThan(_ lhs: Person, _ rhs: Person) -> Bool {
-        namedLessThan(lhs.name, lhs.id, rhs.name, rhs.id)
+        namedLessThan(lhs.sortName, lhs.id, rhs.sortName, rhs.id)
     }
 
     private func namedPublisherLessThan(_ lhs: Publisher, _ rhs: Publisher) -> Bool {
@@ -711,29 +711,27 @@ private func batchBookLanguageDisplayName(for code: String) -> String {
         persistentContainer: nil
     )
     let snapshot = CatalogSnapshot.load(from: container.viewContext)
-    let collection = snapshot.collections.first { $0.kind == .books }!
-    let itemCount = snapshot.bookRecords.filter { $0.collectionID == collection.id }.count
-    let summary = CollectionSummary(
-        id: collection.id,
-        homeID: collection.homeID,
-        kind: collection.kind,
-        name: collection.title,
-        subtitle: collection.notes,
-        backgroundStyle: collection.backgroundStyle,
-        itemCount: itemCount,
-        status: .active,
-        sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
-    )
-    let mediaAssets = snapshot.bookRecords
-        .flatMap(\.mediaAssets)
-        .prefix(3)
-        .map { $0.with(itemID: nil) }
 
-    BookBatchAddView(
-        collection: summary,
-        initialMediaAssets: mediaAssets,
-        repository: repository
-    )
-    .environment(\.managedObjectContext, container.viewContext)
+    if let collection = snapshot.collections
+        .compactMap({ snapshot.collectionSummary(id: $0.id) })
+        .first(where: { $0.kind == .books }) {
+        let assets = [
+            MediaAsset(
+                id: UUID(),
+                itemID: UUID(),
+                kind: .photo,
+                localIdentifier: "",
+                displayName: nil,
+                sortOrder: 0
+            )
+        ]
+
+        BookBatchAddView(
+            collection: collection,
+            initialMediaAssets: assets,
+            repository: repository
+        )
+        .environment(\.managedObjectContext, container.viewContext)
+    }
 }
 #endif

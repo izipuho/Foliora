@@ -162,7 +162,7 @@ enum BookPresenceFilter: Hashable {
         case .missingAuthor:
             return !book.details.contributors.contains {
                 $0.role == .author
-                    && !$0.person.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && !$0.person.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             }
         case .missingPublicationYear:
             return book.details.publicationYear == nil

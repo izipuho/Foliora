@@ -8,7 +8,7 @@ private enum PersonBookOrderMode: String, CaseIterable, Hashable {
     var title: String {
         switch self {
         case .title:
-            return String(localized: "common.field_title")
+            return String(localized: "common.field.title")
         case .publicationYearNewest:
             return String(localized: "book.field.publication_year")
         case .newestFirst:
@@ -138,7 +138,7 @@ struct PersonDetailView: View {
             CatalogBackgrounds.collection(accentColor, scheme: colorScheme)
                 .ignoresSafeArea()
         }
-        .navigationTitle(person.name)
+        .navigationTitle(person.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             CatalogSortLayoutToolbar(
@@ -185,7 +185,7 @@ struct PersonDetailView: View {
                 personMark
 
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
-                    Text(person.name)
+                    Text(person.displayName)
                         .font(CatalogTypography.cardTitle)
 
                     if let lifeSpanText {

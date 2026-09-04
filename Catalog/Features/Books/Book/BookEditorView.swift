@@ -14,8 +14,10 @@ struct BookEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var managedObjectContext
     @FocusState private var isTitleFocused: Bool
+    @FocusState private var isSubtitleFocused: Bool
 
     @State private var title: String
+    @State private var subtitle: String
     @State private var notes: String
     @State private var selectedAcquiredYearOption: String
     @State private var condition: ItemCondition
@@ -43,6 +45,8 @@ struct BookEditorView: View {
     @State private var isPresentingIdentifierEditor = false
     @State private var photoAnalysis = BookPhotoAnalysisController()
     @State private var didStartInitialAnalysis = false
+    @State private var textFragmentState = TextFragmentState<BookTextTarget>()
+    @State private var authorBaseNames: [Int: String] = [:]
 
     private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
@@ -110,7 +114,7 @@ struct BookEditorView: View {
         }
 
         return uniqueByID.values.sorted {
-            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
+            let comparison = $0.sortName.localizedCaseInsensitiveCompare($1.sortName)
             if comparison != .orderedSame {
                 return comparison == .orderedAscending
             }
@@ -128,6 +132,10 @@ struct BookEditorView: View {
             .sorted { $0.sortOrder < $1.sortOrder }
             .first?
             .id
+    }
+
+    private var textAssignments: [BookTextTarget: [TextFragment]] {
+        textFragmentState.assignments
     }
 
     init(
@@ -153,6 +161,7 @@ struct BookEditorView: View {
         self.editorItemID = book?.id ?? UUID()
 
         _title = State(initialValue: book?.title ?? "")
+        _subtitle = State(initialValue: book?.details.subtitle ?? "")
         _notes = State(initialValue: book?.notes ?? "")
         _selectedAcquiredYearOption = State(
             initialValue: book?.acquiredYear.map(String.init) ?? String(localized: "common.none")
@@ -173,7 +182,7 @@ struct BookEditorView: View {
         _contributors = State(
             initialValue: (book?.details.contributors ?? []).sorted {
                 if $0.order != $1.order { return $0.order < $1.order }
-                return $0.person.name.localizedCaseInsensitiveCompare($1.person.name) == .orderedAscending
+                return $0.person.sortName.localizedCaseInsensitiveCompare($1.person.sortName) == .orderedAscending
             }
         )
         _identifiers = State(initialValue: book?.details.identifiers ?? [])
@@ -209,7 +218,7 @@ struct BookEditorView: View {
                         } else {
                             if let suggestion = photoAnalysis.suggestions.title {
                                 PhotoSuggestionRow(
-                                    title: String(localized: "common.field_title"),
+                                    title: String(localized: "common.field.title"),
                                     suggestedValue: suggestion.value,
                                     confidence: suggestion.confidence,
                                     onAccept: {
@@ -310,10 +319,7 @@ struct BookEditorView: View {
                     }
                 }
 
-                Section(String(localized: "common.field.description")) {
-                    TextField(String(localized: "common.field_title"), text: $title)
-                        .focused($isTitleFocused)
-
+                Section(String(localized: "common.field.title")) {
                     if !isTitleValid {
                         Button {
                             isTitleFocused = true
@@ -326,29 +332,62 @@ struct BookEditorView: View {
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(CatalogSemanticColors.destructive)
+                        .listRowSeparator(.hidden, edges: .bottom)
                     }
 
-                    TextField(String(localized: "common.field.notes"), text: $notes, axis: .vertical)
-                        .lineLimit(4, reservesSpace: true)
+                    Group {
+                        if let assignedFragments = textAssignments[.field(.title)],
+                           !assignedFragments.isEmpty {
+                            assignedTextFragments(for: .field(.title))
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    beginManualTextEditing(in: .title)
+                                }
+                        } else {
+                            TextField(String(localized: "common.field.title"), text: $title)
+                                .focused($isTitleFocused)
+                        }
+                    }
+                    .font(.body.weight(.medium))
+                    .listRowSeparator(.hidden, edges: .bottom)
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.title))
+                    }
 
-                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-                        Text(String(localized: "common.field.tags"))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        TagEditorSection(
-                            tagInput: $tagInput,
-                            tags: $tags
-                        )
+                    Group {
+                        if let assignedFragments = textAssignments[.field(.subtitle)],
+                           !assignedFragments.isEmpty {
+                            assignedTextFragments(for: .field(.subtitle))
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    beginManualTextEditing(in: .subtitle)
+                                }
+                        } else {
+                            TextField("book.field.subtitle", text: $subtitle, axis: .vertical)
+                                .focused($isSubtitleFocused)
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1...3)
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.subtitle))
                     }
                 }
 
                 Section("common.book") {
-                    YearPickerField(
-                        title: String(localized: "book.field.publication_year"),
-                        selection: $selectedPublicationYearOption,
-                        options: publicationYearOptions
-                    )
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                        YearPickerField(
+                            title: String(localized: "book.field.publication_year"),
+                            selection: $selectedPublicationYearOption,
+                            options: publicationYearOptions
+                        )
+
+                        assignedTextFragments(for: .field(.publicationYear))
+                    }
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.publicationYear))
+                    }
 
                     optionalPositiveIntegerField(
                         title: String(localized: "book.field.pages"),
@@ -365,15 +404,23 @@ struct BookEditorView: View {
                 }
 
                 Section("series.title") {
-                    BookSeriesPickerField(
-                        selection: $selectedSeries,
-                        series: availableSeries,
-                        collectionID: collection.id,
-                        onCreate: { newSeries in
-                            catalogSeries.append(newSeries)
-                            selectedSeries = newSeries
-                        }
-                    )
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                        BookSeriesPickerField(
+                            selection: $selectedSeries,
+                            series: availableSeries,
+                            collectionID: collection.id,
+                            statusSystemImage: assignedReferenceStatusSystemImage(for: .field(.series)),
+                            onCreate: { newSeries in
+                                catalogSeries.append(newSeries)
+                                selectedSeries = newSeries
+                            }
+                        )
+
+                        assignedTextFragments(for: .field(.series))
+                    }
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.series))
+                    }
 
                     if selectedSeries != nil {
                         volumeField
@@ -381,40 +428,63 @@ struct BookEditorView: View {
                 }
 
                 Section("publisher.title") {
-                    BookPublisherPickerField(
-                        selection: $selectedPublisher,
-                        publishers: availablePublishers,
-                        onCreate: { newPublisher in
-                            catalogPublishers.append(newPublisher)
-                            selectedPublisher = newPublisher
-                        }
-                    )
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                        BookPublisherPickerField(
+                            selection: $selectedPublisher,
+                            publishers: availablePublishers,
+                            statusSystemImage: assignedReferenceStatusSystemImage(for: .field(.publisher)),
+                            onCreate: { newPublisher in
+                                catalogPublishers.append(newPublisher)
+                                selectedPublisher = newPublisher
+                            }
+                        )
+
+                        assignedTextFragments(for: .field(.publisher))
+                    }
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.publisher))
+                    }
                 }
 
                 Section("book.section.contributors") {
                     ForEach(contributors.indices, id: \.self) { index in
                         let contributor = contributors[index]
 
-                        Button {
-                            editingContributorIndex = index
-                            isPresentingContributorEditor = true
-                        } label: {
-                            HStack {
-                                Text(contributor.role.displayName)
-                                    .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                            Button {
+                                editingContributorIndex = index
+                                isPresentingContributorEditor = true
+                            } label: {
+                                HStack {
+                                    Text(contributor.role.displayName)
+                                        .foregroundStyle(.secondary)
 
-                                Spacer()
+                                    Spacer()
 
-                                Text(contributor.person.name)
-                                    .foregroundStyle(.primary)
-                                    .multilineTextAlignment(.trailing)
+                                    Text(contributor.person.displayName)
+                                        .foregroundStyle(.primary)
+                                        .multilineTextAlignment(.trailing)
 
-                                Image(systemName: "chevron.right")
-                                    .font(CatalogTypography.chipLabel)
-                                    .foregroundStyle(.tertiary)
+                                    if let statusSystemImage = assignedReferenceStatusSystemImage(for: .author(index)) {
+                                        Image(systemName: statusSystemImage)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Image(systemName: "chevron.right")
+                                        .font(CatalogTypography.chipLabel)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            if contributor.role == .author {
+                                assignedTextFragments(for: .author(index))
                             }
                         }
-                        .buttonStyle(.plain)
+                        .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+                            appendTextFragments(items, toContributorAt: index)
+                        }
                     }
                     .onDelete(perform: deleteContributors)
 
@@ -423,6 +493,9 @@ struct BookEditorView: View {
                         isPresentingContributorEditor = true
                     } label: {
                         Label("book_contributor.action.add", systemImage: "plus")
+                    }
+                    .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+                        createAuthor(from: items)
                     }
                 }
 
@@ -484,6 +557,30 @@ struct BookEditorView: View {
                         optionTitle: \.displayName
                     )
                 }
+
+                Section(String(localized: "common.field.notes")) {
+                    TextField(String(localized: "common.field.notes"), text: $notes, axis: .vertical)
+                        .lineLimit(4, reservesSpace: true)
+
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+                        Text(String(localized: "common.field.tags"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        TagEditorSection(
+                            tagInput: $tagInput,
+                            tags: $tags
+                        )
+                    }
+                }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if textFragmentState.hasUnusedFragments {
+                    TextFragmentBar(
+                        fragments: textFragmentState.fragments,
+                        usedFragmentIDs: textFragmentState.usedFragmentIDs
+                    )
+                }
             }
             .navigationTitle(existingBook == nil ? String(localized: "book.action.add") : String(localized: "book.action.edit"))
             .navigationBarTitleDisplayMode(.inline)
@@ -508,6 +605,9 @@ struct BookEditorView: View {
             .task(id: collection.id) {
                 loadCatalogMetadata()
                 startInitialPhotoAnalysisIfNeeded()
+            }
+            .onChange(of: photoAnalysis.recognizedText) { _, recognizedText in
+                syncTextFragments(from: recognizedText)
             }
             .sheet(isPresented: $isPresentingContributorEditor) {
                 BookContributorEditorView(
@@ -536,6 +636,44 @@ struct BookEditorView: View {
         }
     }
 
+    @ViewBuilder
+    private func assignedTextFragments(for target: BookTextTarget) -> some View {
+        if let fragments = textAssignments[target], !fragments.isEmpty {
+            TagFlowLayout(spacing: CatalogMetrics.Spacing.xs) {
+                ForEach(Array(fragments.enumerated()), id: \.element.id) { _, fragment in
+                    AssignedTextFragmentChip(
+                        fragment: fragment,
+                        statusSystemImage: nil
+                    ) {
+                        removeTextFragment(fragment, from: target)
+                    }
+                }
+            }
+        }
+    }
+
+    private func assignedReferenceStatusSystemImage(for target: BookTextTarget) -> String? {
+        guard let fragments = textAssignments[target], !fragments.isEmpty else { return nil }
+        return referenceResolutionStatus(for: target)?.systemImage
+    }
+
+    private func referenceResolutionStatus(for target: BookTextTarget) -> BookReferenceResolutionStatus? {
+        switch target {
+        case .field(.publisher):
+            guard let selectedPublisher else { return nil }
+            return catalogPublishers.contains(where: { $0.id == selectedPublisher.id }) ? .existing : .new
+        case .field(.series):
+            guard let selectedSeries else { return nil }
+            return catalogSeries.contains(where: { $0.id == selectedSeries.id }) ? .existing : .new
+        case let .author(index):
+            guard contributors.indices.contains(index), contributors[index].role == .author else { return nil }
+            let person = contributors[index].person
+            return catalogPeople.contains(where: { $0.id == person.id }) ? .existing : .new
+        default:
+            return nil
+        }
+    }
+
     private var canSave: Bool {
         isTitleValid
             && isOptionalPositiveIntegerValid(pageCount)
@@ -552,6 +690,8 @@ struct BookEditorView: View {
                 numericTextField($volumeNumber)
             }
 
+            assignedTextFragments(for: .field(.volume))
+
             if !isVolumeValid {
                 Label(
                     volumeValidationMessage,
@@ -560,6 +700,9 @@ struct BookEditorView: View {
                 .font(.footnote)
                 .foregroundStyle(CatalogSemanticColors.destructive)
             }
+        }
+        .dropDestination(for: TextFragmentTransfer.self) { items, _ in
+            assignTextFragments(items, to: .field(.volume))
         }
     }
 
@@ -636,6 +779,351 @@ struct BookEditorView: View {
         photoAnalysis.analyze(image: initialAnalysisImage)
     }
 
+    private func syncTextFragments(from recognizedText: [RecognizedTextFeature]) {
+        let sources = recognizedText.enumerated().map { index, feature in
+            TextFragmentSource(
+                text: feature.text,
+                confidence: feature.confidence,
+                boundingBox: feature.boundingBox,
+                sourceIndex: index
+            )
+        }
+        textFragmentState.sync(from: sources)
+    }
+
+    @discardableResult
+    private func assignTextFragments(
+        _ droppedFragments: [TextFragmentTransfer],
+        to target: BookTextTarget
+    ) -> Bool {
+        var newFragments = textFragmentState.matching(droppedFragments)
+        guard !newFragments.isEmpty else { return false }
+
+        switch target {
+        case .field(.volume):
+            newFragments = newFragments.compactMap(prepareVolumeFragment)
+            guard !newFragments.isEmpty else { return false }
+        case .field(.publicationYear):
+            newFragments = newFragments.compactMap(preparePublicationYearFragment)
+            guard !newFragments.isEmpty else { return false }
+        default:
+            break
+        }
+
+        let assigned = textFragmentState.mergedAssignment(adding: newFragments, to: target)
+        let assignment = BookTextAssignmentRules.makeAssignment(from: assigned)
+        guard applyTextAssignment(assignment, to: target) else { return false }
+
+        textFragmentState.setAssignment(assigned, for: target)
+        return true
+    }
+
+    private func prepareVolumeFragment(_ fragment: TextFragment) -> TextFragment? {
+        guard let extraction = BookTextAssignmentRules.volumeExtraction(in: fragment.text) else { return nil }
+        return textFragmentState.split(
+            fragment,
+            extracting: extraction.range,
+            replacementText: extraction.replacementText
+        )
+    }
+
+    private func preparePublicationYearFragment(_ fragment: TextFragment) -> TextFragment? {
+        guard let extraction = BookTextAssignmentRules.publicationYearExtraction(in: fragment.text) else { return nil }
+        return textFragmentState.split(
+            fragment,
+            extracting: extraction.range,
+            replacementText: extraction.replacementText
+        )
+    }
+
+    private func removeTextFragment(_ fragment: TextFragment, from target: BookTextTarget) {
+        let assignedFragments = textFragmentState.remove(fragment, from: target)
+
+        if assignedFragments.isEmpty,
+           case let .author(index) = target,
+           authorBaseNames[index] == "" {
+            deleteContributors(at: IndexSet(integer: index))
+            return
+        }
+
+        _ = applyTextAssignment(BookTextAssignmentRules.makeAssignment(from: assignedFragments), to: target)
+    }
+
+    @discardableResult
+    private func applyTextAssignment(
+        _ assignment: BookTextAssignment,
+        to target: BookTextTarget
+    ) -> Bool {
+        switch target {
+        case let .field(field):
+            switch field {
+            case .title:
+                title = assignment.text
+                return true
+            case .subtitle:
+                subtitle = assignment.text
+                return true
+            case .publicationYear:
+                guard !assignment.text.isEmpty else {
+                    selectedPublicationYearOption = String(localized: "common.none")
+                    return true
+                }
+                guard let year = Int(assignment.text) else { return false }
+                selectedPublicationYearOption = String(year)
+                return true
+            case .publisher:
+                guard !assignment.text.isEmpty else {
+                    selectedPublisher = nil
+                    return true
+                }
+                guard let publisher = resolvePublisher(named: assignment.text) else { return false }
+                selectedPublisher = publisher
+                return true
+            case .series:
+                guard !assignment.text.isEmpty else {
+                    selectedSeries = nil
+                    return true
+                }
+                guard let series = resolveSeries(named: assignment.text) else { return false }
+                selectedSeries = series
+                return true
+            case .volume:
+                guard !assignment.text.isEmpty else {
+                    volumeNumber = ""
+                    return true
+                }
+                guard let number = BookTextAssignmentRules.firstPositiveInteger(in: assignment.text) else { return false }
+                volumeNumber = String(number)
+                return true
+            }
+
+        case let .author(index):
+            guard contributors.indices.contains(index), contributors[index].role == .author else {
+                return false
+            }
+
+            let baseName = authorBaseNames[index] ?? ""
+            let name = [baseName, assignment.text]
+                .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                .joined(separator: " ")
+            guard let person = resolvePerson(named: name) else { return false }
+
+            let contributor = contributors[index]
+            contributors[index] = BookContributor(
+                role: contributor.role,
+                order: contributor.order,
+                person: person
+            )
+            return true
+        }
+    }
+
+    private func beginManualTextEditing(in field: BookTextField) {
+        guard field == .title || field == .subtitle else { return }
+
+        let target = BookTextTarget.field(field)
+        guard !textFragmentState.consumeAssignment(for: target).isEmpty else { return }
+
+        switch field {
+        case .title:
+            isTitleFocused = true
+        case .subtitle:
+            isSubtitleFocused = true
+        case .publicationYear, .publisher, .series, .volume:
+            break
+        }
+    }
+
+    @discardableResult
+    private func createAuthor(from droppedFragments: [TextFragmentTransfer]) -> Bool {
+        var fragments = textFragmentState.matching(droppedFragments)
+        guard !fragments.isEmpty else { return false }
+        fragments.sort(by: TextFragment.readingOrder)
+
+        let authorIndices = textAssignments.keys.compactMap { target -> Int? in
+            guard case let .author(index) = target else { return nil }
+            return index
+        }.sorted()
+
+        for index in authorIndices {
+            let target = BookTextTarget.author(index)
+            guard contributors.indices.contains(index),
+                  contributors[index].role == .author,
+                  authorBaseNames[index] == "",
+                  let existingFragments = textAssignments[target] else { continue }
+
+            var combinedFragments = existingFragments
+            for fragment in fragments where !combinedFragments.contains(fragment) {
+                combinedFragments.append(fragment)
+            }
+            combinedFragments.sort(by: TextFragment.readingOrder)
+
+            let combinedName = combinedFragments.map(\.text).joined(separator: " ")
+            guard let existingPerson = uniqueMatchingPerson(named: combinedName, in: catalogPeople) else {
+                continue
+            }
+
+            let contributor = contributors[index]
+            textFragmentState.setAssignment(combinedFragments, for: target)
+            contributors[index] = BookContributor(
+                role: contributor.role,
+                order: contributor.order,
+                person: existingPerson
+            )
+            return true
+        }
+
+        let name = fragments.map(\.text).joined(separator: " ")
+        guard let person = resolvePerson(named: name) else { return false }
+
+        let index = contributors.count
+        contributors.append(
+            BookContributor(
+                role: .author,
+                order: index,
+                person: person
+            )
+        )
+        normalizeContributorOrder()
+        textFragmentState.setAssignment(fragments, for: .author(index))
+        authorBaseNames[index] = ""
+        return true
+    }
+
+    @discardableResult
+    private func appendTextFragments(
+        _ droppedFragments: [TextFragmentTransfer],
+        toContributorAt index: Int
+    ) -> Bool {
+        guard contributors.indices.contains(index), contributors[index].role == .author else {
+            return false
+        }
+
+        let newFragments = textFragmentState.matching(droppedFragments)
+        guard !newFragments.isEmpty else { return false }
+
+        let target = BookTextTarget.author(index)
+        if authorBaseNames[index] == nil {
+            authorBaseNames[index] = contributors[index].person.displayName
+        }
+
+        let assigned = textFragmentState.mergedAssignment(adding: newFragments, to: target)
+        guard applyTextAssignment(BookTextAssignmentRules.makeAssignment(from: assigned), to: target) else {
+            return false
+        }
+
+        textFragmentState.setAssignment(assigned, for: target)
+        return true
+    }
+
+    private func resolvePerson(named rawName: String) -> Person? {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
+
+        if let existing = uniqueMatchingPerson(named: name, in: availablePeople) {
+            return existing
+        }
+
+        return Person(
+            id: UUID(),
+            givenName: name,
+            birthYear: nil,
+            deathYear: nil,
+            biography: nil,
+            birthPlace: nil,
+            deathPlace: nil,
+            photos: []
+        )
+    }
+
+    private func uniqueMatchingPerson(named rawName: String, in people: [Person]) -> Person? {
+        let matches = people.compactMap { person -> (person: Person, score: Int)? in
+            guard let score = personReferenceMatchScore(for: rawName, person: person) else { return nil }
+            return (person, score)
+        }
+
+        guard let bestScore = matches.map({ $0.score }).max() else { return nil }
+        let bestMatches = matches.filter { $0.score == bestScore }
+        guard bestMatches.count == 1 else { return nil }
+        return bestMatches[0].person
+    }
+
+    private func personReferenceMatchScore(for rawName: String, person: Person) -> Int? {
+        let rawKey = normalizedReferenceKey(rawName)
+        guard !rawKey.isEmpty else { return nil }
+
+        if normalizedReferenceKey(person.displayName) == rawKey {
+            return 300
+        }
+
+        let queryTokens = normalizedPersonNameTokens(rawName)
+        let personNameParts: [String?] = [person.givenName, person.middleName, person.familyName]
+        let personTokens = personNameParts
+            .compactMap { $0 }
+            .flatMap(normalizedPersonNameTokens)
+
+        guard queryTokens.count >= 2,
+              queryTokens.count <= personTokens.count else { return nil }
+
+        if queryTokens.count == personTokens.count,
+           queryTokens.sorted() == personTokens.sorted() {
+            return 200
+        }
+
+        guard let fullTokenMatchCount = personNameFullTokenMatchCount(
+            queryTokens,
+            against: personTokens
+        ), fullTokenMatchCount > 0 else {
+            return nil
+        }
+
+        return 100 + fullTokenMatchCount
+    }
+
+    private func normalizedPersonNameTokens(_ value: String) -> [String] {
+        value
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .map(String.init)
+    }
+
+    private func personNameFullTokenMatchCount(
+        _ queryTokens: [String],
+        against personTokens: [String]
+    ) -> Int? {
+        var remainingTokens = personTokens
+        var fullTokenMatchCount = 0
+
+        let orderedQueryTokens = queryTokens.sorted { lhs, rhs in
+            let lhsIsInitial = lhs.count == 1
+            let rhsIsInitial = rhs.count == 1
+            if lhsIsInitial != rhsIsInitial {
+                return !lhsIsInitial
+            }
+            return lhs.count > rhs.count
+        }
+
+        for queryToken in orderedQueryTokens {
+            if let index = remainingTokens.firstIndex(of: queryToken) {
+                if queryToken.count > 1 {
+                    fullTokenMatchCount += 1
+                }
+                remainingTokens.remove(at: index)
+                continue
+            }
+
+            guard queryToken.count == 1,
+                  let initial = queryToken.first,
+                  let index = remainingTokens.firstIndex(where: { $0.first == initial }) else {
+                return nil
+            }
+            remainingTokens.remove(at: index)
+        }
+
+        return fullTokenMatchCount
+    }
+
     private func applyAuthorSuggestions(_ suggestions: [SuggestedFieldValue<String>]) {
         let originalAuthorIndex = contributors.firstIndex { $0.role == .author } ?? contributors.count
         var seen: Set<String> = []
@@ -644,24 +1132,9 @@ struct BookEditorView: View {
         for suggestion in suggestions {
             let name = suggestion.value.trimmingCharacters(in: .whitespacesAndNewlines)
             let key = normalizedReferenceKey(name)
-            guard !name.isEmpty, seen.insert(key).inserted else { continue }
-
-            if let existing = catalogPeople.first(where: { normalizedReferenceKey($0.name) == key }) {
-                authorPeople.append(existing)
-            } else {
-                let person = Person(
-                    id: UUID(),
-                    name: name,
-                    birthYear: nil,
-                    deathYear: nil,
-                    biography: nil,
-                    birthPlace: nil,
-                    deathPlace: nil,
-                    photos: []
-                )
-                catalogPeople.append(person)
-                authorPeople.append(person)
-            }
+            guard !name.isEmpty, seen.insert(key).inserted,
+                  let person = resolvePerson(named: name) else { continue }
+            authorPeople.append(person)
         }
 
         var updated = contributors.filter { $0.role != .author }
@@ -697,43 +1170,45 @@ struct BookEditorView: View {
     }
 
     private func applyPublisherSuggestion(_ suggestion: SuggestedFieldValue<String>) {
-        let name = suggestion.value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
+        selectedPublisher = resolvePublisher(named: suggestion.value)
+    }
+
+    private func resolvePublisher(named rawName: String) -> Publisher? {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
 
         let key = normalizedReferenceKey(name)
         if let existing = catalogPublishers.first(where: { normalizedReferenceKey($0.name) == key }) {
-            selectedPublisher = existing
-            return
+            return existing
         }
 
-        let publisher = Publisher(
+        return Publisher(
             id: UUID(),
             name: name,
             location: nil
         )
-        catalogPublishers.append(publisher)
-        selectedPublisher = publisher
     }
 
     private func applySeriesSuggestion(_ suggestion: SuggestedFieldValue<String>) {
-        let name = suggestion.value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
+        selectedSeries = resolveSeries(named: suggestion.value)
+    }
+
+    private func resolveSeries(named rawName: String) -> BookSeries? {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
 
         let key = normalizedReferenceKey(name)
         if let existing = catalogSeries.first(where: { normalizedReferenceKey($0.name) == key }) {
-            selectedSeries = existing
-            return
+            return existing
         }
 
-        let series = BookSeries(
+        return BookSeries(
             id: UUID(),
             collectionID: collection.id,
             name: name,
             totalBookCount: nil,
             publisher: nil
         )
-        catalogSeries.append(series)
-        selectedSeries = series
     }
 
     private func normalizedReferenceKey(_ value: String) -> String {
@@ -755,7 +1230,29 @@ struct BookEditorView: View {
     }
 
     private func deleteContributors(at offsets: IndexSet) {
+        let removedIndices = Set(offsets)
+        let survivingIndices = contributors.indices.filter { !removedIndices.contains($0) }
+
+        var remappedAssignments: [BookTextTarget: [TextFragment]] = [:]
+        for (target, fragments) in textAssignments {
+            if case .field = target {
+                remappedAssignments[target] = fragments
+            }
+        }
+
+        var remappedBaseNames: [Int: String] = [:]
+        for (newIndex, oldIndex) in survivingIndices.enumerated() {
+            if let fragments = textAssignments[.author(oldIndex)] {
+                remappedAssignments[.author(newIndex)] = fragments
+            }
+            if let baseName = authorBaseNames[oldIndex] {
+                remappedBaseNames[newIndex] = baseName
+            }
+        }
+
         contributors.remove(atOffsets: offsets)
+        textFragmentState.assignments = remappedAssignments
+        authorBaseNames = remappedBaseNames
         normalizeContributorOrder()
     }
 
@@ -784,19 +1281,13 @@ struct BookEditorView: View {
     private func loadCatalogMetadata() {
         let snapshot = CatalogSnapshot.load(from: managedObjectContext)
         let bookRecords = snapshot.bookRecords
-        let bookSeries = snapshot.bookSeries
 
         catalogGenreSuggestions = bookRecords
             .filter { $0.collectionID == collection.id }
             .compactMap(\.details.genre)
-        catalogSeries = bookSeries
+        catalogSeries = snapshot.bookSeries
             .filter { $0.collectionID == collection.id }
-
-        var publishersByID: [UUID: Publisher] = [:]
-        for publisher in bookRecords.compactMap(\.details.publisher) + bookSeries.compactMap(\.publisher) {
-            publishersByID[publisher.id] = publisher
-        }
-        catalogPublishers = Array(publishersByID.values)
+        catalogPublishers = snapshot.publishers
         catalogPeople = snapshot.people
     }
 
@@ -842,6 +1333,7 @@ struct BookEditorView: View {
             ),
             details: BookDetails(
                 itemID: itemID,
+                subtitle: optionalString(subtitle),
                 languageCode: optionalString(languageCode)?.lowercased(),
                 genre: optionalString(genre),
                 pageCount: optionalPositiveInt(pageCount),
@@ -883,6 +1375,7 @@ private struct BookSeriesPickerField: View {
     @Binding var selection: BookSeries?
     let series: [BookSeries]
     let collectionID: UUID
+    let statusSystemImage: String?
     let onCreate: (BookSeries) -> Void
 
     @State private var isPresentingPicker = false
@@ -900,6 +1393,12 @@ private struct BookSeriesPickerField: View {
                 Text(selection?.name ?? String(localized: "common.none"))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
+
+                if let statusSystemImage {
+                    Image(systemName: statusSystemImage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Image(systemName: "chevron.right")
                     .font(CatalogTypography.chipLabel)
@@ -1027,6 +1526,7 @@ private struct BookSeriesSelectionView: View {
 private struct BookPublisherPickerField: View {
     @Binding var selection: Publisher?
     let publishers: [Publisher]
+    let statusSystemImage: String?
     let onCreate: (Publisher) -> Void
 
     @State private var isPresentingPicker = false
@@ -1044,6 +1544,12 @@ private struct BookPublisherPickerField: View {
                 Text(selection?.name ?? String(localized: "common.none"))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
+
+                if let statusSystemImage {
+                    Image(systemName: statusSystemImage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Image(systemName: "chevron.right")
                     .font(CatalogTypography.chipLabel)
@@ -1220,7 +1726,7 @@ private struct BookContributorEditorView: View {
 
                             Spacer()
 
-                            Text(selectedPerson?.name ?? String(localized: "common.none"))
+                            Text(selectedPerson?.displayName ?? String(localized: "common.none"))
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.trailing)
 
@@ -1291,13 +1797,13 @@ private struct BookPersonSelectionView: View {
     private var filteredPeople: [Person] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return people }
-        return people.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        return people.filter { $0.displayName.localizedCaseInsensitiveContains(query) }
     }
 
     private var newPersonName: String? {
         let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !candidate.isEmpty else { return nil }
-        guard !people.contains(where: { $0.name.caseInsensitiveCompare(candidate) == .orderedSame }) else {
+        guard !people.contains(where: { $0.displayName.caseInsensitiveCompare(candidate) == .orderedSame }) else {
             return nil
         }
         return candidate
@@ -1310,7 +1816,7 @@ private struct BookPersonSelectionView: View {
                     Button {
                         let newPerson = Person(
                             id: UUID(),
-                            name: newPersonName,
+                            givenName: newPersonName,
                             birthYear: nil,
                             deathYear: nil,
                             biography: nil,
@@ -1352,7 +1858,7 @@ private struct BookPersonSelectionView: View {
                         dismiss()
                     } label: {
                         HStack {
-                            Text(person.name)
+                            Text(person.displayName)
                                 .foregroundStyle(.primary)
 
                             Spacer()

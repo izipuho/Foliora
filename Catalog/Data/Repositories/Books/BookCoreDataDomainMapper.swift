@@ -28,6 +28,7 @@ extension CoreDataDomainMapper {
             item: itemRecord,
             details: BookDetails(
                 itemID: itemRecord.id,
+                subtitle: entity.value(forKey: "subtitle") as? String,
                 languageCode: entity.value(forKey: "languageCode") as? String,
                 genre: entity.value(forKey: "genre") as? String,
                 pageCount: positiveIntValue(entity, "pageCount"),
