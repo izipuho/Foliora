@@ -68,10 +68,15 @@ enum CoreDataDomainMapper {
         let photos = relatedObjects(entity, "photos")
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
             .map { mediaAsset(from: $0) }
+        let givenName = optionalStringValue(entity, "givenName")
+            ?? optionalStringValue(entity, "name")
+            ?? ""
 
         return Person(
             id: uuidValue(entity, "id"),
-            name: stringValue(entity, "name"),
+            givenName: givenName,
+            familyName: optionalStringValue(entity, "familyName"),
+            middleName: optionalStringValue(entity, "middleName"),
             birthYear: optionalIntValue(entity, "birthYear"),
             deathYear: optionalIntValue(entity, "deathYear"),
             biography: entity.value(forKey: "biography") as? String,
@@ -127,6 +132,12 @@ enum CoreDataDomainMapper {
 
     static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
         entity.value(forKey: key) as? String ?? defaultValue
+    }
+
+    static func optionalStringValue(_ entity: NSManagedObject, _ key: String) -> String? {
+        guard let value = entity.value(forKey: key) as? String else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     static func intValue(_ entity: NSManagedObject, _ key: String) -> Int {

@@ -30,7 +30,10 @@ extension CoreDataCatalogRepository {
 
         let entity = (try? context.fetch(request))?.first ?? makeEntity(named: "PersonEntity")
         entity.setValue(person.id, forKey: "id")
-        entity.setValue(person.name, forKey: "name")
+        entity.setValue(person.givenName, forKey: "givenName")
+        entity.setValue(person.familyName, forKey: "familyName")
+        entity.setValue(person.middleName, forKey: "middleName")
+        entity.setValue(person.displayName, forKey: "name")
         entity.setValue(person.birthYear, forKey: "birthYear")
         entity.setValue(person.deathYear, forKey: "deathYear")
         entity.setValue(person.biography, forKey: "biography")
