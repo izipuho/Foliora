@@ -721,6 +721,7 @@ private func batchBookLanguageDisplayName(for code: String) -> String {
                 itemID: UUID(),
                 kind: .photo,
                 localIdentifier: "",
+                displayName: nil,
                 sortOrder: 0
             )
         ]
