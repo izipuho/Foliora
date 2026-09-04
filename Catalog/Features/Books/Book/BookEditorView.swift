@@ -5,8 +5,8 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-/// Identifies editor fields that can receive OCR text; field-specific interpretation stays at each drop site.
-private enum BookOCRField: Hashable {
+/// Identifies editor fields that can receive recognized text; field-specific interpretation stays at each drop site.
+private enum BookTextField: Hashable {
     case title
     case subtitle
     case publisher
@@ -14,25 +14,40 @@ private enum BookOCRField: Hashable {
     case volume
 }
 
-/// Identifies any editor target that owns assigned OCR fragments.
-private enum BookOCRTarget: Hashable {
-    case field(BookOCRField)
+/// Identifies any editor target that owns assigned text fragments.
+private enum BookTextTarget: Hashable {
+    case field(BookTextField)
     case author(Int)
 }
 
-/// Holds the normalized OCR text assembled from exact recognized fragments in geometric reading order.
-private struct BookOCRTextAssignment {
+/// Mutable text fragment used by the editor after recognition has completed.
+private struct BookTextFragment: Identifiable, Hashable {
+    let id: UUID
+    var text: String
+    let confidence: Double
+    let boundingBox: CGRect
+    let sourceIndex: Int?
+
+    static func == (lhs: BookTextFragment, rhs: BookTextFragment) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
+/// Holds text assembled from editor fragments in geometric reading order.
+private struct BookTextAssignment {
     let text: String
     let confidence: Double
 }
 
-/// Carries only the position of one OCR fragment inside the current analysis result.
-/// A dedicated transfer type prevents standard text controls from consuming OCR drags as plain strings.
-private struct BookOCRFragmentTransfer: Codable, Sendable, Transferable {
-    let index: Int
+/// Carries only one editor fragment identity during an in-process drag.
+private struct BookTextFragmentTransfer: Codable, Sendable, Transferable {
+    let id: UUID
 
     static var transferRepresentation: some TransferRepresentation {
-        // OCR fragments never leave Foliora; JSON is only the Codable transport encoding for this in-process drag.
         CodableRepresentation(contentType: .json)
             .visibility(.ownProcess)
     }
@@ -80,10 +95,11 @@ struct BookEditorView: View {
     @State private var isPresentingIdentifierEditor = false
     @State private var photoAnalysis = BookPhotoAnalysisController()
     @State private var didStartInitialAnalysis = false
-    @State private var ocrAssignments: [BookOCRTarget: [RecognizedTextFeature]] = [:]
-    @State private var ocrAuthorBaseNames: [Int: String] = [:]
-    // Once OCR chips collapse into editable text, keep their source fragments consumed so they do not reappear below.
-    @State private var consumedOCRFragments: Set<RecognizedTextFeature> = []
+    @State private var textFragments: [BookTextFragment] = []
+    @State private var textAssignments: [BookTextTarget: [BookTextFragment]] = [:]
+    @State private var authorBaseNames: [Int: String] = [:]
+    // Once chips collapse into editable text, keep their fragments consumed so they do not reappear below.
+    @State private var consumedTextFragmentIDs: Set<UUID> = []
 
     private let editorItemID: UUID
     private let acquiredYearOptions = [String(localized: "common.none")]
@@ -353,7 +369,6 @@ struct BookEditorView: View {
                 }
 
                 Section(String(localized: "common.field.title")) {
-                    // Keep each bibliographic field in its own Form row so SwiftUI resolves OCR drops independently.
                     if !isTitleValid {
                         Button {
                             isTitleFocused = true
@@ -370,12 +385,12 @@ struct BookEditorView: View {
                     }
 
                     Group {
-                        if let assignedFragments = ocrAssignments[.field(.title)],
+                        if let assignedFragments = textAssignments[.field(.title)],
                            !assignedFragments.isEmpty {
-                            assignedOCRFragments(for: .field(.title))
+                            assignedTextFragments(for: .field(.title))
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    beginManualOCRTextEditing(in: .title)
+                                    beginManualTextEditing(in: .title)
                                 }
                         } else {
                             TextField(String(localized: "common.field.title"), text: $title)
@@ -384,17 +399,17 @@ struct BookEditorView: View {
                     }
                     .font(.body.weight(.medium))
                     .listRowSeparator(.hidden, edges: .bottom)
-                    .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                        assignOCRFragments(items, to: .field(.title))
+                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.title))
                     }
 
                     Group {
-                        if let assignedFragments = ocrAssignments[.field(.subtitle)],
+                        if let assignedFragments = textAssignments[.field(.subtitle)],
                            !assignedFragments.isEmpty {
-                            assignedOCRFragments(for: .field(.subtitle))
+                            assignedTextFragments(for: .field(.subtitle))
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    beginManualOCRTextEditing(in: .subtitle)
+                                    beginManualTextEditing(in: .subtitle)
                                 }
                         } else {
                             TextField("book.field.subtitle", text: $subtitle, axis: .vertical)
@@ -404,8 +419,8 @@ struct BookEditorView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1...3)
-                    .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                        assignOCRFragments(items, to: .field(.subtitle))
+                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.subtitle))
                     }
                 }
 
@@ -442,10 +457,10 @@ struct BookEditorView: View {
                             }
                         )
 
-                        assignedOCRFragments(for: .field(.series))
+                        assignedTextFragments(for: .field(.series))
                     }
-                    .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                        assignOCRFragments(items, to: .field(.series))
+                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.series))
                     }
 
                     if selectedSeries != nil {
@@ -464,10 +479,10 @@ struct BookEditorView: View {
                             }
                         )
 
-                        assignedOCRFragments(for: .field(.publisher))
+                        assignedTextFragments(for: .field(.publisher))
                     }
-                    .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                        assignOCRFragments(items, to: .field(.publisher))
+                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                        assignTextFragments(items, to: .field(.publisher))
                     }
 
 #if DEBUG
@@ -508,11 +523,11 @@ struct BookEditorView: View {
                             .buttonStyle(.plain)
 
                             if contributor.role == .author {
-                                assignedOCRFragments(for: .author(index))
+                                assignedTextFragments(for: .author(index))
                             }
                         }
-                        .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                            appendOCRFragments(items, toContributorAt: index)
+                        .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                            appendTextFragments(items, toContributorAt: index)
                         }
                     }
                     .onDelete(perform: deleteContributors)
@@ -523,8 +538,8 @@ struct BookEditorView: View {
                     } label: {
                         Label("book_contributor.action.add", systemImage: "plus")
                     }
-                    .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-                        createOCRAuthor(from: items)
+                    .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+                        createAuthor(from: items)
                     }
                 }
 
@@ -587,7 +602,6 @@ struct BookEditorView: View {
                     )
                 }
 
-                // Free-form item metadata intentionally stays at the very end of the editor.
                 Section(String(localized: "common.field.notes")) {
                     TextField(String(localized: "common.field.notes"), text: $notes, axis: .vertical)
                         .lineLimit(4, reservesSpace: true)
@@ -605,10 +619,10 @@ struct BookEditorView: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if hasUnusedOCRFragments {
-                    BookOCRBottomPalette(
-                        fragments: photoAnalysis.recognizedText,
-                        usedFragments: usedOCRFragments
+                if hasUnusedTextFragments {
+                    BookTextBottomPalette(
+                        fragments: textFragments,
+                        usedFragmentIDs: usedTextFragmentIDs
                     )
                 }
             }
@@ -635,6 +649,9 @@ struct BookEditorView: View {
             .task(id: collection.id) {
                 loadCatalogMetadata()
                 startInitialPhotoAnalysisIfNeeded()
+            }
+            .onChange(of: photoAnalysis.recognizedText) { _, recognizedText in
+                syncTextFragments(from: recognizedText)
             }
             .sheet(isPresented: $isPresentingContributorEditor) {
                 BookContributorEditorView(
@@ -664,26 +681,26 @@ struct BookEditorView: View {
     }
 
     @ViewBuilder
-    private func assignedOCRFragments(for target: BookOCRTarget) -> some View {
-        if let fragments = ocrAssignments[target], !fragments.isEmpty {
+    private func assignedTextFragments(for target: BookTextTarget) -> some View {
+        if let fragments = textAssignments[target], !fragments.isEmpty {
             TagFlowLayout(spacing: CatalogMetrics.Spacing.xs) {
-                ForEach(fragments, id: \.self) { fragment in
-                    BookOCRAssignedFragmentChip(feature: fragment) {
-                        removeOCRFragment(fragment, from: target)
+                ForEach(fragments) { fragment in
+                    BookAssignedTextFragmentChip(fragment: fragment) {
+                        removeTextFragment(fragment, from: target)
                     }
                 }
             }
         }
     }
 
-    private var usedOCRFragments: Set<RecognizedTextFeature> {
-        var usedFragments = Set(ocrAssignments.values.flatMap { $0 })
-        usedFragments.formUnion(consumedOCRFragments)
-        return usedFragments
+    private var usedTextFragmentIDs: Set<UUID> {
+        var usedIDs = Set(textAssignments.values.flatMap { $0 }.map(\.id))
+        usedIDs.formUnion(consumedTextFragmentIDs)
+        return usedIDs
     }
 
-    private var hasUnusedOCRFragments: Bool {
-        photoAnalysis.recognizedText.contains { !usedOCRFragments.contains($0) }
+    private var hasUnusedTextFragments: Bool {
+        textFragments.contains { !usedTextFragmentIDs.contains($0.id) }
     }
 
     private var canSave: Bool {
@@ -702,7 +719,7 @@ struct BookEditorView: View {
                 numericTextField($volumeNumber)
             }
 
-            assignedOCRFragments(for: .field(.volume))
+            assignedTextFragments(for: .field(.volume))
 
             if !isVolumeValid {
                 Label(
@@ -713,8 +730,8 @@ struct BookEditorView: View {
                 .foregroundStyle(CatalogSemanticColors.destructive)
             }
         }
-        .dropDestination(for: BookOCRFragmentTransfer.self) { items, _ in
-            assignOCRFragments(items, to: .field(.volume))
+        .dropDestination(for: BookTextFragmentTransfer.self) { items, _ in
+            assignTextFragments(items, to: .field(.volume))
         }
     }
 
@@ -791,59 +808,107 @@ struct BookEditorView: View {
         photoAnalysis.analyze(image: initialAnalysisImage)
     }
 
+    private func syncTextFragments(from recognizedText: [RecognizedTextFeature]) {
+        for (index, feature) in recognizedText.enumerated()
+        where !textFragments.contains(where: { $0.sourceIndex == index }) {
+            textFragments.append(
+                BookTextFragment(
+                    id: UUID(),
+                    text: feature.text,
+                    confidence: feature.confidence,
+                    boundingBox: feature.boundingBox,
+                    sourceIndex: index
+                )
+            )
+        }
+        textFragments.sort(by: Self.textReadingOrder)
+    }
+
     @discardableResult
-    private func assignOCRFragments(
-        _ droppedFragments: [BookOCRFragmentTransfer],
-        to target: BookOCRTarget
+    private func assignTextFragments(
+        _ droppedFragments: [BookTextFragmentTransfer],
+        to target: BookTextTarget
     ) -> Bool {
-        let newFragments = ocrFeatures(matching: droppedFragments)
+        var newFragments = textFragments(matching: droppedFragments)
         guard !newFragments.isEmpty else { return false }
 
-        var assigned = ocrAssignments[target, default: []]
+        if target == .field(.volume) {
+            newFragments = newFragments.compactMap(prepareVolumeFragment)
+            guard !newFragments.isEmpty else { return false }
+        }
+
+        var assigned = textAssignments[target, default: []]
         for fragment in newFragments where !assigned.contains(fragment) {
             assigned.append(fragment)
         }
-        assigned.sort(by: Self.ocrReadingOrder)
+        assigned.sort(by: Self.textReadingOrder)
 
-        let assignment = makeOCRTextAssignment(from: assigned)
-        guard applyOCRAssignment(assignment, to: target) else { return false }
+        let assignment = makeTextAssignment(from: assigned)
+        guard applyTextAssignment(assignment, to: target) else { return false }
 
-        ocrAssignments[target] = assigned
+        textAssignments[target] = assigned
         return true
     }
 
-    private func removeOCRFragment(_ fragment: RecognizedTextFeature, from target: BookOCRTarget) {
-        guard var assignedFragments = ocrAssignments[target] else { return }
+    private func prepareVolumeFragment(_ fragment: BookTextFragment) -> BookTextFragment? {
+        guard let range = fragment.text.range(of: #"\d+"#, options: .regularExpression),
+              let number = Int(fragment.text[range]),
+              number > 0 else { return nil }
 
-        assignedFragments.removeAll { $0 == fragment }
-        assignedFragments.sort(by: Self.ocrReadingOrder)
+        let remainder = String(fragment.text[..<range.lowerBound] + fragment.text[range.upperBound...])
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
+
+        guard !remainder.isEmpty else { return fragment }
+
+        if let index = textFragments.firstIndex(where: { $0.id == fragment.id }) {
+            textFragments[index].text = remainder
+        }
+
+        let numberFragment = BookTextFragment(
+            id: UUID(),
+            text: String(number),
+            confidence: fragment.confidence,
+            boundingBox: fragment.boundingBox,
+            sourceIndex: nil
+        )
+        textFragments.append(numberFragment)
+        textFragments.sort(by: Self.textReadingOrder)
+        return numberFragment
+    }
+
+    private func removeTextFragment(_ fragment: BookTextFragment, from target: BookTextTarget) {
+        guard var assignedFragments = textAssignments[target] else { return }
+
+        assignedFragments.removeAll { $0.id == fragment.id }
+        assignedFragments.sort(by: Self.textReadingOrder)
 
         if assignedFragments.isEmpty {
-            ocrAssignments.removeValue(forKey: target)
+            textAssignments.removeValue(forKey: target)
 
             if case let .author(index) = target,
-               ocrAuthorBaseNames[index] == "" {
+               authorBaseNames[index] == "" {
                 deleteContributors(at: IndexSet(integer: index))
                 return
             }
         } else {
-            ocrAssignments[target] = assignedFragments
+            textAssignments[target] = assignedFragments
         }
 
-        _ = applyOCRAssignment(makeOCRTextAssignment(from: assignedFragments), to: target)
+        _ = applyTextAssignment(makeTextAssignment(from: assignedFragments), to: target)
     }
 
-    private func makeOCRTextAssignment(from fragments: [RecognizedTextFeature]) -> BookOCRTextAssignment {
-        BookOCRTextAssignment(
+    private func makeTextAssignment(from fragments: [BookTextFragment]) -> BookTextAssignment {
+        BookTextAssignment(
             text: fragments.map(\.text).joined(separator: " "),
             confidence: fragments.map(\.confidence).min() ?? 0
         )
     }
 
     @discardableResult
-    private func applyOCRAssignment(
-        _ assignment: BookOCRTextAssignment,
-        to target: BookOCRTarget
+    private func applyTextAssignment(
+        _ assignment: BookTextAssignment,
+        to target: BookTextTarget
     ) -> Bool {
         switch target {
         case let .field(field):
@@ -885,7 +950,7 @@ struct BookEditorView: View {
                 return false
             }
 
-            let baseName = ocrAuthorBaseNames[index] ?? ""
+            let baseName = authorBaseNames[index] ?? ""
             let name = [baseName, assignment.text]
                 .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
                 .joined(separator: " ")
@@ -901,16 +966,15 @@ struct BookEditorView: View {
         }
     }
 
-    private func beginManualOCRTextEditing(in field: BookOCRField) {
+    private func beginManualTextEditing(in field: BookTextField) {
         guard field == .title || field == .subtitle else { return }
 
-        let target = BookOCRTarget.field(field)
-        guard let assignedFragments = ocrAssignments[target],
+        let target = BookTextTarget.field(field)
+        guard let assignedFragments = textAssignments[target],
               !assignedFragments.isEmpty else { return }
 
-        // The field already contains the assembled OCR text; collapsing only changes its presentation and ends per-fragment undo.
-        consumedOCRFragments.formUnion(assignedFragments)
-        ocrAssignments.removeValue(forKey: target)
+        consumedTextFragmentIDs.formUnion(assignedFragments.map(\.id))
+        textAssignments.removeValue(forKey: target)
 
         switch field {
         case .title:
@@ -923,31 +987,28 @@ struct BookEditorView: View {
     }
 
     @discardableResult
-    private func createOCRAuthor(from droppedFragments: [BookOCRFragmentTransfer]) -> Bool {
-        var fragments = ocrFeatures(matching: droppedFragments)
+    private func createAuthor(from droppedFragments: [BookTextFragmentTransfer]) -> Bool {
+        var fragments = textFragments(matching: droppedFragments)
         guard !fragments.isEmpty else { return false }
-        fragments.sort(by: Self.ocrReadingOrder)
+        fragments.sort(by: Self.textReadingOrder)
 
-        // Repeated drops on the add row can be fragments of the same OCR author. Merge only when
-        // the combined OCR text exactly resolves to an existing catalog person; otherwise a new
-        // fragment starts another author so unrelated names are never joined heuristically.
-        let authorIndices = ocrAssignments.keys.compactMap { target -> Int? in
+        let authorIndices = textAssignments.keys.compactMap { target -> Int? in
             guard case let .author(index) = target else { return nil }
             return index
         }.sorted()
 
         for index in authorIndices {
-            let target = BookOCRTarget.author(index)
+            let target = BookTextTarget.author(index)
             guard contributors.indices.contains(index),
                   contributors[index].role == .author,
-                  ocrAuthorBaseNames[index] == "",
-                  let existingFragments = ocrAssignments[target] else { continue }
+                  authorBaseNames[index] == "",
+                  let existingFragments = textAssignments[target] else { continue }
 
             var combinedFragments = existingFragments
             for fragment in fragments where !combinedFragments.contains(fragment) {
                 combinedFragments.append(fragment)
             }
-            combinedFragments.sort(by: Self.ocrReadingOrder)
+            combinedFragments.sort(by: Self.textReadingOrder)
 
             let combinedName = combinedFragments.map(\.text).joined(separator: " ")
             let combinedKey = normalizedReferenceKey(combinedName)
@@ -956,7 +1017,7 @@ struct BookEditorView: View {
             }) else { continue }
 
             let contributor = contributors[index]
-            ocrAssignments[target] = combinedFragments
+            textAssignments[target] = combinedFragments
             contributors[index] = BookContributor(
                 role: contributor.role,
                 order: contributor.order,
@@ -968,7 +1029,6 @@ struct BookEditorView: View {
         let name = fragments.map(\.text).joined(separator: " ")
         guard let person = resolvePerson(named: name) else { return false }
 
-        // A drop on the empty "add contributor" row creates the first concrete author target.
         let index = contributors.count
         contributors.append(
             BookContributor(
@@ -978,40 +1038,39 @@ struct BookEditorView: View {
             )
         )
         normalizeContributorOrder()
-        ocrAssignments[.author(index)] = fragments
-        ocrAuthorBaseNames[index] = ""
+        textAssignments[.author(index)] = fragments
+        authorBaseNames[index] = ""
         return true
     }
 
     @discardableResult
-    private func appendOCRFragments(
-        _ droppedFragments: [BookOCRFragmentTransfer],
+    private func appendTextFragments(
+        _ droppedFragments: [BookTextFragmentTransfer],
         toContributorAt index: Int
     ) -> Bool {
         guard contributors.indices.contains(index), contributors[index].role == .author else {
             return false
         }
 
-        let newFragments = ocrFeatures(matching: droppedFragments)
+        let newFragments = textFragments(matching: droppedFragments)
         guard !newFragments.isEmpty else { return false }
 
-        let target = BookOCRTarget.author(index)
-        if ocrAuthorBaseNames[index] == nil {
-            // A manually-created author remains the stable prefix; OCR fragments are appended rather than renaming it implicitly.
-            ocrAuthorBaseNames[index] = contributors[index].person.name
+        let target = BookTextTarget.author(index)
+        if authorBaseNames[index] == nil {
+            authorBaseNames[index] = contributors[index].person.name
         }
 
-        var assigned = ocrAssignments[target, default: []]
+        var assigned = textAssignments[target, default: []]
         for fragment in newFragments where !assigned.contains(fragment) {
             assigned.append(fragment)
         }
-        assigned.sort(by: Self.ocrReadingOrder)
+        assigned.sort(by: Self.textReadingOrder)
 
-        guard applyOCRAssignment(makeOCRTextAssignment(from: assigned), to: target) else {
+        guard applyTextAssignment(makeTextAssignment(from: assigned), to: target) else {
             return false
         }
 
-        ocrAssignments[target] = assigned
+        textAssignments[target] = assigned
         return true
     }
 
@@ -1020,12 +1079,10 @@ struct BookEditorView: View {
         guard !name.isEmpty else { return nil }
 
         let key = normalizedReferenceKey(name)
-        // Include current contributors so an OCR value can reuse both persisted people and unsaved people already selected in this editor.
         if let existing = availablePeople.first(where: { normalizedReferenceKey($0.name) == key }) {
             return existing
         }
 
-        // An unmatched recognized person remains an editor draft; saving the book persists the referenced Person once.
         return Person(
             id: UUID(),
             name: name,
@@ -1038,27 +1095,27 @@ struct BookEditorView: View {
         )
     }
 
-    private func ocrFeatures(
-        matching transfers: [BookOCRFragmentTransfer]
-    ) -> [RecognizedTextFeature] {
+    private func textFragments(
+        matching transfers: [BookTextFragmentTransfer]
+    ) -> [BookTextFragment] {
         transfers.compactMap { transfer in
-            guard photoAnalysis.recognizedText.indices.contains(transfer.index) else {
-                return nil
-            }
-            return photoAnalysis.recognizedText[transfer.index]
+            textFragments.first { $0.id == transfer.id }
         }
     }
 
-    private static func ocrReadingOrder(
-        _ lhs: RecognizedTextFeature,
-        _ rhs: RecognizedTextFeature
+    private static func textReadingOrder(
+        _ lhs: BookTextFragment,
+        _ rhs: BookTextFragment
     ) -> Bool {
         let lhsRow = Int((lhs.boundingBox.midY * 50).rounded())
         let rhsRow = Int((rhs.boundingBox.midY * 50).rounded())
         if lhsRow != rhsRow {
             return lhsRow > rhsRow
         }
-        return lhs.boundingBox.minX < rhs.boundingBox.minX
+        if lhs.boundingBox.minX != rhs.boundingBox.minX {
+            return lhs.boundingBox.minX < rhs.boundingBox.minX
+        }
+        return lhs.id.uuidString < rhs.id.uuidString
     }
 
     private func firstPositiveInteger(in value: String) -> Int? {
@@ -1122,12 +1179,10 @@ struct BookEditorView: View {
         guard !name.isEmpty else { return nil }
 
         let key = normalizedReferenceKey(name)
-        // Only exact normalized matches are safe to resolve automatically; fuzzy matches remain distinct for user review.
         if let existing = catalogPublishers.first(where: { normalizedReferenceKey($0.name) == key }) {
             return existing
         }
 
-        // Keep an unmatched recognized value as the selected draft only. Appending each intermediate OCR name would leave stale drafts when more fragments are added.
         return Publisher(
             id: UUID(),
             name: name,
@@ -1144,12 +1199,10 @@ struct BookEditorView: View {
         guard !name.isEmpty else { return nil }
 
         let key = normalizedReferenceKey(name)
-        // catalogSeries is scoped to the edited collection, so an exact match cannot cross collection boundaries.
         if let existing = catalogSeries.first(where: { normalizedReferenceKey($0.name) == key }) {
             return existing
         }
 
-        // Keep the recognized series transient until the book is saved; later OCR fragments can replace this draft cleanly.
         return BookSeries(
             id: UUID(),
             collectionID: collection.id,
@@ -1181,8 +1234,8 @@ struct BookEditorView: View {
         let removedIndices = Set(offsets)
         let survivingIndices = contributors.indices.filter { !removedIndices.contains($0) }
 
-        var remappedAssignments: [BookOCRTarget: [RecognizedTextFeature]] = [:]
-        for (target, fragments) in ocrAssignments {
+        var remappedAssignments: [BookTextTarget: [BookTextFragment]] = [:]
+        for (target, fragments) in textAssignments {
             if case .field = target {
                 remappedAssignments[target] = fragments
             }
@@ -1190,17 +1243,17 @@ struct BookEditorView: View {
 
         var remappedBaseNames: [Int: String] = [:]
         for (newIndex, oldIndex) in survivingIndices.enumerated() {
-            if let fragments = ocrAssignments[.author(oldIndex)] {
+            if let fragments = textAssignments[.author(oldIndex)] {
                 remappedAssignments[.author(newIndex)] = fragments
             }
-            if let baseName = ocrAuthorBaseNames[oldIndex] {
+            if let baseName = authorBaseNames[oldIndex] {
                 remappedBaseNames[newIndex] = baseName
             }
         }
 
         contributors.remove(atOffsets: offsets)
-        ocrAssignments = remappedAssignments
-        ocrAuthorBaseNames = remappedBaseNames
+        textAssignments = remappedAssignments
+        authorBaseNames = remappedBaseNames
         normalizeContributorOrder()
     }
 
@@ -1235,7 +1288,6 @@ struct BookEditorView: View {
             .compactMap(\.details.genre)
         catalogSeries = snapshot.bookSeries
             .filter { $0.collectionID == collection.id }
-        // Resolve OCR against the complete publisher catalog, including publishers not currently referenced by a book or series.
         catalogPublishers = snapshot.publishers
         catalogPeople = snapshot.people
     }
@@ -1320,9 +1372,9 @@ struct BookEditorView: View {
     }
 }
 
-private struct BookOCRBottomPalette: View {
-    let fragments: [RecognizedTextFeature]
-    let usedFragments: Set<RecognizedTextFeature>
+private struct BookTextBottomPalette: View {
+    let fragments: [BookTextFragment]
+    let usedFragmentIDs: Set<UUID>
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1330,11 +1382,11 @@ private struct BookOCRBottomPalette: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: CatalogMetrics.Spacing.sm) {
-                    ForEach(Array(fragments.enumerated()), id: \.offset) { index, feature in
-                        if !usedFragments.contains(feature) {
-                            BookOCRFragmentChip(
-                                feature: feature,
-                                transfer: BookOCRFragmentTransfer(index: index)
+                    ForEach(fragments) { fragment in
+                        if !usedFragmentIDs.contains(fragment.id) {
+                            BookTextFragmentChip(
+                                fragment: fragment,
+                                transfer: BookTextFragmentTransfer(id: fragment.id)
                             )
                         }
                     }
@@ -1347,31 +1399,30 @@ private struct BookOCRBottomPalette: View {
     }
 }
 
-private struct BookOCRFragmentChip: View {
-    let feature: RecognizedTextFeature
-    let transfer: BookOCRFragmentTransfer
+private struct BookTextFragmentChip: View {
+    let fragment: BookTextFragment
+    let transfer: BookTextFragmentTransfer
 
     var body: some View {
-        Text(feature.text)
+        Text(fragment.text)
             .font(.subheadline)
             .lineLimit(1)
             .frame(maxWidth: 240)
             .catalogSurfaceCapsule()
-            // The capsule itself is the drag affordance; avoid a grab-handle glyph with unrelated semantics.
             .contentShape(.interaction, Rectangle())
             .contentShape(.dragPreview, CatalogShapes.capsule)
             .draggable(transfer)
-            .accessibilityLabel(feature.text)
+            .accessibilityLabel(fragment.text)
     }
 }
 
-private struct BookOCRAssignedFragmentChip: View {
-    let feature: RecognizedTextFeature
+private struct BookAssignedTextFragmentChip: View {
+    let fragment: BookTextFragment
     let onRemove: () -> Void
 
     var body: some View {
         HStack(spacing: CatalogMetrics.Spacing.xxs) {
-            Text(feature.text)
+            Text(fragment.text)
                 .lineLimit(1)
 
             Button(action: onRemove) {
