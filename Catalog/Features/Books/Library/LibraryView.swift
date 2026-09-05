@@ -505,23 +505,16 @@ struct LibraryView: View {
         cardMetrics: CatalogCardLayoutMode.CardMetrics,
         allowsManagementActions: Bool = true
     ) -> some View {
-        let onSelect: (() -> Void)? = canEditLibrary && allowsManagementActions
-            ? { cardManagement.enterSelection(with: book) }
-            : nil
-        let contextMenu: (() -> AnyView)? = canEditLibrary && allowsManagementActions
-            ? { AnyView(bookCardContextMenu(for: book)) }
-            : nil
-
-        return CatalogInteractiveCard(
+        CatalogManagedCard(
+            item: book,
+            state: $cardManagement,
             cardSize: cardSize,
-            isSelected: cardManagement.selectedIDs.contains(book.id),
-            isSelectionModeEnabled: cardManagement.isSelectionModeEnabled,
-            onTap: {
-                handleBookCardTap(book)
+            canManage: canEditLibrary && allowsManagementActions,
+            onOpen: { book in
+                onBookSelected?(book.id)
             },
-            onSelect: onSelect,
             selectTitle: String(localized: "bell.context.select"),
-            contextMenu: contextMenu
+            moveTitle: String(localized: "bell.context.move")
         ) {
             BookCardView(
                 book: book,
@@ -530,26 +523,6 @@ struct LibraryView: View {
                 cardMetrics: cardMetrics
             )
         }
-    }
-
-    private func handleBookCardTap(_ book: BookRecord) {
-        if cardManagement.isSelectionModeEnabled {
-            cardManagement.toggleSelection(of: book)
-        } else {
-            onBookSelected?(book.id)
-        }
-    }
-
-    private func bookCardContextMenu(for book: BookRecord) -> some View {
-        CatalogCardManagementMenu(
-            moveTitle: String(localized: "bell.context.move"),
-            onMove: {
-                cardManagement.beginMove(book)
-            },
-            onDelete: {
-                cardManagement.beginDelete(book)
-            }
-        )
     }
 
     private var visibleBooks: [BookRecord] {

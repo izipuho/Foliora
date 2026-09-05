@@ -567,39 +567,17 @@ struct BellCatalogView: View {
             bells: bells,
             layoutMode: layoutMode,
             layoutMetrics: layoutMetrics,
-            selectedBellIDs: cardManagement.selectedIDs,
-            isSelectionModeEnabled: cardManagement.isSelectionModeEnabled,
-            onTap: handleBellCardTap,
-            onSelect: canEditCollection ? { bell in
-                cardManagement.enterSelection(with: bell)
-            } : nil,
-            contextMenu: canEditCollection ? { bell in
-                AnyView(bellCardContextMenu(for: bell))
-            } : nil
-        )
-    }
-
-    private func handleBellCardTap(_ bell: BellListItem) {
-        if didEndActivePinchGesture {
-            didEndActivePinchGesture = false
-            return
-        }
-
-        if cardManagement.isSelectionModeEnabled {
-            cardManagement.toggleSelection(of: bell)
-        } else if let onBellSelected {
-            onBellSelected(bell.id)
-        }
-    }
-
-    private func bellCardContextMenu(for bell: BellListItem) -> some View {
-        CatalogCardManagementMenu(
-            moveTitle: String(localized: "bell.context.move"),
-            onMove: {
-                cardManagement.beginMove(bell)
+            cardManagement: $cardManagement,
+            canManage: canEditCollection,
+            shouldHandleTap: { _ in
+                if didEndActivePinchGesture {
+                    didEndActivePinchGesture = false
+                    return false
+                }
+                return true
             },
-            onDelete: {
-                cardManagement.beginDelete(bell)
+            onOpen: { bell in
+                onBellSelected?(bell.id)
             }
         )
     }

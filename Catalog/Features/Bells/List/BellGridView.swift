@@ -6,32 +6,29 @@ struct BellGridView: View {
     let layoutMode: CatalogCardLayoutMode
     let bottomContentMargin: CGFloat?
     let layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics?
-    let selectedBellIDs: Set<UUID>
-    let isSelectionModeEnabled: Bool
-    let onTap: (BellListItem) -> Void
-    let onSelect: ((BellListItem) -> Void)?
-    let contextMenu: ((BellListItem) -> AnyView)?
+    @Binding var cardManagement: CatalogCardManagementState<BellListItem>
+    let canManage: Bool
+    let shouldHandleTap: (BellListItem) -> Bool
+    let onOpen: (BellListItem) -> Void
 
     init(
         bells: [BellListItem],
         layoutMode: CatalogCardLayoutMode,
         bottomContentMargin: CGFloat? = nil,
         layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics? = nil,
-        selectedBellIDs: Set<UUID>,
-        isSelectionModeEnabled: Bool,
-        onTap: @escaping (BellListItem) -> Void,
-        onSelect: ((BellListItem) -> Void)?,
-        contextMenu: ((BellListItem) -> AnyView)? = nil
+        cardManagement: Binding<CatalogCardManagementState<BellListItem>>,
+        canManage: Bool,
+        shouldHandleTap: @escaping (BellListItem) -> Bool = { _ in true },
+        onOpen: @escaping (BellListItem) -> Void
     ) {
         self.bells = bells
         self.layoutMode = layoutMode
         self.bottomContentMargin = bottomContentMargin
         self.layoutMetrics = layoutMetrics
-        self.selectedBellIDs = selectedBellIDs
-        self.isSelectionModeEnabled = isSelectionModeEnabled
-        self.onTap = onTap
-        self.onSelect = onSelect
-        self.contextMenu = contextMenu
+        self._cardManagement = cardManagement
+        self.canManage = canManage
+        self.shouldHandleTap = shouldHandleTap
+        self.onOpen = onOpen
     }
 
     var body: some View {
@@ -41,20 +38,15 @@ struct BellGridView: View {
             layoutMetrics: layoutMetrics
         ) { cardSize, _, cardMetrics in
             ForEach(bells, id: \.id) { bell in
-                CatalogInteractiveCard(
+                CatalogManagedCard(
+                    item: bell,
+                    state: $cardManagement,
                     cardSize: cardSize,
-                    isSelected: selectedBellIDs.contains(bell.id),
-                    isSelectionModeEnabled: isSelectionModeEnabled,
-                    onTap: {
-                        onTap(bell)
-                    },
-                    onSelect: onSelect.map { action in
-                        { action(bell) }
-                    },
+                    canManage: canManage,
+                    shouldHandleTap: shouldHandleTap,
+                    onOpen: onOpen,
                     selectTitle: String(localized: "bell.context.select"),
-                    contextMenu: contextMenu.map { menu in
-                        { menu(bell) }
-                    }
+                    moveTitle: String(localized: "bell.context.move")
                 ) {
                     BellCardView(
                         bell: bell,
