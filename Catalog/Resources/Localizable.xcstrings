@@ -1355,6 +1355,38 @@
         }
       }
     },
+    "book.delete.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This book will be removed from the library."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Книга будет удалена из библиотеки."
+          }
+        }
+      }
+    },
+    "book.delete.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Book?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить книгу?"
+          }
+        }
+      }
+    },
     "book.field.acquired_year" : {
       "localizations" : {
         "en" : {
