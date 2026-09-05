@@ -20,15 +20,6 @@ private struct BellCatalogFeedbackEvent: Equatable {
     let token: Int
 }
 
-/// Represents bell catalog selection mode preference key data and behavior.
-struct BellCatalogSelectionModePreferenceKey: PreferenceKey {
-    static let defaultValue = false
-
-    static func reduce(value: inout Bool, nextValue: () -> Bool) {
-        value = value || nextValue()
-    }
-}
-
 private extension BellPresenceFilter {
     var title: String {
         switch self {
@@ -110,8 +101,7 @@ struct BellCatalogView: View {
     @State private var isPresentingDeleteConfirmation = false
     @State private var activeJumpPopoverSectionID: String?
     @State private var pendingScrollTargetID: String?
-    @State private var isSelectionModeEnabled = false
-    @State private var selectedBellIDs: Set<UUID> = []
+    @State private var selection = CatalogCardSelectionState()
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
     @State private var feedbackToken = 0
     @State private var scrollRequestToken = 0
@@ -261,17 +251,18 @@ struct BellCatalogView: View {
         }
         .sheet(item: $bellPendingMove) { bell in
             if let collection {
-                BellQuickMoveSheet(
-                    bell: bell,
+                CatalogQuickMoveSheet(
+                    currentLocationID: bell.locationID,
+                    title: String(localized: "bell.context.move"),
                     locations: availableLocations,
                     locationPathByID: locationPathByID,
                     onManageLocations: {
                         presentHomeEditor(for: collection.homeID, thenMove: bell)
                     }
                 ) { locationID in
-                    let bells = isSelectionModeEnabled ? selectedBells : [bell]
+                    let bells = selection.isEnabled ? selectedBells : [bell]
                     moveBells(bells, to: locationID)
-                    if isSelectionModeEnabled {
+                    if selection.isEnabled {
                         cancelSelectionMode()
                     }
                 }
@@ -296,9 +287,9 @@ struct BellCatalogView: View {
             presenting: bellPendingDeletion
         ) { bell in
             Button(String(localized: "common.delete"), role: .destructive) {
-                let bells = isSelectionModeEnabled ? selectedBells : [bell]
+                let bells = selection.isEnabled ? selectedBells : [bell]
                 deleteBells(bells)
-                if isSelectionModeEnabled {
+                if selection.isEnabled {
                     cancelSelectionMode()
                 }
                 bellPendingDeletion = nil
@@ -313,10 +304,10 @@ struct BellCatalogView: View {
         .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
             newValue?.kind.sensoryFeedback
         }
-        .toolbar(isSelectionModeEnabled ? .hidden : .visible, for: .tabBar)
-        .preference(key: BellCatalogSelectionModePreferenceKey.self, value: isSelectionModeEnabled)
+        .toolbar(selection.isEnabled ? .hidden : .visible, for: .tabBar)
+        .preference(key: CatalogSelectionModePreferenceKey.self, value: selection.isEnabled)
         .toolbar {
-            if isSelectionModeEnabled {
+            if selection.isEnabled {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         cancelSelectionMode()
@@ -338,7 +329,7 @@ struct BellCatalogView: View {
                 }
             }
 
-            if canEditCollection && isSelectionModeEnabled && !selectedVisibleBellIDs.isEmpty {
+            if canEditCollection && selection.isEnabled && !selectedVisibleBellIDs.isEmpty {
                 ToolbarItem(placement: .bottomBar) {
                     Button {
                         bellPendingMove = selectedBells.first
@@ -349,7 +340,7 @@ struct BellCatalogView: View {
                 }
 
                 ToolbarSpacer(.flexible, placement: .bottomBar)
-                
+
                 ToolbarItem(placement: .bottomBar) {
                     Button(role: .destructive) {
                         bellPendingDeletion = selectedBells.first
@@ -402,11 +393,11 @@ struct BellCatalogView: View {
                         .frame(height: 0)
                         .id("bell-grid-top")
 
-                    if !isSelectionModeEnabled {
+                    if !selection.isEnabled {
                         dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
                     }
 
-                    if !isSelectionModeEnabled && !favoriteBells.isEmpty {
+                    if !selection.isEnabled && !favoriteBells.isEmpty {
                         favoritesSection(
                             bells: favoriteBells,
                             screenWidth: stripScreenWidth(cardSize: cardSize, gridMetrics: gridMetrics)
@@ -722,7 +713,7 @@ struct BellCatalogView: View {
     }
 
     private var selectedVisibleBellIDs: Set<UUID> {
-        selectedBellIDs.intersection(visibleBellIDs)
+        selection.selectedVisibleIDs(in: visibleBellIDs)
     }
 
     private var selectedBells: [BellListItem] {
@@ -733,33 +724,23 @@ struct BellCatalogView: View {
 
     private func enterSelectionMode(with bellID: UUID) {
         withAnimation(.snappy(duration: 0.2)) {
-            isSelectionModeEnabled = true
-            selectedBellIDs.insert(bellID)
+            selection.enter(with: bellID)
         }
     }
 
     private func toggleBellSelection(_ bellID: UUID) {
         withAnimation(.snappy(duration: 0.2)) {
-            if selectedBellIDs.contains(bellID) {
-                selectedBellIDs.remove(bellID)
-            } else {
-                selectedBellIDs.insert(bellID)
-            }
+            selection.toggle(bellID)
         }
     }
 
     private func pruneSelectionToVisibleBells() {
-        selectedBellIDs.formIntersection(visibleBellIDs)
-
-        if selectedBellIDs.isEmpty {
-            isSelectionModeEnabled = false
-        }
+        selection.prune(to: visibleBellIDs)
     }
 
     private func cancelSelectionMode() {
         withAnimation(.snappy(duration: 0.2)) {
-            isSelectionModeEnabled = false
-            selectedBellIDs.removeAll()
+            selection.cancel()
         }
     }
 
@@ -771,8 +752,8 @@ struct BellCatalogView: View {
             bells: bells,
             layoutMode: layoutMode,
             layoutMetrics: layoutMetrics,
-            selectedBellIDs: selectedBellIDs,
-            isSelectionModeEnabled: isSelectionModeEnabled,
+            selectedBellIDs: selection.selectedIDs,
+            isSelectionModeEnabled: selection.isEnabled,
             onTap: handleBellCardTap,
             onSelect: canEditCollection ? { bell in
                 enterSelectionMode(with: bell.id)
@@ -789,27 +770,24 @@ struct BellCatalogView: View {
             return
         }
 
-        if isSelectionModeEnabled {
+        if selection.isEnabled {
             toggleBellSelection(bell.id)
         } else if let onBellSelected {
             onBellSelected(bell.id)
         }
     }
 
-    @ViewBuilder
     private func bellCardContextMenu(for bell: BellListItem) -> some View {
-        Button {
-            bellPendingMove = bell
-        } label: {
-            Label(String(localized: "bell.context.move"), systemImage: "folder")
-        }
-
-        Button(role: .destructive) {
-            bellPendingDeletion = bell
-            isPresentingDeleteConfirmation = true
-        } label: {
-            Label(String(localized: "common.delete"), systemImage: "trash")
-        }
+        CatalogCardManagementMenu(
+            moveTitle: String(localized: "bell.context.move"),
+            onMove: {
+                bellPendingMove = bell
+            },
+            onDelete: {
+                bellPendingDeletion = bell
+                isPresentingDeleteConfirmation = true
+            }
+        )
     }
 
     private func moveBells(_ bells: [BellListItem], to locationID: UUID?) {
@@ -934,89 +912,6 @@ private struct BellGroupingJumpPopover: View {
             .padding(CatalogMetrics.Spacing.md)
         }
         .frame(minWidth: 220, idealWidth: 260, maxWidth: 320, minHeight: 160, idealHeight: 280, maxHeight: 360)
-    }
-}
-
-private struct BellQuickMoveSheet: View {
-    let bell: BellListItem
-    let locations: [Location]
-    let locationPathByID: [UUID: String]
-    let onManageLocations: () -> Void
-    let onSave: (UUID?) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var selectedLocationID: UUID?
-
-    init(
-        bell: BellListItem,
-        locations: [Location],
-        locationPathByID: [UUID: String],
-        onManageLocations: @escaping () -> Void,
-        onSave: @escaping (UUID?) -> Void
-    ) {
-        self.bell = bell
-        self.locations = locations
-        self.locationPathByID = locationPathByID
-        self.onManageLocations = onManageLocations
-        self.onSave = onSave
-        _selectedLocationID = State(initialValue: bell.locationID)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section(String(localized: "common.storage")) {
-                    LocationPickerField(
-                        title: String(localized: "common.location"),
-                        selectedLabel: selectedLocationLabel,
-                        locations: domainLocations,
-                        onManageLocations: {
-                            dismiss()
-                            DispatchQueue.main.async {
-                                onManageLocations()
-                            }
-                        },
-                        presentationToken: 0,
-                        selectedLocationID: $selectedLocationID
-                    )
-                }
-            }
-            .navigationTitle(String(localized: "bell.context.move"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                    .accessibilityLabel(String(localized: "common.cancel"))
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        onSave(selectedLocationID)
-                        dismiss()
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
-                    .accessibilityLabel(String(localized: "common.save"))
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
-    }
-
-    private var selectedLocationLabel: String {
-        guard let selectedLocationID, let path = locationPathByID[selectedLocationID] else {
-            return String(localized: "common.unassigned")
-        }
-
-        return path
-    }
-
-    private var domainLocations: [Location] {
-        locations
     }
 }
 

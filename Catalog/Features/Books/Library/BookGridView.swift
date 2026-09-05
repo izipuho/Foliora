@@ -32,9 +32,12 @@ struct BookGridView: View {
             layoutMetrics: layoutMetrics
         ) { cardSize, _, cardMetrics in
             ForEach(books) { book in
-                Button {
-                    onBookSelected?(book.id)
-                } label: {
+                CatalogInteractiveCard(
+                    cardSize: cardSize,
+                    onTap: {
+                        onBookSelected?(book.id)
+                    }
+                ) {
                     BookCardView(
                         book: book,
                         style: CatalogCardContentStyle.style(for: layoutMode),
@@ -43,9 +46,6 @@ struct BookGridView: View {
                         accessories: accessories(book)
                     )
                 }
-                .buttonStyle(.plain)
-                .frame(width: cardSize.width, height: cardSize.height)
-                .contentShape(Rectangle())
             }
         }
     }

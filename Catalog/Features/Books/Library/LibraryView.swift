@@ -55,6 +55,14 @@ struct LibraryView: View {
     @State private var isFavoritesCollapsed = false
     @State private var collapsedGroupIDs: Set<String> = []
     @State private var favoriteChangeRevision = 0
+    @State private var selection = CatalogCardSelectionState()
+    @State private var bookPendingMove: BookRecord?
+    @State private var bookPendingDeletion: BookRecord?
+    @State private var isPresentingDeleteConfirmation = false
+    @State private var isPresentingHomeEditor = false
+    @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+    @State private var draftHomeLocations: [Location] = []
+    @State private var bookPendingMoveAfterHomeEditor: BookRecord?
     @StateObject private var viewModel: LibraryViewModel
 
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
@@ -118,6 +126,35 @@ struct LibraryView: View {
         catalogSnapshot?.homes ?? []
     }
 
+    private var availableLocations: [Location] {
+        guard let snapshot = catalogSnapshot else { return [] }
+
+        let collectionLocations = snapshot.collectionLocationsByCollectionID[collection.id] ?? []
+        if !collectionLocations.isEmpty {
+            return collectionLocations
+        }
+
+        return snapshot.locationsByHomeID[collection.homeID] ?? []
+    }
+
+    private var locationsByID: [UUID: Location] {
+        Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
+    }
+
+    private var locationPathByID: [UUID: String] {
+        guard let snapshot = catalogSnapshot else { return [:] }
+
+        if let collectionLocationPathByID = snapshot.collectionLocationPathByCollectionID[collection.id],
+           !(snapshot.collectionLocationsByCollectionID[collection.id] ?? []).isEmpty {
+            return collectionLocationPathByID
+        }
+
+        let availableLocationIDs = Set(availableLocations.map(\.id))
+        return snapshot.locationPathByID.filter { id, _ in
+            availableLocationIDs.contains(id)
+        }
+    }
+
     private var hasPlacedItems: Bool {
         catalogSnapshot?.bookRecords.contains {
             $0.collectionID == collection.id && $0.item.locationID != nil
@@ -174,9 +211,11 @@ struct LibraryView: View {
             }
             .onChange(of: selectedOrderRawValue) { _, _ in
                 viewModel.updateContext(orderMode: selectedOrder)
+                pruneSelectionToVisibleBooks()
             }
             .onChange(of: filters) { _, newValue in
                 viewModel.updateContext(filters: newValue)
+                pruneSelectionToVisibleBooks()
             }
             .onReceive(NotificationCenter.default.publisher(for: .catalogItemFavoriteDidChange)) { notification in
                 guard
@@ -241,6 +280,58 @@ struct LibraryView: View {
             .sheet(isPresented: $isPresentingEditLibrary) {
                 editLibrarySheet
             }
+            .sheet(item: $bookPendingMove) { book in
+                CatalogQuickMoveSheet(
+                    currentLocationID: book.item.locationID,
+                    title: String(localized: "bell.context.move"),
+                    locations: availableLocations,
+                    locationPathByID: locationPathByID,
+                    onManageLocations: {
+                        presentHomeEditor(for: collection.homeID, thenMove: book)
+                    }
+                ) { locationID in
+                    let books = selection.isEnabled ? selectedBooks : [book]
+                    moveBooks(books, to: locationID)
+                    if selection.isEnabled {
+                        cancelSelectionMode()
+                    }
+                }
+            }
+            .sheet(isPresented: $isPresentingHomeEditor) {
+                HomeEditorView(
+                    home: $draftHome,
+                    locations: $draftHomeLocations,
+                    onSave: {
+                        repository.saveHome(draftHome)
+                        repository.saveLocations(draftHomeLocations, in: draftHome.id)
+                        continueQuickMoveIfNeeded()
+                    },
+                    onDelete: nil
+                )
+            }
+            .confirmationDialog(
+                String(localized: "book.delete.title"),
+                isPresented: $isPresentingDeleteConfirmation,
+                titleVisibility: .visible,
+                presenting: bookPendingDeletion
+            ) { book in
+                Button(String(localized: "common.delete"), role: .destructive) {
+                    let books = selection.isEnabled ? selectedBooks : [book]
+                    deleteBooks(books)
+                    if selection.isEnabled {
+                        cancelSelectionMode()
+                    }
+                    bookPendingDeletion = nil
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {
+                    bookPendingDeletion = nil
+                }
+            } message: { _ in
+                Text(String(localized: "book.delete.message"))
+            }
+            .toolbar(selection.isEnabled ? .hidden : .visible, for: .tabBar)
+            .preference(key: CatalogSelectionModePreferenceKey.self, value: selection.isEnabled)
             .task(id: collection.id) {
                 await loadCollectionSharingState()
             }
@@ -276,31 +367,33 @@ struct LibraryView: View {
                     spacing: CatalogMetrics.Spacing.lg,
                     pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []
                 ) {
-                    LibraryDashboardView(
-                        stats: displayModel.stats,
-                        accentColor: collection.backgroundStyle.accentColor,
-                        collection: collection,
-                        catalogSnapshot: catalogSnapshot,
-                        repository: repository,
-                        canEditCollection: canEditLibrary,
-                        onBookSelected: onBookSelected,
-                        sharingState: collectionSharingState,
-                        sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer),
-                        onSharingChanged: {
-                            Task {
-                                await loadCollectionSharingState()
+                    if !selection.isEnabled {
+                        LibraryDashboardView(
+                            stats: displayModel.stats,
+                            accentColor: collection.backgroundStyle.accentColor,
+                            collection: collection,
+                            catalogSnapshot: catalogSnapshot,
+                            repository: repository,
+                            canEditCollection: canEditLibrary,
+                            onBookSelected: onBookSelected,
+                            sharingState: collectionSharingState,
+                            sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer),
+                            onSharingChanged: {
+                                Task {
+                                    await loadCollectionSharingState()
+                                }
+                            },
+                            onFilterApply: { filter in
+                                filters = BookFilters(presence: [filter])
                             }
-                        },
-                        onFilterApply: { filter in
-                            filters = BookFilters(presence: [filter])
-                        }
-                    )
+                        )
+                    }
 
                     if hasActiveFilter {
                         activeFilterSection
                     }
 
-                    if !favoriteBooks.isEmpty {
+                    if !selection.isEnabled && !favoriteBooks.isEmpty {
                         CatalogCollapsibleCardSection(
                             title: String(localized: "bell.catalog.favorites"),
                             layoutMode: layoutMode.wrappedValue,
@@ -311,7 +404,8 @@ struct LibraryView: View {
                                 bookCard(
                                     book,
                                     cardSize: favoriteCardSize,
-                                    cardMetrics: favoriteCardMetrics
+                                    cardMetrics: favoriteCardMetrics,
+                                    allowsManagementActions: false
                                 )
                             }
                         }
@@ -347,7 +441,8 @@ struct LibraryView: View {
             }
             .background(libraryBackground)
             .overlay(alignment: .trailing) {
-                if (selectedOrder == .author || selectedOrder == .title),
+                if !selection.isEnabled,
+                   (selectedOrder == .author || selectedOrder == .title),
                    case .grouped(let sections) = displayModel.layout {
                     LibraryAlphabetIndex(sections: sections) { sectionID in
                         withAnimation(.snappy(duration: 0.2)) {
@@ -465,11 +560,27 @@ struct LibraryView: View {
     private func bookCard(
         _ book: BookRecord,
         cardSize: CGSize,
-        cardMetrics: CatalogCardLayoutMode.CardMetrics
+        cardMetrics: CatalogCardLayoutMode.CardMetrics,
+        allowsManagementActions: Bool = true
     ) -> some View {
-        Button {
-            onBookSelected?(book.id)
-        } label: {
+        let onSelect: (() -> Void)? = canEditLibrary && allowsManagementActions
+            ? { enterSelectionMode(with: book.id) }
+            : nil
+        let contextMenu: (() -> AnyView)? = canEditLibrary && allowsManagementActions
+            ? { AnyView(bookCardContextMenu(for: book)) }
+            : nil
+
+        return CatalogInteractiveCard(
+            cardSize: cardSize,
+            isSelected: selection.selectedIDs.contains(book.id),
+            isSelectionModeEnabled: selection.isEnabled,
+            onTap: {
+                handleBookCardTap(book)
+            },
+            onSelect: onSelect,
+            selectTitle: String(localized: "bell.context.select"),
+            contextMenu: contextMenu
+        ) {
             BookCardView(
                 book: book,
                 style: CatalogCardContentStyle.style(for: layoutMode.wrappedValue),
@@ -477,9 +588,146 @@ struct LibraryView: View {
                 cardMetrics: cardMetrics
             )
         }
-        .buttonStyle(.plain)
-        .frame(width: cardSize.width, height: cardSize.height)
-        .contentShape(Rectangle())
+    }
+
+    private func handleBookCardTap(_ book: BookRecord) {
+        if selection.isEnabled {
+            toggleBookSelection(book.id)
+        } else {
+            onBookSelected?(book.id)
+        }
+    }
+
+    private func bookCardContextMenu(for book: BookRecord) -> some View {
+        CatalogCardManagementMenu(
+            moveTitle: String(localized: "bell.context.move"),
+            onMove: {
+                bookPendingMove = book
+            },
+            onDelete: {
+                bookPendingDeletion = book
+                isPresentingDeleteConfirmation = true
+            }
+        )
+    }
+
+    private var visibleBooks: [BookRecord] {
+        let candidates: [BookRecord]
+
+        switch displayModel.layout {
+        case .empty:
+            candidates = []
+        case .flat(let books):
+            candidates = books
+        case .grouped(let sections):
+            candidates = sections.flatMap { section in
+                section.books + section.subgroups.flatMap(\.books)
+            }
+        }
+
+        var seen: Set<UUID> = []
+        return candidates.filter { seen.insert($0.id).inserted }
+    }
+
+    private var visibleBookIDs: Set<UUID> {
+        Set(visibleBooks.map(\.id))
+    }
+
+    private var selectedVisibleBookIDs: Set<UUID> {
+        selection.selectedVisibleIDs(in: visibleBookIDs)
+    }
+
+    private var selectedBooks: [BookRecord] {
+        let selectedVisibleBookIDs = selectedVisibleBookIDs
+        return visibleBooks.filter { selectedVisibleBookIDs.contains($0.id) }
+    }
+
+    private func enterSelectionMode(with bookID: UUID) {
+        withAnimation(.snappy(duration: 0.2)) {
+            selection.enter(with: bookID)
+        }
+    }
+
+    private func toggleBookSelection(_ bookID: UUID) {
+        withAnimation(.snappy(duration: 0.2)) {
+            selection.toggle(bookID)
+        }
+    }
+
+    private func pruneSelectionToVisibleBooks() {
+        selection.prune(to: visibleBookIDs)
+    }
+
+    private func cancelSelectionMode() {
+        withAnimation(.snappy(duration: 0.2)) {
+            selection.cancel()
+        }
+    }
+
+    private func presentHomeEditor(for homeID: UUID, thenMove book: BookRecord) {
+        guard let snapshot = catalogSnapshot,
+              let home = snapshot.homes.first(where: { $0.id == homeID }) else { return }
+
+        draftHome = home
+        draftHomeLocations = snapshot.locationsByHomeID[homeID] ?? []
+        bookPendingMoveAfterHomeEditor = book
+        isPresentingHomeEditor = true
+    }
+
+    private func continueQuickMoveIfNeeded() {
+        guard let book = bookPendingMoveAfterHomeEditor else { return }
+        bookPendingMoveAfterHomeEditor = nil
+        isPresentingHomeEditor = false
+
+        DispatchQueue.main.async {
+            bookPendingMove = book
+        }
+    }
+
+    private func moveBooks(_ books: [BookRecord], to locationID: UUID?) {
+        guard canEditLibrary else { return }
+
+        let location = locationID.flatMap { locationsByID[$0] }
+        let storagePath = location.map(storagePath(for:))
+
+        for book in books {
+            var updatedItem = book.item
+            updatedItem.setStorageLocation(location, path: storagePath)
+            (repository as! any BookCatalogRepository).saveBookRecord(
+                BookRecord(item: updatedItem, details: book.details)
+            )
+        }
+    }
+
+    private func deleteBooks(_ books: [BookRecord]) {
+        guard canEditLibrary else { return }
+
+        for book in books {
+            (repository as! any BookCatalogRepository).deleteBookRecord(bookID: book.id)
+        }
+    }
+
+    private func storagePath(for location: Location) -> StoragePath {
+        var components = [
+            StoragePath.Component(
+                kind: location.kind,
+                name: location.name
+            )
+        ]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            components.insert(
+                StoragePath.Component(
+                    kind: parent.kind,
+                    name: parent.name
+                ),
+                at: 0
+            )
+            currentParentID = parent.parentLocationID
+        }
+
+        return StoragePath(components: components)
     }
 
     private func stripScreenWidth(
@@ -500,27 +748,73 @@ struct LibraryView: View {
         .ignoresSafeArea()
     }
 
+    @ToolbarContentBuilder
     private var libraryToolbar: some ToolbarContent {
-        CatalogCollectionToolbar(
-            selectedSort: selectedOrderBinding,
-            selectedLayoutMode: layoutMode,
-            isPresentingAddOptions: $isPresentingAddBookOptions,
-            sortOptions: LibraryOrderMode.allCases,
-            sortSectionTitle: String(localized: "common.sort"),
-            sortTitle: { $0.title },
-            canEdit: canEditLibrary,
-            onEdit: {
-                isPresentingEditLibrary = true
-            },
-            onPhotoLibrary: {
-                guard canEditLibrary else { return }
-                isPresentingPhotoPicker = true
-            },
-            onCamera: {
-                guard canEditLibrary else { return }
-                isPresentingCamera = true
+        if selection.isEnabled {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    cancelSelectionMode()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel(String(localized: "common.cancel"))
             }
-        )
+
+            ToolbarItem(placement: .principal) {
+                Text(
+                    String.localizedStringWithFormat(
+                        String(localized: "common.selected_format"),
+                        CollectionKind.bookCountLabel(for: selectedVisibleBookIDs.count)
+                    )
+                )
+                .lineLimit(1)
+                .contentTransition(.numericText())
+            }
+
+            if canEditLibrary && !selectedVisibleBookIDs.isEmpty {
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        bookPendingMove = selectedBooks.first
+                    } label: {
+                        Image(systemName: "folder")
+                    }
+                    .tint(collection.backgroundStyle.accentColor)
+                }
+
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+
+                ToolbarItem(placement: .bottomBar) {
+                    Button(role: .destructive) {
+                        bookPendingDeletion = selectedBooks.first
+                        isPresentingDeleteConfirmation = bookPendingDeletion != nil
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .tint(CatalogSemanticColors.destructive)
+                }
+            }
+        } else {
+            CatalogCollectionToolbar(
+                selectedSort: selectedOrderBinding,
+                selectedLayoutMode: layoutMode,
+                isPresentingAddOptions: $isPresentingAddBookOptions,
+                sortOptions: LibraryOrderMode.allCases,
+                sortSectionTitle: String(localized: "common.sort"),
+                sortTitle: { $0.title },
+                canEdit: canEditLibrary,
+                onEdit: {
+                    isPresentingEditLibrary = true
+                },
+                onPhotoLibrary: {
+                    guard canEditLibrary else { return }
+                    isPresentingPhotoPicker = true
+                },
+                onCamera: {
+                    guard canEditLibrary else { return }
+                    isPresentingCamera = true
+                }
+            )
+        }
     }
 
     private var editLibrarySheet: some View {
@@ -552,6 +846,7 @@ struct LibraryView: View {
             books: sourceBooks,
             series: series
         )
+        pruneSelectionToVisibleBooks()
     }
 
     private func clearDraftBook() {
