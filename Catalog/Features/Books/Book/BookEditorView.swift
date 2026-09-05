@@ -9,6 +9,7 @@ struct BookEditorView: View {
     private let existingBook: BookRecord?
     private let initialGenreSuggestions: [String]
     private let initialAnalysisImage: UIImage?
+    private let onDelete: (() -> Void)?
     private let onSave: (BookRecord) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -43,6 +44,7 @@ struct BookEditorView: View {
     @State private var isPresentingContributorEditor = false
     @State private var editingIdentifierIndex: Int?
     @State private var isPresentingIdentifierEditor = false
+    @State private var isPresentingDeleteConfirmation = false
     @State private var photoAnalysis = BookPhotoAnalysisController()
     @State private var didStartInitialAnalysis = false
     @State private var textFragmentState = TextFragmentState<BookTextTarget>()
@@ -144,6 +146,7 @@ struct BookEditorView: View {
         initialAnalysisImage: UIImage? = nil,
         book: BookRecord? = nil,
         genreSuggestions: [String] = [],
+        onDelete: (() -> Void)? = nil,
         onSave: @escaping (BookRecord) -> Void
     ) {
         self.collection = collection
@@ -157,6 +160,7 @@ struct BookEditorView: View {
                 return UIImage(data: data)
             }
             .first
+        self.onDelete = onDelete
         self.onSave = onSave
         self.editorItemID = book?.id ?? UUID()
 
@@ -592,6 +596,18 @@ struct BookEditorView: View {
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
 
+                if existingBook != nil, onDelete != nil {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .destructive) {
+                            isPresentingDeleteConfirmation = true
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .tint(CatalogSemanticColors.destructive)
+                        .accessibilityLabel(String(localized: "common.delete"))
+                    }
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         saveBook()
@@ -601,6 +617,19 @@ struct BookEditorView: View {
                     .disabled(!canSave)
                     .accessibilityLabel(String(localized: "common.save"))
                 }
+            }
+            .confirmationDialog(
+                String(localized: "book.delete.title"),
+                isPresented: $isPresentingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "common.delete"), role: .destructive) {
+                    onDelete?()
+                }
+
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "book.delete.message"))
             }
             .task(id: collection.id) {
                 loadCatalogMetadata()

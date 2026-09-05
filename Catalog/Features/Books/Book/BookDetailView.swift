@@ -20,6 +20,7 @@ struct BookDetailView: View {
     let canChangeFavorite: Bool
     let onClose: (() -> Void)?
 
+    @Environment(\.dismiss) private var dismiss
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
@@ -117,7 +118,8 @@ struct BookDetailView: View {
                 if canEditCollection, let collection = inferredCollection {
                     BookEditorView(
                         collection: collection,
-                        book: book
+                        book: book,
+                        onDelete: deleteBook
                     ) { updatedBook in
                         save(updatedBook)
                         syncDraftsFromBook()
@@ -863,6 +865,20 @@ struct BookDetailView: View {
         let path = location.map { storagePath(for: $0, locationsByID: locationsByID) }
         updatedItem.setStorageLocation(location, path: path)
         save(updatedItem)
+    }
+
+    private func deleteBook() {
+        (repository as! any BookCatalogRepository).deleteBookRecord(bookID: book.id)
+        isPresentingEditor = false
+
+        Task { @MainActor in
+            await Task.yield()
+            if let onClose {
+                onClose()
+            } else {
+                dismiss()
+            }
+        }
     }
 
     private func save(_ item: ItemRecord) {
