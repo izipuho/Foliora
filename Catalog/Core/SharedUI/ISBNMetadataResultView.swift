@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-/// Offers an experimental Open Library lookup when a photo suggestion contains a valid ISBN.
+/// Offers an experimental Google Books lookup when a photo suggestion contains a valid ISBN.
 struct ISBNMetadataFetchButton: View {
     let sourceText: String
 
@@ -20,14 +20,13 @@ struct ISBNMetadataFetchButton: View {
     }
 }
 
-/// Displays metadata fetched from Open Library for a single ISBN.
+/// Displays metadata fetched from Google Books for a single ISBN.
 struct ISBNMetadataResultView: View {
     let isbn: String
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var edition: OpenLibraryEdition?
-    @State private var authorNames: [String] = []
+    @State private var volume: GoogleBooksVolume?
     @State private var rawResponse: String?
     @State private var errorMessage: String?
     @State private var isLoading = true
@@ -38,12 +37,12 @@ struct ISBNMetadataResultView: View {
                 if isLoading {
                     VStack(spacing: CatalogMetrics.Spacing.md) {
                         ProgressView()
-                        Text("Fetching Open Library data…")
+                        Text("Fetching Google Books data…")
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let edition {
-                    metadataList(edition)
+                } else if let volume {
+                    metadataList(volume)
                 } else {
                     ContentUnavailableView(
                         "Unable to Fetch Data",
@@ -67,15 +66,17 @@ struct ISBNMetadataResultView: View {
         }
     }
 
-    private func metadataList(_ edition: OpenLibraryEdition) -> some View {
-        List {
+    private func metadataList(_ volume: GoogleBooksVolume) -> some View {
+        let info = volume.volumeInfo
+
+        return List {
             Section("Lookup") {
                 metadataRow("ISBN", isbn)
-                metadataRow("Source", "Open Library")
-                metadataRow("Edition key", edition.key)
+                metadataRow("Source", "Google Books")
+                metadataRow("Volume ID", volume.id)
             }
 
-            if let coverURL = coverURL(for: edition) {
+            if let coverURL = coverURL(from: info.imageLinks) {
                 Section("Cover") {
                     AsyncImage(url: coverURL) { phase in
                         switch phase {
@@ -100,22 +101,32 @@ struct ISBNMetadataResultView: View {
             }
 
             Section("Metadata") {
-                metadataRow("Title", edition.title)
-                metadataRow("Subtitle", edition.subtitle)
-                metadataRow("Authors", joined(authorNames))
-                metadataRow("Publishers", joined(edition.publishers))
-                metadataRow("Publish date", edition.publishDate)
-                metadataRow("Pages", edition.numberOfPages.map(String.init))
-                metadataRow("Languages", languageCodes(from: edition.languages))
-                metadataRow("Series", joined(edition.series))
-                metadataRow("Contributions", joined(edition.contributions))
-                metadataRow("Publish places", joined(edition.publishPlaces))
-                metadataRow("Subjects", joined(edition.subjects))
+                metadataRow("Title", info.title)
+                metadataRow("Subtitle", info.subtitle)
+                metadataRow("Authors", joined(info.authors))
+                metadataRow("Publisher", info.publisher)
+                metadataRow("Publish date", info.publishedDate)
+                metadataRow("Pages", info.pageCount.map(String.init))
+                metadataRow("Language", info.language)
+                metadataRow("Categories", joined(info.categories))
+            }
+
+            if let description = info.description, !description.isEmpty {
+                Section("Description") {
+                    Text(description)
+                        .textSelection(.enabled)
+                }
             }
 
             Section("Identifiers") {
-                metadataRow("ISBN-10", joined(edition.isbn10))
-                metadataRow("ISBN-13", joined(edition.isbn13))
+                metadataRow("ISBN-10", identifierValue("ISBN_10", in: info.industryIdentifiers))
+                metadataRow("ISBN-13", identifierValue("ISBN_13", in: info.industryIdentifiers))
+
+                ForEach(info.industryIdentifiers ?? [], id: \.displayKey) { identifier in
+                    if identifier.type != "ISBN_10", identifier.type != "ISBN_13" {
+                        metadataRow(identifier.type, identifier.identifier)
+                    }
+                }
             }
 
             if let rawResponse {
@@ -146,27 +157,35 @@ struct ISBNMetadataResultView: View {
         return values.joined(separator: ", ")
     }
 
-    private func languageCodes(from references: [OpenLibraryReference]?) -> String? {
-        guard let references, !references.isEmpty else { return nil }
-        let values = references.compactMap { $0.key.split(separator: "/").last.map(String.init) }
-        return values.isEmpty ? nil : values.joined(separator: ", ")
+    private func identifierValue(
+        _ type: String,
+        in identifiers: [GoogleBooksIndustryIdentifier]?
+    ) -> String? {
+        identifiers?.first(where: { $0.type == type })?.identifier
     }
 
-    private func coverURL(for edition: OpenLibraryEdition) -> URL? {
-        guard let coverID = edition.covers?.first(where: { $0 > 0 }) else { return nil }
-        return URL(string: "https://covers.openlibrary.org/b/id/\(coverID)-L.jpg")
+    private func coverURL(from imageLinks: GoogleBooksImageLinks?) -> URL? {
+        guard let source = imageLinks?.bestAvailable,
+              var components = URLComponents(string: source) else {
+            return nil
+        }
+
+        if components.scheme == "http" {
+            components.scheme = "https"
+        }
+
+        return components.url
     }
 
     @MainActor
     private func fetchMetadata() async {
         isLoading = true
-        edition = nil
-        authorNames = []
+        volume = nil
         rawResponse = nil
         errorMessage = nil
 
         do {
-            guard let url = openLibraryURL(path: "/isbn/\(isbn).json") else {
+            guard let url = googleBooksURL(for: isbn) else {
                 throw ISBNMetadataError.invalidURL
             }
 
@@ -179,20 +198,16 @@ struct ISBNMetadataResultView: View {
                 throw ISBNMetadataError.invalidResponse
             }
 
-            switch httpResponse.statusCode {
-            case 200..<300:
-                break
-            case 404:
-                throw ISBNMetadataError.notFound
-            default:
+            guard (200..<300).contains(httpResponse.statusCode) else {
                 throw ISBNMetadataError.httpStatus(httpResponse.statusCode)
             }
 
-            let decoded = try JSONDecoder().decode(OpenLibraryEdition.self, from: data)
-            let names = await fetchAuthorNames(decoded.authors ?? [])
+            let decoded = try JSONDecoder().decode(GoogleBooksSearchResponse.self, from: data)
+            guard let match = bestMatch(for: isbn, in: decoded.items) else {
+                throw ISBNMetadataError.notFound
+            }
 
-            edition = decoded
-            authorNames = names
+            volume = match
             rawResponse = prettyPrintedJSON(from: data)
         } catch {
             errorMessage = error.localizedDescription
@@ -201,35 +216,39 @@ struct ISBNMetadataResultView: View {
         isLoading = false
     }
 
-    private func fetchAuthorNames(_ references: [OpenLibraryReference]) async -> [String] {
-        var names: [String] = []
+    private func bestMatch(
+        for isbn: String,
+        in volumes: [GoogleBooksVolume]?
+    ) -> GoogleBooksVolume? {
+        guard let volumes, !volumes.isEmpty else { return nil }
 
-        for reference in references {
-            guard let url = openLibraryURL(path: "\(reference.key).json") else { continue }
-
-            do {
-                let (data, response) = try await URLSession.shared.data(from: url)
-                guard let httpResponse = response as? HTTPURLResponse,
-                      (200..<300).contains(httpResponse.statusCode),
-                      let author = try? JSONDecoder().decode(OpenLibraryAuthor.self, from: data),
-                      let name = author.name,
-                      !name.isEmpty else {
-                    continue
-                }
-                names.append(name)
-            } catch {
-                continue
-            }
+        if let exactMatch = volumes.first(where: { volume in
+            volume.volumeInfo.industryIdentifiers?
+                .contains(where: { normalizeISBN($0.identifier) == isbn }) == true
+        }) {
+            return exactMatch
         }
 
-        return names
+        return volumes.first
     }
 
-    private func openLibraryURL(path: String) -> URL? {
+    private func normalizeISBN(_ value: String) -> String {
+        value
+            .filter { $0.isNumber || $0 == "X" || $0 == "x" }
+            .uppercased()
+    }
+
+    private func googleBooksURL(for isbn: String) -> URL? {
         var components = URLComponents()
         components.scheme = "https"
-        components.host = "openlibrary.org"
-        components.path = path
+        components.host = "www.googleapis.com"
+        components.path = "/books/v1/volumes"
+        components.queryItems = [
+            URLQueryItem(name: "q", value: "isbn:\(isbn)"),
+            URLQueryItem(name: "maxResults", value: "10"),
+            URLQueryItem(name: "printType", value: "books"),
+            URLQueryItem(name: "projection", value: "full")
+        ]
         return components.url
     }
 
@@ -304,47 +323,51 @@ private enum ISBNParser {
     }
 }
 
-private struct OpenLibraryReference: Decodable {
-    let key: String
+private struct GoogleBooksSearchResponse: Decodable {
+    let totalItems: Int?
+    let items: [GoogleBooksVolume]?
 }
 
-private struct OpenLibraryAuthor: Decodable {
-    let name: String?
+private struct GoogleBooksVolume: Decodable {
+    let id: String
+    let volumeInfo: GoogleBooksVolumeInfo
 }
 
-private struct OpenLibraryEdition: Decodable {
-    let key: String?
+private struct GoogleBooksVolumeInfo: Decodable {
     let title: String?
     let subtitle: String?
-    let authors: [OpenLibraryReference]?
-    let publishers: [String]?
-    let publishDate: String?
-    let numberOfPages: Int?
-    let isbn10: [String]?
-    let isbn13: [String]?
-    let languages: [OpenLibraryReference]?
-    let subjects: [String]?
-    let covers: [Int]?
-    let series: [String]?
-    let contributions: [String]?
-    let publishPlaces: [String]?
+    let authors: [String]?
+    let publisher: String?
+    let publishedDate: String?
+    let description: String?
+    let industryIdentifiers: [GoogleBooksIndustryIdentifier]?
+    let pageCount: Int?
+    let categories: [String]?
+    let imageLinks: GoogleBooksImageLinks?
+    let language: String?
+    let previewLink: String?
+    let infoLink: String?
+}
 
-    enum CodingKeys: String, CodingKey {
-        case key
-        case title
-        case subtitle
-        case authors
-        case publishers
-        case languages
-        case subjects
-        case covers
-        case series
-        case contributions
-        case publishDate = "publish_date"
-        case numberOfPages = "number_of_pages"
-        case isbn10 = "isbn_10"
-        case isbn13 = "isbn_13"
-        case publishPlaces = "publish_places"
+private struct GoogleBooksIndustryIdentifier: Decodable {
+    let type: String
+    let identifier: String
+
+    var displayKey: String {
+        "\(type):\(identifier)"
+    }
+}
+
+private struct GoogleBooksImageLinks: Decodable {
+    let smallThumbnail: String?
+    let thumbnail: String?
+    let small: String?
+    let medium: String?
+    let large: String?
+    let extraLarge: String?
+
+    var bestAvailable: String? {
+        extraLarge ?? large ?? medium ?? small ?? thumbnail ?? smallThumbnail
     }
 }
 
@@ -357,13 +380,13 @@ private enum ISBNMetadataError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Could not create the Open Library request URL."
+            return "Could not create the Google Books request URL."
         case .invalidResponse:
-            return "Open Library returned an invalid response."
+            return "Google Books returned an invalid response."
         case .notFound:
-            return "Open Library has no edition for this ISBN."
+            return "Google Books has no volume for this ISBN."
         case .httpStatus(let statusCode):
-            return "Open Library returned HTTP \(statusCode)."
+            return "Google Books returned HTTP \(statusCode)."
         }
     }
 }
