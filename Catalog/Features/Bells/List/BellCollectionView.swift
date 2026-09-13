@@ -126,6 +126,7 @@ struct BellCollectionView: View {
                 return String(localized: option.title)
             },
             canEdit: canEditCollection,
+            isEditAccessResolved: collectionSharingState != nil || collectionSharingLoadError != nil,
             onEdit: {
                 guard canEditCollection else { return }
                 isPresentingEditCollection = true
@@ -326,7 +327,6 @@ struct BellCollectionView: View {
 
     @MainActor
     private func loadCollectionSharingState() async {
-        collectionSharingState = nil
         collectionSharingLoadError = nil
 
         do {
