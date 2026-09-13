@@ -110,6 +110,12 @@ struct BellCollectionView: View {
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: selectedLayoutModeBinding,
             isPresentingAddOptions: $isPresentingAddBellOptions,
+            multiPhotoCreation: CatalogMultiPhotoCreationConfiguration(
+                isPresented: $isPresentingPhotoCreationChoice,
+                photoCount: draftMediaAssets.count,
+                onSelect: handlePhotoCreationMode,
+                onCancel: clearDraftBell
+            ),
             sortOptions: [.newestFirst, .title, .geography, .acquisitionYear, .storage],
             sortSectionTitle: String(localized: "common.sort"),
             sortTitle: { option in
@@ -163,12 +169,6 @@ struct BellCollectionView: View {
                 maxSelectionCount: nil,
                 matching: .images,
                 photoLibrary: .shared()
-            )
-            .catalogMultiPhotoCreationDialog(
-                isPresented: $isPresentingPhotoCreationChoice,
-                photoCount: draftMediaAssets.count,
-                onSelect: handlePhotoCreationMode,
-                onCancel: clearDraftBell
             )
             .fullScreenCover(isPresented: $isPresentingCamera) {
                 cameraPicker
