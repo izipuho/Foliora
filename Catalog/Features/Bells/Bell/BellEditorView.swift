@@ -49,23 +49,15 @@ struct BellEditorView: View {
     let catalogSnapshot: CatalogSnapshot?
     let startSection: StartSection?
     let initialAnalysisImage: UIImage?
+    private let existingBell: BellRecord?
+    private let onDelete: (() -> Void)?
     let onSave: (BellRecord) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @FocusState private var focusedField: FocusedField?
-    @State private var title = ""
-    @State private var notes = ""
-    @State private var condition: ItemCondition = .good
-    @State private var acquisitionMethod: AcquisitionMethod = .bought
-    @State private var material: BellMaterial = .unknown
-    @State private var customMaterialName = ""
-    @State private var selectedOriginPlace: Place?
-    @State private var selectedLocationID: UUID?
+    @State private var editorState: BellEditorState
     @State private var tagInput = ""
-    @State private var tags: [String] = []
-    @State private var mediaAssets: [MediaAsset] = []
-    @State private var selectedAcquiredYearOption = String(localized: "common.none")
     @State private var highlightedSection: StartSection?
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
@@ -80,9 +72,7 @@ struct BellEditorView: View {
     @State private var draftHomeLocations: [Location] = []
     @State private var shouldPresentLocationPickerAfterHomeEditor = false
     @State private var locationPickerPresentationToken = 0
-    private let existingBellID: UUID?
-    private let existingCreatedAt: Date?
-    private let existingIsFavorite: Bool
+    @State private var isPresentingDeleteConfirmation = false
     private let editorItemID: UUID
 
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -117,11 +107,7 @@ struct BellEditorView: View {
     }
 
     private var canSave: Bool {
-        isTitleValid
-    }
-
-    private var isTitleValid: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        editorState.canSave
     }
 
     private var shouldShowPhotoAnalysisSection: Bool {
@@ -145,6 +131,7 @@ struct BellEditorView: View {
         initialMediaAssets: [MediaAsset] = [],
         initialAnalysisImage: UIImage? = nil,
         startSection: StartSection? = nil,
+        onDelete: (() -> Void)? = nil,
         onSave: @escaping (BellRecord) -> Void
     ) {
         self.collection = collection
@@ -152,22 +139,16 @@ struct BellEditorView: View {
         self.catalogSnapshot = catalogSnapshot
         self.startSection = startSection
         self.initialAnalysisImage = initialAnalysisImage
+        self.existingBell = bell
+        self.onDelete = onDelete
         self.onSave = onSave
-        self.existingBellID = bell?.id
-        self.existingCreatedAt = bell?.createdAt
-        self.existingIsFavorite = bell?.isFavorite ?? false
         self.editorItemID = bell?.id ?? UUID()
-        _title = State(initialValue: bell?.title ?? "")
-        _notes = State(initialValue: bell?.notes ?? "")
-        _condition = State(initialValue: bell?.condition ?? .good)
-        _acquisitionMethod = State(initialValue: bell?.acquisitionMethod ?? .bought)
-        _material = State(initialValue: bell?.details.material ?? .unknown)
-        _customMaterialName = State(initialValue: bell?.details.customMaterialName ?? "")
-        _selectedOriginPlace = State(initialValue: bell?.originPlace)
-        _selectedLocationID = State(initialValue: bell?.item.locationID)
-        _tags = State(initialValue: bell?.tags ?? [])
-        _mediaAssets = State(initialValue: bell?.mediaAssets ?? initialMediaAssets)
-        _selectedAcquiredYearOption = State(initialValue: bell?.acquiredYear.map(String.init) ?? String(localized: "common.none"))
+        _editorState = State(
+            initialValue: BellEditorState(
+                bell: bell,
+                initialMediaAssets: initialMediaAssets
+            )
+        )
     }
 
     var body: some View {
@@ -179,7 +160,7 @@ struct BellEditorView: View {
                         {
                             MediaSection(
                                 itemID: editorItemID,
-                                mediaAssets: $mediaAssets,
+                                mediaAssets: $editorState.mediaAssets,
                                 analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
                             )
                             .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
@@ -220,7 +201,7 @@ struct BellEditorView: View {
                                             suggestedValue: localizedPhotoSuggestions?.title ?? titleSuggestion.value,
                                             confidence: titleSuggestion.confidence,
                                             onAccept: {
-                                                title = titleSuggestion.value
+                                                editorState.title = titleSuggestion.value
                                                 localizedPhotoSuggestions?.title = nil
                                                 photoAnalysis.dismiss(.title)
                                             }
@@ -233,7 +214,7 @@ struct BellEditorView: View {
                                             suggestedValue: localizedPhotoSuggestions?.notes ?? notesSuggestion.value,
                                             confidence: notesSuggestion.confidence,
                                             onAccept: {
-                                                notes = notesSuggestion.value
+                                                editorState.notes = notesSuggestion.value
                                                 localizedPhotoSuggestions?.notes = nil
                                                 photoAnalysis.dismiss(.notes)
                                             }
@@ -246,13 +227,13 @@ struct BellEditorView: View {
                                             suggestedValue: materialSuggestionLabel(materialSuggestion),
                                             confidence: materialSuggestion.confidence,
                                             onAccept: {
-                                                material = materialSuggestion.value
+                                                editorState.material = materialSuggestion.value
                                                 if materialSuggestion.value == .other {
-                                                    customMaterialName = photoAnalysis.suggestions.customMaterialName?.value ?? ""
+                                                    editorState.customMaterialName = photoAnalysis.suggestions.customMaterialName?.value ?? ""
                                                     localizedPhotoSuggestions?.customMaterialName = nil
                                                     photoAnalysis.dismiss(.customMaterialName)
                                                 } else {
-                                                    customMaterialName = ""
+                                                    editorState.customMaterialName = ""
                                                 }
                                                 photoAnalysis.dismiss(.material)
                                             }
@@ -265,7 +246,7 @@ struct BellEditorView: View {
                                             suggestedValue: conditionSuggestion.value.displayName,
                                             confidence: conditionSuggestion.confidence,
                                             onAccept: {
-                                                condition = conditionSuggestion.value
+                                                editorState.condition = conditionSuggestion.value
                                                 photoAnalysis.dismiss(.condition)
                                             }
                                         )
@@ -277,7 +258,7 @@ struct BellEditorView: View {
                                             suggestedValue: String(yearSuggestion.value),
                                             confidence: yearSuggestion.confidence,
                                             onAccept: {
-                                                selectedAcquiredYearOption = String(yearSuggestion.value)
+                                                editorState.selectedAcquiredYearOption = String(yearSuggestion.value)
                                                 photoAnalysis.dismiss(.suggestedYear)
                                             }
                                         )
@@ -289,7 +270,7 @@ struct BellEditorView: View {
                                             suggestedValue: geoSuggestion.value.name,
                                             confidence: geoSuggestion.confidence,
                                             onAccept: {
-                                                selectedOriginPlace = place(from: geoSuggestion.value)
+                                                editorState.selectedOriginPlace = place(from: geoSuggestion.value)
                                                 photoAnalysis.dismiss(.suggestedGeo)
                                             }
                                         )
@@ -301,8 +282,8 @@ struct BellEditorView: View {
                                             suggestions: photoAnalysis.suggestions.suggestedTags,
                                             localizedSuggestions: localizedPhotoSuggestions?.suggestedTags,
                                             onAccept: { newValues in
-                                                for value in newValues where !tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
-                                                    tags.append(value)
+                                                for value in newValues where !editorState.tags.contains(where: { $0.caseInsensitiveCompare(value) == .orderedSame }) {
+                                                    editorState.tags.append(value)
                                                 }
                                                 localizedPhotoSuggestions?.suggestedTags = []
                                                 photoAnalysis.dismiss(.suggestedTags)
@@ -314,10 +295,10 @@ struct BellEditorView: View {
                         }
 
                         Section(String(localized: "common.field.description")) {
-                            TextField(String(localized: "editor.short_description"), text: $title)
+                            TextField(String(localized: "editor.short_description"), text: $editorState.title)
                                 .focused($focusedField, equals: .title)
 
-                            if !isTitleValid {
+                            if !editorState.isTitleValid {
                                 Button {
                                     focusTitleValidation()
                                 } label: {
@@ -334,7 +315,7 @@ struct BellEditorView: View {
                                 .accessibilityHint(String(localized: "editor.title.focus"))
                             }
 
-                            TextField(String(localized: "editor.note_history"), text: $notes, axis: .vertical)
+                            TextField(String(localized: "editor.note_history"), text: $editorState.notes, axis: .vertical)
                                 .lineLimit(4, reservesSpace: true)
 
                             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
@@ -344,7 +325,7 @@ struct BellEditorView: View {
 
                                 TagEditorSection(
                                     tagInput: $tagInput,
-                                    tags: $tags
+                                    tags: $editorState.tags
                                 )
                             }
                         }
@@ -352,15 +333,15 @@ struct BellEditorView: View {
                         Section(String(localized: "editor.acquisition_details")) {
                             YearPickerField(
                                 title: String(localized: "item.detail.acquisition_year"),
-                                selection: $selectedAcquiredYearOption,
+                                selection: $editorState.selectedAcquiredYearOption,
                                 options: acquiredYearOptions
                             )
 
                             EnumSelectionRow(
                                 title: String(localized: "item.detail.acquisition"),
-                                selectedLabel: acquisitionMethod.displayName,
+                                selectedLabel: editorState.acquisitionMethod.displayName,
                                 options: AcquisitionMethod.allCases,
-                                selection: $acquisitionMethod,
+                                selection: $editorState.acquisitionMethod,
                                 optionTitle: \.displayName
                             )
                         }
@@ -368,22 +349,22 @@ struct BellEditorView: View {
                         Section(String(localized: "editor.attributes")) {
                             EnumSelectionRow(
                                 title: String(localized: "common.field.condition"),
-                                selectedLabel: condition.displayName,
+                                selectedLabel: editorState.condition.displayName,
                                 options: ItemCondition.allCases,
-                                selection: $condition,
+                                selection: $editorState.condition,
                                 optionTitle: \.displayName
                             )
 
                             EnumSelectionRow(
                                 title: String(localized: "common.field.material"),
-                                selectedLabel: material.displayName,
+                                selectedLabel: editorState.material.displayName,
                                 options: BellMaterial.allCases,
-                                selection: $material,
+                                selection: $editorState.material,
                                 optionTitle: \.displayName
                             )
 
-                            if material == .other {
-                                TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
+                            if editorState.material == .other {
+                                TextField(String(localized: "editor.material.custom"), text: $editorState.customMaterialName)
                             }
 
                         }
@@ -394,7 +375,7 @@ struct BellEditorView: View {
                                 selectedLabel: selectedOriginLabel,
                                 collectionID: collection.id,
                                 places: availablePlaces,
-                                selectedPlace: $selectedOriginPlace
+                                selectedPlace: $editorState.selectedOriginPlace
                             )
 
                             LocationPickerField(
@@ -405,12 +386,12 @@ struct BellEditorView: View {
                                     presentHomeEditor()
                                 },
                                 presentationToken: locationPickerPresentationToken,
-                                selectedLocationID: $selectedLocationID
+                                selectedLocationID: $editorState.selectedLocationID
                             )
                         }
                     }
                 }
-                .navigationTitle(existingBellID == nil ? String(localized: "editor.bell.add") : String(localized: "editor.bell.edit"))
+                .navigationTitle(existingBell == nil ? String(localized: "editor.bell.add") : String(localized: "editor.bell.edit"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
@@ -418,11 +399,36 @@ struct BellEditorView: View {
                         .accessibilityLabel(String(localized: "common.cancel"))
                     }
 
+                    if existingBell != nil, onDelete != nil {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(role: .destructive) {
+                                isPresentingDeleteConfirmation = true
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .tint(CatalogSemanticColors.destructive)
+                            .accessibilityLabel(String(localized: "common.delete"))
+                        }
+                    }
+
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { requestSave() } label: { Image(systemName: "checkmark") }
                         .opacity(canSave ? 1 : 0.35)
                         .accessibilityLabel(String(localized: "common.save"))
                     }
+                }
+                .confirmationDialog(
+                    String(localized: "bell.context.delete.title"),
+                    isPresented: $isPresentingDeleteConfirmation,
+                    titleVisibility: .visible
+                ) {
+                    Button(String(localized: "common.delete"), role: .destructive) {
+                        onDelete?()
+                    }
+
+                    Button(String(localized: "common.cancel"), role: .cancel) {}
+                } message: {
+                    Text(String(localized: "bell.context.delete.message"))
                 }
                 .task {
                     startInitialPhotoAnalysisIfNeeded()
@@ -517,7 +523,7 @@ struct BellEditorView: View {
     }
 
     private func startInitialPhotoAnalysisIfNeeded() {
-        guard !didStartInitialAnalysis, existingBellID == nil, let initialAnalysisImage else { return }
+        guard !didStartInitialAnalysis, existingBell == nil, let initialAnalysisImage else { return }
         didStartInitialAnalysis = true
         isLocalizingPhotoSuggestions = true
         localizedPhotoSuggestions = nil
@@ -623,7 +629,7 @@ struct BellEditorView: View {
 
     private func requestSave() {
         guard canSave else {
-            if !isTitleValid {
+            if !editorState.isTitleValid {
                 focusTitleValidation()
             } else {
                 emitAnalysisFeedback(.warning)
@@ -641,7 +647,7 @@ struct BellEditorView: View {
     }
 
     private var firstPhotoAssetID: UUID? {
-        mediaAssets
+        editorState.mediaAssets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
             .first?
@@ -649,42 +655,11 @@ struct BellEditorView: View {
     }
 
     private func saveBell() {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedCustomMaterial = customMaterialName.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        let itemID = editorItemID
-        let location = availableLocations.first(where: { $0.id == selectedLocationID })
-        let originPlace = selectedOriginPlace
-        let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
-            asset.with(itemID: itemID, sortOrder: index)
-        }
-
-        let newBell = BellRecord(
-            item: ItemRecord(
-                id: itemID,
-                collectionID: collection.id,
-                locationID: selectedLocationID,
-                originPlaceID: selectedOriginPlace?.id,
-                createdAt: existingCreatedAt ?? .now,
-                createdBy: "You",
-                title: trimmedTitle,
-                notes: trimmedNotes,
-                acquiredYear: selectedAcquiredYearOption == String(localized: "common.none") ? nil : Int(selectedAcquiredYearOption),
-                condition: condition,
-                acquisitionMethod: acquisitionMethod,
-                isFavorite: existingIsFavorite,
-                tags: tags,
-                originPlace: originPlace,
-                storageLocation: location,
-                storagePath: location.map(storagePath(for:)),
-                mediaAssets: normalizedMediaAssets
-            ),
-            details: BellDetails(
-                itemID: itemID,
-                material: material,
-                customMaterialName: material == .other ? trimmedCustomMaterial : nil
-            )
+        let newBell = editorState.makeBell(
+            itemID: editorItemID,
+            collectionID: collection.id,
+            existingBell: existingBell,
+            availableLocations: availableLocations
         )
 
         onSave(newBell)
@@ -692,7 +667,7 @@ struct BellEditorView: View {
     }
 
     private var selectedOriginLabel: String {
-        selectedOriginPlace?.displayName ?? String(localized: "common.unassigned")
+        editorState.selectedOriginPlace?.displayName ?? String(localized: "common.unassigned")
     }
 
     private func place(from geoPoint: GeoPoint) -> Place {
@@ -710,35 +685,12 @@ struct BellEditorView: View {
     }
 
     private var selectedLocationLabel: String {
-        guard let selectedLocationID, let path = locationPathByID[selectedLocationID] else {
+        guard let selectedLocationID = editorState.selectedLocationID,
+              let path = locationPathByID[selectedLocationID] else {
             return String(localized: "common.unassigned")
         }
 
         return path
-    }
-
-    private func storagePath(for location: Location) -> StoragePath {
-        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
-        var components = [
-            StoragePath.Component(
-                kind: location.kind,
-                name: location.name
-            )
-        ]
-        var currentParentID = location.parentLocationID
-
-        while let parentID = currentParentID, let parent = locationsByID[parentID] {
-            components.insert(
-                StoragePath.Component(
-                    kind: parent.kind,
-                    name: parent.name
-                ),
-                at: 0
-            )
-            currentParentID = parent.parentLocationID
-        }
-
-        return StoragePath(components: components)
     }
 
     private func materialSuggestionLabel(_ suggestion: SuggestedFieldValue<BellMaterial>) -> String {
