@@ -90,7 +90,7 @@ struct BellEditorStateTests {
             availableLocations: [parentLocation, location]
         )
 
-        #expect(result.collectionID == collectionID)
+        #expect(result.item.collectionID == collectionID)
         #expect(result.createdAt == createdAt)
         #expect(result.isFavorite)
         #expect(result.title == "New Title")
