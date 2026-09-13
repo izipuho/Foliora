@@ -9,6 +9,7 @@ struct BellDetailView: View {
     let canEditCollection: Bool
     let canChangeFavorite: Bool
     let onClose: (() -> Void)?
+    @Environment(\.dismiss) private var dismiss
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
@@ -84,7 +85,8 @@ struct BellDetailView: View {
                         collection: collection,
                         repository: repository,
                         catalogSnapshot: catalogSnapshot,
-                        bell: bell
+                        bell: bell,
+                        onDelete: deleteBell
                     ) { updatedBell in
                         repository.saveBellRecord(updatedBell)
                         bell = updatedBell
@@ -569,6 +571,20 @@ struct BellDetailView: View {
         let path = location.map { storagePath(for: $0, locationsByID: locationsByID) }
         updatedItem.setStorageLocation(location, path: path)
         save(updatedItem)
+    }
+
+    private func deleteBell() {
+        repository.deleteBellRecord(bellID: bell.id)
+        isPresentingEditor = false
+
+        Task { @MainActor in
+            await Task.yield()
+            if let onClose {
+                onClose()
+            } else {
+                dismiss()
+            }
+        }
     }
 
     private func save(_ item: ItemRecord) {
