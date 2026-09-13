@@ -203,12 +203,6 @@ struct LibraryView: View {
                 matching: .images,
                 photoLibrary: .shared()
             )
-            .catalogMultiPhotoCreationDialog(
-                isPresented: $isPresentingPhotoCreationChoice,
-                photoCount: draftMediaAssets.count,
-                onSelect: handlePhotoCreationMode,
-                onCancel: clearDraftBook
-            )
             .fullScreenCover(isPresented: $isPresentingCamera) {
                 CameraPicker { image in
                     Task {
@@ -604,6 +598,12 @@ struct LibraryView: View {
                 selectedSort: selectedOrderBinding,
                 selectedLayoutMode: layoutMode,
                 isPresentingAddOptions: $isPresentingAddBookOptions,
+                multiPhotoCreation: CatalogMultiPhotoCreationConfiguration(
+                    isPresented: $isPresentingPhotoCreationChoice,
+                    photoCount: draftMediaAssets.count,
+                    onSelect: handlePhotoCreationMode,
+                    onCancel: clearDraftBook
+                ),
                 sortOptions: LibraryOrderMode.allCases,
                 sortSectionTitle: String(localized: "common.sort"),
                 sortTitle: { $0.title },
