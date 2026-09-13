@@ -608,6 +608,7 @@ struct LibraryView: View {
                 sortSectionTitle: String(localized: "common.sort"),
                 sortTitle: { $0.title },
                 canEdit: canEditLibrary,
+                isEditAccessResolved: collectionSharingState != nil || collectionSharingLoadError != nil,
                 onEdit: {
                     isPresentingEditLibrary = true
                 },
@@ -735,7 +736,6 @@ struct LibraryView: View {
 
     @MainActor
     private func loadCollectionSharingState() async {
-        collectionSharingState = nil
         collectionSharingLoadError = nil
 
         do {
