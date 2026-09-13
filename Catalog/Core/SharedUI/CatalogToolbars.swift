@@ -24,6 +24,7 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
     private let sortSectionTitle: String
     private let sortTitle: (SortOption) -> String
     private let canEdit: Bool
+    private let isEditAccessResolved: Bool
     private let onEdit: () -> Void
     private let onPhotoLibrary: () -> Void
     private let onCamera: () -> Void
@@ -37,6 +38,7 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         sortSectionTitle: String,
         sortTitle: @escaping (SortOption) -> String,
         canEdit: Bool,
+        isEditAccessResolved: Bool = true,
         onEdit: @escaping () -> Void,
         onPhotoLibrary: @escaping () -> Void,
         onCamera: @escaping () -> Void
@@ -49,17 +51,19 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         self.sortSectionTitle = sortSectionTitle
         self.sortTitle = sortTitle
         self.canEdit = canEdit
+        self.isEditAccessResolved = isEditAccessResolved
         self.onEdit = onEdit
         self.onPhotoLibrary = onPhotoLibrary
         self.onCamera = onCamera
     }
 
     var body: some ToolbarContent {
-        if canEdit {
+        if showsEditControls {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: onEdit) {
                     toolbarIcon(systemName: "square.and.pencil")
                 }
+                .disabled(!canEdit)
             }
         }
 
@@ -73,7 +77,7 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
             )
         }
 
-        if canEdit {
+        if showsEditControls {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     isPresentingAddOptions = true
@@ -122,8 +126,13 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
                         Button(String(localized: "common.cancel"), role: .cancel) {}
                     }
                 }
+                .disabled(!canEdit)
             }
         }
+    }
+
+    private var showsEditControls: Bool {
+        canEdit || !isEditAccessResolved
     }
 
     private var addDialogPresentation: Binding<Bool> {
