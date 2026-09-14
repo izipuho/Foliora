@@ -2,24 +2,24 @@ import SwiftUI
 
 /// Displays the bell grid view interface.
 struct BellGridView: View {
-    let bells: [BellListItem]
+    let bells: [BellCatalogItem]
     let layoutMode: CatalogCardLayoutMode
     let bottomContentMargin: CGFloat?
     let layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics?
-    @Binding var cardManagement: CatalogCardManagementState<BellListItem>
+    @Binding var cardManagement: CatalogCardManagementState<BellCatalogItem>
     let canManage: Bool
-    let shouldHandleTap: (BellListItem) -> Bool
-    let onOpen: (BellListItem) -> Void
+    let shouldHandleTap: (BellCatalogItem) -> Bool
+    let onOpen: (BellCatalogItem) -> Void
 
     init(
-        bells: [BellListItem],
+        bells: [BellCatalogItem],
         layoutMode: CatalogCardLayoutMode,
         bottomContentMargin: CGFloat? = nil,
         layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics? = nil,
-        cardManagement: Binding<CatalogCardManagementState<BellListItem>>,
+        cardManagement: Binding<CatalogCardManagementState<BellCatalogItem>>,
         canManage: Bool,
-        shouldHandleTap: @escaping (BellListItem) -> Bool = { _ in true },
-        onOpen: @escaping (BellListItem) -> Void
+        shouldHandleTap: @escaping (BellCatalogItem) -> Bool = { _ in true },
+        onOpen: @escaping (BellCatalogItem) -> Void
     ) {
         self.bells = bells
         self.layoutMode = layoutMode

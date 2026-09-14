@@ -2,8 +2,8 @@ import CoreData
 import Foundation
 
 extension CatalogSnapshot {
-    var bells: [BellListItem] {
-        bellRecords.map(Self.bellListItem)
+    var bells: [BellCatalogItem] {
+        bellRecords.map(Self.bellCatalogItem)
     }
 
     var bellRecords: [BellRecord] {
@@ -17,12 +17,12 @@ extension CatalogSnapshot {
         Dictionary(uniqueKeysWithValues: bellRecords.map { ($0.id, $0) })
     }
 
-    private static func bellListItem(from record: BellRecord) -> BellListItem {
+    private static func bellCatalogItem(from record: BellRecord) -> BellCatalogItem {
         let coverPhoto = record.mediaAssets
             .sorted { $0.sortOrder < $1.sortOrder }
             .first { $0.kind == .photo }
 
-        return BellListItem(
+        return BellCatalogItem(
             id: record.id,
             title: record.title,
             notes: record.notes,

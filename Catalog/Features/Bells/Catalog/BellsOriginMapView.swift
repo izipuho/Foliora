@@ -10,12 +10,12 @@ struct BellsOriginMapView: View {
     @State private var position: MapCameraPosition = .automatic
     @State private var selectedGroupID: String?
 
-    private var mappedBells: [BellListItem] {
+    private var mappedBells: [BellCatalogItem] {
         catalogSnapshot?.bells.filter { $0.collectionID == collection.id } ?? []
     }
 
     private var mappedGroups: [MapBellGroup] {
-        let grouped = Dictionary(grouping: mappedBells.compactMap { bell -> (String, BellListItem, CLLocationCoordinate2D)? in
+        let grouped = Dictionary(grouping: mappedBells.compactMap { bell -> (String, BellCatalogItem, CLLocationCoordinate2D)? in
             guard let latitude = bell.originLatitude,
                   let longitude = bell.originLongitude else {
                 return nil
@@ -130,7 +130,7 @@ private struct MapBellGroup: Identifiable {
     let id: String
     let coordinate: CLLocationCoordinate2D
 
-    let bells: [BellListItem]
+    let bells: [BellCatalogItem]
 
     var title: String {
         bells.first?.title ?? ""
@@ -138,7 +138,7 @@ private struct MapBellGroup: Identifiable {
 }
 
 private struct MapBellAnnotationView: View {
-    let bells: [BellListItem]
+    let bells: [BellCatalogItem]
     let isSelected: Bool
     let accentColor: Color
 
@@ -190,7 +190,7 @@ private struct MapBellAnnotationView: View {
 }
 
 private struct MapSelectionPanel: View {
-    let bells: [BellListItem]
+    let bells: [BellCatalogItem]
     let onBellSelected: ((UUID) -> Void)?
 
     var body: some View {
