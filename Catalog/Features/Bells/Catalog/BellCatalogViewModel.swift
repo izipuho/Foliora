@@ -121,23 +121,6 @@ final class BellCatalogViewModel: ObservableObject {
         )
     }
 
-    func bell(withID id: UUID) -> BellCatalogItem? {
-        switch displayModel.layout {
-        case .empty:
-            return nil
-        case .flat(let bells):
-            return bells.first { $0.id == id }
-        case .grouped(let sections):
-            for section in sections {
-                if let bell = section.allBells.first(where: { $0.id == id }) {
-                    return bell
-                }
-            }
-
-            return nil
-        }
-    }
-
     private func filteredBells(from bells: [BellCatalogItem]) -> [BellCatalogItem] {
         bells.filter { bell in
             matches(bell: bell, filters: filters)
@@ -447,11 +430,4 @@ struct BellStorageGroup: Identifiable {
     let kind: LocationKind
     let title: String
     let bells: [BellCatalogItem]
-}
-
-/// Represents bell geography index entry data and behavior.
-struct BellGeographyIndexEntry: Identifiable {
-    let id: String
-    let title: String
-    let targetSectionID: String
 }

@@ -105,7 +105,6 @@ struct BellCatalogView: View {
     @State private var didEndActivePinchGesture = false
     @State private var isFavoritesCollapsed = false
     @StateObject private var viewModel: BellCatalogViewModel
-    @Namespace private var bellGridTransitionNamespace
 
     init(
         collection: CollectionSummary?,
@@ -475,16 +474,6 @@ struct BellCatalogView: View {
         return cardSize.width * CGFloat(gridMetrics.columnCount) + totalSpacing + CatalogCardLayoutMode.screenHorizontalPadding * 2
     }
 
-    private func focusGeography(country: String) {
-        let targetID = "geography-\(country)"
-        if orderMode != .geography {
-            pendingScrollTargetID = targetID
-            orderMode = .geography
-        } else {
-            requestScroll(to: targetID)
-        }
-    }
-
     @ViewBuilder
     private func groupedBellSectionsContent(
         sections: [BellGroupedSection],
@@ -599,22 +588,6 @@ struct BellCatalogView: View {
             )
         }
 
-        emitFeedback(.success)
-    }
-
-    private func batchEditBells(_ bells: [BellCatalogItem], edit: ItemBatchEdit) {
-        guard canEditCollection else { return }
-
-        let updatedRecords = bells.compactMap { bell -> BellRecord? in
-            guard let record = catalogSnapshot?.recordsByID[bell.id] else { return nil }
-            return BellRecord(
-                item: edit.applying(to: record.item),
-                details: record.details
-            )
-        }
-        guard !updatedRecords.isEmpty else { return }
-
-        repository.saveBellRecords(updatedRecords)
         emitFeedback(.success)
     }
 
