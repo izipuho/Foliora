@@ -159,18 +159,6 @@ struct CatalogStorageContext {
     }
 }
 
-/// Propagates whether an item collection is currently in multi-selection mode.
-struct CatalogSelectionModePreferenceKey: PreferenceKey {
-    static let defaultValue = false
-
-    static func reduce(value: inout Bool, nextValue: () -> Bool) {
-        value = value || nextValue()
-    }
-}
-
-/// Compatibility alias for existing bell collection-shell consumers.
-typealias BellCatalogSelectionModePreferenceKey = CatalogSelectionModePreferenceKey
-
 /// Provides shared tap, selection-overlay and context-menu behavior for catalog item cards.
 struct CatalogInteractiveCard<Content: View>: View {
     let cardSize: CGSize
@@ -465,7 +453,6 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                 Text(deleteMessage)
             }
             .toolbar(state.isSelectionModeEnabled ? .hidden : .visible, for: .tabBar)
-            .preference(key: CatalogSelectionModePreferenceKey.self, value: state.isSelectionModeEnabled)
             .toolbar {
                 if state.isSelectionModeEnabled {
                     ToolbarItem(placement: .topBarTrailing) {

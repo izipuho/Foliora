@@ -29,7 +29,7 @@ struct BellCollectionView: View {
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
     private let layoutMode: Binding<CatalogCardLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
-    @State private var isBellCatalogSelectionMode = false
+    @State private var cardManagement = CatalogCardManagementState<BellListItem>()
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
     init(
@@ -147,12 +147,9 @@ struct BellCollectionView: View {
 
         content
             .toolbar {
-                if !isBellCatalogSelectionMode {
+                if !cardManagement.isSelectionModeEnabled {
                     collectionToolbar
                 }
-            }
-            .onPreferenceChange(BellCatalogSelectionModePreferenceKey.self) { isSelectionMode in
-                isBellCatalogSelectionMode = isSelectionMode
             }
             .onReceive(NotificationCenter.default.publisher(for: .catalogItemFavoriteDidChange)) { notification in
                 guard
@@ -227,6 +224,7 @@ struct BellCollectionView: View {
                     layoutMode: selectedLayoutModeBinding,
                     orderMode: selectedOrderBinding,
                     filters: $selectedSummaryFilter,
+                    cardManagement: $cardManagement,
                     sharingState: collectionSharingState ?? .privateState,
                     sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer),
                     onSharingChanged: {

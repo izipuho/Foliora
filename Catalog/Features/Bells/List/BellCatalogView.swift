@@ -96,7 +96,7 @@ struct BellCatalogView: View {
     @Binding var layoutMode: CatalogCardLayoutMode
     @Binding var orderMode: BellOrderMode
     @Binding var filters: BellFilters
-    @State private var cardManagement = CatalogCardManagementState<BellListItem>()
+    @Binding var cardManagement: CatalogCardManagementState<BellListItem>
     @State private var activeJumpPopoverSectionID: String?
     @State private var pendingScrollTargetID: String?
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
@@ -114,6 +114,7 @@ struct BellCatalogView: View {
         layoutMode: Binding<CatalogCardLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
+        cardManagement: Binding<CatalogCardManagementState<BellListItem>> = .constant(CatalogCardManagementState()),
         sharingState: CollectionSharingState,
         sharingService: (any CollectionSharingService)? = nil,
         onSharingChanged: @escaping () -> Void = {},
@@ -131,6 +132,7 @@ struct BellCatalogView: View {
         self._layoutMode = layoutMode
         self._orderMode = orderMode
         self._filters = filters
+        self._cardManagement = cardManagement
         _viewModel = StateObject(
             wrappedValue: BellCatalogViewModel(
                 orderMode: orderMode.wrappedValue,
