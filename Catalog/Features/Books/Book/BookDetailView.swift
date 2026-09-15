@@ -636,16 +636,12 @@ struct BookDetailView: View {
         return storagePath.displayPath
     }
 
+    private var storageContext: CatalogStorageContext {
+        CatalogStorageContext(snapshot: catalogSnapshot, collection: inferredCollection)
+    }
+
     private var availableLocations: [Location] {
-        guard let snapshot = catalogSnapshot,
-              let collection = inferredCollection else { return [] }
-
-        let collectionLocations = snapshot.collectionLocationsByCollectionID[collection.id] ?? []
-        if !collectionLocations.isEmpty {
-            return collectionLocations
-        }
-
-        return snapshot.locationsByHomeID[collection.homeID] ?? []
+        storageContext.availableLocations
     }
 
     private var inferredCollection: CollectionSummary? {
@@ -865,11 +861,8 @@ struct BookDetailView: View {
     private func persistStorage(locationID: UUID?) {
         guard canEditCollection else { return }
         var updatedItem = book.item
-        let location = locationID.flatMap { id in
-            availableLocations.first { $0.id == id }
-        }
-        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
-        let path = location.map { storagePath(for: $0, locationsByID: locationsByID) }
+        let location = storageContext.location(for: locationID)
+        let path = location.map(storageContext.storagePath(for:))
         updatedItem.setStorageLocation(location, path: path)
         save(updatedItem)
     }
@@ -896,29 +889,6 @@ struct BookDetailView: View {
     private func save(_ updatedBook: BookRecord) {
         book = updatedBook
         repository.saveBookRecord(updatedBook)
-    }
-
-    private func storagePath(for location: Location, locationsByID: [UUID: Location]) -> StoragePath {
-        var components = [
-            StoragePath.Component(
-                kind: location.kind,
-                name: location.name
-            )
-        ]
-        var currentParentID = location.parentLocationID
-
-        while let parentID = currentParentID, let parent = locationsByID[parentID] {
-            components.insert(
-                StoragePath.Component(
-                    kind: parent.kind,
-                    name: parent.name
-                ),
-                at: 0
-            )
-            currentParentID = parent.parentLocationID
-        }
-
-        return StoragePath(components: components)
     }
 }
 
