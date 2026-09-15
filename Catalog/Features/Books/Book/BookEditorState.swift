@@ -153,7 +153,9 @@ struct BookEditorState {
     func makeBook(
         itemID: UUID,
         collectionID: UUID,
-        existingBook: BookRecord?
+        existingBook: BookRecord?,
+        storageLocation: Location?,
+        storagePath: StoragePath?
     ) -> BookRecord {
         let normalizedContributors = contributors.enumerated().map { index, contributor in
             var normalized = contributor
@@ -172,8 +174,8 @@ struct BookEditorState {
                 isFavorite: existingItem?.isFavorite ?? false,
                 originPlaceID: existingItem?.originPlaceID,
                 originPlace: existingItem?.originPlace,
-                storageLocation: existingItem?.storageLocation,
-                storagePath: existingItem?.storagePath
+                storageLocation: storageLocation,
+                storagePath: storagePath
             ),
             details: BookDetails(
                 itemID: itemID,
