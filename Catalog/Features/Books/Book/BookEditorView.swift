@@ -26,6 +26,12 @@ struct BookEditorView: View {
     @State private var catalogSeries: [BookSeries] = []
     @State private var catalogPublishers: [Publisher] = []
     @State private var catalogPeople: [Person] = []
+    @State private var editorCatalogSnapshot: CatalogSnapshot?
+    @State private var isPresentingHomeEditor = false
+    @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+    @State private var draftHomeLocations: [Location] = []
+    @State private var shouldPresentLocationPickerAfterHomeEditor = false
+    @State private var locationPickerPresentationToken = 0
     @State private var editingContributorIndex: Int?
     @State private var isPresentingContributorEditor = false
     @State private var editingIdentifierIndex: Int?
@@ -54,6 +60,23 @@ struct BookEditorView: View {
             selectedSeries: editorState.selectedSeries,
             selectedPublisher: editorState.selectedPublisher
         )
+    }
+
+    private var storageContext: CatalogStorageContext {
+        CatalogStorageContext(snapshot: editorCatalogSnapshot, collection: collection)
+    }
+
+    private var selectedLocationLabel: String {
+        guard let selectedLocationID = editorState.selectedLocationID else {
+            return String(localized: "common.unassigned")
+        }
+
+        if let path = storageContext.locationPathByID[selectedLocationID] {
+            return path
+        }
+
+        return storageContext.location(for: selectedLocationID)?.name
+            ?? String(localized: "common.unassigned")
     }
 
     private var shouldShowPhotoAnalysisSection: Bool {
@@ -480,6 +503,17 @@ struct BookEditorView: View {
                     )
                 }
 
+                Section(String(localized: "item.detail.section.location")) {
+                    LocationPickerField(
+                        title: String(localized: "common.location"),
+                        selectedLabel: selectedLocationLabel,
+                        locations: storageContext.availableLocations,
+                        onManageLocations: presentHomeEditor,
+                        presentationToken: locationPickerPresentationToken,
+                        selectedLocationID: $editorState.selectedLocationID
+                    )
+                }
+
                 Section(String(localized: "common.field.notes")) {
                     TextField(String(localized: "common.field.notes"), text: $editorState.notes, axis: .vertical)
                         .lineLimit(4, reservesSpace: true)
@@ -608,6 +642,14 @@ struct BookEditorView: View {
                     existingIdentifiers: editorState.identifiers,
                     editingIndex: editingIdentifierIndex,
                     onSave: saveIdentifier
+                )
+            }
+            .sheet(isPresented: $isPresentingHomeEditor) {
+                HomeEditorView(
+                    home: $draftHome,
+                    locations: $draftHomeLocations,
+                    onSave: saveHomeAndLocations,
+                    onDelete: nil
                 )
             }
         }
@@ -1041,6 +1083,7 @@ struct BookEditorView: View {
     @MainActor
     private func loadCatalogMetadata() {
         let snapshot = CatalogSnapshot.load(from: managedObjectContext)
+        editorCatalogSnapshot = snapshot
         let bookRecords = snapshot.bookRecords
 
         catalogGenreSuggestions = bookRecords
@@ -1052,6 +1095,57 @@ struct BookEditorView: View {
         catalogPeople = snapshot.people
     }
 
+    @MainActor
+    private func presentHomeEditor() {
+        if editorCatalogSnapshot == nil {
+            loadCatalogMetadata()
+        }
+
+        guard let snapshot = editorCatalogSnapshot,
+              let home = snapshot.homes.first(where: { $0.id == collection.homeID }) else {
+            return
+        }
+
+        draftHome = home
+        draftHomeLocations = snapshot.locationsByHomeID[collection.homeID] ?? []
+        shouldPresentLocationPickerAfterHomeEditor = true
+        isPresentingHomeEditor = true
+    }
+
+    @MainActor
+    private func saveHomeAndLocations() {
+        let repository = CoreDataCatalogRepository(context: managedObjectContext)
+        repository.saveHome(draftHome)
+        repository.saveLocations(draftHomeLocations, in: draftHome.id)
+        loadCatalogMetadata()
+        continueLocationSelectionIfNeeded()
+    }
+
+    private func continueLocationSelectionIfNeeded() {
+        guard shouldPresentLocationPickerAfterHomeEditor else { return }
+        shouldPresentLocationPickerAfterHomeEditor = false
+        isPresentingHomeEditor = false
+        DispatchQueue.main.async {
+            locationPickerPresentationToken += 1
+        }
+    }
+
+    private func resolvedStorage() -> (location: Location?, path: StoragePath?) {
+        guard let selectedLocationID = editorState.selectedLocationID else {
+            return (nil, nil)
+        }
+
+        if let location = storageContext.location(for: selectedLocationID) {
+            return (location, storageContext.storagePath(for: location))
+        }
+
+        if selectedLocationID == existingBook?.item.locationID {
+            return (existingBook?.storageLocation, existingBook?.storagePath)
+        }
+
+        return (nil, nil)
+    }
+
     private func saveBook() {
         guard canSave else {
             if !editorState.isTitleValid {
@@ -1060,10 +1154,13 @@ struct BookEditorView: View {
             return
         }
 
+        let storage = resolvedStorage()
         let book = editorState.makeBook(
             itemID: editorItemID,
             collectionID: collection.id,
-            existingBook: existingBook
+            existingBook: existingBook,
+            storageLocation: storage.location,
+            storagePath: storage.path
         )
 
         onSave(book)
