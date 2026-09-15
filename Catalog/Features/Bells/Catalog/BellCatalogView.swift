@@ -96,7 +96,7 @@ struct BellCatalogView: View {
     @Binding var layoutMode: CatalogCardLayoutMode
     @Binding var orderMode: BellOrderMode
     @Binding var filters: BellFilters
-    @Binding var cardManagement: CatalogCardManagementState<BellListItem>
+    @Binding var cardManagement: CatalogCardManagementState<BellCatalogItem>
     @State private var activeJumpPopoverSectionID: String?
     @State private var pendingScrollTargetID: String?
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
@@ -105,7 +105,6 @@ struct BellCatalogView: View {
     @State private var didEndActivePinchGesture = false
     @State private var isFavoritesCollapsed = false
     @StateObject private var viewModel: BellCatalogViewModel
-    @Namespace private var bellGridTransitionNamespace
 
     init(
         collection: CollectionSummary?,
@@ -114,7 +113,7 @@ struct BellCatalogView: View {
         layoutMode: Binding<CatalogCardLayoutMode> = .constant(.mini),
         orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
         filters: Binding<BellFilters> = .constant(BellFilters()),
-        cardManagement: Binding<CatalogCardManagementState<BellListItem>> = .constant(CatalogCardManagementState()),
+        cardManagement: Binding<CatalogCardManagementState<BellCatalogItem>> = .constant(CatalogCardManagementState()),
         sharingState: CollectionSharingState,
         sharingService: (any CollectionSharingService)? = nil,
         onSharingChanged: @escaping () -> Void = {},
@@ -153,11 +152,11 @@ struct BellCatalogView: View {
         !filters.isEmpty
     }
 
-    private var favoriteBells: [BellListItem] {
+    private var favoriteBells: [BellCatalogItem] {
         sourceBells.filter(\.isFavorite)
     }
 
-    private var sourceBells: [BellListItem] {
+    private var sourceBells: [BellCatalogItem] {
         let bells = catalogSnapshot?.bells ?? []
         guard let collectionID = collection?.id else { return bells }
         return bells.filter { $0.collectionID == collectionID }
@@ -420,7 +419,7 @@ struct BellCatalogView: View {
         )
     }
 
-    private func favoritesSection(bells: [BellListItem], screenWidth: CGFloat) -> some View {
+    private func favoritesSection(bells: [BellCatalogItem], screenWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             BellCollapsibleSectionHeader(
                 title: String(localized: "bell.catalog.favorites"),
@@ -473,16 +472,6 @@ struct BellCatalogView: View {
     ) -> CGFloat {
         let totalSpacing = gridMetrics.spacing * CGFloat(max(gridMetrics.columnCount - 1, 0))
         return cardSize.width * CGFloat(gridMetrics.columnCount) + totalSpacing + CatalogCardLayoutMode.screenHorizontalPadding * 2
-    }
-
-    private func focusGeography(country: String) {
-        let targetID = "geography-\(country)"
-        if orderMode != .geography {
-            pendingScrollTargetID = targetID
-            orderMode = .geography
-        } else {
-            requestScroll(to: targetID)
-        }
     }
 
     @ViewBuilder
@@ -546,12 +535,12 @@ struct BellCatalogView: View {
         }
     }
 
-    private func updateSourceBells(_ bells: [BellListItem]) {
+    private func updateSourceBells(_ bells: [BellCatalogItem]) {
         viewModel.updateSource(bells: bells)
         cardManagement.pruneSelection(to: visibleBells)
     }
 
-    private var visibleBells: [BellListItem] {
+    private var visibleBells: [BellCatalogItem] {
         switch displayModel.layout {
         case .empty:
             return []
@@ -563,7 +552,7 @@ struct BellCatalogView: View {
     }
 
     private func bellGridView(
-        bells: [BellListItem],
+        bells: [BellCatalogItem],
         layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics
     ) -> some View {
         BellGridView(
@@ -585,7 +574,7 @@ struct BellCatalogView: View {
         )
     }
 
-    private func moveBells(_ bells: [BellListItem], to locationID: UUID?) {
+    private func moveBells(_ bells: [BellCatalogItem], to locationID: UUID?) {
         guard canEditCollection else { return }
 
         let location = storageContext.location(for: locationID)
@@ -602,23 +591,7 @@ struct BellCatalogView: View {
         emitFeedback(.success)
     }
 
-    private func batchEditBells(_ bells: [BellListItem], edit: ItemBatchEdit) {
-        guard canEditCollection else { return }
-
-        let updatedRecords = bells.compactMap { bell -> BellRecord? in
-            guard let record = catalogSnapshot?.recordsByID[bell.id] else { return nil }
-            return BellRecord(
-                item: edit.applying(to: record.item),
-                details: record.details
-            )
-        }
-        guard !updatedRecords.isEmpty else { return }
-
-        repository.saveBellRecords(updatedRecords)
-        emitFeedback(.success)
-    }
-
-    private func deleteBells(_ bells: [BellListItem]) {
+    private func deleteBells(_ bells: [BellCatalogItem]) {
         guard canEditCollection else { return }
 
         for bell in bells {

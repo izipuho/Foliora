@@ -29,7 +29,7 @@ struct BellCollectionView: View {
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
     private let layoutMode: Binding<CatalogCardLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
-    @State private var cardManagement = CatalogCardManagementState<BellListItem>()
+    @State private var cardManagement = CatalogCardManagementState<BellCatalogItem>()
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
     init(

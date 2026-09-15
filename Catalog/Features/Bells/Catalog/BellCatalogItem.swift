@@ -1,7 +1,7 @@
 import Foundation
 
-/// Represents bell list item data and behavior.
-struct BellListItem: Identifiable, Hashable {
+/// Represents bell catalog item data and behavior.
+struct BellCatalogItem: Identifiable, Hashable {
     let id: UUID
     let title: String
     let notes: String
