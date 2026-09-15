@@ -77,15 +77,12 @@ struct BellEditorView: View {
 
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
+    private var storageContext: CatalogStorageContext {
+        CatalogStorageContext(snapshot: catalogSnapshot, collection: collection)
+    }
+
     private var availableLocations: [Location] {
-        guard let snapshot = catalogSnapshot else { return [] }
-
-        let collectionLocations = snapshot.collectionLocationsByCollectionID[collection.id] ?? []
-        if !collectionLocations.isEmpty {
-            return collectionLocations
-        }
-
-        return snapshot.locationsByHomeID[collection.homeID] ?? []
+        storageContext.availableLocations
     }
 
     private var availablePlaces: [Place] {
@@ -93,17 +90,7 @@ struct BellEditorView: View {
     }
 
     private var locationPathByID: [UUID: String] {
-        guard let snapshot = catalogSnapshot else { return [:] }
-
-        let collectionLocations = snapshot.collectionLocationsByCollectionID[collection.id] ?? []
-        if !collectionLocations.isEmpty {
-            return snapshot.collectionLocationPathByCollectionID[collection.id] ?? [:]
-        }
-
-        let availableLocationIDs = Set(availableLocations.map(\.id))
-        return snapshot.locationPathByID.filter { id, _ in
-            availableLocationIDs.contains(id)
-        }
+        storageContext.locationPathByID
     }
 
     private var canSave: Bool {
@@ -655,11 +642,13 @@ struct BellEditorView: View {
     }
 
     private func saveBell() {
+        let storageLocation = storageContext.location(for: editorState.selectedLocationID)
         let newBell = editorState.makeBell(
             itemID: editorItemID,
             collectionID: collection.id,
             existingBell: existingBell,
-            availableLocations: availableLocations
+            storageLocation: storageLocation,
+            storagePath: storageLocation.map(storageContext.storagePath(for:))
         )
 
         onSave(newBell)

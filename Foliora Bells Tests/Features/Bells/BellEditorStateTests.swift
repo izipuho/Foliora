@@ -24,7 +24,6 @@ struct BellEditorStateTests {
         let itemID = UUID()
         let collectionID = UUID()
         let homeID = UUID()
-        let parentLocationID = UUID()
         let locationID = UUID()
         let createdAt = Date(timeIntervalSince1970: 1_234)
         let existing = BellRecord(
@@ -53,23 +52,20 @@ struct BellEditorStateTests {
                 customMaterialName: nil
             )
         )
-        let parentLocation = Location(
-            id: parentLocationID,
-            homeID: homeID,
-            parentLocationID: nil,
-            kind: .room,
-            name: "Room",
-            notes: "",
-            sortOrder: 0
-        )
         let location = Location(
             id: locationID,
             homeID: homeID,
-            parentLocationID: parentLocationID,
+            parentLocationID: nil,
             kind: .shelf,
             name: "Shelf",
             notes: "",
             sortOrder: 0
+        )
+        let storagePath = StoragePath(
+            components: [
+                StoragePath.Component(kind: .room, name: "Room"),
+                StoragePath.Component(kind: .shelf, name: "Shelf")
+            ]
         )
 
         var state = BellEditorState(bell: existing, initialMediaAssets: [])
@@ -87,7 +83,8 @@ struct BellEditorStateTests {
             itemID: itemID,
             collectionID: collectionID,
             existingBell: existing,
-            availableLocations: [parentLocation, location]
+            storageLocation: location,
+            storagePath: storagePath
         )
 
         #expect(result.item.collectionID == collectionID)
