@@ -6,7 +6,7 @@ private let unknownTitle = String(localized: "common.unknown")
 /// Groups bell catalog layout values and behavior.
 enum BellCatalogLayout {
     case empty
-    case flat([BellListItem])
+    case flat([BellCatalogItem])
     case grouped([BellGroupedSection])
 
     var isGrouped: Bool {
@@ -54,7 +54,7 @@ final class BellCatalogViewModel: ObservableObject {
     var orderMode: BellOrderMode
     var filters: BellFilters
     @Published private(set) var displayModel: BellCatalogDisplayModel
-    private var sourceBells: [BellListItem]?
+    private var sourceBells: [BellCatalogItem]?
 
     init(
         orderMode: BellOrderMode,
@@ -81,7 +81,7 @@ final class BellCatalogViewModel: ObservableObject {
         )
     }
 
-    func updateSource(bells: [BellListItem]) {
+    func updateSource(bells: [BellCatalogItem]) {
         sourceBells = bells
         let filteredBells = filteredBells(from: bells)
         let sortedBells = sorted(filteredBells)
@@ -104,7 +104,7 @@ final class BellCatalogViewModel: ObservableObject {
         )
     }
 
-    private func buildStats(from bells: [BellListItem], sourceBells: [BellListItem]) -> BellCatalogStats {
+    private func buildStats(from bells: [BellCatalogItem], sourceBells: [BellCatalogItem]) -> BellCatalogStats {
         BellCatalogStats(
             totalCount: bells.count,
             countryCount: countryCount(in: sourceBells),
@@ -121,66 +121,49 @@ final class BellCatalogViewModel: ObservableObject {
         )
     }
 
-    func bell(withID id: UUID) -> BellListItem? {
-        switch displayModel.layout {
-        case .empty:
-            return nil
-        case .flat(let bells):
-            return bells.first { $0.id == id }
-        case .grouped(let sections):
-            for section in sections {
-                if let bell = section.allBells.first(where: { $0.id == id }) {
-                    return bell
-                }
-            }
-
-            return nil
-        }
-    }
-
-    private func filteredBells(from bells: [BellListItem]) -> [BellListItem] {
+    private func filteredBells(from bells: [BellCatalogItem]) -> [BellCatalogItem] {
         bells.filter { bell in
             matches(bell: bell, filters: filters)
         }
     }
 
-    private func countryCount(in bells: [BellListItem]) -> Int {
+    private func countryCount(in bells: [BellCatalogItem]) -> Int {
         Set(bells.map(\.countryName).filter { !$0.isEmpty }).count
     }
 
-    private func cityCount(in bells: [BellListItem]) -> Int {
+    private func cityCount(in bells: [BellCatalogItem]) -> Int {
         Set(bells.map(\.cityName).filter { !$0.isEmpty }).count
     }
 
-    private func materialCount(in bells: [BellListItem]) -> Int {
+    private func materialCount(in bells: [BellCatalogItem]) -> Int {
         Set(bells.map(\.materialDisplayName).filter { !$0.isEmpty }).count
     }
 
-    private func tagCount(in bells: [BellListItem]) -> Int {
+    private func tagCount(in bells: [BellCatalogItem]) -> Int {
         Set(bells.flatMap(\.tagValues)).count
     }
 
-    private func bellsWithOriginCount(in bells: [BellListItem]) -> Int {
+    private func bellsWithOriginCount(in bells: [BellCatalogItem]) -> Int {
         bells.filter(\.hasOrigin).count
     }
 
-    private func bellsWithAcquiredYearCount(in bells: [BellListItem]) -> Int {
+    private func bellsWithAcquiredYearCount(in bells: [BellCatalogItem]) -> Int {
         bells.filter { $0.acquiredYear != nil }.count
     }
 
-    private func bellsWithMaterialCount(in bells: [BellListItem]) -> Int {
+    private func bellsWithMaterialCount(in bells: [BellCatalogItem]) -> Int {
         bells.filter { $0.material != .unknown }.count
     }
 
-    private func bellsWithStorageCount(in bells: [BellListItem]) -> Int {
+    private func bellsWithStorageCount(in bells: [BellCatalogItem]) -> Int {
         bells.filter(\.hasStorage).count
     }
 
-    private func bellsWithNotesCount(in bells: [BellListItem]) -> Int {
+    private func bellsWithNotesCount(in bells: [BellCatalogItem]) -> Int {
         bells.filter(\.hasNotes).count
     }
 
-    private func bellsWithTagsCount(in bells: [BellListItem]) -> Int {
+    private func bellsWithTagsCount(in bells: [BellCatalogItem]) -> Int {
         bells.filter { !$0.tagValues.isEmpty }.count
     }
 
@@ -199,7 +182,7 @@ final class BellCatalogViewModel: ObservableObject {
             }
     }
 
-    private func topCountries(in bells: [BellListItem]) -> [CountryCount] {
+    private func topCountries(in bells: [BellCatalogItem]) -> [CountryCount] {
         topValues(from: bells.map(\.countryName), skipEmpty: true).map { country, count in
             let countryCode = bells
                 .first(where: { $0.countryName.localizedCaseInsensitiveCompare(country) == .orderedSame })?
@@ -230,7 +213,7 @@ final class BellCatalogViewModel: ObservableObject {
         updateSource(bells: sourceBells)
     }
 
-    func matches(bell: BellListItem, filters: BellFilters) -> Bool {
+    func matches(bell: BellCatalogItem, filters: BellFilters) -> Bool {
         filters.presence.allSatisfy { filter in
             switch filter {
             case .withOrigin:
@@ -277,7 +260,7 @@ final class BellCatalogViewModel: ObservableObject {
         }
     }
 
-    func sorted(_ bellRecords: [BellListItem]) -> [BellListItem] {
+    func sorted(_ bellRecords: [BellCatalogItem]) -> [BellCatalogItem] {
         if orderMode == .storage {
             return CatalogStorageGrouping.sorted(
                 bellRecords,
@@ -289,7 +272,7 @@ final class BellCatalogViewModel: ObservableObject {
         return bellRecords.sorted(using: sortComparators)
     }
 
-    private func groupedSections(fromFilteredBells bellRecords: [BellListItem]) -> [BellGroupedSection] {
+    private func groupedSections(fromFilteredBells bellRecords: [BellCatalogItem]) -> [BellGroupedSection] {
         switch orderMode {
         case .title, .newestFirst, .oldestFirst:
             return []
@@ -383,7 +366,7 @@ final class BellCatalogViewModel: ObservableObject {
         value.isEmpty ? unknown : value
     }
 
-    private var sortComparators: [KeyPathComparator<BellListItem>] {
+    private var sortComparators: [KeyPathComparator<BellCatalogItem>] {
         switch orderMode {
         case .title:
             return titleComparators
@@ -409,7 +392,7 @@ final class BellCatalogViewModel: ObservableObject {
         }
     }
 
-    private var geographyComparators: [KeyPathComparator<BellListItem>] {
+    private var geographyComparators: [KeyPathComparator<BellCatalogItem>] {
         [
             KeyPathComparator(\.countryName, comparator: .localizedStandard),
             KeyPathComparator(\.regionName, comparator: .localizedStandard),
@@ -418,11 +401,11 @@ final class BellCatalogViewModel: ObservableObject {
         ]
     }
 
-    private var titleComparators: [KeyPathComparator<BellListItem>] {
+    private var titleComparators: [KeyPathComparator<BellCatalogItem>] {
         [titleComparator]
     }
 
-    private var titleComparator: KeyPathComparator<BellListItem> {
+    private var titleComparator: KeyPathComparator<BellCatalogItem> {
         KeyPathComparator(\.title, comparator: .localizedStandard)
     }
 }
@@ -433,10 +416,10 @@ struct BellGroupedSection: Identifiable {
     let title: String
     let jumpTitle: String
     let indexTitle: String?
-    let bells: [BellListItem]
+    let bells: [BellCatalogItem]
     let storageGroups: [BellStorageGroup]
 
-    var allBells: [BellListItem] {
+    var allBells: [BellCatalogItem] {
         bells + storageGroups.flatMap(\.bells)
     }
 }
@@ -446,12 +429,5 @@ struct BellStorageGroup: Identifiable {
     let id: String
     let kind: LocationKind
     let title: String
-    let bells: [BellListItem]
-}
-
-/// Represents bell geography index entry data and behavior.
-struct BellGeographyIndexEntry: Identifiable {
-    let id: String
-    let title: String
-    let targetSectionID: String
+    let bells: [BellCatalogItem]
 }

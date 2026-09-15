@@ -37,13 +37,30 @@ struct BookEditorStateTests {
     func makeBookNormalizesDraftAndPreservesExistingItemMetadata() {
         let itemID = UUID()
         let collectionID = UUID()
+        let homeID = UUID()
+        let locationID = UUID()
         let createdAt = Date(timeIntervalSince1970: 1234)
+        let location = Location(
+            id: locationID,
+            homeID: homeID,
+            parentLocationID: nil,
+            kind: .shelf,
+            name: "Shelf",
+            notes: "",
+            sortOrder: 0
+        )
+        let storagePath = StoragePath(
+            components: [
+                StoragePath.Component(kind: .room, name: "Room"),
+                StoragePath.Component(kind: .shelf, name: "Shelf")
+            ]
+        )
         let existing = BookRecord(
             item: ItemRecord(
                 id: itemID,
                 collectionID: collectionID,
                 kind: .books,
-                locationID: nil,
+                locationID: locationID,
                 originPlaceID: nil,
                 createdAt: createdAt,
                 createdBy: "owner",
@@ -55,8 +72,8 @@ struct BookEditorStateTests {
                 isFavorite: true,
                 tags: ["existing"],
                 originPlace: nil,
-                storageLocation: nil,
-                storagePath: nil,
+                storageLocation: location,
+                storagePath: storagePath,
                 mediaAssets: []
             ),
             details: BookDetails(
@@ -78,6 +95,8 @@ struct BookEditorStateTests {
         state.volumeNumber = "2"
         state.selectedSeries = nil
 
+        #expect(state.selectedLocationID == locationID)
+
         let result = state.makeBook(
             itemID: itemID,
             collectionID: UUID(),
@@ -90,6 +109,9 @@ struct BookEditorStateTests {
         #expect(result.isFavorite)
         #expect(result.title == "New Title")
         #expect(result.notes == "New Notes")
+        #expect(result.item.locationID == locationID)
+        #expect(result.item.storageLocation?.id == locationID)
+        #expect(result.item.storagePath?.displayPath == "Room / Shelf")
         #expect(result.details.subtitle == "Subtitle")
         #expect(result.details.languageCode == "en")
         #expect(result.details.pageCount == 250)

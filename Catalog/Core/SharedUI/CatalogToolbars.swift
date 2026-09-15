@@ -6,62 +6,11 @@ enum CatalogMultiPhotoCreationMode {
     case batch
 }
 
-private struct CatalogMultiPhotoCreationDialogModifier: ViewModifier {
-    @Binding var isPresented: Bool
+struct CatalogMultiPhotoCreationConfiguration {
+    let isPresented: Binding<Bool>
     let photoCount: Int
     let onSelect: (CatalogMultiPhotoCreationMode) -> Void
     let onCancel: () -> Void
-    @State private var didSelectMode = false
-
-    func body(content: Content) -> some View {
-        let addPhotosFormat = String(localized: "batch_add.import.add_photos_count")
-        let singleItemFormat = String(localized: "batch_add.import.single_item_photos_count")
-        let separateItemsFormat = String(localized: "batch_add.import.separate_items_count")
-
-        content
-            .confirmationDialog(
-                String(format: addPhotosFormat, locale: .autoupdatingCurrent, photoCount),
-                isPresented: $isPresented,
-                titleVisibility: .visible
-            ) {
-                Button(String(format: singleItemFormat, locale: .autoupdatingCurrent, photoCount)) {
-                    didSelectMode = true
-                    onSelect(.singleItem)
-                }
-
-                Button(String(format: separateItemsFormat, locale: .autoupdatingCurrent, photoCount)) {
-                    didSelectMode = true
-                    onSelect(.batch)
-                }
-            }
-            .onChange(of: isPresented) { _, isPresented in
-                if isPresented {
-                    didSelectMode = false
-                } else if didSelectMode {
-                    didSelectMode = false
-                } else {
-                    onCancel()
-                }
-            }
-    }
-}
-
-extension View {
-    func catalogMultiPhotoCreationDialog(
-        isPresented: Binding<Bool>,
-        photoCount: Int,
-        onSelect: @escaping (CatalogMultiPhotoCreationMode) -> Void,
-        onCancel: @escaping () -> Void
-    ) -> some View {
-        modifier(
-            CatalogMultiPhotoCreationDialogModifier(
-                isPresented: isPresented,
-                photoCount: photoCount,
-                onSelect: onSelect,
-                onCancel: onCancel
-            )
-        )
-    }
 }
 
 /// Shared edit, sort/layout, and add toolbar for collection-style catalog screens.
@@ -70,10 +19,12 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
     @Binding private var selectedLayoutMode: CatalogCardLayoutMode
     @Binding private var isPresentingAddOptions: Bool
 
+    private let multiPhotoCreation: CatalogMultiPhotoCreationConfiguration?
     private let sortOptions: [SortOption]
     private let sortSectionTitle: String
     private let sortTitle: (SortOption) -> String
     private let canEdit: Bool
+    private let isEditAccessResolved: Bool
     private let onEdit: () -> Void
     private let onPhotoLibrary: () -> Void
     private let onCamera: () -> Void
@@ -82,10 +33,12 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         selectedSort: Binding<SortOption>,
         selectedLayoutMode: Binding<CatalogCardLayoutMode>,
         isPresentingAddOptions: Binding<Bool>,
+        multiPhotoCreation: CatalogMultiPhotoCreationConfiguration? = nil,
         sortOptions: [SortOption],
         sortSectionTitle: String,
         sortTitle: @escaping (SortOption) -> String,
         canEdit: Bool,
+        isEditAccessResolved: Bool = true,
         onEdit: @escaping () -> Void,
         onPhotoLibrary: @escaping () -> Void,
         onCamera: @escaping () -> Void
@@ -93,21 +46,24 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
         self._selectedSort = selectedSort
         self._selectedLayoutMode = selectedLayoutMode
         self._isPresentingAddOptions = isPresentingAddOptions
+        self.multiPhotoCreation = multiPhotoCreation
         self.sortOptions = sortOptions
         self.sortSectionTitle = sortSectionTitle
         self.sortTitle = sortTitle
         self.canEdit = canEdit
+        self.isEditAccessResolved = isEditAccessResolved
         self.onEdit = onEdit
         self.onPhotoLibrary = onPhotoLibrary
         self.onCamera = onCamera
     }
 
     var body: some ToolbarContent {
-        if canEdit {
+        if showsEditControls {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: onEdit) {
                     toolbarIcon(systemName: "square.and.pencil")
                 }
+                .disabled(!canEdit)
             }
         }
 
@@ -121,7 +77,7 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
             )
         }
 
-        if canEdit {
+        if showsEditControls {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     isPresentingAddOptions = true
@@ -129,20 +85,85 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
                     toolbarIcon(systemName: "plus")
                 }
                 .confirmationDialog(
-                    String(localized: "common.add"),
-                    isPresented: $isPresentingAddOptions,
+                    addDialogTitle,
+                    isPresented: addDialogPresentation,
                     titleVisibility: .visible
                 ) {
-                    Button(String(localized: "editor.media.photo_library"), action: onPhotoLibrary)
+                    if let multiPhotoCreation, multiPhotoCreation.isPresented.wrappedValue {
+                        let singleItemFormat = String(localized: "batch_add.import.single_item_photos_count")
+                        let separateItemsFormat = String(localized: "batch_add.import.separate_items_count")
 
-                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                        Button(String(localized: "editor.media.camera"), action: onCamera)
+                        Button(
+                            String(
+                                format: singleItemFormat,
+                                locale: .autoupdatingCurrent,
+                                multiPhotoCreation.photoCount
+                            )
+                        ) {
+                            multiPhotoCreation.isPresented.wrappedValue = false
+                            multiPhotoCreation.onSelect(.singleItem)
+                        }
+
+                        Button(
+                            String(
+                                format: separateItemsFormat,
+                                locale: .autoupdatingCurrent,
+                                multiPhotoCreation.photoCount
+                            )
+                        ) {
+                            multiPhotoCreation.isPresented.wrappedValue = false
+                            multiPhotoCreation.onSelect(.batch)
+                        }
+
+                        Button(String(localized: "common.cancel"), role: .cancel) {}
+                    } else {
+                        Button(String(localized: "editor.media.photo_library"), action: onPhotoLibrary)
+
+                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                            Button(String(localized: "editor.media.camera"), action: onCamera)
+                        }
+
+                        Button(String(localized: "common.cancel"), role: .cancel) {}
                     }
-
-                    Button(String(localized: "common.cancel"), role: .cancel) {}
                 }
+                .disabled(!canEdit)
             }
         }
+    }
+
+    private var showsEditControls: Bool {
+        canEdit || !isEditAccessResolved
+    }
+
+    private var addDialogPresentation: Binding<Bool> {
+        Binding(
+            get: {
+                isPresentingAddOptions || (multiPhotoCreation?.isPresented.wrappedValue ?? false)
+            },
+            set: { isPresented in
+                guard !isPresented else { return }
+
+                if let multiPhotoCreation, multiPhotoCreation.isPresented.wrappedValue {
+                    multiPhotoCreation.isPresented.wrappedValue = false
+                    multiPhotoCreation.onCancel()
+                } else {
+                    isPresentingAddOptions = false
+                }
+            }
+        )
+    }
+
+    private var addDialogTitle: String {
+        guard let multiPhotoCreation, multiPhotoCreation.isPresented.wrappedValue else {
+            return String(localized: "common.add")
+        }
+
+        let addPhotosFormat = String(localized: "batch_add.import.add_photos_count")
+        return String(
+            format: addPhotosFormat,
+            locale: .autoupdatingCurrent,
+            multiPhotoCreation.photoCount
+        )
     }
 
     private func toolbarIcon(systemName: String) -> some View {

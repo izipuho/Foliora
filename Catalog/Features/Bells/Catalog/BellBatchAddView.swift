@@ -26,7 +26,13 @@ private struct BellBatchNameGenerator {
 #if DEBUG
 private extension BellBatchAddView {
     static var completionPreview: some View {
-        BellBatchAddView(
+        let container = PreviewContainer.makeBellsMinimal()
+        let repository = CoreDataCatalogRepository(
+            context: container.viewContext,
+            persistentContainer: nil
+        )
+
+        return BellBatchAddView(
             collection: CollectionSummary(
                 id: UUID(),
                 homeID: UUID(),
@@ -39,7 +45,8 @@ private extension BellBatchAddView {
                 sharingSummary: ""
             ),
             photoCount: 8,
-            catalogSnapshot: nil
+            catalogSnapshot: nil,
+            repository: repository
         )
         .completionContent(createdCount: 8, reviewQuery: "Preview Batch")
     }
@@ -80,7 +87,7 @@ struct BellBatchAddView: View {
     let catalogSnapshot: CatalogSnapshot?
     private let photoItems: [PhotosPickerItem]
     private let initialMediaAssets: [MediaAsset]
-    private let repository: (any CatalogRepository)?
+    private let repository: any AppRepository
     private let onComplete: (BatchAddCompletionAction) -> Void
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
@@ -111,7 +118,7 @@ struct BellBatchAddView: View {
         catalogSnapshot: CatalogSnapshot?,
         photoItems: [PhotosPickerItem] = [],
         initialMediaAssets: [MediaAsset] = [],
-        repository: (any CatalogRepository)? = nil,
+        repository: any AppRepository,
         onComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.collection = collection
@@ -152,8 +159,8 @@ struct BellBatchAddView: View {
                     home: $draftHome,
                     locations: $draftHomeLocations,
                     onSave: {
-                        repository?.saveHome(draftHome)
-                        repository?.saveLocations(draftHomeLocations, in: draftHome.id)
+                        repository.saveHome(draftHome)
+                        repository.saveLocations(draftHomeLocations, in: draftHome.id)
                         continueLocationSelectionIfNeeded()
                     },
                     onDelete: nil
@@ -289,7 +296,7 @@ struct BellBatchAddView: View {
     }
 
     private var canCreateBatch: Bool {
-        repository != nil && mediaLoadState == .loaded && !mediaPayloads.isEmpty
+        mediaLoadState == .loaded && !mediaPayloads.isEmpty
     }
 
     private var selectedAcquiredYear: Int? {
@@ -419,7 +426,7 @@ struct BellBatchAddView: View {
 
     @MainActor
     private func createBatchBells() {
-        guard let repository, !mediaPayloads.isEmpty else {
+        guard !mediaPayloads.isEmpty else {
             creationState = .failed
             creationErrorMessage = String(localized: "bell_batch_add.error.message")
             return
@@ -460,7 +467,7 @@ struct BellBatchAddView: View {
             )
         }
 
-        (repository as! any BellCatalogRepository).saveBellRecords(bells)
+        repository.saveBellRecords(bells)
         creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)
     }
 }

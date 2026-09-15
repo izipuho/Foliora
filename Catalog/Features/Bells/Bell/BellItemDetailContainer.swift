@@ -3,7 +3,7 @@ import SwiftUI
 /// Resolves a bell by identifier and owns the navigation container used for item detail presentation.
 struct BellItemDetailContainer: View {
     let bellID: UUID
-    let repository: any CatalogRepository
+    let repository: any AppRepository
     let catalogSnapshot: CatalogSnapshot?
     let onClose: (() -> Void)?
 
@@ -13,7 +13,7 @@ struct BellItemDetailContainer: View {
 
     init(
         bellID: UUID,
-        repository: any CatalogRepository,
+        repository: any AppRepository,
         catalogSnapshot: CatalogSnapshot?,
         onClose: (() -> Void)? = nil
     ) {

@@ -50,13 +50,13 @@ struct BellBatchEditView: View {
 }
 #endif
 
-extension CatalogCardManagementModifier where Item == BellListItem {
+extension CatalogCardManagementModifier where Item == BellCatalogItem {
     init(
-        state: Binding<CatalogCardManagementState<BellListItem>>,
-        visibleItems: [BellListItem],
+        state: Binding<CatalogCardManagementState<BellCatalogItem>>,
+        visibleItems: [BellCatalogItem],
         snapshot: CatalogSnapshot?,
         collection: CollectionSummary?,
-        currentLocationID: @escaping (BellListItem) -> UUID?,
+        currentLocationID: @escaping (BellCatalogItem) -> UUID?,
         moveTitle: String,
         deleteTitle: String,
         deleteMessage: String,
@@ -64,9 +64,9 @@ extension CatalogCardManagementModifier where Item == BellListItem {
         canEdit: Bool,
         tint: Color,
         onSaveHome: @escaping (Home, [Location]) -> Void,
-        onMove: @escaping ([BellListItem], UUID?) -> Void,
-        onDelete: @escaping ([BellListItem]) -> Void,
-        onBatchEdit: @escaping ([BellListItem], ItemBatchEdit, BellBatchEdit) -> Void
+        onMove: @escaping ([BellCatalogItem], UUID?) -> Void,
+        onDelete: @escaping ([BellCatalogItem]) -> Void,
+        onBatchEdit: @escaping ([BellCatalogItem], ItemBatchEdit, BellBatchEdit) -> Void
     ) {
         self.init(
             state: state,
@@ -101,7 +101,7 @@ extension CatalogCardManagementModifier where Item == BellListItem {
 
 extension BellCatalogView {
     func batchEditBells(
-        _ bells: [BellListItem],
+        _ bells: [BellCatalogItem],
         itemEdit: ItemBatchEdit,
         bellEdit: BellBatchEdit
     ) {
@@ -116,6 +116,6 @@ extension BellCatalogView {
         }
         guard !updatedRecords.isEmpty else { return }
 
-        (repository as! any BellCatalogRepository).saveBellRecords(updatedRecords)
+        repository.saveBellRecords(updatedRecords)
     }
 }
