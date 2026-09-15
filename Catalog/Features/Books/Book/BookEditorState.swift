@@ -1,15 +1,9 @@
 import Foundation
 
-/// Holds the editable book draft and the validation needed to persist it.
+/// Holds the editable book draft and book-specific validation needed to persist it.
 struct BookEditorState {
-    var title: String
+    var itemState: ItemEditorState
     var subtitle: String
-    var notes: String
-    var selectedAcquiredYearOption: String
-    var condition: ItemCondition
-    var acquisitionMethod: AcquisitionMethod
-    var tags: [String]
-    var mediaAssets: [MediaAsset]
     var coverImage: MediaAsset?
 
     var languageCode: String
@@ -28,16 +22,11 @@ struct BookEditorState {
         book: BookRecord?,
         initialMediaAssets: [MediaAsset]
     ) {
-        let initialMedia = book?.mediaAssets ?? initialMediaAssets
-
-        title = book?.title ?? ""
+        itemState = ItemEditorState(
+            item: book?.item,
+            initialMediaAssets: initialMediaAssets
+        )
         subtitle = book?.details.subtitle ?? ""
-        notes = book?.notes ?? ""
-        selectedAcquiredYearOption = book?.acquiredYear.map(String.init) ?? String(localized: "common.none")
-        condition = book?.condition ?? .good
-        acquisitionMethod = book?.acquisitionMethod ?? .bought
-        tags = book?.tags ?? []
-        mediaAssets = initialMedia
         coverImage = book?.details.coverImage?.with(
             displayName: String(localized: "editor.media.cover")
         )
@@ -55,6 +44,46 @@ struct BookEditorState {
         }
         identifiers = book?.details.identifiers ?? []
         existingPublicationYear = book?.details.publicationYear
+    }
+
+    var title: String {
+        get { itemState.title }
+        set { itemState.title = newValue }
+    }
+
+    var notes: String {
+        get { itemState.notes }
+        set { itemState.notes = newValue }
+    }
+
+    var selectedAcquiredYearOption: String {
+        get { itemState.selectedAcquiredYearOption }
+        set { itemState.selectedAcquiredYearOption = newValue }
+    }
+
+    var condition: ItemCondition {
+        get { itemState.condition }
+        set { itemState.condition = newValue }
+    }
+
+    var acquisitionMethod: AcquisitionMethod {
+        get { itemState.acquisitionMethod }
+        set { itemState.acquisitionMethod = newValue }
+    }
+
+    var selectedLocationID: UUID? {
+        get { itemState.selectedLocationID }
+        set { itemState.selectedLocationID = newValue }
+    }
+
+    var tags: [String] {
+        get { itemState.tags }
+        set { itemState.tags = newValue }
+    }
+
+    var mediaAssets: [MediaAsset] {
+        get { itemState.mediaAssets }
+        set { itemState.mediaAssets = newValue }
     }
 
     var publicationYearOptions: [String] {
@@ -79,7 +108,7 @@ struct BookEditorState {
     }
 
     var isTitleValid: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        itemState.isTitleValid
     }
 
     var isVolumeValid: Bool {
@@ -126,9 +155,6 @@ struct BookEditorState {
         collectionID: UUID,
         existingBook: BookRecord?
     ) -> BookRecord {
-        let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
-            asset.with(itemID: itemID, sortOrder: index)
-        }
         let normalizedContributors = contributors.enumerated().map { index, contributor in
             var normalized = contributor
             normalized.order = index
@@ -137,25 +163,17 @@ struct BookEditorState {
         let existingItem = existingBook?.item
 
         return BookRecord(
-            item: ItemRecord(
-                id: itemID,
+            item: itemState.makeItemRecord(
+                itemID: itemID,
                 collectionID: existingItem?.collectionID ?? collectionID,
                 kind: .books,
-                locationID: existingItem?.locationID,
-                originPlaceID: existingItem?.originPlaceID,
                 createdAt: existingItem?.createdAt ?? .now,
                 createdBy: existingItem?.createdBy ?? "me",
-                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-                acquiredYear: Int(selectedAcquiredYearOption),
-                condition: condition,
-                acquisitionMethod: acquisitionMethod,
                 isFavorite: existingItem?.isFavorite ?? false,
-                tags: tags,
+                originPlaceID: existingItem?.originPlaceID,
                 originPlace: existingItem?.originPlace,
                 storageLocation: existingItem?.storageLocation,
-                storagePath: existingItem?.storagePath,
-                mediaAssets: normalizedMediaAssets
+                storagePath: existingItem?.storagePath
             ),
             details: BookDetails(
                 itemID: itemID,

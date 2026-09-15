@@ -1,38 +1,67 @@
 import Foundation
 
-/// Holds the editable bell draft and the validation needed to persist it.
+/// Holds the editable bell draft and bell-specific validation needed to persist it.
 struct BellEditorState {
-    var title: String
-    var notes: String
-    var condition: ItemCondition
-    var acquisitionMethod: AcquisitionMethod
+    var itemState: ItemEditorState
     var material: BellMaterial
     var customMaterialName: String
     var selectedOriginPlace: Place?
-    var selectedLocationID: UUID?
-    var tags: [String]
-    var mediaAssets: [MediaAsset]
-    var selectedAcquiredYearOption: String
 
     init(
         bell: BellRecord?,
         initialMediaAssets: [MediaAsset]
     ) {
-        title = bell?.title ?? ""
-        notes = bell?.notes ?? ""
-        condition = bell?.condition ?? .good
-        acquisitionMethod = bell?.acquisitionMethod ?? .bought
+        itemState = ItemEditorState(
+            item: bell?.item,
+            initialMediaAssets: initialMediaAssets
+        )
         material = bell?.details.material ?? .unknown
         customMaterialName = bell?.details.customMaterialName ?? ""
         selectedOriginPlace = bell?.originPlace
-        selectedLocationID = bell?.item.locationID
-        tags = bell?.tags ?? []
-        mediaAssets = bell?.mediaAssets ?? initialMediaAssets
-        selectedAcquiredYearOption = bell?.acquiredYear.map(String.init) ?? String(localized: "common.none")
+    }
+
+    var title: String {
+        get { itemState.title }
+        set { itemState.title = newValue }
+    }
+
+    var notes: String {
+        get { itemState.notes }
+        set { itemState.notes = newValue }
+    }
+
+    var condition: ItemCondition {
+        get { itemState.condition }
+        set { itemState.condition = newValue }
+    }
+
+    var acquisitionMethod: AcquisitionMethod {
+        get { itemState.acquisitionMethod }
+        set { itemState.acquisitionMethod = newValue }
+    }
+
+    var selectedLocationID: UUID? {
+        get { itemState.selectedLocationID }
+        set { itemState.selectedLocationID = newValue }
+    }
+
+    var tags: [String] {
+        get { itemState.tags }
+        set { itemState.tags = newValue }
+    }
+
+    var mediaAssets: [MediaAsset] {
+        get { itemState.mediaAssets }
+        set { itemState.mediaAssets = newValue }
+    }
+
+    var selectedAcquiredYearOption: String {
+        get { itemState.selectedAcquiredYearOption }
+        set { itemState.selectedAcquiredYearOption = newValue }
     }
 
     var isTitleValid: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        itemState.isTitleValid
     }
 
     var canSave: Bool {
@@ -43,33 +72,23 @@ struct BellEditorState {
         itemID: UUID,
         collectionID: UUID,
         existingBell: BellRecord?,
-        availableLocations: [Location]
+        storageLocation: Location?,
+        storagePath: StoragePath?
     ) -> BellRecord {
-        let location = availableLocations.first { $0.id == selectedLocationID }
-        let normalizedMediaAssets = mediaAssets.enumerated().map { index, asset in
-            asset.with(itemID: itemID, sortOrder: index)
-        }
         let trimmedCustomMaterialName = customMaterialName.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return BellRecord(
-            item: ItemRecord(
-                id: itemID,
+            item: itemState.makeItemRecord(
+                itemID: itemID,
                 collectionID: collectionID,
-                locationID: selectedLocationID,
-                originPlaceID: selectedOriginPlace?.id,
+                kind: .bells,
                 createdAt: existingBell?.createdAt ?? .now,
                 createdBy: "You",
-                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-                acquiredYear: Int(selectedAcquiredYearOption),
-                condition: condition,
-                acquisitionMethod: acquisitionMethod,
                 isFavorite: existingBell?.isFavorite ?? false,
-                tags: tags,
+                originPlaceID: selectedOriginPlace?.id,
                 originPlace: selectedOriginPlace,
-                storageLocation: location,
-                storagePath: location.map { Self.storagePath(for: $0, in: availableLocations) },
-                mediaAssets: normalizedMediaAssets
+                storageLocation: storageLocation,
+                storagePath: storagePath
             ),
             details: BellDetails(
                 itemID: itemID,
@@ -77,29 +96,5 @@ struct BellEditorState {
                 customMaterialName: material == .other ? trimmedCustomMaterialName : nil
             )
         )
-    }
-
-    private static func storagePath(for location: Location, in locations: [Location]) -> StoragePath {
-        let locationsByID = Dictionary(uniqueKeysWithValues: locations.map { ($0.id, $0) })
-        var components = [
-            StoragePath.Component(
-                kind: location.kind,
-                name: location.name
-            )
-        ]
-        var currentParentID = location.parentLocationID
-
-        while let parentID = currentParentID, let parent = locationsByID[parentID] {
-            components.insert(
-                StoragePath.Component(
-                    kind: parent.kind,
-                    name: parent.name
-                ),
-                at: 0
-            )
-            currentParentID = parent.parentLocationID
-        }
-
-        return StoragePath(components: components)
     }
 }
