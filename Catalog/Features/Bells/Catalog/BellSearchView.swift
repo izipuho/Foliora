@@ -87,7 +87,7 @@ struct BellSearchView: View {
     private let initialQuery: String?
     @Binding var layoutMode: CatalogCardLayoutMode
     @State private var searchState = BellCatalogSearchState()
-    @State private var cardManagement = CatalogCardManagementState<BellListItem>()
+    @State private var cardManagement = CatalogCardManagementState<BellCatalogItem>()
 
     init(
         repository: any CatalogRepository,
@@ -103,7 +103,7 @@ struct BellSearchView: View {
         self.onBellSelected = onBellSelected
     }
 
-    private var bells: [BellListItem] {
+    private var bells: [BellCatalogItem] {
         catalogSnapshot?.bells ?? []
     }
 
@@ -173,7 +173,7 @@ struct BellSearchView: View {
         .filter { !$0.tokens.isEmpty }
     }
 
-    private var filteredBells: [BellListItem] {
+    private var filteredBells: [BellCatalogItem] {
         bells
             .filter { matches(bell: $0, searchState: searchState) }
             .sorted {
@@ -221,7 +221,7 @@ struct BellSearchView: View {
         }
     }
 
-    private func openBell(_ bell: BellListItem) {
+    private func openBell(_ bell: BellCatalogItem) {
         onBellSelected?(bell.id)
     }
 
@@ -283,12 +283,12 @@ struct BellSearchView: View {
         }
     }
 
-    private func matches(bell: BellListItem, searchState: BellCatalogSearchState) -> Bool {
+    private func matches(bell: BellCatalogItem, searchState: BellCatalogSearchState) -> Bool {
         matchesQuery(searchState.query, in: bell, scope: searchState.scope)
             && matches(tokens: searchState.tokens, in: bell)
     }
 
-    private func matches(tokens: [BellSearchToken], in bell: BellListItem) -> Bool {
+    private func matches(tokens: [BellSearchToken], in bell: BellCatalogItem) -> Bool {
         let groupedTokens = Dictionary(grouping: tokens, by: \.category)
         return groupedTokens.values.allSatisfy { group in
             group.contains { matches(token: $0, in: bell) }
@@ -297,7 +297,7 @@ struct BellSearchView: View {
 
     private func matchesQuery(
         _ query: String,
-        in bell: BellListItem,
+        in bell: BellCatalogItem,
         scope: BellCatalogSearchState.Scope
     ) -> Bool {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -322,7 +322,7 @@ struct BellSearchView: View {
         }
     }
 
-    private func matchesScope(_ scope: BellCatalogSearchState.Scope, in bell: BellListItem) -> Bool {
+    private func matchesScope(_ scope: BellCatalogSearchState.Scope, in bell: BellCatalogItem) -> Bool {
         switch scope {
         case .all, .title, .collection, .origin, .tags, .notes:
             return true
@@ -335,7 +335,7 @@ struct BellSearchView: View {
         }
     }
 
-    private func matches(token: BellSearchToken, in bell: BellListItem) -> Bool {
+    private func matches(token: BellSearchToken, in bell: BellCatalogItem) -> Bool {
         switch token {
         case .collection(let collectionID):
             return bell.collectionID == collectionID
@@ -354,7 +354,7 @@ struct BellSearchView: View {
         }
     }
 
-    private func searchableValues(for bell: BellListItem) -> [String] {
+    private func searchableValues(for bell: BellCatalogItem) -> [String] {
         [
             bell.title,
             bell.notes,
@@ -363,7 +363,7 @@ struct BellSearchView: View {
         ] + originValues(for: bell) + storageValues(for: bell) + bell.tagValues
     }
 
-    private func originValues(for bell: BellListItem) -> [String] {
+    private func originValues(for bell: BellCatalogItem) -> [String] {
         return [
             bell.countryName,
             bell.cityName,
@@ -372,7 +372,7 @@ struct BellSearchView: View {
         ]
     }
 
-    private func storageValues(for bell: BellListItem) -> [String] {
+    private func storageValues(for bell: BellCatalogItem) -> [String] {
         guard let storagePath = bell.storagePath, !storagePath.isEmpty else {
             return [bell.storageLocationName]
         }
@@ -380,7 +380,7 @@ struct BellSearchView: View {
         return [storagePath.displayPath] + storagePath.components.map(\.name)
     }
 
-    private func collectionTitle(for bell: BellListItem) -> String {
+    private func collectionTitle(for bell: BellCatalogItem) -> String {
         bell.collectionID.flatMap { collectionTitlesByID[$0] } ?? ""
     }
 }
@@ -451,7 +451,7 @@ private extension BellPresenceFilter {
         }
     }
 
-    func matches(_ bell: BellListItem) -> Bool {
+    func matches(_ bell: BellCatalogItem) -> Bool {
         switch self {
         case .withOrigin:
             return bell.hasOrigin
@@ -506,7 +506,7 @@ func makeSearchTabContent(
 func makeCollectionDestinationContent(
     collection: CollectionSummary,
     catalogSnapshot: CatalogSnapshot?,
-    repository: any CatalogRepository,
+    repository: any AppRepository,
     coreDataContainer: NSPersistentCloudKitContainer,
     layoutMode: Binding<CatalogCardLayoutMode>,
     onItemSelected: ((UUID) -> Void)?,
@@ -528,7 +528,7 @@ func makeCollectionDestinationContent(
 @MainActor
 func makeItemDetailContent(
     itemID: UUID,
-    repository: any CatalogRepository,
+    repository: any AppRepository,
     catalogSnapshot: CatalogSnapshot?,
     onClose: (() -> Void)?
 ) -> AnyView {

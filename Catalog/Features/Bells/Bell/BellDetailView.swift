@@ -4,11 +4,12 @@ import SwiftUI
 struct BellDetailView: View {
 
     @Binding var bell: BellRecord
-    let repository: any CatalogRepository
+    let repository: any AppRepository
     let catalogSnapshot: CatalogSnapshot?
     let canEditCollection: Bool
     let canChangeFavorite: Bool
     let onClose: (() -> Void)?
+    @Environment(\.dismiss) private var dismiss
     @State private var draftNotes = ""
     @State private var draftTags: [String] = []
     @State private var tagInput = ""
@@ -25,7 +26,7 @@ struct BellDetailView: View {
 
     init(
         bell: Binding<BellRecord>,
-        repository: any CatalogRepository,
+        repository: any AppRepository,
         catalogSnapshot: CatalogSnapshot?,
         canEditCollection: Bool,
         canChangeFavorite: Bool = false,
@@ -84,9 +85,10 @@ struct BellDetailView: View {
                         collection: collection,
                         repository: repository,
                         catalogSnapshot: catalogSnapshot,
-                        bell: bell
+                        bell: bell,
+                        onDelete: deleteBell
                     ) { updatedBell in
-                        (repository as! any BellCatalogRepository).saveBellRecord(updatedBell)
+                        repository.saveBellRecord(updatedBell)
                         bell = updatedBell
                         syncDraftsFromBell()
                     }
@@ -413,16 +415,12 @@ struct BellDetailView: View {
         }
     }
 
+    private var storageContext: CatalogStorageContext {
+        CatalogStorageContext(snapshot: catalogSnapshot, collection: inferredCollection)
+    }
+
     private var availableLocations: [Location] {
-        guard let snapshot = catalogSnapshot,
-              let collection = inferredCollection else { return [] }
-
-        let collectionLocations = snapshot.collectionLocationsByCollectionID[collection.id] ?? []
-        if !collectionLocations.isEmpty {
-            return collectionLocations
-        }
-
-        return snapshot.locationsByHomeID[collection.homeID] ?? []
+        storageContext.availableLocations
     }
 
     private var availablePlaces: [Place] {
@@ -562,52 +560,40 @@ struct BellDetailView: View {
     private func persistStorage(locationID: UUID?) {
         guard canEditCollection else { return }
         var updatedItem = bell.item
-        let location = locationID.flatMap { id in
-            availableLocations.first { $0.id == id }
-        }
-        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
-        let path = location.map { storagePath(for: $0, locationsByID: locationsByID) }
+        let location = storageContext.location(for: locationID)
+        let path = location.map(storageContext.storagePath(for:))
         updatedItem.setStorageLocation(location, path: path)
         save(updatedItem)
+    }
+
+    private func deleteBell() {
+        repository.deleteBellRecord(bellID: bell.id)
+        isPresentingEditor = false
+
+        Task { @MainActor in
+            await Task.yield()
+            if let onClose {
+                onClose()
+            } else {
+                dismiss()
+            }
+        }
     }
 
     private func save(_ item: ItemRecord) {
         let updatedBell = BellRecord(item: item, details: bell.details)
         bell = updatedBell
-        (repository as! any BellCatalogRepository).saveBellRecord(updatedBell)
-    }
-
-    private func storagePath(for location: Location, locationsByID: [UUID: Location]) -> StoragePath {
-        var components = [
-            StoragePath.Component(
-                kind: location.kind,
-                name: location.name
-            )
-        ]
-        var currentParentID = location.parentLocationID
-
-        while let parentID = currentParentID, let parent = locationsByID[parentID] {
-            components.insert(
-                StoragePath.Component(
-                    kind: parent.kind,
-                    name: parent.name
-                ),
-                at: 0
-            )
-            currentParentID = parent.parentLocationID
-        }
-
-        return StoragePath(components: components)
+        repository.saveBellRecord(updatedBell)
     }
 }
 
 private struct BellDetailPreviewHost: View {
     let initialBell: BellRecord
-    let repository: any CatalogRepository
+    let repository: any AppRepository
     let catalogSnapshot: CatalogSnapshot?
     @State private var bell: BellRecord
 
-    init(bell: BellRecord, repository: any CatalogRepository, catalogSnapshot: CatalogSnapshot?) {
+    init(bell: BellRecord, repository: any AppRepository, catalogSnapshot: CatalogSnapshot?) {
         self.initialBell = bell
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot

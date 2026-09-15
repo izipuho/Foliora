@@ -2,14 +2,14 @@ import SwiftUI
 
 /// Displays the bell card view interface.
 struct BellCardView: View {
-    let bell: BellListItem
+    let bell: BellCatalogItem
     let cardSize: CGSize
 
     private let style: CatalogCardContentStyle
     private let cardMetrics: CatalogCardLayoutMode.CardMetrics
 
     init(
-        bell: BellListItem,
+        bell: BellCatalogItem,
         style: CatalogCardContentStyle,
         cardSize: CGSize,
         cardMetrics: CatalogCardLayoutMode.CardMetrics

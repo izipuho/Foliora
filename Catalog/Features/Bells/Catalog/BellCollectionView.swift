@@ -6,7 +6,7 @@ import CoreData
 struct BellCollectionView: View {
     let catalogSnapshot: CatalogSnapshot?
     let collection: CollectionSummary
-    let repository: any CatalogRepository
+    let repository: any AppRepository
     let coreDataContainer: NSPersistentCloudKitContainer
     private let onBellSelected: ((UUID) -> Void)?
     private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
@@ -29,13 +29,13 @@ struct BellCollectionView: View {
     @AppStorage("bellCatalog.orderMode") private var selectedOrderRawValue = BellOrderMode.newestFirst.rawValue
     private let layoutMode: Binding<CatalogCardLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
-    @State private var isBellCatalogSelectionMode = false
+    @State private var cardManagement = CatalogCardManagementState<BellCatalogItem>()
     private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
 
     init(
         collection: CollectionSummary,
         catalogSnapshot: CatalogSnapshot?,
-        repository: any CatalogRepository,
+        repository: any AppRepository,
         coreDataContainer: NSPersistentCloudKitContainer,
         layoutMode: Binding<CatalogCardLayoutMode>,
         onBellSelected: ((UUID) -> Void)? = nil,
@@ -110,6 +110,12 @@ struct BellCollectionView: View {
             selectedSort: selectedOrderBinding,
             selectedLayoutMode: selectedLayoutModeBinding,
             isPresentingAddOptions: $isPresentingAddBellOptions,
+            multiPhotoCreation: CatalogMultiPhotoCreationConfiguration(
+                isPresented: $isPresentingPhotoCreationChoice,
+                photoCount: draftMediaAssets.count,
+                onSelect: handlePhotoCreationMode,
+                onCancel: clearDraftBell
+            ),
             sortOptions: [.newestFirst, .title, .geography, .acquisitionYear, .storage],
             sortSectionTitle: String(localized: "common.sort"),
             sortTitle: { option in
@@ -120,6 +126,7 @@ struct BellCollectionView: View {
                 return String(localized: option.title)
             },
             canEdit: canEditCollection,
+            isEditAccessResolved: collectionSharingState != nil || collectionSharingLoadError != nil,
             onEdit: {
                 guard canEditCollection else { return }
                 isPresentingEditCollection = true
@@ -140,12 +147,9 @@ struct BellCollectionView: View {
 
         content
             .toolbar {
-                if !isBellCatalogSelectionMode {
+                if !cardManagement.isSelectionModeEnabled {
                     collectionToolbar
                 }
-            }
-            .onPreferenceChange(BellCatalogSelectionModePreferenceKey.self) { isSelectionMode in
-                isBellCatalogSelectionMode = isSelectionMode
             }
             .onReceive(NotificationCenter.default.publisher(for: .catalogItemFavoriteDidChange)) { notification in
                 guard
@@ -163,12 +167,6 @@ struct BellCollectionView: View {
                 maxSelectionCount: nil,
                 matching: .images,
                 photoLibrary: .shared()
-            )
-            .catalogMultiPhotoCreationDialog(
-                isPresented: $isPresentingPhotoCreationChoice,
-                photoCount: draftMediaAssets.count,
-                onSelect: handlePhotoCreationMode,
-                onCancel: clearDraftBell
             )
             .fullScreenCover(isPresented: $isPresentingCamera) {
                 cameraPicker
@@ -226,6 +224,7 @@ struct BellCollectionView: View {
                     layoutMode: selectedLayoutModeBinding,
                     orderMode: selectedOrderBinding,
                     filters: $selectedSummaryFilter,
+                    cardManagement: $cardManagement,
                     sharingState: collectionSharingState ?? .privateState,
                     sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer),
                     onSharingChanged: {
@@ -251,7 +250,7 @@ struct BellCollectionView: View {
             initialMediaAssets: draftMediaAssets,
             initialAnalysisImage: draftAnalysisImage
         ) { newBell in
-            (repository as! any BellCatalogRepository).saveBellRecord(newBell)
+            repository.saveBellRecord(newBell)
         }
     }
 
@@ -326,7 +325,6 @@ struct BellCollectionView: View {
 
     @MainActor
     private func loadCollectionSharingState() async {
-        collectionSharingState = nil
         collectionSharingLoadError = nil
 
         do {
