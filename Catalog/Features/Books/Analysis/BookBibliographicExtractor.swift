@@ -134,7 +134,7 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
         )
         let response = try await session.respond(
             generating: BookBibliographicGeneratedResponse.self,
-            options: GenerationOptions(sampling: .greedy)
+            options: GenerationOptions(samplingMode: .greedy)
         ) {
             prompt
         }
