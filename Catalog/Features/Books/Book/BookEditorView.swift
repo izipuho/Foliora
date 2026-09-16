@@ -762,27 +762,29 @@ struct BookEditorView: View {
 
     @MainActor
     private func consumePhotoAsCover(_ image: UIImage, sourceAsset: MediaAsset) {
-        editorState.mediaAssets = editorState.mediaAssets
-            .filter { $0.id != sourceAsset.id }
-            .enumerated()
-            .map { index, asset in
-                asset.with(sortOrder: index)
-            }
-        LocalMediaFileStore.shared.deleteFile(for: sourceAsset.localIdentifier)
-
         isGeneratingCoverImage = true
         Task { @MainActor in
             let extractedCover = await coverExtractor.extractCover(from: image)
-            isGeneratingCoverImage = false
 
             guard let extractedCover else {
+                isGeneratingCoverImage = false
                 isPresentingCoverCaptureFailure = true
                 return
             }
 
-            editorState.coverImage = extractedCover.with(
+            var updatedState = editorState
+            updatedState.mediaAssets = updatedState.mediaAssets
+                .filter { $0.id != sourceAsset.id }
+                .enumerated()
+                .map { index, asset in
+                    asset.with(sortOrder: index)
+                }
+            updatedState.coverImage = extractedCover.with(
                 displayName: String(localized: "editor.media.cover")
             )
+            editorState = updatedState
+            LocalMediaFileStore.shared.deleteFile(for: sourceAsset.localIdentifier)
+            isGeneratingCoverImage = false
         }
     }
 
