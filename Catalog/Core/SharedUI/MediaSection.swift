@@ -33,7 +33,7 @@ struct MediaSection: View {
                     ForEach(sortedAssets) { asset in
                         MediaAssetGridTileView(
                             asset: asset,
-                            isAnalysisHighlighted: asset.id == analysisHighlightedAssetID,
+                            isAnalysisHighlighted: analysisHighlightedAssetID != nil && asset.kind == .photo,
                             allowsDeletion: allowsDeletion,
                             isReorderingEnabled: isEditing && asset.kind == .photo && asset.itemID != nil,
                             draggedAssetID: $draggedAssetID,
@@ -329,7 +329,6 @@ private struct MediaAssetGridTileView: View {
     let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
     let onTap: () -> Void
     let onDelete: () -> Void
-    @State private var highlightPulse = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
@@ -351,12 +350,6 @@ private struct MediaAssetGridTileView: View {
             moveAsset: moveAsset
         )
         .onTapGesture(perform: onTap)
-        .onAppear {
-            highlightPulse = isAnalysisHighlighted
-        }
-        .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
-            highlightPulse = isHighlighted
-        }
     }
 
     private var mediaTitle: String {
@@ -429,11 +422,11 @@ private struct MediaAssetGridTileView: View {
                 ),
                 lineWidth: 3
             )
-            .opacity(highlightPulse ? 1 : 0.45)
-            .animation(
-                .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
-                value: highlightPulse
-            )
+            .phaseAnimator([false, true]) { content, isBright in
+                content.opacity(isBright ? 1 : 0.45)
+            } animation: { _ in
+                .easeInOut(duration: 0.9)
+            }
     }
 }
 
