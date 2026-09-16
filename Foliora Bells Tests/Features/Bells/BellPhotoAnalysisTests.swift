@@ -39,6 +39,40 @@ struct BellPhotoAnalysisTests {
     }
 
     @Test
+    func semanticExtractionDeduplicatesMainEvidenceAcrossPhotos() async {
+        let analysis = MultiPhotoAnalysisResult(
+            photos: [
+                photo(
+                    classifications: [
+                        VisionFeature(label: "Bell", confidence: 0.6),
+                        VisionFeature(label: "ceramic", confidence: 0.7)
+                    ],
+                    text: [recognizedText("Made in Italy", confidence: 0.5)]
+                ),
+                photo(
+                    classifications: [
+                        VisionFeature(label: "bell", confidence: 0.9)
+                    ],
+                    text: [recognizedText("made in italy", confidence: 0.8)]
+                )
+            ]
+        )
+        let extractor = SemanticPhotoFeatureExtractor(
+            tagFilter: PassthroughTagFilter(),
+            semanticExtractor: EmptySemanticExtractor()
+        )
+
+        let result = await extractor.extractFeatures(from: analysis)
+        let visualKeywords = result.features(ofKind: .visualKeyword)
+        let recognizedText = result.features(ofKind: .recognizedText)
+
+        #expect(visualKeywords.map(\.value) == ["bell", "ceramic"])
+        #expect(visualKeywords.first?.confidence == 0.9)
+        #expect(recognizedText.map(\.value) == ["made in italy"])
+        #expect(recognizedText.first?.confidence == 0.8)
+    }
+
+    @Test
     func semanticExtractionIgnoresBackgroundEvidenceAcrossPhotos() async {
         let analysis = MultiPhotoAnalysisResult(
             photos: [
@@ -108,10 +142,13 @@ struct BellPhotoAnalysisTests {
         )
     }
 
-    private func recognizedText(_ value: String) -> RecognizedTextFeature {
+    private func recognizedText(
+        _ value: String,
+        confidence: Double = 1
+    ) -> RecognizedTextFeature {
         RecognizedTextFeature(
             text: value,
-            confidence: 1,
+            confidence: confidence,
             boundingBox: .zero
         )
     }
