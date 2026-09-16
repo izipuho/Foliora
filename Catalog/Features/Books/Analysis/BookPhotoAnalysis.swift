@@ -121,10 +121,8 @@ final class BookPhotoAnalysisController {
             }
 
             let analysis = await service.analyze(image: cgImage)
-            // Keep raw OCR evidence available to the editor even when Foundation Models cannot run.
-            recognizedText = Self.readingOrderedText(
-                analysis.main.recognizedText + analysis.background.recognizedText
-            )
+            // Only OCR from the detected book region is book evidence; background text belongs to the surrounding scene.
+            recognizedText = Self.readingOrderedText(analysis.main.recognizedText)
             // Preserve every partial Vision failure so callers can distinguish "nothing found" from "request failed".
             photoAnalysisFailures = analysis.failures
 
