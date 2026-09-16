@@ -40,9 +40,9 @@ enum BookBibliographicExtractionError: LocalizedError, Sendable {
     }
 }
 
-/// Defines book-specific bibliographic extraction from generic photo-analysis evidence.
+/// Defines book-specific bibliographic extraction from generic item-level photo-analysis evidence.
 protocol BookBibliographicExtracting: Sendable {
-    func extract(from analysis: PhotoAnalysisResult) async throws -> BookBibliographicExtraction
+    func extract(from analysis: MultiPhotoAnalysisResult) async throws -> BookBibliographicExtraction
 }
 
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
@@ -98,13 +98,19 @@ private struct BookBibliographicGeneratedResponse {
 
 /// Extracts book bibliographic metadata from Vision-provided OCR context using Foundation Models.
 struct BookBibliographicExtractor: BookBibliographicExtracting {
-    func extract(from analysis: PhotoAnalysisResult) async throws -> BookBibliographicExtraction {
-        if let textFailure = analysis.failures.first(where: { $0.stage == .textRecognition }) {
+    func extract(from analysis: MultiPhotoAnalysisResult) async throws -> BookBibliographicExtraction {
+        let photoText = analysis.photos.map { $0.main.recognizedText }
+        let recognizedText = photoText.flatMap { $0 }
+
+        if recognizedText.isEmpty,
+           let textFailure = analysis.photos
+            .lazy
+            .flatMap(\.failures)
+            .first(where: { $0.stage == .textRecognition }) {
             // A failed OCR request must not be interpreted as a successful request that found no text.
             throw BookBibliographicExtractionError.textRecognitionFailed(textFailure)
         }
 
-        let recognizedText = analysis.main.recognizedText
         guard !recognizedText.isEmpty else {
             return .empty
         }
@@ -121,7 +127,7 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
         @unknown default:
             throw BookBibliographicExtractionError.unknownModelAvailability
         }
-        let prompt = try promptText(mainText: recognizedText)
+        let prompt = try promptText(photoText: photoText)
         let session = LanguageModelSession(
             model: model,
             instructions: instructions
@@ -138,7 +144,7 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
 
     private var instructions: String {
         """
-        Extract bibliographic metadata for one book using only the supplied OCR context.
+        Extract bibliographic metadata for one book using only the supplied OCR context from its photos.
         Do not use outside knowledge and do not complete partially visible metadata from memory.
         Return nil or an empty array whenever the supplied OCR does not support a field clearly enough.
         Do not invent genre, page count, condition, tags, notes, acquisition data, origin, identifiers, or any other fields.
@@ -153,15 +159,23 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
     }
 
     private func promptText(
-        mainText: [RecognizedTextFeature]
+        photoText: [[RecognizedTextFeature]]
     ) throws -> String {
-        """
-        Analyze these already-collected OCR results from system Vision APIs.
-        Do not assume access to the source image and do not perform additional OCR.
-        The supplied OCR belongs to the detected book region; surrounding-scene OCR is intentionally excluded.
+        let photoSections = try photoText.enumerated().compactMap { index, text -> String? in
+            guard !text.isEmpty else { return nil }
 
-        Book OCR:
-        \(try encodedRecognizedText(mainText))
+            return """
+            Photo \(index + 1) OCR:
+            \(try encodedRecognizedText(text))
+            """
+        }
+
+        return """
+        Analyze these already-collected OCR results from system Vision APIs for multiple photos of the same book.
+        Do not assume access to the source images and do not perform additional OCR.
+        The supplied OCR belongs to the detected book regions; surrounding-scene OCR is intentionally excluded.
+
+        \(photoSections.joined(separator: "\n\n"))
         """
     }
 
