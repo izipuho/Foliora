@@ -162,29 +162,6 @@ final class BookPhotoAnalysisController {
         enqueue([PendingPhoto(assetID: assetID, image: cgImage)])
     }
 
-    func removePhoto(assetID: UUID) {
-        analysisOrder.removeAll { $0 == assetID }
-        analysisByAssetID.removeValue(forKey: assetID)
-        pendingBatches = pendingBatches.compactMap { batch in
-            let remaining = batch.filter { $0.assetID != assetID }
-            return remaining.isEmpty ? nil : remaining
-        }
-        evidenceRevision += 1
-
-        guard !analysisOrder.isEmpty else {
-            suggestions = .empty
-            recognizedText = []
-            photoAnalysisFailures = []
-            analysisError = nil
-            if !isProcessingBatch && pendingBatches.isEmpty {
-                isAnalyzing = false
-            }
-            return
-        }
-
-        refreshSuggestions()
-    }
-
     func dismiss(_ field: Field) {
         suggestions = BookPhotoSuggestions(
             title: field == .title ? nil : suggestions.title,
@@ -253,13 +230,6 @@ final class BookPhotoAnalysisController {
 
             isProcessingBatch = false
             processNextBatchIfNeeded()
-        }
-    }
-
-    private func refreshSuggestions() {
-        let revision = evidenceRevision
-        Task {
-            await refreshSuggestions(for: revision)
         }
     }
 
