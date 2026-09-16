@@ -27,6 +27,17 @@ struct TextFragment: Identifiable, Hashable {
     }
 
     static func readingOrder(_ lhs: TextFragment, _ rhs: TextFragment) -> Bool {
+        switch (lhs.sourceIndex, rhs.sourceIndex) {
+        case let (lhsIndex?, rhsIndex?) where lhsIndex != rhsIndex:
+            return lhsIndex < rhsIndex
+        case (_?, nil):
+            return true
+        case (nil, _?):
+            return false
+        default:
+            break
+        }
+
         let lhsRow = Int((lhs.boundingBox.midY * 50).rounded())
         let rhsRow = Int((rhs.boundingBox.midY * 50).rounded())
         if lhsRow != rhsRow {
@@ -143,7 +154,7 @@ struct TextFragmentState<Target: Hashable> {
             text: replacementText,
             confidence: fragment.confidence,
             boundingBox: fragment.boundingBox,
-            sourceIndex: nil
+            sourceIndex: fragment.sourceIndex
         )
         fragments.append(extractedFragment)
         fragments.sort(by: TextFragment.readingOrder)
