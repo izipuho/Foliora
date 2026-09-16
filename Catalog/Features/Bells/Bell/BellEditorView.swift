@@ -61,7 +61,7 @@ struct BellEditorView: View {
     @State private var highlightedSection: StartSection?
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
-    @State private var photoAnalysis = BellPhotoAnalysisController()
+    @State private var photoAnalysis: BellPhotoAnalysisController
     @State private var localizedPhotoSuggestions: LocalizedPhotoSuggestions?
     @State private var pendingPhotoSuggestionsForTranslation: BellPhotoSuggestions?
     @State private var isLocalizingPhotoSuggestions = false
@@ -134,7 +134,11 @@ struct BellEditorView: View {
         self.existingBell = bell
         self.onDelete = onDelete
         self.onSave = onSave
-        self.editorItemID = bell?.id ?? UUID()
+        let editorItemID = bell?.id ?? UUID()
+        self.editorItemID = editorItemID
+        _photoAnalysis = State(
+            initialValue: ItemRecognitionSessionStore.shared.bellSession(for: editorItemID)
+        )
         _editorState = State(
             initialValue: BellEditorState(
                 bell: bell,
