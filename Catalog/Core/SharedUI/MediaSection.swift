@@ -329,6 +329,7 @@ private struct MediaAssetGridTileView: View {
     let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
     let onTap: () -> Void
     let onDelete: () -> Void
+    @State private var highlightPulse = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
@@ -350,6 +351,12 @@ private struct MediaAssetGridTileView: View {
             moveAsset: moveAsset
         )
         .onTapGesture(perform: onTap)
+        .onAppear {
+            updateAnalysisHighlight(isAnalysisHighlighted)
+        }
+        .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
+            updateAnalysisHighlight(isHighlighted)
+        }
     }
 
     private var mediaTitle: String {
@@ -385,9 +392,7 @@ private struct MediaAssetGridTileView: View {
     private var thumbnailImage: some View {
         MediaAssetThumbnailView(asset: asset, size: thumbnailSize)
             .overlay {
-                if isAnalysisHighlighted {
-                    analysisHighlight
-                }
+                analysisHighlight
             }
             .draggableMediaAsset(
                 asset,
@@ -422,11 +427,23 @@ private struct MediaAssetGridTileView: View {
                 ),
                 lineWidth: 3
             )
-            .phaseAnimator([false, true]) { content, isBright in
-                content.opacity(isBright ? 1 : 0.45)
-            } animation: { _ in
-                .easeInOut(duration: 0.9)
+            .opacity(isAnalysisHighlighted ? (highlightPulse ? 1 : 0.45) : 0)
+    }
+
+    private func updateAnalysisHighlight(_ isHighlighted: Bool) {
+        guard isHighlighted else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                highlightPulse = false
             }
+            return
+        }
+
+        highlightPulse = false
+        withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+            highlightPulse = true
+        }
     }
 }
 
