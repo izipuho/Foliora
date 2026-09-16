@@ -104,7 +104,7 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
             throw BookBibliographicExtractionError.textRecognitionFailed(textFailure)
         }
 
-        let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
+        let recognizedText = analysis.main.recognizedText
         guard !recognizedText.isEmpty else {
             return .empty
         }
@@ -121,10 +121,7 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
         @unknown default:
             throw BookBibliographicExtractionError.unknownModelAvailability
         }
-        let prompt = try promptText(
-            mainText: analysis.main.recognizedText,
-            backgroundText: analysis.background.recognizedText
-        )
+        let prompt = try promptText(mainText: recognizedText)
         let session = LanguageModelSession(
             model: model,
             instructions: instructions
@@ -156,18 +153,15 @@ struct BookBibliographicExtractor: BookBibliographicExtracting {
     }
 
     private func promptText(
-        mainText: [RecognizedTextFeature],
-        backgroundText: [RecognizedTextFeature]
+        mainText: [RecognizedTextFeature]
     ) throws -> String {
         """
         Analyze these already-collected OCR results from system Vision APIs.
         Do not assume access to the source image and do not perform additional OCR.
+        The supplied OCR belongs to the detected book region; surrounding-scene OCR is intentionally excluded.
 
-        Main-object OCR:
+        Book OCR:
         \(try encodedRecognizedText(mainText))
-
-        Background OCR:
-        \(try encodedRecognizedText(backgroundText))
         """
     }
 
