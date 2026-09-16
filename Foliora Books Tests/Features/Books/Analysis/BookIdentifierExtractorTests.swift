@@ -147,6 +147,23 @@ struct BookIdentifierExtractorTests {
     }
 
     @Test
+    func extractsEvidenceAcrossPhotos() {
+        let result = BookIdentifierExtractor().extract(
+            from: MultiPhotoAnalysisResult(
+                photos: [
+                    analysis(mainBarcodes: [barcode("9780804178747", confidence: 0.9)]),
+                    analysis(mainText: [text("ISBN 0-306-40615-2", confidence: 0.8)])
+                ]
+            )
+        )
+
+        #expect(result.map(\.value) == [
+            BookIdentifier(type: .isbn13, value: "9780804178747"),
+            BookIdentifier(type: .isbn10, value: "0306406152")
+        ])
+    }
+
+    @Test
     func ignoresBackgroundEvidence() {
         let result = extract(
             mainBarcodes: [barcode("9780804178747", confidence: 0.9)],
@@ -165,14 +182,32 @@ struct BookIdentifierExtractorTests {
         mainText: [RecognizedTextFeature] = [],
         backgroundText: [RecognizedTextFeature] = []
     ) -> [SuggestedFieldValue<BookIdentifier>] {
-        let analysis = PhotoAnalysisResult(
+        BookIdentifierExtractor().extract(
+            from: MultiPhotoAnalysisResult(
+                photos: [
+                    analysis(
+                        mainBarcodes: mainBarcodes,
+                        backgroundBarcodes: backgroundBarcodes,
+                        mainText: mainText,
+                        backgroundText: backgroundText
+                    )
+                ]
+            )
+        )
+    }
+
+    private func analysis(
+        mainBarcodes: [RecognizedBarcodeFeature] = [],
+        backgroundBarcodes: [RecognizedBarcodeFeature] = [],
+        mainText: [RecognizedTextFeature] = [],
+        backgroundText: [RecognizedTextFeature] = []
+    ) -> PhotoAnalysisResult {
+        PhotoAnalysisResult(
             mainObjectImage: nil,
             mainObjectRegion: nil,
             main: scope(barcodes: mainBarcodes, text: mainText),
             background: scope(barcodes: backgroundBarcodes, text: backgroundText)
         )
-
-        return BookIdentifierExtractor().extract(from: analysis)
     }
 
     private func scope(
