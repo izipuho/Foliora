@@ -25,7 +25,8 @@ struct BellPhotoAnalysisIncrementalTests {
         )
         await waitUntilAnalysisFinishes(controller)
 
-        #expect(await service.recordedBatchSizes() == [2, 1])
+        let batchSizes = await service.recordedBatchSizes()
+        #expect(batchSizes == [2, 1])
         #expect(controller.suggestions.title?.value == "3")
     }
 
