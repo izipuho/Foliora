@@ -63,7 +63,7 @@ struct BookPhotoAnalysisPartialFailureTests {
     private func makeImage() -> UIImage {
         UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).image { context in
             UIColor.white.setFill()
-            context.fill(CGRect(x: 0, y: 0, width: 1, height: 1))
+            context.cgContext.fill(CGRect(x: 0, y: 0, width: 1, height: 1))
         }
     }
 
