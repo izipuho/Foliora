@@ -147,15 +147,15 @@ struct BookIdentifierExtractorTests {
     }
 
     @Test
-    func extractsEvidenceFromMainAndBackgroundScopes() {
+    func ignoresBackgroundEvidence() {
         let result = extract(
             mainBarcodes: [barcode("9780804178747", confidence: 0.9)],
-            backgroundText: [text("ISBN 0-306-40615-2", confidence: 0.8)]
+            backgroundBarcodes: [barcode("9791090636071", confidence: 1)],
+            backgroundText: [text("ISBN 0-306-40615-2", confidence: 1)]
         )
 
         #expect(result.map(\.value) == [
-            BookIdentifier(type: .isbn13, value: "9780804178747"),
-            BookIdentifier(type: .isbn10, value: "0306406152")
+            BookIdentifier(type: .isbn13, value: "9780804178747")
         ])
     }
 
