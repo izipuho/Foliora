@@ -5,7 +5,7 @@ protocol BookIdentifierExtracting: Sendable {
     nonisolated func extract(from analysis: PhotoAnalysisResult) -> [SuggestedFieldValue<BookIdentifier>]
 }
 
-/// Extracts and validates ISBN and SBN identifiers from barcode and OCR evidence.
+/// Extracts and validates ISBN and SBN identifiers from main-object barcode and OCR evidence.
 struct BookIdentifierExtractor: BookIdentifierExtracting {
     private enum EvidenceSource: Int, Sendable {
         case barcode
@@ -21,8 +21,7 @@ struct BookIdentifierExtractor: BookIdentifierExtracting {
     nonisolated func extract(from analysis: PhotoAnalysisResult) -> [SuggestedFieldValue<BookIdentifier>] {
         var candidates: [Candidate] = []
 
-        let barcodes = analysis.main.recognizedBarcodes + analysis.background.recognizedBarcodes
-        for barcode in barcodes {
+        for barcode in analysis.main.recognizedBarcodes {
             if let identifier = identifier(fromExactValue: barcode.payload) {
                 candidates.append(
                     Candidate(
@@ -34,8 +33,7 @@ struct BookIdentifierExtractor: BookIdentifierExtracting {
             }
         }
 
-        let recognizedText = analysis.main.recognizedText + analysis.background.recognizedText
-        for text in recognizedText {
+        for text in analysis.main.recognizedText {
             for identifier in identifiers(in: text.text) {
                 candidates.append(
                     Candidate(
