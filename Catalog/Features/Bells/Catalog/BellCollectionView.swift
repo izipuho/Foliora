@@ -21,7 +21,6 @@ struct BellCollectionView: View {
     @State private var shouldPresentEditorAfterCamera = false
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var draftMediaAssets: [MediaAsset] = []
-    @State private var draftAnalysisImage: UIImage?
     @State private var isPresentingEditCollection = false
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
@@ -247,8 +246,7 @@ struct BellCollectionView: View {
             collection: collection,
             repository: repository,
             catalogSnapshot: catalogSnapshot,
-            initialMediaAssets: draftMediaAssets,
-            initialAnalysisImage: draftAnalysisImage
+            initialMediaAssets: draftMediaAssets
         ) { newBell in
             repository.saveBellRecord(newBell)
         }
@@ -294,7 +292,6 @@ struct BellCollectionView: View {
 
     private func clearDraftBell() {
         draftMediaAssets = []
-        draftAnalysisImage = nil
     }
 
     private func handlePhotoCreationMode(_ mode: CatalogMultiPhotoCreationMode) {
@@ -350,7 +347,6 @@ struct BellCollectionView: View {
         guard !items.isEmpty else { return }
 
         var newAssets: [MediaAsset] = []
-        var firstImage: UIImage?
 
         for item in items {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
@@ -363,10 +359,6 @@ struct BellCollectionView: View {
                 mimeType: contentType?.preferredMIMEType
             ) else { continue }
 
-            if firstImage == nil {
-                firstImage = media.uiImage
-            }
-
             newAssets.append(
                 media.asset.with(sortOrder: newAssets.count)
             )
@@ -376,7 +368,6 @@ struct BellCollectionView: View {
 
         guard !newAssets.isEmpty else { return }
         draftMediaAssets = newAssets
-        draftAnalysisImage = firstImage
         if newAssets.count == 1 {
             isPresentingAddBell = true
         } else {
@@ -392,7 +383,6 @@ struct BellCollectionView: View {
         draftMediaAssets = [
             media.asset.with(sortOrder: 0)
         ]
-        draftAnalysisImage = media.uiImage
         shouldPresentEditorAfterCamera = true
     }
 }
