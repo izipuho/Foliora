@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import UIKit
 
-/// Represents typed suggestions produced from one book photo.
+/// Represents typed suggestions produced from one or more photos of a book.
 struct BookPhotoSuggestions: Sendable {
     let title: SuggestedFieldValue<String>?
     let authors: [SuggestedFieldValue<String>]
@@ -44,14 +44,14 @@ enum BookPhotoAnalysisError: LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .imageUnavailable:
-            return "The source image cannot be analyzed as a CGImage."
+            return "One or more source images cannot be analyzed as CGImages."
         case .bibliographicTimeout:
             return "Foundation Models bibliographic extraction timed out."
         }
     }
 }
 
-/// Orchestrates generic photo analysis and book-specific recognition for one image.
+/// Orchestrates generic item-level photo analysis and book-specific recognition.
 @MainActor
 @Observable
 final class BookPhotoAnalysisController {
@@ -101,7 +101,17 @@ final class BookPhotoAnalysisController {
     }
 
     func analyze(image: UIImage) {
-        guard let cgImage = image.photoAnalysisCGImage else {
+        analyze(images: [image])
+    }
+
+    func analyze(images: [UIImage]) {
+        guard !images.isEmpty else {
+            clear()
+            return
+        }
+
+        let cgImages = images.compactMap(\.photoAnalysisCGImage)
+        guard cgImages.count == images.count else {
             recognizedText = []
             photoAnalysisFailures = []
             analysisError = BookPhotoAnalysisError.imageUnavailable
@@ -120,11 +130,13 @@ final class BookPhotoAnalysisController {
                 isAnalyzing = false
             }
 
-            let analysis = await service.analyze(image: cgImage)
-            // Only OCR from the detected book region is book evidence; background text belongs to the surrounding scene.
-            recognizedText = Self.readingOrderedText(analysis.main.recognizedText)
+            let analysis = await service.analyze(images: cgImages)
+            // Only OCR from detected book regions is book evidence; preserve photo order, then reading order within each photo.
+            recognizedText = analysis.photos.flatMap {
+                Self.readingOrderedText($0.main.recognizedText)
+            }
             // Preserve every partial Vision failure so callers can distinguish "nothing found" from "request failed".
-            photoAnalysisFailures = analysis.failures
+            photoAnalysisFailures = analysis.photos.flatMap(\.failures)
 
             let identifiers = identifierExtractor.extract(from: analysis)
 
@@ -183,7 +195,7 @@ final class BookPhotoAnalysisController {
     }
 
     private func extractBibliography(
-        from analysis: PhotoAnalysisResult
+        from analysis: MultiPhotoAnalysisResult
     ) async throws -> BookBibliographicExtraction {
         let extractor = bibliographicExtractor
         let timeout = bibliographicTimeout
