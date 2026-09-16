@@ -1,11 +1,11 @@
 import Foundation
 
-/// Defines deterministic extraction of book identifiers from photo-analysis evidence.
+/// Defines deterministic extraction of book identifiers from item-level photo-analysis evidence.
 protocol BookIdentifierExtracting: Sendable {
-    nonisolated func extract(from analysis: PhotoAnalysisResult) -> [SuggestedFieldValue<BookIdentifier>]
+    nonisolated func extract(from analysis: MultiPhotoAnalysisResult) -> [SuggestedFieldValue<BookIdentifier>]
 }
 
-/// Extracts and validates ISBN and SBN identifiers from main-object barcode and OCR evidence.
+/// Extracts and validates ISBN and SBN identifiers from main-object barcode and OCR evidence across book photos.
 struct BookIdentifierExtractor: BookIdentifierExtracting {
     private enum EvidenceSource: Int, Sendable {
         case barcode
@@ -18,30 +18,32 @@ struct BookIdentifierExtractor: BookIdentifierExtracting {
         let source: EvidenceSource
     }
 
-    nonisolated func extract(from analysis: PhotoAnalysisResult) -> [SuggestedFieldValue<BookIdentifier>] {
+    nonisolated func extract(from analysis: MultiPhotoAnalysisResult) -> [SuggestedFieldValue<BookIdentifier>] {
         var candidates: [Candidate] = []
 
-        for barcode in analysis.main.recognizedBarcodes {
-            if let identifier = identifier(fromExactValue: barcode.payload) {
-                candidates.append(
-                    Candidate(
-                        identifier: identifier,
-                        confidence: normalizedConfidence(barcode.confidence),
-                        source: .barcode
+        for photo in analysis.photos {
+            for barcode in photo.main.recognizedBarcodes {
+                if let identifier = identifier(fromExactValue: barcode.payload) {
+                    candidates.append(
+                        Candidate(
+                            identifier: identifier,
+                            confidence: normalizedConfidence(barcode.confidence),
+                            source: .barcode
+                        )
                     )
-                )
+                }
             }
-        }
 
-        for text in analysis.main.recognizedText {
-            for identifier in identifiers(in: text.text) {
-                candidates.append(
-                    Candidate(
-                        identifier: identifier,
-                        confidence: normalizedConfidence(text.confidence),
-                        source: .recognizedText
+            for text in photo.main.recognizedText {
+                for identifier in identifiers(in: text.text) {
+                    candidates.append(
+                        Candidate(
+                            identifier: identifier,
+                            confidence: normalizedConfidence(text.confidence),
+                            source: .recognizedText
+                        )
                     )
-                )
+                }
             }
         }
 
