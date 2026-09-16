@@ -21,7 +21,6 @@ struct MediaSection: View {
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isPresentingPhotoPicker = false
     @State private var isPresentingCamera = false
-    @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
     @State private var draggedAssetID: MediaAsset.ID?
     @State private var pendingDeletionAssetID: MediaAsset.ID?
@@ -98,18 +97,7 @@ struct MediaSection: View {
                     }
                 }
 
-                #if DEBUG
-                Button(String(localized: "editor.media.add_model3d")) {
-                    isShowingModelPlaceholder = true
-                }
-                #endif
-
                 Button(String(localized: "common.cancel"), role: .cancel) {}
-            }
-            .alert(String(localized: "editor.media.model.placeholder_title"), isPresented: $isShowingModelPlaceholder) {
-                Button(String(localized: "common.ok"), role: .cancel) {}
-            } message: {
-                Text(String(localized: "editor.media.model.placeholder_message"))
             }
             .onChange(of: selectedPhotoItems) { _, newItems in
                 Task {
