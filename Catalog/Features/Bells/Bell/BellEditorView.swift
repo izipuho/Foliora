@@ -153,7 +153,8 @@ struct BellEditorView: View {
                             MediaSection(
                                 itemID: editorItemID,
                                 mediaAssets: $editorState.mediaAssets,
-                                analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
+                                analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil,
+                                onPhotoAdded: handlePhotoAdded
                             )
                             .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -512,6 +513,20 @@ struct BellEditorView: View {
         // Keep failures / empty results silent by default.
         // If the analysis flow is re-enabled and warning feedback is needed later,
         // emit `.warning` here in a more selective way.
+    }
+
+    private func handlePhotoAdded(_ image: UIImage) {
+        guard let asset = editorState.mediaAssets
+            .filter({ $0.kind == .photo })
+            .max(by: { $0.sortOrder < $1.sortOrder }) else {
+            return
+        }
+
+        isLocalizingPhotoSuggestions = true
+        localizedPhotoSuggestions = nil
+        pendingPhotoSuggestionsForTranslation = nil
+        translationConfiguration = nil
+        photoAnalysis.analyzeAddedPhoto(assetID: asset.id, image: image)
     }
 
     private func startInitialPhotoAnalysisIfNeeded() {

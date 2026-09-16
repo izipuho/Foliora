@@ -276,12 +276,23 @@ final class BellPhotoAnalysisController {
         case suggestedTags
     }
 
+    private struct PendingPhoto {
+        let assetID: UUID
+        let image: CGImage
+    }
+
     private(set) var isAnalyzing = false
     private(set) var suggestions: BellPhotoSuggestions = .empty
 
     private let service: any PhotoAnalysisService
     private let semanticExtractor: any SemanticPhotoFeatureExtracting
     private let mapper: any BellPhotoSuggestionMapping
+
+    private var analysisByAssetID: [UUID: PhotoAnalysisResult] = [:]
+    private var analysisOrder: [UUID] = []
+    private var pendingBatches: [[PendingPhoto]] = []
+    private var isProcessingBatch = false
+    private var evidenceRevision = 0
 
     init() {
         self.service = DefaultPhotoAnalysisService()
@@ -308,26 +319,39 @@ final class BellPhotoAnalysisController {
     }
 
     func analyze(images: [UIImage]) {
-        let cgImages = images.compactMap(\.cgImage)
-        guard !cgImages.isEmpty else {
-            isAnalyzing = false
+        analyze(
+            photos: images.map {
+                (assetID: UUID(), image: $0)
+            }
+        )
+    }
+
+    func analyze(photos: [(assetID: UUID, image: UIImage)]) {
+        analysisByAssetID.removeAll()
+        analysisOrder.removeAll()
+        pendingBatches.removeAll()
+        evidenceRevision += 1
+        suggestions = .empty
+
+        let pending = pendingPhotos(from: photos)
+        guard !pending.isEmpty else {
+            if !isProcessingBatch {
+                isAnalyzing = false
+            }
             return
         }
 
-        isAnalyzing = true
+        analysisOrder = pending.map(\.assetID)
+        enqueue(pending)
+    }
 
-        Task {
-            let analysis = await service.analyze(images: cgImages)
-            let semanticFeatures = await semanticExtractor.extractFeatures(from: analysis)
-            let mapped = await mapper.map(
-                analysis: analysis,
-                semanticFeatures: semanticFeatures
-            )
-            await MainActor.run {
-                self.suggestions = mapped
-                self.isAnalyzing = false
-            }
+    func analyzeAddedPhoto(assetID: UUID, image: UIImage) {
+        guard let cgImage = image.cgImage else { return }
+
+        if !analysisOrder.contains(assetID) {
+            analysisOrder.append(assetID)
         }
+        enqueue([PendingPhoto(assetID: assetID, image: cgImage)])
     }
 
     func dismiss(_ field: Field) {
@@ -349,7 +373,78 @@ final class BellPhotoAnalysisController {
     }
 
     func clear() {
+        analysisByAssetID.removeAll()
+        analysisOrder.removeAll()
+        pendingBatches.removeAll()
+        evidenceRevision += 1
         suggestions = .empty
-        isAnalyzing = false
+        if !isProcessingBatch {
+            isAnalyzing = false
+        }
+    }
+
+    private func pendingPhotos(
+        from photos: [(assetID: UUID, image: UIImage)]
+    ) -> [PendingPhoto] {
+        photos.compactMap { photo in
+            guard let cgImage = photo.image.cgImage else { return nil }
+            return PendingPhoto(assetID: photo.assetID, image: cgImage)
+        }
+    }
+
+    private func enqueue(_ photos: [PendingPhoto]) {
+        guard !photos.isEmpty else { return }
+        pendingBatches.append(photos)
+        processNextBatchIfNeeded()
+    }
+
+    private func processNextBatchIfNeeded() {
+        guard !isProcessingBatch else { return }
+        guard !pendingBatches.isEmpty else {
+            isAnalyzing = false
+            return
+        }
+
+        let batch = pendingBatches.removeFirst()
+        isProcessingBatch = true
+        isAnalyzing = true
+
+        Task {
+            let analysis = await service.analyze(images: batch.map(\.image))
+
+            for (photo, result) in zip(batch, analysis.photos) where analysisOrder.contains(photo.assetID) {
+                analysisByAssetID[photo.assetID] = result
+            }
+
+            evidenceRevision += 1
+            await refreshSuggestions(for: evidenceRevision)
+
+            isProcessingBatch = false
+            processNextBatchIfNeeded()
+        }
+    }
+
+    private func refreshSuggestions(for revision: Int) async {
+        let analysis = currentAnalysis
+        guard !analysis.photos.isEmpty else {
+            guard revision == evidenceRevision else { return }
+            suggestions = .empty
+            return
+        }
+
+        let semanticFeatures = await semanticExtractor.extractFeatures(from: analysis)
+        let mapped = await mapper.map(
+            analysis: analysis,
+            semanticFeatures: semanticFeatures
+        )
+
+        guard revision == evidenceRevision else { return }
+        suggestions = mapped
+    }
+
+    private var currentAnalysis: MultiPhotoAnalysisResult {
+        MultiPhotoAnalysisResult(
+            photos: analysisOrder.compactMap { analysisByAssetID[$0] }
+        )
     }
 }

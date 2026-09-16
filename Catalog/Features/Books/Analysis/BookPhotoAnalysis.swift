@@ -66,6 +66,11 @@ final class BookPhotoAnalysisController {
         case volumeNumber
     }
 
+    private struct PendingPhoto {
+        let assetID: UUID
+        let image: CGImage
+    }
+
     private(set) var isAnalyzing = false
     private(set) var suggestions: BookPhotoSuggestions = .empty
     private(set) var recognizedText: [RecognizedTextFeature] = []
@@ -76,6 +81,12 @@ final class BookPhotoAnalysisController {
     private let identifierExtractor: any BookIdentifierExtracting
     private let bibliographicExtractor: any BookBibliographicExtracting
     private let bibliographicTimeout: Duration
+
+    private var analysisByAssetID: [UUID: PhotoAnalysisResult] = [:]
+    private var analysisOrder: [UUID] = []
+    private var pendingBatches: [[PendingPhoto]] = []
+    private var isProcessingBatch = false
+    private var evidenceRevision = 0
 
     init() {
         self.service = DefaultPhotoAnalysisService()
@@ -105,58 +116,50 @@ final class BookPhotoAnalysisController {
     }
 
     func analyze(images: [UIImage]) {
-        guard !images.isEmpty else {
-            clear()
-            return
-        }
+        analyze(
+            photos: images.map {
+                (assetID: UUID(), image: $0)
+            }
+        )
+    }
 
-        let cgImages = images.compactMap(\.photoAnalysisCGImage)
-        guard cgImages.count == images.count else {
-            recognizedText = []
-            photoAnalysisFailures = []
-            analysisError = BookPhotoAnalysisError.imageUnavailable
-            isAnalyzing = false
-            return
-        }
-
+    func analyze(photos: [(assetID: UUID, image: UIImage)]) {
+        analysisByAssetID.removeAll()
+        analysisOrder.removeAll()
+        pendingBatches.removeAll()
+        evidenceRevision += 1
         suggestions = .empty
         recognizedText = []
         photoAnalysisFailures = []
         analysisError = nil
-        isAnalyzing = true
 
-        Task {
-            defer {
+        let pending = pendingPhotos(from: photos)
+        guard pending.count == photos.count else {
+            analysisError = BookPhotoAnalysisError.imageUnavailable
+            if pending.isEmpty, !isProcessingBatch {
                 isAnalyzing = false
             }
-
-            let analysis = await service.analyze(images: cgImages)
-            // Only OCR from detected book regions is book evidence; preserve photo order, then reading order within each photo.
-            recognizedText = analysis.photos.flatMap {
-                Self.readingOrderedText($0.main.recognizedText)
+            if pending.isEmpty {
+                return
             }
-            // Preserve every partial Vision failure so callers can distinguish "nothing found" from "request failed".
-            photoAnalysisFailures = analysis.photos.flatMap(\.failures)
-
-            let identifiers = identifierExtractor.extract(from: analysis)
-
-            // Deterministic identifiers remain useful even if Foundation Models is unavailable or fails.
-            suggestions = suggestions(
-                bibliography: .empty,
-                identifiers: identifiers
-            )
-
-            do {
-                let bibliography = try await extractBibliography(from: analysis)
-                suggestions = suggestions(
-                    bibliography: bibliography,
-                    identifiers: identifiers
-                )
-            } catch {
-                // Convert the failure into explicit controller state without discarding partial results.
-                analysisError = error
-            }
+            enqueue(pending)
+            return
         }
+
+        analysisOrder = pending.map(\.assetID)
+        enqueue(pending)
+    }
+
+    func analyzeAddedPhoto(assetID: UUID, image: UIImage) {
+        guard let cgImage = image.photoAnalysisCGImage else {
+            analysisError = BookPhotoAnalysisError.imageUnavailable
+            return
+        }
+
+        if !analysisOrder.contains(assetID) {
+            analysisOrder.append(assetID)
+        }
+        enqueue([PendingPhoto(assetID: assetID, image: cgImage)])
     }
 
     func dismiss(_ field: Field) {
@@ -173,11 +176,106 @@ final class BookPhotoAnalysisController {
     }
 
     func clear() {
+        analysisByAssetID.removeAll()
+        analysisOrder.removeAll()
+        pendingBatches.removeAll()
+        evidenceRevision += 1
         suggestions = .empty
         recognizedText = []
         photoAnalysisFailures = []
         analysisError = nil
-        isAnalyzing = false
+        if !isProcessingBatch {
+            isAnalyzing = false
+        }
+    }
+
+    private func pendingPhotos(
+        from photos: [(assetID: UUID, image: UIImage)]
+    ) -> [PendingPhoto] {
+        photos.compactMap { photo in
+            guard let cgImage = photo.image.photoAnalysisCGImage else { return nil }
+            return PendingPhoto(assetID: photo.assetID, image: cgImage)
+        }
+    }
+
+    private func enqueue(_ photos: [PendingPhoto]) {
+        guard !photos.isEmpty else { return }
+        for photo in photos where !analysisOrder.contains(photo.assetID) {
+            analysisOrder.append(photo.assetID)
+        }
+        pendingBatches.append(photos)
+        processNextBatchIfNeeded()
+    }
+
+    private func processNextBatchIfNeeded() {
+        guard !isProcessingBatch else { return }
+        guard !pendingBatches.isEmpty else {
+            isAnalyzing = false
+            return
+        }
+
+        let batch = pendingBatches.removeFirst()
+        isProcessingBatch = true
+        isAnalyzing = true
+
+        Task {
+            let analysis = await service.analyze(images: batch.map(\.image))
+
+            for (photo, result) in zip(batch, analysis.photos) where analysisOrder.contains(photo.assetID) {
+                analysisByAssetID[photo.assetID] = result
+            }
+
+            evidenceRevision += 1
+            await refreshSuggestions(for: evidenceRevision)
+
+            isProcessingBatch = false
+            processNextBatchIfNeeded()
+        }
+    }
+
+    private func refreshSuggestions(for revision: Int) async {
+        let analysis = currentAnalysis
+        guard !analysis.photos.isEmpty else {
+            guard revision == evidenceRevision else { return }
+            suggestions = .empty
+            recognizedText = []
+            photoAnalysisFailures = []
+            analysisError = nil
+            return
+        }
+
+        let nextRecognizedText = analysis.photos.flatMap {
+            Self.readingOrderedText($0.main.recognizedText)
+        }
+        let nextFailures = analysis.photos.flatMap(\.failures)
+        let identifiers = identifierExtractor.extract(from: analysis)
+
+        guard revision == evidenceRevision else { return }
+        recognizedText = nextRecognizedText
+        photoAnalysisFailures = nextFailures
+        analysisError = nil
+        suggestions = suggestions(
+            bibliography: .empty,
+            identifiers: identifiers
+        )
+
+        do {
+            let bibliography = try await extractBibliography(from: analysis)
+            guard revision == evidenceRevision else { return }
+            suggestions = suggestions(
+                bibliography: bibliography,
+                identifiers: identifiers
+            )
+        } catch {
+            guard revision == evidenceRevision else { return }
+            analysisError = error
+        }
+    }
+
+    private var currentAnalysis: MultiPhotoAnalysisResult {
+        MultiPhotoAnalysisResult(
+            photos: analysisOrder.compactMap { analysisByAssetID[$0] }
+        )
     }
 
     private static func readingOrderedText(

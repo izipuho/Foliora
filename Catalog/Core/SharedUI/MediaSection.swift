@@ -25,6 +25,7 @@ struct MediaSection: View {
     @State private var isPresentingAddMediaOptions = false
     @State private var draggedAssetID: MediaAsset.ID?
     @State private var pendingDeletionAssetID: MediaAsset.ID?
+    @State private var recentlyAddedPhotoAssetIDs: Set<MediaAsset.ID> = []
 
     var body: some View {
         MediaQuickLookPresenter(mediaAssets: mediaAssets) { preview in
@@ -33,7 +34,7 @@ struct MediaSection: View {
                     ForEach(sortedAssets) { asset in
                         MediaAssetGridTileView(
                             asset: asset,
-                            isAnalysisHighlighted: analysisHighlightedAssetID != nil && asset.kind == .photo,
+                            isAnalysisHighlighted: isAnalysisHighlighted(asset),
                             allowsDeletion: allowsDeletion,
                             isReorderingEnabled: isEditing && asset.kind == .photo && asset.itemID != nil,
                             draggedAssetID: $draggedAssetID,
@@ -115,6 +116,11 @@ struct MediaSection: View {
                     await addPhotos(from: newItems)
                 }
             }
+            .onChange(of: analysisHighlightedAssetID) { _, highlightedAssetID in
+                if highlightedAssetID == nil {
+                    recentlyAddedPhotoAssetIDs.removeAll()
+                }
+            }
         }
     }
 
@@ -141,6 +147,12 @@ struct MediaSection: View {
 
     private var isEditing: Bool {
         allowsDeletion
+    }
+
+    private func isAnalysisHighlighted(_ asset: MediaAsset) -> Bool {
+        guard analysisHighlightedAssetID != nil, asset.kind == .photo else { return false }
+        guard !recentlyAddedPhotoAssetIDs.isEmpty else { return true }
+        return recentlyAddedPhotoAssetIDs.contains(asset.id)
     }
 
     private func deleteConfirmationBinding(for assetID: MediaAsset.ID) -> Binding<Bool> {
@@ -171,11 +183,11 @@ struct MediaSection: View {
                 mimeType: contentType?.preferredMIMEType
             ) else { continue }
 
+            let asset = media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
             updateMediaAssets { assets in
-                assets.append(
-                    media.asset.with(itemID: itemID, sortOrder: assets.count)
-                )
+                assets.append(asset)
             }
+            recentlyAddedPhotoAssetIDs.insert(asset.id)
 
             onPhotoAdded?(image)
         }
@@ -193,11 +205,11 @@ struct MediaSection: View {
             mimeType: "image/jpeg"
         ) else { return }
 
+        let asset = media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
         updateMediaAssets { assets in
-            assets.append(
-                media.asset.with(itemID: itemID, sortOrder: assets.count)
-            )
+            assets.append(asset)
         }
+        recentlyAddedPhotoAssetIDs.insert(asset.id)
 
         onPhotoAdded?(image)
     }

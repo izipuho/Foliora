@@ -776,7 +776,7 @@ struct BookEditorView: View {
 
             for sourceAsset in sourceAssets {
                 guard let image = sourceImage(for: sourceAsset) else { continue }
-                await normalizePhoto(
+                _ = await normalizePhoto(
                     image,
                     sourceAsset: sourceAsset,
                     shouldBecomeCover: sourceAsset.id == coverAsset.id
@@ -801,10 +801,14 @@ struct BookEditorView: View {
                 }
             }
 
-            await normalizePhoto(
+            let analysisImage = await normalizePhoto(
                 image,
                 sourceAsset: sourceAsset,
                 shouldBecomeCover: shouldBecomeCover
+            )
+            photoAnalysis.analyzeAddedPhoto(
+                assetID: sourceAsset.id,
+                image: analysisImage
             )
         }
     }
@@ -814,16 +818,18 @@ struct BookEditorView: View {
         _ image: UIImage,
         sourceAsset: MediaAsset,
         shouldBecomeCover: Bool
-    ) async {
+    ) async -> UIImage {
         guard let extractedPhoto = await coverExtractor.extractCover(from: image) else {
             if shouldBecomeCover {
                 isPresentingCoverCaptureFailure = true
             }
-            return
+            return image
         }
 
+        let normalizedImage = extractedPhoto.originalData.flatMap(UIImage.init(data:)) ?? image
+
         guard let sourceIndex = editorState.mediaAssets.firstIndex(where: { $0.id == sourceAsset.id }) else {
-            return
+            return normalizedImage
         }
 
         if shouldBecomeCover {
@@ -834,7 +840,7 @@ struct BookEditorView: View {
                 itemID: editorItemID,
                 displayName: String(localized: "editor.media.cover")
             )
-            return
+            return normalizedImage
         }
 
         editorState.mediaAssets[sourceIndex] = normalizedPhotoAsset(
@@ -842,6 +848,7 @@ struct BookEditorView: View {
             replacing: sourceAsset
         )
         deleteLocalFile(for: sourceAsset)
+        return normalizedImage
     }
 
     private func sourceImage(for asset: MediaAsset) -> UIImage? {
