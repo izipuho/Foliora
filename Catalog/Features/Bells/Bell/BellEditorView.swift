@@ -48,7 +48,7 @@ struct BellEditorView: View {
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
     let startSection: StartSection?
-    let initialAnalysisImage: UIImage?
+    private let initialAnalysisImages: [UIImage]
     private let existingBell: BellRecord?
     private let onDelete: (() -> Void)?
     let onSave: (BellRecord) -> Void
@@ -125,7 +125,16 @@ struct BellEditorView: View {
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
         self.startSection = startSection
-        self.initialAnalysisImage = initialAnalysisImage
+        let mediaImages = initialMediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { asset -> UIImage? in
+                guard let data = asset.originalData else { return nil }
+                return UIImage(data: data)
+            }
+        self.initialAnalysisImages = mediaImages.isEmpty
+            ? initialAnalysisImage.map { [$0] } ?? []
+            : mediaImages
         self.existingBell = bell
         self.onDelete = onDelete
         self.onSave = onSave
@@ -510,13 +519,15 @@ struct BellEditorView: View {
     }
 
     private func startInitialPhotoAnalysisIfNeeded() {
-        guard !didStartInitialAnalysis, existingBell == nil, let initialAnalysisImage else { return }
+        guard !didStartInitialAnalysis,
+              existingBell == nil,
+              !initialAnalysisImages.isEmpty else { return }
         didStartInitialAnalysis = true
         isLocalizingPhotoSuggestions = true
         localizedPhotoSuggestions = nil
         pendingPhotoSuggestionsForTranslation = nil
         translationConfiguration = nil
-        photoAnalysis.analyze(image: initialAnalysisImage)
+        photoAnalysis.analyze(images: initialAnalysisImages)
     }
 
     private func translatePhotoSuggestions(
