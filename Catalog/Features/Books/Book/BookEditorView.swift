@@ -38,7 +38,7 @@ struct BookEditorView: View {
     @State private var editingIdentifierIndex: Int?
     @State private var isPresentingIdentifierEditor = false
     @State private var isPresentingDeleteConfirmation = false
-    @State private var photoAnalysis = BookPhotoAnalysisController()
+    @State private var photoAnalysis: BookPhotoAnalysisController
     @State private var didStartInitialAnalysis = false
     @State private var textAssignmentController = BookTextAssignmentController()
 
@@ -139,7 +139,11 @@ struct BookEditorView: View {
             }
         self.onDelete = onDelete
         self.onSave = onSave
-        self.editorItemID = book?.id ?? UUID()
+        let editorItemID = book?.id ?? UUID()
+        self.editorItemID = editorItemID
+        _photoAnalysis = State(
+            initialValue: ItemRecognitionSessionStore.shared.bookSession(for: editorItemID)
+        )
         _editorState = State(
             initialValue: BookEditorState(
                 book: book,
