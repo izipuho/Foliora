@@ -116,7 +116,6 @@ struct BellEditorView: View {
         catalogSnapshot: CatalogSnapshot?,
         bell: BellRecord? = nil,
         initialMediaAssets: [MediaAsset] = [],
-        initialAnalysisImage: UIImage? = nil,
         startSection: StartSection? = nil,
         onDelete: (() -> Void)? = nil,
         onSave: @escaping (BellRecord) -> Void
@@ -125,16 +124,13 @@ struct BellEditorView: View {
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
         self.startSection = startSection
-        let mediaImages = initialMediaAssets
+        self.initialAnalysisImages = initialMediaAssets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
             .compactMap { asset -> UIImage? in
                 guard let data = asset.originalData else { return nil }
                 return UIImage(data: data)
             }
-        self.initialAnalysisImages = mediaImages.isEmpty
-            ? initialAnalysisImage.map { [$0] } ?? []
-            : mediaImages
         self.existingBell = bell
         self.onDelete = onDelete
         self.onSave = onSave
