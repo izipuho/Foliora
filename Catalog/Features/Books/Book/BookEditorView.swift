@@ -19,7 +19,8 @@ struct BookEditorView: View {
 
     @State private var editorState: BookEditorState
     @State private var tagInput = ""
-    @State private var isGeneratingCoverImage = false
+    @State private var photoNormalizationCount = 0
+    @State private var pendingCoverAssetID: UUID?
     @State private var isPresentingCoverCaptureFailure = false
 
     @State private var catalogGenreSuggestions: [String] = []
@@ -589,7 +590,7 @@ struct BookEditorView: View {
             .task(id: collection.id) {
                 loadCatalogMetadata()
                 startInitialPhotoAnalysisIfNeeded()
-                consumeInitialCoverPhotoIfNeeded()
+                normalizeInitialBookPhotosIfNeeded()
             }
             .onChange(of: photoAnalysis.recognizedText) { _, recognizedText in
                 textAssignmentController.sync(from: recognizedText)
@@ -675,7 +676,7 @@ struct BookEditorView: View {
     }
 
     private var canSave: Bool {
-        editorState.canSave(isGeneratingCoverImage: isGeneratingCoverImage)
+        editorState.canSave(isGeneratingCoverImage: photoNormalizationCount > 0)
     }
 
     private var volumeField: some View {
@@ -734,54 +735,164 @@ struct BookEditorView: View {
 
     @MainActor
     private func handlePhotoAdded(_ image: UIImage) {
-        guard editorState.coverImage == nil, !isGeneratingCoverImage else { return }
         guard let sourceAsset = editorState.mediaAssets
             .filter({ $0.kind == .photo })
             .max(by: { $0.sortOrder < $1.sortOrder }) else {
             return
         }
 
-        consumePhotoAsCover(image, sourceAsset: sourceAsset)
+        let shouldBecomeCover = editorState.coverImage == nil && pendingCoverAssetID == nil
+        if shouldBecomeCover {
+            pendingCoverAssetID = sourceAsset.id
+        }
+
+        normalizeAddedPhoto(
+            image,
+            sourceAsset: sourceAsset,
+            shouldBecomeCover: shouldBecomeCover
+        )
     }
 
     @MainActor
-    private func consumeInitialCoverPhotoIfNeeded() {
+    private func normalizeInitialBookPhotosIfNeeded() {
         guard existingBook == nil,
-              editorState.coverImage == nil,
-              !isGeneratingCoverImage,
-              let sourceAsset = firstPhotoAsset,
-              let sourceData = sourceAsset.originalData,
-              let image = UIImage(data: sourceData) else {
+              editorState.coverImage == nil else {
             return
         }
 
-        consumePhotoAsCover(image, sourceAsset: sourceAsset)
+        let sourceAssets = editorState.mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+        guard let coverAsset = sourceAssets.first else { return }
+
+        pendingCoverAssetID = coverAsset.id
+        photoNormalizationCount += 1
+
+        Task { @MainActor in
+            defer {
+                photoNormalizationCount -= 1
+                pendingCoverAssetID = nil
+            }
+
+            for sourceAsset in sourceAssets {
+                guard let image = sourceImage(for: sourceAsset) else { continue }
+                await normalizePhoto(
+                    image,
+                    sourceAsset: sourceAsset,
+                    shouldBecomeCover: sourceAsset.id == coverAsset.id
+                )
+            }
+        }
     }
 
     @MainActor
-    private func consumePhotoAsCover(_ image: UIImage, sourceAsset: MediaAsset) {
+    private func normalizeAddedPhoto(
+        _ image: UIImage,
+        sourceAsset: MediaAsset,
+        shouldBecomeCover: Bool
+    ) {
+        photoNormalizationCount += 1
+
+        Task { @MainActor in
+            defer {
+                photoNormalizationCount -= 1
+                if pendingCoverAssetID == sourceAsset.id {
+                    pendingCoverAssetID = nil
+                }
+            }
+
+            await normalizePhoto(
+                image,
+                sourceAsset: sourceAsset,
+                shouldBecomeCover: shouldBecomeCover
+            )
+        }
+    }
+
+    @MainActor
+    private func normalizePhoto(
+        _ image: UIImage,
+        sourceAsset: MediaAsset,
+        shouldBecomeCover: Bool
+    ) async {
+        guard let extractedPhoto = await coverExtractor.extractCover(from: image) else {
+            if shouldBecomeCover {
+                isPresentingCoverCaptureFailure = true
+            }
+            return
+        }
+
+        guard let sourceIndex = editorState.mediaAssets.firstIndex(where: { $0.id == sourceAsset.id }) else {
+            return
+        }
+
+        if shouldBecomeCover {
+            editorState.mediaAssets.remove(at: sourceIndex)
+            normalizeMediaSortOrder()
+            deleteLocalFile(for: sourceAsset)
+            editorState.coverImage = extractedPhoto.with(
+                itemID: editorItemID,
+                displayName: String(localized: "editor.media.cover")
+            )
+            return
+        }
+
+        editorState.mediaAssets[sourceIndex] = normalizedPhotoAsset(
+            extractedPhoto,
+            replacing: sourceAsset
+        )
+        deleteLocalFile(for: sourceAsset)
+    }
+
+    private func sourceImage(for asset: MediaAsset) -> UIImage? {
+        if let data = asset.originalData,
+           let image = UIImage(data: data) {
+            return image
+        }
+
+        guard !asset.localIdentifier.isEmpty,
+              let url = LocalMediaFileStore.shared.fileURL(for: asset.localIdentifier) else {
+            return nil
+        }
+
+        return UIImage(contentsOfFile: url.path)
+    }
+
+    private func normalizedPhotoAsset(
+        _ extractedPhoto: MediaAsset,
+        replacing sourceAsset: MediaAsset
+    ) -> MediaAsset {
+        MediaAsset(
+            id: sourceAsset.id,
+            itemID: sourceAsset.itemID ?? editorItemID,
+            kind: .photo,
+            localIdentifier: "",
+            displayName: sourceAsset.displayName,
+            sortOrder: sourceAsset.sortOrder,
+            fileName: extractedPhoto.fileName,
+            mimeType: extractedPhoto.mimeType,
+            byteSize: extractedPhoto.byteSize,
+            checksum: extractedPhoto.checksum,
+            width: extractedPhoto.width,
+            height: extractedPhoto.height,
+            duration: extractedPhoto.duration,
+            metadataJSON: extractedPhoto.metadataJSON,
+            originalData: extractedPhoto.originalData
+        )
+    }
+
+    private func normalizeMediaSortOrder() {
         editorState.mediaAssets = editorState.mediaAssets
-            .filter { $0.id != sourceAsset.id }
+            .sorted { $0.sortOrder < $1.sortOrder }
             .enumerated()
             .map { index, asset in
                 asset.with(sortOrder: index)
             }
-        LocalMediaFileStore.shared.deleteFile(for: sourceAsset.localIdentifier)
+    }
 
-        isGeneratingCoverImage = true
-        Task { @MainActor in
-            let extractedCover = await coverExtractor.extractCover(from: image)
-            isGeneratingCoverImage = false
-
-            guard let extractedCover else {
-                isPresentingCoverCaptureFailure = true
-                return
-            }
-
-            editorState.coverImage = extractedCover.with(
-                displayName: String(localized: "editor.media.cover")
-            )
-        }
+    private func deleteLocalFile(for asset: MediaAsset) {
+        guard !asset.localIdentifier.isEmpty else { return }
+        LocalMediaFileStore.shared.deleteFile(for: asset.localIdentifier)
     }
 
     private func startInitialPhotoAnalysisIfNeeded() {
