@@ -33,7 +33,7 @@ struct MediaSection: View {
                     ForEach(sortedAssets) { asset in
                         MediaAssetGridTileView(
                             asset: asset,
-                            isAnalysisHighlighted: asset.id == analysisHighlightedAssetID,
+                            isAnalysisHighlighted: analysisHighlightedAssetID != nil && asset.kind == .photo,
                             allowsDeletion: allowsDeletion,
                             isReorderingEnabled: isEditing && asset.kind == .photo && asset.itemID != nil,
                             draggedAssetID: $draggedAssetID,
@@ -352,10 +352,10 @@ private struct MediaAssetGridTileView: View {
         )
         .onTapGesture(perform: onTap)
         .onAppear {
-            highlightPulse = isAnalysisHighlighted
+            updateAnalysisHighlight(isAnalysisHighlighted)
         }
         .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
-            highlightPulse = isHighlighted
+            updateAnalysisHighlight(isHighlighted)
         }
     }
 
@@ -392,9 +392,7 @@ private struct MediaAssetGridTileView: View {
     private var thumbnailImage: some View {
         MediaAssetThumbnailView(asset: asset, size: thumbnailSize)
             .overlay {
-                if isAnalysisHighlighted {
-                    analysisHighlight
-                }
+                analysisHighlight
             }
             .draggableMediaAsset(
                 asset,
@@ -429,11 +427,23 @@ private struct MediaAssetGridTileView: View {
                 ),
                 lineWidth: 3
             )
-            .opacity(highlightPulse ? 1 : 0.45)
-            .animation(
-                .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
-                value: highlightPulse
-            )
+            .opacity(isAnalysisHighlighted ? (highlightPulse ? 1 : 0.45) : 0)
+    }
+
+    private func updateAnalysisHighlight(_ isHighlighted: Bool) {
+        guard isHighlighted else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                highlightPulse = false
+            }
+            return
+        }
+
+        highlightPulse = false
+        withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+            highlightPulse = true
+        }
     }
 }
 

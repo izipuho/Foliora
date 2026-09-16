@@ -5,6 +5,26 @@ import Testing
 
 struct BookTextAssignmentControllerTests {
     @Test
+    func syncPreservesProvidedSourceOrderAcrossPhotoCoordinateSpaces() {
+        var controller = BookTextAssignmentController()
+        controller.sync(from: [
+            recognizedText(
+                "photo one lower text",
+                boundingBox: CGRect(x: 0.1, y: 0.05, width: 0.8, height: 0.1)
+            ),
+            recognizedText(
+                "photo two upper text",
+                boundingBox: CGRect(x: 0.1, y: 0.85, width: 0.8, height: 0.1)
+            )
+        ])
+
+        #expect(controller.fragments.map(\.text) == [
+            "photo one lower text",
+            "photo two upper text"
+        ])
+    }
+
+    @Test
     func extractsVolumeAndKeepsRemainderAsUnusedFragment() {
         var controller = BookTextAssignmentController()
         controller.sync(from: [recognizedText("Том 12")])
@@ -79,11 +99,14 @@ struct BookTextAssignmentControllerTests {
         }
     }
 
-    private func recognizedText(_ text: String) -> RecognizedTextFeature {
+    private func recognizedText(
+        _ text: String,
+        boundingBox: CGRect = .zero
+    ) -> RecognizedTextFeature {
         RecognizedTextFeature(
             text: text,
             confidence: 0.9,
-            boundingBox: .zero
+            boundingBox: boundingBox
         )
     }
 

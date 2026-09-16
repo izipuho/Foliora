@@ -74,7 +74,7 @@ struct BellPhotoAnalysisDebugInfo: Sendable {
 /// Defines the interface for bell photo suggestion mapping implementations.
 protocol BellPhotoSuggestionMapping: Sendable {
     func map(
-        analysis: PhotoAnalysisResult,
+        analysis: MultiPhotoAnalysisResult,
         semanticFeatures: SemanticPhotoFeatures
     ) async -> BellPhotoSuggestions
 }
@@ -82,10 +82,10 @@ protocol BellPhotoSuggestionMapping: Sendable {
 /// Provides default bell photo suggestion mapper operations.
 struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
     func map(
-        analysis: PhotoAnalysisResult,
+        analysis: MultiPhotoAnalysisResult,
         semanticFeatures: SemanticPhotoFeatures
     ) async -> BellPhotoSuggestions {
-        let recognizedText = analysis.main.recognizedText
+        let recognizedText = analysis.photos.flatMap { $0.main.recognizedText }
         let visualFeatures = sortedNonEmptyFeatures(
             from: semanticFeatures,
             ofKinds: [.visualKeyword]
@@ -304,7 +304,12 @@ final class BellPhotoAnalysisController {
     }
 
     func analyze(image: UIImage) {
-        guard let cgImage = image.cgImage else {
+        analyze(images: [image])
+    }
+
+    func analyze(images: [UIImage]) {
+        let cgImages = images.compactMap(\.cgImage)
+        guard !cgImages.isEmpty else {
             isAnalyzing = false
             return
         }
@@ -312,7 +317,7 @@ final class BellPhotoAnalysisController {
         isAnalyzing = true
 
         Task {
-            let analysis = await service.analyze(image: cgImage)
+            let analysis = await service.analyze(images: cgImages)
             let semanticFeatures = await semanticExtractor.extractFeatures(from: analysis)
             let mapped = await mapper.map(
                 analysis: analysis,

@@ -34,6 +34,13 @@ struct PhotoAnalysisResult: Sendable {
     )
 }
 
+/// Represents ordered analysis results for several photos of one item.
+struct MultiPhotoAnalysisResult: Sendable {
+    let photos: [PhotoAnalysisResult]
+
+    static let empty = MultiPhotoAnalysisResult(photos: [])
+}
+
 /// Describes one failed Vision feature request without discarding successful sibling results.
 struct PhotoAnalysisFailure: Hashable, Sendable, CustomStringConvertible {
     enum Stage: String, Hashable, Sendable {
@@ -191,6 +198,38 @@ private enum PhotoAnalysisNormalization {
 /// Defines the interface for photo analysis service implementations.
 protocol PhotoAnalysisService: Sendable {
     func analyze(image: CGImage) async -> PhotoAnalysisResult
+    func analyze(images: [CGImage]) async -> MultiPhotoAnalysisResult
+}
+
+extension PhotoAnalysisService {
+    func analyze(images: [CGImage]) async -> MultiPhotoAnalysisResult {
+        guard !images.isEmpty else {
+            return .empty
+        }
+
+        return await withTaskGroup(
+            of: (Int, PhotoAnalysisResult).self,
+            returning: MultiPhotoAnalysisResult.self
+        ) { group in
+            for (index, image) in images.enumerated() {
+                group.addTask {
+                    (index, await self.analyze(image: image))
+                }
+            }
+
+            var orderedResults = Array<PhotoAnalysisResult?>(
+                repeating: nil,
+                count: images.count
+            )
+            for await (index, result) in group {
+                orderedResults[index] = result
+            }
+
+            return MultiPhotoAnalysisResult(
+                photos: orderedResults.compactMap { $0 }
+            )
+        }
+    }
 }
 
 private struct VisionAnalyzer: Sendable {
