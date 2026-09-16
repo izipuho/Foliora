@@ -352,8 +352,7 @@ private struct MediaAssetGridTileView: View {
         )
         .onTapGesture(perform: onTap)
         .onAppear {
-            guard isAnalysisHighlighted else { return }
-            highlightPulse = true
+            highlightPulse = isAnalysisHighlighted
         }
         .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
             highlightPulse = isHighlighted
@@ -417,7 +416,7 @@ private struct MediaAssetGridTileView: View {
 
     private var analysisHighlight: some View {
         CatalogShapes.thumbnail
-            .stroke(
+            .strokeBorder(
                 AngularGradient(
                     colors: [
                         .cyan,
@@ -428,10 +427,9 @@ private struct MediaAssetGridTileView: View {
                     ],
                     center: .center
                 ),
-                lineWidth: highlightPulse ? 4 : 2
+                lineWidth: 3
             )
             .opacity(highlightPulse ? 1 : 0.45)
-            .scaleEffect(highlightPulse ? 1.035 : 0.99)
             .animation(
                 .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
                 value: highlightPulse
