@@ -22,6 +22,8 @@ struct SettingsView: View {
     @FocusState private var isDisplayNameFocused: Bool
     #if DEBUG
     @State private var cloudKitSchemaMessage: String?
+    @AppStorage(RecognitionDebugSettings.artificialDelaySecondsKey)
+    private var recognitionDebugDelaySeconds = 0.0
     #endif
 
     var body: some View {
@@ -159,6 +161,17 @@ struct SettingsView: View {
                     }
 
                     #if DEBUG
+                    Section("Recognition Debug") {
+                        Stepper(
+                            "Analysis delay: \(Int(recognitionDebugDelaySeconds)) s",
+                            value: $recognitionDebugDelaySeconds,
+                            in: 0...30,
+                            step: 1
+                        )
+                    } footer: {
+                        Text("Adds an artificial delay before each item-level Vision analysis batch in debug builds.")
+                    }
+
                     Section("CloudKit") {
                         SettingsInfoRow(
                             title: "CloudContainer",
