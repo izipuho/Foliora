@@ -7,6 +7,10 @@ extension DefaultPhotoAnalysisService {
             return .empty
         }
 
+#if DEBUG
+        await RecognitionDebugSettings.waitBeforeAnalysisIfNeeded()
+#endif
+
         var results: [PhotoAnalysisResult] = []
         results.reserveCapacity(images.count)
 
