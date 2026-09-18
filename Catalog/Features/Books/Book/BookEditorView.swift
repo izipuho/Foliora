@@ -94,6 +94,14 @@ struct BookEditorView: View {
         firstPhotoAsset?.id
     }
 
+    private var recognitionMediaSnapshot: ItemRecognitionMediaSnapshot {
+        let photoAssetIDs = ([editorState.coverImage].compactMap { $0 } + editorState.mediaAssets)
+            .filter { $0.kind == .photo }
+            .map(\.id)
+
+        return ItemRecognitionMediaSnapshot(photoAssetIDs: Set(photoAssetIDs))
+    }
+
     private var editorMediaAssets: Binding<[MediaAsset]> {
         Binding(
             get: {
@@ -590,7 +598,11 @@ struct BookEditorView: View {
             .task(id: collection.id) {
                 loadCatalogMetadata()
                 textAssignmentController.sync(from: photoAnalysis.recognizedText)
+                photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
                 normalizeInitialBookPhotosIfNeeded()
+            }
+            .onChange(of: recognitionMediaSnapshot) { _, snapshot in
+                photoAnalysis.reconcileMediaSnapshot(snapshot)
             }
             .onChange(of: photoAnalysis.recognizedText) { _, recognizedText in
                 textAssignmentController.sync(from: recognizedText)
@@ -808,8 +820,11 @@ struct BookEditorView: View {
                 sourceAsset: sourceAsset,
                 shouldBecomeCover: shouldBecomeCover
             )
+            let analysisAssetID = shouldBecomeCover
+                ? (editorState.coverImage?.id ?? sourceAsset.id)
+                : sourceAsset.id
             photoAnalysis.analyzeAddedPhoto(
-                assetID: sourceAsset.id,
+                assetID: analysisAssetID,
                 image: analysisImage
             )
         }
