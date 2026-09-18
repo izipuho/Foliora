@@ -73,7 +73,7 @@ struct BellEditorView: View {
     @State private var shouldPresentLocationPickerAfterHomeEditor = false
     @State private var locationPickerPresentationToken = 0
     @State private var isPresentingDeleteConfirmation = false
-    private let editorItemID: UUID
+    @State private var editorItemID: UUID
 
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
@@ -135,7 +135,7 @@ struct BellEditorView: View {
         self.onDelete = onDelete
         self.onSave = onSave
         let editorItemID = bell?.id ?? UUID()
-        self.editorItemID = editorItemID
+        _editorItemID = State(initialValue: editorItemID)
         _photoAnalysis = State(
             initialValue: ItemRecognitionSessionStore.shared.session(
                 for: editorItemID,
