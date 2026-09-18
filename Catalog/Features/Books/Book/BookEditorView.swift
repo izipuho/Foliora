@@ -556,6 +556,19 @@ struct BookEditorView: View {
                         }
                         .tint(CatalogSemanticColors.destructive)
                         .accessibilityLabel(String(localized: "common.delete"))
+                        .confirmationDialog(
+                            String(localized: "book.delete.title"),
+                            isPresented: $isPresentingDeleteConfirmation,
+                            titleVisibility: .visible
+                        ) {
+                            Button(String(localized: "common.delete"), role: .destructive) {
+                                onDelete?()
+                            }
+
+                            Button(String(localized: "common.cancel"), role: .cancel) {}
+                        } message: {
+                            Text(String(localized: "book.delete.message"))
+                        }
                     }
                 }
 
@@ -568,19 +581,6 @@ struct BookEditorView: View {
                     .disabled(!canSave)
                     .accessibilityLabel(String(localized: "common.save"))
                 }
-            }
-            .confirmationDialog(
-                String(localized: "book.delete.title"),
-                isPresented: $isPresentingDeleteConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button(String(localized: "common.delete"), role: .destructive) {
-                    onDelete?()
-                }
-
-                Button(String(localized: "common.cancel"), role: .cancel) {}
-            } message: {
-                Text(String(localized: "book.delete.message"))
             }
             .alert(String(localized: "editor.media.cover"), isPresented: $isPresentingCoverCaptureFailure) {
                 Button(String(localized: "common.ok"), role: .cancel) {}
