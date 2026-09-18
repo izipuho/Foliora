@@ -5,33 +5,35 @@ import Foundation
 final class ItemRecognitionSessionStore {
     static let shared = ItemRecognitionSessionStore()
 
-    private var bellSessions: [UUID: BellPhotoAnalysisController] = [:]
-    private var bookSessions: [UUID: BookPhotoAnalysisController] = [:]
+    private struct SessionKey: Hashable {
+        let itemID: UUID
+        let typeID: ObjectIdentifier
+    }
+
+    private var sessions: [SessionKey: AnyObject] = [:]
 
     private init() {}
 
-    func bellSession(for itemID: UUID) -> BellPhotoAnalysisController {
-        if let session = bellSessions[itemID] {
+    func session<Session: AnyObject>(
+        for itemID: UUID,
+        as type: Session.Type,
+        create: () -> Session
+    ) -> Session {
+        let key = SessionKey(
+            itemID: itemID,
+            typeID: ObjectIdentifier(type)
+        )
+
+        if let session = sessions[key] as? Session {
             return session
         }
 
-        let session = BellPhotoAnalysisController()
-        bellSessions[itemID] = session
-        return session
-    }
-
-    func bookSession(for itemID: UUID) -> BookPhotoAnalysisController {
-        if let session = bookSessions[itemID] {
-            return session
-        }
-
-        let session = BookPhotoAnalysisController()
-        bookSessions[itemID] = session
+        let session = create()
+        sessions[key] = session
         return session
     }
 
     func discardSession(for itemID: UUID) {
-        bellSessions.removeValue(forKey: itemID)
-        bookSessions.removeValue(forKey: itemID)
+        sessions = sessions.filter { $0.key.itemID != itemID }
     }
 }
