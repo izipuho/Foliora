@@ -133,7 +133,6 @@ final class BookPhotoAnalysisController {
         recognizedText = []
         photoAnalysisFailures = []
         analysisError = nil
-        mediaSnapshot = .empty
         mediaSnapshot = ItemRecognitionMediaSnapshot(
             photoAssetIDs: Set(photos.map(\.assetID))
         )
@@ -224,6 +223,7 @@ final class BookPhotoAnalysisController {
         recognizedText = []
         photoAnalysisFailures = []
         analysisError = nil
+        mediaSnapshot = .empty
         if !isProcessingBatch {
             isAnalyzing = false
         }
