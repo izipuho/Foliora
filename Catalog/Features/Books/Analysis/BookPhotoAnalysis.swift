@@ -74,6 +74,7 @@ final class BookPhotoAnalysisController {
     private(set) var isAnalyzing = false
     private(set) var suggestions: BookPhotoSuggestions = .empty
     private(set) var recognizedText: [RecognizedTextFeature] = []
+    private(set) var mediaSnapshot: ItemRecognitionMediaSnapshot = .empty
     private(set) var analysisError: (any Error)?
     private(set) var photoAnalysisFailures: [PhotoAnalysisFailure] = []
 
@@ -132,6 +133,10 @@ final class BookPhotoAnalysisController {
         recognizedText = []
         photoAnalysisFailures = []
         analysisError = nil
+        mediaSnapshot = .empty
+        mediaSnapshot = ItemRecognitionMediaSnapshot(
+            photoAssetIDs: Set(photos.map(\.assetID))
+        )
 
         let pending = pendingPhotos(from: photos)
         guard pending.count == photos.count else {
@@ -156,10 +161,45 @@ final class BookPhotoAnalysisController {
             return
         }
 
+        mediaSnapshot = ItemRecognitionMediaSnapshot(
+            photoAssetIDs: mediaSnapshot.photoAssetIDs.union([assetID])
+        )
         if !analysisOrder.contains(assetID) {
             analysisOrder.append(assetID)
         }
         enqueue([PendingPhoto(assetID: assetID, image: cgImage)])
+    }
+
+    func reconcileMediaSnapshot(_ snapshot: ItemRecognitionMediaSnapshot) {
+        guard snapshot != mediaSnapshot else { return }
+
+        let validAssetIDs = snapshot.photoAssetIDs
+        let removedEvidence = analysisByAssetID.keys.contains { !validAssetIDs.contains($0) }
+        let removedQueuedPhotos = pendingBatches.contains { batch in
+            batch.contains { !validAssetIDs.contains($0.assetID) }
+        }
+
+        mediaSnapshot = snapshot
+        analysisByAssetID = analysisByAssetID.filter { validAssetIDs.contains($0.key) }
+        analysisOrder.removeAll { !validAssetIDs.contains($0) }
+        pendingBatches = pendingBatches.compactMap { batch in
+            let filtered = batch.filter { validAssetIDs.contains($0.assetID) }
+            return filtered.isEmpty ? nil : filtered
+        }
+
+        guard removedEvidence || removedQueuedPhotos else { return }
+
+        evidenceRevision += 1
+        let revision = evidenceRevision
+
+        guard !isProcessingBatch else { return }
+
+        isAnalyzing = true
+        Task {
+            await refreshSuggestions(for: revision)
+            guard revision == evidenceRevision else { return }
+            isAnalyzing = false
+        }
     }
 
     func dismiss(_ field: Field) {
