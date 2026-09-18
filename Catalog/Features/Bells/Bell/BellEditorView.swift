@@ -137,7 +137,11 @@ struct BellEditorView: View {
         let editorItemID = bell?.id ?? UUID()
         self.editorItemID = editorItemID
         _photoAnalysis = State(
-            initialValue: ItemRecognitionSessionStore.shared.bellSession(for: editorItemID)
+            initialValue: ItemRecognitionSessionStore.shared.session(
+                for: editorItemID,
+                as: BellPhotoAnalysisController.self,
+                create: BellPhotoAnalysisController.init
+            )
         )
         _editorState = State(
             initialValue: BellEditorState(
