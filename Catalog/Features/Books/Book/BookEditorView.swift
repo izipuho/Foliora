@@ -589,6 +589,7 @@ struct BookEditorView: View {
             }
             .task(id: collection.id) {
                 loadCatalogMetadata()
+                textAssignmentController.sync(from: photoAnalysis.recognizedText)
                 startInitialPhotoAnalysisIfNeeded()
                 normalizeInitialBookPhotosIfNeeded()
             }
