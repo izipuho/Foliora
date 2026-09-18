@@ -8,7 +8,6 @@ struct BookEditorView: View {
     let collection: CollectionSummary
     private let existingBook: BookRecord?
     private let initialGenreSuggestions: [String]
-    private let initialAnalysisImages: [UIImage]
     private let onDelete: (() -> Void)?
     private let onSave: (BookRecord) -> Void
 
@@ -130,13 +129,6 @@ struct BookEditorView: View {
         self.collection = collection
         self.existingBook = book
         self.initialGenreSuggestions = genreSuggestions
-        self.initialAnalysisImages = initialMediaAssets
-            .filter { $0.kind == .photo }
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .compactMap { asset -> UIImage? in
-                guard let data = asset.originalData else { return nil }
-                return UIImage(data: data)
-            }
         self.onDelete = onDelete
         self.onSave = onSave
         let editorItemID = book?.id ?? UUID()
@@ -912,11 +904,19 @@ struct BookEditorView: View {
 
     private func startInitialPhotoAnalysisIfNeeded() {
         guard !didStartInitialAnalysis,
-              existingBook == nil,
-              !initialAnalysisImages.isEmpty else { return }
+              existingBook == nil else { return }
+
+        let photos = editorState.mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { asset -> (assetID: UUID, image: UIImage)? in
+                guard let image = sourceImage(for: asset) else { return nil }
+                return (assetID: asset.id, image: image)
+            }
+        guard !photos.isEmpty else { return }
 
         didStartInitialAnalysis = true
-        photoAnalysis.analyze(images: initialAnalysisImages)
+        photoAnalysis.analyze(photos: photos)
     }
 
     @discardableResult
