@@ -142,7 +142,11 @@ struct BookEditorView: View {
         let editorItemID = book?.id ?? UUID()
         self.editorItemID = editorItemID
         _photoAnalysis = State(
-            initialValue: ItemRecognitionSessionStore.shared.bookSession(for: editorItemID)
+            initialValue: ItemRecognitionSessionStore.shared.session(
+                for: editorItemID,
+                as: BookPhotoAnalysisController.self,
+                create: BookPhotoAnalysisController.init
+            )
         )
         _editorState = State(
             initialValue: BookEditorState(
