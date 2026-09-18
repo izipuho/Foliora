@@ -150,52 +150,56 @@ struct SettingsView: View {
             Text(importErrorMessage ?? "")
         }
         .sheet(isPresented: $isDeveloperMenuPresented) {
-            NavigationStack {
-                Form {
-                    Section {
-                        NavigationLink {
-                            PhotoAnalysisSettingsView()
-                        } label: {
-                            Label("photo_analysis.title", systemImage: "photo")
-                        }
-                    }
+            developerMenu
+        }
+    }
 
-                    #if DEBUG
-                    Section("Recognition Debug") {
-                        Stepper(
-                            "Analysis delay: \(Int(recognitionDebugDelaySeconds)) s",
-                            value: $recognitionDebugDelaySeconds,
-                            in: 0...30,
-                            step: 1
-                        )
-                    } footer: {
-                        Text("Adds an artificial delay before each item-level Vision analysis batch in debug builds.")
+    private var developerMenu: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    NavigationLink {
+                        PhotoAnalysisSettingsView()
+                    } label: {
+                        Label("photo_analysis.title", systemImage: "photo")
                     }
-
-                    Section("CloudKit") {
-                        SettingsInfoRow(
-                            title: "CloudContainer",
-                            value: cloudKitContainerIdentifier
-                        )
-
-                        Button {
-                            initializeCloudKitSchema()
-                        } label: {
-                            Label("Initialize CloudKit Schema", systemImage: "icloud.and.arrow.up")
-                        }
-                    }
-                    #endif
                 }
-                .navigationTitle("settings.developer.section_title")
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                isDeveloperMenuPresented = false
-                            } label: {
-                                Image(systemName: "checkmark")
-                            }
-                        }
+
+                #if DEBUG
+                Section("Recognition Debug") {
+                    Stepper(
+                        "Analysis delay: \(Int(recognitionDebugDelaySeconds)) s",
+                        value: $recognitionDebugDelaySeconds,
+                        in: 0...30,
+                        step: 1
+                    )
+                } footer: {
+                    Text("Adds an artificial delay before each item-level Vision analysis batch in debug builds.")
+                }
+
+                Section("CloudKit") {
+                    SettingsInfoRow(
+                        title: "CloudContainer",
+                        value: cloudKitContainerIdentifier
+                    )
+
+                    Button {
+                        initializeCloudKitSchema()
+                    } label: {
+                        Label("Initialize CloudKit Schema", systemImage: "icloud.and.arrow.up")
                     }
+                }
+                #endif
+            }
+            .navigationTitle("settings.developer.section_title")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isDeveloperMenuPresented = false
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                }
             }
         }
     }
