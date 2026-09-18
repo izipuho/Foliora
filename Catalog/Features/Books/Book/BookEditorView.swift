@@ -41,8 +41,8 @@ struct BookEditorView: View {
     @State private var photoAnalysis: BookPhotoAnalysisController
     @State private var didStartInitialAnalysis = false
     @State private var textAssignmentController = BookTextAssignmentController()
+    @State private var editorItemID: UUID
 
-    private let editorItemID: UUID
     private let coverExtractor = BookCoverExtractor()
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -140,7 +140,7 @@ struct BookEditorView: View {
         self.onDelete = onDelete
         self.onSave = onSave
         let editorItemID = book?.id ?? UUID()
-        self.editorItemID = editorItemID
+        _editorItemID = State(initialValue: editorItemID)
         _photoAnalysis = State(
             initialValue: ItemRecognitionSessionStore.shared.session(
                 for: editorItemID,
