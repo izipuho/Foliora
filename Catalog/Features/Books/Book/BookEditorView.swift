@@ -590,7 +590,6 @@ struct BookEditorView: View {
             .task(id: collection.id) {
                 loadCatalogMetadata()
                 textAssignmentController.sync(from: photoAnalysis.recognizedText)
-                startInitialPhotoAnalysisIfNeeded()
                 normalizeInitialBookPhotosIfNeeded()
             }
             .onChange(of: photoAnalysis.recognizedText) { _, recognizedText in
@@ -783,6 +782,8 @@ struct BookEditorView: View {
                     shouldBecomeCover: sourceAsset.id == coverAsset.id
                 )
             }
+
+            startInitialPhotoAnalysisIfNeeded()
         }
     }
 
@@ -907,7 +908,7 @@ struct BookEditorView: View {
         guard !didStartInitialAnalysis,
               existingBook == nil else { return }
 
-        let photos = editorState.mediaAssets
+        let photos = ([editorState.coverImage].compactMap { $0 } + editorState.mediaAssets)
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
             .compactMap { asset -> (assetID: UUID, image: UIImage)? in
