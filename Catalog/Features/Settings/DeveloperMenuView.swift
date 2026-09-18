@@ -26,13 +26,15 @@ struct DeveloperMenuView: View {
                 }
 
 #if DEBUG
-                Section("Recognition Debug") {
+                Section {
                     Stepper(
                         "Analysis delay: \(Int(recognitionDebugDelaySeconds)) s",
                         value: $recognitionDebugDelaySeconds,
                         in: 0...30,
                         step: 1
                     )
+                } header: {
+                    Text("Recognition Debug")
                 } footer: {
                     Text("Adds an artificial delay before each item-level Vision analysis batch in debug builds.")
                 }
