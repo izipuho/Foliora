@@ -42,7 +42,8 @@
             "value" : "%1$@ (%2$@)"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%lld" : {
       "comment" : "A pill button with a bold font and a background color.",

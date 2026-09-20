@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24837" systemVersion="25G83" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="25249" systemVersion="25G83" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="BellEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="customMaterialName" optional="YES" attributeType="String"/>
         <attribute name="material" optional="YES" attributeType="String" defaultValueString="unknown"/>
@@ -95,7 +95,18 @@
         <relationship name="location" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="LocationEntity" inverseName="items" inverseEntity="LocationEntity"/>
         <relationship name="mediaAssets" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MediaAssetEntity" inverseName="item" inverseEntity="MediaAssetEntity"/>
         <relationship name="originPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="items" inverseEntity="PlaceEntity"/>
+        <relationship name="recognition" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="ItemRecognitionEntity" inverseName="item" inverseEntity="ItemRecognitionEntity"/>
         <relationship name="tags" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ItemTagEntity" inverseName="items" inverseEntity="ItemTagEntity"/>
+    </entity>
+    <entity name="ItemRecognitionEntity" representedClassName="ItemRecognitionEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="evidenceData" optional="YES" attributeType="Binary"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="photoAssetIDsData" optional="YES" attributeType="Binary"/>
+        <attribute name="resultData" optional="YES" attributeType="Binary"/>
+        <attribute name="schemaVersion" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="state" optional="YES" attributeType="String"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="recognition" inverseEntity="ItemEntity"/>
     </entity>
     <entity name="ItemTagEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
