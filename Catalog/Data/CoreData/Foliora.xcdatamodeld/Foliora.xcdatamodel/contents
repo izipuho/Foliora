@@ -104,7 +104,6 @@
         <attribute name="photoAssetIDsData" optional="YES" attributeType="Binary"/>
         <attribute name="resultData" optional="YES" attributeType="Binary"/>
         <attribute name="schemaVersion" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="state" optional="YES" attributeType="String"/>
         <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="recognition" inverseEntity="ItemEntity"/>
     </entity>
