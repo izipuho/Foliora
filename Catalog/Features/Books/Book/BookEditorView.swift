@@ -597,6 +597,11 @@ struct BookEditorView: View {
             }
             .task(id: collection.id) {
                 loadCatalogMetadata()
+                photoAnalysis.configurePersistence(
+                    itemID: editorItemID,
+                    repository: CoreDataCatalogRepository(context: managedObjectContext),
+                    currentSnapshot: recognitionMediaSnapshot
+                )
                 textAssignmentController.sync(from: photoAnalysis.recognizedText)
                 photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
                 normalizeInitialBookPhotosIfNeeded()
@@ -823,10 +828,17 @@ struct BookEditorView: View {
             let analysisAssetID = shouldBecomeCover
                 ? (editorState.coverImage?.id ?? sourceAsset.id)
                 : sourceAsset.id
-            photoAnalysis.analyzeAddedPhoto(
-                assetID: analysisAssetID,
-                image: analysisImage
-            )
+            if photoAnalysis.isRestoredFromPersistence || photoAnalysis.requiresFullAnalysis {
+                let photos = currentRecognitionPhotos()
+                if !photos.isEmpty {
+                    photoAnalysis.analyze(photos: photos)
+                }
+            } else {
+                photoAnalysis.analyzeAddedPhoto(
+                    assetID: analysisAssetID,
+                    image: analysisImage
+                )
+            }
         }
     }
 
@@ -919,17 +931,21 @@ struct BookEditorView: View {
         LocalMediaFileStore.shared.deleteFile(for: asset.localIdentifier)
     }
 
-    private func startInitialPhotoAnalysisIfNeeded() {
-        guard !didStartInitialAnalysis,
-              existingBook == nil else { return }
-
-        let photos = ([editorState.coverImage].compactMap { $0 } + editorState.mediaAssets)
+    private func currentRecognitionPhotos() -> [(assetID: UUID, image: UIImage)] {
+        ([editorState.coverImage].compactMap { $0 } + editorState.mediaAssets)
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
             .compactMap { asset -> (assetID: UUID, image: UIImage)? in
                 guard let image = sourceImage(for: asset) else { return nil }
                 return (assetID: asset.id, image: image)
             }
+    }
+
+    private func startInitialPhotoAnalysisIfNeeded() {
+        guard !didStartInitialAnalysis,
+              existingBook == nil else { return }
+
+        let photos = currentRecognitionPhotos()
         guard !photos.isEmpty else { return }
 
         didStartInitialAnalysis = true
@@ -1305,6 +1321,7 @@ struct BookEditorView: View {
         )
 
         onSave(book)
+        photoAnalysis.flushPersistedResultIfPossible()
         dismiss()
     }
 
