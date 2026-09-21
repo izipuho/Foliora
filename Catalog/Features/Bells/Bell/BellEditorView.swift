@@ -461,6 +461,12 @@ struct BellEditorView: View {
                 }
                 .onChange(of: recognitionMediaSnapshot) { _, snapshot in
                     photoAnalysis.reconcileMediaSnapshot(snapshot)
+                    if photoAnalysis.requiresFullAnalysis {
+                        let photos = currentRecognitionPhotos()
+                        if !photos.isEmpty {
+                            photoAnalysis.analyze(photos: photos)
+                        }
+                    }
                 }
                 .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
                     guard wasAnalyzing, !isAnalyzing else { return }
@@ -547,7 +553,7 @@ struct BellEditorView: View {
         localizedPhotoSuggestions = nil
         pendingPhotoSuggestionsForTranslation = nil
         translationConfiguration = nil
-        if photoAnalysis.isRestoredFromPersistence || photoAnalysis.requiresFullAnalysis {
+        if photoAnalysis.requiresFullAnalysis {
             let photos = currentRecognitionPhotos()
             if !photos.isEmpty {
                 photoAnalysis.analyze(photos: photos)
