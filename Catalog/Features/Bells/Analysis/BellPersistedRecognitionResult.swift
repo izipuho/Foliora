@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 
 /// Durable Bell recognition payload stored with an item.
