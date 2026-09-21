@@ -34,7 +34,7 @@ struct BellBatchEdit {
 }
 
 /// Groups bell material values and behavior.
-enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable {
+enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable, Sendable {
     case unknown
     case metall
     case brass
