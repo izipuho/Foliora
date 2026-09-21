@@ -99,7 +99,6 @@
         <relationship name="tags" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ItemTagEntity" inverseName="items" inverseEntity="ItemTagEntity"/>
     </entity>
     <entity name="ItemRecognitionEntity" representedClassName="ItemRecognitionEntity" syncable="YES" codeGenerationType="class">
-        <attribute name="evidenceData" optional="YES" attributeType="Binary"/>
         <attribute name="photoAssetIDsData" optional="YES" attributeType="Binary"/>
         <attribute name="resultData" optional="YES" attributeType="Binary"/>
         <attribute name="schemaVersion" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
