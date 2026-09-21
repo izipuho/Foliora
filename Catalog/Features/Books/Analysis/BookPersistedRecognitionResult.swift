@@ -3,7 +3,7 @@ import Foundation
 
 /// Durable Book recognition payload stored with an item.
 struct BookPersistedRecognitionResult: Codable {
-    struct Suggested<Value: Codable>: Codable {
+    struct Suggested<Value: Codable & Sendable>: Codable, Sendable {
         let value: Value
         let confidence: Double
 
