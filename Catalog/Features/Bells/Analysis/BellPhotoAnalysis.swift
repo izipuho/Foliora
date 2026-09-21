@@ -296,6 +296,7 @@ final class BellPhotoAnalysisController {
     private var evidenceRevision = 0
     private var persistenceItemID: UUID?
     private var persistenceRepository: (any CatalogRepository)?
+    private var persistedEvidence: ItemRecognitionEvidence?
     private(set) var isRestoredFromPersistence = false
     private(set) var requiresFullAnalysis = false
 
@@ -337,6 +338,11 @@ final class BellPhotoAnalysisController {
 
         guard record.schemaVersion == ItemRecognitionRecord.currentSchemaVersion,
               record.photoAssetIDs == currentSnapshot.photoAssetIDs,
+              let evidenceData = record.evidenceData,
+              let evidence = try? JSONDecoder().decode(
+                ItemRecognitionEvidence.self,
+                from: evidenceData
+              ),
               let resultData = record.resultData,
               let persisted = try? JSONDecoder().decode(
                 BellPersistedRecognitionResult.self,
@@ -347,6 +353,7 @@ final class BellPhotoAnalysisController {
         }
 
         mediaSnapshot = currentSnapshot
+        persistedEvidence = evidence
         suggestions = persisted.runtimeSuggestions
         isRestoredFromPersistence = true
         requiresFullAnalysis = false
@@ -370,6 +377,7 @@ final class BellPhotoAnalysisController {
 
     func analyze(photos: [(assetID: UUID, image: UIImage)]) {
         deletePersistedResult()
+        persistedEvidence = nil
         isRestoredFromPersistence = false
         requiresFullAnalysis = false
         analysisByAssetID.removeAll()
@@ -411,19 +419,28 @@ final class BellPhotoAnalysisController {
     func reconcileMediaSnapshot(_ snapshot: ItemRecognitionMediaSnapshot) {
         guard snapshot != mediaSnapshot else { return }
 
-        deletePersistedResult()
-
-        if isRestoredFromPersistence {
-            suggestions = .empty
-            isRestoredFromPersistence = false
-            requiresFullAnalysis = true
-            deletePersistedResult()
-        }
-
         let removedAssetIDs = mediaSnapshot.photoAssetIDs.subtracting(snapshot.photoAssetIDs)
         let validAssetIDs = snapshot.photoAssetIDs
 
+        deletePersistedResult()
         mediaSnapshot = snapshot
+
+        if !removedAssetIDs.isEmpty, persistedEvidence != nil {
+            persistedEvidence = nil
+            isRestoredFromPersistence = false
+            requiresFullAnalysis = true
+            analysisByAssetID.removeAll()
+            analysisOrder.removeAll()
+            pendingBatches.removeAll()
+            evidenceRevision += 1
+            suggestions = .empty
+            if !isProcessingBatch {
+                isAnalyzing = false
+            }
+            return
+        }
+
+        isRestoredFromPersistence = false
         analysisByAssetID = analysisByAssetID.filter { validAssetIDs.contains($0.key) }
         analysisOrder.removeAll { !validAssetIDs.contains($0) }
         pendingBatches = pendingBatches.compactMap { batch in
@@ -468,6 +485,7 @@ final class BellPhotoAnalysisController {
 
     func clear() {
         deletePersistedResult()
+        persistedEvidence = nil
         isRestoredFromPersistence = false
         requiresFullAnalysis = false
         analysisByAssetID.removeAll()
@@ -542,16 +560,22 @@ final class BellPhotoAnalysisController {
     }
 
     private var currentAnalysis: MultiPhotoAnalysisResult {
-        MultiPhotoAnalysisResult(
-            photos: analysisOrder.compactMap { analysisByAssetID[$0] }
-        )
+        var photos = analysisOrder.compactMap { analysisByAssetID[$0] }
+        if let persistedEvidence {
+            photos.insert(persistedEvidence.analysisResult, at: 0)
+        }
+        return MultiPhotoAnalysisResult(photos: photos)
     }
 
     private func persistCurrentResultIfPossible() {
+        let analysis = currentAnalysis
         guard !requiresFullAnalysis,
-              (!analysisByAssetID.isEmpty || isRestoredFromPersistence),
+              !analysis.photos.isEmpty,
               let itemID = persistenceItemID,
               let repository = persistenceRepository,
+              let evidenceData = try? JSONEncoder().encode(
+                ItemRecognitionEvidence(analysis: analysis)
+              ),
               let resultData = try? JSONEncoder().encode(
                 BellPersistedRecognitionResult(suggestions: suggestions)
               ) else {
@@ -562,6 +586,7 @@ final class BellPhotoAnalysisController {
             ItemRecognitionRecord(
                 itemID: itemID,
                 photoAssetIDs: mediaSnapshot.photoAssetIDs,
+                evidenceData: evidenceData,
                 resultData: resultData
             )
         )
