@@ -30,6 +30,69 @@ struct BellPhotoAnalysisIncrementalTests {
         #expect(controller.suggestions.title?.value == "3")
     }
 
+    @Test
+    func restoredEvidenceKeepsAddedPhotoIncremental() async throws {
+        let itemID = UUID()
+        let oldPhotoID = UUID()
+        let newPhotoID = UUID()
+        let evidence = ItemRecognitionEvidence(
+            analysis: MultiPhotoAnalysisResult(
+                photos: [
+                    PhotoAnalysisResult(
+                        mainObjectImage: nil,
+                        mainObjectRegion: nil,
+                        main: PhotoAnalysisFeatureScope(
+                            classifications: [
+                                VisionFeature(label: "evidence-0", confidence: 1)
+                            ],
+                            recognizedText: [],
+                            recognizedObjects: [],
+                            recognizedBarcodes: []
+                        ),
+                        background: .empty
+                    )
+                ]
+            )
+        )
+        let repository = BellIncrementalRecognitionRepository(
+            record: ItemRecognitionRecord(
+                itemID: itemID,
+                photoAssetIDs: [oldPhotoID],
+                evidenceData: try JSONEncoder().encode(evidence),
+                resultData: try JSONEncoder().encode(
+                    BellPersistedRecognitionResult(suggestions: .empty)
+                )
+            )
+        )
+        let service = BellIncrementalRecordingPhotoAnalysisService()
+        let controller = BellPhotoAnalysisController(
+            service: service,
+            semanticExtractor: BellIncrementalSemanticExtractor(),
+            mapper: DefaultBellPhotoSuggestionMapper()
+        )
+
+        controller.configurePersistence(
+            itemID: itemID,
+            repository: repository,
+            currentSnapshot: ItemRecognitionMediaSnapshot(
+                photoAssetIDs: [oldPhotoID]
+            )
+        )
+        controller.reconcileMediaSnapshot(
+            ItemRecognitionMediaSnapshot(
+                photoAssetIDs: [oldPhotoID, newPhotoID]
+            )
+        )
+        controller.analyzeAddedPhoto(
+            assetID: newPhotoID,
+            image: makeImage()
+        )
+        await waitUntilAnalysisFinishes(controller)
+
+        #expect(await service.recordedBatchSizes() == [1])
+        #expect(controller.suggestions.title?.value == "2")
+    }
+
     private func waitUntilAnalysisFinishes(_ controller: BellPhotoAnalysisController) async {
         for _ in 0..<500 {
             if !controller.isAnalyzing {
@@ -102,5 +165,44 @@ private struct BellIncrementalSemanticExtractor: SemanticPhotoFeatureExtracting 
                 )
             ]
         )
+    }
+}
+
+
+@MainActor
+private final class BellIncrementalRecognitionRepository: CatalogRepository {
+    private var record: ItemRecognitionRecord?
+
+    init(record: ItemRecognitionRecord?) {
+        self.record = record
+    }
+
+    func saveHome(_ home: Home) {}
+    func saveLocations(_ locations: [Location], in homeID: UUID) {}
+    func deleteHome(homeID: UUID) {}
+    func saveCollection(_ collection: Collection) {}
+    func deleteResolution(for collectionID: UUID) -> CollectionDeleteResolution {
+        .deletePrivateCollection
+    }
+    func deleteCollection(collectionID: UUID) {}
+    func saveUserSortOrder(itemIDs: [UUID], scope: String) {}
+    func saveItemRecord(_ item: ItemRecord) {}
+    func setFavorite(_ isFavorite: Bool, for itemID: UUID) {}
+
+    func itemRecognition(for itemID: UUID) -> ItemRecognitionRecord? {
+        guard record?.itemID == itemID else { return nil }
+        return record
+    }
+
+    @discardableResult
+    func saveItemRecognition(_ record: ItemRecognitionRecord) -> Bool {
+        self.record = record
+        return true
+    }
+
+    func deleteItemRecognition(for itemID: UUID) {
+        if record?.itemID == itemID {
+            record = nil
+        }
     }
 }
