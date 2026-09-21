@@ -223,6 +223,8 @@ final class BookPhotoAnalysisController {
     func reconcileMediaSnapshot(_ snapshot: ItemRecognitionMediaSnapshot) {
         guard snapshot != mediaSnapshot else { return }
 
+        deletePersistedResult()
+
         if isRestoredFromPersistence {
             suggestions = .empty
             recognizedText = []
@@ -256,6 +258,7 @@ final class BookPhotoAnalysisController {
             await refreshSuggestions(for: revision)
             guard revision == evidenceRevision else { return }
             isAnalyzing = false
+            persistCurrentResultIfPossible()
         }
     }
 
