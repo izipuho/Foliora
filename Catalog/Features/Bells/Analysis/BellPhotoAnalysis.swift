@@ -411,6 +411,8 @@ final class BellPhotoAnalysisController {
     func reconcileMediaSnapshot(_ snapshot: ItemRecognitionMediaSnapshot) {
         guard snapshot != mediaSnapshot else { return }
 
+        deletePersistedResult()
+
         if isRestoredFromPersistence {
             suggestions = .empty
             isRestoredFromPersistence = false
@@ -441,6 +443,7 @@ final class BellPhotoAnalysisController {
             await refreshSuggestions(for: revision)
             guard revision == evidenceRevision else { return }
             isAnalyzing = false
+            persistCurrentResultIfPossible()
         }
     }
 
