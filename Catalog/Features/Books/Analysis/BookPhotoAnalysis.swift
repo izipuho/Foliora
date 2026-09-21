@@ -172,11 +172,8 @@ final class BookPhotoAnalysisController {
     func reconcileMediaSnapshot(_ snapshot: ItemRecognitionMediaSnapshot) {
         guard snapshot != mediaSnapshot else { return }
 
+        let removedAssetIDs = mediaSnapshot.photoAssetIDs.subtracting(snapshot.photoAssetIDs)
         let validAssetIDs = snapshot.photoAssetIDs
-        let removedEvidence = analysisByAssetID.keys.contains { !validAssetIDs.contains($0) }
-        let removedQueuedPhotos = pendingBatches.contains { batch in
-            batch.contains { !validAssetIDs.contains($0.assetID) }
-        }
 
         mediaSnapshot = snapshot
         analysisByAssetID = analysisByAssetID.filter { validAssetIDs.contains($0.key) }
@@ -186,7 +183,7 @@ final class BookPhotoAnalysisController {
             return filtered.isEmpty ? nil : filtered
         }
 
-        guard removedEvidence || removedQueuedPhotos else { return }
+        guard !removedAssetIDs.isEmpty else { return }
 
         evidenceRevision += 1
         let revision = evidenceRevision
