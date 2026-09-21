@@ -433,6 +433,11 @@ struct BellEditorView: View {
                     Text(String(localized: "bell.context.delete.message"))
                 }
                 .task {
+                    photoAnalysis.configurePersistence(
+                        itemID: editorItemID,
+                        repository: repository,
+                        currentSnapshot: recognitionMediaSnapshot
+                    )
                     photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
                     startInitialPhotoAnalysisIfNeeded()
                     guard let startSection else { return }
@@ -539,7 +544,38 @@ struct BellEditorView: View {
         localizedPhotoSuggestions = nil
         pendingPhotoSuggestionsForTranslation = nil
         translationConfiguration = nil
-        photoAnalysis.analyzeAddedPhoto(assetID: asset.id, image: image)
+        if photoAnalysis.isRestoredFromPersistence || photoAnalysis.requiresFullAnalysis {
+            let photos = currentRecognitionPhotos()
+            if !photos.isEmpty {
+                photoAnalysis.analyze(photos: photos)
+            }
+        } else {
+            photoAnalysis.analyzeAddedPhoto(assetID: asset.id, image: image)
+        }
+    }
+
+    private func currentRecognitionPhotos() -> [(assetID: UUID, image: UIImage)] {
+        editorState.mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { asset -> (assetID: UUID, image: UIImage)? in
+                guard let image = sourceImage(for: asset) else { return nil }
+                return (assetID: asset.id, image: image)
+            }
+    }
+
+    private func sourceImage(for asset: MediaAsset) -> UIImage? {
+        if let data = asset.originalData,
+           let image = UIImage(data: data) {
+            return image
+        }
+
+        guard !asset.localIdentifier.isEmpty,
+              let url = LocalMediaFileStore.shared.fileURL(for: asset.localIdentifier) else {
+            return nil
+        }
+
+        return UIImage(contentsOfFile: url.path)
     }
 
     private func startInitialPhotoAnalysisIfNeeded() {
@@ -697,6 +733,7 @@ struct BellEditorView: View {
         )
 
         onSave(newBell)
+        photoAnalysis.flushPersistedResultIfPossible()
         dismiss()
     }
 
