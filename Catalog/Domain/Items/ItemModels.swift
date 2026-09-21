@@ -173,7 +173,7 @@ struct ItemBatchEdit {
 }
 
 /// Groups item condition values and behavior.
-enum ItemCondition: String, CaseIterable, Identifiable, Codable {
+enum ItemCondition: String, CaseIterable, Identifiable, Codable, Sendable {
     case mint = "Mint"
     case good = "Good"
     case worn = "Worn"
