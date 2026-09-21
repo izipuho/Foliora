@@ -88,6 +88,10 @@ final class BookPhotoAnalysisController {
     private var pendingBatches: [[PendingPhoto]] = []
     private var isProcessingBatch = false
     private var evidenceRevision = 0
+    private var persistenceItemID: UUID?
+    private var persistenceRepository: (any CatalogRepository)?
+    private(set) var isRestoredFromPersistence = false
+    private(set) var requiresFullAnalysis = false
 
     init() {
         self.service = DefaultPhotoAnalysisService()
@@ -112,6 +116,47 @@ final class BookPhotoAnalysisController {
         isAnalyzing || suggestions.hasSuggestions
     }
 
+    func configurePersistence(
+        itemID: UUID,
+        repository: any CatalogRepository,
+        currentSnapshot: ItemRecognitionMediaSnapshot
+    ) {
+        persistenceItemID = itemID
+        persistenceRepository = repository
+
+        guard !isAnalyzing,
+              analysisByAssetID.isEmpty,
+              pendingBatches.isEmpty,
+              !suggestions.hasSuggestions,
+              recognizedText.isEmpty,
+              let record = repository.itemRecognition(for: itemID) else {
+            return
+        }
+
+        guard record.schemaVersion == ItemRecognitionRecord.currentSchemaVersion,
+              record.photoAssetIDs == currentSnapshot.photoAssetIDs,
+              let resultData = record.resultData,
+              let persisted = try? JSONDecoder().decode(
+                BookPersistedRecognitionResult.self,
+                from: resultData
+              ) else {
+            repository.deleteItemRecognition(for: itemID)
+            return
+        }
+
+        mediaSnapshot = currentSnapshot
+        suggestions = persisted.runtimeSuggestions
+        recognizedText = persisted.runtimeRecognizedText
+        analysisError = nil
+        photoAnalysisFailures = []
+        isRestoredFromPersistence = true
+        requiresFullAnalysis = false
+    }
+
+    func flushPersistedResultIfPossible() {
+        persistCurrentResultIfPossible()
+    }
+
     func analyze(image: UIImage) {
         analyze(images: [image])
     }
@@ -125,6 +170,9 @@ final class BookPhotoAnalysisController {
     }
 
     func analyze(photos: [(assetID: UUID, image: UIImage)]) {
+        deletePersistedResult()
+        isRestoredFromPersistence = false
+        requiresFullAnalysis = false
         analysisByAssetID.removeAll()
         analysisOrder.removeAll()
         pendingBatches.removeAll()
@@ -155,11 +203,14 @@ final class BookPhotoAnalysisController {
     }
 
     func analyzeAddedPhoto(assetID: UUID, image: UIImage) {
+        guard !requiresFullAnalysis else { return }
         guard let cgImage = image.photoAnalysisCGImage else {
             analysisError = BookPhotoAnalysisError.imageUnavailable
             return
         }
 
+        deletePersistedResult()
+        isRestoredFromPersistence = false
         mediaSnapshot = ItemRecognitionMediaSnapshot(
             photoAssetIDs: mediaSnapshot.photoAssetIDs.union([assetID])
         )
@@ -171,6 +222,16 @@ final class BookPhotoAnalysisController {
 
     func reconcileMediaSnapshot(_ snapshot: ItemRecognitionMediaSnapshot) {
         guard snapshot != mediaSnapshot else { return }
+
+        if isRestoredFromPersistence {
+            suggestions = .empty
+            recognizedText = []
+            analysisError = nil
+            photoAnalysisFailures = []
+            isRestoredFromPersistence = false
+            requiresFullAnalysis = true
+            deletePersistedResult()
+        }
 
         let removedAssetIDs = mediaSnapshot.photoAssetIDs.subtracting(snapshot.photoAssetIDs)
         let validAssetIDs = snapshot.photoAssetIDs
@@ -209,9 +270,13 @@ final class BookPhotoAnalysisController {
             series: field == .series ? nil : suggestions.series,
             volumeNumber: field == .volumeNumber ? nil : suggestions.volumeNumber
         )
+        persistCurrentResultIfPossible()
     }
 
     func clear() {
+        deletePersistedResult()
+        isRestoredFromPersistence = false
+        requiresFullAnalysis = false
         analysisByAssetID.removeAll()
         analysisOrder.removeAll()
         pendingBatches.removeAll()
@@ -248,6 +313,7 @@ final class BookPhotoAnalysisController {
         guard !isProcessingBatch else { return }
         guard !pendingBatches.isEmpty else {
             isAnalyzing = false
+            persistCurrentResultIfPossible()
             return
         }
 
@@ -367,6 +433,37 @@ final class BookPhotoAnalysisController {
             series: bibliography.series,
             volumeNumber: bibliography.volumeNumber
         )
+    }
+
+    private func persistCurrentResultIfPossible() {
+        guard !requiresFullAnalysis,
+              (!analysisByAssetID.isEmpty || isRestoredFromPersistence),
+              let itemID = persistenceItemID,
+              let repository = persistenceRepository,
+              let resultData = try? JSONEncoder().encode(
+                BookPersistedRecognitionResult(
+                    suggestions: suggestions,
+                    recognizedText: recognizedText
+                )
+              ) else {
+            return
+        }
+
+        _ = repository.saveItemRecognition(
+            ItemRecognitionRecord(
+                itemID: itemID,
+                photoAssetIDs: mediaSnapshot.photoAssetIDs,
+                resultData: resultData
+            )
+        )
+    }
+
+    private func deletePersistedResult() {
+        guard let itemID = persistenceItemID,
+              let repository = persistenceRepository else {
+            return
+        }
+        repository.deleteItemRecognition(for: itemID)
     }
 }
 
