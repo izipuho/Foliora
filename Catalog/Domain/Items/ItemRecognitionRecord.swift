@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents one durable item-level recognition result and its media snapshot.
-struct ItemRecognitionRecord: Identifiable, Codable, Equatable, Sendable {
+struct ItemRecognitionRecord: Codable, Equatable, Sendable {
     static let currentSchemaVersion: Int16 = 1
 
     let itemID: UUID
@@ -10,8 +10,6 @@ struct ItemRecognitionRecord: Identifiable, Codable, Equatable, Sendable {
     let resultData: Data?
     let schemaVersion: Int16
     let updatedAt: Date
-
-    var id: UUID { itemID }
 
     init(
         itemID: UUID,
