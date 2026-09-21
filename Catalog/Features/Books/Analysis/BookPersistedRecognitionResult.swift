@@ -2,8 +2,8 @@ import CoreGraphics
 import Foundation
 
 /// Durable Book recognition payload stored with an item.
-struct BookPersistedRecognitionResult: Codable, Sendable {
-    struct Suggested<Value: Codable & Sendable>: Codable, Sendable {
+struct BookPersistedRecognitionResult: Codable {
+    struct Suggested<Value: Codable>: Codable {
         let value: Value
         let confidence: Double
 
@@ -17,7 +17,7 @@ struct BookPersistedRecognitionResult: Codable, Sendable {
         }
     }
 
-    struct RecognizedText: Codable, Sendable {
+    struct RecognizedText: Codable {
         let text: String
         let confidence: Double
         let x: Double
