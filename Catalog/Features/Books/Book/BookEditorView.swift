@@ -608,6 +608,12 @@ struct BookEditorView: View {
             }
             .onChange(of: recognitionMediaSnapshot) { _, snapshot in
                 photoAnalysis.reconcileMediaSnapshot(snapshot)
+                if photoAnalysis.requiresFullAnalysis {
+                    let photos = currentRecognitionPhotos()
+                    if !photos.isEmpty {
+                        photoAnalysis.analyze(photos: photos)
+                    }
+                }
             }
             .onChange(of: photoAnalysis.recognizedText) { _, recognizedText in
                 textAssignmentController.sync(from: recognizedText)
@@ -828,7 +834,7 @@ struct BookEditorView: View {
             let analysisAssetID = shouldBecomeCover
                 ? (editorState.coverImage?.id ?? sourceAsset.id)
                 : sourceAsset.id
-            if photoAnalysis.isRestoredFromPersistence || photoAnalysis.requiresFullAnalysis {
+            if photoAnalysis.requiresFullAnalysis {
                 let photos = currentRecognitionPhotos()
                 if !photos.isEmpty {
                     photoAnalysis.analyze(photos: photos)
