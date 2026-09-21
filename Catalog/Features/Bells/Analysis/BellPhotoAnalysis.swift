@@ -297,6 +297,7 @@ final class BellPhotoAnalysisController {
     private var persistenceItemID: UUID?
     private var persistenceRepository: (any CatalogRepository)?
     private var persistedEvidence: ItemRecognitionEvidence?
+    private var persistedEvidenceAssetIDs: Set<UUID> = []
     private(set) var isRestoredFromPersistence = false
     private(set) var requiresFullAnalysis = false
 
@@ -354,6 +355,7 @@ final class BellPhotoAnalysisController {
 
         mediaSnapshot = currentSnapshot
         persistedEvidence = evidence
+        persistedEvidenceAssetIDs = record.photoAssetIDs
         suggestions = persisted.runtimeSuggestions
         isRestoredFromPersistence = true
         requiresFullAnalysis = false
@@ -378,6 +380,7 @@ final class BellPhotoAnalysisController {
     func analyze(photos: [(assetID: UUID, image: UIImage)]) {
         deletePersistedResult()
         persistedEvidence = nil
+        persistedEvidenceAssetIDs.removeAll()
         isRestoredFromPersistence = false
         requiresFullAnalysis = false
         analysisByAssetID.removeAll()
@@ -425,8 +428,10 @@ final class BellPhotoAnalysisController {
         deletePersistedResult()
         mediaSnapshot = snapshot
 
-        if !removedAssetIDs.isEmpty, persistedEvidence != nil {
+        let removedPersistedAssetIDs = removedAssetIDs.intersection(persistedEvidenceAssetIDs)
+        if !removedPersistedAssetIDs.isEmpty {
             persistedEvidence = nil
+            persistedEvidenceAssetIDs.removeAll()
             isRestoredFromPersistence = false
             requiresFullAnalysis = true
             analysisByAssetID.removeAll()
@@ -486,6 +491,7 @@ final class BellPhotoAnalysisController {
     func clear() {
         deletePersistedResult()
         persistedEvidence = nil
+        persistedEvidenceAssetIDs.removeAll()
         isRestoredFromPersistence = false
         requiresFullAnalysis = false
         analysisByAssetID.removeAll()
