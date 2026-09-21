@@ -17,7 +17,6 @@ struct CoreDataItemRecognitionRepositoryTests {
         let record = ItemRecognitionRecord(
             itemID: itemID,
             photoAssetIDs: [firstPhotoID, secondPhotoID],
-            evidenceData: Data([0x01, 0x02]),
             resultData: Data([0x03, 0x04]),
             updatedAt: updatedAt
         )
@@ -36,7 +35,6 @@ struct CoreDataItemRecognitionRepositoryTests {
         let updatedRecord = ItemRecognitionRecord(
             itemID: itemID,
             photoAssetIDs: [secondPhotoID],
-            evidenceData: Data([0x05]),
             resultData: Data([0x06]),
             schemaVersion: 2,
             updatedAt: updatedAt.addingTimeInterval(60)
@@ -62,7 +60,6 @@ struct CoreDataItemRecognitionRepositoryTests {
         let record = ItemRecognitionRecord(
             itemID: UUID(),
             photoAssetIDs: [UUID()],
-            evidenceData: Data([0x01]),
             resultData: Data([0x02])
         )
 
