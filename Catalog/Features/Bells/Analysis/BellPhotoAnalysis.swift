@@ -294,6 +294,10 @@ final class BellPhotoAnalysisController {
     private var pendingBatches: [[PendingPhoto]] = []
     private var isProcessingBatch = false
     private var evidenceRevision = 0
+    private var persistenceItemID: UUID?
+    private var persistenceRepository: (any CatalogRepository)?
+    private(set) var isRestoredFromPersistence = false
+    private(set) var requiresFullAnalysis = false
 
     init() {
         self.service = DefaultPhotoAnalysisService()
@@ -315,6 +319,43 @@ final class BellPhotoAnalysisController {
         isAnalyzing || suggestions.hasSuggestions
     }
 
+    func configurePersistence(
+        itemID: UUID,
+        repository: any CatalogRepository,
+        currentSnapshot: ItemRecognitionMediaSnapshot
+    ) {
+        persistenceItemID = itemID
+        persistenceRepository = repository
+
+        guard !isAnalyzing,
+              analysisByAssetID.isEmpty,
+              pendingBatches.isEmpty,
+              !suggestions.hasSuggestions,
+              let record = repository.itemRecognition(for: itemID) else {
+            return
+        }
+
+        guard record.schemaVersion == ItemRecognitionRecord.currentSchemaVersion,
+              record.photoAssetIDs == currentSnapshot.photoAssetIDs,
+              let resultData = record.resultData,
+              let persisted = try? JSONDecoder().decode(
+                BellPersistedRecognitionResult.self,
+                from: resultData
+              ) else {
+            repository.deleteItemRecognition(for: itemID)
+            return
+        }
+
+        mediaSnapshot = currentSnapshot
+        suggestions = persisted.runtimeSuggestions
+        isRestoredFromPersistence = true
+        requiresFullAnalysis = false
+    }
+
+    func flushPersistedResultIfPossible() {
+        persistCurrentResultIfPossible()
+    }
+
     func analyze(image: UIImage) {
         analyze(images: [image])
     }
@@ -328,6 +369,9 @@ final class BellPhotoAnalysisController {
     }
 
     func analyze(photos: [(assetID: UUID, image: UIImage)]) {
+        deletePersistedResult()
+        isRestoredFromPersistence = false
+        requiresFullAnalysis = false
         analysisByAssetID.removeAll()
         analysisOrder.removeAll()
         pendingBatches.removeAll()
@@ -350,8 +394,11 @@ final class BellPhotoAnalysisController {
     }
 
     func analyzeAddedPhoto(assetID: UUID, image: UIImage) {
-        guard let cgImage = image.cgImage else { return }
+        guard !requiresFullAnalysis,
+              let cgImage = image.cgImage else { return }
 
+        deletePersistedResult()
+        isRestoredFromPersistence = false
         mediaSnapshot = ItemRecognitionMediaSnapshot(
             photoAssetIDs: mediaSnapshot.photoAssetIDs.union([assetID])
         )
@@ -363,6 +410,13 @@ final class BellPhotoAnalysisController {
 
     func reconcileMediaSnapshot(_ snapshot: ItemRecognitionMediaSnapshot) {
         guard snapshot != mediaSnapshot else { return }
+
+        if isRestoredFromPersistence {
+            suggestions = .empty
+            isRestoredFromPersistence = false
+            requiresFullAnalysis = true
+            deletePersistedResult()
+        }
 
         let removedAssetIDs = mediaSnapshot.photoAssetIDs.subtracting(snapshot.photoAssetIDs)
         let validAssetIDs = snapshot.photoAssetIDs
@@ -406,9 +460,13 @@ final class BellPhotoAnalysisController {
             suggestedTags: field == .suggestedTags ? [] : suggestions.suggestedTags,
             debugInfo: suggestions.debugInfo
         )
+        persistCurrentResultIfPossible()
     }
 
     func clear() {
+        deletePersistedResult()
+        isRestoredFromPersistence = false
+        requiresFullAnalysis = false
         analysisByAssetID.removeAll()
         analysisOrder.removeAll()
         pendingBatches.removeAll()
@@ -439,6 +497,7 @@ final class BellPhotoAnalysisController {
         guard !isProcessingBatch else { return }
         guard !pendingBatches.isEmpty else {
             isAnalyzing = false
+            persistCurrentResultIfPossible()
             return
         }
 
@@ -483,5 +542,33 @@ final class BellPhotoAnalysisController {
         MultiPhotoAnalysisResult(
             photos: analysisOrder.compactMap { analysisByAssetID[$0] }
         )
+    }
+
+    private func persistCurrentResultIfPossible() {
+        guard !requiresFullAnalysis,
+              (!analysisByAssetID.isEmpty || isRestoredFromPersistence),
+              let itemID = persistenceItemID,
+              let repository = persistenceRepository,
+              let resultData = try? JSONEncoder().encode(
+                BellPersistedRecognitionResult(suggestions: suggestions)
+              ) else {
+            return
+        }
+
+        _ = repository.saveItemRecognition(
+            ItemRecognitionRecord(
+                itemID: itemID,
+                photoAssetIDs: mediaSnapshot.photoAssetIDs,
+                resultData: resultData
+            )
+        )
+    }
+
+    private func deletePersistedResult() {
+        guard let itemID = persistenceItemID,
+              let repository = persistenceRepository else {
+            return
+        }
+        repository.deleteItemRecognition(for: itemID)
     }
 }
