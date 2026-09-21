@@ -38,7 +38,6 @@ extension CoreDataCatalogRepository {
             context.assign(recognition, to: store)
         }
 
-        recognition.setValue(record.id, forKey: "id")
         recognition.setValue(photoAssetIDsData, forKey: "photoAssetIDsData")
         recognition.setValue(record.evidenceData, forKey: "evidenceData")
         recognition.setValue(record.resultData, forKey: "resultData")
