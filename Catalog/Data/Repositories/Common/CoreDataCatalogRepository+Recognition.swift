@@ -16,6 +16,7 @@ extension CoreDataCatalogRepository {
         return ItemRecognitionRecord(
             itemID: itemID,
             photoAssetIDs: photoAssetIDs,
+            evidenceData: recognition.value(forKey: "evidenceData") as? Data,
             resultData: recognition.value(forKey: "resultData") as? Data,
             schemaVersion: schemaVersion,
             updatedAt: updatedAt
@@ -38,6 +39,7 @@ extension CoreDataCatalogRepository {
         }
 
         recognition.setValue(photoAssetIDsData, forKey: "photoAssetIDsData")
+        recognition.setValue(record.evidenceData, forKey: "evidenceData")
         recognition.setValue(record.resultData, forKey: "resultData")
         recognition.setValue(record.schemaVersion, forKey: "schemaVersion")
         recognition.setValue(record.updatedAt, forKey: "updatedAt")
