@@ -3,7 +3,7 @@ import Foundation
 
 /// Durable Bell recognition payload stored with an item.
 struct BellPersistedRecognitionResult: Codable {
-    struct Suggested<Value: Codable>: Codable {
+    struct Suggested<Value: Codable & Sendable>: Codable, Sendable {
         let value: Value
         let confidence: Double
 
@@ -17,7 +17,7 @@ struct BellPersistedRecognitionResult: Codable {
         }
     }
 
-    struct GeoValue: Codable {
+    struct GeoValue: Codable, Sendable {
         let label: String
         let name: String
         let latitude: Double?
