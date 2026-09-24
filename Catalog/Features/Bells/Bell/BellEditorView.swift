@@ -48,7 +48,7 @@ struct BellEditorView: View {
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
     let startSection: StartSection?
-    private let initialAnalysisImages: [UIImage]
+    private let initialAnalysisPhotos: [(assetID: UUID, image: UIImage)]
     private let existingBell: BellRecord?
     private let onDelete: (() -> Void)?
     let onSave: (BellRecord) -> Void
@@ -61,7 +61,7 @@ struct BellEditorView: View {
     @State private var highlightedSection: StartSection?
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
-    @State private var photoAnalysis = BellPhotoAnalysisController()
+    @State private var photoAnalysis: BellPhotoAnalysisController
     @State private var localizedPhotoSuggestions: LocalizedPhotoSuggestions?
     @State private var pendingPhotoSuggestionsForTranslation: BellPhotoSuggestions?
     @State private var isLocalizingPhotoSuggestions = false
@@ -73,7 +73,7 @@ struct BellEditorView: View {
     @State private var shouldPresentLocationPickerAfterHomeEditor = false
     @State private var locationPickerPresentationToken = 0
     @State private var isPresentingDeleteConfirmation = false
-    private let editorItemID: UUID
+    @State private var editorItemID: UUID
 
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
@@ -124,17 +124,26 @@ struct BellEditorView: View {
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
         self.startSection = startSection
-        self.initialAnalysisImages = initialMediaAssets
+        self.initialAnalysisPhotos = initialMediaAssets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
-            .compactMap { asset -> UIImage? in
-                guard let data = asset.originalData else { return nil }
-                return UIImage(data: data)
+            .compactMap { asset -> (assetID: UUID, image: UIImage)? in
+                guard let data = asset.originalData,
+                      let image = UIImage(data: data) else { return nil }
+                return (assetID: asset.id, image: image)
             }
         self.existingBell = bell
         self.onDelete = onDelete
         self.onSave = onSave
-        self.editorItemID = bell?.id ?? UUID()
+        let editorItemID = bell?.id ?? UUID()
+        _editorItemID = State(initialValue: editorItemID)
+        _photoAnalysis = State(
+            initialValue: ItemRecognitionSessionStore.shared.session(
+                for: editorItemID,
+                as: BellPhotoAnalysisController.self,
+                create: BellPhotoAnalysisController.init
+            )
+        )
         _editorState = State(
             initialValue: BellEditorState(
                 bell: bell,
@@ -424,6 +433,15 @@ struct BellEditorView: View {
                     Text(String(localized: "bell.context.delete.message"))
                 }
                 .task {
+                    photoAnalysis.configurePersistence(
+                        itemID: editorItemID,
+                        repository: repository,
+                        currentSnapshot: recognitionMediaSnapshot
+                    )
+                    if photoAnalysis.isRestoredFromPersistence {
+                        await handlePhotoAnalysisCompletion()
+                    }
+                    photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
                     startInitialPhotoAnalysisIfNeeded()
                     guard let startSection else { return }
                     highlightedSection = startSection
@@ -440,6 +458,15 @@ struct BellEditorView: View {
                 }
                 .sensoryFeedback(trigger: analysisFeedbackEvent) { _, newValue in
                     newValue?.kind.sensoryFeedback
+                }
+                .onChange(of: recognitionMediaSnapshot) { _, snapshot in
+                    photoAnalysis.reconcileMediaSnapshot(snapshot)
+                    if photoAnalysis.requiresFullAnalysis {
+                        let photos = currentRecognitionPhotos()
+                        if !photos.isEmpty {
+                            photoAnalysis.analyze(photos: photos)
+                        }
+                    }
                 }
                 .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
                     guard wasAnalyzing, !isAnalyzing else { return }
@@ -526,19 +553,50 @@ struct BellEditorView: View {
         localizedPhotoSuggestions = nil
         pendingPhotoSuggestionsForTranslation = nil
         translationConfiguration = nil
-        photoAnalysis.analyzeAddedPhoto(assetID: asset.id, image: image)
+        if photoAnalysis.requiresFullAnalysis {
+            let photos = currentRecognitionPhotos()
+            if !photos.isEmpty {
+                photoAnalysis.analyze(photos: photos)
+            }
+        } else {
+            photoAnalysis.analyzeAddedPhoto(assetID: asset.id, image: image)
+        }
+    }
+
+    private func currentRecognitionPhotos() -> [(assetID: UUID, image: UIImage)] {
+        editorState.mediaAssets
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { asset -> (assetID: UUID, image: UIImage)? in
+                guard let image = sourceImage(for: asset) else { return nil }
+                return (assetID: asset.id, image: image)
+            }
+    }
+
+    private func sourceImage(for asset: MediaAsset) -> UIImage? {
+        if let data = asset.originalData,
+           let image = UIImage(data: data) {
+            return image
+        }
+
+        guard !asset.localIdentifier.isEmpty,
+              let url = LocalMediaFileStore.shared.fileURL(for: asset.localIdentifier) else {
+            return nil
+        }
+
+        return UIImage(contentsOfFile: url.path)
     }
 
     private func startInitialPhotoAnalysisIfNeeded() {
         guard !didStartInitialAnalysis,
               existingBell == nil,
-              !initialAnalysisImages.isEmpty else { return }
+              !initialAnalysisPhotos.isEmpty else { return }
         didStartInitialAnalysis = true
         isLocalizingPhotoSuggestions = true
         localizedPhotoSuggestions = nil
         pendingPhotoSuggestionsForTranslation = nil
         translationConfiguration = nil
-        photoAnalysis.analyze(images: initialAnalysisImages)
+        photoAnalysis.analyze(photos: initialAnalysisPhotos)
     }
 
     private func translatePhotoSuggestions(
@@ -663,6 +721,16 @@ struct BellEditorView: View {
             .id
     }
 
+    private var recognitionMediaSnapshot: ItemRecognitionMediaSnapshot {
+        ItemRecognitionMediaSnapshot(
+            photoAssetIDs: Set(
+                editorState.mediaAssets
+                    .filter { $0.kind == .photo }
+                    .map(\.id)
+            )
+        )
+    }
+
     private func saveBell() {
         let storageLocation = storageContext.location(for: editorState.selectedLocationID)
         let newBell = editorState.makeBell(
@@ -674,6 +742,7 @@ struct BellEditorView: View {
         )
 
         onSave(newBell)
+        photoAnalysis.flushPersistedResultIfPossible()
         dismiss()
     }
 

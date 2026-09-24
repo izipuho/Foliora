@@ -168,6 +168,11 @@ struct CatalogInteractiveCard<Content: View>: View {
     let onSelect: (() -> Void)?
     let selectTitle: String
     let contextMenu: (() -> AnyView)?
+    let deleteTitle: String?
+    let deleteMessage: String?
+    let deleteConfirmationPresented: Binding<Bool>?
+    let onConfirmDelete: (() -> Void)?
+    let onCancelDelete: (() -> Void)?
     private let content: () -> Content
 
     init(
@@ -187,6 +192,11 @@ struct CatalogInteractiveCard<Content: View>: View {
         self.onSelect = onSelect
         self.selectTitle = selectTitle
         self.contextMenu = contextMenu
+        self.deleteTitle = nil
+        self.deleteMessage = nil
+        self.deleteConfirmationPresented = nil
+        self.onConfirmDelete = nil
+        self.onCancelDelete = nil
         self.content = content
     }
 
@@ -220,7 +230,7 @@ struct CatalogInteractiveCard<Content: View>: View {
         .contentShape(Rectangle())
 
         if let contextMenu {
-            button.contextMenu {
+            let managedButton = button.contextMenu {
                 if let onSelect {
                     Button(action: onSelect) {
                         Label(selectTitle, systemImage: "checkmark.circle")
@@ -228,6 +238,30 @@ struct CatalogInteractiveCard<Content: View>: View {
                 }
 
                 contextMenu()
+            }
+
+            if let deleteTitle,
+               let deleteMessage,
+               let deleteConfirmationPresented,
+               let onConfirmDelete,
+               let onCancelDelete {
+                managedButton
+                    .confirmationDialog(
+                        deleteTitle,
+                        isPresented: deleteConfirmationPresented,
+                        titleVisibility: .visible
+                    ) {
+                        Button(String(localized: "common.delete"), role: .destructive) {
+                            onConfirmDelete()
+                        }
+                        Button(String(localized: "common.cancel"), role: .cancel) {
+                            onCancelDelete()
+                        }
+                    } message: {
+                        Text(deleteMessage)
+                    }
+            } else {
+                managedButton
             }
         } else {
             button
@@ -245,6 +279,10 @@ extension CatalogInteractiveCard {
         onOpen: @escaping (Item) -> Void,
         selectTitle: String,
         moveTitle: String,
+        visibleItems: [Item],
+        deleteTitle: String,
+        deleteMessage: String,
+        onDelete: @escaping ([Item]) -> Void,
         @ViewBuilder content: @escaping () -> Content
     ) where Item.ID == UUID {
         self.cardSize = cardSize
@@ -271,6 +309,30 @@ extension CatalogInteractiveCard {
                     onDelete: { state.wrappedValue.beginDelete(item) }
                 )
             )
+        } : nil
+        self.deleteTitle = canManage ? deleteTitle : nil
+        self.deleteMessage = canManage ? deleteMessage : nil
+        self.deleteConfirmationPresented = canManage
+            ? Binding(
+                get: {
+                    state.wrappedValue.isPresentingDeleteConfirmation
+                        && !state.wrappedValue.isSelectionModeEnabled
+                        && state.wrappedValue.pendingDeletion?.id == item.id
+                },
+                set: { isPresented in
+                    if !isPresented,
+                       state.wrappedValue.pendingDeletion?.id == item.id {
+                        state.wrappedValue.cancelDelete()
+                    }
+                }
+            )
+            : nil
+        self.onConfirmDelete = canManage ? {
+            onDelete(state.wrappedValue.itemsForAction(triggeredBy: item, visibleItems: visibleItems))
+            state.wrappedValue.completeAction()
+        } : nil
+        self.onCancelDelete = canManage ? {
+            state.wrappedValue.cancelDelete()
         } : nil
         self.content = content
     }
@@ -436,22 +498,6 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                     batchEditContent()
                 }
             }
-            .confirmationDialog(
-                deleteTitle,
-                isPresented: $state.isPresentingDeleteConfirmation,
-                titleVisibility: .visible,
-                presenting: state.pendingDeletion
-            ) { item in
-                Button(String(localized: "common.delete"), role: .destructive) {
-                    onDelete(state.itemsForAction(triggeredBy: item, visibleItems: visibleItems))
-                    state.completeAction()
-                }
-                Button(String(localized: "common.cancel"), role: .cancel) {
-                    state.cancelDelete()
-                }
-            } message: { _ in
-                Text(deleteMessage)
-            }
             .toolbar(state.isSelectionModeEnabled ? .hidden : .visible, for: .tabBar)
             .toolbar {
                 if state.isSelectionModeEnabled {
@@ -493,6 +539,22 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                                 Image(systemName: "trash")
                             }
                             .tint(CatalogSemanticColors.destructive)
+                            .confirmationDialog(
+                                deleteTitle,
+                                isPresented: $state.isPresentingDeleteConfirmation,
+                                titleVisibility: .visible,
+                                presenting: state.pendingDeletion
+                            ) { item in
+                                Button(String(localized: "common.delete"), role: .destructive) {
+                                    onDelete(state.itemsForAction(triggeredBy: item, visibleItems: visibleItems))
+                                    state.completeAction()
+                                }
+                                Button(String(localized: "common.cancel"), role: .cancel) {
+                                    state.cancelDelete()
+                                }
+                            } message: { _ in
+                                Text(deleteMessage)
+                            }
                         }
                     }
                 }

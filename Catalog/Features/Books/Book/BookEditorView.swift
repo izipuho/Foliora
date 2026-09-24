@@ -8,7 +8,6 @@ struct BookEditorView: View {
     let collection: CollectionSummary
     private let existingBook: BookRecord?
     private let initialGenreSuggestions: [String]
-    private let initialAnalysisImages: [UIImage]
     private let onDelete: (() -> Void)?
     private let onSave: (BookRecord) -> Void
 
@@ -38,11 +37,11 @@ struct BookEditorView: View {
     @State private var editingIdentifierIndex: Int?
     @State private var isPresentingIdentifierEditor = false
     @State private var isPresentingDeleteConfirmation = false
-    @State private var photoAnalysis = BookPhotoAnalysisController()
+    @State private var photoAnalysis: BookPhotoAnalysisController
     @State private var didStartInitialAnalysis = false
     @State private var textAssignmentController = BookTextAssignmentController()
+    @State private var editorItemID: UUID
 
-    private let editorItemID: UUID
     private let coverExtractor = BookCoverExtractor()
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -95,6 +94,14 @@ struct BookEditorView: View {
         firstPhotoAsset?.id
     }
 
+    private var recognitionMediaSnapshot: ItemRecognitionMediaSnapshot {
+        let photoAssetIDs = ([editorState.coverImage].compactMap { $0 } + editorState.mediaAssets)
+            .filter { $0.kind == .photo }
+            .map(\.id)
+
+        return ItemRecognitionMediaSnapshot(photoAssetIDs: Set(photoAssetIDs))
+    }
+
     private var editorMediaAssets: Binding<[MediaAsset]> {
         Binding(
             get: {
@@ -130,16 +137,17 @@ struct BookEditorView: View {
         self.collection = collection
         self.existingBook = book
         self.initialGenreSuggestions = genreSuggestions
-        self.initialAnalysisImages = initialMediaAssets
-            .filter { $0.kind == .photo }
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .compactMap { asset -> UIImage? in
-                guard let data = asset.originalData else { return nil }
-                return UIImage(data: data)
-            }
         self.onDelete = onDelete
         self.onSave = onSave
-        self.editorItemID = book?.id ?? UUID()
+        let editorItemID = book?.id ?? UUID()
+        _editorItemID = State(initialValue: editorItemID)
+        _photoAnalysis = State(
+            initialValue: ItemRecognitionSessionStore.shared.session(
+                for: editorItemID,
+                as: BookPhotoAnalysisController.self,
+                create: BookPhotoAnalysisController.init
+            )
+        )
         _editorState = State(
             initialValue: BookEditorState(
                 book: book,
@@ -556,6 +564,19 @@ struct BookEditorView: View {
                         }
                         .tint(CatalogSemanticColors.destructive)
                         .accessibilityLabel(String(localized: "common.delete"))
+                        .confirmationDialog(
+                            String(localized: "book.delete.title"),
+                            isPresented: $isPresentingDeleteConfirmation,
+                            titleVisibility: .visible
+                        ) {
+                            Button(String(localized: "common.delete"), role: .destructive) {
+                                onDelete?()
+                            }
+
+                            Button(String(localized: "common.cancel"), role: .cancel) {}
+                        } message: {
+                            Text(String(localized: "book.delete.message"))
+                        }
                     }
                 }
 
@@ -569,19 +590,6 @@ struct BookEditorView: View {
                     .accessibilityLabel(String(localized: "common.save"))
                 }
             }
-            .confirmationDialog(
-                String(localized: "book.delete.title"),
-                isPresented: $isPresentingDeleteConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button(String(localized: "common.delete"), role: .destructive) {
-                    onDelete?()
-                }
-
-                Button(String(localized: "common.cancel"), role: .cancel) {}
-            } message: {
-                Text(String(localized: "book.delete.message"))
-            }
             .alert(String(localized: "editor.media.cover"), isPresented: $isPresentingCoverCaptureFailure) {
                 Button(String(localized: "common.ok"), role: .cancel) {}
             } message: {
@@ -589,8 +597,23 @@ struct BookEditorView: View {
             }
             .task(id: collection.id) {
                 loadCatalogMetadata()
-                startInitialPhotoAnalysisIfNeeded()
+                photoAnalysis.configurePersistence(
+                    itemID: editorItemID,
+                    repository: CoreDataCatalogRepository(context: managedObjectContext),
+                    currentSnapshot: recognitionMediaSnapshot
+                )
+                textAssignmentController.sync(from: photoAnalysis.recognizedText)
+                photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
                 normalizeInitialBookPhotosIfNeeded()
+            }
+            .onChange(of: recognitionMediaSnapshot) { _, snapshot in
+                photoAnalysis.reconcileMediaSnapshot(snapshot)
+                if photoAnalysis.requiresFullAnalysis {
+                    let photos = currentRecognitionPhotos()
+                    if !photos.isEmpty {
+                        photoAnalysis.analyze(photos: photos)
+                    }
+                }
             }
             .onChange(of: photoAnalysis.recognizedText) { _, recognizedText in
                 textAssignmentController.sync(from: recognizedText)
@@ -782,6 +805,8 @@ struct BookEditorView: View {
                     shouldBecomeCover: sourceAsset.id == coverAsset.id
                 )
             }
+
+            startInitialPhotoAnalysisIfNeeded()
         }
     }
 
@@ -806,10 +831,20 @@ struct BookEditorView: View {
                 sourceAsset: sourceAsset,
                 shouldBecomeCover: shouldBecomeCover
             )
-            photoAnalysis.analyzeAddedPhoto(
-                assetID: sourceAsset.id,
-                image: analysisImage
-            )
+            let analysisAssetID = shouldBecomeCover
+                ? (editorState.coverImage?.id ?? sourceAsset.id)
+                : sourceAsset.id
+            if photoAnalysis.requiresFullAnalysis {
+                let photos = currentRecognitionPhotos()
+                if !photos.isEmpty {
+                    photoAnalysis.analyze(photos: photos)
+                }
+            } else {
+                photoAnalysis.analyzeAddedPhoto(
+                    assetID: analysisAssetID,
+                    image: analysisImage
+                )
+            }
         }
     }
 
@@ -902,13 +937,25 @@ struct BookEditorView: View {
         LocalMediaFileStore.shared.deleteFile(for: asset.localIdentifier)
     }
 
+    private func currentRecognitionPhotos() -> [(assetID: UUID, image: UIImage)] {
+        ([editorState.coverImage].compactMap { $0 } + editorState.mediaAssets)
+            .filter { $0.kind == .photo }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { asset -> (assetID: UUID, image: UIImage)? in
+                guard let image = sourceImage(for: asset) else { return nil }
+                return (assetID: asset.id, image: image)
+            }
+    }
+
     private func startInitialPhotoAnalysisIfNeeded() {
         guard !didStartInitialAnalysis,
-              existingBook == nil,
-              !initialAnalysisImages.isEmpty else { return }
+              existingBook == nil else { return }
+
+        let photos = currentRecognitionPhotos()
+        guard !photos.isEmpty else { return }
 
         didStartInitialAnalysis = true
-        photoAnalysis.analyze(images: initialAnalysisImages)
+        photoAnalysis.analyze(photos: photos)
     }
 
     @discardableResult
@@ -1280,6 +1327,7 @@ struct BookEditorView: View {
         )
 
         onSave(book)
+        photoAnalysis.flushPersistedResultIfPossible()
         dismiss()
     }
 
