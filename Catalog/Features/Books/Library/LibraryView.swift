@@ -509,7 +509,11 @@ struct LibraryView: View {
                 onBookSelected?(book.id)
             },
             selectTitle: String(localized: "bell.context.select"),
-            moveTitle: String(localized: "bell.context.move")
+            moveTitle: String(localized: "bell.context.move"),
+            visibleItems: visibleBooks,
+            deleteTitle: String(localized: "book.delete.title"),
+            deleteMessage: String(localized: "book.delete.message"),
+            onDelete: deleteBooks
         ) {
             BookCardView(
                 book: book,
