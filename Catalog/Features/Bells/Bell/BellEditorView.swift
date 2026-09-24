@@ -742,8 +742,12 @@ struct BellEditorView: View {
         )
 
         onSave(newBell)
-        photoAnalysis.clear()
-        ItemRecognitionSessionStore.shared.discardSession(for: editorItemID)
+
+        if !photoAnalysis.isAnalyzing {
+            photoAnalysis.clear()
+            ItemRecognitionSessionStore.shared.discardSession(for: editorItemID)
+        }
+
         dismiss()
     }
 
