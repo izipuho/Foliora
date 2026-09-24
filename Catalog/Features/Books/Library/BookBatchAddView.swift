@@ -1,5 +1,6 @@
 import CoreData
 import SwiftUI
+import UIKit
 
 /// Creates one book per selected photo using a shared set of direct item and book fields.
 struct BookBatchAddView: View {
@@ -255,8 +256,42 @@ struct BookBatchAddView: View {
         }
 
         repository.saveBookRecords(books)
+        startRecognition(for: books)
         onComplete()
         dismiss()
+    }
+
+    private func startRecognition(for books: [BookRecord]) {
+        for book in books {
+            guard let photo = book.mediaAssets.first(where: { $0.kind == .photo }),
+                  let image = recognitionImage(for: photo) else { continue }
+
+            let controller = ItemRecognitionSessionStore.shared.session(
+                for: book.id,
+                as: BookPhotoAnalysisController.self,
+                create: BookPhotoAnalysisController.init
+            )
+            controller.configurePersistence(
+                itemID: book.id,
+                repository: repository,
+                currentSnapshot: ItemRecognitionMediaSnapshot(photoAssetIDs: [photo.id])
+            )
+            controller.analyze(photos: [(assetID: photo.id, image: image)])
+        }
+    }
+
+    private func recognitionImage(for asset: MediaAsset) -> UIImage? {
+        if let data = asset.originalData,
+           let image = UIImage(data: data) {
+            return image
+        }
+
+        guard !asset.localIdentifier.isEmpty,
+              let url = LocalMediaFileStore.shared.fileURL(for: asset.localIdentifier) else {
+            return nil
+        }
+
+        return UIImage(contentsOfFile: url.path)
     }
 
     private func optionalString(_ value: String) -> String? {

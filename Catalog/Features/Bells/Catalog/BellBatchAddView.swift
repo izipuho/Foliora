@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 private struct BellBatchNameGenerator {
     private let prefix: String
@@ -349,6 +350,39 @@ struct BellBatchAddView: View {
         }
     }
 
+    private func startRecognition(for bells: [BellRecord]) {
+        for bell in bells {
+            guard let photo = bell.mediaAssets.first(where: { $0.kind == .photo }),
+                  let image = recognitionImage(for: photo) else { continue }
+
+            let controller = ItemRecognitionSessionStore.shared.session(
+                for: bell.id,
+                as: BellPhotoAnalysisController.self,
+                create: BellPhotoAnalysisController.init
+            )
+            controller.configurePersistence(
+                itemID: bell.id,
+                repository: repository,
+                currentSnapshot: ItemRecognitionMediaSnapshot(photoAssetIDs: [photo.id])
+            )
+            controller.analyze(photos: [(assetID: photo.id, image: image)])
+        }
+    }
+
+    private func recognitionImage(for asset: MediaAsset) -> UIImage? {
+        if let data = asset.originalData,
+           let image = UIImage(data: data) {
+            return image
+        }
+
+        guard !asset.localIdentifier.isEmpty,
+              let url = LocalMediaFileStore.shared.fileURL(for: asset.localIdentifier) else {
+            return nil
+        }
+
+        return UIImage(contentsOfFile: url.path)
+    }
+
     private func storagePath(for location: Location) -> StoragePath {
         let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
         var components = [
@@ -468,6 +502,7 @@ struct BellBatchAddView: View {
         }
 
         repository.saveBellRecords(bells)
+        startRecognition(for: bells)
         creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)
     }
 }
