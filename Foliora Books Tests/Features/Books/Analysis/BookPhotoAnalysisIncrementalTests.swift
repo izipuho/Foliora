@@ -100,6 +100,139 @@ struct BookPhotoAnalysisIncrementalTests {
         #expect(controller.suggestions.title?.value == "evidence-0 | evidence-1")
     }
 
+    @Test
+    func mismatchedPersistedSnapshotIsPreservedDuringPassiveMediaSync() throws {
+        let itemID = UUID()
+        let firstPhotoID = UUID()
+        let secondPhotoID = UUID()
+        let evidence = ItemRecognitionEvidence(
+            analysis: MultiPhotoAnalysisResult(
+                photos: [
+                    PhotoAnalysisResult(
+                        mainObjectImage: nil,
+                        mainObjectRegion: nil,
+                        main: PhotoAnalysisFeatureScope(
+                            classifications: [],
+                            recognizedText: [
+                                RecognizedTextFeature(
+                                    text: "persisted",
+                                    confidence: 1,
+                                    boundingBox: .zero
+                                )
+                            ],
+                            recognizedObjects: [],
+                            recognizedBarcodes: []
+                        ),
+                        background: .empty
+                    )
+                ]
+            )
+        )
+        let repository = BookIncrementalRecognitionRepository(
+            record: ItemRecognitionRecord(
+                itemID: itemID,
+                photoAssetIDs: [firstPhotoID, secondPhotoID],
+                evidenceData: try JSONEncoder().encode(evidence),
+                resultData: try JSONEncoder().encode(
+                    BookPersistedRecognitionResult(
+                        suggestions: .empty,
+                        recognizedText: []
+                    )
+                )
+            )
+        )
+        let controller = BookPhotoAnalysisController(
+            service: BookIncrementalRecordingPhotoAnalysisService(),
+            identifierExtractor: BookIncrementalEmptyIdentifierExtractor(),
+            bibliographicExtractor: BookIncrementalBibliographicExtractor()
+        )
+
+        controller.configurePersistence(
+            itemID: itemID,
+            repository: repository,
+            currentSnapshot: ItemRecognitionMediaSnapshot(
+                photoAssetIDs: [firstPhotoID]
+            )
+        )
+
+        #expect(repository.itemRecognition(for: itemID) != nil)
+        #expect(!controller.isRestoredFromPersistence)
+
+        controller.reconcileMediaSnapshot(
+            ItemRecognitionMediaSnapshot(
+                photoAssetIDs: [firstPhotoID, secondPhotoID]
+            )
+        )
+
+        #expect(repository.itemRecognition(for: itemID) != nil)
+    }
+
+    @Test
+    func removingPersistedPhotoInvalidatesResultAndRequiresFullAnalysis() throws {
+        let itemID = UUID()
+        let firstPhotoID = UUID()
+        let secondPhotoID = UUID()
+        let evidence = ItemRecognitionEvidence(
+            analysis: MultiPhotoAnalysisResult(
+                photos: [
+                    PhotoAnalysisResult(
+                        mainObjectImage: nil,
+                        mainObjectRegion: nil,
+                        main: PhotoAnalysisFeatureScope(
+                            classifications: [],
+                            recognizedText: [
+                                RecognizedTextFeature(
+                                    text: "persisted",
+                                    confidence: 1,
+                                    boundingBox: .zero
+                                )
+                            ],
+                            recognizedObjects: [],
+                            recognizedBarcodes: []
+                        ),
+                        background: .empty
+                    )
+                ]
+            )
+        )
+        let repository = BookIncrementalRecognitionRepository(
+            record: ItemRecognitionRecord(
+                itemID: itemID,
+                photoAssetIDs: [firstPhotoID, secondPhotoID],
+                evidenceData: try JSONEncoder().encode(evidence),
+                resultData: try JSONEncoder().encode(
+                    BookPersistedRecognitionResult(
+                        suggestions: .empty,
+                        recognizedText: []
+                    )
+                )
+            )
+        )
+        let controller = BookPhotoAnalysisController(
+            service: BookIncrementalRecordingPhotoAnalysisService(),
+            identifierExtractor: BookIncrementalEmptyIdentifierExtractor(),
+            bibliographicExtractor: BookIncrementalBibliographicExtractor()
+        )
+
+        controller.configurePersistence(
+            itemID: itemID,
+            repository: repository,
+            currentSnapshot: ItemRecognitionMediaSnapshot(
+                photoAssetIDs: [firstPhotoID, secondPhotoID]
+            )
+        )
+        #expect(controller.isRestoredFromPersistence)
+
+        controller.reconcileMediaSnapshot(
+            ItemRecognitionMediaSnapshot(
+                photoAssetIDs: [firstPhotoID]
+            )
+        )
+
+        #expect(controller.requiresFullAnalysis)
+        #expect(repository.itemRecognition(for: itemID) == nil)
+    }
+
     private func waitUntilAnalysisFinishes(_ controller: BookPhotoAnalysisController) async {
         for _ in 0..<500 {
             if !controller.isAnalyzing {
