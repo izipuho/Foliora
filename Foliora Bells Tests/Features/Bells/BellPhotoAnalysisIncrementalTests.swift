@@ -93,6 +93,125 @@ struct BellPhotoAnalysisIncrementalTests {
         #expect(controller.suggestions.title?.value == "2")
     }
 
+    @Test
+    func mismatchedPersistedSnapshotIsPreservedDuringPassiveMediaSync() throws {
+        let itemID = UUID()
+        let firstPhotoID = UUID()
+        let secondPhotoID = UUID()
+        let evidence = ItemRecognitionEvidence(
+            analysis: MultiPhotoAnalysisResult(
+                photos: [
+                    PhotoAnalysisResult(
+                        mainObjectImage: nil,
+                        mainObjectRegion: nil,
+                        main: PhotoAnalysisFeatureScope(
+                            classifications: [
+                                VisionFeature(label: "persisted", confidence: 1)
+                            ],
+                            recognizedText: [],
+                            recognizedObjects: [],
+                            recognizedBarcodes: []
+                        ),
+                        background: .empty
+                    )
+                ]
+            )
+        )
+        let repository = BellIncrementalRecognitionRepository(
+            record: ItemRecognitionRecord(
+                itemID: itemID,
+                photoAssetIDs: [firstPhotoID, secondPhotoID],
+                evidenceData: try JSONEncoder().encode(evidence),
+                resultData: try JSONEncoder().encode(
+                    BellPersistedRecognitionResult(suggestions: .empty)
+                )
+            )
+        )
+        let controller = BellPhotoAnalysisController(
+            service: BellIncrementalRecordingPhotoAnalysisService(),
+            semanticExtractor: BellIncrementalSemanticExtractor(),
+            mapper: DefaultBellPhotoSuggestionMapper()
+        )
+
+        controller.configurePersistence(
+            itemID: itemID,
+            repository: repository,
+            currentSnapshot: ItemRecognitionMediaSnapshot(
+                photoAssetIDs: [firstPhotoID]
+            )
+        )
+
+        #expect(repository.itemRecognition(for: itemID) != nil)
+        #expect(!controller.isRestoredFromPersistence)
+
+        controller.reconcileMediaSnapshot(
+            ItemRecognitionMediaSnapshot(
+                photoAssetIDs: [firstPhotoID, secondPhotoID]
+            )
+        )
+
+        #expect(repository.itemRecognition(for: itemID) != nil)
+    }
+
+    @Test
+    func removingPersistedPhotoInvalidatesResultAndRequiresFullAnalysis() throws {
+        let itemID = UUID()
+        let firstPhotoID = UUID()
+        let secondPhotoID = UUID()
+        let evidence = ItemRecognitionEvidence(
+            analysis: MultiPhotoAnalysisResult(
+                photos: [
+                    PhotoAnalysisResult(
+                        mainObjectImage: nil,
+                        mainObjectRegion: nil,
+                        main: PhotoAnalysisFeatureScope(
+                            classifications: [
+                                VisionFeature(label: "persisted", confidence: 1)
+                            ],
+                            recognizedText: [],
+                            recognizedObjects: [],
+                            recognizedBarcodes: []
+                        ),
+                        background: .empty
+                    )
+                ]
+            )
+        )
+        let repository = BellIncrementalRecognitionRepository(
+            record: ItemRecognitionRecord(
+                itemID: itemID,
+                photoAssetIDs: [firstPhotoID, secondPhotoID],
+                evidenceData: try JSONEncoder().encode(evidence),
+                resultData: try JSONEncoder().encode(
+                    BellPersistedRecognitionResult(suggestions: .empty)
+                )
+            )
+        )
+        let controller = BellPhotoAnalysisController(
+            service: BellIncrementalRecordingPhotoAnalysisService(),
+            semanticExtractor: BellIncrementalSemanticExtractor(),
+            mapper: DefaultBellPhotoSuggestionMapper()
+        )
+
+        controller.configurePersistence(
+            itemID: itemID,
+            repository: repository,
+            currentSnapshot: ItemRecognitionMediaSnapshot(
+                photoAssetIDs: [firstPhotoID, secondPhotoID]
+            )
+        )
+        #expect(controller.isRestoredFromPersistence)
+
+        controller.reconcileMediaSnapshot(
+            ItemRecognitionMediaSnapshot(
+                photoAssetIDs: [firstPhotoID]
+            )
+        )
+
+        #expect(controller.requiresFullAnalysis)
+        #expect(repository.itemRecognition(for: itemID) == nil)
+    }
+
     private func waitUntilAnalysisFinishes(_ controller: BellPhotoAnalysisController) async {
         for _ in 0..<500 {
             if !controller.isAnalyzing {
