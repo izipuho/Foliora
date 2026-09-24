@@ -141,7 +141,8 @@ struct BellSearchView: View {
             SearchTokenGroup(
                 title: String(localized: "recognition.filter.group"),
                 systemImage: "sparkles",
-                tokens: hasRecognitionSuggestions ? [.recognitionSuggestions] : []
+                tokens: hasRecognitionSuggestions ? [.recognitionSuggestions] : [],
+                selectionBehavior: .toggle
             ),
             SearchTokenGroup(
                 title: String(localized: "bell_catalog.summary.countries"),
@@ -178,7 +179,10 @@ struct BellSearchView: View {
             SearchTokenGroup(
                 title: group.title,
                 systemImage: group.systemImage,
-                tokens: group.tokens.filter { !selectedTokens.contains($0) }
+                tokens: group.selectionBehavior == .toggle
+                    ? group.tokens
+                    : group.tokens.filter { !selectedTokens.contains($0) },
+                selectionBehavior: group.selectionBehavior
             )
         }
         .filter { !$0.tokens.isEmpty }
