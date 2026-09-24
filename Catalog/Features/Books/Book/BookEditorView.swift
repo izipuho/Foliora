@@ -1327,7 +1327,8 @@ struct BookEditorView: View {
         )
 
         onSave(book)
-        photoAnalysis.flushPersistedResultIfPossible()
+        photoAnalysis.clear()
+        ItemRecognitionSessionStore.shared.discardSession(for: editorItemID)
         dismiss()
     }
 

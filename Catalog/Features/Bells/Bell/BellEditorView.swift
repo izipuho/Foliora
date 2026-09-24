@@ -742,7 +742,8 @@ struct BellEditorView: View {
         )
 
         onSave(newBell)
-        photoAnalysis.flushPersistedResultIfPossible()
+        photoAnalysis.clear()
+        ItemRecognitionSessionStore.shared.discardSession(for: editorItemID)
         dismiss()
     }
 

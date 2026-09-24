@@ -7854,6 +7854,38 @@
         }
       }
     },
+    "recognition.filter.group" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recognition"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Распознавание"
+          }
+        }
+      }
+    },
+    "recognition.filter.with_suggestions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With Suggestions"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "С подсказками"
+          }
+        }
+      }
+    },
     "root_tab.collections" : {
       "localizations" : {
         "en" : {

@@ -10,6 +10,7 @@ enum BellSearchToken: Identifiable, Hashable {
     case condition(ItemCondition)
     case acquisitionMethod(AcquisitionMethod)
     case presence(BellPresenceFilter)
+    case recognitionSuggestions
 
     enum Category: Hashable {
         case collection
@@ -19,6 +20,7 @@ enum BellSearchToken: Identifiable, Hashable {
         case condition
         case acquisitionMethod
         case presence
+        case recognitionSuggestions
     }
 
     var id: String {
@@ -37,6 +39,8 @@ enum BellSearchToken: Identifiable, Hashable {
             return "acquisition:\(method.rawValue)"
         case .presence(let filter):
             return "presence:\(filter.searchID)"
+        case .recognitionSuggestions:
+            return "recognition:suggestions"
         }
     }
 
@@ -56,6 +60,8 @@ enum BellSearchToken: Identifiable, Hashable {
             return .acquisitionMethod
         case .presence:
             return .presence
+        case .recognitionSuggestions:
+            return .recognitionSuggestions
         }
     }
 }
@@ -133,6 +139,11 @@ struct BellSearchView: View {
                 tokens: collections.map { BellSearchToken.collection($0.id) }
             ),
             SearchTokenGroup(
+                title: String(localized: "recognition.filter.group"),
+                systemImage: "sparkles",
+                tokens: hasRecognitionSuggestions ? [.recognitionSuggestions] : []
+            ),
+            SearchTokenGroup(
                 title: String(localized: "bell_catalog.summary.countries"),
                 systemImage: "globe.europe.africa",
                 tokens: uniqueValues(bells.map(\.countryName)).map(BellSearchToken.country)
@@ -171,6 +182,11 @@ struct BellSearchView: View {
             )
         }
         .filter { !$0.tokens.isEmpty }
+    }
+
+    private var hasRecognitionSuggestions: Bool {
+        let unreviewedIDs = catalogSnapshot?.recognitionSuggestionItemIDs ?? []
+        return bells.contains { unreviewedIDs.contains($0.id) }
     }
 
     private var filteredBells: [BellCatalogItem] {
@@ -238,6 +254,8 @@ struct BellSearchView: View {
             return method.displayName
         case .presence(let filter):
             return filter.searchTitle
+        case .recognitionSuggestions:
+            return String(localized: "recognition.filter.with_suggestions")
         }
     }
 
@@ -257,6 +275,8 @@ struct BellSearchView: View {
             return "tray.and.arrow.down"
         case .presence:
             return "checklist"
+        case .recognitionSuggestions:
+            return "sparkles"
         }
     }
 
@@ -351,6 +371,8 @@ struct BellSearchView: View {
             return bell.acquisitionMethod == method
         case .presence(let filter):
             return filter.matches(bell)
+        case .recognitionSuggestions:
+            return catalogSnapshot?.recognitionSuggestionItemIDs.contains(bell.id) == true
         }
     }
 
