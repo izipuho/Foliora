@@ -135,9 +135,20 @@ final class BookPhotoAnalysisController {
             return
         }
 
-        guard record.schemaVersion == ItemRecognitionRecord.currentSchemaVersion,
-              record.photoAssetIDs == currentSnapshot.photoAssetIDs,
-              let evidenceData = record.evidenceData,
+        guard record.schemaVersion == ItemRecognitionRecord.currentSchemaVersion else {
+            repository.deleteItemRecognition(for: itemID)
+            return
+        }
+
+        guard record.photoAssetIDs == currentSnapshot.photoAssetIDs else {
+            // CloudKit can deliver the Item media graph and its recognition record at different times.
+            // Keep a valid recognition record until the local media snapshot catches up or a local
+            // recognition mutation explicitly invalidates it.
+            mediaSnapshot = currentSnapshot
+            return
+        }
+
+        guard let evidenceData = record.evidenceData,
               let evidence = try? JSONDecoder().decode(
                 ItemRecognitionEvidence.self,
                 from: evidenceData
@@ -236,6 +247,20 @@ final class BookPhotoAnalysisController {
 
         let removedAssetIDs = mediaSnapshot.photoAssetIDs.subtracting(snapshot.photoAssetIDs)
         let validAssetIDs = snapshot.photoAssetIDs
+
+        let ownsRecognitionState =
+            persistedEvidence != nil
+            || !analysisByAssetID.isEmpty
+            || !pendingBatches.isEmpty
+            || isProcessingBatch
+
+        // A media snapshot can change while CloudKit is still converging. If this controller has
+        // not restored or produced recognition evidence yet, do not turn that passive sync change
+        // into a deletion of a potentially valid remote recognition record.
+        guard ownsRecognitionState else {
+            mediaSnapshot = snapshot
+            return
+        }
 
         deletePersistedResult()
         mediaSnapshot = snapshot
