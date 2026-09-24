@@ -16,6 +16,7 @@ struct CatalogSnapshot {
     private(set) var collectionLocationsByCollectionID: [UUID: [Location]] = [:]
     private(set) var collectionCountsByHomeID: [UUID: Int] = [:]
     private(set) var itemCountsByCollectionID: [UUID: Int] = [:]
+    private(set) var recognitionSuggestionItemIDs: Set<UUID> = []
     private(set) var locationPathByID: [UUID: String] = [:]
     private(set) var collectionLocationPathByCollectionID: [UUID: [UUID: String]] = [:]
 
@@ -165,6 +166,12 @@ struct CatalogSnapshot {
         snapshot.itemCountsByCollectionID = Dictionary(
             itemEntities.compactMap(collectionItemCollectionID).map { ($0, 1) },
             uniquingKeysWith: +
+        )
+        snapshot.recognitionSuggestionItemIDs = Set(
+            itemEntities.compactMap { item -> UUID? in
+                guard item.value(forKey: "recognition") is NSManagedObject else { return nil }
+                return uuidValue(item, "id")
+            }
         )
         snapshot.locationPathByID = Dictionary(
             uniqueKeysWithValues: locationEntities.map { (uuidValue($0, "id"), storageLocationPath(from: $0)) }

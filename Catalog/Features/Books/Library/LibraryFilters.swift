@@ -14,6 +14,7 @@ enum BookSearchToken: Identifiable, Hashable {
     case condition(ItemCondition)
     case acquisitionMethod(AcquisitionMethod)
     case presence(BookPresenceFilter)
+    case recognitionSuggestions
 
     enum Category: Hashable {
         case library
@@ -28,6 +29,7 @@ enum BookSearchToken: Identifiable, Hashable {
         case condition
         case acquisitionMethod
         case presence
+        case recognitionSuggestions
     }
 
     var id: String {
@@ -56,6 +58,8 @@ enum BookSearchToken: Identifiable, Hashable {
             return "acquisition:\(method.rawValue)"
         case .presence(let filter):
             return "presence:\(filter.id)"
+        case .recognitionSuggestions:
+            return "recognition:suggestions"
         }
     }
 
@@ -85,6 +89,8 @@ enum BookSearchToken: Identifiable, Hashable {
             return .acquisitionMethod
         case .presence:
             return .presence
+        case .recognitionSuggestions:
+            return .recognitionSuggestions
         }
     }
 
@@ -116,6 +122,8 @@ enum BookSearchToken: Identifiable, Hashable {
             return book.acquisitionMethod == method
         case .presence(let filter):
             return filter.matches(book, allBooks: allBooks)
+        case .recognitionSuggestions:
+            return false
         }
     }
 

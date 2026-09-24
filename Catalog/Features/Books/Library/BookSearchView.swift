@@ -69,6 +69,12 @@ struct BookSearchView: View {
                 tokens: libraries.map { .library($0.id) }
             ),
             SearchTokenGroup(
+                title: String(localized: "recognition.filter.group"),
+                systemImage: "sparkles",
+                tokens: hasRecognitionSuggestions ? [.recognitionSuggestions] : [],
+                selectionBehavior: .toggle
+            ),
+            SearchTokenGroup(
                 title: String(localized: "person.title.plural"),
                 systemImage: "person.text.rectangle",
                 tokens: peopleByID.values
@@ -134,17 +140,25 @@ struct BookSearchView: View {
             SearchTokenGroup(
                 title: group.title,
                 systemImage: group.systemImage,
-                tokens: group.tokens.filter { !selectedTokens.contains($0) }
+                tokens: group.selectionBehavior == .toggle
+                    ? group.tokens
+                    : group.tokens.filter { !selectedTokens.contains($0) },
+                selectionBehavior: group.selectionBehavior
             )
         }
         .filter { !$0.tokens.isEmpty }
+    }
+
+    private var hasRecognitionSuggestions: Bool {
+        let unreviewedIDs = catalogSnapshot?.recognitionSuggestionItemIDs ?? []
+        return books.contains { unreviewedIDs.contains($0.id) }
     }
 
     private var filteredBooks: [BookRecord] {
         books
             .filter { book in
                 matchesQuery(query, book: book)
-                    && BookSearchToken.matches(tokens, book: book, allBooks: books)
+                    && matches(tokens: tokens, book: book)
             }
             .sorted {
                 let titleComparison = $0.title.localizedStandardCompare($1.title)
@@ -211,6 +225,8 @@ struct BookSearchView: View {
             return method.displayName
         case .presence(let filter):
             return filter.searchTitle
+        case .recognitionSuggestions:
+            return String(localized: "recognition.filter.with_suggestions")
         }
     }
 
@@ -240,6 +256,20 @@ struct BookSearchView: View {
             return "bag"
         case .presence:
             return "checklist"
+        case .recognitionSuggestions:
+            return "sparkles"
+        }
+    }
+
+    private func matches(tokens: [BookSearchToken], book: BookRecord) -> Bool {
+        let groupedTokens = Dictionary(grouping: tokens, by: \.category)
+        return groupedTokens.values.allSatisfy { group in
+            group.contains { token in
+                if token == .recognitionSuggestions {
+                    return catalogSnapshot?.recognitionSuggestionItemIDs.contains(book.id) == true
+                }
+                return token.matches(book, allBooks: books)
+            }
         }
     }
 
