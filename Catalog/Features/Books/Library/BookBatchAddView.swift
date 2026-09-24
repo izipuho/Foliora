@@ -8,6 +8,7 @@ struct BookBatchAddView: View {
     let initialMediaAssets: [MediaAsset]
     let repository: any AppRepository
     private let onComplete: () -> Void
+    private let coverExtractor = BookCoverExtractor()
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -28,6 +29,7 @@ struct BookBatchAddView: View {
     @State private var catalogPublishers: [Publisher] = []
     @State private var catalogSeries: [BookSeries] = []
     @State private var catalogGenreSuggestions: [String] = []
+    @State private var isCreatingBooks = false
 
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -148,9 +150,11 @@ struct BookBatchAddView: View {
 
                 Section {
                     Button(createButtonLabel) {
-                        createBooks()
+                        Task {
+                            await createBooks()
+                        }
                     }
-                    .disabled(initialMediaAssets.isEmpty)
+                    .disabled(initialMediaAssets.isEmpty || isCreatingBooks)
                 }
             }
             .navigationTitle(String(localized: "bell_batch_add.title"))
@@ -206,51 +210,64 @@ struct BookBatchAddView: View {
     }
 
     @MainActor
-    private func createBooks() {
-        guard !initialMediaAssets.isEmpty else { return }
+    private func createBooks() async {
+        guard !initialMediaAssets.isEmpty, !isCreatingBooks else { return }
+
+        isCreatingBooks = true
+        defer { isCreatingBooks = false }
 
         let timestamp = Date()
-        let batchPrefix = "Book \(timestamp.formatted(date: .numeric, time: .shortened))"
+        let batchPrefix = "\(String(localized: "common.book")) \(timestamp.formatted(date: .numeric, time: .shortened))"
         let trimmedLanguageCode = optionalString(languageCode)?.lowercased()
         let trimmedGenre = optionalString(genre)
         let contributors = selectedAuthor.map {
             [BookContributor(role: .author, order: 0, person: $0)]
         } ?? []
 
-        let books = initialMediaAssets.enumerated().map { index, mediaAsset in
-            let itemID = UUID()
+        var books: [BookRecord] = []
+        books.reserveCapacity(initialMediaAssets.count)
 
-            return BookRecord(
-                item: ItemRecord(
-                    id: itemID,
-                    collectionID: collection.id,
-                    kind: .books,
-                    locationID: nil,
-                    originPlaceID: nil,
-                    createdAt: timestamp,
-                    createdBy: "me",
-                    title: "\(batchPrefix) · \(index + 1)",
-                    notes: "",
-                    acquiredYear: Int(selectedAcquiredYearOption),
-                    condition: condition,
-                    acquisitionMethod: acquisitionMethod,
-                    isFavorite: false,
-                    tags: tags,
-                    originPlace: nil,
-                    storageLocation: nil,
-                    storagePath: nil,
-                    mediaAssets: [mediaAsset.with(itemID: itemID, sortOrder: 0)]
-                ),
-                details: BookDetails(
-                    itemID: itemID,
-                    languageCode: trimmedLanguageCode,
-                    genre: trimmedGenre,
-                    pageCount: nil,
-                    publicationYear: nil,
-                    volumeNumber: nil,
-                    publisher: selectedPublisher,
-                    contributors: contributors,
-                    series: selectedSeries
+        for (index, mediaAsset) in initialMediaAssets.enumerated() {
+            let itemID = UUID()
+            let normalizedMedia = await normalizedBatchMedia(
+                mediaAsset,
+                itemID: itemID
+            )
+
+            books.append(
+                BookRecord(
+                    item: ItemRecord(
+                        id: itemID,
+                        collectionID: collection.id,
+                        kind: .books,
+                        locationID: nil,
+                        originPlaceID: nil,
+                        createdAt: timestamp,
+                        createdBy: "me",
+                        title: "\(batchPrefix) · \(index + 1)",
+                        notes: "",
+                        acquiredYear: Int(selectedAcquiredYearOption),
+                        condition: condition,
+                        acquisitionMethod: acquisitionMethod,
+                        isFavorite: false,
+                        tags: tags,
+                        originPlace: nil,
+                        storageLocation: nil,
+                        storagePath: nil,
+                        mediaAssets: normalizedMedia.mediaAssets
+                    ),
+                    details: BookDetails(
+                        itemID: itemID,
+                        languageCode: trimmedLanguageCode,
+                        genre: trimmedGenre,
+                        pageCount: nil,
+                        publicationYear: nil,
+                        volumeNumber: nil,
+                        coverImage: normalizedMedia.coverImage,
+                        publisher: selectedPublisher,
+                        contributors: contributors,
+                        series: selectedSeries
+                    )
                 )
             )
         }
@@ -261,9 +278,38 @@ struct BookBatchAddView: View {
         dismiss()
     }
 
+    @MainActor
+    private func normalizedBatchMedia(
+        _ mediaAsset: MediaAsset,
+        itemID: UUID
+    ) async -> (coverImage: MediaAsset?, mediaAssets: [MediaAsset]) {
+        guard let image = recognitionImage(for: mediaAsset),
+              let extractedCover = await coverExtractor.extractCover(from: image) else {
+            return (
+                coverImage: nil,
+                mediaAssets: [mediaAsset.with(itemID: itemID, sortOrder: 0)]
+            )
+        }
+
+        deleteLocalFile(for: mediaAsset)
+
+        return (
+            coverImage: extractedCover.with(
+                itemID: itemID,
+                displayName: String(localized: "editor.media.cover"),
+                sortOrder: 0
+            ),
+            mediaAssets: []
+        )
+    }
+
     private func startRecognition(for books: [BookRecord]) {
         for book in books {
-            guard let photo = book.mediaAssets.first(where: { $0.kind == .photo }),
+            let recognitionAssets = ([book.details.coverImage].compactMap { $0 } + book.mediaAssets)
+                .filter { $0.kind == .photo }
+                .sorted { $0.sortOrder < $1.sortOrder }
+
+            guard let photo = recognitionAssets.first,
                   let image = recognitionImage(for: photo) else { continue }
 
             let controller = ItemRecognitionSessionStore.shared.session(
@@ -292,6 +338,11 @@ struct BookBatchAddView: View {
         }
 
         return UIImage(contentsOfFile: url.path)
+    }
+
+    private func deleteLocalFile(for asset: MediaAsset) {
+        guard !asset.localIdentifier.isEmpty else { return }
+        LocalMediaFileStore.shared.deleteFile(for: asset.localIdentifier)
     }
 
     private func optionalString(_ value: String) -> String? {
