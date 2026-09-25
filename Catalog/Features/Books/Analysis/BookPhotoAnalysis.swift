@@ -452,25 +452,11 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
     private func extractBibliography(
         from analysis: MultiPhotoAnalysisResult
     ) async throws -> BookBibliographicExtraction {
-        let extractor = bibliographicExtractor
-        let timeout = bibliographicTimeout
-
-        return try await withThrowingTaskGroup(of: BookBibliographicExtraction.self) { group in
-            group.addTask {
-                try await extractor.extract(from: analysis)
-            }
-            group.addTask {
-                try await Task.sleep(for: timeout)
-                throw BookPhotoAnalysisError.bibliographicTimeout
-            }
-
-            guard let result = try await group.next() else {
-                throw CancellationError()
-            }
-
-            group.cancelAll()
-            return result
-        }
+        try await BookBibliographicExtractionRace().run(
+            extractor: bibliographicExtractor,
+            analysis: analysis,
+            timeout: bibliographicTimeout
+        )
     }
 
     private func suggestions(
@@ -523,6 +509,61 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
             return
         }
         repository.deleteItemRecognition(for: itemID)
+    }
+}
+
+
+@MainActor
+private final class BookBibliographicExtractionRace {
+    private var continuation: CheckedContinuation<BookBibliographicExtraction, Error>?
+    private var extractionTask: Task<Void, Never>?
+    private var timeoutTask: Task<Void, Never>?
+
+    func run(
+        extractor: any BookBibliographicExtracting,
+        analysis: MultiPhotoAnalysisResult,
+        timeout: Duration
+    ) async throws -> BookBibliographicExtraction {
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                self.continuation = continuation
+
+                extractionTask = Task { @MainActor [weak self] in
+                    do {
+                        let result = try await extractor.extract(from: analysis)
+                        self?.finish(.success(result))
+                    } catch {
+                        self?.finish(.failure(error))
+                    }
+                }
+
+                timeoutTask = Task { @MainActor [weak self] in
+                    do {
+                        try await Task.sleep(for: timeout)
+                    } catch {
+                        return
+                    }
+
+                    guard !Task.isCancelled else { return }
+                    self?.finish(.failure(BookPhotoAnalysisError.bibliographicTimeout))
+                }
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.finish(.failure(CancellationError()))
+            }
+        }
+    }
+
+    private func finish(_ result: Result<BookBibliographicExtraction, Error>) {
+        guard let continuation else { return }
+
+        self.continuation = nil
+        extractionTask?.cancel()
+        timeoutTask?.cancel()
+        extractionTask = nil
+        timeoutTask = nil
+        continuation.resume(with: result)
     }
 }
 
