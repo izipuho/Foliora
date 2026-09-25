@@ -205,14 +205,7 @@ struct BookRecord: Identifiable, Hashable {
 
     var cover: BookCoverContent {
         if let coverImage = details.coverImage {
-            return .image(coverImage, source: .dedicated)
-        }
-
-        if let legacyCover = mediaAssets
-            .filter({ $0.kind == .photo })
-            .sorted(by: { $0.sortOrder < $1.sortOrder })
-            .first {
-            return .image(legacyCover, source: .legacyMedia)
+            return .image(coverImage)
         }
 
         return .generated(
