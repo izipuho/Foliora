@@ -791,7 +791,7 @@ struct BookEditorView: View {
             )
             editorState.coverImage = prepared.coverImage
             editorState.mediaAssets = prepared.mediaAssets
-            isPresentingCoverCaptureFailure = prepared.coverImage == nil
+            isPresentingCoverCaptureFailure = prepared.usedOriginalCover
             startInitialPhotoAnalysisIfNeeded()
         }
     }
@@ -819,20 +819,18 @@ struct BookEditorView: View {
                 asCover: shouldBecomeCover
             )
 
-            let analysisAssetID = normalized.asset?.id ?? sourceAsset.id
-            if let asset = normalized.asset {
-                if shouldBecomeCover {
-                    editorState.mediaAssets.removeAll { $0.id == sourceAsset.id }
-                    normalizeMediaSortOrder()
-                    editorState.coverImage = asset
-                } else if let index = editorState.mediaAssets.firstIndex(where: { $0.id == sourceAsset.id }) {
-                    editorState.mediaAssets[index] = asset
-                }
-            } else if shouldBecomeCover {
-                isPresentingCoverCaptureFailure = true
+            let asset = normalized.asset
+            if shouldBecomeCover {
+                editorState.mediaAssets.removeAll { $0.id == sourceAsset.id }
+                normalizeMediaSortOrder()
+                editorState.coverImage = asset
+                isPresentingCoverCaptureFailure = !normalized.didExtract
+            } else if let index = editorState.mediaAssets.firstIndex(where: { $0.id == sourceAsset.id }) {
+                editorState.mediaAssets[index] = asset
             }
+
             photoAnalysis.analyzeAddedCreation(
-                assetID: analysisAssetID,
+                assetID: asset.id,
                 image: normalized.analysisImage,
                 assets: recognitionAssets
             )

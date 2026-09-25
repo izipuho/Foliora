@@ -225,8 +225,7 @@ struct BookBatchAddView: View {
             let itemID = UUID()
             let prepared = await ItemCreationService.prepareBookMedia(
                 [mediaAsset],
-                itemID: itemID,
-                usesOriginalCoverOnExtractionFailure: true
+                itemID: itemID
             )
             var state = BookEditorState(book: nil, initialMediaAssets: prepared.mediaAssets)
             state.title = "\(batchPrefix) · \(index + 1)"
