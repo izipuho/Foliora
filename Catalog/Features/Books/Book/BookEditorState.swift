@@ -155,7 +155,8 @@ struct BookEditorState {
         collectionID: UUID,
         existingBook: BookRecord?,
         storageLocation: Location?,
-        storagePath: StoragePath?
+        storagePath: StoragePath?,
+        createdAt: Date? = nil
     ) -> BookRecord {
         let normalizedContributors = contributors.enumerated().map { index, contributor in
             var normalized = contributor
@@ -169,7 +170,7 @@ struct BookEditorState {
                 itemID: itemID,
                 collectionID: existingItem?.collectionID ?? collectionID,
                 kind: .books,
-                createdAt: existingItem?.createdAt ?? .now,
+                createdAt: existingItem?.createdAt ?? createdAt ?? .now,
                 createdBy: existingItem?.createdBy ?? "me",
                 isFavorite: existingItem?.isFavorite ?? false,
                 originPlaceID: existingItem?.originPlaceID,

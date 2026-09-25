@@ -1,6 +1,5 @@
 import CoreData
 import SwiftUI
-import UIKit
 
 /// Creates one book per selected photo using a shared set of direct item and book fields.
 struct BookBatchAddView: View {
@@ -8,7 +7,6 @@ struct BookBatchAddView: View {
     let initialMediaAssets: [MediaAsset]
     let repository: any AppRepository
     private let onComplete: () -> Void
-    private let coverExtractor = BookCoverExtractor()
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -218,136 +216,52 @@ struct BookBatchAddView: View {
 
         let timestamp = Date()
         let batchPrefix = "\(String(localized: "common.book")) \(timestamp.formatted(date: .numeric, time: .shortened))"
-        let trimmedLanguageCode = optionalString(languageCode)?.lowercased()
-        let trimmedGenre = optionalString(genre)
         let contributors = selectedAuthor.map {
             [BookContributor(role: .author, order: 0, person: $0)]
         } ?? []
 
         var books: [BookRecord] = []
-        books.reserveCapacity(initialMediaAssets.count)
-
         for (index, mediaAsset) in initialMediaAssets.enumerated() {
             let itemID = UUID()
-            let normalizedMedia = await normalizedBatchMedia(
-                mediaAsset,
+            let prepared = await ItemCreationService.prepareBookMedia(
+                [mediaAsset],
                 itemID: itemID
             )
+            var state = BookEditorState(book: nil, initialMediaAssets: prepared.mediaAssets)
+            state.title = "\(batchPrefix) · \(index + 1)"
+            state.selectedAcquiredYearOption = selectedAcquiredYearOption
+            state.condition = condition
+            state.acquisitionMethod = acquisitionMethod
+            state.tags = tags
+            state.coverImage = prepared.coverImage
+            state.languageCode = languageCode
+            state.genre = genre
+            state.selectedPublisher = selectedPublisher
+            state.contributors = contributors
+            state.selectedSeries = selectedSeries
 
             books.append(
-                BookRecord(
-                    item: ItemRecord(
-                        id: itemID,
-                        collectionID: collection.id,
-                        kind: .books,
-                        locationID: nil,
-                        originPlaceID: nil,
-                        createdAt: timestamp,
-                        createdBy: "me",
-                        title: "\(batchPrefix) · \(index + 1)",
-                        notes: "",
-                        acquiredYear: Int(selectedAcquiredYearOption),
-                        condition: condition,
-                        acquisitionMethod: acquisitionMethod,
-                        isFavorite: false,
-                        tags: tags,
-                        originPlace: nil,
-                        storageLocation: nil,
-                        storagePath: nil,
-                        mediaAssets: normalizedMedia.mediaAssets
-                    ),
-                    details: BookDetails(
-                        itemID: itemID,
-                        languageCode: trimmedLanguageCode,
-                        genre: trimmedGenre,
-                        pageCount: nil,
-                        publicationYear: nil,
-                        volumeNumber: nil,
-                        coverImage: normalizedMedia.coverImage,
-                        publisher: selectedPublisher,
-                        contributors: contributors,
-                        series: selectedSeries
-                    )
+                state.makeBook(
+                    itemID: itemID,
+                    collectionID: collection.id,
+                    existingBook: nil,
+                    storageLocation: nil,
+                    storagePath: nil,
+                    createdAt: timestamp
                 )
             )
         }
 
         repository.saveBookRecords(books)
-        startRecognition(for: books)
+        for book in books {
+            BookPhotoAnalysisController.startCreation(
+                itemID: book.id,
+                assets: [book.details.coverImage].compactMap { $0 } + book.mediaAssets,
+                repository: repository
+            )
+        }
         onComplete()
         dismiss()
-    }
-
-    @MainActor
-    private func normalizedBatchMedia(
-        _ mediaAsset: MediaAsset,
-        itemID: UUID
-    ) async -> (coverImage: MediaAsset?, mediaAssets: [MediaAsset]) {
-        guard let image = recognitionImage(for: mediaAsset),
-              let extractedCover = await coverExtractor.extractCover(from: image) else {
-            return (
-                coverImage: nil,
-                mediaAssets: [mediaAsset.with(itemID: itemID, sortOrder: 0)]
-            )
-        }
-
-        deleteLocalFile(for: mediaAsset)
-
-        return (
-            coverImage: extractedCover.with(
-                itemID: itemID,
-                displayName: String(localized: "editor.media.cover"),
-                sortOrder: 0
-            ),
-            mediaAssets: []
-        )
-    }
-
-    private func startRecognition(for books: [BookRecord]) {
-        for book in books {
-            let recognitionAssets = ([book.details.coverImage].compactMap { $0 } + book.mediaAssets)
-                .filter { $0.kind == .photo }
-                .sorted { $0.sortOrder < $1.sortOrder }
-
-            guard let photo = recognitionAssets.first,
-                  let image = recognitionImage(for: photo) else { continue }
-
-            let controller = ItemRecognitionSessionStore.shared.session(
-                for: book.id,
-                as: BookPhotoAnalysisController.self,
-                create: BookPhotoAnalysisController.init
-            )
-            controller.configurePersistence(
-                itemID: book.id,
-                repository: repository,
-                currentSnapshot: ItemRecognitionMediaSnapshot(photoAssetIDs: [photo.id])
-            )
-            controller.analyze(photos: [(assetID: photo.id, image: image)])
-        }
-    }
-
-    private func recognitionImage(for asset: MediaAsset) -> UIImage? {
-        if let data = asset.originalData,
-           let image = UIImage(data: data) {
-            return image
-        }
-
-        guard !asset.localIdentifier.isEmpty,
-              let url = LocalMediaFileStore.shared.fileURL(for: asset.localIdentifier) else {
-            return nil
-        }
-
-        return UIImage(contentsOfFile: url.path)
-    }
-
-    private func deleteLocalFile(for asset: MediaAsset) {
-        guard !asset.localIdentifier.isEmpty else { return }
-        LocalMediaFileStore.shared.deleteFile(for: asset.localIdentifier)
-    }
-
-    private func optionalString(_ value: String) -> String? {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func normalizedGenreSuggestions(_ values: [String]) -> [String] {
