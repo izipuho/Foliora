@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import Testing
 import UIKit
 @testable import Foliora_Books
@@ -178,7 +179,12 @@ private struct NeverCompletingBookBibliographicExtractor: BookBibliographicExtra
     func extract(
         from analysis: MultiPhotoAnalysisResult
     ) async throws -> BookBibliographicExtraction {
-        await withUnsafeContinuation { (_: UnsafeContinuation<Void, Never>) in }
+        await withCheckedContinuation { continuation in
+            Task.detached {
+                try? await Task.sleep(for: .milliseconds(100))
+                continuation.resume()
+            }
+        }
         return .empty
     }
 }
