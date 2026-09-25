@@ -29,7 +29,6 @@ extension ItemCreationRecognitionController {
             repository: repository,
             currentSnapshot: snapshot
         )
-        reconcileMediaSnapshot(snapshot)
     }
 
     @discardableResult

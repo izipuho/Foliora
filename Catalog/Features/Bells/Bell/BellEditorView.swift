@@ -432,6 +432,7 @@ struct BellEditorView: View {
                     if photoAnalysis.isRestoredFromPersistence {
                         await handlePhotoAnalysisCompletion()
                     }
+                    photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
                     startInitialPhotoAnalysisIfNeeded()
                     guard let startSection else { return }
                     highlightedSection = startSection

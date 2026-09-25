@@ -246,7 +246,8 @@ struct BookBatchAddView: View {
                     collectionID: collection.id,
                     existingBook: nil,
                     storageLocation: nil,
-                    storagePath: nil
+                    storagePath: nil,
+                    createdAt: timestamp
                 )
             )
         }

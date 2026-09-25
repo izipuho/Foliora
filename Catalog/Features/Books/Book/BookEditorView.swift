@@ -602,6 +602,7 @@ struct BookEditorView: View {
                     repository: CoreDataCatalogRepository(context: managedObjectContext)
                 )
                 textAssignmentController.sync(from: photoAnalysis.recognizedText)
+                photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
                 normalizeInitialBookPhotosIfNeeded()
             }
             .onChange(of: recognitionMediaSnapshot) {

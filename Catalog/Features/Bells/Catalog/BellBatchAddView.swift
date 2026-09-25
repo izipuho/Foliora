@@ -433,6 +433,7 @@ struct BellBatchAddView: View {
 
         let nameGenerator = BellBatchNameGenerator()
         let names = nameGenerator.names(count: mediaPayloads.count)
+        let timestamp = Date()
         let bells = mediaPayloads.enumerated().map { index, mediaAsset in
             let bellID = UUID()
             var state = BellEditorState(bell: nil, initialMediaAssets: [mediaAsset])
@@ -451,7 +452,9 @@ struct BellBatchAddView: View {
                 collectionID: collection.id,
                 existingBell: nil,
                 storageLocation: selectedLocation,
-                storagePath: selectedLocation.map(storagePath(for:))
+                storagePath: selectedLocation.map(storagePath(for:)),
+                createdAt: timestamp,
+                createdBy: "me"
             )
         }
 
