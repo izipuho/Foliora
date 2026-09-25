@@ -88,6 +88,9 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
     private var pendingBatches: [[PendingPhoto]] = []
     private var isProcessingBatch = false
     private var evidenceRevision = 0
+    private var activeSuggestionRefreshID: UUID?
+    private var bibliographicTask: Task<Void, Never>?
+    private var bibliographicTimeoutTask: Task<Void, Never>?
     private var persistenceItemID: UUID?
     private var persistenceRepository: (any CatalogRepository)?
     private var persistedEvidence: ItemRecognitionEvidence?
@@ -199,6 +202,11 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
         analysisOrder.removeAll()
         pendingBatches.removeAll()
         evidenceRevision += 1
+        activeSuggestionRefreshID = nil
+        bibliographicTask?.cancel()
+        bibliographicTimeoutTask?.cancel()
+        bibliographicTask = nil
+        bibliographicTimeoutTask = nil
         suggestions = .empty
         recognizedText = []
         photoAnalysisFailures = []
@@ -301,12 +309,10 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
         guard !isProcessingBatch else { return }
 
         isAnalyzing = true
-        Task {
-            await refreshSuggestions(for: revision)
-            guard revision == evidenceRevision else { return }
-            isAnalyzing = false
-            persistCurrentResultIfPossible()
-        }
+        refreshSuggestions(
+            for: revision,
+            completion: .standalone
+        )
     }
 
     func dismiss(_ field: Field) {
@@ -333,6 +339,11 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
         analysisOrder.removeAll()
         pendingBatches.removeAll()
         evidenceRevision += 1
+        activeSuggestionRefreshID = nil
+        bibliographicTask?.cancel()
+        bibliographicTimeoutTask?.cancel()
+        bibliographicTask = nil
+        bibliographicTimeoutTask = nil
         suggestions = .empty
         recognizedText = []
         photoAnalysisFailures = []
@@ -381,21 +392,31 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
             }
 
             evidenceRevision += 1
-            await refreshSuggestions(for: evidenceRevision)
-
-            isProcessingBatch = false
-            processNextBatchIfNeeded()
+            refreshSuggestions(
+                for: evidenceRevision,
+                completion: .batch
+            )
         }
     }
 
-    private func refreshSuggestions(for revision: Int) async {
+    private enum SuggestionRefreshCompletion {
+        case batch
+        case standalone
+    }
+
+    private func refreshSuggestions(
+        for revision: Int,
+        completion: SuggestionRefreshCompletion
+    ) {
         let analysis = currentAnalysis
         guard !analysis.photos.isEmpty else {
-            guard revision == evidenceRevision else { return }
-            suggestions = .empty
-            recognizedText = []
-            photoAnalysisFailures = []
-            analysisError = nil
+            if revision == evidenceRevision {
+                suggestions = .empty
+                recognizedText = []
+                photoAnalysisFailures = []
+                analysisError = nil
+            }
+            finishSuggestionRefresh(completion)
             return
         }
 
@@ -405,7 +426,11 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
         let nextFailures = analysis.photos.flatMap(\.failures)
         let identifiers = identifierExtractor.extract(from: analysis)
 
-        guard revision == evidenceRevision else { return }
+        guard revision == evidenceRevision else {
+            finishSuggestionRefresh(completion)
+            return
+        }
+
         recognizedText = nextRecognizedText
         photoAnalysisFailures = nextFailures
         analysisError = nil
@@ -414,49 +439,92 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
             identifiers: identifiers
         )
 
-        do {
-            let bibliography = try await extractBibliography(from: analysis)
-            guard revision == evidenceRevision else { return }
-            suggestions = suggestions(
-                bibliography: bibliography,
+        bibliographicTask?.cancel()
+        bibliographicTimeoutTask?.cancel()
+
+        let refreshID = UUID()
+        activeSuggestionRefreshID = refreshID
+        let extractor = bibliographicExtractor
+        let timeout = bibliographicTimeout
+
+        bibliographicTask = Task {
+            do {
+                let bibliography = try await extractor.extract(from: analysis)
+                finishSuggestionRefresh(
+                    id: refreshID,
+                    revision: revision,
+                    completion: completion,
+                    result: .success(bibliography),
+                    identifiers: identifiers
+                )
+            } catch {
+                finishSuggestionRefresh(
+                    id: refreshID,
+                    revision: revision,
+                    completion: completion,
+                    result: .failure(error),
+                    identifiers: identifiers
+                )
+            }
+        }
+
+        bibliographicTimeoutTask = Task {
+            do {
+                try await Task.sleep(for: timeout)
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
+            finishSuggestionRefresh(
+                id: refreshID,
+                revision: revision,
+                completion: completion,
+                result: .failure(BookPhotoAnalysisError.bibliographicTimeout),
                 identifiers: identifiers
             )
-        } catch {
-            guard revision == evidenceRevision else { return }
-            analysisError = error
         }
     }
 
-    private var currentAnalysis: MultiPhotoAnalysisResult {
-        var photos = analysisOrder.compactMap { analysisByAssetID[$0] }
-        if let persistedEvidence {
-            photos.insert(persistedEvidence.analysisResult, at: 0)
-        }
-        return MultiPhotoAnalysisResult(photos: photos)
-    }
+    private func finishSuggestionRefresh(
+        id: UUID,
+        revision: Int,
+        completion: SuggestionRefreshCompletion,
+        result: Result<BookBibliographicExtraction, Error>,
+        identifiers: [SuggestedFieldValue<BookIdentifier>]
+    ) {
+        guard activeSuggestionRefreshID == id else { return }
 
-    private static func readingOrderedText(
-        _ features: [RecognizedTextFeature]
-    ) -> [RecognizedTextFeature] {
-        features.sorted { lhs, rhs in
-            // Vision coordinates start at the lower-left. Quantizing Y keeps fragments on the same visual row ordered by X.
-            let lhsRow = Int((lhs.boundingBox.midY * 50).rounded())
-            let rhsRow = Int((rhs.boundingBox.midY * 50).rounded())
-            if lhsRow != rhsRow {
-                return lhsRow > rhsRow
+        activeSuggestionRefreshID = nil
+        bibliographicTask?.cancel()
+        bibliographicTimeoutTask?.cancel()
+        bibliographicTask = nil
+        bibliographicTimeoutTask = nil
+
+        if revision == evidenceRevision {
+            switch result {
+            case .success(let bibliography):
+                suggestions = suggestions(
+                    bibliography: bibliography,
+                    identifiers: identifiers
+                )
+            case .failure(let error):
+                analysisError = error
             }
-            return lhs.boundingBox.minX < rhs.boundingBox.minX
         }
+
+        finishSuggestionRefresh(completion)
     }
 
-    private func extractBibliography(
-        from analysis: MultiPhotoAnalysisResult
-    ) async throws -> BookBibliographicExtraction {
-        try await BookBibliographicExtractionRace().run(
-            extractor: bibliographicExtractor,
-            analysis: analysis,
-            timeout: bibliographicTimeout
-        )
+    private func finishSuggestionRefresh(_ completion: SuggestionRefreshCompletion) {
+        switch completion {
+        case .batch:
+            isProcessingBatch = false
+            processNextBatchIfNeeded()
+        case .standalone:
+            isAnalyzing = false
+            persistCurrentResultIfPossible()
+        }
     }
 
     private func suggestions(
@@ -512,60 +580,6 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
     }
 }
 
-
-@MainActor
-private final class BookBibliographicExtractionRace {
-    private var continuation: CheckedContinuation<BookBibliographicExtraction, Error>?
-    private var extractionTask: Task<Void, Never>?
-    private var timeoutTask: Task<Void, Never>?
-
-    func run(
-        extractor: any BookBibliographicExtracting,
-        analysis: MultiPhotoAnalysisResult,
-        timeout: Duration
-    ) async throws -> BookBibliographicExtraction {
-        try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                self.continuation = continuation
-
-                extractionTask = Task {
-                    do {
-                        let result = try await extractor.extract(from: analysis)
-                        await self.finish(.success(result))
-                    } catch {
-                        await self.finish(.failure(error))
-                    }
-                }
-
-                timeoutTask = Task.detached(priority: nil) {
-                    do {
-                        try await Task.sleep(for: timeout)
-                    } catch {
-                        return
-                    }
-
-                    guard !Task.isCancelled else { return }
-                    await self.finish(.failure(BookPhotoAnalysisError.bibliographicTimeout))
-                }
-            }
-        } onCancel: {
-            Task { @MainActor in
-                self.finish(.failure(CancellationError()))
-            }
-        }
-    }
-
-    private func finish(_ result: Result<BookBibliographicExtraction, Error>) {
-        guard let continuation else { return }
-
-        self.continuation = nil
-        extractionTask?.cancel()
-        timeoutTask?.cancel()
-        extractionTask = nil
-        timeoutTask = nil
-        continuation.resume(with: result)
-    }
-}
 
 private extension UIImage {
     /// Bakes UIImage orientation metadata into pixels before passing the image to Vision.
