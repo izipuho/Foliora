@@ -4,13 +4,84 @@ import UIKit
 protocol ItemCreationRecognitionController: AnyObject {
     init()
     var isAnalyzing: Bool { get }
+    var requiresFullAnalysis: Bool { get }
+
     func configurePersistence(
         itemID: UUID,
         repository: any CatalogRepository,
         currentSnapshot: ItemRecognitionMediaSnapshot
     )
+    func reconcileMediaSnapshot(_ snapshot: ItemRecognitionMediaSnapshot)
     func analyze(photos: [(assetID: UUID, image: UIImage)])
+    func analyzeAddedPhoto(assetID: UUID, image: UIImage)
     func clear()
+}
+
+extension ItemCreationRecognitionController {
+    func configureCreation(
+        itemID: UUID,
+        assets: [MediaAsset],
+        repository: any CatalogRepository
+    ) {
+        let snapshot = ItemCreationService.recognitionSnapshot(from: assets)
+        configurePersistence(
+            itemID: itemID,
+            repository: repository,
+            currentSnapshot: snapshot
+        )
+        reconcileMediaSnapshot(snapshot)
+    }
+
+    @discardableResult
+    func analyzeCreation(assets: [MediaAsset]) -> Bool {
+        let photos = ItemCreationService.recognitionPhotos(from: assets)
+        guard !photos.isEmpty else { return false }
+        analyze(photos: photos)
+        return true
+    }
+
+    func reconcileCreation(assets: [MediaAsset]) {
+        reconcileMediaSnapshot(ItemCreationService.recognitionSnapshot(from: assets))
+        if requiresFullAnalysis {
+            _ = analyzeCreation(assets: assets)
+        }
+    }
+
+    func analyzeAddedCreation(
+        assetID: UUID,
+        image: UIImage,
+        assets: [MediaAsset]
+    ) {
+        if requiresFullAnalysis {
+            _ = analyzeCreation(assets: assets)
+        } else {
+            analyzeAddedPhoto(assetID: assetID, image: image)
+        }
+    }
+
+    func finishCreation(itemID: UUID) {
+        guard !isAnalyzing else { return }
+        clear()
+        ItemRecognitionSessionStore.shared.discardSession(for: itemID)
+    }
+
+    static func startCreation(
+        itemID: UUID,
+        assets: [MediaAsset],
+        repository: any CatalogRepository
+    ) {
+        let controller = ItemRecognitionSessionStore.shared.session(
+            for: itemID,
+            as: Self.self,
+            create: Self.init
+        )
+        controller.configureCreation(
+            itemID: itemID,
+            assets: assets,
+            repository: repository
+        )
+        _ = controller.analyzeCreation(assets: assets)
+    }
 }
 
 enum ItemCreationService {
@@ -24,7 +95,6 @@ enum ItemCreationService {
               let url = LocalMediaFileStore.shared.fileURL(for: asset.localIdentifier) else {
             return nil
         }
-
         return UIImage(contentsOfFile: url.path)
     }
 
@@ -42,54 +112,4 @@ enum ItemCreationService {
             photoAssetIDs: Set(assets.filter { $0.kind == .photo }.map(\.id))
         )
     }
-
-    @MainActor
-    static func configureRecognition<Controller: ItemCreationRecognitionController>(
-        itemID: UUID,
-        assets: [MediaAsset],
-        repository: any CatalogRepository,
-        controller: Controller
-    ) {
-        controller.configurePersistence(
-            itemID: itemID,
-            repository: repository,
-            currentSnapshot: recognitionSnapshot(from: assets)
-        )
-    }
-
-    @MainActor
-    static func startRecognition<Controller: ItemCreationRecognitionController>(
-        itemID: UUID,
-        assets: [MediaAsset],
-        repository: any CatalogRepository,
-        as type: Controller.Type
-    ) {
-        let photos = recognitionPhotos(from: assets)
-        guard !photos.isEmpty else { return }
-
-        let controller = ItemRecognitionSessionStore.shared.session(
-            for: itemID,
-            as: type,
-            create: Controller.init
-        )
-        configureRecognition(
-            itemID: itemID,
-            assets: assets,
-            repository: repository,
-            controller: controller
-        )
-        controller.analyze(photos: photos)
-    }
-
-    @MainActor
-    static func finishEditorSave<Controller: ItemCreationRecognitionController>(
-        itemID: UUID,
-        controller: Controller
-    ) {
-        guard !controller.isAnalyzing else { return }
-        controller.clear()
-        ItemRecognitionSessionStore.shared.discardSession(for: itemID)
-    }
-
-
 }

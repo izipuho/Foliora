@@ -48,7 +48,6 @@ struct BellEditorView: View {
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
     let startSection: StartSection?
-    private let initialAnalysisPhotos: [(assetID: UUID, image: UIImage)]
     private let existingBell: BellRecord?
     private let onDelete: (() -> Void)?
     let onSave: (BellRecord) -> Void
@@ -124,7 +123,6 @@ struct BellEditorView: View {
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
         self.startSection = startSection
-        self.initialAnalysisPhotos = ItemCreationService.recognitionPhotos(from: initialMediaAssets)
         self.existingBell = bell
         self.onDelete = onDelete
         self.onSave = onSave
@@ -426,16 +424,14 @@ struct BellEditorView: View {
                     Text(String(localized: "bell.context.delete.message"))
                 }
                 .task {
-                    ItemCreationService.configureRecognition(
+                    photoAnalysis.configureCreation(
                         itemID: editorItemID,
                         assets: editorState.mediaAssets,
-                        repository: repository,
-                        controller: photoAnalysis
+                        repository: repository
                     )
                     if photoAnalysis.isRestoredFromPersistence {
                         await handlePhotoAnalysisCompletion()
                     }
-                    photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
                     startInitialPhotoAnalysisIfNeeded()
                     guard let startSection else { return }
                     highlightedSection = startSection
@@ -453,14 +449,8 @@ struct BellEditorView: View {
                 .sensoryFeedback(trigger: analysisFeedbackEvent) { _, newValue in
                     newValue?.kind.sensoryFeedback
                 }
-                .onChange(of: recognitionMediaSnapshot) { _, snapshot in
-                    photoAnalysis.reconcileMediaSnapshot(snapshot)
-                    if photoAnalysis.requiresFullAnalysis {
-                        let photos = ItemCreationService.recognitionPhotos(from: editorState.mediaAssets)
-                        if !photos.isEmpty {
-                            photoAnalysis.analyze(photos: photos)
-                        }
-                    }
+                .onChange(of: recognitionMediaSnapshot) {
+                    photoAnalysis.reconcileCreation(assets: editorState.mediaAssets)
                 }
                 .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
                     guard wasAnalyzing, !isAnalyzing else { return }
@@ -547,26 +537,24 @@ struct BellEditorView: View {
         localizedPhotoSuggestions = nil
         pendingPhotoSuggestionsForTranslation = nil
         translationConfiguration = nil
-        if photoAnalysis.requiresFullAnalysis {
-            let photos = ItemCreationService.recognitionPhotos(from: editorState.mediaAssets)
-            if !photos.isEmpty {
-                photoAnalysis.analyze(photos: photos)
-            }
-        } else {
-            photoAnalysis.analyzeAddedPhoto(assetID: asset.id, image: image)
-        }
+        photoAnalysis.analyzeAddedCreation(
+            assetID: asset.id,
+            image: image,
+            assets: editorState.mediaAssets
+        )
     }
 
     private func startInitialPhotoAnalysisIfNeeded() {
         guard !didStartInitialAnalysis,
-              existingBell == nil,
-              !initialAnalysisPhotos.isEmpty else { return }
-        didStartInitialAnalysis = true
+              existingBell == nil else { return }
+
         isLocalizingPhotoSuggestions = true
         localizedPhotoSuggestions = nil
         pendingPhotoSuggestionsForTranslation = nil
         translationConfiguration = nil
-        photoAnalysis.analyze(photos: initialAnalysisPhotos)
+        didStartInitialAnalysis = photoAnalysis.analyzeCreation(
+            assets: editorState.mediaAssets
+        )
     }
 
     private func translatePhotoSuggestions(
@@ -707,10 +695,7 @@ struct BellEditorView: View {
 
         onSave(newBell)
 
-        ItemCreationService.finishEditorSave(
-            itemID: editorItemID,
-            controller: photoAnalysis
-        )
+        photoAnalysis.finishCreation(itemID: editorItemID)
 
         dismiss()
     }

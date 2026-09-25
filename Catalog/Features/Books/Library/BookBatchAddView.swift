@@ -253,11 +253,10 @@ struct BookBatchAddView: View {
 
         repository.saveBookRecords(books)
         for book in books {
-            ItemCreationService.startRecognition(
+            BookPhotoAnalysisController.startCreation(
                 itemID: book.id,
-                assets: ([book.details.coverImage].compactMap { $0 } + book.mediaAssets),
-                repository: repository,
-                as: BookPhotoAnalysisController.self
+                assets: [book.details.coverImage].compactMap { $0 } + book.mediaAssets,
+                repository: repository
             )
         }
         onComplete()

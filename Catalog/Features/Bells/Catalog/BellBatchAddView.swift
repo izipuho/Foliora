@@ -457,11 +457,10 @@ struct BellBatchAddView: View {
 
         repository.saveBellRecords(bells)
         for bell in bells {
-            ItemCreationService.startRecognition(
+            BellPhotoAnalysisController.startCreation(
                 itemID: bell.id,
                 assets: bell.mediaAssets,
-                repository: repository,
-                as: BellPhotoAnalysisController.self
+                repository: repository
             )
         }
         creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)

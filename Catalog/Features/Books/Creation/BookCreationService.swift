@@ -3,28 +3,17 @@ import UIKit
 extension BookPhotoAnalysisController: ItemCreationRecognitionController {}
 
 extension ItemCreationService {
-    struct PreparedBookMedia {
-        let coverImage: MediaAsset?
-        let mediaAssets: [MediaAsset]
-        let didFailToExtractCover: Bool
-    }
-
-    struct NormalizedBookPhoto {
-        let asset: MediaAsset?
-        let analysisImage: UIImage
-    }
-
     @MainActor
     static func prepareBookMedia(
         _ assets: [MediaAsset],
         itemID: UUID
-    ) async -> PreparedBookMedia {
+    ) async -> (coverImage: MediaAsset?, mediaAssets: [MediaAsset], didFailToExtractCover: Bool) {
         let photos = assets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
 
         guard let coverID = photos.first?.id else {
-            return PreparedBookMedia(
+            return (
                 coverImage: nil,
                 mediaAssets: assets.map { $0.with(itemID: itemID) },
                 didFailToExtractCover: false
@@ -64,7 +53,7 @@ extension ItemCreationService {
             .enumerated()
             .map { $0.element.with(itemID: itemID, sortOrder: $0.offset) }
 
-        return PreparedBookMedia(
+        return (
             coverImage: coverImage,
             mediaAssets: mediaAssets,
             didFailToExtractCover: didFailToExtractCover
@@ -77,9 +66,9 @@ extension ItemCreationService {
         sourceAsset: MediaAsset,
         itemID: UUID,
         asCover: Bool
-    ) async -> NormalizedBookPhoto {
+    ) async -> (asset: MediaAsset?, analysisImage: UIImage) {
         guard let extracted = await BookCoverExtractor().extractCover(from: image) else {
-            return NormalizedBookPhoto(asset: nil, analysisImage: image)
+            return (asset: nil, analysisImage: image)
         }
 
         if !sourceAsset.localIdentifier.isEmpty {
@@ -88,7 +77,7 @@ extension ItemCreationService {
 
         let analysisImage = extracted.originalData.flatMap(UIImage.init(data:)) ?? image
         if asCover {
-            return NormalizedBookPhoto(
+            return (
                 asset: extracted.with(
                     itemID: itemID,
                     displayName: String(localized: "editor.media.cover"),
@@ -113,6 +102,6 @@ extension ItemCreationService {
             copy.originalData = extracted.originalData
         }
 
-        return NormalizedBookPhoto(asset: asset, analysisImage: analysisImage)
+        return (asset: asset, analysisImage: analysisImage)
     }
 }

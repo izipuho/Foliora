@@ -596,24 +596,16 @@ struct BookEditorView: View {
             }
             .task(id: collection.id) {
                 loadCatalogMetadata()
-                ItemCreationService.configureRecognition(
+                photoAnalysis.configureCreation(
                     itemID: editorItemID,
                     assets: recognitionAssets,
-                    repository: CoreDataCatalogRepository(context: managedObjectContext),
-                    controller: photoAnalysis
+                    repository: CoreDataCatalogRepository(context: managedObjectContext)
                 )
                 textAssignmentController.sync(from: photoAnalysis.recognizedText)
-                photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
                 normalizeInitialBookPhotosIfNeeded()
             }
-            .onChange(of: recognitionMediaSnapshot) { _, snapshot in
-                photoAnalysis.reconcileMediaSnapshot(snapshot)
-                if photoAnalysis.requiresFullAnalysis {
-                    let photos = ItemCreationService.recognitionPhotos(from: recognitionAssets)
-                    if !photos.isEmpty {
-                        photoAnalysis.analyze(photos: photos)
-                    }
-                }
+            .onChange(of: recognitionMediaSnapshot) {
+                photoAnalysis.reconcileCreation(assets: recognitionAssets)
             }
             .onChange(of: photoAnalysis.recognizedText) { _, recognizedText in
                 textAssignmentController.sync(from: recognizedText)
@@ -842,17 +834,11 @@ struct BookEditorView: View {
             } else if shouldBecomeCover {
                 isPresentingCoverCaptureFailure = true
             }
-            if photoAnalysis.requiresFullAnalysis {
-                let photos = ItemCreationService.recognitionPhotos(from: recognitionAssets)
-                if !photos.isEmpty {
-                    photoAnalysis.analyze(photos: photos)
-                }
-            } else {
-                photoAnalysis.analyzeAddedPhoto(
-                    assetID: analysisAssetID,
-                    image: normalized.analysisImage
-                )
-            }
+            photoAnalysis.analyzeAddedCreation(
+                assetID: analysisAssetID,
+                image: normalized.analysisImage,
+                assets: recognitionAssets
+            )
         }
     }
 
@@ -869,11 +855,9 @@ struct BookEditorView: View {
         guard !didStartInitialAnalysis,
               existingBook == nil else { return }
 
-        let photos = ItemCreationService.recognitionPhotos(from: recognitionAssets)
-        guard !photos.isEmpty else { return }
-
-        didStartInitialAnalysis = true
-        photoAnalysis.analyze(photos: photos)
+        didStartInitialAnalysis = photoAnalysis.analyzeCreation(
+            assets: recognitionAssets
+        )
     }
 
     @discardableResult
@@ -1246,10 +1230,7 @@ struct BookEditorView: View {
 
         onSave(book)
 
-        ItemCreationService.finishEditorSave(
-            itemID: editorItemID,
-            controller: photoAnalysis
-        )
+        photoAnalysis.finishCreation(itemID: editorItemID)
 
         dismiss()
     }
