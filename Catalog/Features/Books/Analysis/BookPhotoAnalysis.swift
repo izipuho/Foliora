@@ -468,7 +468,7 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
             }
         }
 
-        bibliographicTimeoutTask = Task {
+        bibliographicTimeoutTask = Task.detached { [weak self] in
             do {
                 try await Task.sleep(for: timeout)
             } catch {
@@ -476,7 +476,7 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
             }
 
             guard !Task.isCancelled else { return }
-            finishSuggestionRefresh(
+            await self?.finishSuggestionRefresh(
                 id: refreshID,
                 revision: revision,
                 completion: completion,
