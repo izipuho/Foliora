@@ -97,10 +97,6 @@ struct BookEditorView: View {
         [editorState.coverImage].compactMap { $0 } + editorState.mediaAssets
     }
 
-    private var recognitionMediaSnapshot: ItemRecognitionMediaSnapshot {
-        ItemCreationService.recognitionSnapshot(from: recognitionAssets)
-    }
-
     private var editorMediaAssets: Binding<[MediaAsset]> {
         Binding(
             get: {
@@ -602,10 +598,10 @@ struct BookEditorView: View {
                     repository: CoreDataCatalogRepository(context: managedObjectContext)
                 )
                 textAssignmentController.sync(from: photoAnalysis.recognizedText)
-                photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
+                photoAnalysis.reconcileMediaSnapshot(ItemCreationService.recognitionSnapshot(from: recognitionAssets))
                 normalizeInitialBookPhotosIfNeeded()
             }
-            .onChange(of: recognitionMediaSnapshot) {
+            .onChange(of: ItemCreationService.recognitionSnapshot(from: recognitionAssets)) {
                 photoAnalysis.reconcileCreation(assets: recognitionAssets)
             }
             .onChange(of: photoAnalysis.recognizedText) { _, recognizedText in
