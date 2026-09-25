@@ -264,7 +264,7 @@ private extension SemanticPhotoFeatures {
 /// Provides bell photo analysis controller operations.
 @MainActor
 @Observable
-final class BellPhotoAnalysisController {
+final class BellPhotoAnalysisController: ItemCreationRecognitionController {
     enum Field {
         case title
         case notes

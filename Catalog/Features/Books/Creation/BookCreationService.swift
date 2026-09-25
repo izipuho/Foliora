@@ -1,7 +1,5 @@
 import UIKit
 
-extension BookPhotoAnalysisController: ItemCreationRecognitionController {}
-
 extension ItemCreationService {
     @MainActor
     static func prepareBookMedia(

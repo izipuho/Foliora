@@ -54,7 +54,7 @@ enum BookPhotoAnalysisError: LocalizedError, Sendable {
 /// Orchestrates generic item-level photo analysis and book-specific recognition.
 @MainActor
 @Observable
-final class BookPhotoAnalysisController {
+final class BookPhotoAnalysisController: ItemCreationRecognitionController {
     enum Field {
         case title
         case authors
