@@ -321,7 +321,7 @@ struct BellCollectionView: View {
     }
 
     private func openBell(_ bellID: UUID) {
-        onBellSelected?(bellID, collectionSharingState)
+        onBellSelected?(bellID, collectionSharingLoadError == nil ? collectionSharingState : nil)
     }
 
     @MainActor
