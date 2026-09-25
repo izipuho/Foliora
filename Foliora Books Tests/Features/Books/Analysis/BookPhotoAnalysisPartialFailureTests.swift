@@ -53,6 +53,35 @@ struct BookPhotoAnalysisPartialFailureTests {
         }
     }
 
+    @Test
+    func timeoutFinishesAnalysisWhenBibliographicExtractorIgnoresCancellation() async {
+        let analysis = MultiPhotoAnalysisResult(
+            photos: [
+                photo(text: [recognizedText("Visible Title")])
+            ]
+        )
+        let controller = BookPhotoAnalysisController(
+            service: StaticPhotoAnalysisService(result: analysis),
+            identifierExtractor: EmptyBookIdentifierExtractor(),
+            bibliographicExtractor: NeverCompletingBookBibliographicExtractor(),
+            bibliographicTimeout: .milliseconds(10)
+        )
+
+        controller.analyze(images: [makeImage()])
+        try? await Task.sleep(for: .milliseconds(50))
+
+        #expect(!controller.isAnalyzing)
+        guard let error = controller.analysisError as? BookPhotoAnalysisError else {
+            Issue.record("Expected bibliographic timeout.")
+            return
+        }
+        if case .bibliographicTimeout = error {
+            // Expected.
+        } else {
+            Issue.record("Expected bibliographic timeout, got \(error).")
+        }
+    }
+
     private func waitUntilAnalysisFinishes(_ controller: BookPhotoAnalysisController) async {
         for _ in 0..<200 where controller.isAnalyzing {
             await Task.yield()
@@ -142,5 +171,14 @@ private struct EchoBookBibliographicExtractor: BookBibliographicExtracting {
             series: nil,
             volumeNumber: nil
         )
+    }
+}
+
+private struct NeverCompletingBookBibliographicExtractor: BookBibliographicExtracting {
+    func extract(
+        from analysis: MultiPhotoAnalysisResult
+    ) async throws -> BookBibliographicExtraction {
+        await withUnsafeContinuation { (_: UnsafeContinuation<Void, Never>) in }
+        return .empty
     }
 }
