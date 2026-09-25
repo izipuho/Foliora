@@ -739,7 +739,7 @@ struct LibraryView: View {
     }
 
     private func openBook(_ bookID: UUID) {
-        onBookSelected?(bookID, collectionSharingState)
+        onBookSelected?(bookID, collectionSharingLoadError == nil ? collectionSharingState : nil)
     }
 
     @MainActor
