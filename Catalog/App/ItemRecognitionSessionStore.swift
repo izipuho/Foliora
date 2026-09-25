@@ -17,7 +17,7 @@ final class ItemRecognitionSessionStore {
     func session<Session: AnyObject>(
         for itemID: UUID,
         as type: Session.Type,
-        create: () -> Session
+        create: @MainActor () -> Session
     ) -> Session {
         let key = SessionKey(
             itemID: itemID,
