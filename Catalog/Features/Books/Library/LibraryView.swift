@@ -33,7 +33,7 @@ struct LibraryView: View {
     let repository: any AppRepository
     let coreDataContainer: NSPersistentCloudKitContainer
     let layoutMode: Binding<CatalogCardLayoutMode>
-    let onBookSelected: ((UUID) -> Void)?
+    let onBookSelected: CollectionItemSelectionHandler?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -66,7 +66,7 @@ struct LibraryView: View {
         repository: any AppRepository,
         coreDataContainer: NSPersistentCloudKitContainer,
         layoutMode: Binding<CatalogCardLayoutMode>,
-        onBookSelected: ((UUID) -> Void)? = nil
+        onBookSelected: CollectionItemSelectionHandler? = nil
     ) {
         self.collection = collection
         self.catalogSnapshot = catalogSnapshot
@@ -312,7 +312,7 @@ struct LibraryView: View {
                             catalogSnapshot: catalogSnapshot,
                             repository: repository,
                             canEditCollection: canEditLibrary,
-                            onBookSelected: onBookSelected,
+                            onBookSelected: openBook,
                             sharingState: collectionSharingState,
                             sharingService: CloudKitCollectionSharingService(persistentContainer: coreDataContainer),
                             onSharingChanged: {
@@ -506,7 +506,7 @@ struct LibraryView: View {
             cardSize: cardSize,
             canManage: canEditLibrary && allowsManagementActions,
             onOpen: { book in
-                onBookSelected?(book.id)
+                openBook(book.id)
             },
             selectTitle: String(localized: "bell.context.select"),
             moveTitle: String(localized: "bell.context.move"),
@@ -736,6 +736,10 @@ struct LibraryView: View {
                 backgroundStyle: backgroundStyle
             )
         )
+    }
+
+    private func openBook(_ bookID: UUID) {
+        onBookSelected?(bookID, collectionSharingState)
     }
 
     @MainActor

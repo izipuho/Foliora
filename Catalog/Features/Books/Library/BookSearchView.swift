@@ -391,7 +391,7 @@ func makeCollectionDestinationContent(
     repository: any AppRepository,
     coreDataContainer: NSPersistentCloudKitContainer,
     layoutMode: Binding<CatalogCardLayoutMode>,
-    onItemSelected: ((UUID) -> Void)?,
+    onItemSelected: CollectionItemSelectionHandler?,
     onBatchAddComplete: @escaping (Any) -> Void
 ) -> AnyView {
     AnyView(
@@ -411,6 +411,7 @@ func makeItemDetailContent(
     itemID: UUID,
     repository: any AppRepository,
     catalogSnapshot: CatalogSnapshot?,
+    initialSharingState: CollectionSharingState?,
     onClose: (() -> Void)?
 ) -> AnyView {
     AnyView(
@@ -418,6 +419,7 @@ func makeItemDetailContent(
             bookID: itemID,
             repository: repository,
             catalogSnapshot: catalogSnapshot,
+            initialSharingState: initialSharingState,
             onClose: onClose
         )
     )

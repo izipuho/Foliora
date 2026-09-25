@@ -15,11 +15,13 @@ struct BellItemDetailContainer: View {
         bellID: UUID,
         repository: any AppRepository,
         catalogSnapshot: CatalogSnapshot?,
+        initialSharingState: CollectionSharingState? = nil,
         onClose: (() -> Void)? = nil
     ) {
         self.bellID = bellID
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
+        _collectionSharingState = State(initialValue: initialSharingState)
         self.onClose = onClose
     }
 
@@ -45,6 +47,7 @@ struct BellItemDetailContainer: View {
             syncBellFromCatalogSnapshot()
         }
         .task(id: currentCollectionID) {
+            guard collectionSharingState == nil else { return }
             await loadCollectionSharingState()
         }
         .onChange(of: catalogSnapshot?.recordsByID[bellID]) { _, _ in
@@ -97,7 +100,6 @@ struct BellItemDetailContainer: View {
 
     @MainActor
     private func loadCollectionSharingState() async {
-        collectionSharingState = nil
         collectionSharingLoadError = nil
 
         guard let collectionID = currentCollectionID,

@@ -8,7 +8,7 @@ struct BellCollectionView: View {
     let collection: CollectionSummary
     let repository: any AppRepository
     let coreDataContainer: NSPersistentCloudKitContainer
-    private let onBellSelected: ((UUID) -> Void)?
+    private let onBellSelected: CollectionItemSelectionHandler?
     private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -37,7 +37,7 @@ struct BellCollectionView: View {
         repository: any AppRepository,
         coreDataContainer: NSPersistentCloudKitContainer,
         layoutMode: Binding<CatalogCardLayoutMode>,
-        onBellSelected: ((UUID) -> Void)? = nil,
+        onBellSelected: CollectionItemSelectionHandler? = nil,
         onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.collection = collection
@@ -232,7 +232,7 @@ struct BellCollectionView: View {
                         }
                     },
                     canEditCollection: canEditCollection,
-                    onBellSelected: onBellSelected
+                    onBellSelected: openBell
                 )
             }
         }
@@ -318,6 +318,10 @@ struct BellCollectionView: View {
         )
 
         repository.saveCollection(updatedCollection)
+    }
+
+    private func openBell(_ bellID: UUID) {
+        onBellSelected?(bellID, collectionSharingState)
     }
 
     @MainActor
