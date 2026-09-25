@@ -432,7 +432,7 @@ struct BellEditorView: View {
                     if photoAnalysis.isRestoredFromPersistence {
                         await handlePhotoAnalysisCompletion()
                     }
-                    photoAnalysis.reconcileMediaSnapshot(recognitionMediaSnapshot)
+                    photoAnalysis.reconcileMediaSnapshot(ItemCreationService.recognitionSnapshot(from: editorState.mediaAssets))
                     startInitialPhotoAnalysisIfNeeded()
                     guard let startSection else { return }
                     highlightedSection = startSection
@@ -450,7 +450,7 @@ struct BellEditorView: View {
                 .sensoryFeedback(trigger: analysisFeedbackEvent) { _, newValue in
                     newValue?.kind.sensoryFeedback
                 }
-                .onChange(of: recognitionMediaSnapshot) {
+                .onChange(of: ItemCreationService.recognitionSnapshot(from: editorState.mediaAssets)) {
                     photoAnalysis.reconcileCreation(assets: editorState.mediaAssets)
                 }
                 .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
@@ -678,10 +678,6 @@ struct BellEditorView: View {
             .sorted { $0.sortOrder < $1.sortOrder }
             .first?
             .id
-    }
-
-    private var recognitionMediaSnapshot: ItemRecognitionMediaSnapshot {
-        ItemCreationService.recognitionSnapshot(from: editorState.mediaAssets)
     }
 
     private func saveBell() {
