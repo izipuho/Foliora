@@ -1,0 +1,1 @@
+extension BellPhotoAnalysisController: ItemCreationRecognitionController {}
