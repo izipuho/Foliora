@@ -795,7 +795,7 @@ struct BookEditorView: View {
             )
             editorState.coverImage = prepared.coverImage
             editorState.mediaAssets = prepared.mediaAssets
-            isPresentingCoverCaptureFailure = prepared.didFailToExtractCover
+            isPresentingCoverCaptureFailure = prepared.coverImage == nil
             startInitialPhotoAnalysisIfNeeded()
         }
     }

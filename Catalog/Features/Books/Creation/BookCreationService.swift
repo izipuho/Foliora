@@ -5,7 +5,7 @@ extension ItemCreationService {
     static func prepareBookMedia(
         _ assets: [MediaAsset],
         itemID: UUID
-    ) async -> (coverImage: MediaAsset?, mediaAssets: [MediaAsset], didFailToExtractCover: Bool) {
+    ) async -> (coverImage: MediaAsset?, mediaAssets: [MediaAsset]) {
         let photos = assets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
@@ -13,14 +13,12 @@ extension ItemCreationService {
         guard let coverID = photos.first?.id else {
             return (
                 coverImage: nil,
-                mediaAssets: assets.map { $0.with(itemID: itemID) },
-                didFailToExtractCover: false
+                mediaAssets: assets.map { $0.with(itemID: itemID) }
             )
         }
 
         var coverImage: MediaAsset?
         var mediaAssets = assets
-        var didFailToExtractCover = false
 
         for source in photos {
             guard let sourceImage = image(for: source) else { continue }
@@ -33,10 +31,7 @@ extension ItemCreationService {
                 asCover: isCover
             )
 
-            guard let asset = normalized.asset else {
-                didFailToExtractCover = didFailToExtractCover || isCover
-                continue
-            }
+            guard let asset = normalized.asset else { continue }
 
             if isCover {
                 coverImage = asset
@@ -51,11 +46,7 @@ extension ItemCreationService {
             .enumerated()
             .map { $0.element.with(itemID: itemID, sortOrder: $0.offset) }
 
-        return (
-            coverImage: coverImage,
-            mediaAssets: mediaAssets,
-            didFailToExtractCover: didFailToExtractCover
-        )
+        return (coverImage: coverImage, mediaAssets: mediaAssets)
     }
 
     @MainActor
