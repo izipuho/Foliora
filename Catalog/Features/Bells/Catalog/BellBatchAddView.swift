@@ -300,10 +300,6 @@ struct BellBatchAddView: View {
         mediaLoadState == .loaded && !mediaPayloads.isEmpty
     }
 
-    private var selectedAcquiredYear: Int? {
-        Int(selectedAcquiredYearOption)
-    }
-
     private var selectedLocation: Location? {
         guard let selectedLocationID else { return nil }
         return availableLocations.first { $0.id == selectedLocationID }
@@ -348,39 +344,6 @@ struct BellBatchAddView: View {
         return catalogSnapshot.locationPathByID.filter { id, _ in
             homeLocationIDs.contains(id)
         }
-    }
-
-    private func startRecognition(for bells: [BellRecord]) {
-        for bell in bells {
-            guard let photo = bell.mediaAssets.first(where: { $0.kind == .photo }),
-                  let image = recognitionImage(for: photo) else { continue }
-
-            let controller = ItemRecognitionSessionStore.shared.session(
-                for: bell.id,
-                as: BellPhotoAnalysisController.self,
-                create: BellPhotoAnalysisController.init
-            )
-            controller.configurePersistence(
-                itemID: bell.id,
-                repository: repository,
-                currentSnapshot: ItemRecognitionMediaSnapshot(photoAssetIDs: [photo.id])
-            )
-            controller.analyze(photos: [(assetID: photo.id, image: image)])
-        }
-    }
-
-    private func recognitionImage(for asset: MediaAsset) -> UIImage? {
-        if let data = asset.originalData,
-           let image = UIImage(data: data) {
-            return image
-        }
-
-        guard !asset.localIdentifier.isEmpty,
-              let url = LocalMediaFileStore.shared.fileURL(for: asset.localIdentifier) else {
-            return nil
-        }
-
-        return UIImage(contentsOfFile: url.path)
     }
 
     private func storagePath(for location: Location) -> StoragePath {
@@ -470,39 +433,37 @@ struct BellBatchAddView: View {
 
         let nameGenerator = BellBatchNameGenerator()
         let names = nameGenerator.names(count: mediaPayloads.count)
-        let now = Date()
         let bells = mediaPayloads.enumerated().map { index, mediaAsset in
             let bellID = UUID()
-            return BellRecord(
-                item: ItemRecord(
-                    id: bellID,
-                    collectionID: collection.id,
-                    locationID: selectedLocationID,
-                    originPlaceID: selectedOriginPlace?.id,
-                    createdAt: now,
-                    createdBy: "me",
-                    title: names[index],
-                    notes: "",
-                    acquiredYear: selectedAcquiredYear,
-                    condition: .good,
-                    acquisitionMethod: .other,
-                    isFavorite: false,
-                    tags: tags,
-                    originPlace: selectedOriginPlace,
-                    storageLocation: selectedLocation,
-                    storagePath: selectedLocation.map(storagePath(for:)),
-                    mediaAssets: [mediaAsset.with(itemID: bellID, sortOrder: 0)]
-                ),
-                details: BellDetails(
-                    itemID: bellID,
-                    material: material,
-                    customMaterialName: material == .other ? customMaterialName : nil
-                )
+            var state = BellEditorState(bell: nil, initialMediaAssets: [mediaAsset])
+            state.title = names[index]
+            state.selectedLocationID = selectedLocationID
+            state.selectedOriginPlace = selectedOriginPlace
+            state.selectedAcquiredYearOption = selectedAcquiredYearOption
+            state.condition = .good
+            state.acquisitionMethod = .other
+            state.tags = tags
+            state.material = material
+            state.customMaterialName = customMaterialName
+
+            return state.makeBell(
+                itemID: bellID,
+                collectionID: collection.id,
+                existingBell: nil,
+                storageLocation: selectedLocation,
+                storagePath: selectedLocation.map(storagePath(for:))
             )
         }
 
         repository.saveBellRecords(bells)
-        startRecognition(for: bells)
+        for bell in bells {
+            ItemCreationService.startRecognition(
+                itemID: bell.id,
+                assets: bell.mediaAssets,
+                repository: repository,
+                as: BellPhotoAnalysisController.self
+            )
+        }
         creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)
     }
 }

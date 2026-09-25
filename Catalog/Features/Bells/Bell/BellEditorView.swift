@@ -124,14 +124,7 @@ struct BellEditorView: View {
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
         self.startSection = startSection
-        self.initialAnalysisPhotos = initialMediaAssets
-            .filter { $0.kind == .photo }
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .compactMap { asset -> (assetID: UUID, image: UIImage)? in
-                guard let data = asset.originalData,
-                      let image = UIImage(data: data) else { return nil }
-                return (assetID: asset.id, image: image)
-            }
+        self.initialAnalysisPhotos = ItemCreationService.recognitionPhotos(from: initialMediaAssets)
         self.existingBell = bell
         self.onDelete = onDelete
         self.onSave = onSave
@@ -433,10 +426,11 @@ struct BellEditorView: View {
                     Text(String(localized: "bell.context.delete.message"))
                 }
                 .task {
-                    photoAnalysis.configurePersistence(
+                    ItemCreationService.configureRecognition(
                         itemID: editorItemID,
+                        assets: editorState.mediaAssets,
                         repository: repository,
-                        currentSnapshot: recognitionMediaSnapshot
+                        controller: photoAnalysis
                     )
                     if photoAnalysis.isRestoredFromPersistence {
                         await handlePhotoAnalysisCompletion()
@@ -462,7 +456,7 @@ struct BellEditorView: View {
                 .onChange(of: recognitionMediaSnapshot) { _, snapshot in
                     photoAnalysis.reconcileMediaSnapshot(snapshot)
                     if photoAnalysis.requiresFullAnalysis {
-                        let photos = currentRecognitionPhotos()
+                        let photos = ItemCreationService.recognitionPhotos(from: editorState.mediaAssets)
                         if !photos.isEmpty {
                             photoAnalysis.analyze(photos: photos)
                         }
@@ -554,37 +548,13 @@ struct BellEditorView: View {
         pendingPhotoSuggestionsForTranslation = nil
         translationConfiguration = nil
         if photoAnalysis.requiresFullAnalysis {
-            let photos = currentRecognitionPhotos()
+            let photos = ItemCreationService.recognitionPhotos(from: editorState.mediaAssets)
             if !photos.isEmpty {
                 photoAnalysis.analyze(photos: photos)
             }
         } else {
             photoAnalysis.analyzeAddedPhoto(assetID: asset.id, image: image)
         }
-    }
-
-    private func currentRecognitionPhotos() -> [(assetID: UUID, image: UIImage)] {
-        editorState.mediaAssets
-            .filter { $0.kind == .photo }
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .compactMap { asset -> (assetID: UUID, image: UIImage)? in
-                guard let image = sourceImage(for: asset) else { return nil }
-                return (assetID: asset.id, image: image)
-            }
-    }
-
-    private func sourceImage(for asset: MediaAsset) -> UIImage? {
-        if let data = asset.originalData,
-           let image = UIImage(data: data) {
-            return image
-        }
-
-        guard !asset.localIdentifier.isEmpty,
-              let url = LocalMediaFileStore.shared.fileURL(for: asset.localIdentifier) else {
-            return nil
-        }
-
-        return UIImage(contentsOfFile: url.path)
     }
 
     private func startInitialPhotoAnalysisIfNeeded() {
@@ -722,13 +692,7 @@ struct BellEditorView: View {
     }
 
     private var recognitionMediaSnapshot: ItemRecognitionMediaSnapshot {
-        ItemRecognitionMediaSnapshot(
-            photoAssetIDs: Set(
-                editorState.mediaAssets
-                    .filter { $0.kind == .photo }
-                    .map(\.id)
-            )
-        )
+        ItemCreationService.recognitionSnapshot(from: editorState.mediaAssets)
     }
 
     private func saveBell() {
@@ -743,10 +707,10 @@ struct BellEditorView: View {
 
         onSave(newBell)
 
-        if !photoAnalysis.isAnalyzing {
-            photoAnalysis.clear()
-            ItemRecognitionSessionStore.shared.discardSession(for: editorItemID)
-        }
+        ItemCreationService.finishEditorSave(
+            itemID: editorItemID,
+            controller: photoAnalysis
+        )
 
         dismiss()
     }
