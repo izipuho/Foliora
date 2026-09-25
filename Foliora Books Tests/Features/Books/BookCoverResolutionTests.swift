@@ -4,24 +4,32 @@ import Testing
 
 struct BookCoverResolutionTests {
     @Test
-    func dedicatedCoverWinsOverLegacyPhoto() {
+    func dedicatedCoverWinsOverMediaPhoto() {
         let dedicatedCover = photo(identifier: "dedicated")
-        let legacyPhoto = photo(identifier: "legacy")
+        let mediaPhoto = photo(identifier: "media")
         let book = makeBook(
             coverImage: dedicatedCover,
-            mediaAssets: [legacyPhoto]
+            mediaAssets: [mediaPhoto]
         )
 
-        #expect(book.cover == .image(dedicatedCover, source: .dedicated))
+        #expect(book.cover == .image(dedicatedCover))
     }
 
     @Test
-    func firstPhotoIsLegacyFallbackWithoutDedicatedCover() {
-        let firstPhoto = photo(identifier: "first", sortOrder: 0)
-        let secondPhoto = photo(identifier: "second", sortOrder: 1)
-        let book = makeBook(mediaAssets: [secondPhoto, firstPhoto])
+    func mediaPhotoDoesNotBecomeCoverWithoutDedicatedCover() {
+        let bookID = UUID()
+        let mediaPhoto = photo(identifier: "media")
+        let book = makeBook(id: bookID, title: "Book", mediaAssets: [mediaPhoto])
 
-        #expect(book.cover == .image(firstPhoto, source: .legacyMedia))
+        #expect(
+            book.cover == .generated(
+                BookGeneratedCover(
+                    bookID: bookID,
+                    title: "Book",
+                    authorNames: []
+                )
+            )
+        )
     }
 
     @Test

@@ -4,7 +4,8 @@ extension ItemCreationService {
     @MainActor
     static func prepareBookMedia(
         _ assets: [MediaAsset],
-        itemID: UUID
+        itemID: UUID,
+        usesOriginalCoverOnExtractionFailure: Bool = false
     ) async -> (coverImage: MediaAsset?, mediaAssets: [MediaAsset]) {
         let photos = assets
             .filter { $0.kind == .photo }
@@ -31,7 +32,17 @@ extension ItemCreationService {
                 asCover: isCover
             )
 
-            guard let asset = normalized.asset else { continue }
+            guard let asset = normalized.asset else {
+                if isCover && usesOriginalCoverOnExtractionFailure {
+                    coverImage = source.with(
+                        itemID: itemID,
+                        displayName: String(localized: "editor.media.cover"),
+                        sortOrder: 0
+                    )
+                    mediaAssets.removeAll { $0.id == source.id }
+                }
+                continue
+            }
 
             if isCover {
                 coverImage = asset
