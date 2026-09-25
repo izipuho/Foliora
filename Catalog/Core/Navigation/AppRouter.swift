@@ -87,9 +87,16 @@ struct AppShellView: View {
             loadDisplayName()
         }
         .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextDidSave,
+            object: managedObjectContext
+        )) { _ in
+            reloadCatalogSnapshot()
+        }
+        .onReceive(NotificationCenter.default.publisher(
             for: .NSManagedObjectContextObjectsDidChange,
             object: managedObjectContext
         )) { _ in
+            guard !managedObjectContext.hasChanges else { return }
             reloadCatalogSnapshot()
         }
         .onChange(of: shareInvitationController.state) { _, state in
