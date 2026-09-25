@@ -528,16 +528,16 @@ private final class BookBibliographicExtractionRace {
             try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
 
-                extractionTask = Task { [weak self] in
+                extractionTask = Task {
                     do {
                         let result = try await extractor.extract(from: analysis)
-                        await self?.finish(.success(result))
+                        await self.finish(.success(result))
                     } catch {
-                        await self?.finish(.failure(error))
+                        await self.finish(.failure(error))
                     }
                 }
 
-                timeoutTask = Task.detached(priority: nil) { [weak self] in
+                timeoutTask = Task.detached(priority: nil) {
                     do {
                         try await Task.sleep(for: timeout)
                     } catch {
@@ -545,12 +545,12 @@ private final class BookBibliographicExtractionRace {
                     }
 
                     guard !Task.isCancelled else { return }
-                    await self?.finish(.failure(BookPhotoAnalysisError.bibliographicTimeout))
+                    await self.finish(.failure(BookPhotoAnalysisError.bibliographicTimeout))
                 }
             }
         } onCancel: {
-            Task { @MainActor [weak self] in
-                self?.finish(.failure(CancellationError()))
+            Task { @MainActor in
+                self.finish(.failure(CancellationError()))
             }
         }
     }
