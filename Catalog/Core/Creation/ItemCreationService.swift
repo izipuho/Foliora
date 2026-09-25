@@ -72,7 +72,7 @@ extension ItemCreationRecognitionController {
         let controller = ItemRecognitionSessionStore.shared.session(
             for: itemID,
             as: Self.self,
-            create: Self.init
+            create: { Self.init() }
         )
         controller.configureCreation(
             itemID: itemID,
