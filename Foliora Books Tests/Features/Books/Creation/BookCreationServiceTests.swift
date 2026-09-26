@@ -5,32 +5,31 @@ import UIKit
 @MainActor
 struct BookCreationServiceTests {
     @Test
-    func originalFallbackCreatesDedicatedSelfContainedCover() throws {
+    func failedCoverCropUsesOriginalMediaAsCover() async throws {
         let image = UIGraphicsImageRenderer(
             size: CGSize(width: 40, height: 60)
         ).image { context in
             UIColor.white.setFill()
             context.cgContext.fill(CGRect(x: 0, y: 0, width: 40, height: 60))
         }
-        let itemID = UUID()
-
-        let cover = try #require(
-            ItemCreationService.makeOriginalBookCover(
-                image,
-                itemID: itemID
-            )
-        )
+        let source = try ImageMediaBuilder(store: .shared).build(from: image).asset
         defer {
-            LocalMediaFileStore.shared.deleteFile(for: cover.localIdentifier)
+            LocalMediaFileStore.shared.deleteFile(for: source.localIdentifier)
         }
 
-        #expect(cover.itemID == itemID)
-        #expect(!cover.localIdentifier.isEmpty)
-        #expect(cover.displayName == String(localized: "editor.media.cover"))
-        #expect(cover.originalData?.isEmpty == false)
-        #expect(LocalMediaFileStore.shared.fileURL(for: cover.localIdentifier) != nil)
+        let itemID = UUID()
+        let prepared = await ItemCreationService.prepareBookMedia(
+            [source],
+            itemID: itemID
+        )
+        let cover = try #require(prepared.coverImage)
 
-        let originalData = try #require(cover.originalData)
-        #expect(UIImage(data: originalData) != nil)
+        #expect(prepared.usedOriginalCover)
+        #expect(prepared.mediaAssets.isEmpty)
+        #expect(cover.id == source.id)
+        #expect(cover.itemID == itemID)
+        #expect(cover.localIdentifier == source.localIdentifier)
+        #expect(cover.originalData == source.originalData)
+        #expect(LocalMediaFileStore.shared.fileURL(for: source.localIdentifier) != nil)
     }
 }
