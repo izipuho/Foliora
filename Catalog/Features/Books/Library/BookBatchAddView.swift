@@ -1,12 +1,17 @@
 import CoreData
 import SwiftUI
 
+private enum BookBatchCreationState: Equatable {
+    case editing
+    case completed(createdCount: Int, reviewQuery: String)
+}
+
 /// Creates one book per selected photo using a shared set of direct item and book fields.
 struct BookBatchAddView: View {
     let collection: CollectionSummary
     let initialMediaAssets: [MediaAsset]
     let repository: any AppRepository
-    private let onComplete: () -> Void
+    private let onComplete: (BatchAddCompletionAction) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -28,6 +33,7 @@ struct BookBatchAddView: View {
     @State private var catalogSeries: [BookSeries] = []
     @State private var catalogGenreSuggestions: [String] = []
     @State private var isCreatingBooks = false
+    @State private var creationState: BookBatchCreationState = .editing
 
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -36,7 +42,7 @@ struct BookBatchAddView: View {
         collection: CollectionSummary,
         initialMediaAssets: [MediaAsset],
         repository: any AppRepository,
-        onComplete: @escaping () -> Void = {}
+        onComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.collection = collection
         self.initialMediaAssets = initialMediaAssets
@@ -46,7 +52,11 @@ struct BookBatchAddView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            Group {
+                if case .completed(let createdCount, let reviewQuery) = creationState {
+                    completionContent(createdCount: createdCount, reviewQuery: reviewQuery)
+                } else {
+                    Form {
                 Section("common.book") {
                     BookBatchNamedPickerField(
                         title: String(localized: "book.field.author"),
@@ -154,6 +164,8 @@ struct BookBatchAddView: View {
                     }
                     .disabled(initialMediaAssets.isEmpty || isCreatingBooks)
                 }
+                    }
+                }
             }
             .navigationTitle(String(localized: "bell_batch_add.title"))
             .navigationBarTitleDisplayMode(.inline)
@@ -169,6 +181,26 @@ struct BookBatchAddView: View {
                 loadCatalogMetadata()
             }
         }
+    }
+
+    private func completionContent(createdCount: Int, reviewQuery: String) -> some View {
+        CatalogEmptyStateView(
+            systemImage: "checkmark.circle",
+            title: LocalizedStringKey(String(localized: "book_batch_add.completion.title")),
+            message: LocalizedStringKey(completionMessage(createdCount: createdCount)),
+            primaryActionTitle: LocalizedStringKey(String(localized: "common.done")),
+            primaryTint: .accentColor,
+            primaryAction: { onComplete(.done) },
+            secondaryActionTitle: LocalizedStringKey(String(localized: "book_batch_add.review_results")),
+            secondaryAction: { onComplete(.reviewResults(reviewQuery)) }
+        )
+    }
+
+    private func completionMessage(createdCount: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "book_batch_add.completion.message"),
+            createdCount
+        )
     }
 
     private var localizedBookCount: String {
@@ -263,8 +295,7 @@ struct BookBatchAddView: View {
                 repository: repository
             )
         }
-        onComplete()
-        dismiss()
+        creationState = .completed(createdCount: books.count, reviewQuery: batchPrefix)
     }
 
     private func normalizedGenreSuggestions(_ values: [String]) -> [String] {

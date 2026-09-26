@@ -34,6 +34,7 @@ struct LibraryView: View {
     let coreDataContainer: NSPersistentCloudKitContainer
     let layoutMode: Binding<CatalogCardLayoutMode>
     let onBookSelected: CollectionItemSelectionHandler?
+    private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -68,7 +69,8 @@ struct LibraryView: View {
         repository: any AppRepository,
         coreDataContainer: NSPersistentCloudKitContainer,
         layoutMode: Binding<CatalogCardLayoutMode>,
-        onBookSelected: CollectionItemSelectionHandler? = nil
+        onBookSelected: CollectionItemSelectionHandler? = nil,
+        onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.collection = collection
         self.catalogSnapshot = catalogSnapshot
@@ -76,6 +78,7 @@ struct LibraryView: View {
         self.coreDataContainer = coreDataContainer
         self.layoutMode = layoutMode
         self.onBookSelected = onBookSelected
+        self.onBatchAddComplete = onBatchAddComplete
         _viewModel = StateObject(
             wrappedValue: LibraryViewModel(orderMode: .title)
         )
@@ -241,9 +244,7 @@ struct LibraryView: View {
                     collection: collection,
                     initialMediaAssets: draftMediaAssets,
                     repository: repository,
-                    onComplete: {
-                        isPresentingBatchAdd = false
-                    }
+                    onComplete: handleBatchAddCompletion
                 )
             }
             .sheet(isPresented: $isPresentingEditLibrary) {
@@ -279,6 +280,13 @@ struct LibraryView: View {
             .task(id: collection.id) {
                 await loadCollectionSharingState()
             }
+    }
+
+    private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
+        isPresentingBatchAdd = false
+        if case .reviewResults = action {
+            onBatchAddComplete(action)
+        }
     }
 
     @ViewBuilder

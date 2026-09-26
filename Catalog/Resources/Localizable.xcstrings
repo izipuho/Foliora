@@ -225,6 +225,24 @@
         }
       }
     },
+    "book_batch_add.completion.message" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d books created" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Создано книг: %d" } }
+      }
+    },
+    "book_batch_add.completion.title" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Batch Created" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Партия создана" } }
+      }
+    },
+    "book_batch_add.review_results" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Review results" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Посмотреть результаты" } }
+      }
+    },
     "bell_batch_add.completion.message" : {
       "localizations" : {
         "en" : {
