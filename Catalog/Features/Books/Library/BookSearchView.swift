@@ -402,9 +402,7 @@ func makeCollectionDestinationContent(
             coreDataContainer: coreDataContainer,
             layoutMode: layoutMode,
             onBookSelected: onItemSelected,
-            onBatchAddComplete: { action in
-                onBatchAddComplete(action)
-            }
+            onBatchAddComplete: onBatchAddComplete
         )
     )
 }
