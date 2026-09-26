@@ -28,7 +28,7 @@ struct BookEditorState {
             initialMediaAssets: initialMediaAssets
         )
         subtitle = book?.details.subtitle ?? ""
-        coverImage = (book?.details.coverImage ?? initialCoverImage)?.with(
+        coverImage = (book?.cover.mediaAsset ?? initialCoverImage)?.with(
             displayName: String(localized: "editor.media.cover")
         )
 
