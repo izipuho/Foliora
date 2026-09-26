@@ -85,5 +85,27 @@ struct CoreDataBookCoverPersistenceTests {
         #expect(persistedCover.width == cover.width)
         #expect(persistedCover.height == cover.height)
         #expect(persisted.mediaAssets.isEmpty)
+
+        #expect(
+            repository.saveItemRecognition(
+                ItemRecognitionRecord(
+                    itemID: itemID,
+                    photoAssetIDs: [cover.id],
+                    evidenceData: Data([0x05]),
+                    resultData: Data([0x06])
+                )
+            )
+        )
+
+        let refreshedSnapshot = CatalogSnapshot.load(from: container.viewContext)
+        let refreshed = try #require(refreshedSnapshot.recordsByID[itemID])
+        let refreshedCover = try #require(refreshed.details.coverImage)
+
+        #expect(refreshedCover.id == cover.id)
+        #expect(refreshedCover.localIdentifier == cover.localIdentifier)
+        #expect(refreshedCover.originalData == coverData)
+        #expect(refreshedCover.width == cover.width)
+        #expect(refreshedCover.height == cover.height)
+        #expect(refreshed.mediaAssets.isEmpty)
     }
 }
