@@ -527,6 +527,27 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
         }
     }
 
+    private var currentAnalysis: MultiPhotoAnalysisResult {
+        var photos = analysisOrder.compactMap { analysisByAssetID[$0] }
+        if let persistedEvidence {
+            photos.insert(persistedEvidence.analysisResult, at: 0)
+        }
+        return MultiPhotoAnalysisResult(photos: photos)
+    }
+
+    private static func readingOrderedText(
+        _ features: [RecognizedTextFeature]
+    ) -> [RecognizedTextFeature] {
+        features.sorted { lhs, rhs in
+            let lhsRow = Int((lhs.boundingBox.midY * 50).rounded())
+            let rhsRow = Int((rhs.boundingBox.midY * 50).rounded())
+            if lhsRow != rhsRow {
+                return lhsRow > rhsRow
+            }
+            return lhs.boundingBox.minX < rhs.boundingBox.minX
+        }
+    }
+
     private func suggestions(
         bibliography: BookBibliographicExtraction,
         identifiers: [SuggestedFieldValue<BookIdentifier>]
