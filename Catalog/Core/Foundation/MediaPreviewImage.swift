@@ -84,9 +84,6 @@ struct MediaPreviewImage: View {
         if let originalData,
            let loadedImage = UIImage(data: originalData) {
             image = loadedImage
-            return
         }
-
-        image = nil
     }
 }
