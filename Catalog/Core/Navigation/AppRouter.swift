@@ -2,6 +2,7 @@ import SwiftUI
 import CoreData
 
 private typealias BatchCompletionHandler = (Any) -> Void
+typealias CollectionItemSelectionHandler = (UUID, CollectionSharingState?) -> Void
 
 /// Defines the supported app destination values.
 enum AppDestination: Hashable {
@@ -86,9 +87,16 @@ struct AppShellView: View {
             loadDisplayName()
         }
         .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextDidSave,
+            object: managedObjectContext
+        )) { _ in
+            reloadCatalogSnapshot()
+        }
+        .onReceive(NotificationCenter.default.publisher(
             for: .NSManagedObjectContextObjectsDidChange,
             object: managedObjectContext
         )) { _ in
+            guard !managedObjectContext.hasChanges else { return }
             reloadCatalogSnapshot()
         }
         .onChange(of: shareInvitationController.state) { _, state in
@@ -114,7 +122,7 @@ struct AppShellView: View {
     private func destinationView(
         for destination: AppDestination,
         layoutMode: Binding<CatalogCardLayoutMode>,
-        onItemSelected: ((UUID) -> Void)?,
+        onItemSelected: CollectionItemSelectionHandler?,
         onBatchAddComplete: @escaping BatchCompletionHandler,
         popNavigation: @escaping () -> Void
     ) -> some View {
@@ -276,12 +284,13 @@ private struct RootShellView<Destination: View>: View {
     @Binding var settingsPath: NavigationPath
     @Binding var searchPath: NavigationPath
     @Binding var displayName: String?
-    let destination: (AppDestination, Binding<CatalogCardLayoutMode>, ((UUID) -> Void)?, @escaping BatchCompletionHandler, @escaping () -> Void) -> Destination
+    let destination: (AppDestination, Binding<CatalogCardLayoutMode>, CollectionItemSelectionHandler?, @escaping BatchCompletionHandler, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = CatalogCardLayoutMode.mini.rawValue
     @State private var searchInitialQuery: String?
     @State private var searchResetID = UUID()
     @State private var selectedItemID: UUID?
+    @State private var selectedItemSharingState: CollectionSharingState?
 
     private var layoutMode: CatalogCardLayoutMode {
         get {
@@ -305,6 +314,7 @@ private struct RootShellView<Destination: View>: View {
             set: { isPresented in
                 if !isPresented {
                     selectedItemID = nil
+                    selectedItemSharingState = nil
                 }
             }
         )
@@ -332,15 +342,15 @@ private struct RootShellView<Destination: View>: View {
     private var iPhoneRootContainer: some View {
         TabView(selection: $selectedRootTab) {
             Tab(RootTab.collections.title, image: "ProductSymbol", value: RootTab.collections) {
-                collectionsStack(path: $collectionsPath, onItemSelected: openItemDetail)
+                collectionsStack(path: $collectionsPath, onItemSelected: openCollectionItemDetail)
             }
 
             Tab(RootTab.homes.title, systemImage: RootTab.homes.systemImage, value: RootTab.homes) {
-                homesStack(path: $homesPath, onItemSelected: openItemDetail)
+                homesStack(path: $homesPath, onItemSelected: openCollectionItemDetail)
             }
 
             Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage, value: RootTab.settings) {
-                settingsStack(path: $settingsPath, onItemSelected: openItemDetail)
+                settingsStack(path: $settingsPath, onItemSelected: openCollectionItemDetail)
             }
 
             Tab(value: RootTab.search, role: .search) {
@@ -363,6 +373,7 @@ private struct RootShellView<Destination: View>: View {
                     itemID: selectedItemID,
                     repository: repository,
                     catalogSnapshot: catalogSnapshot,
+                    initialSharingState: selectedItemSharingState,
                     onClose: nil
                 )
                 .id(selectedItemID)
@@ -380,6 +391,7 @@ private struct RootShellView<Destination: View>: View {
                         itemID: selectedItemID,
                         repository: repository,
                         catalogSnapshot: catalogSnapshot,
+                        initialSharingState: selectedItemSharingState,
                         onClose: closeItemDetail
                     )
                     .id(selectedItemID)
@@ -409,9 +421,9 @@ private struct RootShellView<Destination: View>: View {
     private func iPadContent(for tab: RootTab) -> some View {
         switch tab {
         case .collections:
-            collectionsStack(path: $collectionsPath, onItemSelected: openItemDetail)
+            collectionsStack(path: $collectionsPath, onItemSelected: openCollectionItemDetail)
         case .homes:
-            homesStack(path: $homesPath, onItemSelected: openItemDetail)
+            homesStack(path: $homesPath, onItemSelected: openCollectionItemDetail)
         case .search:
             NavigationStack(path: $searchPath) {
                 SearchView(
@@ -424,13 +436,13 @@ private struct RootShellView<Destination: View>: View {
                 .id(searchResetID)
             }
         case .settings:
-            settingsStack(path: $settingsPath, onItemSelected: openItemDetail)
+            settingsStack(path: $settingsPath, onItemSelected: openCollectionItemDetail)
         }
     }
 
     private func homesStack(
         path: Binding<NavigationPath>,
-        onItemSelected: ((UUID) -> Void)?
+        onItemSelected: CollectionItemSelectionHandler?
     ) -> some View {
         NavigationStack(path: path) {
             HomeView(
@@ -447,7 +459,7 @@ private struct RootShellView<Destination: View>: View {
 
     private func collectionsStack(
         path: Binding<NavigationPath>,
-        onItemSelected: ((UUID) -> Void)?
+        onItemSelected: CollectionItemSelectionHandler?
     ) -> some View {
         NavigationStack(path: path) {
             CollectionsView(
@@ -464,7 +476,7 @@ private struct RootShellView<Destination: View>: View {
 
     private func settingsStack(
         path: Binding<NavigationPath>,
-        onItemSelected: ((UUID) -> Void)?
+        onItemSelected: CollectionItemSelectionHandler?
     ) -> some View {
         NavigationStack(path: path) {
             SettingsView(
@@ -517,11 +529,18 @@ private struct RootShellView<Destination: View>: View {
     }
 
     private func openItemDetail(_ itemID: UUID) {
+        selectedItemSharingState = nil
+        selectedItemID = itemID
+    }
+
+    private func openCollectionItemDetail(_ itemID: UUID, sharingState: CollectionSharingState?) {
+        selectedItemSharingState = sharingState
         selectedItemID = itemID
     }
 
     private func closeItemDetail() {
         selectedItemID = nil
+        selectedItemSharingState = nil
     }
 }
 

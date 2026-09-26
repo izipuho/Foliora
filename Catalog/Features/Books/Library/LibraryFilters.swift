@@ -166,7 +166,7 @@ enum BookPresenceFilter: Hashable {
     func matches(_ book: BookRecord, allBooks: [BookRecord]) -> Bool {
         switch self {
         case .missingCover:
-            return !book.mediaAssets.contains { $0.kind == .photo }
+            return book.details.coverImage == nil
         case .missingAuthor:
             return !book.details.contributors.contains {
                 $0.role == .author

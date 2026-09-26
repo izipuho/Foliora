@@ -8,7 +8,7 @@ struct BookCoverView: View {
     var body: some View {
         Group {
             switch cover {
-            case let .image(asset, _):
+            case let .image(asset):
                 MediaPreviewImage(
                     identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
                     originalData: asset.originalData,
@@ -37,7 +37,7 @@ struct BookCoverView: View {
 
     private var coverAspectRatio: CGFloat {
         switch cover {
-        case let .image(asset, _):
+        case let .image(asset):
             guard let width = asset.width,
                   let height = asset.height,
                   width > 0,
@@ -108,7 +108,7 @@ struct BookCoverBackdropView: View {
     var body: some View {
         Group {
             switch cover {
-            case let .image(asset, _):
+            case let .image(asset):
                 MediaPreviewImage(
                     identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
                     originalData: asset.originalData,

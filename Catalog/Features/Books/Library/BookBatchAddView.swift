@@ -227,13 +227,16 @@ struct BookBatchAddView: View {
                 [mediaAsset],
                 itemID: itemID
             )
-            var state = BookEditorState(book: nil, initialMediaAssets: prepared.mediaAssets)
+            var state = BookEditorState(
+                book: nil,
+                initialCoverImage: prepared.coverImage,
+                initialMediaAssets: prepared.mediaAssets
+            )
             state.title = "\(batchPrefix) · \(index + 1)"
             state.selectedAcquiredYearOption = selectedAcquiredYearOption
             state.condition = condition
             state.acquisitionMethod = acquisitionMethod
             state.tags = tags
-            state.coverImage = prepared.coverImage
             state.languageCode = languageCode
             state.genre = genre
             state.selectedPublisher = selectedPublisher

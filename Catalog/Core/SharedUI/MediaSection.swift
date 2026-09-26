@@ -8,10 +8,12 @@ import UniformTypeIdentifiers
 struct MediaSection: View {
     let itemID: UUID
     @Binding var mediaAssets: [MediaAsset]
+    var leadingMediaAsset: MediaAsset? = nil
     var maxMediaCount: Int? = nil
     var analysisHighlightedAssetID: UUID? = nil
     var allowsAdding = true
     var allowsDeletion = true
+    var onLeadingMediaAssetDelete: (() -> Void)? = nil
     var onPhotoAdded: ((UIImage) -> Void)? = nil
     private let mediaStore = LocalMediaFileStore.shared
     private var imageMediaBuilder: ImageMediaBuilder {
@@ -28,9 +30,36 @@ struct MediaSection: View {
     @State private var recentlyAddedPhotoAssetIDs: Set<MediaAsset.ID> = []
 
     var body: some View {
-        MediaQuickLookPresenter(mediaAssets: mediaAssets) { preview in
+        MediaQuickLookPresenter(mediaAssets: previewAssets) { preview in
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: CatalogMetrics.Spacing.xs) {
+                    if let leadingMediaAsset {
+                        MediaAssetGridTileView(
+                            asset: leadingMediaAsset,
+                            isAnalysisHighlighted: isAnalysisHighlighted(leadingMediaAsset),
+                            allowsDeletion: allowsDeletion,
+                            isReorderingEnabled: false,
+                            draggedAssetID: $draggedAssetID,
+                            moveAsset: moveAsset,
+                            onTap: {
+                                preview(leadingMediaAsset)
+                            },
+                            onDelete: {
+                                pendingDeletionAssetID = leadingMediaAsset.id
+                            }
+                        )
+                        .confirmationDialog(
+                            "editor.media.delete_action",
+                            isPresented: deleteConfirmationBinding(for: leadingMediaAsset.id),
+                            titleVisibility: .visible
+                        ) {
+                            Button("editor.media.delete_title", role: .destructive) {
+                                confirmDeletion(of: leadingMediaAsset.id)
+                            }
+                            Button("common.cancel", role: .cancel) {}
+                        }
+                    }
+
                     ForEach(sortedAssets) { asset in
                         MediaAssetGridTileView(
                             asset: asset,
@@ -122,6 +151,10 @@ struct MediaSection: View {
                 }
             }
         }
+    }
+
+    private var previewAssets: [MediaAsset] {
+        [leadingMediaAsset].compactMap { $0 } + mediaAssets
     }
 
     private var sortedAssets: [MediaAsset] {
@@ -224,8 +257,14 @@ struct MediaSection: View {
 
     private func confirmDeletion(of assetID: MediaAsset.ID) {
         defer { pendingDeletionAssetID = nil }
-        guard let asset = mediaAssets.first(where: { $0.id == assetID }) else { return }
 
+        if let leadingMediaAsset, leadingMediaAsset.id == assetID {
+            mediaStore.deleteFile(for: leadingMediaAsset.localIdentifier)
+            onLeadingMediaAssetDelete?()
+            return
+        }
+
+        guard let asset = mediaAssets.first(where: { $0.id == assetID }) else { return }
         mediaStore.deleteFile(for: asset.localIdentifier)
         removeAsset(withID: assetID)
     }

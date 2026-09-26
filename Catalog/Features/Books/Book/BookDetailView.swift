@@ -541,25 +541,11 @@ struct BookDetailView: View {
     }
 
     private var detailPreviewAssets: [MediaAsset] {
-        switch book.cover {
-        case let .image(asset, source):
-            switch source {
-            case .dedicated:
-                return [asset] + book.mediaAssets
-            case .legacyMedia:
-                return book.mediaAssets
-            }
-        case .generated:
-            return book.mediaAssets
-        }
+        [book.details.coverImage].compactMap { $0 } + book.mediaAssets
     }
 
     private var detailMediaAssets: [MediaAsset] {
-        guard case let .image(asset, source) = book.cover,
-              source == .legacyMedia else {
-            return book.mediaAssets
-        }
-        return book.mediaAssets.filter { $0.id != asset.id }
+        book.mediaAssets
     }
 
     private var detailMediaAssetsBinding: Binding<[MediaAsset]> {
@@ -567,13 +553,7 @@ struct BookDetailView: View {
             get: { detailMediaAssets },
             set: { updatedDetailAssets in
                 guard canEditCollection else { return }
-
-                if case let .image(asset, source) = book.cover,
-                   source == .legacyMedia {
-                    persist(mediaAssets: [asset] + updatedDetailAssets)
-                } else {
-                    persist(mediaAssets: updatedDetailAssets)
-                }
+                persist(mediaAssets: updatedDetailAssets)
             }
         )
     }
@@ -907,11 +887,13 @@ struct BookDetailContainer: View {
         bookID: UUID,
         repository: any AppRepository,
         catalogSnapshot: CatalogSnapshot?,
+        initialSharingState: CollectionSharingState? = nil,
         onClose: (() -> Void)? = nil
     ) {
         self.bookID = bookID
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
+        _collectionSharingState = State(initialValue: initialSharingState)
         self.onClose = onClose
     }
 
@@ -938,6 +920,7 @@ struct BookDetailContainer: View {
             syncBookFromCatalogSnapshot()
         }
         .task(id: currentCollectionID) {
+            guard collectionSharingState == nil else { return }
             await loadCollectionSharingState()
         }
         .onChange(of: catalogSnapshot?.recordsByID[bookID]) { _, _ in
@@ -990,7 +973,6 @@ struct BookDetailContainer: View {
 
     @MainActor
     private func loadCollectionSharingState() async {
-        collectionSharingState = nil
         collectionSharingLoadError = nil
 
         guard let collectionID = currentCollectionID,

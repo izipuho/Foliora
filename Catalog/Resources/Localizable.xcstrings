@@ -1372,18 +1372,18 @@
       }
     },
     "book.cover.not_found_on_photo.message" : {
-      "comment" : "Couldn’t detect the full book cover. Retake the photo with all four cover edges clearly visible.",
+      "comment" : "Couldn’t detect the full book cover. The original photo is used as the cover.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Couldn’t detect the full book cover. Retake the photo with all four cover edges clearly visible."
+            "value" : "Couldn’t detect the full book cover. The original photo will be used as the cover."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Невозможно определить книгу на фотографии. Попробуйте сфотографировать ещё раз, обложка должна полностью помещаться на фотографии и края должны быть отчетливо видны."
+            "value" : "Не удалось определить границы обложки. В качестве обложки будет использована исходная фотография."
           }
         }
       }

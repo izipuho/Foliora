@@ -4,6 +4,52 @@ import Testing
 
 struct BookEditorStateTests {
     @Test
+    func initialCoverRemainsSeparateFromMediaAssets() throws {
+        let cover = MediaAsset(
+            id: UUID(),
+            itemID: UUID(),
+            kind: .photo,
+            localIdentifier: "cover.jpg",
+            displayName: nil,
+            sortOrder: 0,
+            originalData: Data([0x01])
+        )
+        let media = MediaAsset(
+            id: UUID(),
+            itemID: UUID(),
+            kind: .photo,
+            localIdentifier: "media.jpg",
+            displayName: nil,
+            sortOrder: 0,
+            originalData: Data([0x02])
+        )
+
+        var state = BookEditorState(
+            book: nil,
+            initialCoverImage: cover,
+            initialMediaAssets: [media]
+        )
+        state.title = "Book"
+
+        #expect(state.coverImage?.id == cover.id)
+        #expect(state.coverImage?.originalData == cover.originalData)
+        #expect(state.mediaAssets.map(\.id) == [media.id])
+
+        let itemID = UUID()
+        let book = state.makeBook(
+            itemID: itemID,
+            collectionID: UUID(),
+            existingBook: nil,
+            storageLocation: nil,
+            storagePath: nil
+        )
+
+        #expect(book.details.coverImage?.id == cover.id)
+        #expect(book.details.coverImage?.originalData == cover.originalData)
+        #expect(book.mediaAssets.map(\.id) == [media.id])
+    }
+
+    @Test
     func validatesTitlePageCountVolumeAndCoverGeneration() {
         var state = BookEditorState(book: nil, initialMediaAssets: [])
 

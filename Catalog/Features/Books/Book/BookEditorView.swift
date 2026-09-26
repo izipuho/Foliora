@@ -19,7 +19,6 @@ struct BookEditorView: View {
     @State private var editorState: BookEditorState
     @State private var tagInput = ""
     @State private var photoNormalizationCount = 0
-    @State private var pendingCoverAssetID: UUID?
     @State private var isPresentingCoverCaptureFailure = false
 
     @State private var catalogGenreSuggestions: [String] = []
@@ -83,7 +82,11 @@ struct BookEditorView: View {
     }
 
     private var firstPhotoAsset: MediaAsset? {
-        editorState.mediaAssets
+        if let coverImage = editorState.coverImage {
+            return coverImage
+        }
+
+        return editorState.mediaAssets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
             .first
@@ -97,33 +100,16 @@ struct BookEditorView: View {
         [editorState.coverImage].compactMap { $0 } + editorState.mediaAssets
     }
 
-    private var editorMediaAssets: Binding<[MediaAsset]> {
-        Binding(
-            get: {
-                guard let coverImage = editorState.coverImage else { return editorState.mediaAssets }
-                return [coverImage] + editorState.mediaAssets
-            },
-            set: { updatedAssets in
-                guard let coverImage = editorState.coverImage else {
-                    editorState.mediaAssets = updatedAssets
-                    return
-                }
-
-                if !updatedAssets.contains(where: { $0.id == coverImage.id }) {
-                    editorState.coverImage = nil
-                }
-                editorState.mediaAssets = updatedAssets.filter { $0.id != coverImage.id }
-            }
-        )
-    }
-
     private var textAssignments: [BookTextTarget: [TextFragment]] {
         textAssignmentController.assignments
     }
 
     init(
         collection: CollectionSummary,
+        itemID: UUID? = nil,
+        initialCoverImage: MediaAsset? = nil,
         initialMediaAssets: [MediaAsset] = [],
+        initialUsedOriginalCover: Bool = false,
         book: BookRecord? = nil,
         genreSuggestions: [String] = [],
         onDelete: (() -> Void)? = nil,
@@ -134,7 +120,14 @@ struct BookEditorView: View {
         self.initialGenreSuggestions = genreSuggestions
         self.onDelete = onDelete
         self.onSave = onSave
-        let editorItemID = book?.id ?? UUID()
+
+        let editorItemID = book?.id ?? itemID ?? UUID()
+        let initialState = BookEditorState(
+            book: book,
+            initialCoverImage: initialCoverImage,
+            initialMediaAssets: initialMediaAssets
+        )
+
         _editorItemID = State(initialValue: editorItemID)
         _photoAnalysis = State(
             initialValue: ItemRecognitionSessionStore.shared.session(
@@ -143,11 +136,9 @@ struct BookEditorView: View {
                 create: BookPhotoAnalysisController.init
             )
         )
-        _editorState = State(
-            initialValue: BookEditorState(
-                book: book,
-                initialMediaAssets: initialMediaAssets
-            )
+        _editorState = State(initialValue: initialState)
+        _isPresentingCoverCaptureFailure = State(
+            initialValue: book == nil && initialUsedOriginalCover
         )
     }
 
@@ -157,8 +148,12 @@ struct BookEditorView: View {
                 Section(String(localized: "editor.docs_and_media")) {
                     MediaSection(
                         itemID: editorItemID,
-                        mediaAssets: editorMediaAssets,
+                        mediaAssets: $editorState.mediaAssets,
+                        leadingMediaAsset: editorState.coverImage,
                         analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil,
+                        onLeadingMediaAssetDelete: {
+                            editorState.coverImage = nil
+                        },
                         onPhotoAdded: handlePhotoAdded
                     )
                     .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
@@ -599,7 +594,7 @@ struct BookEditorView: View {
                 )
                 textAssignmentController.sync(from: photoAnalysis.recognizedText)
                 photoAnalysis.reconcileMediaSnapshot(ItemCreationService.recognitionSnapshot(from: recognitionAssets))
-                normalizeInitialBookPhotosIfNeeded()
+                startInitialPhotoAnalysisIfNeeded()
             }
             .onChange(of: ItemCreationService.recognitionSnapshot(from: recognitionAssets)) {
                 photoAnalysis.reconcileCreation(assets: recognitionAssets)
@@ -753,87 +748,36 @@ struct BookEditorView: View {
             return
         }
 
-        let shouldBecomeCover = editorState.coverImage == nil && pendingCoverAssetID == nil
-        if shouldBecomeCover {
-            pendingCoverAssetID = sourceAsset.id
-        }
-
-        normalizeAddedPhoto(
-            image,
-            sourceAsset: sourceAsset,
-            shouldBecomeCover: shouldBecomeCover
-        )
-    }
-
-    @MainActor
-    private func normalizeInitialBookPhotosIfNeeded() {
-        guard existingBook == nil,
-              editorState.coverImage == nil,
-              let coverAsset = editorState.mediaAssets
-                .filter({ $0.kind == .photo })
-                .sorted(by: { $0.sortOrder < $1.sortOrder })
-                .first else {
+        guard editorState.coverImage == nil else {
+            photoAnalysis.analyzeAddedCreation(
+                assetID: sourceAsset.id,
+                image: image,
+                assets: recognitionAssets
+            )
             return
         }
 
-        pendingCoverAssetID = coverAsset.id
         photoNormalizationCount += 1
 
         Task { @MainActor in
             defer {
                 photoNormalizationCount -= 1
-                pendingCoverAssetID = nil
             }
 
             let prepared = await ItemCreationService.prepareBookMedia(
-                editorState.mediaAssets,
+                [sourceAsset],
                 itemID: editorItemID
             )
-            editorState.coverImage = prepared.coverImage
-            editorState.mediaAssets = prepared.mediaAssets
-            isPresentingCoverCaptureFailure = prepared.coverImage == nil
-            startInitialPhotoAnalysisIfNeeded()
-        }
-    }
+            guard let coverImage = prepared.coverImage else { return }
 
-    @MainActor
-    private func normalizeAddedPhoto(
-        _ image: UIImage,
-        sourceAsset: MediaAsset,
-        shouldBecomeCover: Bool
-    ) {
-        photoNormalizationCount += 1
+            editorState.mediaAssets.removeAll { $0.id == sourceAsset.id }
+            normalizeMediaSortOrder()
+            editorState.coverImage = coverImage
+            isPresentingCoverCaptureFailure = prepared.usedOriginalCover
 
-        Task { @MainActor in
-            defer {
-                photoNormalizationCount -= 1
-                if pendingCoverAssetID == sourceAsset.id {
-                    pendingCoverAssetID = nil
-                }
-            }
-
-            let normalized = await ItemCreationService.normalizeBookPhoto(
-                image,
-                sourceAsset: sourceAsset,
-                itemID: editorItemID,
-                asCover: shouldBecomeCover
-            )
-
-            let analysisAssetID = normalized.asset?.id ?? sourceAsset.id
-            if let asset = normalized.asset {
-                if shouldBecomeCover {
-                    editorState.mediaAssets.removeAll { $0.id == sourceAsset.id }
-                    normalizeMediaSortOrder()
-                    editorState.coverImage = asset
-                } else if let index = editorState.mediaAssets.firstIndex(where: { $0.id == sourceAsset.id }) {
-                    editorState.mediaAssets[index] = asset
-                }
-            } else if shouldBecomeCover {
-                isPresentingCoverCaptureFailure = true
-            }
             photoAnalysis.analyzeAddedCreation(
-                assetID: analysisAssetID,
-                image: normalized.analysisImage,
+                assetID: coverImage.id,
+                image: ItemCreationService.image(for: coverImage) ?? image,
                 assets: recognitionAssets
             )
         }
