@@ -57,21 +57,6 @@ extension ItemCreationService {
         )
     }
 
-    static func makeOriginalBookCover(
-        _ image: UIImage,
-        itemID: UUID
-    ) -> MediaAsset? {
-        guard let media = try? ImageMediaBuilder(store: .shared).build(from: image) else {
-            return nil
-        }
-
-        return media.asset.with(
-            itemID: itemID,
-            displayName: String(localized: "editor.media.cover"),
-            sortOrder: 0
-        )
-    }
-
     @MainActor
     static func normalizeBookPhoto(
         _ image: UIImage,
@@ -80,19 +65,6 @@ extension ItemCreationService {
         asCover: Bool
     ) async -> (asset: MediaAsset, analysisImage: UIImage, didExtract: Bool) {
         guard let extracted = await BookCoverExtractor().extractCover(from: image) else {
-            if asCover,
-               let dedicatedCover = makeOriginalBookCover(image, itemID: itemID) {
-                if !sourceAsset.localIdentifier.isEmpty {
-                    LocalMediaFileStore.shared.deleteFile(for: sourceAsset.localIdentifier)
-                }
-
-                return (
-                    asset: dedicatedCover,
-                    analysisImage: image,
-                    didExtract: false
-                )
-            }
-
             return (
                 asset: sourceAsset.with(
                     itemID: itemID,
