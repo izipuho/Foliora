@@ -1,3 +1,4 @@
+import Dispatch
 import Foundation
 import Observation
 import UIKit
@@ -90,7 +91,7 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
     private var evidenceRevision = 0
     private var activeSuggestionRefreshID: UUID?
     private var bibliographicTask: Task<Void, Never>?
-    private var bibliographicTimeoutTask: Task<Void, Never>?
+    private var bibliographicTimeoutWorkItem: DispatchWorkItem?
     private var persistenceItemID: UUID?
     private var persistenceRepository: (any CatalogRepository)?
     private var persistedEvidence: ItemRecognitionEvidence?
@@ -204,9 +205,9 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
         evidenceRevision += 1
         activeSuggestionRefreshID = nil
         bibliographicTask?.cancel()
-        bibliographicTimeoutTask?.cancel()
+        bibliographicTimeoutWorkItem?.cancel()
         bibliographicTask = nil
-        bibliographicTimeoutTask = nil
+        bibliographicTimeoutWorkItem = nil
         suggestions = .empty
         recognizedText = []
         photoAnalysisFailures = []
@@ -341,9 +342,9 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
         evidenceRevision += 1
         activeSuggestionRefreshID = nil
         bibliographicTask?.cancel()
-        bibliographicTimeoutTask?.cancel()
+        bibliographicTimeoutWorkItem?.cancel()
         bibliographicTask = nil
-        bibliographicTimeoutTask = nil
+        bibliographicTimeoutWorkItem = nil
         suggestions = .empty
         recognizedText = []
         photoAnalysisFailures = []
@@ -440,7 +441,7 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
         )
 
         bibliographicTask?.cancel()
-        bibliographicTimeoutTask?.cancel()
+        bibliographicTimeoutWorkItem?.cancel()
 
         let refreshID = UUID()
         activeSuggestionRefreshID = refreshID
@@ -468,22 +469,22 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
             }
         }
 
-        bibliographicTimeoutTask = Task.detached { [weak self] in
-            do {
-                try await Task.sleep(for: timeout)
-            } catch {
-                return
+        let timeoutWorkItem = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                self?.finishSuggestionRefresh(
+                    id: refreshID,
+                    revision: revision,
+                    completion: completion,
+                    result: .failure(BookPhotoAnalysisError.bibliographicTimeout),
+                    identifiers: identifiers
+                )
             }
-
-            guard !Task.isCancelled else { return }
-            await self?.finishSuggestionRefresh(
-                id: refreshID,
-                revision: revision,
-                completion: completion,
-                result: .failure(BookPhotoAnalysisError.bibliographicTimeout),
-                identifiers: identifiers
-            )
         }
+        bibliographicTimeoutWorkItem = timeoutWorkItem
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + Self.timeInterval(for: timeout),
+            execute: timeoutWorkItem
+        )
     }
 
     private func finishSuggestionRefresh(
@@ -497,9 +498,9 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
 
         activeSuggestionRefreshID = nil
         bibliographicTask?.cancel()
-        bibliographicTimeoutTask?.cancel()
+        bibliographicTimeoutWorkItem?.cancel()
         bibliographicTask = nil
-        bibliographicTimeoutTask = nil
+        bibliographicTimeoutWorkItem = nil
 
         if revision == evidenceRevision {
             switch result {
@@ -525,6 +526,12 @@ final class BookPhotoAnalysisController: ItemCreationRecognitionController {
             isAnalyzing = false
             persistCurrentResultIfPossible()
         }
+    }
+
+    private static func timeInterval(for duration: Duration) -> TimeInterval {
+        let components = duration.components
+        return TimeInterval(components.seconds)
+            + TimeInterval(components.attoseconds) / 1_000_000_000_000_000_000
     }
 
     private var currentAnalysis: MultiPhotoAnalysisResult {
