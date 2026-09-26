@@ -1,7 +1,7 @@
 import CoreData
 import SwiftUI
 
-enum BookBookBatchAddCompletionAction {
+enum BookBatchAddCompletionAction {
     case done
     case reviewResults(String)
 }
