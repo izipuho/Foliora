@@ -1,4 +1,5 @@
 import CoreGraphics
+import Dispatch
 import Foundation
 import Testing
 import UIKit
@@ -69,7 +70,11 @@ struct BookPhotoAnalysisPartialFailureTests {
         )
 
         controller.analyze(images: [makeImage()])
-        try? await Task.sleep(for: .milliseconds(50))
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                continuation.resume()
+            }
+        }
 
         #expect(!controller.isAnalyzing)
         guard let error = controller.analysisError as? BookPhotoAnalysisError else {
@@ -180,8 +185,7 @@ private struct NeverCompletingBookBibliographicExtractor: BookBibliographicExtra
         from analysis: MultiPhotoAnalysisResult
     ) async throws -> BookBibliographicExtraction {
         await withCheckedContinuation { continuation in
-            Task.detached {
-                try? await Task.sleep(for: .milliseconds(100))
+            DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) {
                 continuation.resume()
             }
         }
