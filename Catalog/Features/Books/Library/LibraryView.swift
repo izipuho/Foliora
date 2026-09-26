@@ -50,6 +50,8 @@ struct LibraryView: View {
     @State private var isPresentingPhotoCreationChoice = false
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var draftMediaAssets: [MediaAsset] = []
+    @State private var draftBookID: UUID?
+    @State private var draftBookMedia: BookCreationMedia?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
     @State private var isFavoritesCollapsed = false
@@ -216,17 +218,22 @@ struct LibraryView: View {
                 }
             }
             .onChange(of: isPresentingCamera) { _, isPresented in
-                if !isPresented, shouldPresentEditorAfterCamera, !draftMediaAssets.isEmpty {
+                if !isPresented, shouldPresentEditorAfterCamera, draftBookMedia != nil {
                     shouldPresentEditorAfterCamera = false
                     isPresentingAddBook = true
                 }
             }
             .sheet(isPresented: $isPresentingAddBook, onDismiss: clearDraftBook) {
-                BookEditorView(
-                    collection: collection,
-                    initialMediaAssets: draftMediaAssets
-                ) { book in
-                    repository.saveBookRecord(book)
+                if let draftBookID, let draftBookMedia {
+                    BookEditorView(
+                        collection: collection,
+                        itemID: draftBookID,
+                        initialCoverImage: draftBookMedia.coverImage,
+                        initialMediaAssets: draftBookMedia.mediaAssets,
+                        initialUsedOriginalCover: draftBookMedia.usedOriginalCover
+                    ) { book in
+                        repository.saveBookRecord(book)
+                    }
                 }
             }
             .sheet(isPresented: $isPresentingBatchAdd, onDismiss: clearDraftBook) {
@@ -662,12 +669,17 @@ struct LibraryView: View {
 
     private func clearDraftBook() {
         draftMediaAssets = []
+        draftBookID = nil
+        draftBookMedia = nil
     }
 
     private func handlePhotoCreationMode(_ mode: CatalogMultiPhotoCreationMode) {
         switch mode {
         case .singleItem:
-            isPresentingAddBook = true
+            Task {
+                await prepareDraftBook()
+                isPresentingAddBook = draftBookMedia != nil
+            }
         case .batch:
             isPresentingBatchAdd = true
         }
@@ -700,7 +712,8 @@ struct LibraryView: View {
         draftMediaAssets = newAssets
 
         if newAssets.count == 1 {
-            isPresentingAddBook = true
+            await prepareDraftBook()
+            isPresentingAddBook = draftBookMedia != nil
         } else {
             isPresentingPhotoCreationChoice = true
         }
@@ -712,7 +725,20 @@ struct LibraryView: View {
               let media = try? imageMediaBuilder.build(from: image) else { return }
 
         draftMediaAssets = [media.asset.with(sortOrder: 0)]
-        shouldPresentEditorAfterCamera = true
+        await prepareDraftBook()
+        shouldPresentEditorAfterCamera = draftBookMedia != nil
+    }
+
+    @MainActor
+    private func prepareDraftBook() async {
+        guard !draftMediaAssets.isEmpty else { return }
+
+        let itemID = UUID()
+        draftBookMedia = await ItemCreationService.prepareBookMedia(
+            draftMediaAssets,
+            itemID: itemID
+        )
+        draftBookID = itemID
     }
 
     private func saveLibraryEdits(
