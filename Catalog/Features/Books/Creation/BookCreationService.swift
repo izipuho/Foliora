@@ -1,113 +1,77 @@
 import UIKit
 
+struct BookCreationMedia {
+    let coverImage: MediaAsset?
+    let mediaAssets: [MediaAsset]
+    let usedOriginalCover: Bool
+
+    var recognitionAssets: [MediaAsset] {
+        [coverImage].compactMap { $0 } + mediaAssets
+    }
+}
+
 extension ItemCreationService {
     @MainActor
     static func prepareBookMedia(
         _ assets: [MediaAsset],
         itemID: UUID
-    ) async -> (coverImage: MediaAsset?, mediaAssets: [MediaAsset], usedOriginalCover: Bool) {
-        let photos = assets
+    ) async -> BookCreationMedia {
+        let orderedPhotos = assets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
 
-        guard let coverID = photos.first?.id else {
-            return (
+        guard let source = orderedPhotos.first else {
+            return BookCreationMedia(
                 coverImage: nil,
-                mediaAssets: assets.map { $0.with(itemID: itemID) },
+                mediaAssets: normalizedBookMedia(assets, itemID: itemID),
                 usedOriginalCover: false
             )
         }
 
-        var coverImage: MediaAsset?
-        var mediaAssets = assets
-        var usedOriginalCover = false
+        let originalCover = source.with(
+            itemID: itemID,
+            displayName: String(localized: "editor.media.cover"),
+            sortOrder: 0
+        )
 
-        for source in photos {
-            guard let sourceImage = image(for: source) else { continue }
+        let coverImage: MediaAsset
+        let usedOriginalCover: Bool
 
-            let isCover = source.id == coverID
-            let normalized = await normalizeBookPhoto(
-                sourceImage,
-                sourceAsset: source,
+        if let sourceImage = image(for: source),
+           let extracted = await BookCoverExtractor().extractCover(from: sourceImage) {
+            coverImage = extracted.with(
                 itemID: itemID,
-                asCover: isCover
+                displayName: String(localized: "editor.media.cover"),
+                sortOrder: 0
             )
+            usedOriginalCover = false
 
-            let asset = normalized.asset
-
-            if isCover {
-                usedOriginalCover = !normalized.didExtract
-
-                coverImage = asset
-                mediaAssets.removeAll { $0.id == source.id }
-            } else if let index = mediaAssets.firstIndex(where: { $0.id == source.id }) {
-                mediaAssets[index] = asset
+            if !source.localIdentifier.isEmpty {
+                LocalMediaFileStore.shared.deleteFile(for: source.localIdentifier)
             }
+        } else {
+            coverImage = originalCover
+            usedOriginalCover = true
         }
 
-        mediaAssets = mediaAssets
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .enumerated()
-            .map { $0.element.with(itemID: itemID, sortOrder: $0.offset) }
+        let remainingMedia = assets.filter { $0.id != source.id }
 
-        return (
+        return BookCreationMedia(
             coverImage: coverImage,
-            mediaAssets: mediaAssets,
+            mediaAssets: normalizedBookMedia(remainingMedia, itemID: itemID),
             usedOriginalCover: usedOriginalCover
         )
     }
 
-    @MainActor
-    static func normalizeBookPhoto(
-        _ image: UIImage,
-        sourceAsset: MediaAsset,
-        itemID: UUID,
-        asCover: Bool
-    ) async -> (asset: MediaAsset, analysisImage: UIImage, didExtract: Bool) {
-        guard let extracted = await BookCoverExtractor().extractCover(from: image) else {
-            return (
-                asset: sourceAsset.with(
-                    itemID: itemID,
-                    displayName: asCover ? String(localized: "editor.media.cover") : sourceAsset.displayName,
-                    sortOrder: asCover ? 0 : sourceAsset.sortOrder
-                ),
-                analysisImage: image,
-                didExtract: false
-            )
-        }
-
-        if !sourceAsset.localIdentifier.isEmpty {
-            LocalMediaFileStore.shared.deleteFile(for: sourceAsset.localIdentifier)
-        }
-
-        let analysisImage = extracted.originalData.flatMap(UIImage.init(data:)) ?? image
-        if asCover {
-            return (
-                asset: extracted.with(
-                    itemID: itemID,
-                    displayName: String(localized: "editor.media.cover"),
-                    sortOrder: 0
-                ),
-                analysisImage: analysisImage,
-                didExtract: true
-            )
-        }
-
-        let asset = sourceAsset.with(
-            itemID: sourceAsset.itemID ?? itemID,
-            localIdentifier: ""
-        ) { copy in
-            copy.fileName = extracted.fileName
-            copy.mimeType = extracted.mimeType
-            copy.byteSize = extracted.byteSize
-            copy.checksum = extracted.checksum
-            copy.width = extracted.width
-            copy.height = extracted.height
-            copy.duration = extracted.duration
-            copy.metadataJSON = extracted.metadataJSON
-            copy.originalData = extracted.originalData
-        }
-
-        return (asset: asset, analysisImage: analysisImage, didExtract: true)
+    private static func normalizedBookMedia(
+        _ assets: [MediaAsset],
+        itemID: UUID
+    ) -> [MediaAsset] {
+        assets
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .enumerated()
+            .map { index, asset in
+                asset.with(itemID: itemID, sortOrder: index)
+            }
     }
 }
