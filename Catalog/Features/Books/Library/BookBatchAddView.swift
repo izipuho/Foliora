@@ -1,11 +1,6 @@
 import CoreData
 import SwiftUI
 
-enum BookBatchAddCompletionAction {
-    case done
-    case reviewResults(String)
-}
-
 private enum BookBatchCreationState: Equatable {
     case editing
     case completed(createdCount: Int, reviewQuery: String)
@@ -16,7 +11,7 @@ struct BookBatchAddView: View {
     let collection: CollectionSummary
     let initialMediaAssets: [MediaAsset]
     let repository: any AppRepository
-    private let onComplete: (BookBatchAddCompletionAction) -> Void
+    private let onComplete: (BatchAddCompletionAction) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -47,7 +42,7 @@ struct BookBatchAddView: View {
         collection: CollectionSummary,
         initialMediaAssets: [MediaAsset],
         repository: any AppRepository,
-        onComplete: @escaping (BookBatchAddCompletionAction) -> Void = { _ in }
+        onComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.collection = collection
         self.initialMediaAssets = initialMediaAssets

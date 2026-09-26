@@ -34,7 +34,7 @@ struct LibraryView: View {
     let coreDataContainer: NSPersistentCloudKitContainer
     let layoutMode: Binding<CatalogCardLayoutMode>
     let onBookSelected: CollectionItemSelectionHandler?
-    private let onBatchAddComplete: (BookBatchAddCompletionAction) -> Void
+    private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -70,7 +70,7 @@ struct LibraryView: View {
         coreDataContainer: NSPersistentCloudKitContainer,
         layoutMode: Binding<CatalogCardLayoutMode>,
         onBookSelected: CollectionItemSelectionHandler? = nil,
-        onBatchAddComplete: @escaping (BookBatchAddCompletionAction) -> Void = { _ in }
+        onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.collection = collection
         self.catalogSnapshot = catalogSnapshot
@@ -282,7 +282,7 @@ struct LibraryView: View {
             }
     }
 
-    private func handleBatchAddCompletion(_ action: BookBatchAddCompletionAction) {
+    private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
         isPresentingBatchAdd = false
         if case .reviewResults = action {
             onBatchAddComplete(action)
