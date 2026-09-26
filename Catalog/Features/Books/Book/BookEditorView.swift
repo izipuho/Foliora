@@ -82,7 +82,11 @@ struct BookEditorView: View {
     }
 
     private var firstPhotoAsset: MediaAsset? {
-        editorState.mediaAssets
+        if let coverImage = editorState.coverImage {
+            return coverImage
+        }
+
+        return editorState.mediaAssets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
             .first
@@ -94,26 +98,6 @@ struct BookEditorView: View {
 
     private var recognitionAssets: [MediaAsset] {
         [editorState.coverImage].compactMap { $0 } + editorState.mediaAssets
-    }
-
-    private var editorMediaAssets: Binding<[MediaAsset]> {
-        Binding(
-            get: {
-                guard let coverImage = editorState.coverImage else { return editorState.mediaAssets }
-                return [coverImage] + editorState.mediaAssets
-            },
-            set: { updatedAssets in
-                guard let coverImage = editorState.coverImage else {
-                    editorState.mediaAssets = updatedAssets
-                    return
-                }
-
-                if !updatedAssets.contains(where: { $0.id == coverImage.id }) {
-                    editorState.coverImage = nil
-                }
-                editorState.mediaAssets = updatedAssets.filter { $0.id != coverImage.id }
-            }
-        )
     }
 
     private var textAssignments: [BookTextTarget: [TextFragment]] {
@@ -138,13 +122,11 @@ struct BookEditorView: View {
         self.onSave = onSave
 
         let editorItemID = book?.id ?? itemID ?? UUID()
-        var initialState = BookEditorState(
+        let initialState = BookEditorState(
             book: book,
+            initialCoverImage: initialCoverImage,
             initialMediaAssets: initialMediaAssets
         )
-        if book == nil {
-            initialState.coverImage = initialCoverImage
-        }
 
         _editorItemID = State(initialValue: editorItemID)
         _photoAnalysis = State(
@@ -166,8 +148,12 @@ struct BookEditorView: View {
                 Section(String(localized: "editor.docs_and_media")) {
                     MediaSection(
                         itemID: editorItemID,
-                        mediaAssets: editorMediaAssets,
+                        mediaAssets: $editorState.mediaAssets,
+                        leadingMediaAsset: editorState.coverImage,
                         analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil,
+                        onLeadingMediaAssetDelete: {
+                            editorState.coverImage = nil
+                        },
                         onPhotoAdded: handlePhotoAdded
                     )
                     .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
