@@ -57,113 +57,113 @@ struct BookBatchAddView: View {
                     completionContent(createdCount: createdCount, reviewQuery: reviewQuery)
                 } else {
                     Form {
-                Section("common.book") {
-                    BookBatchNamedPickerField(
-                        title: String(localized: "book.field.author"),
-                        selection: $selectedAuthor,
-                        values: catalogPeople,
-                        name: \.displayName,
-                        subtitle: { _ in nil },
-                        create: { name in
-                            Person(
-                                id: UUID(),
-                                collectionID: collection.id,
-                                givenName: name,
-                                birthYear: nil,
-                                deathYear: nil,
-                                biography: nil,
-                                birthPlace: nil,
-                                deathPlace: nil,
-                                photos: []
-                            )
-                        },
-                        onCreate: { catalogPeople.append($0) }
-                    )
+                    Section("common.book") {
+                        BookBatchNamedPickerField(
+                            title: String(localized: "book.field.author"),
+                            selection: $selectedAuthor,
+                            values: catalogPeople,
+                            name: \.displayName,
+                            subtitle: { _ in nil },
+                            create: { name in
+                                Person(
+                                    id: UUID(),
+                                    collectionID: collection.id,
+                                    givenName: name,
+                                    birthYear: nil,
+                                    deathYear: nil,
+                                    biography: nil,
+                                    birthPlace: nil,
+                                    deathPlace: nil,
+                                    photos: []
+                                )
+                            },
+                            onCreate: { catalogPeople.append($0) }
+                        )
 
-                    BookBatchNamedPickerField(
-                        title: String(localized: "publisher.title"),
-                        selection: $selectedPublisher,
-                        values: catalogPublishers,
-                        name: \.name,
-                        subtitle: { _ in nil },
-                        create: { name in
-                            Publisher(
-                                id: UUID(),
-                                collectionID: collection.id,
-                                name: name
-                            )
-                        },
-                        onCreate: { catalogPublishers.append($0) }
-                    )
+                        BookBatchNamedPickerField(
+                            title: String(localized: "publisher.title"),
+                            selection: $selectedPublisher,
+                            values: catalogPublishers,
+                            name: \.name,
+                            subtitle: { _ in nil },
+                            create: { name in
+                                Publisher(
+                                    id: UUID(),
+                                    collectionID: collection.id,
+                                    name: name
+                                )
+                            },
+                            onCreate: { catalogPublishers.append($0) }
+                        )
 
-                    BookBatchNamedPickerField(
-                        title: String(localized: "series.title"),
-                        selection: $selectedSeries,
-                        values: catalogSeries,
-                        name: \.name,
-                        subtitle: { series in
-                            series.totalBookCount.map { CollectionKind.bookCountLabel(for: $0) }
-                        },
-                        create: { name in
-                            BookSeries(
-                                id: UUID(),
-                                collectionID: collection.id,
-                                name: name,
-                                totalBookCount: nil,
-                                publisher: nil
-                            )
-                        },
-                        onCreate: { catalogSeries.append($0) }
-                    )
+                        BookBatchNamedPickerField(
+                            title: String(localized: "series.title"),
+                            selection: $selectedSeries,
+                            values: catalogSeries,
+                            name: \.name,
+                            subtitle: { series in
+                                series.totalBookCount.map { CollectionKind.bookCountLabel(for: $0) }
+                            },
+                            create: { name in
+                                BookSeries(
+                                    id: UUID(),
+                                    collectionID: collection.id,
+                                    name: name,
+                                    totalBookCount: nil,
+                                    publisher: nil
+                                )
+                            },
+                            onCreate: { catalogSeries.append($0) }
+                        )
 
-                    BookBatchLanguagePickerField(languageCode: $languageCode)
+                        BookBatchLanguagePickerField(languageCode: $languageCode)
 
-                    BookBatchLookupTextField(
-                        title: String(localized: "book.field.genre"),
-                        value: $genre,
-                        suggestions: catalogGenreSuggestions
-                    )
-                }
-
-                Section(String(localized: "item.detail.section.collection_info")) {
-                    YearPickerField(
-                        title: String(localized: "item.detail.acquisition_year"),
-                        selection: $selectedAcquiredYearOption,
-                        options: acquiredYearOptions
-                    )
-
-                    EnumSelectionRow(
-                        title: String(localized: "item.detail.acquisition"),
-                        selectedLabel: acquisitionMethod.displayName,
-                        options: AcquisitionMethod.allCases,
-                        selection: $acquisitionMethod,
-                        optionTitle: \.displayName
-                    )
-
-                    EnumSelectionRow(
-                        title: String(localized: "common.field.condition"),
-                        selectedLabel: condition.displayName,
-                        options: ItemCondition.allCases,
-                        selection: $condition,
-                        optionTitle: \.displayName
-                    )
-                }
-
-                Section(String(localized: "common.field.tags")) {
-                    TagEditorSection(
-                        tagInput: $tagInput,
-                        tags: $tags
-                    )
-                }
-
-                Section {
-                    Button(createButtonLabel) {
-                        Task {
-                            await createBooks()
-                        }
+                        BookBatchLookupTextField(
+                            title: String(localized: "book.field.genre"),
+                            value: $genre,
+                            suggestions: catalogGenreSuggestions
+                        )
                     }
-                    .disabled(initialMediaAssets.isEmpty || isCreatingBooks)
-                }
+
+                    Section(String(localized: "item.detail.section.collection_info")) {
+                        YearPickerField(
+                            title: String(localized: "item.detail.acquisition_year"),
+                            selection: $selectedAcquiredYearOption,
+                            options: acquiredYearOptions
+                        )
+
+                        EnumSelectionRow(
+                            title: String(localized: "item.detail.acquisition"),
+                            selectedLabel: acquisitionMethod.displayName,
+                            options: AcquisitionMethod.allCases,
+                            selection: $acquisitionMethod,
+                            optionTitle: \.displayName
+                        )
+
+                        EnumSelectionRow(
+                            title: String(localized: "common.field.condition"),
+                            selectedLabel: condition.displayName,
+                            options: ItemCondition.allCases,
+                            selection: $condition,
+                            optionTitle: \.displayName
+                        )
+                    }
+
+                    Section(String(localized: "common.field.tags")) {
+                        TagEditorSection(
+                            tagInput: $tagInput,
+                            tags: $tags
+                        )
+                    }
+
+                    Section {
+                        Button(createButtonLabel) {
+                            Task {
+                                await createBooks()
+                            }
+                        }
+                        .disabled(initialMediaAssets.isEmpty || isCreatingBooks)
+                    }
                     }
                 }
             }
