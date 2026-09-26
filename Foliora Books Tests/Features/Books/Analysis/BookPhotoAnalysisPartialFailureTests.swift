@@ -70,6 +70,7 @@ struct BookPhotoAnalysisPartialFailureTests {
         )
 
         controller.analyze(images: [makeImage()])
+        await waitUntilBibliographicPhaseStarts(controller)
         await withCheckedContinuation { continuation in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 continuation.resume()
@@ -85,6 +86,14 @@ struct BookPhotoAnalysisPartialFailureTests {
             // Expected.
         } else {
             Issue.record("Expected bibliographic timeout, got \(error).")
+        }
+    }
+
+    private func waitUntilBibliographicPhaseStarts(
+        _ controller: BookPhotoAnalysisController
+    ) async {
+        while controller.recognizedText.isEmpty {
+            await Task.yield()
         }
     }
 
