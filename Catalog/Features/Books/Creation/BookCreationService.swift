@@ -39,17 +39,20 @@ extension ItemCreationService {
             )
         }
 
-        let originalCover = source.with(
-            itemID: itemID,
-            displayName: String(localized: "editor.media.cover"),
-            sortOrder: 0
-        )
+        guard let originalData = source.originalData,
+              let sourceImage = UIImage(data: originalData) else {
+            return BookCreationDraft(
+                itemID: itemID,
+                coverImage: nil,
+                mediaAssets: normalizedBookMedia(assets, itemID: itemID),
+                usedOriginalCover: false
+            )
+        }
 
         let coverImage: MediaAsset
         let usedOriginalCover: Bool
 
-        if let sourceImage = image(for: source),
-           let extracted = await BookCoverExtractor().extractCover(from: sourceImage) {
+        if let extracted = await BookCoverExtractor().extractCover(from: sourceImage) {
             coverImage = extracted.with(
                 itemID: itemID,
                 displayName: String(localized: "editor.media.cover"),
@@ -61,8 +64,16 @@ extension ItemCreationService {
                 LocalMediaFileStore.shared.deleteFile(for: source.localIdentifier)
             }
         } else {
-            coverImage = originalCover
+            coverImage = originalBookCover(
+                from: source,
+                originalData: originalData,
+                itemID: itemID
+            )
             usedOriginalCover = true
+
+            if !source.localIdentifier.isEmpty {
+                LocalMediaFileStore.shared.deleteFile(for: source.localIdentifier)
+            }
         }
 
         let remainingMedia = assets.filter { $0.id != source.id }
@@ -72,6 +83,30 @@ extension ItemCreationService {
             coverImage: coverImage,
             mediaAssets: normalizedBookMedia(remainingMedia, itemID: itemID),
             usedOriginalCover: usedOriginalCover
+        )
+    }
+
+    private static func originalBookCover(
+        from source: MediaAsset,
+        originalData: Data,
+        itemID: UUID
+    ) -> MediaAsset {
+        MediaAsset(
+            id: UUID(),
+            itemID: itemID,
+            kind: .photo,
+            localIdentifier: "",
+            displayName: String(localized: "editor.media.cover"),
+            sortOrder: 0,
+            fileName: nil,
+            mimeType: source.mimeType,
+            byteSize: originalData.count,
+            checksum: source.checksum,
+            width: source.width,
+            height: source.height,
+            duration: source.duration,
+            metadataJSON: source.metadataJSON,
+            originalData: originalData
         )
     }
 
