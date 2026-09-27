@@ -1,6 +1,11 @@
 import UIKit
 
-struct BookCreationMedia {
+/// Represents the prepared media state for one new book.
+///
+/// Cover determination happens exactly once while this draft is prepared.
+/// The selected source photo is never left both as a cover and as regular media.
+struct BookCreationDraft {
+    let itemID: UUID
     let coverImage: MediaAsset?
     let mediaAssets: [MediaAsset]
     let usedOriginalCover: Bool
@@ -11,17 +16,23 @@ struct BookCreationMedia {
 }
 
 extension ItemCreationService {
+    /// Prepares the canonical creation draft used by both single and batch book creation.
+    ///
+    /// The first photo becomes the dedicated cover. If cover extraction fails, the
+    /// original photo itself becomes that dedicated cover. Remaining assets stay as
+    /// regular book media.
     @MainActor
-    static func prepareBookMedia(
+    static func prepareBookDraft(
         _ assets: [MediaAsset],
-        itemID: UUID
-    ) async -> BookCreationMedia {
+        itemID: UUID = UUID()
+    ) async -> BookCreationDraft {
         let orderedPhotos = assets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
 
         guard let source = orderedPhotos.first else {
-            return BookCreationMedia(
+            return BookCreationDraft(
+                itemID: itemID,
                 coverImage: nil,
                 mediaAssets: normalizedBookMedia(assets, itemID: itemID),
                 usedOriginalCover: false
@@ -56,7 +67,8 @@ extension ItemCreationService {
 
         let remainingMedia = assets.filter { $0.id != source.id }
 
-        return BookCreationMedia(
+        return BookCreationDraft(
+            itemID: itemID,
             coverImage: coverImage,
             mediaAssets: normalizedBookMedia(remainingMedia, itemID: itemID),
             usedOriginalCover: usedOriginalCover

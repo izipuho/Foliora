@@ -18,12 +18,13 @@ struct BookCreationServiceTests {
         }
 
         let itemID = UUID()
-        let prepared = await ItemCreationService.prepareBookMedia(
+        let prepared = await ItemCreationService.prepareBookDraft(
             [source],
             itemID: itemID
         )
         let cover = try #require(prepared.coverImage)
 
+        #expect(prepared.itemID == itemID)
         #expect(prepared.usedOriginalCover)
         #expect(prepared.mediaAssets.isEmpty)
         #expect(cover.id == source.id)

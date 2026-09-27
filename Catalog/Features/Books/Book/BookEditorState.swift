@@ -20,15 +20,16 @@ struct BookEditorState {
 
     init(
         book: BookRecord?,
-        initialCoverImage: MediaAsset? = nil,
-        initialMediaAssets: [MediaAsset]
+        creationDraft: BookCreationDraft? = nil
     ) {
+        let creationDraft = book == nil ? creationDraft : nil
+
         itemState = ItemEditorState(
             item: book?.item,
-            initialMediaAssets: initialMediaAssets
+            initialMediaAssets: creationDraft?.mediaAssets ?? []
         )
         subtitle = book?.details.subtitle ?? ""
-        coverImage = (book?.cover.mediaAsset ?? initialCoverImage)?.with(
+        coverImage = (book?.cover.mediaAsset ?? creationDraft?.coverImage)?.with(
             displayName: String(localized: "editor.media.cover")
         )
 

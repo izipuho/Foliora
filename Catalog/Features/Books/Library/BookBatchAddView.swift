@@ -252,17 +252,12 @@ struct BookBatchAddView: View {
             [BookContributor(role: .author, order: 0, person: $0)]
         } ?? []
 
-        var books: [BookRecord] = []
+        var creations: [(book: BookRecord, recognitionAssets: [MediaAsset])] = []
         for (index, mediaAsset) in initialMediaAssets.enumerated() {
-            let itemID = UUID()
-            let prepared = await ItemCreationService.prepareBookMedia(
-                [mediaAsset],
-                itemID: itemID
-            )
+            let creationDraft = await ItemCreationService.prepareBookDraft([mediaAsset])
             var state = BookEditorState(
                 book: nil,
-                initialCoverImage: prepared.coverImage,
-                initialMediaAssets: prepared.mediaAssets
+                creationDraft: creationDraft
             )
             state.title = "\(batchPrefix) · \(index + 1)"
             state.selectedAcquiredYearOption = selectedAcquiredYearOption
@@ -275,27 +270,28 @@ struct BookBatchAddView: View {
             state.contributors = contributors
             state.selectedSeries = selectedSeries
 
-            books.append(
-                state.makeBook(
-                    itemID: itemID,
-                    collectionID: collection.id,
-                    existingBook: nil,
-                    storageLocation: nil,
-                    storagePath: nil,
-                    createdAt: timestamp
-                )
+            let book = state.makeBook(
+                itemID: creationDraft.itemID,
+                collectionID: collection.id,
+                existingBook: nil,
+                storageLocation: nil,
+                storagePath: nil,
+                createdAt: timestamp
+            )
+            creations.append(
+                (book: book, recognitionAssets: creationDraft.recognitionAssets)
             )
         }
 
-        repository.saveBookRecords(books)
-        for book in books {
+        repository.saveBookRecords(creations.map(\.book))
+        for creation in creations {
             BookPhotoAnalysisController.startCreation(
-                itemID: book.id,
-                assets: [book.details.coverImage].compactMap { $0 } + book.mediaAssets,
+                itemID: creation.book.id,
+                assets: creation.recognitionAssets,
                 repository: repository
             )
         }
-        creationState = .completed(createdCount: books.count, reviewQuery: batchPrefix)
+        creationState = .completed(createdCount: creations.count, reviewQuery: batchPrefix)
     }
 
     private func normalizedGenreSuggestions(_ values: [String]) -> [String] {
