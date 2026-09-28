@@ -210,10 +210,11 @@ struct BookBatchAddView: View {
     }
 
     private func completionMessage(createdCount: Int) -> String {
-        String.localizedStringWithFormat(
+        let createdMessage = String.localizedStringWithFormat(
             String(localized: "book_batch_add.completion.message"),
             createdCount
         )
+        return createdMessage + "\n" + String(localized: "batch_add.completion.recognition_note")
     }
 
     private var localizedBookCount: String {
