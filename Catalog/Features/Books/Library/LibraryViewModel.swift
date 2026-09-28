@@ -676,7 +676,7 @@ final class LibraryViewModel: ObservableObject {
     }
 
     private func hasCover(_ book: BookRecord) -> Bool {
-        book.mediaAssets.contains { $0.kind == .photo }
+        book.details.coverImage != nil
     }
 
     private func hasAuthor(_ book: BookRecord) -> Bool {

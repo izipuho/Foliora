@@ -172,9 +172,10 @@ private struct MapBellAnnotationView: View {
     @ViewBuilder
     private var annotationImage: some View {
         if let bell = bells.first,
-           bell.coverPhotoIdentifier != nil || bell.coverPhotoOriginalData != nil {
+           let coverPhotoID = bell.coverPhotoID,
+           bell.coverPhotoOriginalData != nil {
             MediaPreviewImage(
-                identifier: bell.coverPhotoIdentifier,
+                assetID: coverPhotoID,
                 originalData: bell.coverPhotoOriginalData,
                 size: annotationSize
             )

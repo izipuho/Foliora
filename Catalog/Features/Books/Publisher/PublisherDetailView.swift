@@ -224,7 +224,7 @@ struct PublisherDetailView: View {
     private var publisherMark: some View {
         if let logo = publisher.logo, logo.kind == .photo {
             MediaPreviewImage(
-                identifier: logo.localIdentifier,
+                assetID: logo.id,
                 originalData: logo.originalData,
                 size: CGSize(width: 60, height: 60)
             )

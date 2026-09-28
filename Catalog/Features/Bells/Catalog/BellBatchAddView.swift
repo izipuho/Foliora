@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 private struct BellBatchNameGenerator {
     private let prefix: String
@@ -61,12 +62,6 @@ private extension BellBatchAddView {
 }
 #endif
 
-/// Defines the supported batch add completion action values.
-enum BatchAddCompletionAction {
-    case done
-    case reviewResults(String)
-}
-
 private enum BellBatchMediaLoadState: Equatable {
     case idle
     case loading
@@ -89,7 +84,7 @@ struct BellBatchAddView: View {
     private let initialMediaAssets: [MediaAsset]
     private let repository: any AppRepository
     private let onComplete: (BatchAddCompletionAction) -> Void
-    private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
+    private let imageMediaBuilder = ImageMediaBuilder()
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedLocationID: UUID?
@@ -139,19 +134,28 @@ struct BellBatchAddView: View {
                 await loadMediaPayloadsIfNeeded()
             }
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    VStack(spacing: CatalogMetrics.Spacing.xxs) {
-                        Text(String(localized: "bell_batch_add.title"))
-                            .font(CatalogTypography.sectionTitle)
-                        Text(selectedCountLabel)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: { Image(systemName: "xmark") }
                         .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                if showsCreationToolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text(createButtonLabel)
+                            .font(CatalogTypography.sectionTitle)
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            createBatchBells()
+                        } label: {
+                            Image(systemName: "checkmark")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.accentColor)
+                        .disabled(!canCreateBatch)
+                        .accessibilityLabel(createButtonLabel)
+                    }
                 }
             }
             .sheet(isPresented: $isPresentingHomeEditor) {
@@ -241,12 +245,6 @@ struct BellBatchAddView: View {
                 }
             }
 
-            Section {
-                Button(createButtonLabel) {
-                    createBatchBells()
-                }
-                .disabled(!canCreateBatch)
-            }
         }
     }
 
@@ -274,13 +272,6 @@ struct BellBatchAddView: View {
         )
     }
 
-    private var selectedCountLabel: String {
-        String.localizedStringWithFormat(
-            String(localized: "common.selected_format"),
-            localizedBellCount
-        )
-    }
-
     private var createButtonLabel: String {
         String.localizedStringWithFormat(
             String(localized: "common.create_format"),
@@ -288,19 +279,23 @@ struct BellBatchAddView: View {
         )
     }
 
+    private var showsCreationToolbar: Bool {
+        if case .completed = creationState {
+            return false
+        }
+        return true
+    }
+
     private func completionMessage(createdCount: Int) -> String {
-        String.localizedStringWithFormat(
+        let createdMessage = String.localizedStringWithFormat(
             String(localized: "bell_batch_add.completion.message"),
             createdCount
         )
+        return createdMessage + "\n" + String(localized: "batch_add.completion.recognition_note")
     }
 
     private var canCreateBatch: Bool {
         mediaLoadState == .loaded && !mediaPayloads.isEmpty
-    }
-
-    private var selectedAcquiredYear: Int? {
-        Int(selectedAcquiredYearOption)
     }
 
     private var selectedLocation: Location? {
@@ -436,38 +431,39 @@ struct BellBatchAddView: View {
 
         let nameGenerator = BellBatchNameGenerator()
         let names = nameGenerator.names(count: mediaPayloads.count)
-        let now = Date()
+        let timestamp = Date()
         let bells = mediaPayloads.enumerated().map { index, mediaAsset in
             let bellID = UUID()
-            return BellRecord(
-                item: ItemRecord(
-                    id: bellID,
-                    collectionID: collection.id,
-                    locationID: selectedLocationID,
-                    originPlaceID: selectedOriginPlace?.id,
-                    createdAt: now,
-                    createdBy: "me",
-                    title: names[index],
-                    notes: "",
-                    acquiredYear: selectedAcquiredYear,
-                    condition: .good,
-                    acquisitionMethod: .other,
-                    isFavorite: false,
-                    tags: tags,
-                    originPlace: selectedOriginPlace,
-                    storageLocation: selectedLocation,
-                    storagePath: selectedLocation.map(storagePath(for:)),
-                    mediaAssets: [mediaAsset.with(itemID: bellID, sortOrder: 0)]
-                ),
-                details: BellDetails(
-                    itemID: bellID,
-                    material: material,
-                    customMaterialName: material == .other ? customMaterialName : nil
-                )
+            var state = BellEditorState(bell: nil, initialMediaAssets: [mediaAsset])
+            state.title = names[index]
+            state.selectedLocationID = selectedLocationID
+            state.selectedOriginPlace = selectedOriginPlace
+            state.selectedAcquiredYearOption = selectedAcquiredYearOption
+            state.condition = .good
+            state.acquisitionMethod = .other
+            state.tags = tags
+            state.material = material
+            state.customMaterialName = customMaterialName
+
+            return state.makeBell(
+                itemID: bellID,
+                collectionID: collection.id,
+                existingBell: nil,
+                storageLocation: selectedLocation,
+                storagePath: selectedLocation.map(storagePath(for:)),
+                createdAt: timestamp,
+                createdBy: "me"
             )
         }
 
         repository.saveBellRecords(bells)
+        for bell in bells {
+            BellPhotoAnalysisController.startCreation(
+                itemID: bell.id,
+                assets: bell.mediaAssets,
+                repository: repository
+            )
+        }
         creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)
     }
 }

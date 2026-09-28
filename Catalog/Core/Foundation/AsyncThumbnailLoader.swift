@@ -4,7 +4,7 @@ import ImageIO
 import UIKit
 
 private struct ThumbnailCacheKey: Hashable, Sendable {
-    let identifier: String
+    let assetID: UUID
     let pixelWidth: Int
     let pixelHeight: Int
 }
@@ -24,15 +24,15 @@ actor ThumbnailImageCache {
     private var images: [ThumbnailCacheKey: ThumbnailImageBox] = [:]
 
     func image(
-        identifier: String,
-        url: URL,
+        assetID: UUID,
+        data: Data,
         targetSize: CGSize,
         scale: CGFloat
     ) async -> UIImage? {
         let pixelWidth = max(Int((targetSize.width * scale).rounded(.up)), 1)
         let pixelHeight = max(Int((targetSize.height * scale).rounded(.up)), 1)
         let key = ThumbnailCacheKey(
-            identifier: identifier,
+            assetID: assetID,
             pixelWidth: pixelWidth,
             pixelHeight: pixelHeight
         )
@@ -43,7 +43,7 @@ actor ThumbnailImageCache {
 
         let maxPixelSize = max(pixelWidth, pixelHeight)
         let decodedImage = await Task.detached(priority: .utility) {
-            Self.decodeImage(url: url, maxPixelSize: maxPixelSize, scale: scale)
+            Self.decodeImage(data: data, maxPixelSize: maxPixelSize, scale: scale)
         }.value
 
         guard let decodedImage else { return nil }
@@ -51,12 +51,12 @@ actor ThumbnailImageCache {
         return decodedImage
     }
 
-    private static func decodeImage(url: URL, maxPixelSize: Int, scale: CGFloat) -> UIImage? {
+    private static func decodeImage(data: Data, maxPixelSize: Int, scale: CGFloat) -> UIImage? {
         let sourceOptions = [
             kCGImageSourceShouldCache: false
         ] as CFDictionary
 
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else {
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else {
             return nil
         }
 

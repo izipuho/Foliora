@@ -73,7 +73,9 @@ struct BellEditorState {
         collectionID: UUID,
         existingBell: BellRecord?,
         storageLocation: Location?,
-        storagePath: StoragePath?
+        storagePath: StoragePath?,
+        createdAt: Date? = nil,
+        createdBy: String? = nil
     ) -> BellRecord {
         let trimmedCustomMaterialName = customMaterialName.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -82,8 +84,8 @@ struct BellEditorState {
                 itemID: itemID,
                 collectionID: collectionID,
                 kind: .bells,
-                createdAt: existingBell?.createdAt ?? .now,
-                createdBy: "You",
+                createdAt: existingBell?.createdAt ?? createdAt ?? .now,
+                createdBy: existingBell?.createdBy ?? createdBy ?? "You",
                 isFavorite: existingBell?.isFavorite ?? false,
                 originPlaceID: selectedOriginPlace?.id,
                 originPlace: selectedOriginPlace,
