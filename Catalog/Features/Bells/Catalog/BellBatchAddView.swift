@@ -151,6 +151,8 @@ struct BellBatchAddView: View {
                         } label: {
                             Image(systemName: "checkmark")
                         }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.accentColor)
                         .disabled(!canCreateBatch)
                         .accessibilityLabel(createButtonLabel)
                     }

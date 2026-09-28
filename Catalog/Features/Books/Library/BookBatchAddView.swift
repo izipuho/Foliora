@@ -183,6 +183,8 @@ struct BookBatchAddView: View {
                         } label: {
                             Image(systemName: "checkmark")
                         }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.accentColor)
                         .disabled(initialMediaAssets.isEmpty || isCreatingBooks)
                         .accessibilityLabel(createButtonLabel)
                     }
