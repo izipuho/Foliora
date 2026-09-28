@@ -114,7 +114,7 @@ enum CoreDataDomainMapper {
             id: uuidValue(entity, "id"),
             itemID: itemID,
             kind: mediaKind(from: stringValue(entity, "kind", default: MediaKind.photo.rawValue)),
-            localIdentifier: stringValue(entity, "localIdentifier"),
+            localIdentifier: "",
             displayName: entity.value(forKey: "displayName") as? String,
             sortOrder: intValue(entity, "sortOrder"),
             fileName: entity.value(forKey: "fileName") as? String,

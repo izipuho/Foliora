@@ -379,7 +379,6 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
         entity.setValue(asset.id, forKey: "id")
         entity.setValue(asset.kind.rawValue, forKey: "kind")
-        entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
         entity.setValue(asset.displayName, forKey: "displayName")
         entity.setValue(asset.sortOrder, forKey: "sortOrder")
         entity.setValue(asset.fileName, forKey: "fileName")

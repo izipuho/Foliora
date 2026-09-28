@@ -268,7 +268,7 @@ struct BookReferenceResolver {
             id: UUID(),
             itemID: nil,
             kind: source.kind,
-            localIdentifier: UUID().uuidString,
+            localIdentifier: "",
             displayName: source.displayName,
             sortOrder: source.sortOrder,
             fileName: source.fileName,
