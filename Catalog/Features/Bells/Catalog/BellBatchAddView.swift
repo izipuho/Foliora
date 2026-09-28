@@ -62,12 +62,6 @@ private extension BellBatchAddView {
 }
 #endif
 
-/// Defines the supported batch add completion action values.
-enum BatchAddCompletionAction {
-    case done
-    case reviewResults(String)
-}
-
 private enum BellBatchMediaLoadState: Equatable {
     case idle
     case loading
