@@ -34,6 +34,7 @@ struct LibraryView: View {
     let coreDataContainer: NSPersistentCloudKitContainer
     let layoutMode: Binding<CatalogCardLayoutMode>
     let onBookSelected: CollectionItemSelectionHandler?
+    private let onBatchAddComplete: (BatchAddCompletionAction) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -50,8 +51,7 @@ struct LibraryView: View {
     @State private var isPresentingPhotoCreationChoice = false
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var draftMediaAssets: [MediaAsset] = []
-    @State private var draftBookID: UUID?
-    @State private var draftBookMedia: BookCreationMedia?
+    @State private var draftBook: BookCreationDraft?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
     @State private var isFavoritesCollapsed = false
@@ -60,7 +60,7 @@ struct LibraryView: View {
     @State private var cardManagement = CatalogCardManagementState<BookRecord>()
     @StateObject private var viewModel: LibraryViewModel
 
-    private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
+    private let imageMediaBuilder = ImageMediaBuilder()
 
     init(
         collection: CollectionSummary,
@@ -68,7 +68,8 @@ struct LibraryView: View {
         repository: any AppRepository,
         coreDataContainer: NSPersistentCloudKitContainer,
         layoutMode: Binding<CatalogCardLayoutMode>,
-        onBookSelected: CollectionItemSelectionHandler? = nil
+        onBookSelected: CollectionItemSelectionHandler? = nil,
+        onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.collection = collection
         self.catalogSnapshot = catalogSnapshot
@@ -76,6 +77,7 @@ struct LibraryView: View {
         self.coreDataContainer = coreDataContainer
         self.layoutMode = layoutMode
         self.onBookSelected = onBookSelected
+        self.onBatchAddComplete = onBatchAddComplete
         _viewModel = StateObject(
             wrappedValue: LibraryViewModel(orderMode: .title)
         )
@@ -218,19 +220,16 @@ struct LibraryView: View {
                 }
             }
             .onChange(of: isPresentingCamera) { _, isPresented in
-                if !isPresented, shouldPresentEditorAfterCamera, draftBookMedia != nil {
+                if !isPresented, shouldPresentEditorAfterCamera, draftBook != nil {
                     shouldPresentEditorAfterCamera = false
                     isPresentingAddBook = true
                 }
             }
             .sheet(isPresented: $isPresentingAddBook, onDismiss: clearDraftBook) {
-                if let draftBookID, let draftBookMedia {
+                if let draftBook {
                     BookEditorView(
                         collection: collection,
-                        itemID: draftBookID,
-                        initialCoverImage: draftBookMedia.coverImage,
-                        initialMediaAssets: draftBookMedia.mediaAssets,
-                        initialUsedOriginalCover: draftBookMedia.usedOriginalCover
+                        creationDraft: draftBook
                     ) { book in
                         repository.saveBookRecord(book)
                     }
@@ -241,9 +240,7 @@ struct LibraryView: View {
                     collection: collection,
                     initialMediaAssets: draftMediaAssets,
                     repository: repository,
-                    onComplete: {
-                        isPresentingBatchAdd = false
-                    }
+                    onComplete: handleBatchAddCompletion
                 )
             }
             .sheet(isPresented: $isPresentingEditLibrary) {
@@ -279,6 +276,13 @@ struct LibraryView: View {
             .task(id: collection.id) {
                 await loadCollectionSharingState()
             }
+    }
+
+    private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
+        isPresentingBatchAdd = false
+        if case .reviewResults = action {
+            onBatchAddComplete(action)
+        }
     }
 
     @ViewBuilder
@@ -669,8 +673,7 @@ struct LibraryView: View {
 
     private func clearDraftBook() {
         draftMediaAssets = []
-        draftBookID = nil
-        draftBookMedia = nil
+        draftBook = nil
     }
 
     private func handlePhotoCreationMode(_ mode: CatalogMultiPhotoCreationMode) {
@@ -678,7 +681,7 @@ struct LibraryView: View {
         case .singleItem:
             Task {
                 await prepareDraftBook()
-                isPresentingAddBook = draftBookMedia != nil
+                isPresentingAddBook = draftBook != nil
             }
         case .batch:
             isPresentingBatchAdd = true
@@ -713,7 +716,7 @@ struct LibraryView: View {
 
         if newAssets.count == 1 {
             await prepareDraftBook()
-            isPresentingAddBook = draftBookMedia != nil
+            isPresentingAddBook = draftBook != nil
         } else {
             isPresentingPhotoCreationChoice = true
         }
@@ -726,19 +729,14 @@ struct LibraryView: View {
 
         draftMediaAssets = [media.asset.with(sortOrder: 0)]
         await prepareDraftBook()
-        shouldPresentEditorAfterCamera = draftBookMedia != nil
+        shouldPresentEditorAfterCamera = draftBook != nil
     }
 
     @MainActor
     private func prepareDraftBook() async {
         guard !draftMediaAssets.isEmpty else { return }
 
-        let itemID = UUID()
-        draftBookMedia = await ItemCreationService.prepareBookMedia(
-            draftMediaAssets,
-            itemID: itemID
-        )
-        draftBookID = itemID
+        draftBook = await ItemCreationService.prepareBookDraft(draftMediaAssets)
     }
 
     private func saveLibraryEdits(

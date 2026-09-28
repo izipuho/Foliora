@@ -9,7 +9,6 @@ struct BookEditorStateTests {
             id: UUID(),
             itemID: UUID(),
             kind: .photo,
-            localIdentifier: "cover.jpg",
             displayName: nil,
             sortOrder: 0,
             originalData: Data([0x01])
@@ -18,16 +17,20 @@ struct BookEditorStateTests {
             id: UUID(),
             itemID: UUID(),
             kind: .photo,
-            localIdentifier: "media.jpg",
             displayName: nil,
             sortOrder: 0,
             originalData: Data([0x02])
         )
 
+        let creationDraft = BookCreationDraft(
+            itemID: UUID(),
+            coverImage: cover,
+            mediaAssets: [media],
+            usedOriginalCover: false
+        )
         var state = BookEditorState(
             book: nil,
-            initialCoverImage: cover,
-            initialMediaAssets: [media]
+            creationDraft: creationDraft
         )
         state.title = "Book"
 
@@ -35,7 +38,7 @@ struct BookEditorStateTests {
         #expect(state.coverImage?.originalData == cover.originalData)
         #expect(state.mediaAssets.map(\.id) == [media.id])
 
-        let itemID = UUID()
+        let itemID = creationDraft.itemID
         let book = state.makeBook(
             itemID: itemID,
             collectionID: UUID(),
@@ -51,7 +54,7 @@ struct BookEditorStateTests {
 
     @Test
     func validatesTitlePageCountVolumeAndCoverGeneration() {
-        var state = BookEditorState(book: nil, initialMediaAssets: [])
+        var state = BookEditorState(book: nil)
 
         #expect(!state.isTitleValid)
         #expect(!state.canSave(isGeneratingCoverImage: false))
@@ -148,7 +151,7 @@ struct BookEditorStateTests {
             )
         )
 
-        var state = BookEditorState(book: existing, initialMediaAssets: [])
+        var state = BookEditorState(book: existing)
         state.title = "  New Title  "
         state.notes = "  New Notes  "
         state.subtitle = "  Subtitle  "
@@ -232,7 +235,7 @@ struct BookEditorStateTests {
             )
         )
 
-        var state = BookEditorState(book: existing, initialMediaAssets: [])
+        var state = BookEditorState(book: existing)
         state.selectedLocationID = nil
 
         let result = state.makeBook(
@@ -250,7 +253,7 @@ struct BookEditorStateTests {
 
     @Test
     func publicationYearOptionsIncludeSelectedHistoricYear() {
-        var state = BookEditorState(book: nil, initialMediaAssets: [])
+        var state = BookEditorState(book: nil)
         state.selectedPublicationYearOption = "1888"
 
         #expect(state.publicationYearOptions.contains("1888"))

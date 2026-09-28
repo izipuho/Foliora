@@ -337,7 +337,7 @@ struct BellDetailView: View {
                     TabView(selection: $selectedHeroPhotoID) {
                         ForEach(heroPhotoAssets) { asset in
                             MediaPreviewImage(
-                                identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
+                                assetID: asset.id,
                                 originalData: asset.originalData,
                                 size: CGSize(width: proxy.size.width, height: 320)
                             )

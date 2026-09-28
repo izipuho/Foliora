@@ -30,7 +30,6 @@ struct CoreDataBookCoverPersistenceTests {
             id: UUID(),
             itemID: itemID,
             kind: .photo,
-            localIdentifier: "original-cover.jpg",
             displayName: "Cover",
             sortOrder: 0,
             fileName: "original-cover.jpg",
@@ -80,7 +79,6 @@ struct CoreDataBookCoverPersistenceTests {
         let persistedCover = try #require(persisted.details.coverImage)
 
         #expect(persistedCover.id == cover.id)
-        #expect(persistedCover.localIdentifier == cover.localIdentifier)
         #expect(persistedCover.originalData == coverData)
         #expect(persistedCover.width == cover.width)
         #expect(persistedCover.height == cover.height)
@@ -102,7 +100,6 @@ struct CoreDataBookCoverPersistenceTests {
         let refreshedCover = try #require(refreshed.details.coverImage)
 
         #expect(refreshedCover.id == cover.id)
-        #expect(refreshedCover.localIdentifier == cover.localIdentifier)
         #expect(refreshedCover.originalData == coverData)
         #expect(refreshedCover.width == cover.width)
         #expect(refreshedCover.height == cover.height)

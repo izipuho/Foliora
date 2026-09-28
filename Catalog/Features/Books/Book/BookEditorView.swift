@@ -106,10 +106,7 @@ struct BookEditorView: View {
 
     init(
         collection: CollectionSummary,
-        itemID: UUID? = nil,
-        initialCoverImage: MediaAsset? = nil,
-        initialMediaAssets: [MediaAsset] = [],
-        initialUsedOriginalCover: Bool = false,
+        creationDraft: BookCreationDraft? = nil,
         book: BookRecord? = nil,
         genreSuggestions: [String] = [],
         onDelete: (() -> Void)? = nil,
@@ -121,11 +118,11 @@ struct BookEditorView: View {
         self.onDelete = onDelete
         self.onSave = onSave
 
-        let editorItemID = book?.id ?? itemID ?? UUID()
+        let creationDraft = book == nil ? creationDraft : nil
+        let editorItemID = book?.id ?? creationDraft?.itemID ?? UUID()
         let initialState = BookEditorState(
             book: book,
-            initialCoverImage: initialCoverImage,
-            initialMediaAssets: initialMediaAssets
+            creationDraft: creationDraft
         )
 
         _editorItemID = State(initialValue: editorItemID)
@@ -138,7 +135,7 @@ struct BookEditorView: View {
         )
         _editorState = State(initialValue: initialState)
         _isPresentingCoverCaptureFailure = State(
-            initialValue: book == nil && initialUsedOriginalCover
+            initialValue: creationDraft?.usedOriginalCover == true
         )
     }
 
@@ -764,16 +761,16 @@ struct BookEditorView: View {
                 photoNormalizationCount -= 1
             }
 
-            let prepared = await ItemCreationService.prepareBookMedia(
+            let creationDraft = await ItemCreationService.prepareBookDraft(
                 [sourceAsset],
                 itemID: editorItemID
             )
-            guard let coverImage = prepared.coverImage else { return }
+            guard let coverImage = creationDraft.coverImage else { return }
 
             editorState.mediaAssets.removeAll { $0.id == sourceAsset.id }
             normalizeMediaSortOrder()
             editorState.coverImage = coverImage
-            isPresentingCoverCaptureFailure = prepared.usedOriginalCover
+            isPresentingCoverCaptureFailure = creationDraft.usedOriginalCover
 
             photoAnalysis.analyzeAddedCreation(
                 assetID: coverImage.id,

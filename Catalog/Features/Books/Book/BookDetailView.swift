@@ -468,6 +468,7 @@ struct BookDetailView: View {
             MediaSection(
                 itemID: book.id,
                 mediaAssets: detailMediaAssetsBinding,
+                leadingMediaAsset: book.cover.mediaAsset,
                 allowsAdding: canEditCollection,
                 allowsDeletion: false
             )
@@ -541,7 +542,7 @@ struct BookDetailView: View {
     }
 
     private var detailPreviewAssets: [MediaAsset] {
-        [book.details.coverImage].compactMap { $0 } + book.mediaAssets
+        [book.cover.mediaAsset].compactMap { $0 } + book.mediaAssets
     }
 
     private var detailMediaAssets: [MediaAsset] {

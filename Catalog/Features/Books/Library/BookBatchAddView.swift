@@ -1,12 +1,17 @@
 import CoreData
 import SwiftUI
 
+private enum BookBatchCreationState: Equatable {
+    case editing
+    case completed(createdCount: Int, reviewQuery: String)
+}
+
 /// Creates one book per selected photo using a shared set of direct item and book fields.
 struct BookBatchAddView: View {
     let collection: CollectionSummary
     let initialMediaAssets: [MediaAsset]
     let repository: any AppRepository
-    private let onComplete: () -> Void
+    private let onComplete: (BatchAddCompletionAction) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var managedObjectContext
@@ -28,6 +33,7 @@ struct BookBatchAddView: View {
     @State private var catalogSeries: [BookSeries] = []
     @State private var catalogGenreSuggestions: [String] = []
     @State private var isCreatingBooks = false
+    @State private var creationState: BookBatchCreationState = .editing
 
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -36,7 +42,7 @@ struct BookBatchAddView: View {
         collection: CollectionSummary,
         initialMediaAssets: [MediaAsset],
         repository: any AppRepository,
-        onComplete: @escaping () -> Void = {}
+        onComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
     ) {
         self.collection = collection
         self.initialMediaAssets = initialMediaAssets
@@ -46,113 +52,111 @@ struct BookBatchAddView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("common.book") {
-                    BookBatchNamedPickerField(
-                        title: String(localized: "book.field.author"),
-                        selection: $selectedAuthor,
-                        values: catalogPeople,
-                        name: \.displayName,
-                        subtitle: { _ in nil },
-                        create: { name in
-                            Person(
-                                id: UUID(),
-                                collectionID: collection.id,
-                                givenName: name,
-                                birthYear: nil,
-                                deathYear: nil,
-                                biography: nil,
-                                birthPlace: nil,
-                                deathPlace: nil,
-                                photos: []
-                            )
-                        },
-                        onCreate: { catalogPeople.append($0) }
-                    )
+            Group {
+                if case .completed(let createdCount, let reviewQuery) = creationState {
+                    completionContent(createdCount: createdCount, reviewQuery: reviewQuery)
+                } else {
+                    Form {
+                    Section("common.book") {
+                        BookBatchNamedPickerField(
+                            title: String(localized: "book.field.author"),
+                            selection: $selectedAuthor,
+                            values: catalogPeople,
+                            name: \.displayName,
+                            subtitle: { _ in nil },
+                            create: { name in
+                                Person(
+                                    id: UUID(),
+                                    collectionID: collection.id,
+                                    givenName: name,
+                                    birthYear: nil,
+                                    deathYear: nil,
+                                    biography: nil,
+                                    birthPlace: nil,
+                                    deathPlace: nil,
+                                    photos: []
+                                )
+                            },
+                            onCreate: { catalogPeople.append($0) }
+                        )
 
-                    BookBatchNamedPickerField(
-                        title: String(localized: "publisher.title"),
-                        selection: $selectedPublisher,
-                        values: catalogPublishers,
-                        name: \.name,
-                        subtitle: { _ in nil },
-                        create: { name in
-                            Publisher(
-                                id: UUID(),
-                                collectionID: collection.id,
-                                name: name
-                            )
-                        },
-                        onCreate: { catalogPublishers.append($0) }
-                    )
+                        BookBatchNamedPickerField(
+                            title: String(localized: "publisher.title"),
+                            selection: $selectedPublisher,
+                            values: catalogPublishers,
+                            name: \.name,
+                            subtitle: { _ in nil },
+                            create: { name in
+                                Publisher(
+                                    id: UUID(),
+                                    collectionID: collection.id,
+                                    name: name
+                                )
+                            },
+                            onCreate: { catalogPublishers.append($0) }
+                        )
 
-                    BookBatchNamedPickerField(
-                        title: String(localized: "series.title"),
-                        selection: $selectedSeries,
-                        values: catalogSeries,
-                        name: \.name,
-                        subtitle: { series in
-                            series.totalBookCount.map { CollectionKind.bookCountLabel(for: $0) }
-                        },
-                        create: { name in
-                            BookSeries(
-                                id: UUID(),
-                                collectionID: collection.id,
-                                name: name,
-                                totalBookCount: nil,
-                                publisher: nil
-                            )
-                        },
-                        onCreate: { catalogSeries.append($0) }
-                    )
+                        BookBatchNamedPickerField(
+                            title: String(localized: "series.title"),
+                            selection: $selectedSeries,
+                            values: catalogSeries,
+                            name: \.name,
+                            subtitle: { series in
+                                series.totalBookCount.map { CollectionKind.bookCountLabel(for: $0) }
+                            },
+                            create: { name in
+                                BookSeries(
+                                    id: UUID(),
+                                    collectionID: collection.id,
+                                    name: name,
+                                    totalBookCount: nil,
+                                    publisher: nil
+                                )
+                            },
+                            onCreate: { catalogSeries.append($0) }
+                        )
 
-                    BookBatchLanguagePickerField(languageCode: $languageCode)
+                        BookBatchLanguagePickerField(languageCode: $languageCode)
 
-                    BookBatchLookupTextField(
-                        title: String(localized: "book.field.genre"),
-                        value: $genre,
-                        suggestions: catalogGenreSuggestions
-                    )
-                }
-
-                Section(String(localized: "item.detail.section.collection_info")) {
-                    YearPickerField(
-                        title: String(localized: "item.detail.acquisition_year"),
-                        selection: $selectedAcquiredYearOption,
-                        options: acquiredYearOptions
-                    )
-
-                    EnumSelectionRow(
-                        title: String(localized: "item.detail.acquisition"),
-                        selectedLabel: acquisitionMethod.displayName,
-                        options: AcquisitionMethod.allCases,
-                        selection: $acquisitionMethod,
-                        optionTitle: \.displayName
-                    )
-
-                    EnumSelectionRow(
-                        title: String(localized: "common.field.condition"),
-                        selectedLabel: condition.displayName,
-                        options: ItemCondition.allCases,
-                        selection: $condition,
-                        optionTitle: \.displayName
-                    )
-                }
-
-                Section(String(localized: "common.field.tags")) {
-                    TagEditorSection(
-                        tagInput: $tagInput,
-                        tags: $tags
-                    )
-                }
-
-                Section {
-                    Button(createButtonLabel) {
-                        Task {
-                            await createBooks()
-                        }
+                        BookBatchLookupTextField(
+                            title: String(localized: "book.field.genre"),
+                            value: $genre,
+                            suggestions: catalogGenreSuggestions
+                        )
                     }
-                    .disabled(initialMediaAssets.isEmpty || isCreatingBooks)
+
+                    Section(String(localized: "item.detail.section.collection_info")) {
+                        YearPickerField(
+                            title: String(localized: "item.detail.acquisition_year"),
+                            selection: $selectedAcquiredYearOption,
+                            options: acquiredYearOptions
+                        )
+
+                        EnumSelectionRow(
+                            title: String(localized: "item.detail.acquisition"),
+                            selectedLabel: acquisitionMethod.displayName,
+                            options: AcquisitionMethod.allCases,
+                            selection: $acquisitionMethod,
+                            optionTitle: \.displayName
+                        )
+
+                        EnumSelectionRow(
+                            title: String(localized: "common.field.condition"),
+                            selectedLabel: condition.displayName,
+                            options: ItemCondition.allCases,
+                            selection: $condition,
+                            optionTitle: \.displayName
+                        )
+                    }
+
+                    Section(String(localized: "common.field.tags")) {
+                        TagEditorSection(
+                            tagInput: $tagInput,
+                            tags: $tags
+                        )
+                    }
+
+                    }
                 }
             }
             .navigationTitle(String(localized: "bell_batch_add.title"))
@@ -164,11 +168,52 @@ struct BookBatchAddView: View {
                     }
                     .accessibilityLabel(String(localized: "common.cancel"))
                 }
+
+                if showsCreationToolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text(createButtonLabel)
+                            .font(CatalogTypography.sectionTitle)
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            Task {
+                                await createBooks()
+                            }
+                        } label: {
+                            Image(systemName: "checkmark")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.accentColor)
+                        .disabled(initialMediaAssets.isEmpty || isCreatingBooks)
+                        .accessibilityLabel(createButtonLabel)
+                    }
+                }
             }
             .task(id: collection.id) {
                 loadCatalogMetadata()
             }
         }
+    }
+
+    private func completionContent(createdCount: Int, reviewQuery: String) -> some View {
+        CatalogEmptyStateView(
+            systemImage: "checkmark.circle",
+            title: LocalizedStringKey(String(localized: "book_batch_add.completion.title")),
+            message: LocalizedStringKey(completionMessage(createdCount: createdCount)),
+            primaryActionTitle: LocalizedStringKey(String(localized: "common.done")),
+            primaryTint: .accentColor,
+            primaryAction: { onComplete(.done) },
+            secondaryActionTitle: LocalizedStringKey(String(localized: "book_batch_add.review_results")),
+            secondaryAction: { onComplete(.reviewResults(reviewQuery)) }
+        )
+    }
+
+    private func completionMessage(createdCount: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "book_batch_add.completion.message"),
+            createdCount
+        )
     }
 
     private var localizedBookCount: String {
@@ -180,6 +225,13 @@ struct BookBatchAddView: View {
             String(localized: "common.create_format"),
             localizedBookCount
         )
+    }
+
+    private var showsCreationToolbar: Bool {
+        if case .completed = creationState {
+            return false
+        }
+        return true
     }
 
     @MainActor
@@ -220,17 +272,12 @@ struct BookBatchAddView: View {
             [BookContributor(role: .author, order: 0, person: $0)]
         } ?? []
 
-        var books: [BookRecord] = []
+        var creations: [(book: BookRecord, recognitionAssets: [MediaAsset])] = []
         for (index, mediaAsset) in initialMediaAssets.enumerated() {
-            let itemID = UUID()
-            let prepared = await ItemCreationService.prepareBookMedia(
-                [mediaAsset],
-                itemID: itemID
-            )
+            let creationDraft = await ItemCreationService.prepareBookDraft([mediaAsset])
             var state = BookEditorState(
                 book: nil,
-                initialCoverImage: prepared.coverImage,
-                initialMediaAssets: prepared.mediaAssets
+                creationDraft: creationDraft
             )
             state.title = "\(batchPrefix) · \(index + 1)"
             state.selectedAcquiredYearOption = selectedAcquiredYearOption
@@ -243,28 +290,28 @@ struct BookBatchAddView: View {
             state.contributors = contributors
             state.selectedSeries = selectedSeries
 
-            books.append(
-                state.makeBook(
-                    itemID: itemID,
-                    collectionID: collection.id,
-                    existingBook: nil,
-                    storageLocation: nil,
-                    storagePath: nil,
-                    createdAt: timestamp
-                )
+            let book = state.makeBook(
+                itemID: creationDraft.itemID,
+                collectionID: collection.id,
+                existingBook: nil,
+                storageLocation: nil,
+                storagePath: nil,
+                createdAt: timestamp
+            )
+            creations.append(
+                (book: book, recognitionAssets: creationDraft.recognitionAssets)
             )
         }
 
-        repository.saveBookRecords(books)
-        for book in books {
+        repository.saveBookRecords(creations.map(\.book))
+        for creation in creations {
             BookPhotoAnalysisController.startCreation(
-                itemID: book.id,
-                assets: [book.details.coverImage].compactMap { $0 } + book.mediaAssets,
+                itemID: creation.book.id,
+                assets: creation.recognitionAssets,
                 repository: repository
             )
         }
-        onComplete()
-        dismiss()
+        creationState = .completed(createdCount: creations.count, reviewQuery: batchPrefix)
     }
 
     private func normalizedGenreSuggestions(_ values: [String]) -> [String] {
@@ -724,7 +771,6 @@ private func batchBookLanguageDisplayName(for code: String) -> String {
                 id: UUID(),
                 itemID: UUID(),
                 kind: .photo,
-                localIdentifier: "",
                 displayName: nil,
                 sortOrder: 0
             )

@@ -1,7 +1,7 @@
 import SwiftUI
 import CoreData
 
-private typealias BatchCompletionHandler = (Any) -> Void
+private typealias BatchCompletionHandler = (BatchAddCompletionAction) -> Void
 typealias CollectionItemSelectionHandler = (UUID, CollectionSharingState?) -> Void
 
 /// Defines the supported app destination values.
@@ -490,20 +490,13 @@ private struct RootShellView<Destination: View>: View {
         }
     }
 
-    private func handleBatchAddCompletion(_ action: Any) {
-        guard let query = reviewResultsQuery(from: action) else { return }
+    private func handleBatchAddCompletion(_ action: BatchAddCompletionAction) {
+        guard case .reviewResults(let query) = action else { return }
         searchInitialQuery = query
         searchResetID = UUID()
         selectedRootTab = .search
         closeItemDetail()
         searchPath = NavigationPath()
-    }
-
-    private func reviewResultsQuery(from action: Any) -> String? {
-        guard case "reviewResults" = String(describing: action).split(separator: "(").first else {
-            return nil
-        }
-        return Mirror(reflecting: action).children.first?.value as? String
     }
 
     private func popCollectionsNavigation() {

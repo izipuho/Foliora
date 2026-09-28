@@ -536,7 +536,7 @@ func makeCollectionDestinationContent(
     coreDataContainer: NSPersistentCloudKitContainer,
     layoutMode: Binding<CatalogCardLayoutMode>,
     onItemSelected: CollectionItemSelectionHandler?,
-    onBatchAddComplete: @escaping (Any) -> Void
+    onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void
 ) -> AnyView {
     AnyView(
         BellCollectionView(

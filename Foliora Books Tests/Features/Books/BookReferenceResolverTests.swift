@@ -114,7 +114,6 @@ struct BookReferenceResolverTests {
         let sourcePhoto = MediaAsset(
             id: UUID(),
             kind: .photo,
-            localIdentifier: "source-photo",
             displayName: "Portrait",
             sortOrder: 0,
             mimeType: "image/jpeg",
@@ -143,7 +142,6 @@ struct BookReferenceResolverTests {
         #expect(resolved?.givenName == source.givenName)
         #expect(resolved?.familyName == source.familyName)
         #expect(resolved?.photos.first?.id != sourcePhoto.id)
-        #expect(resolved?.photos.first?.localIdentifier != sourcePhoto.localIdentifier)
         #expect(resolved?.photos.first?.originalData == sourcePhoto.originalData)
 
         guard let resolved else { return }
@@ -165,7 +163,6 @@ struct BookReferenceResolverTests {
         let sourceLogo = MediaAsset(
             id: UUID(),
             kind: .photo,
-            localIdentifier: "source-logo",
             displayName: "Logo",
             sortOrder: 0,
             mimeType: "image/png",
@@ -195,7 +192,6 @@ struct BookReferenceResolverTests {
         #expect(resolved?.collectionID == testCollectionID)
         #expect(resolved?.name == source.name)
         #expect(resolved?.logo?.id != sourceLogo.id)
-        #expect(resolved?.logo?.localIdentifier != sourceLogo.localIdentifier)
         #expect(resolved?.logo?.originalData == sourceLogo.originalData)
 
         guard let resolved else { return }

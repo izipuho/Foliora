@@ -5,8 +5,8 @@ import Testing
 struct BookCoverResolutionTests {
     @Test
     func dedicatedCoverWinsOverMediaPhoto() {
-        let dedicatedCover = photo(identifier: "dedicated")
-        let mediaPhoto = photo(identifier: "media")
+        let dedicatedCover = photo()
+        let mediaPhoto = photo()
         let book = makeBook(
             coverImage: dedicatedCover,
             mediaAssets: [mediaPhoto]
@@ -87,14 +87,10 @@ struct BookCoverResolutionTests {
         )
     }
 
-    private func photo(
-        identifier: String,
-        sortOrder: Int = 0
-    ) -> MediaAsset {
+    private func photo(sortOrder: Int = 0) -> MediaAsset {
         MediaAsset(
             id: UUID(),
             kind: .photo,
-            localIdentifier: identifier,
             displayName: nil,
             sortOrder: sortOrder
         )

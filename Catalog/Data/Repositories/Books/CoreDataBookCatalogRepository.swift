@@ -192,7 +192,6 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
             id: existing?.value(forKey: "id") as? UUID ?? UUID(),
             itemID: nil,
             kind: logo.kind,
-            localIdentifier: existing?.value(forKey: "localIdentifier") as? String ?? UUID().uuidString,
             displayName: logo.displayName,
             sortOrder: 0,
             fileName: logo.fileName,
