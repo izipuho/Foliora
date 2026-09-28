@@ -284,7 +284,7 @@ struct BookEditorView: View {
                             } label: {
                                 Label(
                                     String(localized: "editor.photo_analysis.rerun"),
-                                    systemImage: "arrow.clockwise"
+                                    systemImage: "photo.badge.magnifyingglass"
                                 )
                             }
                         }
