@@ -287,10 +287,11 @@ struct BellBatchAddView: View {
     }
 
     private func completionMessage(createdCount: Int) -> String {
-        String.localizedStringWithFormat(
+        let createdMessage = String.localizedStringWithFormat(
             String(localized: "bell_batch_add.completion.message"),
             createdCount
         )
+        return createdMessage + "\n" + String(localized: "batch_add.completion.recognition_note")
     }
 
     private var canCreateBatch: Bool {
