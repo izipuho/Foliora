@@ -4895,6 +4895,22 @@
         }
       }
     },
+    "editor.photo_analysis.rerun" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recognize Again"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Распознать заново"
+          }
+        }
+      }
+    },
     "editor.photo_analysis.section" : {
       "localizations" : {
         "en" : {
