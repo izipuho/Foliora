@@ -1,8 +1,9 @@
+import Dispatch
 import Foundation
 import Observation
 import UIKit
 
-/// Represents typed suggestions produced from one book photo.
+/// Represents typed suggestions produced from one or more photos of a book.
 struct BookPhotoSuggestions: Sendable {
     let title: SuggestedFieldValue<String>?
     let authors: [SuggestedFieldValue<String>]
@@ -44,17 +45,17 @@ enum BookPhotoAnalysisError: LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .imageUnavailable:
-            return "The source image cannot be analyzed as a CGImage."
+            return "One or more source images cannot be analyzed as CGImages."
         case .bibliographicTimeout:
             return "Foundation Models bibliographic extraction timed out."
         }
     }
 }
 
-/// Orchestrates generic photo analysis and book-specific recognition for one image.
+/// Orchestrates generic item-level photo analysis and book-specific recognition.
 @MainActor
 @Observable
-final class BookPhotoAnalysisController {
+final class BookPhotoAnalysisController: ItemCreationRecognitionController {
     enum Field {
         case title
         case authors
@@ -66,9 +67,15 @@ final class BookPhotoAnalysisController {
         case volumeNumber
     }
 
+    private struct PendingPhoto {
+        let assetID: UUID
+        let image: CGImage
+    }
+
     private(set) var isAnalyzing = false
     private(set) var suggestions: BookPhotoSuggestions = .empty
     private(set) var recognizedText: [RecognizedTextFeature] = []
+    private(set) var mediaSnapshot: ItemRecognitionMediaSnapshot = .empty
     private(set) var analysisError: (any Error)?
     private(set) var photoAnalysisFailures: [PhotoAnalysisFailure] = []
 
@@ -76,6 +83,21 @@ final class BookPhotoAnalysisController {
     private let identifierExtractor: any BookIdentifierExtracting
     private let bibliographicExtractor: any BookBibliographicExtracting
     private let bibliographicTimeout: Duration
+
+    private var analysisByAssetID: [UUID: PhotoAnalysisResult] = [:]
+    private var analysisOrder: [UUID] = []
+    private var pendingBatches: [[PendingPhoto]] = []
+    private var isProcessingBatch = false
+    private var evidenceRevision = 0
+    private var activeSuggestionRefreshID: UUID?
+    private var bibliographicTask: Task<Void, Never>?
+    private var bibliographicTimeoutWorkItem: DispatchWorkItem?
+    private var persistenceItemID: UUID?
+    private var persistenceRepository: (any CatalogRepository)?
+    private var persistedEvidence: ItemRecognitionEvidence?
+    private var persistedEvidenceAssetIDs: Set<UUID> = []
+    private(set) var isRestoredFromPersistence = false
+    private(set) var requiresFullAnalysis = false
 
     init() {
         self.service = DefaultPhotoAnalysisService()
@@ -100,53 +122,198 @@ final class BookPhotoAnalysisController {
         isAnalyzing || suggestions.hasSuggestions
     }
 
-    func analyze(image: UIImage) {
-        guard let cgImage = image.photoAnalysisCGImage else {
-            recognizedText = []
-            photoAnalysisFailures = []
-            analysisError = BookPhotoAnalysisError.imageUnavailable
-            isAnalyzing = false
+    func configurePersistence(
+        itemID: UUID,
+        repository: any CatalogRepository,
+        currentSnapshot: ItemRecognitionMediaSnapshot
+    ) {
+        persistenceItemID = itemID
+        persistenceRepository = repository
+
+        guard !isAnalyzing,
+              analysisByAssetID.isEmpty,
+              pendingBatches.isEmpty,
+              !suggestions.hasSuggestions,
+              recognizedText.isEmpty,
+              let record = repository.itemRecognition(for: itemID) else {
             return
         }
 
+        guard record.schemaVersion == ItemRecognitionRecord.currentSchemaVersion else {
+            repository.deleteItemRecognition(for: itemID)
+            return
+        }
+
+        guard record.photoAssetIDs == currentSnapshot.photoAssetIDs else {
+            // CloudKit can deliver the Item media graph and its recognition record at different times.
+            // Keep a valid recognition record until the local media snapshot catches up or a local
+            // recognition mutation explicitly invalidates it.
+            mediaSnapshot = currentSnapshot
+            return
+        }
+
+        guard let evidenceData = record.evidenceData,
+              let evidence = try? JSONDecoder().decode(
+                ItemRecognitionEvidence.self,
+                from: evidenceData
+              ),
+              let resultData = record.resultData,
+              let persisted = try? JSONDecoder().decode(
+                BookPersistedRecognitionResult.self,
+                from: resultData
+              ) else {
+            repository.deleteItemRecognition(for: itemID)
+            return
+        }
+
+        mediaSnapshot = currentSnapshot
+        persistedEvidence = evidence
+        persistedEvidenceAssetIDs = record.photoAssetIDs
+        suggestions = persisted.runtimeSuggestions
+        recognizedText = persisted.runtimeRecognizedText
+        analysisError = nil
+        photoAnalysisFailures = []
+        isRestoredFromPersistence = true
+        requiresFullAnalysis = false
+    }
+
+    func flushPersistedResultIfPossible() {
+        persistCurrentResultIfPossible()
+    }
+
+    func analyze(image: UIImage) {
+        analyze(images: [image])
+    }
+
+    func analyze(images: [UIImage]) {
+        analyze(
+            photos: images.map {
+                (assetID: UUID(), image: $0)
+            }
+        )
+    }
+
+    func analyze(photos: [(assetID: UUID, image: UIImage)]) {
+        deletePersistedResult()
+        persistedEvidence = nil
+        persistedEvidenceAssetIDs.removeAll()
+        isRestoredFromPersistence = false
+        requiresFullAnalysis = false
+        analysisByAssetID.removeAll()
+        analysisOrder.removeAll()
+        pendingBatches.removeAll()
+        evidenceRevision += 1
+        activeSuggestionRefreshID = nil
+        bibliographicTask?.cancel()
+        bibliographicTimeoutWorkItem?.cancel()
+        bibliographicTask = nil
+        bibliographicTimeoutWorkItem = nil
         suggestions = .empty
         recognizedText = []
         photoAnalysisFailures = []
         analysisError = nil
-        isAnalyzing = true
+        mediaSnapshot = ItemRecognitionMediaSnapshot(
+            photoAssetIDs: Set(photos.map(\.assetID))
+        )
 
-        Task {
-            defer {
+        let pending = pendingPhotos(from: photos)
+        guard pending.count == photos.count else {
+            analysisError = BookPhotoAnalysisError.imageUnavailable
+            if pending.isEmpty, !isProcessingBatch {
                 isAnalyzing = false
             }
-
-            let analysis = await service.analyze(image: cgImage)
-            // Keep raw OCR evidence available to the editor even when Foundation Models cannot run.
-            recognizedText = Self.readingOrderedText(
-                analysis.main.recognizedText + analysis.background.recognizedText
-            )
-            // Preserve every partial Vision failure so callers can distinguish "nothing found" from "request failed".
-            photoAnalysisFailures = analysis.failures
-
-            let identifiers = identifierExtractor.extract(from: analysis)
-
-            // Deterministic identifiers remain useful even if Foundation Models is unavailable or fails.
-            suggestions = suggestions(
-                bibliography: .empty,
-                identifiers: identifiers
-            )
-
-            do {
-                let bibliography = try await extractBibliography(from: analysis)
-                suggestions = suggestions(
-                    bibliography: bibliography,
-                    identifiers: identifiers
-                )
-            } catch {
-                // Convert the failure into explicit controller state without discarding partial results.
-                analysisError = error
+            if pending.isEmpty {
+                return
             }
+            enqueue(pending)
+            return
         }
+
+        analysisOrder = pending.map(\.assetID)
+        enqueue(pending)
+    }
+
+    func analyzeAddedPhoto(assetID: UUID, image: UIImage) {
+        guard !requiresFullAnalysis else { return }
+        guard let cgImage = image.photoAnalysisCGImage else {
+            analysisError = BookPhotoAnalysisError.imageUnavailable
+            return
+        }
+
+        deletePersistedResult()
+        isRestoredFromPersistence = false
+        mediaSnapshot = ItemRecognitionMediaSnapshot(
+            photoAssetIDs: mediaSnapshot.photoAssetIDs.union([assetID])
+        )
+        if !analysisOrder.contains(assetID) {
+            analysisOrder.append(assetID)
+        }
+        enqueue([PendingPhoto(assetID: assetID, image: cgImage)])
+    }
+
+    func reconcileMediaSnapshot(_ snapshot: ItemRecognitionMediaSnapshot) {
+        guard snapshot != mediaSnapshot else { return }
+
+        let removedAssetIDs = mediaSnapshot.photoAssetIDs.subtracting(snapshot.photoAssetIDs)
+        let validAssetIDs = snapshot.photoAssetIDs
+
+        let ownsRecognitionState =
+            persistedEvidence != nil
+            || !analysisByAssetID.isEmpty
+            || !pendingBatches.isEmpty
+            || isProcessingBatch
+
+        // A media snapshot can change while CloudKit is still converging. If this controller has
+        // not restored or produced recognition evidence yet, do not turn that passive sync change
+        // into a deletion of a potentially valid remote recognition record.
+        guard ownsRecognitionState else {
+            mediaSnapshot = snapshot
+            return
+        }
+
+        deletePersistedResult()
+        mediaSnapshot = snapshot
+
+        let removedPersistedAssetIDs = removedAssetIDs.intersection(persistedEvidenceAssetIDs)
+        if !removedPersistedAssetIDs.isEmpty {
+            persistedEvidence = nil
+            persistedEvidenceAssetIDs.removeAll()
+            isRestoredFromPersistence = false
+            requiresFullAnalysis = true
+            analysisByAssetID.removeAll()
+            analysisOrder.removeAll()
+            pendingBatches.removeAll()
+            evidenceRevision += 1
+            suggestions = .empty
+            recognizedText = []
+            photoAnalysisFailures = []
+            analysisError = nil
+            if !isProcessingBatch {
+                isAnalyzing = false
+            }
+            return
+        }
+
+        isRestoredFromPersistence = false
+        analysisByAssetID = analysisByAssetID.filter { validAssetIDs.contains($0.key) }
+        analysisOrder.removeAll { !validAssetIDs.contains($0) }
+        pendingBatches = pendingBatches.compactMap { batch in
+            let filtered = batch.filter { validAssetIDs.contains($0.assetID) }
+            return filtered.isEmpty ? nil : filtered
+        }
+
+        guard !removedAssetIDs.isEmpty else { return }
+
+        evidenceRevision += 1
+        let revision = evidenceRevision
+
+        guard !isProcessingBatch else { return }
+
+        isAnalyzing = true
+        refreshSuggestions(
+            for: revision,
+            completion: .standalone
+        )
     }
 
     func dismiss(_ field: Field) {
@@ -160,51 +327,231 @@ final class BookPhotoAnalysisController {
             series: field == .series ? nil : suggestions.series,
             volumeNumber: field == .volumeNumber ? nil : suggestions.volumeNumber
         )
+        persistCurrentResultIfPossible()
     }
 
     func clear() {
+        deletePersistedResult()
+        persistedEvidence = nil
+        persistedEvidenceAssetIDs.removeAll()
+        isRestoredFromPersistence = false
+        requiresFullAnalysis = false
+        analysisByAssetID.removeAll()
+        analysisOrder.removeAll()
+        pendingBatches.removeAll()
+        evidenceRevision += 1
+        activeSuggestionRefreshID = nil
+        bibliographicTask?.cancel()
+        bibliographicTimeoutWorkItem?.cancel()
+        bibliographicTask = nil
+        bibliographicTimeoutWorkItem = nil
         suggestions = .empty
         recognizedText = []
         photoAnalysisFailures = []
         analysisError = nil
-        isAnalyzing = false
+        mediaSnapshot = .empty
+        if !isProcessingBatch {
+            isAnalyzing = false
+        }
+    }
+
+    private func pendingPhotos(
+        from photos: [(assetID: UUID, image: UIImage)]
+    ) -> [PendingPhoto] {
+        photos.compactMap { photo in
+            guard let cgImage = photo.image.photoAnalysisCGImage else { return nil }
+            return PendingPhoto(assetID: photo.assetID, image: cgImage)
+        }
+    }
+
+    private func enqueue(_ photos: [PendingPhoto]) {
+        guard !photos.isEmpty else { return }
+        for photo in photos where !analysisOrder.contains(photo.assetID) {
+            analysisOrder.append(photo.assetID)
+        }
+        pendingBatches.append(photos)
+        processNextBatchIfNeeded()
+    }
+
+    private func processNextBatchIfNeeded() {
+        guard !isProcessingBatch else { return }
+        guard !pendingBatches.isEmpty else {
+            isAnalyzing = false
+            persistCurrentResultIfPossible()
+            return
+        }
+
+        let batch = pendingBatches.removeFirst()
+        isProcessingBatch = true
+        isAnalyzing = true
+
+        Task {
+            let analysis = await service.analyze(images: batch.map(\.image))
+
+            for (photo, result) in zip(batch, analysis.photos) where analysisOrder.contains(photo.assetID) {
+                analysisByAssetID[photo.assetID] = result
+            }
+
+            evidenceRevision += 1
+            refreshSuggestions(
+                for: evidenceRevision,
+                completion: .batch
+            )
+        }
+    }
+
+    private enum SuggestionRefreshCompletion {
+        case batch
+        case standalone
+    }
+
+    private func refreshSuggestions(
+        for revision: Int,
+        completion: SuggestionRefreshCompletion
+    ) {
+        let analysis = currentAnalysis
+        guard !analysis.photos.isEmpty else {
+            if revision == evidenceRevision {
+                suggestions = .empty
+                recognizedText = []
+                photoAnalysisFailures = []
+                analysisError = nil
+            }
+            finishSuggestionRefresh(completion)
+            return
+        }
+
+        let nextRecognizedText = analysis.photos.flatMap {
+            Self.readingOrderedText($0.main.recognizedText)
+        }
+        let nextFailures = analysis.photos.flatMap(\.failures)
+        let identifiers = identifierExtractor.extract(from: analysis)
+
+        guard revision == evidenceRevision else {
+            finishSuggestionRefresh(completion)
+            return
+        }
+
+        recognizedText = nextRecognizedText
+        photoAnalysisFailures = nextFailures
+        analysisError = nil
+        suggestions = suggestions(
+            bibliography: .empty,
+            identifiers: identifiers
+        )
+
+        bibliographicTask?.cancel()
+        bibliographicTimeoutWorkItem?.cancel()
+
+        let refreshID = UUID()
+        activeSuggestionRefreshID = refreshID
+        let extractor = bibliographicExtractor
+        let timeout = bibliographicTimeout
+
+        bibliographicTask = Task {
+            do {
+                let bibliography = try await extractor.extract(from: analysis)
+                finishSuggestionRefresh(
+                    id: refreshID,
+                    revision: revision,
+                    completion: completion,
+                    result: .success(bibliography),
+                    identifiers: identifiers
+                )
+            } catch {
+                finishSuggestionRefresh(
+                    id: refreshID,
+                    revision: revision,
+                    completion: completion,
+                    result: .failure(error),
+                    identifiers: identifiers
+                )
+            }
+        }
+
+        let timeoutWorkItem = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                self?.finishSuggestionRefresh(
+                    id: refreshID,
+                    revision: revision,
+                    completion: completion,
+                    result: .failure(BookPhotoAnalysisError.bibliographicTimeout),
+                    identifiers: identifiers
+                )
+            }
+        }
+        bibliographicTimeoutWorkItem = timeoutWorkItem
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + Self.timeInterval(for: timeout),
+            execute: timeoutWorkItem
+        )
+    }
+
+    private func finishSuggestionRefresh(
+        id: UUID,
+        revision: Int,
+        completion: SuggestionRefreshCompletion,
+        result: Result<BookBibliographicExtraction, Error>,
+        identifiers: [SuggestedFieldValue<BookIdentifier>]
+    ) {
+        guard activeSuggestionRefreshID == id else { return }
+
+        activeSuggestionRefreshID = nil
+        bibliographicTask?.cancel()
+        bibliographicTimeoutWorkItem?.cancel()
+        bibliographicTask = nil
+        bibliographicTimeoutWorkItem = nil
+
+        if revision == evidenceRevision {
+            switch result {
+            case .success(let bibliography):
+                suggestions = suggestions(
+                    bibliography: bibliography,
+                    identifiers: identifiers
+                )
+            case .failure(let error):
+                analysisError = error
+            }
+        }
+
+        finishSuggestionRefresh(completion)
+    }
+
+    private func finishSuggestionRefresh(_ completion: SuggestionRefreshCompletion) {
+        switch completion {
+        case .batch:
+            isProcessingBatch = false
+            processNextBatchIfNeeded()
+        case .standalone:
+            isAnalyzing = false
+            persistCurrentResultIfPossible()
+        }
+    }
+
+    private static func timeInterval(for duration: Duration) -> TimeInterval {
+        let components = duration.components
+        return TimeInterval(components.seconds)
+            + TimeInterval(components.attoseconds) / 1_000_000_000_000_000_000
+    }
+
+    private var currentAnalysis: MultiPhotoAnalysisResult {
+        var photos = analysisOrder.compactMap { analysisByAssetID[$0] }
+        if let persistedEvidence {
+            photos.insert(persistedEvidence.analysisResult, at: 0)
+        }
+        return MultiPhotoAnalysisResult(photos: photos)
     }
 
     private static func readingOrderedText(
         _ features: [RecognizedTextFeature]
     ) -> [RecognizedTextFeature] {
         features.sorted { lhs, rhs in
-            // Vision coordinates start at the lower-left. Quantizing Y keeps fragments on the same visual row ordered by X.
             let lhsRow = Int((lhs.boundingBox.midY * 50).rounded())
             let rhsRow = Int((rhs.boundingBox.midY * 50).rounded())
             if lhsRow != rhsRow {
                 return lhsRow > rhsRow
             }
             return lhs.boundingBox.minX < rhs.boundingBox.minX
-        }
-    }
-
-    private func extractBibliography(
-        from analysis: PhotoAnalysisResult
-    ) async throws -> BookBibliographicExtraction {
-        let extractor = bibliographicExtractor
-        let timeout = bibliographicTimeout
-
-        return try await withThrowingTaskGroup(of: BookBibliographicExtraction.self) { group in
-            group.addTask {
-                try await extractor.extract(from: analysis)
-            }
-            group.addTask {
-                try await Task.sleep(for: timeout)
-                throw BookPhotoAnalysisError.bibliographicTimeout
-            }
-
-            guard let result = try await group.next() else {
-                throw CancellationError()
-            }
-
-            group.cancelAll()
-            return result
         }
     }
 
@@ -223,7 +570,44 @@ final class BookPhotoAnalysisController {
             volumeNumber: bibliography.volumeNumber
         )
     }
+
+    private func persistCurrentResultIfPossible() {
+        let analysis = currentAnalysis
+        guard !requiresFullAnalysis,
+              !analysis.photos.isEmpty,
+              let itemID = persistenceItemID,
+              let repository = persistenceRepository,
+              let evidenceData = try? JSONEncoder().encode(
+                ItemRecognitionEvidence(analysis: analysis)
+              ),
+              let resultData = try? JSONEncoder().encode(
+                BookPersistedRecognitionResult(
+                    suggestions: suggestions,
+                    recognizedText: recognizedText
+                )
+              ) else {
+            return
+        }
+
+        _ = repository.saveItemRecognition(
+            ItemRecognitionRecord(
+                itemID: itemID,
+                photoAssetIDs: mediaSnapshot.photoAssetIDs,
+                evidenceData: evidenceData,
+                resultData: resultData
+            )
+        )
+    }
+
+    private func deletePersistedResult() {
+        guard let itemID = persistenceItemID,
+              let repository = persistenceRepository else {
+            return
+        }
+        repository.deleteItemRecognition(for: itemID)
+    }
 }
+
 
 private extension UIImage {
     /// Bakes UIImage orientation metadata into pixels before passing the image to Vision.

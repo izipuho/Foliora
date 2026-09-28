@@ -8,15 +8,14 @@ import UniformTypeIdentifiers
 struct MediaSection: View {
     let itemID: UUID
     @Binding var mediaAssets: [MediaAsset]
+    var leadingMediaAsset: MediaAsset? = nil
     var maxMediaCount: Int? = nil
     var analysisHighlightedAssetID: UUID? = nil
     var allowsAdding = true
     var allowsDeletion = true
+    var onLeadingMediaAssetDelete: (() -> Void)? = nil
     var onPhotoAdded: ((UIImage) -> Void)? = nil
-    private let mediaStore = LocalMediaFileStore.shared
-    private var imageMediaBuilder: ImageMediaBuilder {
-        ImageMediaBuilder(store: mediaStore)
-    }
+    private let imageMediaBuilder = ImageMediaBuilder()
 
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isPresentingPhotoPicker = false
@@ -25,15 +24,43 @@ struct MediaSection: View {
     @State private var isPresentingAddMediaOptions = false
     @State private var draggedAssetID: MediaAsset.ID?
     @State private var pendingDeletionAssetID: MediaAsset.ID?
+    @State private var recentlyAddedPhotoAssetIDs: Set<MediaAsset.ID> = []
 
     var body: some View {
-        MediaQuickLookPresenter(mediaAssets: mediaAssets) { preview in
+        MediaQuickLookPresenter(mediaAssets: previewAssets) { preview in
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: CatalogMetrics.Spacing.xs) {
+                    if let leadingMediaAsset {
+                        MediaAssetGridTileView(
+                            asset: leadingMediaAsset,
+                            isAnalysisHighlighted: isAnalysisHighlighted(leadingMediaAsset),
+                            allowsDeletion: allowsDeletion,
+                            isReorderingEnabled: false,
+                            draggedAssetID: $draggedAssetID,
+                            moveAsset: moveAsset,
+                            onTap: {
+                                preview(leadingMediaAsset)
+                            },
+                            onDelete: {
+                                pendingDeletionAssetID = leadingMediaAsset.id
+                            }
+                        )
+                        .confirmationDialog(
+                            "editor.media.delete_action",
+                            isPresented: deleteConfirmationBinding(for: leadingMediaAsset.id),
+                            titleVisibility: .visible
+                        ) {
+                            Button("editor.media.delete_title", role: .destructive) {
+                                confirmDeletion(of: leadingMediaAsset.id)
+                            }
+                            Button("common.cancel", role: .cancel) {}
+                        }
+                    }
+
                     ForEach(sortedAssets) { asset in
                         MediaAssetGridTileView(
                             asset: asset,
-                            isAnalysisHighlighted: asset.id == analysisHighlightedAssetID,
+                            isAnalysisHighlighted: isAnalysisHighlighted(asset),
                             allowsDeletion: allowsDeletion,
                             isReorderingEnabled: isEditing && asset.kind == .photo && asset.itemID != nil,
                             draggedAssetID: $draggedAssetID,
@@ -115,13 +142,22 @@ struct MediaSection: View {
                     await addPhotos(from: newItems)
                 }
             }
+            .onChange(of: analysisHighlightedAssetID) { _, highlightedAssetID in
+                if highlightedAssetID == nil {
+                    recentlyAddedPhotoAssetIDs.removeAll()
+                }
+            }
         }
+    }
+
+    private var previewAssets: [MediaAsset] {
+        [leadingMediaAsset].compactMap { $0 } + mediaAssets
     }
 
     private var sortedAssets: [MediaAsset] {
         mediaAssets.sorted { lhs, rhs in
             if lhs.sortOrder == rhs.sortOrder {
-                return lhs.localIdentifier < rhs.localIdentifier
+                return lhs.id.uuidString < rhs.id.uuidString
             }
 
             return lhs.sortOrder < rhs.sortOrder
@@ -141,6 +177,12 @@ struct MediaSection: View {
 
     private var isEditing: Bool {
         allowsDeletion
+    }
+
+    private func isAnalysisHighlighted(_ asset: MediaAsset) -> Bool {
+        guard analysisHighlightedAssetID != nil, asset.kind == .photo else { return false }
+        guard !recentlyAddedPhotoAssetIDs.isEmpty else { return true }
+        return recentlyAddedPhotoAssetIDs.contains(asset.id)
     }
 
     private func deleteConfirmationBinding(for assetID: MediaAsset.ID) -> Binding<Bool> {
@@ -171,11 +213,11 @@ struct MediaSection: View {
                 mimeType: contentType?.preferredMIMEType
             ) else { continue }
 
+            let asset = media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
             updateMediaAssets { assets in
-                assets.append(
-                    media.asset.with(itemID: itemID, sortOrder: assets.count)
-                )
+                assets.append(asset)
             }
+            recentlyAddedPhotoAssetIDs.insert(asset.id)
 
             onPhotoAdded?(image)
         }
@@ -193,11 +235,11 @@ struct MediaSection: View {
             mimeType: "image/jpeg"
         ) else { return }
 
+        let asset = media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
         updateMediaAssets { assets in
-            assets.append(
-                media.asset.with(itemID: itemID, sortOrder: assets.count)
-            )
+            assets.append(asset)
         }
+        recentlyAddedPhotoAssetIDs.insert(asset.id)
 
         onPhotoAdded?(image)
     }
@@ -212,9 +254,13 @@ struct MediaSection: View {
 
     private func confirmDeletion(of assetID: MediaAsset.ID) {
         defer { pendingDeletionAssetID = nil }
-        guard let asset = mediaAssets.first(where: { $0.id == assetID }) else { return }
 
-        mediaStore.deleteFile(for: asset.localIdentifier)
+        if let leadingMediaAsset, leadingMediaAsset.id == assetID {
+            onLeadingMediaAssetDelete?()
+            return
+        }
+
+        guard mediaAssets.contains(where: { $0.id == assetID }) else { return }
         removeAsset(withID: assetID)
     }
 
@@ -259,7 +305,6 @@ struct MediaSection: View {
 /// Displays the media quick look presenter interface.
 struct MediaQuickLookPresenter<Content: View>: View {
     let mediaAssets: [MediaAsset]
-    private let mediaStore = LocalMediaFileStore.shared
     private let content: (@escaping (MediaAsset) -> Void) -> Content
     @State private var documentPreviewTarget: MediaPreviewTarget?
     @State private var photoGalleryTarget: MediaPhotoGalleryTarget?
@@ -293,7 +338,7 @@ struct MediaQuickLookPresenter<Content: View>: View {
             .filter { $0.kind == .photo }
             .sorted { lhs, rhs in
                 if lhs.sortOrder == rhs.sortOrder {
-                    return lhs.localIdentifier < rhs.localIdentifier
+                    return lhs.id.uuidString < rhs.id.uuidString
                 }
 
                 return lhs.sortOrder < rhs.sortOrder
@@ -312,10 +357,31 @@ struct MediaQuickLookPresenter<Content: View>: View {
                 initialAssetID: selectedAsset.id
             )
         case .document:
-            guard let url = mediaStore.fileURL(for: selectedAsset.localIdentifier) else { return }
+            guard let url = Self.materializePreviewFile(for: selectedAsset) else { return }
             documentPreviewTarget = MediaPreviewTarget(url: url)
         case .model3D:
             return
+        }
+    }
+
+    private static func materializePreviewFile(for asset: MediaAsset) -> URL? {
+        guard let originalData = asset.originalData else { return nil }
+
+        let fileExtension = asset.fileName
+            .map { URL(fileURLWithPath: $0).pathExtension }
+            .flatMap { $0.isEmpty ? nil : $0 }
+        let previewFileName = fileExtension
+            .map { "\(asset.id.uuidString).\($0)" } ?? asset.id.uuidString
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CatalogQuickLook", isDirectory: true)
+        let url = directory.appendingPathComponent(previewFileName)
+
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try originalData.write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
         }
     }
 }
@@ -352,11 +418,10 @@ private struct MediaAssetGridTileView: View {
         )
         .onTapGesture(perform: onTap)
         .onAppear {
-            guard isAnalysisHighlighted else { return }
-            highlightPulse = true
+            updateAnalysisHighlight(isAnalysisHighlighted)
         }
         .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
-            highlightPulse = isHighlighted
+            updateAnalysisHighlight(isHighlighted)
         }
     }
 
@@ -365,11 +430,16 @@ private struct MediaAssetGridTileView: View {
             return displayName
         }
 
-        return URL(fileURLWithPath: asset.localIdentifier)
-            .deletingPathExtension()
-            .lastPathComponent
-            .replacingOccurrences(of: "-", with: " ")
-            .capitalized
+        if let fileName = asset.fileName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !fileName.isEmpty {
+            return URL(fileURLWithPath: fileName)
+                .deletingPathExtension()
+                .lastPathComponent
+                .replacingOccurrences(of: "-", with: " ")
+                .capitalized
+        }
+
+        return asset.kind.rawValue.capitalized
     }
 
     private var thumbnailSize: CGFloat {
@@ -393,9 +463,7 @@ private struct MediaAssetGridTileView: View {
     private var thumbnailImage: some View {
         MediaAssetThumbnailView(asset: asset, size: thumbnailSize)
             .overlay {
-                if isAnalysisHighlighted {
-                    analysisHighlight
-                }
+                analysisHighlight
             }
             .draggableMediaAsset(
                 asset,
@@ -417,7 +485,7 @@ private struct MediaAssetGridTileView: View {
 
     private var analysisHighlight: some View {
         CatalogShapes.thumbnail
-            .stroke(
+            .strokeBorder(
                 AngularGradient(
                     colors: [
                         .cyan,
@@ -428,14 +496,25 @@ private struct MediaAssetGridTileView: View {
                     ],
                     center: .center
                 ),
-                lineWidth: highlightPulse ? 4 : 2
+                lineWidth: 3
             )
-            .opacity(highlightPulse ? 1 : 0.45)
-            .scaleEffect(highlightPulse ? 1.035 : 0.99)
-            .animation(
-                .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
-                value: highlightPulse
-            )
+            .opacity(isAnalysisHighlighted ? (highlightPulse ? 1 : 0.45) : 0)
+    }
+
+    private func updateAnalysisHighlight(_ isHighlighted: Bool) {
+        guard isHighlighted else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                highlightPulse = false
+            }
+            return
+        }
+
+        highlightPulse = false
+        withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+            highlightPulse = true
+        }
     }
 }
 
@@ -584,8 +663,6 @@ private struct MediaPhotoGallery: View {
 
 private struct MediaPhotoGalleryPage: View {
     let asset: MediaAsset
-    private let mediaStore = LocalMediaFileStore.shared
-
     @State private var image: UIImage?
     @State private var isLoading = true
     @State private var didFail = false
@@ -616,23 +693,7 @@ private struct MediaPhotoGalleryPage: View {
         didFail = false
         isLoading = true
 
-        let localIdentifier = asset.localIdentifier
-        let originalData = asset.originalData
-        let localURL = mediaStore.fileURL(for: localIdentifier)
-
-        let loadTask = Task<Data?, Never>.detached(priority: .userInitiated) {
-            if let localURL,
-               let data = try? Data(contentsOf: localURL) {
-                return data
-            }
-
-            if let originalData {
-                return originalData
-            }
-
-            return nil
-        }
-        let loadedData = await loadTask.value
+        let loadedData = asset.originalData
 
         guard !Task.isCancelled else { return }
         let loadedImage = loadedData.flatMap(UIImage.init(data:))
@@ -780,6 +841,10 @@ private struct QuickLookPreview: UIViewControllerRepresentable {
         Coordinator(url: url)
     }
 
+    static func dismantleUIViewController(_ uiViewController: QLPreviewController, coordinator: Coordinator) {
+        try? FileManager.default.removeItem(at: coordinator.url)
+    }
+
     final class Coordinator: NSObject, QLPreviewControllerDataSource {
         var url: URL
 
@@ -800,14 +865,13 @@ private struct QuickLookPreview: UIViewControllerRepresentable {
 private struct MediaAssetThumbnailView: View {
     let asset: MediaAsset
     let size: CGFloat
-    private let mediaStore = LocalMediaFileStore.shared
 
     var body: some View {
         Group {
             switch asset.kind {
             case .photo:
                 MediaPreviewImage(
-                    identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
+                    assetID: asset.id,
                     originalData: asset.originalData,
                     size: CGSize(width: size, height: size)
                 )
@@ -836,12 +900,8 @@ private struct MediaAssetThumbnailView: View {
     }
 
     private var previewImage: UIImage? {
-        if let url = mediaStore.thumbnailFileURL(for: asset.localIdentifier) ?? mediaStore.fileURL(for: asset.localIdentifier),
-           let image = UIImage(contentsOfFile: url.path) {
-            return image
-        }
-
-        return nil
+        guard let originalData = asset.originalData else { return nil }
+        return UIImage(data: originalData)
     }
 
     private var documentPlaceholder: some View {
@@ -875,7 +935,7 @@ private struct MediaAssetThumbnailView: View {
     }
 
     private var documentExtension: String {
-        let ext = URL(fileURLWithPath: asset.localIdentifier).pathExtension.uppercased()
+        let ext = asset.fileName.map { URL(fileURLWithPath: $0).pathExtension.uppercased() } ?? ""
         return ext.isEmpty ? "FILE" : ext
     }
 }

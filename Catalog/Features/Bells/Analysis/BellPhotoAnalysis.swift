@@ -74,7 +74,7 @@ struct BellPhotoAnalysisDebugInfo: Sendable {
 /// Defines the interface for bell photo suggestion mapping implementations.
 protocol BellPhotoSuggestionMapping: Sendable {
     func map(
-        analysis: PhotoAnalysisResult,
+        analysis: MultiPhotoAnalysisResult,
         semanticFeatures: SemanticPhotoFeatures
     ) async -> BellPhotoSuggestions
 }
@@ -82,10 +82,10 @@ protocol BellPhotoSuggestionMapping: Sendable {
 /// Provides default bell photo suggestion mapper operations.
 struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
     func map(
-        analysis: PhotoAnalysisResult,
+        analysis: MultiPhotoAnalysisResult,
         semanticFeatures: SemanticPhotoFeatures
     ) async -> BellPhotoSuggestions {
-        let recognizedText = analysis.main.recognizedText
+        let recognizedText = analysis.photos.flatMap { $0.main.recognizedText }
         let visualFeatures = sortedNonEmptyFeatures(
             from: semanticFeatures,
             ofKinds: [.visualKeyword]
@@ -264,7 +264,7 @@ private extension SemanticPhotoFeatures {
 /// Provides bell photo analysis controller operations.
 @MainActor
 @Observable
-final class BellPhotoAnalysisController {
+final class BellPhotoAnalysisController: ItemCreationRecognitionController {
     enum Field {
         case title
         case notes
@@ -276,12 +276,30 @@ final class BellPhotoAnalysisController {
         case suggestedTags
     }
 
+    private struct PendingPhoto {
+        let assetID: UUID
+        let image: CGImage
+    }
+
     private(set) var isAnalyzing = false
     private(set) var suggestions: BellPhotoSuggestions = .empty
+    private(set) var mediaSnapshot: ItemRecognitionMediaSnapshot = .empty
 
     private let service: any PhotoAnalysisService
     private let semanticExtractor: any SemanticPhotoFeatureExtracting
     private let mapper: any BellPhotoSuggestionMapping
+
+    private var analysisByAssetID: [UUID: PhotoAnalysisResult] = [:]
+    private var analysisOrder: [UUID] = []
+    private var pendingBatches: [[PendingPhoto]] = []
+    private var isProcessingBatch = false
+    private var evidenceRevision = 0
+    private var persistenceItemID: UUID?
+    private var persistenceRepository: (any CatalogRepository)?
+    private var persistedEvidence: ItemRecognitionEvidence?
+    private var persistedEvidenceAssetIDs: Set<UUID> = []
+    private(set) var isRestoredFromPersistence = false
+    private(set) var requiresFullAnalysis = false
 
     init() {
         self.service = DefaultPhotoAnalysisService()
@@ -303,25 +321,176 @@ final class BellPhotoAnalysisController {
         isAnalyzing || suggestions.hasSuggestions
     }
 
-    func analyze(image: UIImage) {
-        guard let cgImage = image.cgImage else {
-            isAnalyzing = false
+    func configurePersistence(
+        itemID: UUID,
+        repository: any CatalogRepository,
+        currentSnapshot: ItemRecognitionMediaSnapshot
+    ) {
+        persistenceItemID = itemID
+        persistenceRepository = repository
+
+        guard !isAnalyzing,
+              analysisByAssetID.isEmpty,
+              pendingBatches.isEmpty,
+              !suggestions.hasSuggestions,
+              let record = repository.itemRecognition(for: itemID) else {
             return
         }
 
-        isAnalyzing = true
+        guard record.schemaVersion == ItemRecognitionRecord.currentSchemaVersion else {
+            repository.deleteItemRecognition(for: itemID)
+            return
+        }
 
-        Task {
-            let analysis = await service.analyze(image: cgImage)
-            let semanticFeatures = await semanticExtractor.extractFeatures(from: analysis)
-            let mapped = await mapper.map(
-                analysis: analysis,
-                semanticFeatures: semanticFeatures
-            )
-            await MainActor.run {
-                self.suggestions = mapped
-                self.isAnalyzing = false
+        guard record.photoAssetIDs == currentSnapshot.photoAssetIDs else {
+            // CloudKit can deliver the Item media graph and its recognition record at different times.
+            // Keep a valid recognition record until the local media snapshot catches up or a local
+            // recognition mutation explicitly invalidates it.
+            mediaSnapshot = currentSnapshot
+            return
+        }
+
+        guard let evidenceData = record.evidenceData,
+              let evidence = try? JSONDecoder().decode(
+                ItemRecognitionEvidence.self,
+                from: evidenceData
+              ),
+              let resultData = record.resultData,
+              let persisted = try? JSONDecoder().decode(
+                BellPersistedRecognitionResult.self,
+                from: resultData
+              ) else {
+            repository.deleteItemRecognition(for: itemID)
+            return
+        }
+
+        mediaSnapshot = currentSnapshot
+        persistedEvidence = evidence
+        persistedEvidenceAssetIDs = record.photoAssetIDs
+        suggestions = persisted.runtimeSuggestions
+        isRestoredFromPersistence = true
+        requiresFullAnalysis = false
+    }
+
+    func flushPersistedResultIfPossible() {
+        persistCurrentResultIfPossible()
+    }
+
+    func analyze(image: UIImage) {
+        analyze(images: [image])
+    }
+
+    func analyze(images: [UIImage]) {
+        analyze(
+            photos: images.map {
+                (assetID: UUID(), image: $0)
             }
+        )
+    }
+
+    func analyze(photos: [(assetID: UUID, image: UIImage)]) {
+        deletePersistedResult()
+        persistedEvidence = nil
+        persistedEvidenceAssetIDs.removeAll()
+        isRestoredFromPersistence = false
+        requiresFullAnalysis = false
+        analysisByAssetID.removeAll()
+        analysisOrder.removeAll()
+        pendingBatches.removeAll()
+        evidenceRevision += 1
+        suggestions = .empty
+        mediaSnapshot = ItemRecognitionMediaSnapshot(
+            photoAssetIDs: Set(photos.map(\.assetID))
+        )
+
+        let pending = pendingPhotos(from: photos)
+        guard !pending.isEmpty else {
+            if !isProcessingBatch {
+                isAnalyzing = false
+            }
+            return
+        }
+
+        analysisOrder = pending.map(\.assetID)
+        enqueue(pending)
+    }
+
+    func analyzeAddedPhoto(assetID: UUID, image: UIImage) {
+        guard !requiresFullAnalysis,
+              let cgImage = image.cgImage else { return }
+
+        deletePersistedResult()
+        isRestoredFromPersistence = false
+        mediaSnapshot = ItemRecognitionMediaSnapshot(
+            photoAssetIDs: mediaSnapshot.photoAssetIDs.union([assetID])
+        )
+        if !analysisOrder.contains(assetID) {
+            analysisOrder.append(assetID)
+        }
+        enqueue([PendingPhoto(assetID: assetID, image: cgImage)])
+    }
+
+    func reconcileMediaSnapshot(_ snapshot: ItemRecognitionMediaSnapshot) {
+        guard snapshot != mediaSnapshot else { return }
+
+        let removedAssetIDs = mediaSnapshot.photoAssetIDs.subtracting(snapshot.photoAssetIDs)
+        let validAssetIDs = snapshot.photoAssetIDs
+
+        let ownsRecognitionState =
+            persistedEvidence != nil
+            || !analysisByAssetID.isEmpty
+            || !pendingBatches.isEmpty
+            || isProcessingBatch
+
+        // A media snapshot can change while CloudKit is still converging. If this controller has
+        // not restored or produced recognition evidence yet, do not turn that passive sync change
+        // into a deletion of a potentially valid remote recognition record.
+        guard ownsRecognitionState else {
+            mediaSnapshot = snapshot
+            return
+        }
+
+        deletePersistedResult()
+        mediaSnapshot = snapshot
+
+        let removedPersistedAssetIDs = removedAssetIDs.intersection(persistedEvidenceAssetIDs)
+        if !removedPersistedAssetIDs.isEmpty {
+            persistedEvidence = nil
+            persistedEvidenceAssetIDs.removeAll()
+            isRestoredFromPersistence = false
+            requiresFullAnalysis = true
+            analysisByAssetID.removeAll()
+            analysisOrder.removeAll()
+            pendingBatches.removeAll()
+            evidenceRevision += 1
+            suggestions = .empty
+            if !isProcessingBatch {
+                isAnalyzing = false
+            }
+            return
+        }
+
+        isRestoredFromPersistence = false
+        analysisByAssetID = analysisByAssetID.filter { validAssetIDs.contains($0.key) }
+        analysisOrder.removeAll { !validAssetIDs.contains($0) }
+        pendingBatches = pendingBatches.compactMap { batch in
+            let filtered = batch.filter { validAssetIDs.contains($0.assetID) }
+            return filtered.isEmpty ? nil : filtered
+        }
+
+        guard !removedAssetIDs.isEmpty else { return }
+
+        evidenceRevision += 1
+        let revision = evidenceRevision
+
+        guard !isProcessingBatch else { return }
+
+        isAnalyzing = true
+        Task {
+            await refreshSuggestions(for: revision)
+            guard revision == evidenceRevision else { return }
+            isAnalyzing = false
+            persistCurrentResultIfPossible()
         }
     }
 
@@ -341,10 +510,124 @@ final class BellPhotoAnalysisController {
             suggestedTags: field == .suggestedTags ? [] : suggestions.suggestedTags,
             debugInfo: suggestions.debugInfo
         )
+        persistCurrentResultIfPossible()
     }
 
     func clear() {
+        deletePersistedResult()
+        persistedEvidence = nil
+        persistedEvidenceAssetIDs.removeAll()
+        isRestoredFromPersistence = false
+        requiresFullAnalysis = false
+        analysisByAssetID.removeAll()
+        analysisOrder.removeAll()
+        pendingBatches.removeAll()
+        evidenceRevision += 1
         suggestions = .empty
-        isAnalyzing = false
+        mediaSnapshot = .empty
+        if !isProcessingBatch {
+            isAnalyzing = false
+        }
+    }
+
+    private func pendingPhotos(
+        from photos: [(assetID: UUID, image: UIImage)]
+    ) -> [PendingPhoto] {
+        photos.compactMap { photo in
+            guard let cgImage = photo.image.cgImage else { return nil }
+            return PendingPhoto(assetID: photo.assetID, image: cgImage)
+        }
+    }
+
+    private func enqueue(_ photos: [PendingPhoto]) {
+        guard !photos.isEmpty else { return }
+        pendingBatches.append(photos)
+        processNextBatchIfNeeded()
+    }
+
+    private func processNextBatchIfNeeded() {
+        guard !isProcessingBatch else { return }
+        guard !pendingBatches.isEmpty else {
+            isAnalyzing = false
+            persistCurrentResultIfPossible()
+            return
+        }
+
+        let batch = pendingBatches.removeFirst()
+        isProcessingBatch = true
+        isAnalyzing = true
+
+        Task {
+            let analysis = await service.analyze(images: batch.map(\.image))
+
+            for (photo, result) in zip(batch, analysis.photos) where analysisOrder.contains(photo.assetID) {
+                analysisByAssetID[photo.assetID] = result
+            }
+
+            evidenceRevision += 1
+            await refreshSuggestions(for: evidenceRevision)
+
+            isProcessingBatch = false
+            processNextBatchIfNeeded()
+        }
+    }
+
+    private func refreshSuggestions(for revision: Int) async {
+        let analysis = currentAnalysis
+        guard !analysis.photos.isEmpty else {
+            guard revision == evidenceRevision else { return }
+            suggestions = .empty
+            return
+        }
+
+        let semanticFeatures = await semanticExtractor.extractFeatures(from: analysis)
+        let mapped = await mapper.map(
+            analysis: analysis,
+            semanticFeatures: semanticFeatures
+        )
+
+        guard revision == evidenceRevision else { return }
+        suggestions = mapped
+    }
+
+    private var currentAnalysis: MultiPhotoAnalysisResult {
+        var photos = analysisOrder.compactMap { analysisByAssetID[$0] }
+        if let persistedEvidence {
+            photos.insert(persistedEvidence.analysisResult, at: 0)
+        }
+        return MultiPhotoAnalysisResult(photos: photos)
+    }
+
+    private func persistCurrentResultIfPossible() {
+        let analysis = currentAnalysis
+        guard !requiresFullAnalysis,
+              !analysis.photos.isEmpty,
+              let itemID = persistenceItemID,
+              let repository = persistenceRepository,
+              let evidenceData = try? JSONEncoder().encode(
+                ItemRecognitionEvidence(analysis: analysis)
+              ),
+              let resultData = try? JSONEncoder().encode(
+                BellPersistedRecognitionResult(suggestions: suggestions)
+              ) else {
+            return
+        }
+
+        _ = repository.saveItemRecognition(
+            ItemRecognitionRecord(
+                itemID: itemID,
+                photoAssetIDs: mediaSnapshot.photoAssetIDs,
+                evidenceData: evidenceData,
+                resultData: resultData
+            )
+        )
+    }
+
+    private func deletePersistedResult() {
+        guard let itemID = persistenceItemID,
+              let repository = persistenceRepository else {
+            return
+        }
+        repository.deleteItemRecognition(for: itemID)
     }
 }

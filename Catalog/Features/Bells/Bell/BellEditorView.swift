@@ -48,7 +48,6 @@ struct BellEditorView: View {
     let repository: any CatalogRepository
     let catalogSnapshot: CatalogSnapshot?
     let startSection: StartSection?
-    let initialAnalysisImage: UIImage?
     private let existingBell: BellRecord?
     private let onDelete: (() -> Void)?
     let onSave: (BellRecord) -> Void
@@ -61,7 +60,7 @@ struct BellEditorView: View {
     @State private var highlightedSection: StartSection?
     @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
     @State private var analysisFeedbackToken = 0
-    @State private var photoAnalysis = BellPhotoAnalysisController()
+    @State private var photoAnalysis: BellPhotoAnalysisController
     @State private var localizedPhotoSuggestions: LocalizedPhotoSuggestions?
     @State private var pendingPhotoSuggestionsForTranslation: BellPhotoSuggestions?
     @State private var isLocalizingPhotoSuggestions = false
@@ -73,7 +72,7 @@ struct BellEditorView: View {
     @State private var shouldPresentLocationPickerAfterHomeEditor = false
     @State private var locationPickerPresentationToken = 0
     @State private var isPresentingDeleteConfirmation = false
-    private let editorItemID: UUID
+    @State private var editorItemID: UUID
 
     private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
 
@@ -110,13 +109,17 @@ struct BellEditorView: View {
         ))
     }
 
+    /// Whether an existing bell can explicitly rerun full recognition over its current photos.
+    private var canRerunRecognition: Bool {
+        existingBell != nil && editorState.mediaAssets.contains { $0.kind == .photo }
+    }
+
     init(
         collection: CollectionSummary,
         repository: any CatalogRepository,
         catalogSnapshot: CatalogSnapshot?,
         bell: BellRecord? = nil,
         initialMediaAssets: [MediaAsset] = [],
-        initialAnalysisImage: UIImage? = nil,
         startSection: StartSection? = nil,
         onDelete: (() -> Void)? = nil,
         onSave: @escaping (BellRecord) -> Void
@@ -125,11 +128,18 @@ struct BellEditorView: View {
         self.repository = repository
         self.catalogSnapshot = catalogSnapshot
         self.startSection = startSection
-        self.initialAnalysisImage = initialAnalysisImage
         self.existingBell = bell
         self.onDelete = onDelete
         self.onSave = onSave
-        self.editorItemID = bell?.id ?? UUID()
+        let editorItemID = bell?.id ?? UUID()
+        _editorItemID = State(initialValue: editorItemID)
+        _photoAnalysis = State(
+            initialValue: ItemRecognitionSessionStore.shared.session(
+                for: editorItemID,
+                as: BellPhotoAnalysisController.self,
+                create: BellPhotoAnalysisController.init
+            )
+        )
         _editorState = State(
             initialValue: BellEditorState(
                 bell: bell,
@@ -148,7 +158,8 @@ struct BellEditorView: View {
                             MediaSection(
                                 itemID: editorItemID,
                                 mediaAssets: $editorState.mediaAssets,
-                                analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil
+                                analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil,
+                                onPhotoAdded: handlePhotoAdded
                             )
                             .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -160,7 +171,7 @@ struct BellEditorView: View {
                             .listRowInsets(.init())
                         }
                         
-                        if shouldShowPhotoAnalysisSection {
+                        if shouldShowPhotoAnalysisSection || canRerunRecognition {
                             Section(String(localized: "editor.photo_analysis.section")) {
                                 if photoAnalysis.isAnalyzing {
                                     HStack(spacing: CatalogMetrics.Spacing.sm) {
@@ -168,7 +179,7 @@ struct BellEditorView: View {
                                         Text(String(localized: "editor.photo_analysis.analyzing"))
                                             .foregroundStyle(.secondary)
                                     }
-                                } else {
+                                } else if shouldShowPhotoAnalysisSection {
                                     if !photoAnalysis.suggestions.isBellDetected {
                                         Label {
                                             Text("editor.analysis.bell_not_found")
@@ -275,6 +286,21 @@ struct BellEditorView: View {
                                                 localizedPhotoSuggestions?.suggestedTags = []
                                                 photoAnalysis.dismiss(.suggestedTags)
                                             }
+                                        )
+                                    }
+                                }
+
+                                if canRerunRecognition, !photoAnalysis.isAnalyzing {
+                                    Button {
+                                        isLocalizingPhotoSuggestions = true
+                                        localizedPhotoSuggestions = nil
+                                        pendingPhotoSuggestionsForTranslation = nil
+                                        translationConfiguration = nil
+                                        photoAnalysis.analyzeCreation(assets: editorState.mediaAssets)
+                                    } label: {
+                                        Label(
+                                            String(localized: "editor.photo_analysis.rerun"),
+                                            systemImage: "photo.badge.magnifyingglass"
                                         )
                                     }
                                 }
@@ -418,6 +444,15 @@ struct BellEditorView: View {
                     Text(String(localized: "bell.context.delete.message"))
                 }
                 .task {
+                    photoAnalysis.configureCreation(
+                        itemID: editorItemID,
+                        assets: editorState.mediaAssets,
+                        repository: repository
+                    )
+                    if photoAnalysis.isRestoredFromPersistence {
+                        await handlePhotoAnalysisCompletion()
+                    }
+                    photoAnalysis.reconcileMediaSnapshot(ItemCreationService.recognitionSnapshot(from: editorState.mediaAssets))
                     startInitialPhotoAnalysisIfNeeded()
                     guard let startSection else { return }
                     highlightedSection = startSection
@@ -434,6 +469,9 @@ struct BellEditorView: View {
                 }
                 .sensoryFeedback(trigger: analysisFeedbackEvent) { _, newValue in
                     newValue?.kind.sensoryFeedback
+                }
+                .onChange(of: ItemCreationService.recognitionSnapshot(from: editorState.mediaAssets)) {
+                    photoAnalysis.reconcileCreation(assets: editorState.mediaAssets)
                 }
                 .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
                     guard wasAnalyzing, !isAnalyzing else { return }
@@ -509,14 +547,35 @@ struct BellEditorView: View {
         // emit `.warning` here in a more selective way.
     }
 
-    private func startInitialPhotoAnalysisIfNeeded() {
-        guard !didStartInitialAnalysis, existingBell == nil, let initialAnalysisImage else { return }
-        didStartInitialAnalysis = true
+    private func handlePhotoAdded(_ image: UIImage) {
+        guard let asset = editorState.mediaAssets
+            .filter({ $0.kind == .photo })
+            .max(by: { $0.sortOrder < $1.sortOrder }) else {
+            return
+        }
+
         isLocalizingPhotoSuggestions = true
         localizedPhotoSuggestions = nil
         pendingPhotoSuggestionsForTranslation = nil
         translationConfiguration = nil
-        photoAnalysis.analyze(image: initialAnalysisImage)
+        photoAnalysis.analyzeAddedCreation(
+            assetID: asset.id,
+            image: image,
+            assets: editorState.mediaAssets
+        )
+    }
+
+    private func startInitialPhotoAnalysisIfNeeded() {
+        guard !didStartInitialAnalysis,
+              existingBell == nil else { return }
+
+        isLocalizingPhotoSuggestions = true
+        localizedPhotoSuggestions = nil
+        pendingPhotoSuggestionsForTranslation = nil
+        translationConfiguration = nil
+        didStartInitialAnalysis = photoAnalysis.analyzeCreation(
+            assets: editorState.mediaAssets
+        )
     }
 
     private func translatePhotoSuggestions(
@@ -652,6 +711,9 @@ struct BellEditorView: View {
         )
 
         onSave(newBell)
+
+        photoAnalysis.finishCreation(itemID: editorItemID)
+
         dismiss()
     }
 

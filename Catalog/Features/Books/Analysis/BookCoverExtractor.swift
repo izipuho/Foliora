@@ -21,7 +21,6 @@ struct BookCoverExtractor: Sendable {
         return MediaAsset(
             id: UUID(),
             kind: .photo,
-            localIdentifier: "",
             displayName: nil,
             sortOrder: 0,
             fileName: nil,

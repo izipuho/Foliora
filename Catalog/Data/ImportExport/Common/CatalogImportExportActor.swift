@@ -40,9 +40,11 @@ final class CatalogImportExportActor {
         )
 
         for asset in mediaAssets(in: bundle) {
-            let identifier = asset.localIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !identifier.isEmpty, let originalData = asset.originalData else { continue }
-            try originalData.write(to: mediaDirectory.appendingPathComponent(identifier), options: .atomic)
+            guard let originalData = asset.originalData else { continue }
+            try originalData.write(
+                to: mediaDirectory.appendingPathComponent(asset.id.uuidString),
+                options: .atomic
+            )
         }
 
         let archiveURL = fileManager.temporaryDirectory
@@ -78,21 +80,10 @@ final class CatalogImportExportActor {
         let decoder = JSONDecoder()
         let bundle = try decoder.decode(CatalogTransferBundle.self, from: data)
         let filteredBundle = filteredBundle(from: bundle, selectedCollectionIDs: selectedCollectionIDs)
-        try mergeData(from: filteredBundle)
-
-        let mediaStore = LocalMediaFileStore.shared
         let mediaDirectory = workDirectory.appendingPathComponent("Media", isDirectory: true)
-        for identifier in mediaIdentifiers(in: filteredBundle) {
-            let sourceURL = mediaDirectory.appendingPathComponent(identifier)
-            guard fileManager.fileExists(atPath: sourceURL.path) else { continue }
-            try mediaStore.restoreFile(from: sourceURL, identifier: identifier)
-        }
-        try restoreMediaData(for: filteredBundle, mediaStore: mediaStore)
-
-        let missing = mediaIdentifiers(in: filteredBundle).filter {
-            mediaStore.fileURL(for: $0) == nil
-        }
-        return ImportResult(missingMediaIdentifiers: missing)
+        let restored = try restoringMediaData(in: filteredBundle, from: mediaDirectory)
+        try mergeData(from: restored.bundle)
+        return ImportResult(missingMediaIdentifiers: restored.missing)
     }
 
     private enum ImportError: LocalizedError {
@@ -517,22 +508,11 @@ final class CatalogImportExportActor {
         try context.save()
     }
 
-    private func mediaIdentifiers(in bundle: CatalogTransferBundle) -> [String] {
-        let identifiers = mediaAssets(in: bundle)
-            .map(\.localIdentifier)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        return Array(Set(identifiers)).sorted()
-    }
-
     private func mediaAssets(in bundle: CatalogTransferBundle) -> [MediaAsset] {
-        var seenIdentifiers = Set<String>()
+        var seenIDs = Set<UUID>()
         return bundle.items
             .flatMap(\.mediaAssets)
-            .filter { asset in
-                let identifier = asset.localIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
-                return !identifier.isEmpty && seenIdentifiers.insert(identifier).inserted
-            }
+            .filter { seenIDs.insert($0.id).inserted }
     }
 
     private func jsonBundle(from bundle: CatalogTransferBundle) -> CatalogTransferBundle {
@@ -549,27 +529,32 @@ final class CatalogImportExportActor {
         return copy
     }
 
-    private func restoreMediaData(
-        for bundle: CatalogTransferBundle,
-        mediaStore: LocalMediaFileStore
-    ) throws {
-        let identifiers = mediaIdentifiers(in: bundle)
-        guard !identifiers.isEmpty else { return }
+    private func restoringMediaData(
+        in bundle: CatalogTransferBundle,
+        from mediaDirectory: URL
+    ) throws -> (bundle: CatalogTransferBundle, missing: [String]) {
+        var copy = bundle
+        var missing = Set<String>()
 
-        let request = NSFetchRequest<NSManagedObject>(entityName: "MediaAssetEntity")
-        request.predicate = NSPredicate(format: "localIdentifier IN %@", identifiers)
-        let mediaEntities = try context.fetch(request)
+        copy.items = try copy.items.map { item in
+            var item = item
+            item.mediaAssets = try item.mediaAssets.map { asset in
+                let identifier = asset.id.uuidString
+                let fileURL = mediaDirectory.appendingPathComponent(identifier)
+                guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                    missing.insert(identifier)
+                    return asset
+                }
 
-        for entity in mediaEntities {
-            let identifier = stringValue(entity, "localIdentifier")
-            guard let fileURL = mediaStore.fileURL(for: identifier) else { continue }
-
-            entity.setValue(try Data(contentsOf: fileURL), forKey: "originalData")
+                let originalData = try Data(contentsOf: fileURL)
+                return asset.with { asset in
+                    asset.originalData = originalData
+                }
+            }
+            return item
         }
 
-        if context.hasChanges {
-            try context.save()
-        }
+        return (copy, missing.sorted())
     }
 
     private func deleteExistingData() throws {
@@ -844,7 +829,6 @@ final class CatalogImportExportActor {
     ) {
         entity.setValue(asset.id, forKey: "id")
         entity.setValue(asset.kind.rawValue, forKey: "kind")
-        entity.setValue(asset.localIdentifier, forKey: "localIdentifier")
         entity.setValue(asset.displayName, forKey: "displayName")
         entity.setValue(asset.sortOrder, forKey: "sortOrder")
         entity.setValue(asset.fileName, forKey: "fileName")
@@ -855,7 +839,7 @@ final class CatalogImportExportActor {
         entity.setValue(asset.height, forKey: "height")
         entity.setValue(asset.duration, forKey: "duration")
         entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
-        entity.setValue(nil, forKey: "originalData")
+        entity.setValue(asset.originalData, forKey: "originalData")
         if entity.entity.attributesByName["itemID"] != nil {
             entity.setValue(item.value(forKey: "id"), forKey: "itemID")
         }

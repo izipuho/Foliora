@@ -16,6 +16,12 @@ struct TextFragmentBar: View {
                     return lhsPriority < rhsPriority
                 }
 
+                let lhsLength = normalizedLength(of: lhs.text)
+                let rhsLength = normalizedLength(of: rhs.text)
+                if lhsLength != rhsLength {
+                    return lhsLength < rhsLength
+                }
+
                 return TextFragment.readingOrder(lhs, rhs)
             }
     }
@@ -41,7 +47,7 @@ struct TextFragmentBar: View {
     }
 
     private func presentationPriority(for rawText: String) -> Int {
-        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = normalizedText(rawText)
         let wordCount = text.split(whereSeparator: { $0.isWhitespace }).count
         let letterCount = text.lazy.filter { $0.isLetter }.count
         let lowercaseText = text.lowercased()
@@ -55,15 +61,17 @@ struct TextFragmentBar: View {
             return 3
         }
 
-        if letterCount >= 3, wordCount <= 5, text.count <= 50 {
+        if !endsLikeSentence,
+           letterCount >= 3,
+           wordCount <= 4,
+           text.count <= 36 {
             return 0
         }
 
-        if wordCount >= 6, endsLikeSentence {
-            return 2
-        }
-
-        if letterCount >= 3, wordCount <= 10, text.count <= 90 {
+        if !endsLikeSentence,
+           letterCount >= 3,
+           wordCount <= 8,
+           text.count <= 64 {
             return 1
         }
 
@@ -72,6 +80,17 @@ struct TextFragmentBar: View {
         }
 
         return 3
+    }
+
+    private func normalizedLength(of rawText: String) -> Int {
+        normalizedText(rawText).count
+    }
+
+    private func normalizedText(_ rawText: String) -> String {
+        rawText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
     }
 }
 

@@ -570,7 +570,11 @@ struct BellCatalogView: View {
             },
             onOpen: { bell in
                 onBellSelected?(bell.id)
-            }
+            },
+            visibleItems: visibleBells,
+            deleteTitle: String(localized: "bell.context.delete.title"),
+            deleteMessage: String(localized: "bell.context.delete.message"),
+            onDelete: deleteBells
         )
     }
 

@@ -127,25 +127,51 @@ struct SearchView: View {
     }
 }
 
+enum SearchTokenGroupSelectionBehavior {
+    case menu
+    case toggle
+}
+
 struct SearchTokenGroup<Token: Identifiable>: Identifiable {
     let title: String
     let systemImage: String
     let tokens: [Token]
+    let selectionBehavior: SearchTokenGroupSelectionBehavior
+
+    init(
+        title: String,
+        systemImage: String,
+        tokens: [Token],
+        selectionBehavior: SearchTokenGroupSelectionBehavior = .menu
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.tokens = tokens
+        self.selectionBehavior = selectionBehavior
+    }
 
     var id: String { title }
 }
 
-private struct SearchTokenBar<Token: Identifiable>: View {
+private struct SearchTokenBar<Token: Identifiable & Hashable>: View {
     let tokens: [Token]
     let suggestedTokenGroups: [SearchTokenGroup<Token>]
     let title: (Token) -> String
     let select: (Token) -> Void
     let remove: (Token) -> Void
 
+    private var toggleTokens: Set<Token> {
+        Set(
+            suggestedTokenGroups
+                .filter { $0.selectionBehavior == .toggle }
+                .flatMap(\.tokens)
+        )
+    }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: CatalogMetrics.Spacing.sm) {
-                ForEach(tokens) { token in
+                ForEach(tokens.filter { !toggleTokens.contains($0) }) { token in
                     Button {
                         remove(token)
                     } label: {
@@ -162,18 +188,42 @@ private struct SearchTokenBar<Token: Identifiable>: View {
                 }
 
                 ForEach(suggestedTokenGroups) { group in
-                    Menu {
-                        ForEach(group.tokens) { token in
-                            Button(title(token)) {
-                                select(token)
+                    switch group.selectionBehavior {
+                    case .menu:
+                        Menu {
+                            ForEach(group.tokens) { token in
+                                Button(title(token)) {
+                                    select(token)
+                                }
                             }
+                        } label: {
+                            Label(group.title, systemImage: group.systemImage)
+                                .font(CatalogTypography.cardSubtitle)
+                                .catalogSurfaceCapsule()
                         }
-                    } label: {
-                        Label(group.title, systemImage: group.systemImage)
-                            .font(CatalogTypography.cardSubtitle)
-                            .catalogSurfaceCapsule()
+                        .buttonStyle(.plain)
+
+                    case .toggle:
+                        if let token = group.tokens.first {
+                            let isSelected = tokens.contains(token)
+
+                            Button {
+                                if isSelected {
+                                    remove(token)
+                                } else {
+                                    select(token)
+                                }
+                            } label: {
+                                Label(
+                                    title(token),
+                                    systemImage: isSelected ? "checkmark" : group.systemImage
+                                )
+                                .font(CatalogTypography.cardSubtitle)
+                                .catalogSurfaceCapsule()
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, CatalogMetrics.Insets.screen)

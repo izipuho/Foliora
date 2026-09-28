@@ -100,12 +100,6 @@ struct BookDetails: Identifiable, Hashable, Codable {
     var id: UUID { itemID }
 }
 
-/// Identifies where an image-backed book cover comes from.
-enum BookCoverImageSource: Hashable {
-    case dedicated
-    case legacyMedia
-}
-
 /// Describes a deterministic cover generated from book metadata.
 struct BookGeneratedCover: Hashable {
     let bookID: UUID
@@ -115,11 +109,11 @@ struct BookGeneratedCover: Hashable {
 
 /// Resolves the visual cover content used throughout the Books UI.
 enum BookCoverContent: Hashable {
-    case image(MediaAsset, source: BookCoverImageSource)
+    case image(MediaAsset)
     case generated(BookGeneratedCover)
 
     var mediaAsset: MediaAsset? {
-        guard case let .image(asset, _) = self else { return nil }
+        guard case let .image(asset) = self else { return nil }
         return asset
     }
 }
@@ -211,14 +205,7 @@ struct BookRecord: Identifiable, Hashable {
 
     var cover: BookCoverContent {
         if let coverImage = details.coverImage {
-            return .image(coverImage, source: .dedicated)
-        }
-
-        if let legacyCover = mediaAssets
-            .filter({ $0.kind == .photo })
-            .sorted(by: { $0.sortOrder < $1.sortOrder })
-            .first {
-            return .image(legacyCover, source: .legacyMedia)
+            return .image(coverImage)
         }
 
         return .generated(

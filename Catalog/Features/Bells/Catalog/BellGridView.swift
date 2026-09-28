@@ -10,6 +10,10 @@ struct BellGridView: View {
     let canManage: Bool
     let shouldHandleTap: (BellCatalogItem) -> Bool
     let onOpen: (BellCatalogItem) -> Void
+    let visibleItems: [BellCatalogItem]
+    let deleteTitle: String
+    let deleteMessage: String
+    let onDelete: ([BellCatalogItem]) -> Void
 
     init(
         bells: [BellCatalogItem],
@@ -19,7 +23,11 @@ struct BellGridView: View {
         cardManagement: Binding<CatalogCardManagementState<BellCatalogItem>>,
         canManage: Bool,
         shouldHandleTap: @escaping (BellCatalogItem) -> Bool = { _ in true },
-        onOpen: @escaping (BellCatalogItem) -> Void
+        onOpen: @escaping (BellCatalogItem) -> Void,
+        visibleItems: [BellCatalogItem]? = nil,
+        deleteTitle: String = "",
+        deleteMessage: String = "",
+        onDelete: @escaping ([BellCatalogItem]) -> Void = { _ in }
     ) {
         self.bells = bells
         self.layoutMode = layoutMode
@@ -29,6 +37,10 @@ struct BellGridView: View {
         self.canManage = canManage
         self.shouldHandleTap = shouldHandleTap
         self.onOpen = onOpen
+        self.visibleItems = visibleItems ?? bells
+        self.deleteTitle = deleteTitle
+        self.deleteMessage = deleteMessage
+        self.onDelete = onDelete
     }
 
     var body: some View {
@@ -46,7 +58,11 @@ struct BellGridView: View {
                     shouldHandleTap: shouldHandleTap,
                     onOpen: onOpen,
                     selectTitle: String(localized: "bell.context.select"),
-                    moveTitle: String(localized: "bell.context.move")
+                    moveTitle: String(localized: "bell.context.move"),
+                    visibleItems: visibleItems,
+                    deleteTitle: deleteTitle,
+                    deleteMessage: deleteMessage,
+                    onDelete: onDelete
                 ) {
                     BellCardView(
                         bell: bell,

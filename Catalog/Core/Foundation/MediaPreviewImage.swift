@@ -3,22 +3,21 @@ import UIKit
 
 /// Displays the media preview image interface.
 struct MediaPreviewImage: View {
-    let identifier: String?
+    let assetID: UUID
     let originalData: Data?
     let size: CGSize
     let contentMode: ContentMode
-    private let mediaStore = LocalMediaFileStore.shared
     private let thumbnailCache = ThumbnailImageCache.shared
     @Environment(\.displayScale) private var displayScale
     @State private var image: UIImage?
 
     init(
-        identifier: String?,
+        assetID: UUID,
         originalData: Data?,
         size: CGSize,
         contentMode: ContentMode = .fill
     ) {
-        self.identifier = identifier
+        self.assetID = assetID
         self.originalData = originalData
         self.size = size
         self.contentMode = contentMode
@@ -52,38 +51,28 @@ struct MediaPreviewImage: View {
     private var thumbnailTaskID: String {
         let pixelWidth = Int((size.width * displayScale).rounded(.up))
         let pixelHeight = Int((size.height * displayScale).rounded(.up))
-        return "\(identifier ?? "data")-\(originalData?.count ?? 0)-\(pixelWidth)x\(pixelHeight)"
+        return "\(assetID.uuidString)-\(originalData?.count ?? 0)-\(pixelWidth)x\(pixelHeight)"
     }
 
     @MainActor
     private func loadImage() async {
-        if let identifier {
-            if mediaStore.thumbnailFileURL(for: identifier) == nil,
-               let originalData {
-                await Task.detached(priority: .utility) {
-                    try? mediaStore.materializePhoto(
-                        data: originalData,
-                        identifier: identifier
-                    )
-                }.value
-            }
-
-            if let url = mediaStore.thumbnailFileURL(for: identifier) ?? mediaStore.fileURL(for: identifier) {
-                if let loadedImage = await thumbnailCache.image(
-                    identifier: identifier,
-                    url: url,
-                    targetSize: size,
-                    scale: displayScale
-                ) {
-                    image = loadedImage
-                    return
-                }
-            }
+        guard let originalData else {
+            image = nil
+            return
         }
 
-        if let originalData,
-           let loadedImage = UIImage(data: originalData) {
+        if let loadedImage = await thumbnailCache.image(
+            assetID: assetID,
+            data: originalData,
+            targetSize: size,
+            scale: displayScale
+        ) {
+            guard !Task.isCancelled else { return }
             image = loadedImage
+            return
         }
+
+        guard !Task.isCancelled else { return }
+        image = UIImage(data: originalData)
     }
 }

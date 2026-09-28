@@ -300,7 +300,6 @@ struct BookCatalogTransferAdapter: CatalogDomainTransferAdapter {
             id: existing?.id ?? (preserveSourcePhysicalIdentity ? source.id : UUID()),
             itemID: nil,
             kind: source.kind,
-            localIdentifier: source.localIdentifier,
             displayName: source.displayName,
             sortOrder: source.sortOrder,
             fileName: source.fileName,

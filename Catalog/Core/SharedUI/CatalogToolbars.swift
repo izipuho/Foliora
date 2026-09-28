@@ -115,7 +115,10 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
                             multiPhotoCreation.onSelect(.batch)
                         }
 
-                        Button(String(localized: "common.cancel"), role: .cancel) {}
+                        Button(String(localized: "common.cancel"), role: .cancel) {
+                            multiPhotoCreation.isPresented.wrappedValue = false
+                            multiPhotoCreation.onCancel()
+                        }
                     } else {
                         Button(String(localized: "editor.media.photo_library"), action: onPhotoLibrary)
 
@@ -145,7 +148,6 @@ struct CatalogCollectionToolbar<SortOption: Hashable>: ToolbarContent {
 
                 if let multiPhotoCreation, multiPhotoCreation.isPresented.wrappedValue {
                     multiPhotoCreation.isPresented.wrappedValue = false
-                    multiPhotoCreation.onCancel()
                 } else {
                     isPresentingAddOptions = false
                 }

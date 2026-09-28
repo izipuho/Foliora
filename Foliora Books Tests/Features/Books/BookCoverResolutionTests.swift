@@ -4,24 +4,32 @@ import Testing
 
 struct BookCoverResolutionTests {
     @Test
-    func dedicatedCoverWinsOverLegacyPhoto() {
-        let dedicatedCover = photo(identifier: "dedicated")
-        let legacyPhoto = photo(identifier: "legacy")
+    func dedicatedCoverWinsOverMediaPhoto() {
+        let dedicatedCover = photo()
+        let mediaPhoto = photo()
         let book = makeBook(
             coverImage: dedicatedCover,
-            mediaAssets: [legacyPhoto]
+            mediaAssets: [mediaPhoto]
         )
 
-        #expect(book.cover == .image(dedicatedCover, source: .dedicated))
+        #expect(book.cover == .image(dedicatedCover))
     }
 
     @Test
-    func firstPhotoIsLegacyFallbackWithoutDedicatedCover() {
-        let firstPhoto = photo(identifier: "first", sortOrder: 0)
-        let secondPhoto = photo(identifier: "second", sortOrder: 1)
-        let book = makeBook(mediaAssets: [secondPhoto, firstPhoto])
+    func mediaPhotoDoesNotBecomeCoverWithoutDedicatedCover() {
+        let bookID = UUID()
+        let mediaPhoto = photo(identifier: "media")
+        let book = makeBook(id: bookID, title: "Book", mediaAssets: [mediaPhoto])
 
-        #expect(book.cover == .image(firstPhoto, source: .legacyMedia))
+        #expect(
+            book.cover == .generated(
+                BookGeneratedCover(
+                    bookID: bookID,
+                    title: "Book",
+                    authorNames: []
+                )
+            )
+        )
     }
 
     @Test
@@ -79,14 +87,10 @@ struct BookCoverResolutionTests {
         )
     }
 
-    private func photo(
-        identifier: String,
-        sortOrder: Int = 0
-    ) -> MediaAsset {
+    private func photo(sortOrder: Int = 0) -> MediaAsset {
         MediaAsset(
             id: UUID(),
             kind: .photo,
-            localIdentifier: identifier,
             displayName: nil,
             sortOrder: sortOrder
         )

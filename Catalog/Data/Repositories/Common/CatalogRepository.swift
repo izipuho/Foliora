@@ -20,6 +20,11 @@ protocol CatalogRepository {
     func saveItemRecord(_ item: ItemRecord)
     func saveItemRecords(_ items: [ItemRecord])
     func setFavorite(_ isFavorite: Bool, for itemID: UUID)
+
+    func itemRecognition(for itemID: UUID) -> ItemRecognitionRecord?
+    @discardableResult
+    func saveItemRecognition(_ record: ItemRecognitionRecord) -> Bool
+    func deleteItemRecognition(for itemID: UUID)
 }
 
 extension CatalogRepository {
