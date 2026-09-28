@@ -85,16 +85,8 @@ extension ItemCreationRecognitionController {
 
 enum ItemCreationService {
     static func image(for asset: MediaAsset) -> UIImage? {
-        if let data = asset.originalData,
-           let image = UIImage(data: data) {
-            return image
-        }
-
-        guard !asset.localIdentifier.isEmpty,
-              let url = LocalMediaFileStore.shared.fileURL(for: asset.localIdentifier) else {
-            return nil
-        }
-        return UIImage(contentsOfFile: url.path)
+        guard let data = asset.originalData else { return nil }
+        return UIImage(data: data)
     }
 
     static func recognitionPhotos(from assets: [MediaAsset]) -> [(assetID: UUID, image: UIImage)] {

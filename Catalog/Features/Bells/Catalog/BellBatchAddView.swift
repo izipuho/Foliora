@@ -62,12 +62,6 @@ private extension BellBatchAddView {
 }
 #endif
 
-/// Defines the supported batch add completion action values.
-enum BatchAddCompletionAction {
-    case done
-    case reviewResults(String)
-}
-
 private enum BellBatchMediaLoadState: Equatable {
     case idle
     case loading
@@ -90,7 +84,7 @@ struct BellBatchAddView: View {
     private let initialMediaAssets: [MediaAsset]
     private let repository: any AppRepository
     private let onComplete: (BatchAddCompletionAction) -> Void
-    private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
+    private let imageMediaBuilder = ImageMediaBuilder()
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedLocationID: UUID?

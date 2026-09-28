@@ -60,9 +60,6 @@ extension ItemCreationService {
             )
             usedOriginalCover = false
 
-            if !source.localIdentifier.isEmpty {
-                LocalMediaFileStore.shared.deleteFile(for: source.localIdentifier)
-            }
         } else {
             coverImage = originalBookCover(
                 from: source,
@@ -71,9 +68,6 @@ extension ItemCreationService {
             )
             usedOriginalCover = true
 
-            if !source.localIdentifier.isEmpty {
-                LocalMediaFileStore.shared.deleteFile(for: source.localIdentifier)
-            }
         }
 
         let remainingMedia = assets.filter { $0.id != source.id }
@@ -95,7 +89,6 @@ extension ItemCreationService {
             id: UUID(),
             itemID: itemID,
             kind: .photo,
-            localIdentifier: "",
             displayName: String(localized: "editor.media.cover"),
             sortOrder: 0,
             fileName: nil,

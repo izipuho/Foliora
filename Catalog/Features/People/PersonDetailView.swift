@@ -254,7 +254,7 @@ struct PersonDetailView: View {
             .sorted(by: { $0.sortOrder < $1.sortOrder })
             .first {
             MediaPreviewImage(
-                identifier: photo.localIdentifier,
+                assetID: photo.id,
                 originalData: photo.originalData,
                 size: CGSize(width: 72, height: 72)
             )

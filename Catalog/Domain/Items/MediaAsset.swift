@@ -5,7 +5,6 @@ struct MediaAsset: Identifiable, Hashable, Codable {
     let id: UUID
     let itemID: UUID?
     var kind: MediaKind
-    var localIdentifier: String
     var displayName: String?
     var sortOrder: Int
     var fileName: String?
@@ -22,7 +21,6 @@ struct MediaAsset: Identifiable, Hashable, Codable {
         id: UUID,
         itemID: UUID? = nil,
         kind: MediaKind,
-        localIdentifier: String,
         displayName: String?,
         sortOrder: Int,
         fileName: String? = nil,
@@ -38,7 +36,6 @@ struct MediaAsset: Identifiable, Hashable, Codable {
         self.id = id
         self.itemID = itemID
         self.kind = kind
-        self.localIdentifier = localIdentifier
         self.displayName = displayName
         self.sortOrder = sortOrder
         self.fileName = fileName
@@ -55,7 +52,6 @@ struct MediaAsset: Identifiable, Hashable, Codable {
     func with(
         itemID: UUID? = nil,
         kind: MediaKind? = nil,
-        localIdentifier: String? = nil,
         displayName: String? = nil,
         sortOrder: Int? = nil,
         update: (inout MediaAsset) -> Void = { _ in }
@@ -64,7 +60,6 @@ struct MediaAsset: Identifiable, Hashable, Codable {
             id: id,
             itemID: itemID ?? self.itemID,
             kind: kind ?? self.kind,
-            localIdentifier: localIdentifier ?? self.localIdentifier,
             displayName: displayName ?? self.displayName,
             sortOrder: sortOrder ?? self.sortOrder,
             fileName: fileName,
