@@ -134,19 +134,26 @@ struct BellBatchAddView: View {
                 await loadMediaPayloadsIfNeeded()
             }
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    VStack(spacing: CatalogMetrics.Spacing.xxs) {
-                        Text(String(localized: "bell_batch_add.title"))
-                            .font(CatalogTypography.sectionTitle)
-                        Text(selectedCountLabel)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
                 ToolbarItem(placement: .topBarLeading) {
                     Button { dismiss() } label: { Image(systemName: "xmark") }
                         .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                if showsCreationToolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text(createButtonLabel)
+                            .font(CatalogTypography.sectionTitle)
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            createBatchBells()
+                        } label: {
+                            Image(systemName: "checkmark")
+                        }
+                        .disabled(!canCreateBatch)
+                        .accessibilityLabel(createButtonLabel)
+                    }
                 }
             }
             .sheet(isPresented: $isPresentingHomeEditor) {
@@ -236,12 +243,6 @@ struct BellBatchAddView: View {
                 }
             }
 
-            Section {
-                Button(createButtonLabel) {
-                    createBatchBells()
-                }
-                .disabled(!canCreateBatch)
-            }
         }
     }
 
@@ -269,18 +270,18 @@ struct BellBatchAddView: View {
         )
     }
 
-    private var selectedCountLabel: String {
-        String.localizedStringWithFormat(
-            String(localized: "common.selected_format"),
-            localizedBellCount
-        )
-    }
-
     private var createButtonLabel: String {
         String.localizedStringWithFormat(
             String(localized: "common.create_format"),
             localizedBellCount
         )
+    }
+
+    private var showsCreationToolbar: Bool {
+        if case .completed = creationState {
+            return false
+        }
+        return true
     }
 
     private func completionMessage(createdCount: Int) -> String {

@@ -156,14 +156,6 @@ struct BookBatchAddView: View {
                         )
                     }
 
-                    Section {
-                        Button(createButtonLabel) {
-                            Task {
-                                await createBooks()
-                            }
-                        }
-                        .disabled(initialMediaAssets.isEmpty || isCreatingBooks)
-                    }
                     }
                 }
             }
@@ -175,6 +167,25 @@ struct BookBatchAddView: View {
                         Image(systemName: "xmark")
                     }
                     .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                if showsCreationToolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text(createButtonLabel)
+                            .font(CatalogTypography.sectionTitle)
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            Task {
+                                await createBooks()
+                            }
+                        } label: {
+                            Image(systemName: "checkmark")
+                        }
+                        .disabled(initialMediaAssets.isEmpty || isCreatingBooks)
+                        .accessibilityLabel(createButtonLabel)
+                    }
                 }
             }
             .task(id: collection.id) {
@@ -212,6 +223,13 @@ struct BookBatchAddView: View {
             String(localized: "common.create_format"),
             localizedBookCount
         )
+    }
+
+    private var showsCreationToolbar: Bool {
+        if case .completed = creationState {
+            return false
+        }
+        return true
     }
 
     @MainActor
