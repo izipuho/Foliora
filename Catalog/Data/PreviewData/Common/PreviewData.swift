@@ -169,7 +169,6 @@ enum PreviewData {
             id: UUID(),
             itemID: itemID,
             kind: .photo,
-            localIdentifier: "",
             displayName: nil,
             sortOrder: sortOrder,
             fileName: (resourcePath as NSString).lastPathComponent,

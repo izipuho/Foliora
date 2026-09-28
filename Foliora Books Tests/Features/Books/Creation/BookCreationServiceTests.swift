@@ -18,7 +18,6 @@ struct BookCreationServiceTests {
             id: UUID(),
             itemID: UUID(),
             kind: .photo,
-            localIdentifier: "legacy-cache-key-that-does-not-exist.jpg",
             displayName: nil,
             sortOrder: 0,
             mimeType: "image/jpeg",
@@ -40,7 +39,6 @@ struct BookCreationServiceTests {
         #expect(prepared.mediaAssets.isEmpty)
         #expect(cover.id != source.id)
         #expect(cover.itemID == itemID)
-        #expect(cover.localIdentifier.isEmpty)
         #expect(cover.originalData == source.originalData)
         #expect(cover.originalData.flatMap(UIImage.init(data:)) != nil)
     }
@@ -58,7 +56,6 @@ struct BookCreationServiceTests {
             id: UUID(),
             itemID: UUID(),
             kind: .photo,
-            localIdentifier: "legacy-cache-key-that-does-not-exist.jpg",
             displayName: nil,
             sortOrder: 0,
             mimeType: "image/jpeg",
@@ -109,7 +106,6 @@ struct BookCreationServiceTests {
         let persistedCover = try #require(reloaded.details.coverImage)
 
         #expect(persistedCover.id == draft.coverImage?.id)
-        #expect(persistedCover.localIdentifier.isEmpty)
         #expect(persistedCover.originalData?.isEmpty == false)
         #expect(persistedCover.originalData.flatMap(UIImage.init(data:)) != nil)
         #expect(reloaded.cover.mediaAsset?.id == persistedCover.id)

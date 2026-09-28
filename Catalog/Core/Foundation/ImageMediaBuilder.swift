@@ -57,7 +57,6 @@ struct ImageMediaBuilder {
             id: assetID,
             itemID: UUID(),
             kind: .photo,
-            localIdentifier: "",
             displayName: nil,
             sortOrder: 0,
             fileName: fileName,

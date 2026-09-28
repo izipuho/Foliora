@@ -865,7 +865,6 @@ private struct QuickLookPreview: UIViewControllerRepresentable {
 private struct MediaAssetThumbnailView: View {
     let asset: MediaAsset
     let size: CGFloat
-    private let mediaStore = LocalMediaFileStore.shared
 
     var body: some View {
         Group {

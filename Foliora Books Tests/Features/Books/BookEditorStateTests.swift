@@ -9,7 +9,6 @@ struct BookEditorStateTests {
             id: UUID(),
             itemID: UUID(),
             kind: .photo,
-            localIdentifier: "cover.jpg",
             displayName: nil,
             sortOrder: 0,
             originalData: Data([0x01])
@@ -18,7 +17,6 @@ struct BookEditorStateTests {
             id: UUID(),
             itemID: UUID(),
             kind: .photo,
-            localIdentifier: "media.jpg",
             displayName: nil,
             sortOrder: 0,
             originalData: Data([0x02])

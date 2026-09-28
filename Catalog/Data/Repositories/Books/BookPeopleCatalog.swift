@@ -97,7 +97,6 @@ extension CoreDataCatalogRepository {
                 id: existing?.value(forKey: "id") as? UUID ?? UUID(),
                 itemID: nil,
                 kind: photo.kind,
-                localIdentifier: "",
                 displayName: photo.displayName,
                 sortOrder: index,
                 fileName: photo.fileName,

@@ -89,7 +89,6 @@ extension ItemCreationService {
             id: UUID(),
             itemID: itemID,
             kind: .photo,
-            localIdentifier: "",
             displayName: String(localized: "editor.media.cover"),
             sortOrder: 0,
             fileName: nil,
