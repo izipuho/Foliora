@@ -81,6 +81,11 @@ struct BookEditorView: View {
         photoAnalysis.isAnalyzing || photoAnalysis.suggestions.hasSuggestions
     }
 
+    /// Whether an existing book can explicitly rerun full recognition over its current photos.
+    private var canRerunRecognition: Bool {
+        existingBook != nil && recognitionAssets.contains { $0.kind == .photo }
+    }
+
     private var firstPhotoAsset: MediaAsset? {
         if let coverImage = editorState.coverImage {
             return coverImage
@@ -163,7 +168,7 @@ struct BookEditorView: View {
                     .listRowInsets(.init())
                 }
 
-                if shouldShowPhotoAnalysisSection {
+                if shouldShowPhotoAnalysisSection || canRerunRecognition {
                     Section(String(localized: "editor.photo_analysis.section")) {
                         if photoAnalysis.isAnalyzing {
                             HStack(spacing: CatalogMetrics.Spacing.sm) {
@@ -171,7 +176,7 @@ struct BookEditorView: View {
                                 Text(String(localized: "editor.photo_analysis.analyzing"))
                                     .foregroundStyle(.secondary)
                             }
-                        } else {
+                        } else if shouldShowPhotoAnalysisSection {
                             if let suggestion = photoAnalysis.suggestions.title {
                                 PhotoSuggestionRow(
                                     title: String(localized: "common.field.title"),
@@ -269,6 +274,17 @@ struct BookEditorView: View {
                                         editorState.volumeNumber = String(suggestion.value)
                                         photoAnalysis.dismiss(.volumeNumber)
                                     }
+                                )
+                            }
+                        }
+
+                        if canRerunRecognition, !photoAnalysis.isAnalyzing {
+                            Button {
+                                photoAnalysis.analyzeCreation(assets: recognitionAssets)
+                            } label: {
+                                Label(
+                                    String(localized: "editor.photo_analysis.rerun"),
+                                    systemImage: "photo.badge.magnifyingglass"
                                 )
                             }
                         }

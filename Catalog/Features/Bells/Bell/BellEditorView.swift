@@ -109,6 +109,11 @@ struct BellEditorView: View {
         ))
     }
 
+    /// Whether an existing bell can explicitly rerun full recognition over its current photos.
+    private var canRerunRecognition: Bool {
+        existingBell != nil && editorState.mediaAssets.contains { $0.kind == .photo }
+    }
+
     init(
         collection: CollectionSummary,
         repository: any CatalogRepository,
@@ -166,7 +171,7 @@ struct BellEditorView: View {
                             .listRowInsets(.init())
                         }
                         
-                        if shouldShowPhotoAnalysisSection {
+                        if shouldShowPhotoAnalysisSection || canRerunRecognition {
                             Section(String(localized: "editor.photo_analysis.section")) {
                                 if photoAnalysis.isAnalyzing {
                                     HStack(spacing: CatalogMetrics.Spacing.sm) {
@@ -174,7 +179,7 @@ struct BellEditorView: View {
                                         Text(String(localized: "editor.photo_analysis.analyzing"))
                                             .foregroundStyle(.secondary)
                                     }
-                                } else {
+                                } else if shouldShowPhotoAnalysisSection {
                                     if !photoAnalysis.suggestions.isBellDetected {
                                         Label {
                                             Text("editor.analysis.bell_not_found")
@@ -281,6 +286,21 @@ struct BellEditorView: View {
                                                 localizedPhotoSuggestions?.suggestedTags = []
                                                 photoAnalysis.dismiss(.suggestedTags)
                                             }
+                                        )
+                                    }
+                                }
+
+                                if canRerunRecognition, !photoAnalysis.isAnalyzing {
+                                    Button {
+                                        isLocalizingPhotoSuggestions = true
+                                        localizedPhotoSuggestions = nil
+                                        pendingPhotoSuggestionsForTranslation = nil
+                                        translationConfiguration = nil
+                                        photoAnalysis.analyzeCreation(assets: editorState.mediaAssets)
+                                    } label: {
+                                        Label(
+                                            String(localized: "editor.photo_analysis.rerun"),
+                                            systemImage: "photo.badge.magnifyingglass"
                                         )
                                     }
                                 }
