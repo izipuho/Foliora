@@ -60,7 +60,7 @@ struct LibraryView: View {
     @State private var cardManagement = CatalogCardManagementState<BookRecord>()
     @StateObject private var viewModel: LibraryViewModel
 
-    private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
+    private let imageMediaBuilder = ImageMediaBuilder()
 
     init(
         collection: CollectionSummary,

@@ -701,7 +701,7 @@ private struct CollectionPhotoBackground: View {
             let photoSize = CGSize(width: photoWidth, height: proxy.size.height)
 
             MediaPreviewImage(
-                identifier: item.coverPhotoIdentifier,
+                assetID: item.coverPhotoID,
                 originalData: item.coverPhotoOriginalData,
                 size: photoSize
             )
@@ -727,7 +727,7 @@ private struct CollectionPhotoBackground: View {
 
 private struct CollectionBackgroundItem: Identifiable, Hashable {
     let id: UUID
-    let coverPhotoIdentifier: String?
+    let coverPhotoID: UUID
     let coverPhotoOriginalData: Data?
 
     init?(itemEntity: NSManagedObject, collectionID: UUID? = nil) {
@@ -751,12 +751,15 @@ private struct CollectionBackgroundItem: Identifiable, Hashable {
             return nil
         }
 
-        let identifier = coverPhoto.value(forKey: "localIdentifier") as? String
-        let originalData = coverPhoto.value(forKey: "originalData") as? Data
-        guard identifier != nil || originalData != nil else { return nil }
+        guard
+            let coverPhotoID = coverPhoto.value(forKey: "id") as? UUID,
+            let originalData = coverPhoto.value(forKey: "originalData") as? Data
+        else {
+            return nil
+        }
 
         self.id = itemEntity.value(forKey: "id") as? UUID ?? UUID()
-        self.coverPhotoIdentifier = identifier
+        self.coverPhotoID = coverPhotoID
         self.coverPhotoOriginalData = originalData
     }
 

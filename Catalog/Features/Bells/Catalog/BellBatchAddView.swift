@@ -90,7 +90,7 @@ struct BellBatchAddView: View {
     private let initialMediaAssets: [MediaAsset]
     private let repository: any AppRepository
     private let onComplete: (BatchAddCompletionAction) -> Void
-    private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
+    private let imageMediaBuilder = ImageMediaBuilder()
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedLocationID: UUID?

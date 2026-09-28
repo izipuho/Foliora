@@ -46,7 +46,7 @@ extension CatalogSnapshot {
             storagePath: record.storagePath,
             storageDisplayPath: record.storageDisplayPath,
             storageLocationName: record.storageLocationName,
-            coverPhotoIdentifier: coverPhoto?.localIdentifier,
+            coverPhotoID: coverPhoto?.id,
             coverPhotoOriginalData: coverPhoto?.originalData,
             hasOrigin: record.originPlace != nil,
             hasStorage: record.item.locationID != nil

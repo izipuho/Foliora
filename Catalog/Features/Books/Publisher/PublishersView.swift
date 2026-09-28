@@ -221,7 +221,7 @@ private struct PublisherCard: View {
     private var mark: some View {
         if let logo = publisher.logo, logo.kind == .photo {
             MediaPreviewImage(
-                identifier: logo.localIdentifier,
+                assetID: logo.id,
                 originalData: logo.originalData,
                 size: CGSize(width: 52, height: 52)
             )

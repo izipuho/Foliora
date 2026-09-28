@@ -10,7 +10,7 @@ struct BookCoverView: View {
             switch cover {
             case let .image(asset):
                 MediaPreviewImage(
-                    identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
+                    assetID: asset.id,
                     originalData: asset.originalData,
                     size: coverSize,
                     contentMode: .fit
@@ -110,7 +110,7 @@ struct BookCoverBackdropView: View {
             switch cover {
             case let .image(asset):
                 MediaPreviewImage(
-                    identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
+                    assetID: asset.id,
                     originalData: asset.originalData,
                     size: size,
                     contentMode: .fill

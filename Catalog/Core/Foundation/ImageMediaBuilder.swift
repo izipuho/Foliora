@@ -13,8 +13,6 @@ struct ImageMedia {
 
 /// Provides image media builder operations.
 struct ImageMediaBuilder {
-    let store: LocalMediaFileStore
-
     @MainActor
     func build(from item: PhotosPickerItem) async throws -> ImageMedia {
         guard let data = try await item.loadTransferable(type: Data.self),
@@ -50,15 +48,19 @@ struct ImageMediaBuilder {
         preferredFileExtension: String?,
         mimeType: String? = nil
     ) throws -> ImageMedia {
-        let identifier = try store.savePhoto(data: data, preferredFileExtension: preferredFileExtension)
+        let assetID = UUID()
+        let fileExtension = preferredFileExtension
+            .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: ".")) }
+            .flatMap { $0.isEmpty ? nil : $0 } ?? "jpg"
+        let fileName = "photo-\(assetID.uuidString).\(fileExtension)"
         let asset = MediaAsset(
-            id: UUID(),
+            id: assetID,
             itemID: UUID(),
             kind: .photo,
-            localIdentifier: identifier,
+            localIdentifier: "",
             displayName: nil,
             sortOrder: 0,
-            fileName: identifier,
+            fileName: fileName,
             mimeType: mimeType ?? Self.mimeType(for: preferredFileExtension),
             byteSize: data.count,
             checksum: Self.checksum(for: data),

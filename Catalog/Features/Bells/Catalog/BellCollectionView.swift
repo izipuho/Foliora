@@ -29,7 +29,7 @@ struct BellCollectionView: View {
     private let layoutMode: Binding<CatalogCardLayoutMode>
     @State private var selectedSummaryFilter = BellFilters()
     @State private var cardManagement = CatalogCardManagementState<BellCatalogItem>()
-    private let imageMediaBuilder = ImageMediaBuilder(store: .shared)
+    private let imageMediaBuilder = ImageMediaBuilder()
 
     init(
         collection: CollectionSummary,
