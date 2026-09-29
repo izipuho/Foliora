@@ -241,12 +241,17 @@ struct AppShellView: View {
     /// The first trigger schedules a reload after a short delay; triggers arriving while it is pending
     /// are absorbed. The reload reads the context at execution time, so no change is lost, and a steady
     /// stream of saves cannot postpone it indefinitely.
+    ///
+    /// The reload is skipped when the context has unsaved changes at execution time, so the snapshot
+    /// never captures an edit in progress. The later save or rollback posts a new trigger.
     private func scheduleCatalogSnapshotReload() {
         guard pendingCatalogSnapshotReload == nil else { return }
 
         pendingCatalogSnapshotReload = Task {
             try? await Task.sleep(for: .milliseconds(150))
             guard !Task.isCancelled else { return }
+            pendingCatalogSnapshotReload = nil
+            guard !managedObjectContext.hasChanges else { return }
             reloadCatalogSnapshot()
         }
     }
