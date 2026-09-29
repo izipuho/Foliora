@@ -700,22 +700,9 @@ struct LibraryView: View {
     private func addDraftPhotosAndPresentEditor(from items: [PhotosPickerItem]) async {
         guard canEditLibrary, !items.isEmpty else { return }
 
-        var newAssets: [MediaAsset] = []
-
-        for item in items {
-            guard let data = try? await item.loadTransferable(type: Data.self),
-                  let image = UIImage(data: data) else { continue }
-
-            let contentType = item.supportedContentTypes.first
-            guard let media = try? imageMediaBuilder.build(
-                from: data,
-                image: image,
-                preferredFileExtension: contentType?.preferredFilenameExtension,
-                mimeType: contentType?.preferredMIMEType
-            ) else { continue }
-
-            newAssets.append(media.asset.with(sortOrder: newAssets.count))
-        }
+        let newAssets = await imageMediaBuilder.build(from: items)
+            .enumerated()
+            .map { index, media in media.asset.with(sortOrder: index) }
 
         selectedPhotoItems = []
 
@@ -733,7 +720,7 @@ struct LibraryView: View {
     @MainActor
     private func addCapturedPhotoAndPresentEditor(_ image: UIImage) async {
         guard canEditLibrary,
-              let media = try? imageMediaBuilder.build(from: image) else { return }
+              let media = try? await imageMediaBuilder.build(from: image) else { return }
 
         draftMediaAssets = [media.asset.with(sortOrder: 0)]
         await prepareDraftBook()
