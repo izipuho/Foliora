@@ -3,7 +3,7 @@ import Observation
 import UIKit
 
 @MainActor
-protocol ItemCreationRecognitionController: AnyObject {
+protocol ItemCreationRecognitionController: AnyObject, Sendable {
     init()
     var isAnalyzing: Bool { get }
     var requiresFullAnalysis: Bool { get }
