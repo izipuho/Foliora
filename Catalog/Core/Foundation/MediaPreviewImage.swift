@@ -57,6 +57,7 @@ struct MediaPreviewImage: View {
     @MainActor
     private func loadImage() async {
         guard let originalData else {
+            MediaDiagnostics.log("preview no data asset=\(assetID.uuidString.prefix(8)) size=\(Int(size.width))x\(Int(size.height))")
             image = nil
             return
         }
@@ -73,6 +74,10 @@ struct MediaPreviewImage: View {
         }
 
         guard !Task.isCancelled else { return }
-        image = UIImage(data: originalData)
+        let fallbackImage = UIImage(data: originalData)
+        if fallbackImage == nil {
+            MediaDiagnostics.log("preview decode failed asset=\(assetID.uuidString.prefix(8)) bytes=\(originalData.count) size=\(Int(size.width))x\(Int(size.height))")
+        }
+        image = fallbackImage
     }
 }

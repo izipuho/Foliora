@@ -276,6 +276,7 @@ struct BookBatchAddView: View {
         var creations: [(book: BookRecord, recognitionAssets: [MediaAsset])] = []
         for (index, mediaAsset) in initialMediaAssets.enumerated() {
             let creationDraft = await ItemCreationService.prepareBookDraft([mediaAsset])
+            MediaDiagnostics.log("book batch draft #\(index) sourceBytes=\(mediaAsset.originalData?.count ?? -1) coverBytes=\(creationDraft.coverImage?.originalData?.count ?? -1) usedOriginalCover=\(creationDraft.usedOriginalCover)")
             var state = BookEditorState(
                 book: nil,
                 creationDraft: creationDraft
