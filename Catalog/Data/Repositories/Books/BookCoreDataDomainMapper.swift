@@ -11,14 +11,6 @@ extension CoreDataDomainMapper {
 
         let itemRecord = itemRecord(from: itemEntity)
         let coverImageEntity = entity.value(forKey: "coverImage") as? NSManagedObject
-        #if DEBUG
-        if coverImageEntity == nil {
-            MediaDiagnostics.log("book without cover entity id=\((itemEntity.value(forKey: "id") as? UUID)?.uuidString.prefix(8) ?? "?")")
-        }
-        if let coverImageEntity, (coverImageEntity.value(forKey: "originalData") as? Data)?.isEmpty != false {
-            MediaDiagnostics.log("book cover entity without data fault=\(coverImageEntity.isFault) deleted=\(coverImageEntity.isDeleted)")
-        }
-        #endif
         let publisherEntity = entity.value(forKey: "publisher") as? NSManagedObject
         let seriesEntity = entity.value(forKey: "series") as? NSManagedObject
         let contributors = relatedObjects(entity, "contributors")

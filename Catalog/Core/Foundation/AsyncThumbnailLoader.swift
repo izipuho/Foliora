@@ -46,10 +46,7 @@ actor ThumbnailImageCache {
             Self.decodeImage(data: data, maxPixelSize: maxPixelSize, scale: scale)
         }.value
 
-        guard let decodedImage else {
-            MediaDiagnostics.log("thumbnail decode failed asset=\(assetID.uuidString.prefix(8)) bytes=\(data.count) px=\(pixelWidth)x\(pixelHeight)")
-            return nil
-        }
+        guard let decodedImage else { return nil }
         images[key] = ThumbnailImageBox(image: decodedImage)
         return decodedImage
     }
