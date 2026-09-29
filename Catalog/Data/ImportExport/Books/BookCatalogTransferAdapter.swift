@@ -34,7 +34,7 @@ struct BookCatalogTransferAdapter: CatalogDomainTransferAdapter {
             collectionIDs.map { $0 as NSUUID }
         )
         seriesRequest.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
-        let series = try context.fetch(seriesRequest).map(CoreDataDomainMapper.bookSeries)
+        let series = try context.fetch(seriesRequest).map { CoreDataDomainMapper.bookSeries(from: $0) }
 
         guard !items.isEmpty || !series.isEmpty else { return [] }
         let payload = BookCatalogTransferPayload(items: items, series: series)
