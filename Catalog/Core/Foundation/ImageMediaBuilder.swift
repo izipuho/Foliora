@@ -11,81 +11,117 @@ struct ImageMedia {
     let uiImage: UIImage
 }
 
-/// Provides image media builder operations.
+/// Single entry point that turns picker items and captured images into photo `MediaAsset`s.
+///
+/// Image decoding, JPEG encoding and checksum hashing run off the main actor;
+/// only the lightweight `MediaAsset` assembly happens on the caller's actor.
 struct ImageMediaBuilder {
-    @MainActor
+    /// Builds media from a Photos picker item.
+    ///
+    /// - Throws: `CocoaError(.fileReadCorruptFile)` when the item cannot be loaded or decoded.
     func build(from item: PhotosPickerItem) async throws -> ImageMedia {
-        guard let data = try await item.loadTransferable(type: Data.self),
-              let image = UIImage(data: data) else {
+        guard let data = try await item.loadTransferable(type: Data.self) else {
             throw CocoaError(.fileReadCorruptFile)
         }
 
         let contentType = item.supportedContentTypes.first
-        return try build(
-            from: data,
-            image: image,
+        let encoded = try await Self.encode(pickedData: data)
+        return makeMedia(
+            from: encoded,
             preferredFileExtension: contentType?.preferredFilenameExtension,
             mimeType: contentType?.preferredMIMEType
         )
     }
 
-    func build(from image: UIImage) throws -> ImageMedia {
-        guard let data = image.jpegData(compressionQuality: 0.92) else {
-            throw CocoaError(.fileWriteUnknown)
+    /// Builds media from Photos picker items in their original order.
+    ///
+    /// Items that cannot be loaded or decoded are skipped.
+    func build(from items: [PhotosPickerItem]) async -> [ImageMedia] {
+        var media: [ImageMedia] = []
+        media.reserveCapacity(items.count)
+
+        for item in items {
+            guard let built = try? await build(from: item) else { continue }
+            media.append(built)
         }
 
-        return try build(
-            from: data,
-            image: image,
-            preferredFileExtension: "jpg",
-            mimeType: "image/jpeg"
-        )
+        return media
     }
 
-    func build(
-        from data: Data,
-        image: UIImage,
+    /// Builds JPEG media from a camera-captured image.
+    ///
+    /// - Throws: `CocoaError(.fileWriteUnknown)` when the image cannot be JPEG-encoded.
+    func build(from image: UIImage) async throws -> ImageMedia {
+        let encoded = try await Self.encode(capturedImage: image)
+        return makeMedia(from: encoded, preferredFileExtension: "jpg", mimeType: "image/jpeg")
+    }
+
+    private func makeMedia(
+        from encoded: EncodedImage,
         preferredFileExtension: String?,
-        mimeType: String? = nil
-    ) throws -> ImageMedia {
+        mimeType: String?
+    ) -> ImageMedia {
         let assetID = UUID()
         let fileExtension = preferredFileExtension
             .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: ".")) }
             .flatMap { $0.isEmpty ? nil : $0 } ?? "jpg"
-        let fileName = "photo-\(assetID.uuidString).\(fileExtension)"
         let asset = MediaAsset(
             id: assetID,
             itemID: UUID(),
             kind: .photo,
             displayName: nil,
             sortOrder: 0,
-            fileName: fileName,
+            fileName: "photo-\(assetID.uuidString).\(fileExtension)",
             mimeType: mimeType ?? Self.mimeType(for: preferredFileExtension),
-            byteSize: data.count,
-            checksum: Self.checksum(for: data),
-            width: Int(image.size.width * image.scale),
-            height: Int(image.size.height * image.scale),
-            originalData: data
+            byteSize: encoded.data.count,
+            checksum: encoded.checksum,
+            width: encoded.width,
+            height: encoded.height,
+            originalData: encoded.data
         )
 
-        return ImageMedia(asset: asset, uiImage: image)
+        return ImageMedia(asset: asset, uiImage: encoded.image)
     }
 
-    private static func checksum(for data: Data) -> String {
-        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    /// Decodes picked image data and hashes it off the main actor.
+    @concurrent
+    private static func encode(pickedData data: Data) async throws -> EncodedImage {
+        guard let image = UIImage(data: data) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        return EncodedImage(data: data, image: image)
+    }
+
+    /// JPEG-encodes a captured image and hashes it off the main actor.
+    @concurrent
+    private static func encode(capturedImage image: UIImage) async throws -> EncodedImage {
+        guard let data = image.jpegData(compressionQuality: 0.92) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+
+        return EncodedImage(data: data, image: image)
     }
 
     private static func mimeType(for fileExtension: String?) -> String? {
         guard let fileExtension else { return nil }
         return UTType(filenameExtension: fileExtension)?.preferredMIMEType
     }
+}
 
-    private static func pixelWidth(for image: UIImage) -> Int {
-        image.cgImage?.width ?? Int((image.size.width * image.scale).rounded())
+/// Encoded image bytes with the values derived from them off the main actor.
+nonisolated private struct EncodedImage: Sendable {
+    let data: Data
+    let image: UIImage
+    let checksum: String
+    let width: Int
+    let height: Int
+
+    init(data: Data, image: UIImage) {
+        self.data = data
+        self.image = image
+        self.checksum = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        self.width = Int(image.size.width * image.scale)
+        self.height = Int(image.size.height * image.scale)
     }
-
-    private static func pixelHeight(for image: UIImage) -> Int {
-        image.cgImage?.height ?? Int((image.size.height * image.scale).rounded())
-    }
-
 }

@@ -109,7 +109,9 @@ struct MediaSection: View {
             )
             .fullScreenCover(isPresented: $isPresentingCamera) {
                 CameraPickerView { image in
-                    addCapturedPhoto(image)
+                    Task {
+                        await addCapturedPhoto(image)
+                    }
                 }
                 .ignoresSafeArea()
             }
@@ -203,45 +205,30 @@ struct MediaSection: View {
 
         for item in items {
             guard canAddMedia else { break }
-            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
-            guard let image = UIImage(data: data) else { continue }
-            let contentType = item.supportedContentTypes.first
-            guard let media = try? imageMediaBuilder.build(
-                from: data,
-                image: image,
-                preferredFileExtension: contentType?.preferredFilenameExtension,
-                mimeType: contentType?.preferredMIMEType
-            ) else { continue }
-
-            let asset = media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
-            updateMediaAssets { assets in
-                assets.append(asset)
-            }
-            recentlyAddedPhotoAssetIDs.insert(asset.id)
-
-            onPhotoAdded?(image)
+            guard let media = try? await imageMediaBuilder.build(from: item) else { continue }
+            guard canAddMedia else { break }
+            appendPhoto(media)
         }
 
         selectedPhotoItems = []
     }
 
-    private func addCapturedPhoto(_ image: UIImage) {
+    @MainActor
+    private func addCapturedPhoto(_ image: UIImage) async {
         guard canAddMedia else { return }
-        guard let data = image.jpegData(compressionQuality: 0.92) else { return }
-        guard let media = try? imageMediaBuilder.build(
-            from: data,
-            image: image,
-            preferredFileExtension: "jpg",
-            mimeType: "image/jpeg"
-        ) else { return }
+        guard let media = try? await imageMediaBuilder.build(from: image) else { return }
+        guard canAddMedia else { return }
+        appendPhoto(media)
+    }
 
+    private func appendPhoto(_ media: ImageMedia) {
         let asset = media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
         updateMediaAssets { assets in
             assets.append(asset)
         }
         recentlyAddedPhotoAssetIDs.insert(asset.id)
 
-        onPhotoAdded?(image)
+        onPhotoAdded?(media.uiImage)
     }
 
     private func removeAsset(withID assetID: MediaAsset.ID) {
