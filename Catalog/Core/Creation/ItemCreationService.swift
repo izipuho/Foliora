@@ -1,4 +1,5 @@
 import ImageIO
+import Observation
 import UIKit
 
 @MainActor
@@ -81,6 +82,26 @@ extension ItemCreationRecognitionController {
             repository: repository
         )
         _ = controller.analyzeCreation(assets: assets)
+        controller.discardSessionWhenIdle(itemID: itemID)
+    }
+
+    /// Releases a background creation session once its analysis has finished.
+    ///
+    /// Results are persisted by the controller when it becomes idle, and an editor opened later
+    /// restores them from the repository. An editor already holding this instance keeps it alive.
+    func discardSessionWhenIdle(itemID: UUID) {
+        guard isAnalyzing else {
+            ItemRecognitionSessionStore.shared.discardSession(for: itemID)
+            return
+        }
+
+        withObservationTracking {
+            _ = isAnalyzing
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.discardSessionWhenIdle(itemID: itemID)
+            }
+        }
     }
 }
 
