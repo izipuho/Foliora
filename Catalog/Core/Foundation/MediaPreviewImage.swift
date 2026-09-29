@@ -56,11 +56,14 @@ struct MediaPreviewImage: View {
 
     @MainActor
     private func loadImage() async {
+        let tag = "asset=\(assetID.uuidString.prefix(8)) size=\(Int(size.width))x\(Int(size.height))"
         guard let originalData else {
-            MediaDiagnostics.log("preview no data asset=\(assetID.uuidString.prefix(8)) size=\(Int(size.width))x\(Int(size.height))")
+            MediaDiagnostics.log("preview no data \(tag)")
             image = nil
             return
         }
+
+        MediaDiagnostics.log("preview start \(tag) bytes=\(originalData.count) hasImage=\(image != nil)")
 
         if let loadedImage = await thumbnailCache.image(
             assetID: assetID,
@@ -68,15 +71,22 @@ struct MediaPreviewImage: View {
             targetSize: size,
             scale: displayScale
         ) {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else {
+                MediaDiagnostics.log("preview cancelled after decode \(tag) hasImage=\(image != nil)")
+                return
+            }
             image = loadedImage
+            MediaDiagnostics.log("preview shown \(tag)")
             return
         }
 
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled else {
+            MediaDiagnostics.log("preview cancelled after failed decode \(tag)")
+            return
+        }
         let fallbackImage = UIImage(data: originalData)
         if fallbackImage == nil {
-            MediaDiagnostics.log("preview decode failed asset=\(assetID.uuidString.prefix(8)) bytes=\(originalData.count) size=\(Int(size.width))x\(Int(size.height))")
+            MediaDiagnostics.log("preview decode failed \(tag) bytes=\(originalData.count)")
         }
         image = fallbackImage
     }
