@@ -53,6 +53,7 @@ struct AppShellView: View {
     let coreDataContainer: NSPersistentCloudKitContainer
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var catalogSnapshot: CatalogSnapshot?
+    @State private var pendingCatalogSnapshotReload: Task<Void, Never>?
     @State private var collectionsPath = NavigationPath()
     @State private var homesPath = NavigationPath()
     @State private var settingsPath = NavigationPath()
@@ -90,14 +91,14 @@ struct AppShellView: View {
             for: .NSManagedObjectContextDidSave,
             object: managedObjectContext
         )) { _ in
-            reloadCatalogSnapshot()
+            scheduleCatalogSnapshotReload()
         }
         .onReceive(NotificationCenter.default.publisher(
             for: .NSManagedObjectContextObjectsDidChange,
             object: managedObjectContext
         )) { _ in
             guard !managedObjectContext.hasChanges else { return }
-            reloadCatalogSnapshot()
+            scheduleCatalogSnapshotReload()
         }
         .onChange(of: shareInvitationController.state) { _, state in
             handleShareInvitationState(state)
@@ -234,7 +235,31 @@ struct AppShellView: View {
         repository.saveLocations(locationsByHomeID[homeID] ?? [], in: homeID)
     }
 
+    /// Coalesces context notifications into one snapshot reload.
+    ///
+    /// A single save posts both `DidSave` and `ObjectsDidChange`, and Batch Add saves once per item.
+    /// The first trigger schedules a reload after a short delay; triggers arriving while it is pending
+    /// are absorbed. The reload reads the context at execution time, so no change is lost, and a steady
+    /// stream of saves cannot postpone it indefinitely.
+    ///
+    /// The reload is skipped when the context has unsaved changes at execution time, so the snapshot
+    /// never captures an edit in progress. The later save or rollback posts a new trigger.
+    private func scheduleCatalogSnapshotReload() {
+        guard pendingCatalogSnapshotReload == nil else { return }
+
+        pendingCatalogSnapshotReload = Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+            pendingCatalogSnapshotReload = nil
+            guard !managedObjectContext.hasChanges else { return }
+            reloadCatalogSnapshot()
+        }
+    }
+
+    /// Reloads the snapshot immediately and drops any pending coalesced reload.
     private func reloadCatalogSnapshot() {
+        pendingCatalogSnapshotReload?.cancel()
+        pendingCatalogSnapshotReload = nil
         catalogSnapshot = CatalogSnapshot.load(from: managedObjectContext)
     }
 
