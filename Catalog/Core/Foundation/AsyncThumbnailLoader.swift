@@ -3,25 +3,21 @@ import Foundation
 import ImageIO
 import UIKit
 
-private struct ThumbnailCacheKey: Hashable, Sendable {
-    let assetID: UUID
-    let pixelWidth: Int
-    let pixelHeight: Int
-}
-
-private final class ThumbnailImageBox: @unchecked Sendable {
-    let image: UIImage
-
-    init(image: UIImage) {
-        self.image = image
-    }
-}
-
 /// Provides thumbnail image cache operations.
+///
+/// Thumbnails are keyed by asset and pixel size, so every layout mode adds a new set.
+/// `NSCache` bounds the total decoded size and evicts under memory pressure.
 actor ThumbnailImageCache {
     static let shared = ThumbnailImageCache()
 
-    private var images: [ThumbnailCacheKey: ThumbnailImageBox] = [:]
+    /// Upper bound for decoded thumbnail bitmaps kept in memory.
+    nonisolated private static let totalCostLimit = 128 * 1_048_576
+
+    private let images: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.totalCostLimit = ThumbnailImageCache.totalCostLimit
+        return cache
+    }()
 
     func image(
         assetID: UUID,
@@ -31,13 +27,9 @@ actor ThumbnailImageCache {
     ) async -> UIImage? {
         let pixelWidth = max(Int((targetSize.width * scale).rounded(.up)), 1)
         let pixelHeight = max(Int((targetSize.height * scale).rounded(.up)), 1)
-        let key = ThumbnailCacheKey(
-            assetID: assetID,
-            pixelWidth: pixelWidth,
-            pixelHeight: pixelHeight
-        )
+        let key = "\(assetID.uuidString)-\(pixelWidth)x\(pixelHeight)" as NSString
 
-        if let cachedImage = images[key]?.image {
+        if let cachedImage = images.object(forKey: key) {
             return cachedImage
         }
 
@@ -47,8 +39,13 @@ actor ThumbnailImageCache {
         }.value
 
         guard let decodedImage else { return nil }
-        images[key] = ThumbnailImageBox(image: decodedImage)
+        images.setObject(decodedImage, forKey: key, cost: Self.cost(of: decodedImage))
         return decodedImage
+    }
+
+    nonisolated private static func cost(of image: UIImage) -> Int {
+        guard let cgImage = image.cgImage else { return 1 }
+        return cgImage.bytesPerRow * cgImage.height
     }
 
     private static func decodeImage(data: Data, maxPixelSize: Int, scale: CGFloat) -> UIImage? {
