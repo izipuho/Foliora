@@ -700,11 +700,7 @@ private struct CollectionPhotoBackground: View {
             let photoWidth = proxy.size.width * 0.62
             let photoSize = CGSize(width: photoWidth, height: proxy.size.height)
 
-            MediaPreviewImage(
-                assetID: item.coverPhotoID,
-                originalData: item.coverPhotoOriginalData,
-                size: photoSize
-            )
+            MediaPreviewImage(assetID: item.coverPhotoID, size: photoSize)
             .frame(width: photoWidth, height: proxy.size.height)
             .opacity(0.52)
             .mask {
@@ -728,7 +724,6 @@ private struct CollectionPhotoBackground: View {
 private struct CollectionBackgroundItem: Identifiable, Hashable {
     let id: UUID
     let coverPhotoID: UUID
-    let coverPhotoOriginalData: Data?
 
     init?(itemEntity: NSManagedObject, collectionID: UUID? = nil) {
         guard itemEntity.value(forKey: "isFavorite") as? Bool == true else { return nil }
@@ -751,16 +746,12 @@ private struct CollectionBackgroundItem: Identifiable, Hashable {
             return nil
         }
 
-        guard
-            let coverPhotoID = coverPhoto.value(forKey: "id") as? UUID,
-            let originalData = coverPhoto.value(forKey: "originalData") as? Data
-        else {
+        guard let coverPhotoID = coverPhoto.value(forKey: "id") as? UUID else {
             return nil
         }
 
         self.id = itemEntity.value(forKey: "id") as? UUID ?? UUID()
         self.coverPhotoID = coverPhotoID
-        self.coverPhotoOriginalData = originalData
     }
 
     private static func sortOrder(_ entity: NSManagedObject) -> Int {

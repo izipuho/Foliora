@@ -256,6 +256,7 @@ struct PublisherEditorView: View {
     private let onSave: (Publisher) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.mediaDataLoader) private var mediaDataLoader
     @FocusState private var isNameFocused: Bool
     @State private var name: String
     @State private var logoAssets: [MediaAsset]
@@ -295,6 +296,12 @@ struct PublisherEditorView: View {
                         mediaAssets: $logoAssets,
                         maxMediaCount: 1
                     )
+                    .task {
+                        // Snapshot logos carry no bytes; load them for preview and full-screen viewing.
+                        guard let mediaDataLoader else { return }
+                        let hydratedLogos = await mediaDataLoader.hydrated(logoAssets)
+                        logoAssets = MediaDataLoader.reusingData(logoAssets, from: hydratedLogos)
+                    }
                     .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, CatalogMetrics.Spacing.md)
