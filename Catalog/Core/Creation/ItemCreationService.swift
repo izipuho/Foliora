@@ -1,3 +1,4 @@
+import ImageIO
 import UIKit
 
 @MainActor
@@ -89,13 +90,39 @@ enum ItemCreationService {
         return UIImage(data: data)
     }
 
+    /// Longest side of images handed to recognition; Vision does not need full camera resolution.
+    static let recognitionMaxPixelSize = 2560
+
     static func recognitionPhotos(from assets: [MediaAsset]) -> [(assetID: UUID, image: UIImage)] {
         assets
             .filter { $0.kind == .photo }
             .sorted { $0.sortOrder < $1.sortOrder }
             .compactMap { asset in
-                image(for: asset).map { (assetID: asset.id, image: $0) }
+                recognitionImage(for: asset).map { (assetID: asset.id, image: $0) }
             }
+    }
+
+    /// Decodes a downsampled copy of the photo for recognition instead of the full-resolution bitmap.
+    static func recognitionImage(for asset: MediaAsset) -> UIImage? {
+        guard let data = asset.originalData,
+              let source = CGImageSourceCreateWithData(
+                data as CFData,
+                [kCGImageSourceShouldCache: false] as CFDictionary
+              ) else {
+            return nil
+        }
+
+        let options = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: recognitionMaxPixelSize
+        ] as CFDictionary
+
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else {
+            return nil
+        }
+        return UIImage(cgImage: cgImage)
     }
 
     static func recognitionSnapshot(from assets: [MediaAsset]) -> ItemRecognitionMediaSnapshot {

@@ -32,6 +32,21 @@ struct PhotoAnalysisResult: Sendable {
         main: .empty,
         background: .empty
     )
+
+    /// Returns a copy without the main object crop.
+    ///
+    /// The crop is produced with `CGImage.cropping(to:)`, which shares the full decoded bitmap of
+    /// the source photo. Results kept for the lifetime of a recognition session must drop it,
+    /// otherwise every analyzed photo stays fully decoded in memory.
+    func releasingMainObjectImage() -> PhotoAnalysisResult {
+        PhotoAnalysisResult(
+            mainObjectImage: nil,
+            mainObjectRegion: mainObjectRegion,
+            main: main,
+            background: background,
+            failures: failures
+        )
+    }
 }
 
 /// Represents ordered analysis results for several photos of one item.
