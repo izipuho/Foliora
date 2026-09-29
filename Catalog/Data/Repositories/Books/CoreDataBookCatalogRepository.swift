@@ -75,7 +75,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
     private func saveBookRecordWithoutSavingContext(_ book: BookRecord) {
         guard let item = saveItemRecordWithoutSavingContext(book.item) else { return }
 
-        let entity = fetchBookEntity(by: book.id) ?? makeEntity(named: "BookEntity")
+        let entity = fetchBookEntity(by: book.id) ?? makeEntity(named: "BookEntity", inStoreOf: item)
 
         apply(book, to: entity)
         entity.setValue(item, forKey: "item")
@@ -287,7 +287,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
                 "Person collection does not match the book collection."
             )
 
-            let entity = makeEntity(named: "BookContributorEntity")
+            let entity = makeEntity(named: "BookContributorEntity", inStoreOf: book)
             entity.setValue(contributor.role.rawValue, forKey: "role")
             entity.setValue(contributor.order, forKey: "order")
             entity.setValue(book, forKey: "book")
@@ -302,7 +302,7 @@ extension CoreDataCatalogRepository: BookCatalogRepository {
         relatedObjects(book, "bookIdentifiers").forEach(context.delete)
 
         let entities = identifiers.map { identifier -> NSManagedObject in
-            let entity = makeEntity(named: "BookIdentifierEntity")
+            let entity = makeEntity(named: "BookIdentifierEntity", inStoreOf: book)
             entity.setValue(identifier.type.rawValue, forKey: "type")
             entity.setValue(identifier.value, forKey: "value")
             entity.setValue(book, forKey: "book")
