@@ -561,7 +561,7 @@ final class BellPhotoAnalysisController: ItemCreationRecognitionController {
             let analysis = await service.analyze(images: batch.map(\.image))
 
             for (photo, result) in zip(batch, analysis.photos) where analysisOrder.contains(photo.assetID) {
-                analysisByAssetID[photo.assetID] = result
+                analysisByAssetID[photo.assetID] = result.releasingMainObjectImage()
             }
 
             evidenceRevision += 1

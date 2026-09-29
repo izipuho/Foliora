@@ -18,7 +18,7 @@ struct BookCoverResolutionTests {
     @Test
     func mediaPhotoDoesNotBecomeCoverWithoutDedicatedCover() {
         let bookID = UUID()
-        let mediaPhoto = photo(identifier: "media")
+        let mediaPhoto = photo()
         let book = makeBook(id: bookID, title: "Book", mediaAssets: [mediaPhoto])
 
         #expect(

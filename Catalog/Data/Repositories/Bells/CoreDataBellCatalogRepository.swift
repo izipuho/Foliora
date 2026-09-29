@@ -28,7 +28,7 @@ extension CoreDataCatalogRepository: BellCatalogRepository {
     private func saveBellRecordWithoutSavingContext(_ bell: BellRecord) {
         guard let item = saveItemRecordWithoutSavingContext(bell.item) else { return }
 
-        let entity = fetchBellEntity(by: bell.id) ?? makeEntity(named: "BellEntity")
+        let entity = fetchBellEntity(by: bell.id) ?? makeEntity(named: "BellEntity", inStoreOf: item)
         apply(bell, to: entity)
         entity.setValue(item, forKey: "item")
         fillInverseRelationship(from: entity, relationshipName: "item", with: item)

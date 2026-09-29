@@ -221,7 +221,8 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     private func upsertItemEntity(for item: ItemRecord, in collection: NSManagedObject) -> NSManagedObject {
-        let entity = fetchEntity(named: "ItemEntity", by: item.id) ?? makeEntity(named: "ItemEntity")
+        let entity = fetchEntity(named: "ItemEntity", by: item.id)
+            ?? makeEntity(named: "ItemEntity", inStoreOf: collection)
         apply(item, to: entity)
         entity.setValue(collection, forKey: "collection")
 
@@ -352,7 +353,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
         }
 
         let updatedAssets = mediaAssets.map { asset in
-            let entity = entitiesByID[asset.id] ?? makeEntity(named: "MediaAssetEntity")
+            let entity = entitiesByID[asset.id] ?? makeEntity(named: "MediaAssetEntity", inStoreOf: item)
             apply(asset, to: entity)
             entity.setValue(item, forKey: "item")
             return entity
@@ -418,6 +419,18 @@ final class CoreDataCatalogRepository: CatalogRepository {
         NSEntityDescription.insertNewObject(forEntityName: entityName, into: context)
     }
 
+    /// Inserts an entity into the persistent store that already holds `owner`.
+    ///
+    /// Private and shared collections live in different stores, and Core Data rejects saves with
+    /// relationships across stores. Unassigned inserts would otherwise land in the first store.
+    func makeEntity(named entityName: String, inStoreOf owner: NSManagedObject) -> NSManagedObject {
+        let entity = makeEntity(named: entityName)
+        if let store = owner.objectID.persistentStore {
+            context.assign(entity, to: store)
+        }
+        return entity
+    }
+
     func fetchEntity(named entityName: String, by id: UUID) -> NSManagedObject? {
         fetchEntities(named: entityName, predicate: NSPredicate(format: "id == %@", id as NSUUID), fetchLimit: 1).first
     }
@@ -446,7 +459,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
             named: "ItemTagEntity",
             predicate: NSPredicate(format: "normalizedName == %@ AND collection == %@", normalizedName, collection),
             fetchLimit: 1
-        ).first ?? makeEntity(named: "ItemTagEntity")
+        ).first ?? makeEntity(named: "ItemTagEntity", inStoreOf: collection)
 
         if entity.value(forKey: "id") == nil {
             entity.setValue(UUID(), forKey: "id")
