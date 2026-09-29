@@ -39,8 +39,9 @@ extension ItemCreationService {
             )
         }
 
+        // `UIImage(data:)` only parses the header here; pixel work happens inside the extractor.
         guard let originalData = source.originalData,
-              let sourceImage = UIImage(data: originalData) else {
+              UIImage(data: originalData) != nil else {
             return BookCreationDraft(
                 itemID: itemID,
                 coverImage: nil,
@@ -52,7 +53,7 @@ extension ItemCreationService {
         let coverImage: MediaAsset
         let usedOriginalCover: Bool
 
-        if let extracted = await BookCoverExtractor().extractCover(from: sourceImage) {
+        if let extracted = await BookCoverExtractor().extractCover(from: originalData) {
             coverImage = extracted.with(
                 itemID: itemID,
                 displayName: String(localized: "editor.media.cover"),

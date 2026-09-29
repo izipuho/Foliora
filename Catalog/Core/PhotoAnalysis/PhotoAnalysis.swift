@@ -32,6 +32,21 @@ struct PhotoAnalysisResult: Sendable {
         main: .empty,
         background: .empty
     )
+
+    /// Returns a copy without the main object crop.
+    ///
+    /// The crop is produced with `CGImage.cropping(to:)`, which shares the full decoded bitmap of
+    /// the source photo. Results kept for the lifetime of a recognition session must drop it,
+    /// otherwise every analyzed photo stays fully decoded in memory.
+    func releasingMainObjectImage() -> PhotoAnalysisResult {
+        PhotoAnalysisResult(
+            mainObjectImage: nil,
+            mainObjectRegion: mainObjectRegion,
+            main: main,
+            background: background,
+            failures: failures
+        )
+    }
 }
 
 /// Represents ordered analysis results for several photos of one item.
@@ -232,6 +247,36 @@ extension PhotoAnalysisService {
     }
 }
 
+/// Runs blocking Vision requests off the main actor and off the Swift concurrency pool.
+///
+/// `VNImageRequestHandler.perform` is synchronous and can take seconds. The app target defaults to
+/// main-actor isolation, so calling it inline blocked the main thread for every analyzed photo and
+/// stalled UI work such as thumbnail display until all recognition sessions had finished.
+nonisolated enum VisionExecutor {
+    private static let queue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "Foliora.VisionExecutor"
+        queue.maxConcurrentOperationCount = 2
+        queue.qualityOfService = .userInitiated
+        return queue
+    }()
+
+    static func perform(_ requests: [VNRequest], with handler: VNImageRequestHandler) async throws {
+        nonisolated(unsafe) let requests = requests
+        nonisolated(unsafe) let handler = handler
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            queue.addOperation {
+                do {
+                    try handler.perform(requests)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+}
+
 private struct VisionAnalyzer: Sendable {
     private func makeHandler(for image: CGImage) -> VNImageRequestHandler {
         // Orientation is intentionally not part of this contract; CGImage pixels are analyzed as-is.
@@ -243,7 +288,7 @@ private struct VisionAnalyzer: Sendable {
 
         let request = VNClassifyImageRequest()
         let handler = makeHandler(for: image)
-        try handler.perform([request])
+        try await VisionExecutor.perform([request], with: handler)
 
         let features = (request.results ?? []).compactMap { observation -> VisionFeature? in
             let label = PhotoAnalysisNormalization.normalizedLabel(observation.identifier)
@@ -272,7 +317,7 @@ private struct VisionAnalyzer: Sendable {
         request.usesLanguageCorrection = true
 
         let handler = makeHandler(for: image)
-        try handler.perform([request])
+        try await VisionExecutor.perform([request], with: handler)
 
         let observations = request.results ?? []
         let features = observations.compactMap { observation -> RecognizedTextFeature? in
@@ -304,7 +349,7 @@ private struct VisionAnalyzer: Sendable {
 
         let request = VNDetectBarcodesRequest()
         let handler = makeHandler(for: image)
-        try handler.perform([request])
+        try await VisionExecutor.perform([request], with: handler)
 
         let features = (request.results ?? []).compactMap { observation -> RecognizedBarcodeFeature? in
             guard let rawPayload = observation.payloadStringValue else { return nil }
@@ -336,7 +381,7 @@ private struct VisionAnalyzer: Sendable {
 
         let request = VNGenerateAttentionBasedSaliencyImageRequest()
         let handler = makeHandler(for: image)
-        try handler.perform([request])
+        try await VisionExecutor.perform([request], with: handler)
 
         return (request.results ?? [])
             .flatMap { observation in
@@ -363,7 +408,7 @@ private struct VisionAnalyzer: Sendable {
         }
 
         let handler = makeHandler(for: image)
-        try handler.perform([request])
+        try await VisionExecutor.perform([request], with: handler)
 
         if let requestError {
             throw requestError

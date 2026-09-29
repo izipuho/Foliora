@@ -7,14 +7,15 @@ import Vision
 
 /// Extracts and perspective-corrects a book cover from a source image.
 struct BookCoverExtractor: Sendable {
-    func extractCover(from image: UIImage) async -> MediaAsset? {
-        guard let sourceImage = normalizedCGImage(from: image),
-              let coverImage = extractCover(from: sourceImage) else {
-            return nil
-        }
+    /// Rendered cover pixels produced off the main actor.
+    private struct RenderedCover: Sendable {
+        let jpegData: Data
+        let width: Int
+        let height: Int
+    }
 
-        let normalizedCover = UIImage(cgImage: coverImage)
-        guard let data = normalizedCover.jpegData(compressionQuality: 0.92) else {
+    func extractCover(from imageData: Data) async -> MediaAsset? {
+        guard let cover = await Self.renderCover(from: imageData) else {
             return nil
         }
 
@@ -25,15 +26,35 @@ struct BookCoverExtractor: Sendable {
             sortOrder: 0,
             fileName: nil,
             mimeType: "image/jpeg",
-            byteSize: data.count,
-            checksum: checksum(for: data),
-            width: coverImage.width,
-            height: coverImage.height,
-            originalData: data
+            byteSize: cover.jpegData.count,
+            checksum: checksum(for: cover.jpegData),
+            width: cover.width,
+            height: cover.height,
+            originalData: cover.jpegData
         )
     }
 
-    private func extractCover(from image: CGImage) -> CGImage? {
+    /// Decodes, orients, detects and corrects the cover away from the main actor.
+    ///
+    /// Every step works on the full-resolution photo and takes noticeable time, so running it
+    /// inline on the main actor froze the UI once per created book.
+    @concurrent
+    private nonisolated static func renderCover(from imageData: Data) async -> RenderedCover? {
+        guard let image = UIImage(data: imageData),
+              let sourceImage = normalizedCGImage(from: image),
+              let coverImage = extractCover(from: sourceImage),
+              let jpegData = UIImage(cgImage: coverImage).jpegData(compressionQuality: 0.92) else {
+            return nil
+        }
+
+        return RenderedCover(
+            jpegData: jpegData,
+            width: coverImage.width,
+            height: coverImage.height
+        )
+    }
+
+    private nonisolated static func extractCover(from image: CGImage) -> CGImage? {
         let request = VNDetectRectanglesRequest()
         request.maximumObservations = 8
         request.minimumConfidence = 0.5
@@ -55,7 +76,7 @@ struct BookCoverExtractor: Sendable {
         return perspectiveCorrectedImage(image, using: rectangle)
     }
 
-    private func normalizedCGImage(from image: UIImage) -> CGImage? {
+    private nonisolated static func normalizedCGImage(from image: UIImage) -> CGImage? {
         guard image.imageOrientation != .up else {
             return image.cgImage
         }
@@ -74,18 +95,18 @@ struct BookCoverExtractor: Sendable {
         return normalizedImage.cgImage
     }
 
-    private func bestRectangle(in observations: [VNRectangleObservation]) -> VNRectangleObservation? {
+    private nonisolated static func bestRectangle(in observations: [VNRectangleObservation]) -> VNRectangleObservation? {
         observations.max { lhs, rhs in
             score(lhs) < score(rhs)
         }
     }
 
-    private func score(_ observation: VNRectangleObservation) -> CGFloat {
+    private nonisolated static func score(_ observation: VNRectangleObservation) -> CGFloat {
         let area = observation.boundingBox.width * observation.boundingBox.height
         return area * CGFloat(max(observation.confidence, 0.01))
     }
 
-    private func perspectiveCorrectedImage(
+    private nonisolated static func perspectiveCorrectedImage(
         _ image: CGImage,
         using rectangle: VNRectangleObservation
     ) -> CGImage? {
@@ -114,7 +135,7 @@ struct BookCoverExtractor: Sendable {
         return CIContext().createCGImage(outputImage, from: extent)
     }
 
-    private func vector(for point: CGPoint, imageSize: CGSize) -> CIVector {
+    private nonisolated static func vector(for point: CGPoint, imageSize: CGSize) -> CIVector {
         CIVector(
             x: point.x * imageSize.width,
             y: point.y * imageSize.height
