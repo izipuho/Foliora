@@ -58,6 +58,8 @@ struct LibraryView: View {
     @State private var collapsedGroupIDs: Set<String> = []
     @State private var favoriteChangeRevision = 0
     @State private var cardManagement = CatalogCardManagementState<BookRecord>()
+    @State private var moveFeedbackToken = 0
+    @State private var deleteFeedbackToken = 0
     @StateObject private var viewModel: LibraryViewModel
 
     private let imageMediaBuilder = ImageMediaBuilder()
@@ -273,6 +275,8 @@ struct LibraryView: View {
                     onBatchEdit: batchEditBooks
                 )
             )
+            .sensoryFeedback(.success, trigger: moveFeedbackToken)
+            .sensoryFeedback(.warning, trigger: deleteFeedbackToken)
             .task(id: collection.id) {
                 await loadCollectionSharingState()
             }
@@ -566,6 +570,8 @@ struct LibraryView: View {
                 BookRecord(item: updatedItem, details: book.details)
             )
         }
+
+        moveFeedbackToken += 1
     }
 
     private func batchEditBooks(_ books: [BookRecord], edit: ItemBatchEdit) {
@@ -586,6 +592,8 @@ struct LibraryView: View {
         for book in books {
             repository.deleteBookRecord(bookID: book.id)
         }
+
+        deleteFeedbackToken += 1
     }
 
     private func stripScreenWidth(
