@@ -1,6 +1,12 @@
 import CoreData
 import Foundation
 
+/// Favorite item with its cover photo, used for collection backgrounds.
+struct FavoriteItemCover: Identifiable, Hashable {
+    let id: UUID
+    let coverPhotoID: UUID
+}
+
 /// Represents catalog snapshot data and behavior.
 struct CatalogSnapshot {
     private(set) var homes: [Home] = []
@@ -19,6 +25,10 @@ struct CatalogSnapshot {
     private(set) var recognitionSuggestionItemIDs: Set<UUID> = []
     private(set) var locationPathByID: [UUID: String] = [:]
     private(set) var collectionLocationPathByCollectionID: [UUID: [UUID: String]] = [:]
+    /// First photo by sort order for every item that has one.
+    private(set) var coverPhotoIDByItemID: [UUID: UUID] = [:]
+    /// Favorite items with a cover photo, grouped by collection in item order.
+    private(set) var favoriteItemCoversByCollectionID: [UUID: [FavoriteItemCover]] = [:]
 
     /// Catalog-specific records, mapped once per load.
     ///
@@ -134,13 +144,41 @@ struct CatalogSnapshot {
         )
         .mapValues { rows in Dictionary(rows.map(\.1), uniquingKeysWith: { first, _ in first }) }
 
+        snapshot.coverPhotoIDByItemID = Dictionary(
+            uniqueKeysWithValues: itemEntities.compactMap { itemEntity -> (UUID, UUID)? in
+                guard let coverPhotoID = coverPhotoID(of: itemEntity) else { return nil }
+                return (uuidValue(itemEntity, "id"), coverPhotoID)
+            }
+        )
+        snapshot.favoriteItemCoversByCollectionID = Dictionary(
+            grouping: itemEntities.compactMap { itemEntity -> (UUID, FavoriteItemCover)? in
+                guard
+                    itemEntity.value(forKey: "isFavorite") as? Bool == true,
+                    let collectionID = collectionItemCollectionID(from: itemEntity)
+                else { return nil }
+                let itemID = uuidValue(itemEntity, "id")
+                guard let coverPhotoID = snapshot.coverPhotoIDByItemID[itemID] else { return nil }
+                return (collectionID, FavoriteItemCover(id: itemID, coverPhotoID: coverPhotoID))
+            },
+            by: \.0
+        )
+        .mapValues { rows in rows.map(\.1) }
         snapshot.records = CatalogRecords(
+            coverPhotoIDByItemID: snapshot.coverPhotoIDByItemID,
             itemEntities: itemEntities,
             collectionEntities: collectionEntities,
             publisherEntities: publisherEntities,
             personEntities: personEntities
         )
         return snapshot
+    }
+
+    /// Returns the ID of the item's first photo by sort order.
+    nonisolated private static func coverPhotoID(of itemEntity: NSManagedObject) -> UUID? {
+        CoreDataDomainMapper.relatedObjects(itemEntity, "mediaAssets")
+            .filter { stringValue($0, "kind") == MediaKind.photo.rawValue }
+            .min { CoreDataDomainMapper.intValue($0, "sortOrder") < CoreDataDomainMapper.intValue($1, "sortOrder") }
+            .flatMap { $0.value(forKey: "id") as? UUID }
     }
 
     /// Reads user sort orders by item ID, optionally limited to one scope.
