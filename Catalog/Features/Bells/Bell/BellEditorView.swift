@@ -153,31 +153,22 @@ struct BellEditorView: View {
             ScrollViewReader { scrollProxy in
                 VStack(spacing: 0) {
                     Form {
-                        // The media row lives in the section header, not in a Form row: a Form row
-                        // takes over drag and drop, lifting the whole row and swallowing the drop,
-                        // which breaks photo reordering (#200).
-                        Section {
-                        } header: {
-                            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                                Text("editor.docs_and_media")
-
-                                MediaSection(
-                                    itemID: editorItemID,
-                                    mediaAssets: $editorState.mediaAssets,
-                                    analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil,
-                                    onPhotoAdded: handlePhotoAdded
-                                )
-                                .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.vertical, CatalogMetrics.Spacing.md)
-                                .background(
-                                    CatalogShapes.section
-                                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
-                                )
-                                .textCase(nil)
-                                .font(.body)
-                                .foregroundStyle(.primary)
-                            }
+                        Section(String(localized: "editor.docs_and_media"))
+                        {
+                            MediaSection(
+                                itemID: editorItemID,
+                                mediaAssets: $editorState.mediaAssets,
+                                analysisHighlightedAssetID: photoAnalysis.isAnalyzing ? firstPhotoAssetID : nil,
+                                onPhotoAdded: handlePhotoAdded
+                            )
+                            .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, CatalogMetrics.Spacing.md)
+                            .background(
+                                CatalogShapes.section
+                                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                            )
+                            .listRowInsets(.init())
                         }
                         
                         if shouldShowPhotoAnalysisSection || canRerunRecognition {
