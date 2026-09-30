@@ -42,6 +42,12 @@ struct OnboardingTourPage: Identifiable, Hashable {
                         ? "onboarding.tour.recognition.bells.description_ai"
                         : "onboarding.tour.recognition.bells.description"
                 ),
+                OnboardingTourPage(
+                    id: "originMap",
+                    systemImage: "map",
+                    title: "onboarding.tour.origin_map.title",
+                    description: "onboarding.tour.origin_map.description"
+                ),
                 storage,
                 sharing
             ]

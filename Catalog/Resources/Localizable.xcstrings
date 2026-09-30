@@ -164,6 +164,38 @@
         }
       }
     },
+    "onboarding.tour.origin_map.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark where each bell comes from and see your whole collection on a map."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмечайте, откуда каждый колокольчик, и смотрите всю коллекцию на карте."
+          }
+        }
+      }
+    },
+    "onboarding.tour.origin_map.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origin Map"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Карта происхождения"
+          }
+        }
+      }
+    },
     "onboarding.tour.photos.bells.description" : {
       "localizations" : {
         "en" : {
@@ -7335,13 +7367,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download language model to translate photo analysis results"
+            "value" : "Download the language model now so photo analysis results appear in your language right away."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Для перевода результатов анализа фотографий требуется загрузить языковую модель."
+            "value" : "Скачайте языковую модель заранее, чтобы результаты анализа фото сразу были на вашем языке."
           }
         }
       }
@@ -7371,7 +7403,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add your name to make Foliora feel more personal. Name can be changed later in Settings."
+            "value" : "Add your name to make Foliora feel more personal. You can change it later in Settings."
           }
         },
         "ru" : {
@@ -7389,7 +7421,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Save name"
+            "value" : "Save Name"
           }
         },
         "ru" : {
@@ -7461,7 +7493,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You're all set"
+            "value" : "You're All Set"
           }
         },
         "ru" : {
