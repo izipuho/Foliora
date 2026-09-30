@@ -579,14 +579,12 @@ private struct MediaArrangeSheet: View {
         return "\(asset.kind.displayName) \(number)"
     }
 
-    /// Marks the photo used as the cover, otherwise shows the image size when known.
+    /// Marks the photo used as the cover.
     private func subtitle(for asset: MediaAsset) -> String? {
-        if marksFirstPhotoAsCover, asset.id == assets.first(where: { $0.kind == .photo })?.id {
-            return String(localized: "editor.media.cover")
-        }
-
-        guard let width = asset.width, let height = asset.height else { return nil }
-        return "\(width) × \(height)"
+        guard marksFirstPhotoAsCover,
+              asset.id == assets.first(where: { $0.kind == .photo })?.id
+        else { return nil }
+        return String(localized: "editor.media.cover")
     }
 }
 
