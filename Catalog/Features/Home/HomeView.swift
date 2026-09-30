@@ -439,7 +439,7 @@ private struct HomeListCard: View {
             repository: repository,
             catalogSnapshot: snapshot
         )
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

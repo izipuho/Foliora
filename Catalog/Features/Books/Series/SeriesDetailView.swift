@@ -238,7 +238,7 @@ struct SeriesDetailView: View {
                 onSeriesSaved: { _ in }
             )
         }
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

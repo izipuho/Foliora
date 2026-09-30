@@ -60,5 +60,6 @@ struct BookGridView: View {
         books: snapshot.bookRecords,
         layoutMode: .compact
     )
+    .previewEnvironment(container)
 }
 #endif

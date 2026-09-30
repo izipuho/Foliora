@@ -628,7 +628,7 @@ private struct BellDetailPreviewHost: View {
             repository: repository,
             catalogSnapshot: snapshot
         )
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

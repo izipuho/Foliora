@@ -979,6 +979,7 @@ private struct LibrarySharingStateLoaderView: View {
                 layoutMode: .constant(.compact)
             )
         }
+        .previewEnvironment(container)
     }
 }
 #endif

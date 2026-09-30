@@ -782,7 +782,7 @@ private func batchBookLanguageDisplayName(for code: String) -> String {
             initialMediaAssets: assets,
             repository: repository
         )
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

@@ -437,6 +437,6 @@ func makeItemDetailContent(
             catalogSnapshot: snapshot
         )
     }
-    .environment(\.managedObjectContext, container.viewContext)
+    .previewEnvironment(container)
 }
 #endif

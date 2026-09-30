@@ -168,6 +168,7 @@ struct BookCardView: View {
             cardMetrics: CatalogCardLayoutMode.compact.cardMetrics
         )
         .padding()
+        .previewEnvironment(container)
     }
 }
 #endif

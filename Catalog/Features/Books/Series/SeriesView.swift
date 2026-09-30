@@ -531,7 +531,7 @@ private struct SeriesPublisherSelectionView: View {
                 canEditCollection: true
             )
         }
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

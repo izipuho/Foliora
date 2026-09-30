@@ -21,7 +21,7 @@ import SwiftUI
         ) { updatedBook in
             repository.saveBookRecord(updatedBook)
         }
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

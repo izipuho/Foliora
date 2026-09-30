@@ -1053,7 +1053,7 @@ private extension BookIdentifierType {
             repository: repository,
             catalogSnapshot: snapshot
         )
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

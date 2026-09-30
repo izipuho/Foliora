@@ -612,6 +612,7 @@ private enum CollectionCardSharingStatus {
             catalogSnapshot: catalogSnapshot
         )
     }
+    .previewEnvironment(container)
 }
 #endif
 
