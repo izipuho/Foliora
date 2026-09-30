@@ -20,6 +20,16 @@ struct CatalogSnapshot {
     private(set) var locationPathByID: [UUID: String] = [:]
     private(set) var collectionLocationPathByCollectionID: [UUID: [UUID: String]] = [:]
 
+    // Derived collections, mapped once per load. Mapping lives in the per-catalog snapshot extensions.
+    private(set) var bellRecords: [BellRecord] = []
+    private(set) var bells: [BellCatalogItem] = []
+    private(set) var bellRecordsByID: [UUID: BellRecord] = [:]
+    private(set) var bookRecords: [BookRecord] = []
+    private(set) var bookRecordsByID: [UUID: BookRecord] = [:]
+    private(set) var bookSeries: [BookSeries] = []
+    private(set) var publishers: [Publisher] = []
+    private(set) var people: [Person] = []
+
     private init() {}
 
     func collectionSummary(id collectionID: UUID) -> CollectionSummary? {
@@ -73,76 +83,22 @@ struct CatalogSnapshot {
         let userSortOrderEntities = privateStore.map {
             fetchEntities(named: "UserSortOrderEntity", in: context, affectedStores: [$0])
         } ?? []
-        let sortOrderByItemID = Dictionary(
-            userSortOrderEntities.compactMap { entity -> (UUID, Int)? in
-                guard let itemID = entity.value(forKey: "itemID") as? UUID else { return nil }
-                return (itemID, CoreDataDomainMapper.intValue(entity, "sortOrder"))
-            },
-            uniquingKeysWith: { _, latest in latest }
-        )
-        let collectionSortOrderByItemID = Dictionary(
-            userSortOrderEntities.compactMap { entity -> (UUID, Int)? in
-                guard
-                    stringValue(entity, "scope") == "Collection",
-                    let itemID = entity.value(forKey: "itemID") as? UUID
-                else { return nil }
-                return (itemID, CoreDataDomainMapper.intValue(entity, "sortOrder"))
-            },
-            uniquingKeysWith: { _, latest in latest }
-        )
-        let homeSortOrderByItemID = Dictionary(
-            userSortOrderEntities.compactMap { entity -> (UUID, Int)? in
-                guard
-                    stringValue(entity, "scope") == "Home",
-                    let itemID = entity.value(forKey: "itemID") as? UUID
-                else { return nil }
-                return (itemID, CoreDataDomainMapper.intValue(entity, "sortOrder"))
-            },
-            uniquingKeysWith: { _, latest in latest }
-        )
+        let sortOrderByItemID = sortOrders(from: userSortOrderEntities)
+        let collectionSortOrderByItemID = sortOrders(from: userSortOrderEntities, scope: "Collection")
+        let homeSortOrderByItemID = sortOrders(from: userSortOrderEntities, scope: "Home")
         var snapshot = CatalogSnapshot()
-        snapshot.homes = homeEntities
-            .map(home)
-            .sorted { lhs, rhs in
-                switch (homeSortOrderByItemID[lhs.id], homeSortOrderByItemID[rhs.id]) {
-                case let (lhsOrder?, rhsOrder?):
-                    if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
-                case (_?, nil):
-                    return true
-                case (nil, _?):
-                    return false
-                case (nil, nil):
-                    break
-                }
-
-                let nameComparison = lhs.name.localizedCaseInsensitiveCompare(rhs.name)
-                if nameComparison != .orderedSame {
-                    return nameComparison == .orderedAscending
-                }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
+        snapshot.homes = sortedByUserOrder(
+            homeEntities.map(home),
+            sortOrderByID: homeSortOrderByItemID,
+            name: \.name
+        )
         snapshot.locations = locationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: sortOrderByItemID[uuidValue($0, "id")]) }
         snapshot.collectionLocations = collectionLocationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: sortOrderByItemID[uuidValue($0, "id")]) }
-        snapshot.collections = collectionEntities
-            .map(collection)
-            .sorted { lhs, rhs in
-                switch (collectionSortOrderByItemID[lhs.id], collectionSortOrderByItemID[rhs.id]) {
-                case let (lhsOrder?, rhsOrder?):
-                    if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
-                case (_?, nil):
-                    return true
-                case (nil, _?):
-                    return false
-                case (nil, nil):
-                    break
-                }
-
-                let titleComparison = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
-                if titleComparison != .orderedSame {
-                    return titleComparison == .orderedAscending
-                }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
+        snapshot.collections = sortedByUserOrder(
+            collectionEntities.map(collection),
+            sortOrderByID: collectionSortOrderByItemID,
+            name: \.title
+        )
         snapshot.places = placeEntities.map { CoreDataDomainMapper.place(from: $0) }
         snapshot.collectionEntities = collectionEntities
         snapshot.itemEntities = itemEntities
@@ -181,7 +137,56 @@ struct CatalogSnapshot {
             by: \.0
         )
         .mapValues { rows in Dictionary(rows.map(\.1), uniquingKeysWith: { first, _ in first }) }
+
+        snapshot.bellRecords = mapBellRecords(from: itemEntities)
+        snapshot.bells = snapshot.bellRecords.map(bellCatalogItem)
+        snapshot.bellRecordsByID = Dictionary(uniqueKeysWithValues: snapshot.bellRecords.map { ($0.id, $0) })
+        snapshot.bookRecords = mapBookRecords(from: itemEntities)
+        snapshot.bookRecordsByID = Dictionary(uniqueKeysWithValues: snapshot.bookRecords.map { ($0.id, $0) })
+        snapshot.bookSeries = mapBookSeries(from: collectionEntities)
+        snapshot.publishers = mapPublishers(from: publisherEntities)
+        snapshot.people = mapPeople(from: personEntities)
         return snapshot
+    }
+
+    /// Reads user sort orders by item ID, optionally limited to one scope.
+    nonisolated private static func sortOrders(from entities: [NSManagedObject], scope: String? = nil) -> [UUID: Int] {
+        Dictionary(
+            entities.compactMap { entity -> (UUID, Int)? in
+                guard
+                    scope.map({ stringValue(entity, "scope") == $0 }) ?? true,
+                    let itemID = entity.value(forKey: "itemID") as? UUID
+                else { return nil }
+                return (itemID, CoreDataDomainMapper.intValue(entity, "sortOrder"))
+            },
+            uniquingKeysWith: { _, latest in latest }
+        )
+    }
+
+    /// Orders values by user sort order first, then by name, then by ID for a stable order.
+    nonisolated private static func sortedByUserOrder<Value: Identifiable>(
+        _ values: [Value],
+        sortOrderByID: [UUID: Int],
+        name: (Value) -> String
+    ) -> [Value] where Value.ID == UUID {
+        values.sorted { lhs, rhs in
+            switch (sortOrderByID[lhs.id], sortOrderByID[rhs.id]) {
+            case let (lhsOrder?, rhsOrder?):
+                if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                break
+            }
+
+            let nameComparison = name(lhs).localizedCaseInsensitiveCompare(name(rhs))
+            if nameComparison != .orderedSame {
+                return nameComparison == .orderedAscending
+            }
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
     }
 
     nonisolated private static func fetchEntities(

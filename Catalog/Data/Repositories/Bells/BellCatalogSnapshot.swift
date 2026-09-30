@@ -2,22 +2,19 @@ import CoreData
 import Foundation
 
 extension CatalogSnapshot {
-    var bells: [BellCatalogItem] {
-        bellRecords.map(Self.bellCatalogItem)
+    var recordsByID: [UUID: BellRecord] {
+        bellRecordsByID
     }
 
-    var bellRecords: [BellRecord] {
+    /// Maps bell records once per snapshot load. Media is mapped without `originalData`.
+    nonisolated static func mapBellRecords(from itemEntities: [NSManagedObject]) -> [BellRecord] {
         itemEntities.compactMap { itemEntity in
             guard let bellEntity = itemEntity.value(forKey: "bell") as? NSManagedObject else { return nil }
             return CoreDataDomainMapper.bellRecord(from: bellEntity, includesMediaData: false)
         }
     }
 
-    var recordsByID: [UUID: BellRecord] {
-        Dictionary(uniqueKeysWithValues: bellRecords.map { ($0.id, $0) })
-    }
-
-    private static func bellCatalogItem(from record: BellRecord) -> BellCatalogItem {
+    nonisolated static func bellCatalogItem(from record: BellRecord) -> BellCatalogItem {
         let coverPhoto = record.mediaAssets
             .sorted { $0.sortOrder < $1.sortOrder }
             .first { $0.kind == .photo }

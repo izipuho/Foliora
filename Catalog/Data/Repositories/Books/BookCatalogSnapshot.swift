@@ -2,53 +2,48 @@ import CoreData
 import Foundation
 
 extension CatalogSnapshot {
-    var bookRecords: [BookRecord] {
+    var recordsByID: [UUID: BookRecord] {
+        bookRecordsByID
+    }
+
+    /// Maps book records once per snapshot load. Media is mapped without `originalData`.
+    nonisolated static func mapBookRecords(from itemEntities: [NSManagedObject]) -> [BookRecord] {
         itemEntities.compactMap { itemEntity in
             guard let bookEntity = itemEntity.value(forKey: "book") as? NSManagedObject else { return nil }
             return CoreDataDomainMapper.bookRecord(from: bookEntity, includesMediaData: false)
         }
     }
 
-    var bookSeries: [BookSeries] {
+    nonisolated static func mapBookSeries(from collectionEntities: [NSManagedObject]) -> [BookSeries] {
         let series = collectionEntities.flatMap { collectionEntity in
             CoreDataDomainMapper.relatedObjects(collectionEntity, "bookSeries")
                 .map { CoreDataDomainMapper.bookSeries(from: $0, includesMediaData: false) }
         }
-        let uniqueByID = Dictionary(series.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        return uniqueByID.values.sorted {
-            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
-            if comparison != .orderedSame {
-                return comparison == .orderedAscending
-            }
-            return $0.id.uuidString < $1.id.uuidString
-        }
+        return uniqueSortedByName(series, name: \.name)
     }
 
-    var publishers: [Publisher] {
+    nonisolated static func mapPublishers(from publisherEntities: [NSManagedObject]) -> [Publisher] {
         let publishers = publisherEntities.map { CoreDataDomainMapper.publisher(from: $0, includesMediaData: false) }
-        let uniqueByID = Dictionary(publishers.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        return uniqueByID.values.sorted {
-            let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
-            if comparison != .orderedSame {
-                return comparison == .orderedAscending
-            }
-            return $0.id.uuidString < $1.id.uuidString
-        }
+        return uniqueSortedByName(publishers, name: \.name)
     }
 
-    var people: [Person] {
+    nonisolated static func mapPeople(from personEntities: [NSManagedObject]) -> [Person] {
         let people = personEntities.map { CoreDataDomainMapper.person(from: $0, includesMediaData: false) }
-        let uniqueByID = Dictionary(people.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return uniqueSortedByName(people, name: \.sortName)
+    }
+
+    /// Keeps the first value per ID and sorts by name, then by ID for a stable order.
+    nonisolated private static func uniqueSortedByName<Value: Identifiable>(
+        _ values: [Value],
+        name: (Value) -> String
+    ) -> [Value] where Value.ID == UUID {
+        let uniqueByID = Dictionary(values.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return uniqueByID.values.sorted {
-            let comparison = $0.sortName.localizedCaseInsensitiveCompare($1.sortName)
+            let comparison = name($0).localizedCaseInsensitiveCompare(name($1))
             if comparison != .orderedSame {
                 return comparison == .orderedAscending
             }
             return $0.id.uuidString < $1.id.uuidString
         }
-    }
-
-    var recordsByID: [UUID: BookRecord] {
-        Dictionary(uniqueKeysWithValues: bookRecords.map { ($0.id, $0) })
     }
 }
