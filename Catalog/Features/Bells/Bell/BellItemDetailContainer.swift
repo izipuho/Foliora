@@ -7,6 +7,7 @@ struct BellItemDetailContainer: View {
     let catalogSnapshot: CatalogSnapshot?
     let onClose: (() -> Void)?
 
+    @Environment(\.mediaDataLoader) private var mediaDataLoader
     @State private var bell: BellRecord?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
@@ -43,15 +44,12 @@ struct BellItemDetailContainer: View {
                 )
             }
         }
-        .task(id: bellID) {
-            syncBellFromCatalogSnapshot()
+        .task(id: catalogSnapshot?.recordsByID[bellID]) {
+            await syncBellFromCatalogSnapshot()
         }
         .task(id: currentCollectionID) {
             guard collectionSharingState == nil else { return }
             await loadCollectionSharingState()
-        }
-        .onChange(of: catalogSnapshot?.recordsByID[bellID]) { _, _ in
-            syncBellFromCatalogSnapshot()
         }
     }
 
@@ -94,8 +92,24 @@ struct BellItemDetailContainer: View {
         bell?.item.collectionID ?? catalogSnapshot?.recordsByID[bellID]?.item.collectionID
     }
 
-    private func syncBellFromCatalogSnapshot() {
-        bell = catalogSnapshot?.recordsByID[bellID]
+    /// Takes the bell from the snapshot and loads the media bytes the snapshot does not carry.
+    ///
+    /// The detail screen, its media section and the editor opened from it rely on `originalData`.
+    @MainActor
+    private func syncBellFromCatalogSnapshot() async {
+        guard let snapshotBell = catalogSnapshot?.recordsByID[bellID] else {
+            bell = nil
+            return
+        }
+
+        var item = snapshotBell.item
+        item.mediaAssets = MediaDataLoader.reusingData(item.mediaAssets, from: bell?.item.mediaAssets ?? [])
+        bell = BellRecord(item: item, details: snapshotBell.details)
+
+        guard let mediaDataLoader else { return }
+        item.mediaAssets = await mediaDataLoader.hydrated(item.mediaAssets)
+        guard !Task.isCancelled else { return }
+        bell = BellRecord(item: item, details: snapshotBell.details)
     }
 
     @MainActor

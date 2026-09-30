@@ -26,7 +26,6 @@ struct BellCatalogItem: Identifiable, Hashable {
     let storageDisplayPath: String
     let storageLocationName: String
     let coverPhotoID: UUID?
-    let coverPhotoOriginalData: Data?
     let hasOrigin: Bool
     let hasStorage: Bool
 
@@ -55,7 +54,6 @@ struct BellCatalogItem: Identifiable, Hashable {
         storageDisplayPath: String,
         storageLocationName: String,
         coverPhotoID: UUID?,
-        coverPhotoOriginalData: Data?,
         hasOrigin: Bool,
         hasStorage: Bool
     ) {
@@ -83,7 +81,6 @@ struct BellCatalogItem: Identifiable, Hashable {
         self.storageDisplayPath = storageDisplayPath
         self.storageLocationName = storageLocationName
         self.coverPhotoID = coverPhotoID
-        self.coverPhotoOriginalData = coverPhotoOriginalData
         self.hasOrigin = hasOrigin
         self.hasStorage = hasStorage
     }

@@ -53,6 +53,7 @@ struct FolioraApp: App {
                 if let coreDataContainer, let container, didFinishLaunchFlow {
                     AppShellView(repository: container.repository, coreDataContainer: coreDataContainer)
                         .environment(\.managedObjectContext, coreDataContainer.viewContext)
+                        .environment(\.mediaDataLoader, container.mediaDataLoader)
                 }
 
                 if showsLaunchScreen {

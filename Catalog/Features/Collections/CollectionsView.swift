@@ -50,12 +50,7 @@ struct CollectionsView: View {
     }
 
     private var backgroundCandidateIDs: [UUID] {
-        guard let itemEntities = catalogSnapshot?.itemEntities else { return [] }
-
-        let favoriteItemIDs = itemEntities.compactMap { itemEntity in
-            CollectionBackgroundItem(itemEntity: itemEntity)?.id
-        }
-
+        let favoriteItemIDs = catalogSnapshot?.favoriteItemCoversByCollectionID.values.flatMap { $0.map(\.id) } ?? []
         return favoriteItemIDs.sorted { $0.uuidString < $1.uuidString }
     }
 
@@ -262,13 +257,11 @@ struct CollectionsView: View {
         }
     }
 
-    private func backgroundCandidates(for collectionID: UUID) -> [CollectionBackgroundItem] {
-        catalogSnapshot?.itemEntities.compactMap { itemEntity in
-            CollectionBackgroundItem(itemEntity: itemEntity, collectionID: collectionID)
-        } ?? []
+    private func backgroundCandidates(for collectionID: UUID) -> [FavoriteItemCover] {
+        catalogSnapshot?.favoriteItemCoversByCollectionID[collectionID] ?? []
     }
 
-    private func backgroundItem(for collectionID: UUID) -> CollectionBackgroundItem? {
+    private func backgroundItem(for collectionID: UUID) -> FavoriteItemCover? {
         let candidates = backgroundCandidates(for: collectionID)
         guard !candidates.isEmpty else { return nil }
 
@@ -625,7 +618,7 @@ private enum CollectionCardSharingStatus {
 private struct CollectionCard: View {
     let collection: CollectionSummary
     let sharingStatus: CollectionCardSharingStatus
-    let backgroundItem: CollectionBackgroundItem?
+    let backgroundItem: FavoriteItemCover?
 
     var body: some View {
         HStack(alignment: .center, spacing: CatalogMetrics.Spacing.md) {
@@ -693,18 +686,14 @@ private struct CollectionCard: View {
 }
 
 private struct CollectionPhotoBackground: View {
-    let item: CollectionBackgroundItem
+    let item: FavoriteItemCover
 
     var body: some View {
         GeometryReader { proxy in
             let photoWidth = proxy.size.width * 0.62
             let photoSize = CGSize(width: photoWidth, height: proxy.size.height)
 
-            MediaPreviewImage(
-                assetID: item.coverPhotoID,
-                originalData: item.coverPhotoOriginalData,
-                size: photoSize
-            )
+            MediaPreviewImage(assetID: item.coverPhotoID, size: photoSize)
             .frame(width: photoWidth, height: proxy.size.height)
             .opacity(0.52)
             .mask {
@@ -722,51 +711,5 @@ private struct CollectionPhotoBackground: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
         }
         .allowsHitTesting(false)
-    }
-}
-
-private struct CollectionBackgroundItem: Identifiable, Hashable {
-    let id: UUID
-    let coverPhotoID: UUID
-    let coverPhotoOriginalData: Data?
-
-    init?(itemEntity: NSManagedObject, collectionID: UUID? = nil) {
-        guard itemEntity.value(forKey: "isFavorite") as? Bool == true else { return nil }
-
-        if let collectionID {
-            guard
-                let itemCollection = itemEntity.value(forKey: "collection") as? NSManagedObject,
-                itemCollection.value(forKey: "id") as? UUID == collectionID
-            else {
-                return nil
-            }
-        }
-
-        let mediaAssets = (itemEntity.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []
-        guard let coverPhoto = mediaAssets
-            .filter({ ($0.value(forKey: "kind") as? String) == MediaKind.photo.rawValue })
-            .sorted(by: { Self.sortOrder($0) < Self.sortOrder($1) })
-            .first
-        else {
-            return nil
-        }
-
-        guard
-            let coverPhotoID = coverPhoto.value(forKey: "id") as? UUID,
-            let originalData = coverPhoto.value(forKey: "originalData") as? Data
-        else {
-            return nil
-        }
-
-        self.id = itemEntity.value(forKey: "id") as? UUID ?? UUID()
-        self.coverPhotoID = coverPhotoID
-        self.coverPhotoOriginalData = originalData
-    }
-
-    private static func sortOrder(_ entity: NSManagedObject) -> Int {
-        if let value = entity.value(forKey: "sortOrder") as? Int {
-            return value
-        }
-        return (entity.value(forKey: "sortOrder") as? NSNumber)?.intValue ?? 0
     }
 }

@@ -880,6 +880,7 @@ struct BookDetailContainer: View {
     let catalogSnapshot: CatalogSnapshot?
     let onClose: (() -> Void)?
 
+    @Environment(\.mediaDataLoader) private var mediaDataLoader
     @State private var book: BookRecord?
     @State private var collectionSharingState: CollectionSharingState?
     @State private var collectionSharingLoadError: Error?
@@ -917,15 +918,12 @@ struct BookDetailContainer: View {
                 )
             }
         }
-        .task(id: bookID) {
-            syncBookFromCatalogSnapshot()
+        .task(id: catalogSnapshot?.recordsByID[bookID]) {
+            await syncBookFromCatalogSnapshot()
         }
         .task(id: currentCollectionID) {
             guard collectionSharingState == nil else { return }
             await loadCollectionSharingState()
-        }
-        .onChange(of: catalogSnapshot?.recordsByID[bookID]) { _, _ in
-            syncBookFromCatalogSnapshot()
         }
     }
 
@@ -968,8 +966,33 @@ struct BookDetailContainer: View {
         book?.collectionID ?? catalogSnapshot?.recordsByID[bookID]?.collectionID
     }
 
-    private func syncBookFromCatalogSnapshot() {
-        book = catalogSnapshot?.recordsByID[bookID]
+    /// Takes the book from the snapshot and loads the media bytes the snapshot does not carry.
+    ///
+    /// The detail screen, its media section and the editor opened from it rely on `originalData`
+    /// of item media and the dedicated cover.
+    @MainActor
+    private func syncBookFromCatalogSnapshot() async {
+        guard let snapshotBook = catalogSnapshot?.recordsByID[bookID] else {
+            book = nil
+            return
+        }
+
+        let previousAssets = (book?.item.mediaAssets ?? []) + [book?.details.coverImage].compactMap { $0 }
+        var item = snapshotBook.item
+        var details = snapshotBook.details
+        item.mediaAssets = MediaDataLoader.reusingData(item.mediaAssets, from: previousAssets)
+        details.coverImage = details.coverImage.flatMap {
+            MediaDataLoader.reusingData([$0], from: previousAssets).first
+        }
+        book = BookRecord(item: item, details: details)
+
+        guard let mediaDataLoader else { return }
+        item.mediaAssets = await mediaDataLoader.hydrated(item.mediaAssets)
+        if let coverImage = details.coverImage {
+            details.coverImage = await mediaDataLoader.hydrated([coverImage]).first
+        }
+        guard !Task.isCancelled else { return }
+        book = BookRecord(item: item, details: details)
     }
 
     @MainActor

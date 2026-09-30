@@ -171,14 +171,8 @@ private struct MapBellAnnotationView: View {
 
     @ViewBuilder
     private var annotationImage: some View {
-        if let bell = bells.first,
-           let coverPhotoID = bell.coverPhotoID,
-           bell.coverPhotoOriginalData != nil {
-            MediaPreviewImage(
-                assetID: coverPhotoID,
-                originalData: bell.coverPhotoOriginalData,
-                size: annotationSize
-            )
+        if let coverPhotoID = bells.first?.coverPhotoID {
+            MediaPreviewImage(assetID: coverPhotoID, size: annotationSize)
         } else {
             ZStack {
                 CatalogShapes.tile

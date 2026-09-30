@@ -1,28 +1,36 @@
 import CoreData
 import Foundation
 
-extension CatalogSnapshot {
-    var bells: [BellCatalogItem] {
-        bellRecords.map(Self.bellCatalogItem)
+/// Bell records held by `CatalogSnapshot`, mapped once per load.
+struct CatalogRecords {
+    let bellRecords: [BellRecord]
+    let bells: [BellCatalogItem]
+    let recordsByID: [UUID: BellRecord]
+
+    nonisolated init() {
+        bellRecords = []
+        bells = []
+        recordsByID = [:]
     }
 
-    var bellRecords: [BellRecord] {
-        itemEntities.compactMap { itemEntity in
+    /// Maps bell records without media bytes. Book-only entities are ignored in the Bells app.
+    nonisolated init(
+        coverPhotoIDByItemID: [UUID: UUID],
+        itemEntities: [NSManagedObject],
+        collectionEntities: [NSManagedObject],
+        publisherEntities: [NSManagedObject],
+        personEntities: [NSManagedObject]
+    ) {
+        bellRecords = itemEntities.compactMap { itemEntity in
             guard let bellEntity = itemEntity.value(forKey: "bell") as? NSManagedObject else { return nil }
-            return CoreDataDomainMapper.bellRecord(from: bellEntity)
+            return CoreDataDomainMapper.bellRecord(from: bellEntity, includesMediaData: false)
         }
+        bells = bellRecords.map { Self.bellCatalogItem(from: $0, coverPhotoID: coverPhotoIDByItemID[$0.id]) }
+        recordsByID = Dictionary(uniqueKeysWithValues: bellRecords.map { ($0.id, $0) })
     }
 
-    var recordsByID: [UUID: BellRecord] {
-        Dictionary(uniqueKeysWithValues: bellRecords.map { ($0.id, $0) })
-    }
-
-    private static func bellCatalogItem(from record: BellRecord) -> BellCatalogItem {
-        let coverPhoto = record.mediaAssets
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .first { $0.kind == .photo }
-
-        return BellCatalogItem(
+    nonisolated private static func bellCatalogItem(from record: BellRecord, coverPhotoID: UUID?) -> BellCatalogItem {
+        BellCatalogItem(
             id: record.id,
             title: record.title,
             notes: record.notes,
@@ -46,10 +54,15 @@ extension CatalogSnapshot {
             storagePath: record.storagePath,
             storageDisplayPath: record.storageDisplayPath,
             storageLocationName: record.storageLocationName,
-            coverPhotoID: coverPhoto?.id,
-            coverPhotoOriginalData: coverPhoto?.originalData,
+            coverPhotoID: coverPhotoID,
             hasOrigin: record.originPlace != nil,
             hasStorage: record.item.locationID != nil
         )
     }
+}
+
+extension CatalogSnapshot {
+    var bellRecords: [BellRecord] { records.bellRecords }
+    var bells: [BellCatalogItem] { records.bells }
+    var recordsByID: [UUID: BellRecord] { records.recordsByID }
 }

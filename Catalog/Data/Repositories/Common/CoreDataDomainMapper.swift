@@ -6,7 +6,7 @@ import Foundation
 /// Centralizes all Core Data → domain mapping used by repositories,
 /// snapshot loaders, and import/export.
 enum CoreDataDomainMapper {
-    static func itemRecord(from entity: NSManagedObject) -> ItemRecord {
+    static func itemRecord(from entity: NSManagedObject, includesMediaData: Bool = true) -> ItemRecord {
         precondition(entity.entity.name == "ItemEntity", "CoreDataDomainMapper.itemRecord(from:) expects ItemEntity.")
 
         let id = uuidValue(entity, "id")
@@ -18,7 +18,7 @@ enum CoreDataDomainMapper {
             .map { stringValue($0, "value") }
         let mediaAssets = relatedObjects(entity, "mediaAssets")
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-            .map { mediaAsset(from: $0, itemID: id) }
+            .map { mediaAsset(from: $0, itemID: id, includesMediaData: includesMediaData) }
 
         return ItemRecord(
             id: id,
@@ -69,7 +69,7 @@ enum CoreDataDomainMapper {
         )
     }
 
-    static func person(from entity: NSManagedObject) -> Person {
+    static func person(from entity: NSManagedObject, includesMediaData: Bool = true) -> Person {
         precondition(entity.entity.name == "PersonEntity", "CoreDataDomainMapper.person(from:) expects PersonEntity.")
 
         let id = uuidValue(entity, "id")
@@ -79,7 +79,7 @@ enum CoreDataDomainMapper {
 
         let photos = relatedObjects(entity, "photos")
             .sorted { intValue($0, "sortOrder") < intValue($1, "sortOrder") }
-            .map { mediaAsset(from: $0) }
+            .map { mediaAsset(from: $0, includesMediaData: includesMediaData) }
 
         return Person(
             id: id,
@@ -109,7 +109,15 @@ enum CoreDataDomainMapper {
         )
     }
 
-    static func mediaAsset(from entity: NSManagedObject, itemID: UUID? = nil) -> MediaAsset {
+    /// Maps a media asset entity.
+    ///
+    /// - Parameter includesMediaData: When `false`, `originalData` is left `nil` and the stored bytes are
+    ///   never faulted in; consumers load them by asset ID. Snapshot list models use this mode.
+    static func mediaAsset(
+        from entity: NSManagedObject,
+        itemID: UUID? = nil,
+        includesMediaData: Bool = true
+    ) -> MediaAsset {
         MediaAsset(
             id: uuidValue(entity, "id"),
             itemID: itemID,
@@ -124,7 +132,7 @@ enum CoreDataDomainMapper {
             height: optionalIntValue(entity, "height"),
             duration: doubleValue(entity, "duration"),
             metadataJSON: entity.value(forKey: "metadataJSON") as? String,
-            originalData: entity.value(forKey: "originalData") as? Data
+            originalData: includesMediaData ? entity.value(forKey: "originalData") as? Data : nil
         )
     }
 
