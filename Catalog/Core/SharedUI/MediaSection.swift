@@ -2,7 +2,6 @@ import SwiftUI
 import PhotosUI
 import UIKit
 import QuickLook
-import UniformTypeIdentifiers
 
 /// Displays the media section interface.
 struct MediaSection: View {
@@ -22,7 +21,7 @@ struct MediaSection: View {
     @State private var isPresentingCamera = false
     @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
-    @State private var draggedAssetID: MediaAsset.ID?
+    @State private var isPresentingArrangeSheet = false
     @State private var pendingDeletionAssetID: MediaAsset.ID?
     @State private var recentlyAddedPhotoAssetIDs: Set<MediaAsset.ID> = []
 
@@ -35,9 +34,6 @@ struct MediaSection: View {
                             asset: leadingMediaAsset,
                             isAnalysisHighlighted: isAnalysisHighlighted(leadingMediaAsset),
                             allowsDeletion: allowsDeletion,
-                            isReorderingEnabled: false,
-                            draggedAssetID: $draggedAssetID,
-                            moveAsset: moveAsset,
                             onTap: {
                                 preview(leadingMediaAsset)
                             },
@@ -62,9 +58,6 @@ struct MediaSection: View {
                             asset: asset,
                             isAnalysisHighlighted: isAnalysisHighlighted(asset),
                             allowsDeletion: allowsDeletion,
-                            isReorderingEnabled: isEditing && asset.kind == .photo && asset.itemID != nil,
-                            draggedAssetID: $draggedAssetID,
-                            moveAsset: moveAsset,
                             onTap: {
                                 preview(asset)
                             },
@@ -97,13 +90,28 @@ struct MediaSection: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel(String(localized: "editor.media.add"))
                     }
+
+                    if canArrangePhotos {
+                        Button {
+                            isPresentingArrangeSheet = true
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(CatalogTypography.cardTitle)
+                                .frame(width: 38, height: 38)
+                                .glassEffect(.regular.interactive(), in: Circle())
+                                .frame(width: 48, height: 110)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(String(localized: "editor.media.arrange"))
+                    }
                 }
             }
             .scrollIndicators(.hidden)
-            .droppableMediaAssetRow(
-                isEnabled: isEditing,
-                draggedAssetID: $draggedAssetID
-            )
+            .sheet(isPresented: $isPresentingArrangeSheet) {
+                MediaArrangeSheet(photos: arrangeablePhotos) { arrangedPhotos in
+                    applyArrangement(of: arrangedPhotos)
+                }
+            }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
                 selection: $selectedPhotoItems,
@@ -255,27 +263,31 @@ struct MediaSection: View {
         removeAsset(withID: assetID)
     }
 
-    private func moveAssets(from sourceIndex: Int, to destinationIndex: Int) {
-        var reorderedAssets = sortedAssets
-        guard reorderedAssets.indices.contains(sourceIndex) else { return }
-        guard reorderedAssets.indices.contains(destinationIndex) else { return }
-        guard sourceIndex != destinationIndex else { return }
+    /// Photos the user can reorder: saved item photos while editing.
+    private var arrangeablePhotos: [MediaAsset] {
+        guard isEditing else { return [] }
+        return sortedAssets.filter { $0.kind == .photo && $0.itemID != nil }
+    }
 
-        let asset = reorderedAssets.remove(at: sourceIndex)
-        reorderedAssets.insert(asset, at: destinationIndex)
+    private var canArrangePhotos: Bool {
+        arrangeablePhotos.count > 1
+    }
+
+    /// Puts the arranged photos back into the photo slots, keeping other media where it was.
+    private func applyArrangement(of arrangedPhotos: [MediaAsset]) {
+        let arrangedIDs = Set(arrangedPhotos.map(\.id))
+        var remainingPhotos = arrangedPhotos[...]
+        var reorderedAssets = sortedAssets.map { asset in
+            guard arrangedIDs.contains(asset.id), let photo = remainingPhotos.popFirst() else {
+                return asset
+            }
+            return photo
+        }
         normalizeSortOrder(in: &reorderedAssets)
 
         updateMediaAssets { assets in
             assets = reorderedAssets
         }
-    }
-
-    private func moveAsset(withID sourceID: MediaAsset.ID, to destinationID: MediaAsset.ID) {
-        let assets = sortedAssets
-        guard let sourceIndex = assets.firstIndex(where: { $0.id == sourceID }) else { return }
-        guard let destinationIndex = assets.firstIndex(where: { $0.id == destinationID }) else { return }
-
-        moveAssets(from: sourceIndex, to: destinationIndex)
     }
 
     private func updateMediaAssets(_ update: (inout [MediaAsset]) -> Void) {
@@ -381,9 +393,6 @@ private struct MediaAssetGridTileView: View {
     let asset: MediaAsset
     let isAnalysisHighlighted: Bool
     let allowsDeletion: Bool
-    let isReorderingEnabled: Bool
-    @Binding var draggedAssetID: MediaAsset.ID?
-    let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
     let onTap: () -> Void
     let onDelete: () -> Void
     @State private var highlightPulse = false
@@ -401,12 +410,6 @@ private struct MediaAssetGridTileView: View {
         }
         .frame(width: 110, alignment: .leading)
         .contentShape(CatalogShapes.thumbnail)
-        .droppableMediaAsset(
-            asset,
-            isEnabled: isReorderingEnabled,
-            draggedAssetID: $draggedAssetID,
-            moveAsset: moveAsset
-        )
         .onTapGesture(perform: onTap)
         .onAppear {
             updateAnalysisHighlight(isAnalysisHighlighted)
@@ -456,11 +459,6 @@ private struct MediaAssetGridTileView: View {
             .overlay {
                 analysisHighlight
             }
-            .draggableMediaAsset(
-                asset,
-                isEnabled: isReorderingEnabled,
-                draggedAssetID: $draggedAssetID
-            )
     }
 
     private var deleteButton: some View {
@@ -509,109 +507,51 @@ private struct MediaAssetGridTileView: View {
     }
 }
 
-private extension View {
-    @ViewBuilder
-    func draggableMediaAsset(
-        _ asset: MediaAsset,
-        isEnabled: Bool,
-        draggedAssetID: Binding<MediaAsset.ID?>
-    ) -> some View {
-        if isEnabled {
-            self
-                .contentShape(.dragPreview, CatalogShapes.thumbnail)
-                .onDrag {
-                    draggedAssetID.wrappedValue = asset.id
-                    return NSItemProvider(object: asset.id.uuidString as NSString)
-                } preview: {
-                    // Shape the preview to the thumbnail so the drag does not carry a platter.
-                    self
-                        .contentShape(.dragPreview, CatalogShapes.thumbnail)
+/// Reorders photos in a native list with system drag handles.
+///
+/// A horizontal row inside a `Form` row cannot host drag and drop: the `Form` takes over the
+/// drag and lifts the whole row. A plain `List` in edit mode is the system reorder surface.
+private struct MediaArrangeSheet: View {
+    let onDone: ([MediaAsset]) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var photos: [MediaAsset]
+
+    init(photos: [MediaAsset], onDone: @escaping ([MediaAsset]) -> Void) {
+        self.onDone = onDone
+        _photos = State(initialValue: photos)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(photos) { photo in
+                    MediaAssetThumbnailView(asset: photo, size: 64)
+                        .accessibilityLabel(String(localized: "enum.media_kind.photo"))
                 }
-        } else {
-            self
+                .onMove { source, destination in
+                    photos.move(fromOffsets: source, toOffset: destination)
+                }
+            }
+            .environment(\.editMode, .constant(.active))
+            .navigationTitle(String(localized: "editor.media.arrange"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(role: .cancel) {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(role: .confirm) {
+                        onDone(photos)
+                        dismiss()
+                    }
+                }
+            }
         }
-    }
-
-    @ViewBuilder
-    func droppableMediaAsset(
-        _ asset: MediaAsset,
-        isEnabled: Bool,
-        draggedAssetID: Binding<MediaAsset.ID?>,
-        moveAsset: @escaping (MediaAsset.ID, MediaAsset.ID) -> Void
-    ) -> some View {
-        if isEnabled {
-            self
-                .onDrop(
-                    of: [UTType.text.identifier],
-                    delegate: MediaAssetReorderDropDelegate(
-                        asset: asset,
-                        draggedAssetID: draggedAssetID,
-                        moveAsset: moveAsset
-                    )
-                )
-        } else {
-            self
-        }
-    }
-
-    /// Accepts a reorder drop released between tiles, so the session does not end as cancelled.
-    @ViewBuilder
-    func droppableMediaAssetRow(
-        isEnabled: Bool,
-        draggedAssetID: Binding<MediaAsset.ID?>
-    ) -> some View {
-        if isEnabled {
-            self
-                .onDrop(
-                    of: [UTType.text.identifier],
-                    delegate: MediaAssetReorderRowDropDelegate(draggedAssetID: draggedAssetID)
-                )
-        } else {
-            self
-        }
-    }
-}
-
-/// Ends a reorder released on the row outside any tile. Tiles already applied the move in `dropEntered`.
-private struct MediaAssetReorderRowDropDelegate: DropDelegate {
-    @Binding var draggedAssetID: MediaAsset.ID?
-
-    func validateDrop(info: DropInfo) -> Bool {
-        draggedAssetID != nil
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        draggedAssetID = nil
-        return true
-    }
-}
-
-private struct MediaAssetReorderDropDelegate: DropDelegate {
-    let asset: MediaAsset
-    @Binding var draggedAssetID: MediaAsset.ID?
-    let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
-
-    func validateDrop(info: DropInfo) -> Bool {
-        draggedAssetID != nil
-    }
-
-    func dropEntered(info: DropInfo) {
-        guard let draggedAssetID else { return }
-        guard draggedAssetID != asset.id else { return }
-        moveAsset(draggedAssetID, asset.id)
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        draggedAssetID = nil
-        return true
+        .presentationDetents([.medium, .large])
     }
 }
 

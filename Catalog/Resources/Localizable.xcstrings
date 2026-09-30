@@ -4629,6 +4629,22 @@
         }
       }
     },
+    "editor.media.arrange" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrange Photos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Порядок фото"
+          }
+        }
+      }
+    },
     "editor.media.camera" : {
       "localizations" : {
         "en" : {
