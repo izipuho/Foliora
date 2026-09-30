@@ -17,8 +17,9 @@ struct CatalogRecords {
         people = []
     }
 
-    /// Maps book records and references without media bytes.
+    /// Maps book records and references without media bytes. Book covers live in `details.coverImage`.
     nonisolated init(
+        coverPhotoIDByItemID: [UUID: UUID],
         itemEntities: [NSManagedObject],
         collectionEntities: [NSManagedObject],
         publisherEntities: [NSManagedObject],

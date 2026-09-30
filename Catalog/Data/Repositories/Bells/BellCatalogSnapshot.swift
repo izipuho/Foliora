@@ -15,6 +15,7 @@ struct CatalogRecords {
 
     /// Maps bell records without media bytes. Book-only entities are ignored in the Bells app.
     nonisolated init(
+        coverPhotoIDByItemID: [UUID: UUID],
         itemEntities: [NSManagedObject],
         collectionEntities: [NSManagedObject],
         publisherEntities: [NSManagedObject],
@@ -24,16 +25,12 @@ struct CatalogRecords {
             guard let bellEntity = itemEntity.value(forKey: "bell") as? NSManagedObject else { return nil }
             return CoreDataDomainMapper.bellRecord(from: bellEntity, includesMediaData: false)
         }
-        bells = bellRecords.map(Self.bellCatalogItem)
+        bells = bellRecords.map { Self.bellCatalogItem(from: $0, coverPhotoID: coverPhotoIDByItemID[$0.id]) }
         recordsByID = Dictionary(uniqueKeysWithValues: bellRecords.map { ($0.id, $0) })
     }
 
-    nonisolated private static func bellCatalogItem(from record: BellRecord) -> BellCatalogItem {
-        let coverPhoto = record.mediaAssets
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .first { $0.kind == .photo }
-
-        return BellCatalogItem(
+    nonisolated private static func bellCatalogItem(from record: BellRecord, coverPhotoID: UUID?) -> BellCatalogItem {
+        BellCatalogItem(
             id: record.id,
             title: record.title,
             notes: record.notes,
@@ -57,7 +54,7 @@ struct CatalogRecords {
             storagePath: record.storagePath,
             storageDisplayPath: record.storageDisplayPath,
             storageLocationName: record.storageLocationName,
-            coverPhotoID: coverPhoto?.id,
+            coverPhotoID: coverPhotoID,
             hasOrigin: record.originPlace != nil,
             hasStorage: record.item.locationID != nil
         )
