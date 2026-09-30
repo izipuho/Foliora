@@ -100,6 +100,10 @@ struct MediaSection: View {
                 }
             }
             .scrollIndicators(.hidden)
+            .droppableMediaAssetRow(
+                isEnabled: isEditing,
+                draggedAssetID: $draggedAssetID
+            )
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
                 selection: $selectedPhotoItems,
@@ -514,11 +518,14 @@ private extension View {
     ) -> some View {
         if isEnabled {
             self
+                .contentShape(.dragPreview, CatalogShapes.thumbnail)
                 .onDrag {
                     draggedAssetID.wrappedValue = asset.id
                     return NSItemProvider(object: asset.id.uuidString as NSString)
                 } preview: {
+                    // Shape the preview to the thumbnail so the drag does not carry a platter.
                     self
+                        .contentShape(.dragPreview, CatalogShapes.thumbnail)
                 }
         } else {
             self
@@ -546,12 +553,51 @@ private extension View {
             self
         }
     }
+
+    /// Accepts a reorder drop released between tiles, so the session does not end as cancelled.
+    @ViewBuilder
+    func droppableMediaAssetRow(
+        isEnabled: Bool,
+        draggedAssetID: Binding<MediaAsset.ID?>
+    ) -> some View {
+        if isEnabled {
+            self
+                .onDrop(
+                    of: [UTType.text.identifier],
+                    delegate: MediaAssetReorderRowDropDelegate(draggedAssetID: draggedAssetID)
+                )
+        } else {
+            self
+        }
+    }
+}
+
+/// Ends a reorder released on the row outside any tile. Tiles already applied the move in `dropEntered`.
+private struct MediaAssetReorderRowDropDelegate: DropDelegate {
+    @Binding var draggedAssetID: MediaAsset.ID?
+
+    func validateDrop(info: DropInfo) -> Bool {
+        draggedAssetID != nil
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedAssetID = nil
+        return true
+    }
 }
 
 private struct MediaAssetReorderDropDelegate: DropDelegate {
     let asset: MediaAsset
     @Binding var draggedAssetID: MediaAsset.ID?
     let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool {
+        draggedAssetID != nil
+    }
 
     func dropEntered(info: DropInfo) {
         guard let draggedAssetID else { return }
