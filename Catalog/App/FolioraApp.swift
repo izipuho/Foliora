@@ -104,20 +104,11 @@ struct FolioraApp: App {
 
     /// Decides whether onboarding is needed without waiting on system services.
     ///
-    /// Translation readiness is not needed to show the catalog, so it comes from the
-    /// last completed check instead of a live `LanguageAvailability` query.
+    /// The decision rests only on the completion recorded on this device, so the
+    /// live state of the translation model or iCloud never replays the flow.
     @MainActor
     private func updateOnboardingState() {
-        let store = NSUbiquitousKeyValueStore.default
-        let displayName = store.string(forKey: "foliora.profile.displayName")?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let profileCompleted = displayName?.isEmpty == false
-            || store.bool(forKey: "foliora.profile.didSkipIntroduction")
-
-        let translationCompleted = !TranslationPreparationCache.lastKnownNeedsDownload
-            || store.bool(forKey: "foliora.onboarding.translationDownloadSkipped")
-
-        needsOnboarding = !(profileCompleted && translationCompleted)
+        needsOnboarding = OnboardingProgress.needsOnboarding
         StartupSignposts.signposter.emitEvent(
             "onboardingDecided",
             "needsOnboarding: \(needsOnboarding == true)"

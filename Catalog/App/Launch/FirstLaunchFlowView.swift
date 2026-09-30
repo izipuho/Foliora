@@ -1,39 +1,186 @@
+import CloudKit
 import SwiftUI
 import Translation
 
-/// Displays the first launch flow view interface.
+/// Guides a new user through the first launch: introduction, translation setup,
+/// a tour of the app's features, iCloud status, and the final confirmation.
+///
+/// Action steps only move forward through their buttons, so none of them can be
+/// swiped past. The feature tour is the one place that pages by swiping.
 struct FirstLaunchFlowView: View {
     private enum Step: Hashable {
         case profile
         case translation
+        case tour
+        case iCloud
         case ready
     }
 
     @State private var step: Step
-    @State private var didCheckPreparationState = false
-    @State private var needsTranslationModelDownload = false
+    @State private var translationState: TranslationPreparationState?
     @State private var isPreparingTranslation = false
     @State private var translationConfiguration: TranslationSession.Configuration?
-    @State private var userName = ""
+    @State private var iCloudStatus: CKAccountStatus?
+    @State private var userName: String
+    @State private var tourPageID: String
     @FocusState private var isUserNameFocused: Bool
 
+    private let tourPages: [OnboardingTourPage]
     private let translator = TextTranslator(sourceLanguage: Locale.Language(identifier: "en"))
-    private let translationDownloadSkippedKey = "foliora.onboarding.translationDownloadSkipped"
     let onFinished: @MainActor () -> Void
 
     init(onFinished: @escaping @MainActor () -> Void) {
-        let store = NSUbiquitousKeyValueStore.default
-        let displayName = store.string(forKey: "foliora.profile.displayName")
-        let trimmedDisplayName = displayName?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let profileCompleted = trimmedDisplayName?.isEmpty == false
-            || store.bool(forKey: "foliora.profile.didSkipIntroduction")
+        let pages = OnboardingTourPage.pages(for: CollectionAppLink.currentAppKind)
 
-        _step = State(initialValue: profileCompleted ? .translation : .profile)
-        _userName = State(initialValue: displayName ?? "")
+        _step = State(initialValue: ProfileSettings.isIntroductionAnswered ? .translation : .profile)
+        _userName = State(initialValue: ProfileSettings.displayName ?? "")
+        _tourPageID = State(initialValue: pages.first?.id ?? "")
+        tourPages = pages
         self.onFinished = onFinished
     }
-    
+
+    var body: some View {
+        ZStack {
+            currentStep
+                .id(step)
+                .transition(
+                    .asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    )
+                )
+        }
+        .clipped()
+        // Attached to the root so that leaving the translation step never cancels a download.
+        .translationTask(translationConfiguration) { session in
+            nonisolated(unsafe) let translationSession = session
+            await prepareTranslation(using: translationSession)
+        }
+        .task {
+            await refreshTranslationState()
+        }
+        .task {
+            await refreshICloudStatus()
+        }
+    }
+
+    @ViewBuilder
+    private var currentStep: some View {
+        switch step {
+        case .profile:
+            profileStep
+        case .translation:
+            translationStep
+        case .tour:
+            tourStep
+        case .iCloud:
+            iCloudStep
+        case .ready:
+            readyStep
+        }
+    }
+
+    // MARK: - Steps
+
+    private var profileStep: some View {
+        onboardingPage(
+            title: "onboarding.introduce.title",
+            description: "onboarding.introduce.description",
+            primaryTitle: "onboarding.introduce.save_name",
+            primaryAction: saveName,
+            secondaryAction: {
+                ProfileSettings.skipIntroduction()
+                isUserNameFocused = false
+                advance(from: .profile)
+            }
+        ) {
+            TextField("common.name", text: $userName)
+                .textContentType(.name)
+                .submitLabel(.next)
+                .onSubmit(saveName)
+                .catalogSurfaceTile()
+                .frame(maxWidth: 250)
+                .focused($isUserNameFocused)
+        }
+    }
+
+    private var translationStep: some View {
+        onboardingPage(
+            title: "onboarding.download_model.title",
+            description: "onboarding.download_model.description",
+            primaryTitle: "common.download",
+            primaryDisabled: translationState != .needsDownload || isPreparingTranslation,
+            primaryAction: startTranslationDownload,
+            secondaryAction: {
+                advance(from: .translation)
+            }
+        ) {
+            if translationState == nil || isPreparingTranslation {
+                ProgressView()
+            }
+        }
+    }
+
+    private var tourStep: some View {
+        VStack(spacing: CatalogMetrics.Spacing.xl) {
+            TabView(selection: $tourPageID) {
+                ForEach(tourPages) { page in
+                    tourSlide(page)
+                        .tag(page.id)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .indexViewStyle(.page(backgroundDisplayMode: .always))
+
+            actionButtons(
+                primaryTitle: isOnLastTourPage ? "common.continue" : "common.next",
+                primaryAction: showNextTourPage,
+                secondaryAction: isOnLastTourPage ? nil : {
+                    advance(from: .tour)
+                }
+            )
+            .frame(maxWidth: 420)
+            .padding(.horizontal, CatalogMetrics.Insets.screen)
+        }
+    }
+
+    private var iCloudStep: some View {
+        onboardingPage(
+            title: iCloudTitle,
+            description: iCloudDescription,
+            primaryTitle: "common.continue",
+            primaryAction: {
+                advance(from: .iCloud)
+            }
+        ) {
+            if let iCloudStatus {
+                Image(systemName: iCloudSymbol(for: iCloudStatus))
+                    .font(.system(size: 44))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color("LightAccent"))
+                    .accessibilityHidden(true)
+            } else {
+                ProgressView()
+            }
+        }
+    }
+
+    private var readyStep: some View {
+        onboardingPage(
+            title: "onboarding.ready.title",
+            description: "onboarding.ready.description",
+            primaryTitle: "onboarding.ready.start",
+            primaryAction: {
+                OnboardingProgress.markCompleted()
+                onFinished()
+            }
+        ) {
+            EmptyView()
+        }
+    }
+
+    // MARK: - Layout
+
     @ViewBuilder
     private func onboardingPage<Content: View>(
         title: LocalizedStringKey,
@@ -41,8 +188,7 @@ struct FirstLaunchFlowView: View {
         primaryTitle: LocalizedStringKey,
         primaryDisabled: Bool = false,
         primaryAction: @escaping () -> Void,
-        skipDisabled: Bool = false,
-        skipAction: (() -> Void)? = nil,
+        secondaryAction: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(spacing: CatalogMetrics.Spacing.xl) {
@@ -58,163 +204,141 @@ struct FirstLaunchFlowView: View {
 
             content()
 
-            HStack(spacing: CatalogMetrics.Spacing.md) {
-                Button(primaryTitle, action: primaryAction)
-                    .font(.title3)
-                    .foregroundStyle(.primary)
-                    .buttonStyle(.glassProminent)
-                    .tint(Color("LightAccent"))
-                    .disabled(primaryDisabled)
-                    .frame(maxWidth: .infinity)
-
-                if let skipAction {
-                    Button("common.skip", action: skipAction)
-                        .font(.title3)
-                        .foregroundStyle(.primary)
-                        .buttonStyle(.glass)
-                        .tint(Color("LightAccent"))
-                        .disabled(skipDisabled)
-                        .frame(maxWidth: .infinity)
-                }
-            }
+            actionButtons(
+                primaryTitle: primaryTitle,
+                primaryDisabled: primaryDisabled,
+                primaryAction: primaryAction,
+                secondaryAction: secondaryAction
+            )
         }
         .frame(maxWidth: 420)
         .padding(.horizontal, CatalogMetrics.Insets.screen)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    var body: some View {
-        TabView(selection: $step) {
-            onboardingPage(
-                title: "onboarding.introduce.title",
-                description: "onboarding.introduce.description",
-                primaryTitle: "onboarding.introduce.save_name",
-                primaryAction: {
-                    let displayName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func tourSlide(_ page: OnboardingTourPage) -> some View {
+        VStack(spacing: CatalogMetrics.Spacing.lg) {
+            Image(systemName: page.systemImage)
+                .font(.system(size: 44))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color("LightAccent"))
+                .accessibilityHidden(true)
 
-                    if displayName.isEmpty {
-                        NSUbiquitousKeyValueStore.default.removeObject(
-                            forKey: "foliora.profile.displayName"
-                        )
-                    } else {
-                        NSUbiquitousKeyValueStore.default.set(
-                            displayName,
-                            forKey: "foliora.profile.displayName"
-                        )
-                    }
+            Text(page.title)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(Color("LightAccent"))
+                .multilineTextAlignment(.center)
 
-                    NSUbiquitousKeyValueStore.default.removeObject(
-                        forKey: "foliora.profile.didSkipIntroduction"
-                    )
-                    isUserNameFocused = false
-                    continueAfterProfile()
-                },
-                skipAction: {
-                    NSUbiquitousKeyValueStore.default.set(
-                        true,
-                        forKey: "foliora.profile.didSkipIntroduction"
-                    )
-                    isUserNameFocused = false
-                    continueAfterProfile()
-                }
-            ) {
-                TextField("common.name", text: $userName)
-                    .textContentType(.name)
-                    .catalogSurfaceTile()
-                    .frame(maxWidth: 250)
-                    .focused($isUserNameFocused)
-            }
-            .tag(Step.profile)
-
-            onboardingPage(
-                title: "onboarding.download_model.title",
-                description: "onboarding.download_model.description",
-                primaryTitle: "common.download",
-                primaryDisabled: isPreparingTranslation,
-                primaryAction: {
-                    prepareTranslation()
-                },
-                skipAction: {
-                    NSUbiquitousKeyValueStore.default.set(
-                        true,
-                        forKey: translationDownloadSkippedKey
-                    )
-                    finishTranslationStep()
-                }
-            ) {
-                EmptyView()
-            }
-            .translationTask(translationConfiguration) { session in
-                nonisolated(unsafe) let translationSession = session
-                await prepareTranslation(using: translationSession)
-            }
-            .tag(Step.translation)
-
-            onboardingPage(
-                title: "onboarding.ready.title",
-                description: "onboarding.ready.description",
-                primaryTitle: "onboarding.ready.start",
-                primaryAction: {
-                    onFinished()
-                }
-            ) {
-                //Image(systemName: "checkmark.circle.fill")
-                //    .font(.system(size: 80))
-                //    .foregroundStyle(Color("AccentColor"))
-            }
-            .tag(Step.ready)
+            Text(page.description)
+                .font(.title3)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
-        .task {
-            await checkPreparationStateIfNeeded()
-        }
-        .tabViewStyle(.page(indexDisplayMode: .always))
-        .indexViewStyle(.page(backgroundDisplayMode: .always))
+        .frame(maxWidth: 420)
+        .padding(.horizontal, CatalogMetrics.Insets.screen)
+        // Leaves room for the page indicator below the text.
+        .padding(.bottom, CatalogMetrics.Spacing.xl)
+        .accessibilityElement(children: .combine)
     }
+
+    private func actionButtons(
+        primaryTitle: LocalizedStringKey,
+        primaryDisabled: Bool = false,
+        primaryAction: @escaping () -> Void,
+        secondaryAction: (() -> Void)?
+    ) -> some View {
+        HStack(spacing: CatalogMetrics.Spacing.md) {
+            Button(primaryTitle, action: primaryAction)
+                .font(.title3)
+                .foregroundStyle(.primary)
+                .buttonStyle(.glassProminent)
+                .tint(Color("LightAccent"))
+                .disabled(primaryDisabled)
+                .frame(maxWidth: .infinity)
+
+            if let secondaryAction {
+                Button("common.skip", action: secondaryAction)
+                    .font(.title3)
+                    .foregroundStyle(.primary)
+                    .buttonStyle(.glass)
+                    .tint(Color("LightAccent"))
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    // MARK: - Navigation
 
     @MainActor
-    private func checkPreparationStateIfNeeded() async {
-        guard !didCheckPreparationState else { return }
+    private func advance(from current: Step) {
+        guard current == step else { return }
 
-        await refreshPreparationState()
-        didCheckPreparationState = true
-    }
-
-    @MainActor
-    private func refreshPreparationState() async {
-        let preparationState = await translator.preparationState()
-        TranslationPreparationCache.record(preparationState)
-
-        guard preparationState == .needsDownload else {
-            needsTranslationModelDownload = false
-            NSUbiquitousKeyValueStore.default.removeObject(
-                forKey: translationDownloadSkippedKey
-            )
-            if step != .profile {
-                finishTranslationStep()
-            }
+        let next: Step
+        switch current {
+        case .profile:
+            next = shouldShowTranslationStep ? .translation : .tour
+        case .translation:
+            next = .tour
+        case .tour:
+            next = .iCloud
+        case .iCloud:
+            next = .ready
+        case .ready:
             return
         }
 
-        needsTranslationModelDownload = true
+        withAnimation(.smooth) {
+            step = next
+        }
+    }
+
+    /// The translation step stays while the check is still running, and shows
+    /// a progress indicator until the result arrives.
+    private var shouldShowTranslationStep: Bool {
+        translationState == nil || translationState == .needsDownload
+    }
+
+    private var isOnLastTourPage: Bool {
+        tourPageID == tourPages.last?.id
     }
 
     @MainActor
-    private func finishTranslationStep() {
-        step = .ready
-    }
+    private func showNextTourPage() {
+        guard let index = tourPages.firstIndex(where: { $0.id == tourPageID }),
+              index + 1 < tourPages.count
+        else {
+            advance(from: .tour)
+            return
+        }
 
-    @MainActor
-    private func continueAfterProfile() {
-        if didCheckPreparationState, !needsTranslationModelDownload {
-            step = .ready
-        } else {
-            step = .translation
+        withAnimation {
+            tourPageID = tourPages[index + 1].id
         }
     }
 
     @MainActor
-    private func prepareTranslation() {
+    private func saveName() {
+        ProfileSettings.setDisplayName(userName)
+        isUserNameFocused = false
+        advance(from: .profile)
+    }
+
+    // MARK: - Translation
+
+    @MainActor
+    private func refreshTranslationState() async {
+        let state = await translator.preparationState()
+        TranslationPreparationCache.record(state)
+        translationState = state
+
+        if state != .needsDownload {
+            advance(from: .translation)
+        }
+    }
+
+    @MainActor
+    private func startTranslationDownload() {
         isPreparingTranslation = true
-        needsTranslationModelDownload = false
         translationConfiguration = TranslationSession.Configuration(
             source: translator.sourceLanguage,
             target: translator.targetLanguage()
@@ -224,12 +348,6 @@ struct FirstLaunchFlowView: View {
     nonisolated private func prepareTranslation(using session: TranslationSession) async {
         do {
             try await session.prepareTranslation()
-
-            await MainActor.run {
-                NSUbiquitousKeyValueStore.default.removeObject(
-                    forKey: translationDownloadSkippedKey
-                )
-            }
         } catch {
             StartupSignposts.logger.error(
                 "Translation model preparation failed: \(error.localizedDescription, privacy: .public)"
@@ -240,7 +358,63 @@ struct FirstLaunchFlowView: View {
             translationConfiguration = nil
             isPreparingTranslation = false
         }
-        await refreshPreparationState()
+        await refreshTranslationState()
+    }
+
+    // MARK: - iCloud
+
+    @MainActor
+    private func refreshICloudStatus() async {
+        let container = FolioraAppDelegate.coreDataContainer
+            .flatMap(FolioraCoreDataStack.cloudKitContainerIdentifier(from:))
+            .map(CKContainer.init(identifier:))
+            ?? CKContainer.default()
+
+        do {
+            iCloudStatus = try await container.accountStatus()
+        } catch {
+            StartupSignposts.logger.error(
+                "iCloud account status check failed: \(error.localizedDescription, privacy: .public)"
+            )
+            iCloudStatus = .couldNotDetermine
+        }
+    }
+
+    private var iCloudTitle: LocalizedStringKey {
+        switch iCloudStatus {
+        case nil:
+            "onboarding.icloud.checking.title"
+        case .available:
+            "onboarding.icloud.available.title"
+        case .noAccount:
+            "onboarding.icloud.no_account.title"
+        default:
+            "onboarding.icloud.unavailable.title"
+        }
+    }
+
+    private var iCloudDescription: LocalizedStringKey {
+        switch iCloudStatus {
+        case nil:
+            "onboarding.icloud.checking.description"
+        case .available:
+            "onboarding.icloud.available.description"
+        case .noAccount:
+            "onboarding.icloud.no_account.description"
+        default:
+            "onboarding.icloud.unavailable.description"
+        }
+    }
+
+    private func iCloudSymbol(for status: CKAccountStatus) -> String {
+        switch status {
+        case .available:
+            "checkmark.icloud"
+        case .noAccount:
+            "xmark.icloud"
+        default:
+            "exclamationmark.icloud"
+        }
     }
 }
 

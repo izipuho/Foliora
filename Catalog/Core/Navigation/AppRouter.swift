@@ -265,8 +265,7 @@ struct AppShellView: View {
     }
 
     private func loadDisplayName() {
-        displayName = NSUbiquitousKeyValueStore.default.string(forKey: "foliora.profile.displayName")?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        displayName = ProfileSettings.displayName
     }
 
     private var shareInvitationFailureAlertBinding: Binding<Bool> {

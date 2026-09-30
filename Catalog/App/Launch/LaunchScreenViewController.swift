@@ -14,8 +14,7 @@ public final class LaunchScreenViewController: UIViewController {
     private var prepareForOnboardingCompletions: [() -> Void] = []
     private let onboardingContainer = UIView()
     private var firstLaunchFlowHostingController: UIHostingController<FirstLaunchFlowView>?
-    private let displayName = NSUbiquitousKeyValueStore.default
-        .string(forKey: "foliora.profile.displayName")
+    private let displayName = ProfileSettings.displayName
     private let greetingLabel = UILabel()
 
     private enum IntroAnimation {
