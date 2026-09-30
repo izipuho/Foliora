@@ -133,7 +133,6 @@ struct FirstLaunchFlowView: View {
                 primaryAction: {
                     prepareTranslation()
                 },
-                skipDisabled: isPreparingTranslation,
                 skipAction: {
                     NSUbiquitousKeyValueStore.default.set(
                         true,
@@ -182,6 +181,7 @@ struct FirstLaunchFlowView: View {
     @MainActor
     private func refreshPreparationState() async {
         let preparationState = await translator.preparationState()
+        TranslationPreparationCache.record(preparationState)
 
         guard preparationState == .needsDownload else {
             needsTranslationModelDownload = false
@@ -231,6 +231,9 @@ struct FirstLaunchFlowView: View {
                 )
             }
         } catch {
+            StartupSignposts.logger.error(
+                "Translation model preparation failed: \(error.localizedDescription, privacy: .public)"
+            )
         }
 
         await MainActor.run {

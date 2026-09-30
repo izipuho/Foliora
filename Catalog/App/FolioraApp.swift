@@ -73,6 +73,7 @@ struct FolioraApp: App {
             .task {
                 NSUbiquitousKeyValueStore.default.synchronize()
                 await prepareApplicationIfNeeded()
+                await refreshTranslationPreparationState()
             }
         }
     }
@@ -86,6 +87,8 @@ struct FolioraApp: App {
         guard !isPreparingApplication, coreDataContainer == nil, container == nil else { return }
 
         isPreparingApplication = true
+        let signpostState = StartupSignposts.signposter.beginInterval("prepareApplication")
+        defer { StartupSignposts.signposter.endInterval("prepareApplication", signpostState) }
 
         do {
             let coreDataContainer = try await FolioraCoreDataStack.makeContainer()
@@ -93,24 +96,41 @@ struct FolioraApp: App {
             FolioraAppDelegate.coreDataContainer = coreDataContainer
             self.coreDataContainer = coreDataContainer
             self.container = container
-            await updateOnboardingState()
+            updateOnboardingState()
         } catch {
             fatalError("Failed to create Core Data container: \(error)")
         }
     }
 
+    /// Decides whether onboarding is needed without waiting on system services.
+    ///
+    /// Translation readiness is not needed to show the catalog, so it comes from the
+    /// last completed check instead of a live `LanguageAvailability` query.
     @MainActor
-    private func updateOnboardingState() async {
+    private func updateOnboardingState() {
         let store = NSUbiquitousKeyValueStore.default
         let displayName = store.string(forKey: "foliora.profile.displayName")?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let profileCompleted = displayName?.isEmpty == false
             || store.bool(forKey: "foliora.profile.didSkipIntroduction")
 
-        let translationState = await translator.preparationState()
-        let translationCompleted = translationState != .needsDownload
+        let translationCompleted = !TranslationPreparationCache.lastKnownNeedsDownload
             || store.bool(forKey: "foliora.onboarding.translationDownloadSkipped")
 
         needsOnboarding = !(profileCompleted && translationCompleted)
+        StartupSignposts.signposter.emitEvent(
+            "onboardingDecided",
+            "needsOnboarding: \(needsOnboarding == true)"
+        )
+    }
+
+    /// Refreshes the cached translation readiness after launch no longer depends on it.
+    @MainActor
+    private func refreshTranslationPreparationState() async {
+        let signpostState = StartupSignposts.signposter.beginInterval("translationAvailability")
+        let state = await translator.preparationState()
+        StartupSignposts.signposter.endInterval("translationAvailability", signpostState)
+
+        TranslationPreparationCache.record(state)
     }
 }

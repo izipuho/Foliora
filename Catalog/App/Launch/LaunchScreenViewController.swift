@@ -182,6 +182,7 @@ public final class LaunchScreenViewController: UIViewController {
 
                 if !self.didCompleteRequiredAnimation {
                     self.didCompleteRequiredAnimation = true
+                    StartupSignposts.signposter.emitEvent("requiredAnimationCompleted")
                 }
 
                 if self.didRequestStopAnimation {
@@ -271,6 +272,7 @@ public final class LaunchScreenViewController: UIViewController {
 
         Symbol.transform = .identity
         didStopAnimation = true
+        StartupSignposts.signposter.emitEvent("launchAnimationStopped")
 
         let completions = stopAnimationCompletions
         stopAnimationCompletions.removeAll()

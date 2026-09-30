@@ -33,16 +33,16 @@ struct CatalogRecords {
         bookSeries = Self.uniqueSortedByName(
             collectionEntities.flatMap { collectionEntity in
                 CoreDataDomainMapper.relatedObjects(collectionEntity, "bookSeries")
-                    .map { CoreDataDomainMapper.bookSeries(from: $0, includesMediaData: false) }
+                    .compactMap { CoreDataDomainMapper.bookSeries(from: $0, includesMediaData: false) }
             },
             name: \.name
         )
         publishers = Self.uniqueSortedByName(
-            publisherEntities.map { CoreDataDomainMapper.publisher(from: $0, includesMediaData: false) },
+            publisherEntities.compactMap { CoreDataDomainMapper.publisher(from: $0, includesMediaData: false) },
             name: \.name
         )
         people = Self.uniqueSortedByName(
-            personEntities.map { CoreDataDomainMapper.person(from: $0, includesMediaData: false) },
+            personEntities.compactMap { CoreDataDomainMapper.person(from: $0, includesMediaData: false) },
             name: \.sortName
         )
     }
