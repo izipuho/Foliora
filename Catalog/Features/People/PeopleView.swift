@@ -484,7 +484,7 @@ private extension String {
                 canEditCollection: true
             )
         }
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

@@ -477,7 +477,7 @@ private extension CollectionSharingState {
             coreDataContainer: container,
             layoutMode: .constant(.mini)
         )
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

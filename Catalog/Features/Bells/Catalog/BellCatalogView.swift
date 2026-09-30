@@ -738,7 +738,7 @@ private struct BellGroupingJumpPopover: View {
             ),
             canEditCollection: true
         )
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

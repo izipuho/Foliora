@@ -385,7 +385,7 @@ struct PersonDetailView: View {
                 onPersonDeleted: { _ in }
             )
         }
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

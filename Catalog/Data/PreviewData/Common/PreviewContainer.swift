@@ -1,4 +1,5 @@
 import CoreData
+import SwiftUI
 
 /// Defines the supported preview scenario values.
 enum PreviewScenario {
@@ -27,5 +28,16 @@ enum PreviewContainer {
         } catch {
             fatalError("Failed to create preview container: \(error)")
         }
+    }
+}
+
+extension View {
+    /// Injects the environment the app shell provides, backed by a preview container.
+    ///
+    /// Snapshot records carry media without bytes, so `MediaPreviewImage` needs
+    /// `mediaDataLoader` to show saved photos in the canvas.
+    func previewEnvironment(_ container: NSPersistentContainer) -> some View {
+        environment(\.managedObjectContext, container.viewContext)
+            .environment(\.mediaDataLoader, MediaDataLoader(container: container))
     }
 }

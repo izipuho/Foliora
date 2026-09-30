@@ -163,6 +163,6 @@ struct HomeIdentityHeader: View {
             onSave: { _, _ in },
             onDelete: {}
         )
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }

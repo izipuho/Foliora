@@ -334,7 +334,7 @@ struct PublisherDetailView: View {
                 onPublisherDeleted: { _ in }
             )
         }
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }
 #endif

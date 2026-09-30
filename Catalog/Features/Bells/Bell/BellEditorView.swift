@@ -910,5 +910,6 @@ private struct PhotoSuggestedTagChip: View {
     ) { updatedBell in
         repository.saveBellRecord(updatedBell)
     }
+    .previewEnvironment(container)
 }
 #endif
