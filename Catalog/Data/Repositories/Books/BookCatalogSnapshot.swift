@@ -1,35 +1,49 @@
 import CoreData
 import Foundation
 
-extension CatalogSnapshot {
-    var recordsByID: [UUID: BookRecord] {
-        bookRecordsByID
+/// Book records and references held by `CatalogSnapshot`, mapped once per load.
+struct CatalogRecords {
+    let bookRecords: [BookRecord]
+    let recordsByID: [UUID: BookRecord]
+    let bookSeries: [BookSeries]
+    let publishers: [Publisher]
+    let people: [Person]
+
+    nonisolated init() {
+        bookRecords = []
+        recordsByID = [:]
+        bookSeries = []
+        publishers = []
+        people = []
     }
 
-    /// Maps book records once per snapshot load. Media is mapped without `originalData`.
-    nonisolated static func mapBookRecords(from itemEntities: [NSManagedObject]) -> [BookRecord] {
-        itemEntities.compactMap { itemEntity in
+    /// Maps book records and references without media bytes.
+    nonisolated init(
+        itemEntities: [NSManagedObject],
+        collectionEntities: [NSManagedObject],
+        publisherEntities: [NSManagedObject],
+        personEntities: [NSManagedObject]
+    ) {
+        bookRecords = itemEntities.compactMap { itemEntity in
             guard let bookEntity = itemEntity.value(forKey: "book") as? NSManagedObject else { return nil }
             return CoreDataDomainMapper.bookRecord(from: bookEntity, includesMediaData: false)
         }
-    }
-
-    nonisolated static func mapBookSeries(from collectionEntities: [NSManagedObject]) -> [BookSeries] {
-        let series = collectionEntities.flatMap { collectionEntity in
-            CoreDataDomainMapper.relatedObjects(collectionEntity, "bookSeries")
-                .map { CoreDataDomainMapper.bookSeries(from: $0, includesMediaData: false) }
-        }
-        return uniqueSortedByName(series, name: \.name)
-    }
-
-    nonisolated static func mapPublishers(from publisherEntities: [NSManagedObject]) -> [Publisher] {
-        let publishers = publisherEntities.map { CoreDataDomainMapper.publisher(from: $0, includesMediaData: false) }
-        return uniqueSortedByName(publishers, name: \.name)
-    }
-
-    nonisolated static func mapPeople(from personEntities: [NSManagedObject]) -> [Person] {
-        let people = personEntities.map { CoreDataDomainMapper.person(from: $0, includesMediaData: false) }
-        return uniqueSortedByName(people, name: \.sortName)
+        recordsByID = Dictionary(uniqueKeysWithValues: bookRecords.map { ($0.id, $0) })
+        bookSeries = Self.uniqueSortedByName(
+            collectionEntities.flatMap { collectionEntity in
+                CoreDataDomainMapper.relatedObjects(collectionEntity, "bookSeries")
+                    .map { CoreDataDomainMapper.bookSeries(from: $0, includesMediaData: false) }
+            },
+            name: \.name
+        )
+        publishers = Self.uniqueSortedByName(
+            publisherEntities.map { CoreDataDomainMapper.publisher(from: $0, includesMediaData: false) },
+            name: \.name
+        )
+        people = Self.uniqueSortedByName(
+            personEntities.map { CoreDataDomainMapper.person(from: $0, includesMediaData: false) },
+            name: \.sortName
+        )
     }
 
     /// Keeps the first value per ID and sorts by name, then by ID for a stable order.
@@ -46,4 +60,12 @@ extension CatalogSnapshot {
             return $0.id.uuidString < $1.id.uuidString
         }
     }
+}
+
+extension CatalogSnapshot {
+    var bookRecords: [BookRecord] { records.bookRecords }
+    var recordsByID: [UUID: BookRecord] { records.recordsByID }
+    var bookSeries: [BookSeries] { records.bookSeries }
+    var publishers: [Publisher] { records.publishers }
+    var people: [Person] { records.people }
 }

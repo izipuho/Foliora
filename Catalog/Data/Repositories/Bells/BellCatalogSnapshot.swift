@@ -1,20 +1,34 @@
 import CoreData
 import Foundation
 
-extension CatalogSnapshot {
-    var recordsByID: [UUID: BellRecord] {
-        bellRecordsByID
+/// Bell records held by `CatalogSnapshot`, mapped once per load.
+struct CatalogRecords {
+    let bellRecords: [BellRecord]
+    let bells: [BellCatalogItem]
+    let recordsByID: [UUID: BellRecord]
+
+    nonisolated init() {
+        bellRecords = []
+        bells = []
+        recordsByID = [:]
     }
 
-    /// Maps bell records once per snapshot load. Media is mapped without `originalData`.
-    nonisolated static func mapBellRecords(from itemEntities: [NSManagedObject]) -> [BellRecord] {
-        itemEntities.compactMap { itemEntity in
+    /// Maps bell records without media bytes. Book-only entities are ignored in the Bells app.
+    nonisolated init(
+        itemEntities: [NSManagedObject],
+        collectionEntities: [NSManagedObject],
+        publisherEntities: [NSManagedObject],
+        personEntities: [NSManagedObject]
+    ) {
+        bellRecords = itemEntities.compactMap { itemEntity in
             guard let bellEntity = itemEntity.value(forKey: "bell") as? NSManagedObject else { return nil }
             return CoreDataDomainMapper.bellRecord(from: bellEntity, includesMediaData: false)
         }
+        bells = bellRecords.map(Self.bellCatalogItem)
+        recordsByID = Dictionary(uniqueKeysWithValues: bellRecords.map { ($0.id, $0) })
     }
 
-    nonisolated static func bellCatalogItem(from record: BellRecord) -> BellCatalogItem {
+    nonisolated private static func bellCatalogItem(from record: BellRecord) -> BellCatalogItem {
         let coverPhoto = record.mediaAssets
             .sorted { $0.sortOrder < $1.sortOrder }
             .first { $0.kind == .photo }
@@ -48,4 +62,10 @@ extension CatalogSnapshot {
             hasStorage: record.item.locationID != nil
         )
     }
+}
+
+extension CatalogSnapshot {
+    var bellRecords: [BellRecord] { records.bellRecords }
+    var bells: [BellCatalogItem] { records.bells }
+    var recordsByID: [UUID: BellRecord] { records.recordsByID }
 }

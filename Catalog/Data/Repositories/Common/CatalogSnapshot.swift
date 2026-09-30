@@ -20,15 +20,11 @@ struct CatalogSnapshot {
     private(set) var locationPathByID: [UUID: String] = [:]
     private(set) var collectionLocationPathByCollectionID: [UUID: [UUID: String]] = [:]
 
-    // Derived collections, mapped once per load. Mapping lives in the per-catalog snapshot extensions.
-    private(set) var bellRecords: [BellRecord] = []
-    private(set) var bells: [BellCatalogItem] = []
-    private(set) var bellRecordsByID: [UUID: BellRecord] = [:]
-    private(set) var bookRecords: [BookRecord] = []
-    private(set) var bookRecordsByID: [UUID: BookRecord] = [:]
-    private(set) var bookSeries: [BookSeries] = []
-    private(set) var publishers: [Publisher] = []
-    private(set) var people: [Person] = []
+    /// Catalog-specific records, mapped once per load.
+    ///
+    /// `CatalogRecords` is defined once per app target (`BellCatalogSnapshot`, `BookCatalogSnapshot`),
+    /// so this file stays free of catalog types.
+    private(set) var records = CatalogRecords()
 
     private init() {}
 
@@ -138,14 +134,12 @@ struct CatalogSnapshot {
         )
         .mapValues { rows in Dictionary(rows.map(\.1), uniquingKeysWith: { first, _ in first }) }
 
-        snapshot.bellRecords = mapBellRecords(from: itemEntities)
-        snapshot.bells = snapshot.bellRecords.map(bellCatalogItem)
-        snapshot.bellRecordsByID = Dictionary(uniqueKeysWithValues: snapshot.bellRecords.map { ($0.id, $0) })
-        snapshot.bookRecords = mapBookRecords(from: itemEntities)
-        snapshot.bookRecordsByID = Dictionary(uniqueKeysWithValues: snapshot.bookRecords.map { ($0.id, $0) })
-        snapshot.bookSeries = mapBookSeries(from: collectionEntities)
-        snapshot.publishers = mapPublishers(from: publisherEntities)
-        snapshot.people = mapPeople(from: personEntities)
+        snapshot.records = CatalogRecords(
+            itemEntities: itemEntities,
+            collectionEntities: collectionEntities,
+            publisherEntities: publisherEntities,
+            personEntities: personEntities
+        )
         return snapshot
     }
 
