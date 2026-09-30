@@ -35,6 +35,7 @@ struct LaunchScreenHost: UIViewControllerRepresentable {
         var viewController: LaunchScreenViewController?
 
         private var didRequestFinish = false
+        private var didReportApplicationReady = false
         private var didRequestPrepareForOnboarding = false
         private var onFinished: (@MainActor () -> Void)?
 
@@ -46,6 +47,11 @@ struct LaunchScreenHost: UIViewControllerRepresentable {
             self.onFinished = onFinished
 
             guard isApplicationReady else { return }
+
+            if !didReportApplicationReady {
+                didReportApplicationReady = true
+                StartupSignposts.signposter.emitEvent("applicationReady")
+            }
 
             if shouldPrepareForOnboarding {
                 guard !didRequestPrepareForOnboarding else { return }
@@ -72,6 +78,7 @@ struct LaunchScreenHost: UIViewControllerRepresentable {
         }
 
         private func finish() {
+            StartupSignposts.signposter.emitEvent("launchScreenFinished")
             onFinished?()
         }
     }
