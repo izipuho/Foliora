@@ -345,13 +345,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Homes, rooms, and shelves show where each item lives."
+            "value" : "Set the home, room, and shelf, and you'll always find the item you need."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Дома, комнаты и полки подскажут, где стоит каждый предмет."
+            "value" : "Укажите дом, комнату и полку, и нужный предмет всегда найдётся."
           }
         }
       }

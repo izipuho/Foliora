@@ -6,7 +6,8 @@ import Translation
 /// a tour of the app's features, iCloud status, and the final confirmation.
 ///
 /// Action steps only move forward through their buttons, so none of them can be
-/// swiped past. The feature tour is the one place that pages by swiping.
+/// swiped past. The feature tour is the one place that pages by swiping, and it
+/// has no skip button: its slides are short enough to page through.
 struct FirstLaunchFlowView: View {
     private enum Step: Hashable {
         case profile
@@ -135,9 +136,7 @@ struct FirstLaunchFlowView: View {
             actionButtons(
                 primaryTitle: isOnLastTourPage ? "common.continue" : "common.next",
                 primaryAction: showNextTourPage,
-                secondaryAction: isOnLastTourPage ? nil : {
-                    advance(from: .tour)
-                }
+                secondaryAction: nil
             )
             .frame(maxWidth: 420)
             .padding(.horizontal, CatalogMetrics.Insets.screen)
