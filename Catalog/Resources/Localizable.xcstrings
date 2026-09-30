@@ -217,13 +217,29 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Foliora looks at the photo and suggests a title, material, year, origin, and tags."
+            "value" : "Foliora recognizes objects and inscriptions in the photo and suggests tags."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Foliora изучит снимок и подскажет название, материал, год, место происхождения и теги."
+            "value" : "Foliora распознает на снимке предметы и надписи и предложит теги."
+          }
+        }
+      }
+    },
+    "onboarding.tour.recognition.bells.description_ai" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora recognizes objects and inscriptions, and with Apple Intelligence it also suggests a title, material, year, and origin."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora распознает предметы и надписи, а с Apple Intelligence ещё подскажет название, материал, год и место происхождения."
           }
         }
       }
@@ -249,13 +265,29 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drag recognized text into the title, author, publisher, or series."
+            "value" : "Foliora recognizes cover text and the ISBN barcode. Drag a fragment into the title, author, publisher, or series."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Перетащите распознанный текст в название, автора, издательство или серию."
+            "value" : "Foliora распознает текст обложки и ISBN со штрихкода. Перетащите фрагмент в название, автора, издательство или серию."
+          }
+        }
+      }
+    },
+    "onboarding.tour.recognition.books.description_ai" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora recognizes cover text and the ISBN barcode, and with Apple Intelligence it suggests which text goes into which field."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora распознает текст обложки и ISBN со штрихкода, а с Apple Intelligence подскажет, что в какое поле подставить."
           }
         }
       }

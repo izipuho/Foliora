@@ -1,3 +1,4 @@
+import FoundationModels
 import SwiftUI
 
 /// Describes one slide of the onboarding introduction to the app's features.
@@ -16,7 +17,14 @@ struct OnboardingTourPage: Identifiable, Hashable {
     }
 
     /// Returns the slides for the given collection kind.
-    static func pages(for kind: CollectionKind) -> [OnboardingTourPage] {
+    ///
+    /// The recognition slide promises model-based suggestions only when
+    /// Apple Intelligence is available on this device; otherwise it describes
+    /// the analysis that always runs.
+    static func pages(
+        for kind: CollectionKind,
+        isLanguageModelAvailable: Bool = SystemLanguageModel.default.isAvailable
+    ) -> [OnboardingTourPage] {
         switch kind {
         case .bells:
             [
@@ -30,7 +38,9 @@ struct OnboardingTourPage: Identifiable, Hashable {
                     id: "recognition",
                     systemImage: "sparkle.magnifyingglass",
                     title: "onboarding.tour.recognition.bells.title",
-                    description: "onboarding.tour.recognition.bells.description"
+                    description: isLanguageModelAvailable
+                        ? "onboarding.tour.recognition.bells.description_ai"
+                        : "onboarding.tour.recognition.bells.description"
                 ),
                 storage,
                 sharing
@@ -47,7 +57,9 @@ struct OnboardingTourPage: Identifiable, Hashable {
                     id: "recognition",
                     systemImage: "text.viewfinder",
                     title: "onboarding.tour.recognition.books.title",
-                    description: "onboarding.tour.recognition.books.description"
+                    description: isLanguageModelAvailable
+                        ? "onboarding.tour.recognition.books.description_ai"
+                        : "onboarding.tour.recognition.books.description"
                 ),
                 storage,
                 sharing
