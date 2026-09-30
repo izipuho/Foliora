@@ -313,7 +313,8 @@ struct PersonEditorView: View {
                 Section("enum.media_kind.photo") {
                     MediaSection(
                         itemID: existingPerson.id,
-                        mediaAssets: $photos
+                        mediaAssets: $photos,
+                        maxMediaCount: 1
                     )
                     .task {
                         // Snapshot photos carry no bytes; load them for preview and full-screen viewing.
