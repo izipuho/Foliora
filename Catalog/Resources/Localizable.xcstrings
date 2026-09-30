@@ -169,13 +169,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Take a photo of a bell or pick shots from your library, and a card is created for you. You can add several at once."
+            "value" : "Take a photo of a bell or pick shots from your library, and a card is created for you. You can add a whole shelf at once."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сфотографируйте колокольчик или выберите снимки из галереи, и карточка создастся сама. Можно добавить сразу несколько."
+            "value" : "Сфотографируйте колокольчик или выберите снимки из галереи, и карточка создастся сама. Можно добавить сразу целую полку."
           }
         }
       }
