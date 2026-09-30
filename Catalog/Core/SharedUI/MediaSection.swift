@@ -526,17 +526,18 @@ private struct MediaArrangeSheet: View {
             List {
                 ForEach(assets) { asset in
                     HStack(spacing: CatalogMetrics.Spacing.md) {
-                        MediaAssetThumbnailView(asset: asset, size: 56)
+                        MediaAssetThumbnailView(asset: asset, size: 88)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(title(for: asset))
-                                .lineLimit(1)
+                            if let title = title(for: asset) {
+                                Text(title)
+                                    .lineLimit(1)
+                            }
 
-                            if let subtitle = subtitle(for: asset) {
-                                Text(subtitle)
+                            if isCover(asset) {
+                                Text(String(localized: "editor.media.cover"))
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
-                                    .lineLimit(1)
                             }
                         }
                     }
@@ -567,24 +568,24 @@ private struct MediaArrangeSheet: View {
         .presentationDetents([.medium, .large])
     }
 
-    /// Uses the media name, or the kind and its position among media of that kind.
-    private func title(for asset: MediaAsset) -> String {
+    /// Names a row only when the name tells something: the media's own name, or its kind
+    /// once the list mixes kinds. Photos alone need no label; the thumbnail identifies them.
+    private func title(for asset: MediaAsset) -> String? {
         if let displayName = asset.displayName?.trimmingCharacters(in: .whitespacesAndNewlines),
            !displayName.isEmpty {
             return displayName
         }
 
-        let sameKind = assets.filter { $0.kind == asset.kind }
-        let number = (sameKind.firstIndex { $0.id == asset.id } ?? 0) + 1
-        return "\(asset.kind.displayName) \(number)"
+        return hasMixedKinds ? asset.kind.displayName : nil
     }
 
-    /// Marks the photo used as the cover.
-    private func subtitle(for asset: MediaAsset) -> String? {
-        guard marksFirstPhotoAsCover,
-              asset.id == assets.first(where: { $0.kind == .photo })?.id
-        else { return nil }
-        return String(localized: "editor.media.cover")
+    private var hasMixedKinds: Bool {
+        Set(assets.map(\.kind)).count > 1
+    }
+
+    /// The first photo becomes the cover, unless the screen shows a dedicated cover.
+    private func isCover(_ asset: MediaAsset) -> Bool {
+        marksFirstPhotoAsCover && asset.id == assets.first(where: { $0.kind == .photo })?.id
     }
 }
 
