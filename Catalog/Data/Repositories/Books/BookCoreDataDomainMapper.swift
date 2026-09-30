@@ -15,7 +15,7 @@ extension CoreDataDomainMapper {
         let seriesEntity = entity.value(forKey: "series") as? NSManagedObject
         let contributors = relatedObjects(entity, "contributors")
             .sorted { intValue($0, "order") < intValue($1, "order") }
-            .map { bookContributor(from: $0, includesMediaData: includesMediaData) }
+            .compactMap { bookContributor(from: $0, includesMediaData: includesMediaData) }
         let identifiers = relatedObjects(entity, "bookIdentifiers")
             .map { bookIdentifier(from: $0) }
             .sorted {
@@ -36,22 +36,24 @@ extension CoreDataDomainMapper {
                 publicationYear: optionalIntValue(entity, "publicationYear"),
                 volumeNumber: positiveIntValue(entity, "volumeNumber"),
                 coverImage: coverImageEntity.map { mediaAsset(from: $0, includesMediaData: includesMediaData) },
-                publisher: publisherEntity.map { publisher(from: $0, includesMediaData: includesMediaData) },
+                publisher: publisherEntity.flatMap { publisher(from: $0, includesMediaData: includesMediaData) },
                 contributors: contributors,
-                series: seriesEntity.map { bookSeries(from: $0, includesMediaData: includesMediaData) },
+                series: seriesEntity.flatMap { bookSeries(from: $0, includesMediaData: includesMediaData) },
                 identifiers: identifiers
             )
         )
     }
 
-    static func bookSeries(from entity: NSManagedObject, includesMediaData: Bool = true) -> BookSeries {
+    /// Maps a series, or returns `nil` while CloudKit has not linked it to its collection.
+    static func bookSeries(from entity: NSManagedObject, includesMediaData: Bool = true) -> BookSeries? {
         precondition(
             entity.entity.name == "BookSeriesEntity",
             "CoreDataDomainMapper.bookSeries(from:) expects BookSeriesEntity."
         )
 
         guard let collectionEntity = entity.value(forKey: "collection") as? NSManagedObject else {
-            preconditionFailure("BookSeriesEntity is missing its CollectionEntity relationship.")
+            logUnlinkedReference(entity, missing: "collection")
+            return nil
         }
 
         let publisherEntity = entity.value(forKey: "publisher") as? NSManagedObject
@@ -61,11 +63,12 @@ extension CoreDataDomainMapper {
             collectionID: uuidValue(collectionEntity, "id"),
             name: stringValue(entity, "name"),
             totalBookCount: optionalIntValue(entity, "totalBookCount"),
-            publisher: publisherEntity.map { publisher(from: $0, includesMediaData: includesMediaData) }
+            publisher: publisherEntity.flatMap { publisher(from: $0, includesMediaData: includesMediaData) }
         )
     }
 
-    static func publisher(from entity: NSManagedObject, includesMediaData: Bool = true) -> Publisher {
+    /// Maps a publisher, or returns `nil` while CloudKit has not linked it to its collection.
+    static func publisher(from entity: NSManagedObject, includesMediaData: Bool = true) -> Publisher? {
         precondition(
             entity.entity.name == "PublisherEntity",
             "CoreDataDomainMapper.publisher(from:) expects PublisherEntity."
@@ -73,7 +76,8 @@ extension CoreDataDomainMapper {
 
         let id = uuidValue(entity, "id")
         guard let collectionEntity = entity.value(forKey: "collection") as? NSManagedObject else {
-            preconditionFailure("PublisherEntity is missing its CollectionEntity relationship.")
+            logUnlinkedReference(entity, missing: "collection")
+            return nil
         }
 
         let logoEntity = entity.value(forKey: "logo") as? NSManagedObject
@@ -87,14 +91,18 @@ extension CoreDataDomainMapper {
         )
     }
 
-    private static func bookContributor(from entity: NSManagedObject, includesMediaData: Bool) -> BookContributor {
+    /// Maps a contributor, or returns `nil` while CloudKit has not linked its person.
+    private static func bookContributor(from entity: NSManagedObject, includesMediaData: Bool) -> BookContributor? {
         precondition(
             entity.entity.name == "BookContributorEntity",
             "CoreDataDomainMapper.bookContributor(from:) expects BookContributorEntity."
         )
 
-        guard let personEntity = entity.value(forKey: "person") as? NSManagedObject else {
-            preconditionFailure("BookContributorEntity is missing its PersonEntity relationship.")
+        guard let personEntity = entity.value(forKey: "person") as? NSManagedObject,
+              let person = person(from: personEntity, includesMediaData: includesMediaData)
+        else {
+            logUnlinkedReference(entity, missing: "person")
+            return nil
         }
 
         let rawRole = stringValue(entity, "role")
@@ -105,7 +113,7 @@ extension CoreDataDomainMapper {
         return BookContributor(
             role: role,
             order: intValue(entity, "order"),
-            person: person(from: personEntity, includesMediaData: includesMediaData)
+            person: person
         )
     }
 

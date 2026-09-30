@@ -1,11 +1,22 @@
 import CoreData
 import Foundation
+import OSLog
 
 /// Converts Core Data objects into domain models.
 ///
 /// Centralizes all Core Data → domain mapping used by repositories,
 /// snapshot loaders, and import/export.
 enum CoreDataDomainMapper {
+    /// Reports references that CloudKit has not linked yet.
+    ///
+    /// CloudKit imports records in batches without transactions, so a publisher, person,
+    /// or series can arrive before the record it points to. Such an object is skipped until
+    /// a later import links it and triggers another snapshot reload.
+    nonisolated private static let unlinkedReferenceLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+        category: "CoreDataDomainMapper"
+    )
+
     static func itemRecord(from entity: NSManagedObject, includesMediaData: Bool = true) -> ItemRecord {
         precondition(entity.entity.name == "ItemEntity", "CoreDataDomainMapper.itemRecord(from:) expects ItemEntity.")
 
@@ -69,12 +80,14 @@ enum CoreDataDomainMapper {
         )
     }
 
-    static func person(from entity: NSManagedObject, includesMediaData: Bool = true) -> Person {
+    /// Maps a person, or returns `nil` while CloudKit has not linked it to its collection.
+    static func person(from entity: NSManagedObject, includesMediaData: Bool = true) -> Person? {
         precondition(entity.entity.name == "PersonEntity", "CoreDataDomainMapper.person(from:) expects PersonEntity.")
 
         let id = uuidValue(entity, "id")
         guard let collectionEntity = entity.value(forKey: "collection") as? NSManagedObject else {
-            preconditionFailure("PersonEntity is missing its CollectionEntity relationship.")
+            logUnlinkedReference(entity, missing: "collection")
+            return nil
         }
 
         let photos = relatedObjects(entity, "photos")
@@ -238,5 +251,14 @@ enum CoreDataDomainMapper {
         }
 
         return StoragePath(components: components)
+    }
+
+    /// Logs an object skipped because a relationship CloudKit has not imported yet is missing.
+    nonisolated static func logUnlinkedReference(_ entity: NSManagedObject, missing relationship: String) {
+        let entityName = entity.entity.name ?? "unknown"
+        let id = (entity.value(forKey: "id") as? UUID)?.uuidString ?? "unknown"
+        unlinkedReferenceLogger.notice(
+            "Skipping \(entityName, privacy: .public) \(id, privacy: .public): missing \(relationship, privacy: .public) relationship."
+        )
     }
 }
