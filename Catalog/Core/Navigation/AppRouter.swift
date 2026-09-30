@@ -245,6 +245,7 @@ struct AppShellView: View {
     /// The reload is skipped when the context has unsaved changes at execution time, so the snapshot
     /// never captures an edit in progress. The later save or rollback posts a new trigger.
     private func scheduleCatalogSnapshotReload() {
+        CatalogSnapshot.signposter.emitEvent("reloadRequested")
         guard pendingCatalogSnapshotReload == nil else { return }
 
         pendingCatalogSnapshotReload = Task {

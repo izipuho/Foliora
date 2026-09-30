@@ -1,5 +1,6 @@
 import CoreData
 import Foundation
+import os
 
 /// Favorite item with its cover photo, used for collection backgrounds.
 struct FavoriteItemCover: Identifiable, Hashable {
@@ -36,6 +37,12 @@ struct CatalogSnapshot {
     /// so this file stays free of catalog types.
     private(set) var records = CatalogRecords()
 
+    /// Signposts for Instruments: one `load` interval per rebuild, one `reloadRequested` event per trigger.
+    nonisolated static let signposter = OSSignposter(
+        subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+        category: "CatalogSnapshot"
+    )
+
     private init() {}
 
     func collectionSummary(id collectionID: UUID) -> CollectionSummary? {
@@ -44,6 +51,9 @@ struct CatalogSnapshot {
     }
 
     nonisolated static func load(from context: NSManagedObjectContext) -> CatalogSnapshot {
+        let signpostState = signposter.beginInterval("load")
+        defer { signposter.endInterval("load", signpostState) }
+
         let homeEntities = fetchEntities(
             named: "HomeEntity",
             in: context,
