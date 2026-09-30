@@ -4634,13 +4634,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Arrange Photos"
+            "value" : "Arrange Media"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Порядок фото"
+            "value" : "Порядок медиа"
           }
         }
       }

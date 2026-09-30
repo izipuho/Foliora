@@ -76,40 +76,46 @@ struct MediaSection: View {
                         }
                     }
 
-                    if canAddMedia {
-                        Button {
-                            isPresentingAddMediaOptions = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(CatalogTypography.cardTitle)
-                                .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
-                                .frame(width: 38, height: 38)
-                                .glassEffect(.regular.tint(CatalogSemanticColors.success).interactive(), in: Circle())
-                                .frame(width: 48, height: 110)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(String(localized: "editor.media.add"))
-                    }
+                    if canAddMedia || canArrangeMedia {
+                        VStack(spacing: CatalogMetrics.Spacing.sm) {
+                            if canAddMedia {
+                                Button {
+                                    isPresentingAddMediaOptions = true
+                                } label: {
+                                    Image(systemName: "plus")
+                                        .font(CatalogTypography.cardTitle)
+                                        .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
+                                        .frame(width: 38, height: 38)
+                                        .glassEffect(.regular.tint(CatalogSemanticColors.success).interactive(), in: Circle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(String(localized: "editor.media.add"))
+                            }
 
-                    if canArrangePhotos {
-                        Button {
-                            isPresentingArrangeSheet = true
-                        } label: {
-                            Image(systemName: "arrow.up.arrow.down")
-                                .font(CatalogTypography.cardTitle)
-                                .frame(width: 38, height: 38)
-                                .glassEffect(.regular.interactive(), in: Circle())
-                                .frame(width: 48, height: 110)
+                            if canArrangeMedia {
+                                Button {
+                                    isPresentingArrangeSheet = true
+                                } label: {
+                                    Image(systemName: "arrow.up.arrow.down")
+                                        .font(CatalogTypography.cardTitle)
+                                        .frame(width: 38, height: 38)
+                                        .glassEffect(.regular.interactive(), in: Circle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(String(localized: "editor.media.arrange"))
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(String(localized: "editor.media.arrange"))
+                        .frame(width: 48, height: 110)
                     }
                 }
             }
             .scrollIndicators(.hidden)
             .sheet(isPresented: $isPresentingArrangeSheet) {
-                MediaArrangeSheet(photos: arrangeablePhotos) { arrangedPhotos in
-                    applyArrangement(of: arrangedPhotos)
+                MediaArrangeSheet(
+                    assets: sortedAssets,
+                    marksFirstPhotoAsCover: leadingMediaAsset == nil
+                ) { arrangedAssets in
+                    applyArrangement(arrangedAssets)
                 }
             }
             .photosPicker(
@@ -263,26 +269,13 @@ struct MediaSection: View {
         removeAsset(withID: assetID)
     }
 
-    /// Photos the user can reorder: saved item photos while editing.
-    private var arrangeablePhotos: [MediaAsset] {
-        guard isEditing else { return [] }
-        return sortedAssets.filter { $0.kind == .photo && $0.itemID != nil }
+    /// Reordering is offered while editing, once there is more than one media item.
+    private var canArrangeMedia: Bool {
+        isEditing && mediaAssets.count > 1
     }
 
-    private var canArrangePhotos: Bool {
-        arrangeablePhotos.count > 1
-    }
-
-    /// Puts the arranged photos back into the photo slots, keeping other media where it was.
-    private func applyArrangement(of arrangedPhotos: [MediaAsset]) {
-        let arrangedIDs = Set(arrangedPhotos.map(\.id))
-        var remainingPhotos = arrangedPhotos[...]
-        var reorderedAssets = sortedAssets.map { asset in
-            guard arrangedIDs.contains(asset.id), let photo = remainingPhotos.popFirst() else {
-                return asset
-            }
-            return photo
-        }
+    private func applyArrangement(_ arrangedAssets: [MediaAsset]) {
+        var reorderedAssets = arrangedAssets
         normalizeSortOrder(in: &reorderedAssets)
 
         updateMediaAssets { assets in
@@ -507,30 +500,50 @@ private struct MediaAssetGridTileView: View {
     }
 }
 
-/// Reorders photos in a native list with system drag handles.
+/// Reorders media in a native list with system drag handles.
 ///
 /// A horizontal row inside a `Form` row cannot host drag and drop: the `Form` takes over the
 /// drag and lifts the whole row. A plain `List` in edit mode is the system reorder surface.
 private struct MediaArrangeSheet: View {
+    let marksFirstPhotoAsCover: Bool
     let onDone: ([MediaAsset]) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var photos: [MediaAsset]
+    @State private var assets: [MediaAsset]
 
-    init(photos: [MediaAsset], onDone: @escaping ([MediaAsset]) -> Void) {
+    init(
+        assets: [MediaAsset],
+        marksFirstPhotoAsCover: Bool,
+        onDone: @escaping ([MediaAsset]) -> Void
+    ) {
+        self.marksFirstPhotoAsCover = marksFirstPhotoAsCover
         self.onDone = onDone
-        _photos = State(initialValue: photos)
+        _assets = State(initialValue: assets)
     }
 
     var body: some View {
         NavigationStack {
             List {
-                ForEach(photos) { photo in
-                    MediaAssetThumbnailView(asset: photo, size: 64)
-                        .accessibilityLabel(String(localized: "enum.media_kind.photo"))
+                ForEach(assets) { asset in
+                    HStack(spacing: CatalogMetrics.Spacing.md) {
+                        MediaAssetThumbnailView(asset: asset, size: 56)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(title(for: asset))
+                                .lineLimit(1)
+
+                            if let subtitle = subtitle(for: asset) {
+                                Text(subtitle)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
                 }
                 .onMove { source, destination in
-                    photos.move(fromOffsets: source, toOffset: destination)
+                    assets.move(fromOffsets: source, toOffset: destination)
                 }
             }
             .environment(\.editMode, .constant(.active))
@@ -545,13 +558,35 @@ private struct MediaArrangeSheet: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button(role: .confirm) {
-                        onDone(photos)
+                        onDone(assets)
                         dismiss()
                     }
                 }
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    /// Uses the media name, or the kind and its position among media of that kind.
+    private func title(for asset: MediaAsset) -> String {
+        if let displayName = asset.displayName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !displayName.isEmpty {
+            return displayName
+        }
+
+        let sameKind = assets.filter { $0.kind == asset.kind }
+        let number = (sameKind.firstIndex { $0.id == asset.id } ?? 0) + 1
+        return "\(asset.kind.displayName) \(number)"
+    }
+
+    /// Marks the photo used as the cover, otherwise shows the image size when known.
+    private func subtitle(for asset: MediaAsset) -> String? {
+        if marksFirstPhotoAsCover, asset.id == assets.first(where: { $0.kind == .photo })?.id {
+            return String(localized: "editor.media.cover")
+        }
+
+        guard let width = asset.width, let height = asset.height else { return nil }
+        return "\(width) × \(height)"
     }
 }
 
