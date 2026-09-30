@@ -2,6 +2,9 @@ import SwiftUI
 import UIKit
 
 /// Displays the media preview image interface.
+///
+/// Pass `originalData` when the bytes are already in memory (unsaved media). Otherwise the image is
+/// taken from the thumbnail cache or loaded by `assetID` through the environment's `MediaDataLoader`.
 struct MediaPreviewImage: View {
     let assetID: UUID
     let originalData: Data?
@@ -9,11 +12,12 @@ struct MediaPreviewImage: View {
     let contentMode: ContentMode
     private let thumbnailCache = ThumbnailImageCache.shared
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.mediaDataLoader) private var mediaDataLoader
     @State private var image: UIImage?
 
     init(
         assetID: UUID,
-        originalData: Data?,
+        originalData: Data? = nil,
         size: CGSize,
         contentMode: ContentMode = .fill
     ) {
@@ -56,7 +60,24 @@ struct MediaPreviewImage: View {
 
     @MainActor
     private func loadImage() async {
-        guard let originalData else {
+        if let cachedImage = await thumbnailCache.cachedImage(
+            assetID: assetID,
+            targetSize: size,
+            scale: displayScale
+        ) {
+            image = cachedImage
+            return
+        }
+
+        let resolvedData: Data?
+        if let originalData {
+            resolvedData = originalData
+        } else {
+            resolvedData = await mediaDataLoader?.data(forAssetID: assetID)
+        }
+
+        guard !Task.isCancelled else { return }
+        guard let originalData = resolvedData else {
             image = nil
             return
         }

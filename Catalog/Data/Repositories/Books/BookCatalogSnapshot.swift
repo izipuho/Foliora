@@ -5,14 +5,14 @@ extension CatalogSnapshot {
     var bookRecords: [BookRecord] {
         itemEntities.compactMap { itemEntity in
             guard let bookEntity = itemEntity.value(forKey: "book") as? NSManagedObject else { return nil }
-            return CoreDataDomainMapper.bookRecord(from: bookEntity)
+            return CoreDataDomainMapper.bookRecord(from: bookEntity, includesMediaData: false)
         }
     }
 
     var bookSeries: [BookSeries] {
         let series = collectionEntities.flatMap { collectionEntity in
             CoreDataDomainMapper.relatedObjects(collectionEntity, "bookSeries")
-                .map { CoreDataDomainMapper.bookSeries(from: $0) }
+                .map { CoreDataDomainMapper.bookSeries(from: $0, includesMediaData: false) }
         }
         let uniqueByID = Dictionary(series.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return uniqueByID.values.sorted {
@@ -25,7 +25,7 @@ extension CatalogSnapshot {
     }
 
     var publishers: [Publisher] {
-        let publishers = publisherEntities.map { CoreDataDomainMapper.publisher(from: $0) }
+        let publishers = publisherEntities.map { CoreDataDomainMapper.publisher(from: $0, includesMediaData: false) }
         let uniqueByID = Dictionary(publishers.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return uniqueByID.values.sorted {
             let comparison = $0.name.localizedCaseInsensitiveCompare($1.name)
@@ -37,7 +37,7 @@ extension CatalogSnapshot {
     }
 
     var people: [Person] {
-        let people = personEntities.map { CoreDataDomainMapper.person(from: $0) }
+        let people = personEntities.map { CoreDataDomainMapper.person(from: $0, includesMediaData: false) }
         let uniqueByID = Dictionary(people.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return uniqueByID.values.sorted {
             let comparison = $0.sortName.localizedCaseInsensitiveCompare($1.sortName)

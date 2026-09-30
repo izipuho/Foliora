@@ -2,20 +2,20 @@ import CoreData
 import Foundation
 
 extension CoreDataDomainMapper {
-    static func bookRecord(from entity: NSManagedObject) -> BookRecord {
+    static func bookRecord(from entity: NSManagedObject, includesMediaData: Bool = true) -> BookRecord {
         precondition(entity.entity.name == "BookEntity", "CoreDataDomainMapper.bookRecord(from:) expects BookEntity.")
 
         guard let itemEntity = entity.value(forKey: "item") as? NSManagedObject else {
             preconditionFailure("BookEntity is missing its ItemEntity relationship.")
         }
 
-        let itemRecord = itemRecord(from: itemEntity)
+        let itemRecord = itemRecord(from: itemEntity, includesMediaData: includesMediaData)
         let coverImageEntity = entity.value(forKey: "coverImage") as? NSManagedObject
         let publisherEntity = entity.value(forKey: "publisher") as? NSManagedObject
         let seriesEntity = entity.value(forKey: "series") as? NSManagedObject
         let contributors = relatedObjects(entity, "contributors")
             .sorted { intValue($0, "order") < intValue($1, "order") }
-            .map { bookContributor(from: $0) }
+            .map { bookContributor(from: $0, includesMediaData: includesMediaData) }
         let identifiers = relatedObjects(entity, "bookIdentifiers")
             .map { bookIdentifier(from: $0) }
             .sorted {
@@ -35,16 +35,16 @@ extension CoreDataDomainMapper {
                 pageCount: positiveIntValue(entity, "pageCount"),
                 publicationYear: optionalIntValue(entity, "publicationYear"),
                 volumeNumber: positiveIntValue(entity, "volumeNumber"),
-                coverImage: coverImageEntity.map { mediaAsset(from: $0) },
-                publisher: publisherEntity.map { publisher(from: $0) },
+                coverImage: coverImageEntity.map { mediaAsset(from: $0, includesMediaData: includesMediaData) },
+                publisher: publisherEntity.map { publisher(from: $0, includesMediaData: includesMediaData) },
                 contributors: contributors,
-                series: seriesEntity.map { bookSeries(from: $0) },
+                series: seriesEntity.map { bookSeries(from: $0, includesMediaData: includesMediaData) },
                 identifiers: identifiers
             )
         )
     }
 
-    static func bookSeries(from entity: NSManagedObject) -> BookSeries {
+    static func bookSeries(from entity: NSManagedObject, includesMediaData: Bool = true) -> BookSeries {
         precondition(
             entity.entity.name == "BookSeriesEntity",
             "CoreDataDomainMapper.bookSeries(from:) expects BookSeriesEntity."
@@ -61,11 +61,11 @@ extension CoreDataDomainMapper {
             collectionID: uuidValue(collectionEntity, "id"),
             name: stringValue(entity, "name"),
             totalBookCount: optionalIntValue(entity, "totalBookCount"),
-            publisher: publisherEntity.map { publisher(from: $0) }
+            publisher: publisherEntity.map { publisher(from: $0, includesMediaData: includesMediaData) }
         )
     }
 
-    static func publisher(from entity: NSManagedObject) -> Publisher {
+    static func publisher(from entity: NSManagedObject, includesMediaData: Bool = true) -> Publisher {
         precondition(
             entity.entity.name == "PublisherEntity",
             "CoreDataDomainMapper.publisher(from:) expects PublisherEntity."
@@ -83,11 +83,11 @@ extension CoreDataDomainMapper {
             canonicalID: entity.value(forKey: "canonicalID") as? UUID ?? id,
             collectionID: uuidValue(collectionEntity, "id"),
             name: stringValue(entity, "name"),
-            logo: logoEntity.map { mediaAsset(from: $0) }
+            logo: logoEntity.map { mediaAsset(from: $0, includesMediaData: includesMediaData) }
         )
     }
 
-    private static func bookContributor(from entity: NSManagedObject) -> BookContributor {
+    private static func bookContributor(from entity: NSManagedObject, includesMediaData: Bool) -> BookContributor {
         precondition(
             entity.entity.name == "BookContributorEntity",
             "CoreDataDomainMapper.bookContributor(from:) expects BookContributorEntity."
@@ -105,7 +105,7 @@ extension CoreDataDomainMapper {
         return BookContributor(
             role: role,
             order: intValue(entity, "order"),
-            person: person(from: personEntity)
+            person: person(from: personEntity, includesMediaData: includesMediaData)
         )
     }
 

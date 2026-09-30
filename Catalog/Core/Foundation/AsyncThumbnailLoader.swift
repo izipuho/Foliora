@@ -19,21 +19,25 @@ actor ThumbnailImageCache {
         return cache
     }()
 
+    /// Returns a cached thumbnail without touching the source bytes.
+    func cachedImage(assetID: UUID, targetSize: CGSize, scale: CGFloat) -> UIImage? {
+        images.object(forKey: Self.key(assetID: assetID, targetSize: targetSize, scale: scale))
+    }
+
     func image(
         assetID: UUID,
         data: Data,
         targetSize: CGSize,
         scale: CGFloat
     ) async -> UIImage? {
-        let pixelWidth = max(Int((targetSize.width * scale).rounded(.up)), 1)
-        let pixelHeight = max(Int((targetSize.height * scale).rounded(.up)), 1)
-        let key = "\(assetID.uuidString)-\(pixelWidth)x\(pixelHeight)" as NSString
+        let key = Self.key(assetID: assetID, targetSize: targetSize, scale: scale)
 
         if let cachedImage = images.object(forKey: key) {
             return cachedImage
         }
 
-        let maxPixelSize = max(pixelWidth, pixelHeight)
+        let pixelSize = Self.pixelSize(targetSize: targetSize, scale: scale)
+        let maxPixelSize = max(pixelSize.width, pixelSize.height)
         let decodedImage = await Task.detached(priority: .utility) {
             Self.decodeImage(data: data, maxPixelSize: maxPixelSize, scale: scale)
         }.value
@@ -41,6 +45,18 @@ actor ThumbnailImageCache {
         guard let decodedImage else { return nil }
         images.setObject(decodedImage, forKey: key, cost: Self.cost(of: decodedImage))
         return decodedImage
+    }
+
+    nonisolated private static func pixelSize(targetSize: CGSize, scale: CGFloat) -> (width: Int, height: Int) {
+        (
+            max(Int((targetSize.width * scale).rounded(.up)), 1),
+            max(Int((targetSize.height * scale).rounded(.up)), 1)
+        )
+    }
+
+    nonisolated private static func key(assetID: UUID, targetSize: CGSize, scale: CGFloat) -> NSString {
+        let size = pixelSize(targetSize: targetSize, scale: scale)
+        return "\(assetID.uuidString)-\(size.width)x\(size.height)" as NSString
     }
 
     nonisolated private static func cost(of image: UIImage) -> Int {

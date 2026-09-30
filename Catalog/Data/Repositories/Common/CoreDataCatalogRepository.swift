@@ -391,8 +391,25 @@ final class CoreDataCatalogRepository: CatalogRepository {
         entity.setValue(asset.duration, forKey: "duration")
         entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
         if shouldUpdateOriginalData {
-            entity.setValue(asset.originalData, forKey: "originalData")
+            entity.setValue(
+                asset.originalData ?? storedOriginalData(checksum: asset.checksum),
+                forKey: "originalData"
+            )
         }
+    }
+
+    /// Returns stored bytes of another media asset with the same checksum.
+    ///
+    /// Snapshot records carry media without `originalData`. When such an asset is copied under a new ID
+    /// (a publisher or person materialized into another collection), the checksum still identifies the
+    /// bytes, so the new entity takes them from the stored original instead of saving an empty asset.
+    private func storedOriginalData(checksum: String?) -> Data? {
+        guard let checksum else { return nil }
+
+        let request = NSFetchRequest<NSManagedObject>(entityName: "MediaAssetEntity")
+        request.predicate = NSPredicate(format: "checksum == %@ AND originalData != nil", checksum)
+        request.fetchLimit = 1
+        return (try? context.fetch(request).first)?.value(forKey: "originalData") as? Data
     }
 
     private func home(from entity: NSManagedObject) -> Home {

@@ -267,6 +267,7 @@ struct PersonEditorView: View {
     private let onSave: (Person) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.mediaDataLoader) private var mediaDataLoader
     @FocusState private var isGivenNameFocused: Bool
     @State private var givenName: String
     @State private var familyName: String
@@ -314,6 +315,12 @@ struct PersonEditorView: View {
                         itemID: existingPerson.id,
                         mediaAssets: $photos
                     )
+                    .task {
+                        // Snapshot photos carry no bytes; load them for preview and full-screen viewing.
+                        guard let mediaDataLoader else { return }
+                        let hydratedPhotos = await mediaDataLoader.hydrated(photos)
+                        photos = MediaDataLoader.reusingData(photos, from: hydratedPhotos)
+                    }
                     .safeAreaPadding(.horizontal, CatalogMetrics.Insets.screen)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, CatalogMetrics.Spacing.md)

@@ -2,12 +2,12 @@ import CoreData
 import Foundation
 
 extension CoreDataDomainMapper {
-    static func bellRecord(from entity: NSManagedObject) -> BellRecord {
+    static func bellRecord(from entity: NSManagedObject, includesMediaData: Bool = true) -> BellRecord {
         guard let itemEntity = entity.value(forKey: "item") as? NSManagedObject else {
             preconditionFailure("BellEntity is missing its ItemEntity relationship.")
         }
 
-        let itemRecord = itemRecord(from: itemEntity)
+        let itemRecord = itemRecord(from: itemEntity, includesMediaData: includesMediaData)
 
         return BellRecord(
             item: itemRecord,

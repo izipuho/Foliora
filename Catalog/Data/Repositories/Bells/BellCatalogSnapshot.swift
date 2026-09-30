@@ -9,7 +9,7 @@ extension CatalogSnapshot {
     var bellRecords: [BellRecord] {
         itemEntities.compactMap { itemEntity in
             guard let bellEntity = itemEntity.value(forKey: "bell") as? NSManagedObject else { return nil }
-            return CoreDataDomainMapper.bellRecord(from: bellEntity)
+            return CoreDataDomainMapper.bellRecord(from: bellEntity, includesMediaData: false)
         }
     }
 
@@ -47,7 +47,6 @@ extension CatalogSnapshot {
             storageDisplayPath: record.storageDisplayPath,
             storageLocationName: record.storageLocationName,
             coverPhotoID: coverPhoto?.id,
-            coverPhotoOriginalData: coverPhoto?.originalData,
             hasOrigin: record.originPlace != nil,
             hasStorage: record.item.locationID != nil
         )

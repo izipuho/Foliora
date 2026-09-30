@@ -6,7 +6,7 @@ import Testing
 @MainActor
 struct CoreDataBookCoverPersistenceTests {
     @Test
-    func preservesDedicatedOriginalCoverThroughSaveAndSnapshot() throws {
+    func preservesDedicatedOriginalCoverThroughSaveAndSnapshot() async throws {
         let container = try FolioraCoreDataStack.makeInMemoryContainer()
         let repository = CoreDataCatalogRepository(
             context: container.viewContext,
@@ -78,8 +78,11 @@ struct CoreDataBookCoverPersistenceTests {
         let persisted = try #require(snapshot.recordsByID[itemID])
         let persistedCover = try #require(persisted.details.coverImage)
 
+        let mediaDataLoader = MediaDataLoader(container: container)
+
         #expect(persistedCover.id == cover.id)
-        #expect(persistedCover.originalData == coverData)
+        #expect(persistedCover.originalData == nil)
+        #expect(await mediaDataLoader.data(forAssetID: cover.id) == coverData)
         #expect(persistedCover.width == cover.width)
         #expect(persistedCover.height == cover.height)
         #expect(persisted.mediaAssets.isEmpty)
@@ -100,9 +103,87 @@ struct CoreDataBookCoverPersistenceTests {
         let refreshedCover = try #require(refreshed.details.coverImage)
 
         #expect(refreshedCover.id == cover.id)
-        #expect(refreshedCover.originalData == coverData)
+        #expect(refreshedCover.originalData == nil)
         #expect(refreshedCover.width == cover.width)
         #expect(refreshedCover.height == cover.height)
         #expect(refreshed.mediaAssets.isEmpty)
+
+        // Saving a snapshot record, which carries no media bytes, must keep the stored bytes.
+        repository.saveBookRecord(refreshed)
+        #expect(await mediaDataLoader.data(forAssetID: cover.id) == coverData)
+    }
+
+    @Test
+    func copiedMediaWithoutBytesTakesStoredBytesByChecksum() async throws {
+        let container = try FolioraCoreDataStack.makeInMemoryContainer()
+        let repository = CoreDataCatalogRepository(
+            context: container.viewContext,
+            persistentContainer: nil
+        )
+
+        let collectionID = UUID()
+        repository.saveCollection(
+            Collection(id: collectionID, homeID: UUID(), kind: .books, title: "Books", notes: "")
+        )
+
+        let photoData = Data([0x0A, 0x0B, 0x0C])
+        let sourcePhoto = makePhoto(checksum: "shared-checksum", originalData: photoData)
+        let sourceItemID = UUID()
+        repository.saveBookRecord(makeBook(itemID: sourceItemID, collectionID: collectionID, mediaAssets: [sourcePhoto]))
+
+        // A copy under a new ID, as materialized from a snapshot record: same checksum, no bytes.
+        let copiedPhoto = makePhoto(checksum: "shared-checksum", originalData: nil)
+        let copyItemID = UUID()
+        repository.saveBookRecord(makeBook(itemID: copyItemID, collectionID: collectionID, mediaAssets: [copiedPhoto]))
+
+        let mediaDataLoader = MediaDataLoader(container: container)
+        #expect(await mediaDataLoader.data(forAssetID: copiedPhoto.id) == photoData)
+    }
+
+    private func makePhoto(checksum: String, originalData: Data?) -> MediaAsset {
+        MediaAsset(
+            id: UUID(),
+            kind: .photo,
+            displayName: nil,
+            sortOrder: 0,
+            fileName: "photo.jpg",
+            mimeType: "image/jpeg",
+            byteSize: originalData?.count,
+            checksum: checksum,
+            originalData: originalData
+        )
+    }
+
+    private func makeBook(itemID: UUID, collectionID: UUID, mediaAssets: [MediaAsset]) -> BookRecord {
+        BookRecord(
+            item: ItemRecord(
+                id: itemID,
+                collectionID: collectionID,
+                locationID: nil,
+                originPlaceID: nil,
+                createdAt: .now,
+                createdBy: "test",
+                title: "Book",
+                notes: "",
+                acquiredYear: nil,
+                condition: .good,
+                acquisitionMethod: .other,
+                isFavorite: false,
+                tags: [],
+                originPlace: nil,
+                storageLocation: nil,
+                storagePath: nil,
+                mediaAssets: mediaAssets
+            ),
+            details: BookDetails(
+                itemID: itemID,
+                languageCode: nil,
+                pageCount: nil,
+                publicationYear: nil,
+                volumeNumber: nil,
+                coverImage: nil,
+                contributors: []
+            )
+        )
     }
 }
