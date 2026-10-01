@@ -16,20 +16,23 @@
                         <rect key="frame" x="0.0" y="0.0" width="402" height="874"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchMedallion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk" userLabel="Medallion">
-                                <rect key="frame" x="27" y="263" width="348" height="348"/>
-                            </imageView>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="ArcRight" translatesAutoresizingMaskIntoConstraints="NO" id="rQW-R1-Z8Z" userLabel="ArcRight">
-                                <rect key="frame" x="0.0" y="726" width="402" height="148"/>
-                            </imageView>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="ArcLeft" translatesAutoresizingMaskIntoConstraints="NO" id="B1J-xh-wTC" userLabel="ArcLeft">
-                                <rect key="frame" x="0.0" y="600" width="402" height="274"/>
-                            </imageView>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchWordmark" translatesAutoresizingMaskIntoConstraints="NO" id="zuV-1E-J4G" userLabel="Wordmark">
-                                <rect key="frame" x="124.66666666666667" y="127.33333333333333" width="152.33333333333334" height="39.333333333333336"/>
-                            </imageView>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchSubtitle" translatesAutoresizingMaskIntoConstraints="NO" id="VKk-Vv-RHn" userLabel="Subtitle">
-                                <rect key="frame" x="169.33333333333334" y="193" width="63.333333333333336" height="24.333333333333332"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Foliora" textAlignment="center" lineBreakMode="clip" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zuV-1E-J4G" userLabel="Wordmark">
+                                <rect key="frame" x="89.666666666666671" y="62" width="222.66666666666666" height="95.666666666666671"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="80"/>
+                                <color key="textColor" name="AccentColor"/>
+                                <nil key="highlightedColor"/>
+                                <variation key="heightClass=regular-widthClass=regular">
+                                    <fontDescription key="fontDescription" type="system" pointSize="100"/>
+                                </variation>
+                            </label>
+                            <imageView opaque="NO" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="LaunchMedallion" translatesAutoresizingMaskIntoConstraints="NO" id="pCN-B8-puk" userLabel="Medallion">
+                                <rect key="frame" x="91" y="327" width="220" height="220"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="220" id="Wd1-Md-220">
+                                        <variation key="heightClass=regular-widthClass=regular" constant="320"/>
+                                    </constraint>
+                                    <constraint firstAttribute="width" secondItem="pCN-B8-puk" secondAttribute="height" multiplier="1:1" id="OEM-ha-06u"/>
+                                </constraints>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="po4-Fp-UpO"/>
@@ -38,18 +41,10 @@
                             <accessibilityTraits key="traits" notEnabled="YES"/>
                         </accessibility>
                         <constraints>
+                            <constraint firstItem="zuV-1E-J4G" firstAttribute="top" secondItem="po4-Fp-UpO" secondAttribute="top" id="Hap-6i-uZW"/>
+                            <constraint firstItem="zuV-1E-J4G" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="p01-t6-8h8"/>
                             <constraint firstItem="pCN-B8-puk" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="vAt-og-KpT"/>
                             <constraint firstItem="pCN-B8-puk" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="WoI-RI-B7Q"/>
-                            <constraint firstItem="rQW-R1-Z8Z" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="kpC-Km-Hsl"/>
-                            <constraint firstAttribute="trailing" secondItem="rQW-R1-Z8Z" secondAttribute="trailing" id="rj8-6c-iet"/>
-                            <constraint firstAttribute="bottom" secondItem="rQW-R1-Z8Z" secondAttribute="bottom" id="EYH-H7-WBr"/>
-                            <constraint firstItem="B1J-xh-wTC" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="FmZ-Yu-C7c"/>
-                            <constraint firstAttribute="trailing" secondItem="B1J-xh-wTC" secondAttribute="trailing" id="PbK-mp-Qyw"/>
-                            <constraint firstAttribute="bottom" secondItem="B1J-xh-wTC" secondAttribute="bottom" id="Xpa-Gg-aNc"/>
-                            <constraint firstItem="zuV-1E-J4G" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="p01-t6-8h8"/>
-                            <constraint firstItem="zuV-1E-J4G" firstAttribute="top" secondItem="po4-Fp-UpO" secondAttribute="top" constant="65.333333333333329" id="Hap-6i-uZW"/>
-                            <constraint firstItem="VKk-Vv-RHn" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="Sub-cX-001"/>
-                            <constraint firstItem="VKk-Vv-RHn" firstAttribute="top" secondItem="zuV-1E-J4G" secondAttribute="bottom" constant="26.333333333333332" id="Sub-tp-002"/>
                         </constraints>
                     </view>
                     <nil key="simulatedTopBarMetrics"/>
@@ -61,13 +56,12 @@
         </scene>
     </scenes>
     <resources>
-        <image name="ArcLeft" width="430" height="274"/>
-        <image name="ArcRight" width="430" height="148"/>
-        <image name="LaunchMedallion" width="348" height="348"/>
-        <image name="LaunchSubtitle" width="63.333333333333336" height="24.333333333333332"/>
-        <image name="LaunchWordmark" width="152.33333333333334" height="39.333333333333336"/>
+        <image name="LaunchMedallion" width="220" height="220"/>
+        <namedColor name="AccentColor">
+            <color red="0.90600001811981201" green="0.57599997520446777" blue="0.11800000071525574" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
         <namedColor name="LaunchBackground">
-            <color red="0.97254901960784312" green="0.95294117647058818" blue="0.91764705882352937" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.97299998998641968" green="0.95300000905990601" blue="0.9179999828338623" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
         </namedColor>
     </resources>
 </document>

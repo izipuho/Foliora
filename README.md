@@ -72,7 +72,6 @@ BellRecognition/                 Standalone bell-recognition SwiftUI/debug app
 BellRecognitionDebugML/          Debug UI for ML dataset preparation
 ml/                              PyTorch training and Core ML export pipeline
 docs/                            Architecture and data-model notes
-design/                          Design sources (launch screens exported from Figma)
 scripts/                         Asset generation scripts
 ```
 
@@ -118,10 +117,9 @@ It trains in PyTorch and exports a Core ML `.mlpackage`. See `ml/README.md` for 
 
 ### Launch Screen and Splash
 
-- The launch screens are designed in Figma; the exported frames live in `design/launch-screen` (`<App>-Light.svg`, `<App>-Dark.svg`).
-- `python3 scripts/generate-launch-assets.py` (needs `brew install resvg`) cuts them into each app's `Branding/Assets.xcassets`: the launch background color, the wordmark and product name as vectors, and the medallion and arcs as @2x/@3x images with their glows. Run it after changing a design, then commit the generated assets.
-- `Catalog/App/Launch/LaunchScreen.storyboard` is shared by all apps and only arranges those assets. `LaunchSequenceView` repeats the same frame in SwiftUI and takes over: a returning user goes to the app as soon as data is ready, a new user sees the intro and the first launch flow.
-- The layout numbers live in both the storyboard and `LaunchBranding.Layout`; the script prints them, so update both if the design's layout changes.
+- `Catalog/App/Launch/LaunchScreen.storyboard` is shared by all apps: the launch background, the "Foliora" wordmark at the top of the safe area, and the medallion at the center of the screen. Per-app colors and images come from each app's `Branding/Assets.xcassets`.
+- `LaunchSequenceView` repeats that frame in SwiftUI and takes over: a returning user goes to the app as soon as data is ready, a new user sees the intro and the first launch flow. Sizes shared with the storyboard live in `LaunchBranding.Metrics`; keep both in sync.
+- The medallion images (`LaunchMedallion`, `SplashMedallionBase`, `SplashMedallionGlyph`) are generated from the app icon layers in `Branding/AppIcon.icon`. After changing an icon, run `python3 scripts/generate-launch-assets.py` from the repository root.
 
 ## Notes
 
