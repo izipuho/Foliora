@@ -288,11 +288,18 @@ struct SettingsView: View {
         let items = bundle.items.filter {
             collectionIDs.contains($0.item.collectionID)
         }
+        let kindByCollectionID = Dictionary(
+            collections.map { ($0.id, $0.kind) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let itemParts = CollectionKind.allCases.compactMap { kind -> String? in
+            let count = items.filter { kindByCollectionID[$0.item.collectionID] == kind }.count
+            return count > 0 ? kind.countLabel(for: count) : nil
+        }
         let parts = [
             importSummaryPart(count: homes.count, key: "settings.import.result.homes"),
-            importSummaryPart(count: collections.count, key: "settings.import.result.collections"),
-            importSummaryPart(count: items.count, key: "settings.import.result.bells")
-        ].compactMap { $0 }
+            importSummaryPart(count: collections.count, key: "settings.import.result.collections")
+        ].compactMap { $0 } + itemParts
 
         return parts.joined(separator: ", ")
     }
