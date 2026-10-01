@@ -26,7 +26,7 @@ struct CatalogSnapshot {
     private(set) var recognitionSuggestionItemIDs: Set<UUID> = []
     private(set) var locationPathByID: [UUID: String] = [:]
     private(set) var collectionLocationPathByCollectionID: [UUID: [UUID: String]] = [:]
-    /// First photo by sort order for every item that has one.
+    /// Preferred cover photo for every item that has one.
     private(set) var coverPhotoIDByItemID: [UUID: UUID] = [:]
     /// Favorite items with a cover photo, grouped by collection in item order.
     private(set) var favoriteItemCoversByCollectionID: [UUID: [FavoriteItemCover]] = [:]
@@ -183,9 +183,19 @@ struct CatalogSnapshot {
         return snapshot
     }
 
-    /// Returns the ID of the item's first photo by sort order.
+    /// Returns the image used as the item's collection-card cover.
     nonisolated private static func coverPhotoID(of itemEntity: NSManagedObject) -> UUID? {
-        CoreDataDomainMapper.relatedObjects(itemEntity, "mediaAssets")
+        if stringValue(itemEntity, "kind") == CollectionKind.books.rawValue {
+            guard
+                let bookEntity = itemEntity.value(forKey: "book") as? NSManagedObject,
+                let coverEntity = bookEntity.value(forKey: "coverImage") as? NSManagedObject
+            else {
+                return nil
+            }
+            return coverEntity.value(forKey: "id") as? UUID
+        }
+
+        return CoreDataDomainMapper.relatedObjects(itemEntity, "mediaAssets")
             .filter { stringValue($0, "kind") == MediaKind.photo.rawValue }
             .min { CoreDataDomainMapper.intValue($0, "sortOrder") < CoreDataDomainMapper.intValue($1, "sortOrder") }
             .flatMap { $0.value(forKey: "id") as? UUID }
