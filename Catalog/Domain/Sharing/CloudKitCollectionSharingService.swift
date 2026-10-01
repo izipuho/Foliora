@@ -229,8 +229,24 @@ private extension CloudKitCollectionSharingService {
         return currentThumbnailImageData != thumbnailImageData
     }
 
+    /// The thumbnail of a share invitation: the app medallion, as on the launch screen.
+    ///
+    /// Always the light variant, since the invitation is seen on any background, and
+    /// scaled to 512 px, since the image is stored in the share record.
     func shareThumbnailImageData() -> Data? {
-        UIImage(named: "Icon")?.pngData()
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        guard let medallion = UIImage(named: "LaunchMedallion", in: .main, compatibleWith: light) else {
+            return nil
+        }
+
+        let side: CGFloat = 512
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format)
+            .pngData { _ in
+                medallion.draw(in: CGRect(x: 0, y: 0, width: side, height: side))
+            }
     }
 
     func savedShare(
