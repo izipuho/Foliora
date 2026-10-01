@@ -1,18 +1,22 @@
 {
   "images" : [
     {
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
       "filename" : "SplashMedallionBase@2x.png",
       "idiom" : "universal",
-      "scale" : "2x"
-    },
-    {
-      "filename" : "SplashMedallionBase@3x.png",
-      "idiom" : "universal",
-      "scale" : "3x"
-    },
-    {
-      "filename" : "SplashMedallionBase~ipad@2x.png",
-      "idiom" : "ipad",
       "scale" : "2x"
     },
     {
@@ -27,6 +31,11 @@
       "scale" : "2x"
     },
     {
+      "filename" : "SplashMedallionBase@3x.png",
+      "idiom" : "universal",
+      "scale" : "3x"
+    },
+    {
       "appearances" : [
         {
           "appearance" : "luminosity",
@@ -36,6 +45,25 @@
       "filename" : "SplashMedallionBase-dark@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
+    },
+    {
+      "idiom" : "ipad",
+      "scale" : "1x"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "idiom" : "ipad",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "SplashMedallionBase~ipad@2x.png",
+      "idiom" : "ipad",
+      "scale" : "2x"
     },
     {
       "appearances" : [
