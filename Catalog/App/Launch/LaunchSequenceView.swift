@@ -6,9 +6,11 @@ import SwiftUI
 /// of the safe area and the medallion at the center of the screen — so the handoff from
 /// the system launch screen is invisible. After that:
 ///
-/// - A returning user goes straight to the app once its data is ready. The splash has
-///   no minimum duration; the glyph starts swinging only when loading takes a moment,
-///   and a greeting appears only when it takes longer than that.
+/// - The glyph swings from the first frame, and the splash always stays for at least
+///   two swings, so it reads as a deliberate moment instead of a flash. A greeting
+///   appears after the first swing.
+/// - A returning user goes to the app after those two swings, or after the swing
+///   during which the data becomes ready, whichever is later.
 /// - A new user sees the intro: the medallion rises under the wordmark, the product
 ///   name and the arcs appear, and the first launch flow opens on the same backdrop.
 ///
@@ -37,7 +39,7 @@ struct LaunchSequenceView: View {
     @State private var didFinish = false
 
     @State private var swingTrigger = 0
-    @State private var swingSettlesAt = ContinuousClock.now
+    @State private var completedSwings = 0
     @State private var isMedallionHidden = false
     @State private var showsGreeting = false
     @State private var greeting = LaunchBranding.randomGreeting()
@@ -47,9 +49,8 @@ struct LaunchSequenceView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
-    /// Waiting this long before swinging keeps fast launches completely still.
-    private static let swingDelay: Duration = .milliseconds(300)
-    private static let greetingDelay: Duration = .milliseconds(800)
+    /// The splash never leaves before this many swings have played.
+    private static let minimumSwings = 2
     private static let introDuration: Duration = .milliseconds(600)
     private static let fadeDuration: Duration = .milliseconds(250)
     private static let introScale: CGFloat = 0.75
@@ -79,12 +80,13 @@ struct LaunchSequenceView: View {
         .task(id: needsOnboarding) {
             await startIntroIfNeeded()
         }
+        .task {
+            await swing()
+        }
         .task(id: isApplicationReady) {
-            if isApplicationReady {
-                await settleAndContinue()
-            } else {
-                await swingWhileLoading()
-            }
+            guard isApplicationReady, !isReady else { return }
+            StartupSignposts.signposter.emitEvent("applicationReady")
+            isReady = true
         }
     }
 
@@ -160,7 +162,7 @@ struct LaunchSequenceView: View {
         .easeInOut(duration: 0.25)
     }
 
-    /// Plays the intro for a new user, or lets a returning user through as soon as data is ready.
+    /// Plays the intro for a new user; a returning user skips it.
     private func startIntroIfNeeded() async {
         guard let needsOnboarding, showsOnboarding == nil else { return }
         showsOnboarding = needsOnboarding
@@ -174,45 +176,39 @@ struct LaunchSequenceView: View {
         }
 
         isIntroFinished = true
-        continueIfPossible()
     }
 
-    /// Swings the glyph while data loads, and greets the user if loading takes a while.
-    private func swingWhileLoading() async {
-        let greetingTime = ContinuousClock.now + Self.greetingDelay
-        try? await Task.sleep(for: Self.swingDelay)
-
-        while !Task.isCancelled {
+    /// Swings the glyph until the splash can move on, and greets the user after the first swing.
+    ///
+    /// The sequence moves on only between swings, so the glyph always comes to rest
+    /// first. With Reduce Motion on, the glyph stays still but the timing is the same.
+    private func swing() async {
+        while !Task.isCancelled, phase != .onboarding, !didFinish {
             if !reduceMotion {
                 swingTrigger += 1
-                swingSettlesAt = .now + BrandMedallion.swingDuration
             }
             try? await Task.sleep(for: BrandMedallion.swingDuration)
+            guard !Task.isCancelled else { return }
+            completedSwings += 1
 
-            if !showsGreeting, ContinuousClock.now >= greetingTime {
+            if !showsGreeting {
                 withAnimation(fade) {
                     showsGreeting = true
                 }
             }
-        }
-    }
 
-    /// Lets the current swing come to rest before moving on.
-    private func settleAndContinue() async {
-        let remaining = swingSettlesAt - .now
-        if remaining > .zero {
-            try? await Task.sleep(for: remaining)
+            if completedSwings >= Self.minimumSwings, isReady, isIntroFinished {
+                continueIfPossible()
+                return
+            }
         }
-        guard !Task.isCancelled else { return }
-
-        StartupSignposts.signposter.emitEvent("applicationReady")
-        isReady = true
-        continueIfPossible()
     }
 
     /// Moves on once both the data and the intro are ready.
     private func continueIfPossible() {
-        guard isReady, isIntroFinished, let showsOnboarding, phase != .onboarding, !didFinish else { return }
+        guard isReady, isIntroFinished, completedSwings >= Self.minimumSwings,
+              let showsOnboarding, phase != .onboarding, !didFinish
+        else { return }
 
         guard showsOnboarding else {
             finish()
