@@ -57,14 +57,17 @@ struct FolioraApp: App {
                 }
 
                 if showsLaunchScreen {
-                    LaunchScreenHost(
-                        isApplicationReady: coreDataContainer != nil && container != nil && needsOnboarding != nil,
-                        shouldPrepareForOnboarding: shouldPrepareForOnboarding
+                    LaunchSequenceView(
+                        isApplicationReady: coreDataContainer != nil && container != nil,
+                        needsOnboarding: needsOnboarding
                     ) {
-                        showsLaunchScreen = false
                         didFinishLaunchFlow = true
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            showsLaunchScreen = false
+                        }
                     }
-                    .ignoresSafeArea()
+                    .transition(.opacity)
+                    .zIndex(1)
                 }
             }
             .onOpenURL { url in
@@ -72,14 +75,11 @@ struct FolioraApp: App {
             }
             .task {
                 NSUbiquitousKeyValueStore.default.synchronize()
+                updateOnboardingState()
                 await prepareApplicationIfNeeded()
                 await refreshTranslationPreparationState()
             }
         }
-    }
-
-    private var shouldPrepareForOnboarding: Bool {
-        coreDataContainer != nil && container != nil && needsOnboarding == true && !didFinishLaunchFlow
     }
 
     @MainActor
@@ -96,7 +96,6 @@ struct FolioraApp: App {
             FolioraAppDelegate.coreDataContainer = coreDataContainer
             self.coreDataContainer = coreDataContainer
             self.container = container
-            updateOnboardingState()
         } catch {
             fatalError("Failed to create Core Data container: \(error)")
         }
@@ -105,9 +104,11 @@ struct FolioraApp: App {
     /// Decides whether onboarding is needed without waiting on system services.
     ///
     /// The decision rests only on the completion recorded on this device, so the
-    /// live state of the translation model or iCloud never replays the flow.
+    /// live state of the translation model or iCloud never replays the flow. It is
+    /// made before the data stack loads, so a new user's intro starts right away.
     @MainActor
     private func updateOnboardingState() {
+        guard needsOnboarding == nil else { return }
         needsOnboarding = OnboardingProgress.needsOnboarding
         StartupSignposts.signposter.emitEvent(
             "onboardingDecided",
