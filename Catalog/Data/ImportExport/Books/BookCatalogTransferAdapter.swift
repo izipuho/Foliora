@@ -149,15 +149,23 @@ struct BookCatalogTransferAdapter: CatalogDomainTransferAdapter {
                         )
                     )
                 }
+                let coverImage = sourceDetails.coverImage?.with(
+                    itemID: item.id,
+                    sortOrder: 0
+                )
                 let details = BookDetails(
                     itemID: item.id,
+                    subtitle: sourceDetails.subtitle,
                     languageCode: sourceDetails.languageCode,
+                    genre: sourceDetails.genre,
                     pageCount: sourceDetails.pageCount,
                     publicationYear: sourceDetails.publicationYear,
                     volumeNumber: sourceDetails.volumeNumber,
+                    coverImage: coverImage,
                     publisher: publisher,
                     contributors: contributors,
-                    series: series
+                    series: series,
+                    identifiers: sourceDetails.identifiers
                 )
                 repository.saveBookRecord(BookRecord(item: item, details: details))
             }
