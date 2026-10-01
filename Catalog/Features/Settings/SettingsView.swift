@@ -162,23 +162,14 @@ struct SettingsView: View {
     }
 
     private func saveDisplayName() {
-        let trimmedDisplayName = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let store = NSUbiquitousKeyValueStore.default
-
-        if trimmedDisplayName.isEmpty {
-            displayName = nil
-            store.removeObject(forKey: "foliora.profile.displayName")
-        } else {
-            displayName = trimmedDisplayName
-            store.set(trimmedDisplayName, forKey: "foliora.profile.displayName")
-            store.removeObject(forKey: "foliora.profile.didSkipIntroduction")
-        }
+        ProfileSettings.setDisplayName(editedDisplayName)
+        displayName = ProfileSettings.displayName
     }
 
     private func deleteDisplayName() {
         displayName = nil
         editedDisplayName = ""
-        NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.displayName")
+        ProfileSettings.removeDisplayName()
     }
 
     private func handleImport(_ result: Result<URL, Error>) {

@@ -6,13 +6,6 @@
 	objectVersion = 100;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		24056ED030226D0500601C22 /* Bells.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Bells.xcassets */; };
-		24A7F2CB303C3BF4005D31A1 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
-		24A7F2CC303C3BF4005D31A1 /* Books.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 24C55DD0302272960091118A /* Books.xcassets */; };
-		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		2480A9E030471FB8003918E4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -32,20 +25,14 @@
 
 /* Begin PBXFileReference section */
 		24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognitionDebugML.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		246A557A302274AF00512880 /* Coins.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Coins.xcassets; sourceTree = "<group>"; };
-		246A557C302274CF00512880 /* Stamps.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Stamps.xcassets; sourceTree = "<group>"; };
 		246FD65F2FA8BB2900B8859A /* BellRecognition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognition.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2480A9DC30471FB8003918E4 /* Foliora Books Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Foliora Books Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		248F42A13055C7CF004BBA03 /* Foliora Bells Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Foliora Bells Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Books.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		24A7F2D9303C7219005D31A1 /* Foliora-Books-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Books-Info.plist"; sourceTree = "<group>"; };
 		24A7F2DA303C7219005D31A1 /* Foliora Books.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Books.entitlements"; sourceTree = "<group>"; };
-		24C55DCE302272350091118A /* Records.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Records.xcassets; sourceTree = "<group>"; };
-		24C55DD0302272960091118A /* Books.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Books.xcassets; sourceTree = "<group>"; };
 		24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Bells.entitlements"; sourceTree = "<group>"; };
 		24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Bells-Info.plist"; sourceTree = "<group>"; };
-		24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		C00000000000000000000011 /* Bells.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Bells.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -73,22 +60,6 @@
 			);
 			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
 		};
-		24C44A55303C7CDF00404BD4 /* Exceptions for "App" folder in "Foliora Bells" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Launch/Books/GreetingsKeys.plist,
-				Launch/Books/LaunchScreen.storyboard,
-			);
-			target = C00000000000000000000051 /* Foliora Bells */;
-		};
-		24C44A56303C7CDF00404BD4 /* Exceptions for "App" folder in "Foliora Books" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Launch/Bells/GreetingsKeys.plist,
-				Launch/Bells/LaunchScreen.storyboard,
-			);
-			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
-		};
 		24C45C54303D80B700404BD4 /* Exceptions for "Domain" folder in "Foliora Bells" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -109,6 +80,26 @@
 		24349FFF2FAC6FD9005383FB /* BellRecognitionDebugML */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BellRecognitionDebugML;
+			sourceTree = "<group>";
+		};
+		24451DF8306E393E001B0AA1 /* Resources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		24451DFE306E3D17001B0AA1 /* Coins */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Coins;
+			sourceTree = "<group>";
+		};
+		24451E02306E3D17001B0AA1 /* Records */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Records;
+			sourceTree = "<group>";
+		};
+		24451E06306E3D17001B0AA1 /* Stamps */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Stamps;
 			sourceTree = "<group>";
 		};
 		2448AA5B3044061E0008B135 /* People */ = {
@@ -151,10 +142,6 @@
 		};
 		24C44A40303C7CDE00404BD4 /* App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				24C44A55303C7CDF00404BD4 /* Exceptions for "App" folder in "Foliora Bells" target */,
-				24C44A56303C7CDF00404BD4 /* Exceptions for "App" folder in "Foliora Books" target */,
-			);
 			path = App;
 			sourceTree = "<group>";
 		};
@@ -342,7 +329,7 @@
 				24C44A0A303C78C800404BD4 /* Domain */,
 				24C45C83303D971B00404BD4 /* Data */,
 				C00000000000000000000038 /* Features */,
-				C00000000000000000000039 /* Resources */,
+				24451DF8306E393E001B0AA1 /* Resources */,
 			);
 			path = Catalog;
 			sourceTree = "<group>";
@@ -363,6 +350,9 @@
 		C00000000000000000000038 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				24451DFE306E3D17001B0AA1 /* Coins */,
+				24451E02306E3D17001B0AA1 /* Records */,
+				24451E06306E3D17001B0AA1 /* Stamps */,
 				2448AA5B3044061E0008B135 /* People */,
 				24C45D09303D996B00404BD4 /* Settings */,
 				24C45D11303D996E00404BD4 /* Collections */,
@@ -372,19 +362,6 @@
 				24C45D20303D997500404BD4 /* Home */,
 			);
 			path = Features;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000039 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000011 /* Bells.xcassets */,
-				24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */,
-				24C55DCE302272350091118A /* Records.xcassets */,
-				24C55DD0302272960091118A /* Books.xcassets */,
-				246A557A302274AF00512880 /* Coins.xcassets */,
-				246A557C302274CF00512880 /* Stamps.xcassets */,
-			);
-			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -479,6 +456,7 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
+				24451DF8306E393E001B0AA1 /* Resources */,
 				2448AA5B3044061E0008B135 /* People */,
 				24C44993303C789200404BD4 /* Core */,
 				24C44A0A303C78C800404BD4 /* Domain */,
@@ -512,6 +490,7 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
+				24451DF8306E393E001B0AA1 /* Resources */,
 				24C44993303C789200404BD4 /* Core */,
 				24C44A0A303C78C800404BD4 /* Domain */,
 				24C44A40303C7CDE00404BD4 /* App */,
@@ -614,15 +593,11 @@
 		24A7F2B6303C3BA8005D31A1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
-				24A7F2CB303C3BF4005D31A1 /* Localizable.xcstrings in Resources */,
-				24A7F2CC303C3BF4005D31A1 /* Books.xcassets in Resources */,
 			);
 		};
 		C00000000000000000000023 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
-				24056ED030226D0500601C22 /* Bells.xcassets in Resources */,
-				24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */,
 			);
 		};
 /* End PBXResourcesBuildPhase section */

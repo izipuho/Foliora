@@ -1,0 +1,63 @@
+{
+  "features" : [
+    "specular-location"
+  ],
+  "fill-specializations" : [
+    {
+      "value" : {
+        "solid" : "srgb:0.97255,0.95294,0.91765,1.00000"
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "solid" : "srgb:0.16471,0.15294,0.14118,1.00000"
+      }
+    }
+  ],
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "glass" : true,
+          "image-name" : "bell.svg",
+          "name" : "Bell"
+        }
+      ],
+      "name" : "Symbol",
+      "shadow" : {
+        "kind" : "layer-color",
+        "opacity" : 0.8
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.6
+      }
+    },
+    {
+      "layers" : [
+        {
+          "glass" : true,
+          "image-name" : "medallion.svg",
+          "name" : "Medallion"
+        }
+      ],
+      "name" : "Medallion",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.35
+      },
+      "specular" : "outside",
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

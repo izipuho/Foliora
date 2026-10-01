@@ -4,6 +4,406 @@
     "" : {
 
     },
+    "common.continue" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжить"
+          }
+        }
+      }
+    },
+    "common.next" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Далее"
+          }
+        }
+      }
+    },
+    "onboarding.icloud.available.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your collections sync across your devices. If you've used Foliora before, your data will appear shortly."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Коллекции синхронизируются между вашими устройствами. Если вы уже пользовались Foliora, данные скоро появятся."
+          }
+        }
+      }
+    },
+    "onboarding.icloud.available.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Is On"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud подключён"
+          }
+        }
+      }
+    },
+    "onboarding.icloud.checking.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This takes just a moment."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это займёт пару секунд."
+          }
+        }
+      }
+    },
+    "onboarding.icloud.checking.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking iCloud"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверяем iCloud"
+          }
+        }
+      }
+    },
+    "onboarding.icloud.no_account.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections are saved on this device only. Sign in to iCloud in Settings to sync and share them."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Коллекции сохраняются только на этом устройстве. Войдите в iCloud в Настройках, чтобы синхронизировать их и делиться ими."
+          }
+        }
+      }
+    },
+    "onboarding.icloud.no_account.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Is Off"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud не подключён"
+          }
+        }
+      }
+    },
+    "onboarding.icloud.unavailable.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections are saved on this device and will sync once iCloud is available."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Коллекции сохраняются на этом устройстве и синхронизируются, когда iCloud станет доступен."
+          }
+        }
+      }
+    },
+    "onboarding.icloud.unavailable.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Unavailable"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud недоступен"
+          }
+        }
+      }
+    },
+    "onboarding.tour.origin_map.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark where each bell comes from and see your whole collection on a map."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмечайте, откуда каждый колокольчик, и смотрите всю коллекцию на карте."
+          }
+        }
+      }
+    },
+    "onboarding.tour.origin_map.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origin Map"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Карта происхождения"
+          }
+        }
+      }
+    },
+    "onboarding.tour.photos.bells.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take a photo of a bell or pick shots from your library, and a card is created for you. You can add a whole shelf at once."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сфотографируйте колокольчик или выберите снимки из галереи, и карточка создастся сама. Можно добавить сразу целую полку."
+          }
+        }
+      }
+    },
+    "onboarding.tour.photos.books.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photograph a book or pick photos from your library: one photo, one book. You can add a whole shelf at once."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сфотографируйте книгу или выберите снимки из галереи: одно фото — одна книга. Можно добавить сразу целую полку."
+          }
+        }
+      }
+    },
+    "onboarding.tour.photos.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catalog with Photos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каталог с фотографиями"
+          }
+        }
+      }
+    },
+    "onboarding.tour.recognition.bells.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora recognizes objects and inscriptions in the photo and suggests tags."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora распознает на снимке предметы и надписи и предложит теги."
+          }
+        }
+      }
+    },
+    "onboarding.tour.recognition.bells.description_ai" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora recognizes objects and inscriptions, and with Apple Intelligence it also suggests a title, material, year, and origin."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora распознает предметы и надписи, а с Apple Intelligence ещё подскажет название, материал, год и место происхождения."
+          }
+        }
+      }
+    },
+    "onboarding.tour.recognition.bells.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Suggestions"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подсказки по фото"
+          }
+        }
+      }
+    },
+    "onboarding.tour.recognition.books.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora recognizes cover text and the ISBN barcode. Drag a fragment into the title, author, publisher, or series."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora распознает текст обложки и ISBN со штрихкода. Перетащите фрагмент в название, автора, издательство или серию."
+          }
+        }
+      }
+    },
+    "onboarding.tour.recognition.books.description_ai" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora recognizes cover text and the ISBN barcode, and with Apple Intelligence it suggests which text goes into which field."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foliora распознает текст обложки и ISBN со штрихкода, а с Apple Intelligence подскажет, что в какое поле подставить."
+          }
+        }
+      }
+    },
+    "onboarding.tour.recognition.books.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text from the Cover"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Текст с обложки"
+          }
+        }
+      }
+    },
+    "onboarding.tour.sharing.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections sync across your devices, and you can share them with family and friends."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Коллекции синхронизируются между вашими устройствами, а ещё ими можно поделиться с близкими."
+          }
+        }
+      }
+    },
+    "onboarding.tour.sharing.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Together with iCloud"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вместе через iCloud"
+          }
+        }
+      }
+    },
+    "onboarding.tour.storage.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set the home, room, and shelf, and you'll always find the item you need."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Укажите дом, комнату и полку, и нужный предмет всегда найдётся."
+          }
+        }
+      }
+    },
+    "onboarding.tour.storage.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything in Its Place"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всё на своих местах"
+          }
+        }
+      }
+    },
     "—" : {
       "comment" : "A text field that accepts only numbers.",
       "isCommentAutoGenerated" : true,
@@ -6967,13 +7367,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download language model to translate photo analysis results"
+            "value" : "Download the language model now so photo analysis results appear in your language right away."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Для перевода результатов анализа фотографий требуется загрузить языковую модель."
+            "value" : "Скачайте языковую модель заранее, чтобы результаты анализа фото сразу были на вашем языке."
           }
         }
       }
@@ -7003,7 +7403,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add your name to make Foliora feel more personal. Name can be changed later in Settings."
+            "value" : "Add your name to make Foliora feel more personal. You can change it later in Settings."
           }
         },
         "ru" : {
@@ -7021,7 +7421,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Save name"
+            "value" : "Save Name"
           }
         },
         "ru" : {
@@ -7093,7 +7493,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You're all set"
+            "value" : "You're All Set"
           }
         },
         "ru" : {

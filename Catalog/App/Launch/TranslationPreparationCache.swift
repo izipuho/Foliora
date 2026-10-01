@@ -2,10 +2,11 @@ import Foundation
 
 /// Remembers the last translation preparation result checked on this device.
 ///
-/// Launch must not wait for `LanguageAvailability`, which can stall indefinitely.
-/// The launch flow reads the last known result synchronously, and the result is
-/// refreshed in the background after the app is usable. Translation models are
-/// installed per device, so the value lives in local defaults rather than iCloud.
+/// Launch must not wait for `LanguageAvailability`, which can stall indefinitely,
+/// so the result is refreshed in the background after the app is usable.
+/// `OnboardingProgress` reads it to recognize devices that finished the previous
+/// first launch flow. Translation models are installed per device, so the value
+/// lives in local defaults rather than iCloud.
 enum TranslationPreparationCache {
     private static let needsDownloadKey = "foliora.translation.lastKnownNeedsDownload"
 
