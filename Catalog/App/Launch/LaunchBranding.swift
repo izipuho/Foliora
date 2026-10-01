@@ -22,14 +22,10 @@ enum LaunchBranding {
     /// The brand wordmark. It is a name, so it is never localized.
     static let wordmark = "Foliora"
 
-    /// The product name shown under the wordmark once the splash takes over.
+    /// The product name shown under the wordmark once the splash takes over,
+    /// localized: the name of the app's collection kind.
     static var productName: String {
-        switch CollectionAppLink.currentAppKind {
-        case .bells:
-            "Bells"
-        case .books:
-            "Books"
-        }
+        CollectionAppLink.currentAppKind.title
     }
 
     /// How the medallion glyph swings while the app is loading.
