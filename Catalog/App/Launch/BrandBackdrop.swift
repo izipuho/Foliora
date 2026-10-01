@@ -2,29 +2,22 @@ import SwiftUI
 
 /// The branded background behind the splash and the first launch flow:
 /// the launch background color and, once the splash takes over, the arcs along the bottom.
+///
+/// The arcs are drawn in code, filled with each app's `ArcLeft` and `ArcRight` colors,
+/// with the soft light rim along their top edge from the Figma design.
 struct BrandBackdrop: View {
     var showsArcs: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// The height of the lower arc band; content above the arcs keeps clear of it.
-    static let arcBandHeight: CGFloat = 146
-    /// The height of the left arc, which rises higher than the band at the leading edge.
-    static let leftArcHeight: CGFloat = 271
-
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             Color("LaunchBackground")
 
             if showsArcs {
-                ZStack(alignment: .bottom) {
-                    Image("ArcRight")
-                        .resizable()
-                        .frame(height: Self.arcBandHeight)
-
-                    Image("ArcLeft")
-                        .resizable()
-                        .frame(height: Self.leftArcHeight)
+                ZStack {
+                    arc(.right, color: Color("ArcRight"))
+                    arc(.left, color: Color("ArcLeft"))
                 }
                 .transition(
                     reduceMotion
@@ -35,6 +28,11 @@ struct BrandBackdrop: View {
         }
         .ignoresSafeArea()
         .accessibilityHidden(true)
+    }
+
+    private func arc(_ side: ArcShape.Side, color: Color) -> some View {
+        ArcShape(side: side)
+            .fill(color.shadow(.inner(color: .white.opacity(0.6), radius: 10, y: 20 / 3)))
     }
 }
 

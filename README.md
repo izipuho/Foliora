@@ -119,6 +119,7 @@ It trains in PyTorch and exports a Core ML `.mlpackage`. See `ml/README.md` for 
 
 - `Catalog/App/Launch/LaunchScreen.storyboard` is shared by all apps: the launch background, the "Foliora" wordmark at the top of the safe area, and the medallion at the center of the screen. Per-app colors and images come from each app's `Branding/Assets.xcassets`.
 - `LaunchSequenceView` repeats that frame in SwiftUI and takes over: a returning user goes to the app as soon as data is ready, a new user sees the intro and the first launch flow. Sizes shared with the storyboard live in `LaunchBranding.Metrics`; keep both in sync.
+- The arcs along the bottom of the splash and the first launch flow are drawn in code (`ArcShape`, curves from the Figma launch screens) and filled with each app's `ArcLeft` and `ArcRight` colors. They span the full width and their height follows the screen height.
 - The medallion images (`LaunchMedallion`, `SplashMedallionBase`, `SplashMedallionGlyph`) are generated from the app icon layers in `Branding/AppIcon.icon`. After changing an icon, run `python3 scripts/generate-launch-assets.py` from the repository root.
 
 ## Notes

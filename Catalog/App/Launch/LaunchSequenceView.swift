@@ -61,16 +61,19 @@ struct LaunchSequenceView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let screenCenterY = (proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom) / 2
+            let screenHeight = proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
+            let screenCenterY = screenHeight / 2
+            let rightArcHeight = ArcShape.height(of: .right, screenHeight: screenHeight)
+            let leftArcHeight = ArcShape.height(of: .left, screenHeight: screenHeight)
 
             ZStack {
                 BrandBackdrop(showsArcs: phase != .launch)
 
-                content(bottomInset: max(0, BrandBackdrop.arcBandHeight - proxy.safeAreaInsets.bottom))
+                content(bottomInset: max(0, rightArcHeight - proxy.safeAreaInsets.bottom))
 
                 medallion(screenCenterY: screenCenterY)
 
-                greetingLabel
+                greetingLabel(leftArcHeight: leftArcHeight)
             }
         }
         .task(id: needsOnboarding) {
@@ -135,7 +138,7 @@ struct LaunchSequenceView: View {
             .ignoresSafeArea()
     }
 
-    private var greetingLabel: some View {
+    private func greetingLabel(leftArcHeight: CGFloat) -> some View {
         Text(greeting)
             .font(.largeTitle)
             .foregroundStyle(Color("LightAccent"))
@@ -144,7 +147,7 @@ struct LaunchSequenceView: View {
             .minimumScaleFactor(0.6)
             .padding(.horizontal, CatalogMetrics.Spacing.xl)
             // Rests on the left arc, as in the previous splash.
-            .padding(.bottom, BrandBackdrop.leftArcHeight - CatalogMetrics.Spacing.xl)
+            .padding(.bottom, leftArcHeight - CatalogMetrics.Spacing.xl)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .ignoresSafeArea()
             .opacity(showsGreeting ? 1 : 0)
