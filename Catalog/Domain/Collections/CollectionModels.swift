@@ -192,7 +192,7 @@ enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
     var title: String {
         switch self {
         case .bells:
-            return String(localized: "collection_kind.bells")
+            return String(localized: "common.bells")
         case .books:
             return String(localized: "common.books")
         }

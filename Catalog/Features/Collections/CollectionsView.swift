@@ -359,7 +359,7 @@ struct CollectionsView: View {
             id: UUID(),
             homeID: homeID,
             kind: CollectionAppLink.currentAppKind,
-            title: trimmedTitle.isEmpty ? String(localized: "collection.editor.default_title") : trimmedTitle,
+            title: trimmedTitle.isEmpty ? String(localized: "common.bells") : trimmedTitle,
             notes: trimmedNotes,
             backgroundStyle: backgroundStyle
         )
