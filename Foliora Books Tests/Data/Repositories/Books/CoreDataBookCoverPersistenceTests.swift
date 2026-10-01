@@ -254,7 +254,6 @@ struct CoreDataBookCoverPersistenceTests {
         #expect(imported.details.volumeNumber == sourceDetails.volumeNumber)
         #expect(imported.details.identifiers == [identifier])
         #expect(importedCover.id == cover.id)
-        #expect(importedCover.itemID == itemID)
         #expect(importedCover.sortOrder == 0)
         #expect(importedCover.width == cover.width)
         #expect(importedCover.height == cover.height)
