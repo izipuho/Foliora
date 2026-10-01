@@ -104,6 +104,9 @@ struct LaunchSequenceView: View {
                 .font(.system(size: metrics.subtitleSize))
                 .foregroundStyle(Color("LightAccent"))
                 .lineLimit(1)
+                // Localized names can be much longer than "Bells".
+                .minimumScaleFactor(0.5)
+                .padding(.horizontal, CatalogMetrics.Insets.screen)
                 .opacity(phase == .launch ? 0 : 1)
                 .accessibilityHidden(phase == .launch)
                 .onGeometryChange(for: CGFloat.self) { geometry in
