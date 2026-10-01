@@ -120,7 +120,8 @@ It trains in PyTorch and exports a Core ML `.mlpackage`. See `ml/README.md` for 
 - `Catalog/App/Launch/LaunchScreen.storyboard` is shared by all apps: the launch background, the "Foliora" wordmark at the top of the safe area, and the medallion at the center of the screen. Per-app colors and images come from each app's `Branding/Assets.xcassets`.
 - `LaunchSequenceView` repeats that frame in SwiftUI and takes over: a returning user goes to the app as soon as data is ready, a new user sees the intro and the first launch flow. Sizes shared with the storyboard live in `LaunchBranding.Metrics`; keep both in sync.
 - The arcs along the bottom of the splash and the first launch flow are drawn in code (`ArcShape`, curves from the Figma launch screens) and colored from each app's `AccentColor` (the medallion color): the left arc mixes in 15% black, the right arc 75% white. They span the full width and their height follows the screen height.
-- The medallion images (`LaunchMedallion`, `SplashMedallionBase`, `SplashMedallionGlyph`) are generated from the app icon layers in `Branding/AppIcon.icon`. After changing an icon, run `python3 scripts/generate-launch-assets.py` from the repository root.
+- The medallion images (`LaunchMedallion`, `SplashMedallionBase`, `SplashMedallionGlyph`) are rendered from `Branding/AppIcon.icon` with its Liquid Glass by Icon Composer's `ictool`, then cut into a medallion layer and a glyph layer that add up to the icon. After changing an icon or `LaunchBackground`, run `zsh scripts/generate-launch-medallion.sh` (needs Xcode 26) and commit the result.
+- The "Check Launch Medallion" build phase warns when an icon, a launch background or the generator changed since the assets were generated. It only compares fingerprints (`scripts/launch-medallion/stamps`), it never renders.
 
 ## Notes
 

@@ -131,9 +131,10 @@ struct LaunchSequenceView: View {
     /// The medallion, centered on the screen like the launch screen's image view.
     private func medallion(screenCenterY: CGFloat) -> some View {
         let side = metrics.medallionSide
+        let diameter = metrics.medallionDiameter
         let risesInIntro = phase != .launch && !reduceMotion
         // Places the scaled medallion just under the product name.
-        let introOffset = subtitleBottom + Self.medallionSpacing + side * Self.introScale / 2 - screenCenterY
+        let introOffset = subtitleBottom + Self.medallionSpacing + diameter * Self.introScale / 2 - screenCenterY
 
         return BrandMedallion(side: side, swingTrigger: swingTrigger)
             .scaleEffect(risesInIntro ? Self.introScale : 1)

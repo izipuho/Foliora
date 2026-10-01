@@ -2,10 +2,10 @@ import SwiftUI
 
 /// The app medallion, drawn from the same layers as the launch screen's `LaunchMedallion`.
 ///
-/// `SplashMedallionBase` and `SplashMedallionGlyph` are generated together with
-/// `LaunchMedallion` by `scripts/generate-launch-assets.py` and share its canvas, so
-/// the stacked layers match the launch screen image exactly. Each change of
-/// `swingTrigger` plays one swing of the glyph.
+/// `SplashMedallionBase` and `SplashMedallionGlyph` are rendered from the app icon,
+/// with its Liquid Glass, by `scripts/generate-launch-medallion.sh`, together with
+/// `LaunchMedallion`. They share its canvas, so the stacked layers match the launch
+/// screen image exactly. Each change of `swingTrigger` plays one swing of the glyph.
 struct BrandMedallion: View {
     let side: CGFloat
     let swingTrigger: Int
@@ -43,5 +43,5 @@ struct BrandMedallion: View {
 }
 
 #Preview {
-    BrandMedallion(side: 220, swingTrigger: 0)
+    BrandMedallion(side: 264, swingTrigger: 0)
 }

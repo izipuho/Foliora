@@ -451,6 +451,7 @@
 			buildPhases = (
 				24A7F2B4303C3BA8005D31A1 /* Sources */,
 				24A7F2B5303C3BA8005D31A1 /* Frameworks */,
+				F0F0A00000000000000000B2 /* Check Launch Medallion */,
 				24A7F2B6303C3BA8005D31A1 /* Resources */,
 			);
 			buildRules = (
@@ -485,6 +486,7 @@
 			buildPhases = (
 				C00000000000000000000022 /* Sources */,
 				C00000000000000000000021 /* Frameworks */,
+				F0F0A00000000000000000B1 /* Check Launch Medallion */,
 				C00000000000000000000023 /* Resources */,
 			);
 			buildRules = (
@@ -601,6 +603,69 @@
 			);
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F0F0A00000000000000000B1 /* Check Launch Medallion */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/AppIcon.icon",
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/AppIcon.icon/icon.json",
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/AppIcon.icon/Assets",
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/AppIcon.icon/Assets/bell.svg",
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/AppIcon.icon/Assets/medallion.svg",
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/Assets.xcassets/LaunchBackground.colorset/Contents.json",
+				"$(SRCROOT)/scripts/generate-launch-medallion.sh",
+				"$(SRCROOT)/scripts/launch-medallion/Process.swift",
+				"$(SRCROOT)/scripts/launch-medallion/fingerprint.sh",
+				"$(SRCROOT)/scripts/launch-medallion/check.sh",
+				"$(SRCROOT)/scripts/launch-medallion/stamps/Bells.sha256",
+			);
+			name = "Check Launch Medallion";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/launch-medallion-Bells.checked",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "zsh \"$SRCROOT/scripts/launch-medallion/check.sh\" Bells\n";
+		};
+		F0F0A00000000000000000B2 /* Check Launch Medallion */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Catalog/Features/Books/Branding/AppIcon.icon",
+				"$(SRCROOT)/Catalog/Features/Books/Branding/AppIcon.icon/icon.json",
+				"$(SRCROOT)/Catalog/Features/Books/Branding/AppIcon.icon/Assets",
+				"$(SRCROOT)/Catalog/Features/Books/Branding/AppIcon.icon/Assets/books.svg",
+				"$(SRCROOT)/Catalog/Features/Books/Branding/AppIcon.icon/Assets/medallion.svg",
+				"$(SRCROOT)/Catalog/Features/Books/Branding/Assets.xcassets/LaunchBackground.colorset/Contents.json",
+				"$(SRCROOT)/scripts/generate-launch-medallion.sh",
+				"$(SRCROOT)/scripts/launch-medallion/Process.swift",
+				"$(SRCROOT)/scripts/launch-medallion/fingerprint.sh",
+				"$(SRCROOT)/scripts/launch-medallion/check.sh",
+				"$(SRCROOT)/scripts/launch-medallion/stamps/Books.sha256",
+			);
+			name = "Check Launch Medallion";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/launch-medallion-Books.checked",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "zsh \"$SRCROOT/scripts/launch-medallion/check.sh\" Books\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		24349FFA2FAC6FD9005383FB /* Sources */ = {
