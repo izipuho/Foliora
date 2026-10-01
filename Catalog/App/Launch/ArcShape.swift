@@ -74,8 +74,8 @@ struct ArcShape: Shape {
 
 #Preview {
     ZStack {
-        ArcShape(side: .right).fill(Color("ArcRight"))
-        ArcShape(side: .left).fill(Color("ArcLeft"))
+        ArcShape(side: .right).fill(BrandBackdrop.rightArcColor)
+        ArcShape(side: .left).fill(BrandBackdrop.leftArcColor)
     }
     .ignoresSafeArea()
 }
