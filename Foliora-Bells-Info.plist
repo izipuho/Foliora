@@ -19,7 +19,5 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
-	<key>UILaunchScreen</key>
-	<false/>
 </dict>
 </plist>

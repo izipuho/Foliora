@@ -72,6 +72,7 @@ BellRecognition/                 Standalone bell-recognition SwiftUI/debug app
 BellRecognitionDebugML/          Debug UI for ML dataset preparation
 ml/                              PyTorch training and Core ML export pipeline
 docs/                            Architecture and data-model notes
+scripts/                         Asset generation scripts
 ```
 
 ## Data Model and Persistence
@@ -113,6 +114,12 @@ It trains in PyTorch and exports a Core ML `.mlpackage`. See `ml/README.md` for 
 - Device or simulator runtime with Apple Foundation Models and Translation framework support for semantic photo suggestions and localized suggestion text.
 - An Apple developer team with iCloud/CloudKit capabilities for device or CloudKit testing.
 - Python 3 for the optional ML tools.
+
+### Launch Screen and Splash
+
+- `Catalog/App/Launch/LaunchScreen.storyboard` is shared by all apps: the launch background, the "Foliora" wordmark at the top of the safe area, and the medallion at the center of the screen. Per-app colors and images come from each app's `Branding/Assets.xcassets`.
+- `LaunchSequenceView` repeats that frame in SwiftUI and takes over: a returning user goes to the app as soon as data is ready, a new user sees the intro and the first launch flow. Sizes shared with the storyboard live in `LaunchBranding.Metrics`; keep both in sync.
+- The medallion images (`LaunchMedallion`, `SplashMedallionBase`, `SplashMedallionGlyph`) are generated from the app icon layers in `Branding/AppIcon.icon`. After changing an icon, run `python3 scripts/generate-launch-assets.py` from the repository root.
 
 ## Notes
 
