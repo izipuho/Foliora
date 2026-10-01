@@ -1,43 +1,42 @@
 import SwiftUI
 
-/// The branded background behind the splash and the first launch flow:
-/// the launch background color and, once the splash takes over, the arcs along the bottom.
-struct BrandBackdrop: View {
-    var showsArcs: Bool
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    /// The height of the lower arc band; content above the arcs keeps clear of it.
-    static let arcBandHeight: CGFloat = 146
-    /// The height of the left arc, which rises higher than the band at the leading edge.
-    static let leftArcHeight: CGFloat = 271
+/// The branded background of the launch screen, the splash and the first launch flow:
+/// the launch background color and the arcs along the bottom.
+///
+/// `behindArcs` is drawn between the background and the arcs, where the launch
+/// screen draws the medallion.
+struct BrandBackdrop<BehindArcs: View>: View {
+    @ViewBuilder var behindArcs: BehindArcs
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             Color("LaunchBackground")
+                .ignoresSafeArea()
 
-            if showsArcs {
-                ZStack(alignment: .bottom) {
-                    Image("ArcRight")
-                        .resizable()
-                        .frame(height: Self.arcBandHeight)
+            behindArcs
 
-                    Image("ArcLeft")
-                        .resizable()
-                        .frame(height: Self.leftArcHeight)
-                }
-                .transition(
-                    reduceMotion
-                        ? .opacity
-                        : .move(edge: .bottom).combined(with: .opacity)
-                )
+            ZStack(alignment: .bottom) {
+                Image("ArcRight")
+                    .resizable()
+                    .frame(height: LaunchBranding.Layout.rightArcHeight)
+
+                Image("ArcLeft")
+                    .resizable()
+                    .frame(height: LaunchBranding.Layout.leftArcHeight)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .ignoresSafeArea()
+            .accessibilityHidden(true)
         }
-        .ignoresSafeArea()
-        .accessibilityHidden(true)
+    }
+}
+
+extension BrandBackdrop where BehindArcs == EmptyView {
+    init() {
+        self.init { EmptyView() }
     }
 }
 
 #Preview {
-    BrandBackdrop(showsArcs: true)
+    BrandBackdrop()
 }

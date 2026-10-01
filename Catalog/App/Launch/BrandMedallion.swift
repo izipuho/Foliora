@@ -4,10 +4,10 @@ import SwiftUI
 ///
 /// `SplashMedallionBase` and `SplashMedallionGlyph` are generated together with
 /// `LaunchMedallion` by `scripts/generate-launch-assets.py` and share its canvas, so
-/// the stacked layers match the launch screen image exactly. Each change of
-/// `swingTrigger` plays one swing of the glyph.
+/// the stacked layers match the launch screen image exactly. Both keep their
+/// natural size, like the storyboard's image view. Each change of `swingTrigger`
+/// plays one swing of the glyph.
 struct BrandMedallion: View {
-    let side: CGFloat
     let swingTrigger: Int
 
     /// The length of one swing; the launch sequence waits for it to settle.
@@ -21,10 +21,8 @@ struct BrandMedallion: View {
 
         ZStack {
             Image("SplashMedallionBase")
-                .resizable()
 
             Image("SplashMedallionGlyph")
-                .resizable()
                 .keyframeAnimator(initialValue: 0.0, trigger: swingTrigger) { glyph, angle in
                     glyph.rotationEffect(.degrees(angle), anchor: pivot)
                 } keyframes: { _ in
@@ -37,11 +35,10 @@ struct BrandMedallion: View {
                     }
                 }
         }
-        .frame(width: side, height: side)
         .accessibilityHidden(true)
     }
 }
 
 #Preview {
-    BrandMedallion(side: 220, swingTrigger: 0)
+    BrandMedallion(swingTrigger: 0)
 }

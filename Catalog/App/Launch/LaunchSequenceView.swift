@@ -2,15 +2,16 @@ import SwiftUI
 
 /// Takes over from the system launch screen and leads into the app or the first launch flow.
 ///
-/// The first frame repeats `LaunchScreen.storyboard` exactly — the wordmark at the top
-/// of the safe area and the medallion at the center of the screen — so the handoff from
-/// the system launch screen is invisible. After that:
+/// The first frame repeats `LaunchScreen.storyboard` exactly — the wordmark and the
+/// product name under the top of the safe area, the medallion at the center of the
+/// screen and the arcs along the bottom — so the handoff from the system launch
+/// screen is invisible. After that:
 ///
 /// - A returning user goes straight to the app once its data is ready. The splash has
 ///   no minimum duration; the glyph starts swinging only when loading takes a moment,
 ///   and a greeting appears only when it takes longer than that.
-/// - A new user sees the intro: the medallion rises under the wordmark, the product
-///   name and the arcs appear, and the first launch flow opens on the same backdrop.
+/// - A new user sees the intro: the medallion rises under the product name, then
+///   gives way to the first launch flow on the same backdrop.
 ///
 /// With Reduce Motion on, nothing moves; elements only fade.
 struct LaunchSequenceView: View {
@@ -24,7 +25,7 @@ struct LaunchSequenceView: View {
     private enum Phase {
         /// Matches the system launch screen.
         case launch
-        /// The first launch intro: the medallion has risen, the arcs are shown.
+        /// The first launch intro: the medallion has risen under the product name.
         case intro
         /// The first launch flow is on screen.
         case onboarding
@@ -44,8 +45,6 @@ struct LaunchSequenceView: View {
     @State private var subtitleBottom: CGFloat = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     /// Waiting this long before swinging keeps fast launches completely still.
     private static let swingDelay: Duration = .milliseconds(300)
@@ -55,20 +54,16 @@ struct LaunchSequenceView: View {
     private static let introScale: CGFloat = 0.75
     private static let medallionSpacing: CGFloat = CatalogMetrics.Spacing.xl
 
-    private var metrics: LaunchBranding.Metrics {
-        LaunchBranding.Metrics(isRegular: horizontalSizeClass == .regular && verticalSizeClass == .regular)
-    }
-
     var body: some View {
         GeometryReader { proxy in
             let screenCenterY = (proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom) / 2
 
             ZStack {
-                BrandBackdrop(showsArcs: phase != .launch)
+                BrandBackdrop {
+                    medallion(screenCenterY: screenCenterY)
+                }
 
-                content(bottomInset: max(0, BrandBackdrop.arcBandHeight - proxy.safeAreaInsets.bottom))
-
-                medallion(screenCenterY: screenCenterY)
+                content(bottomInset: max(0, LaunchBranding.Layout.rightArcHeight - proxy.safeAreaInsets.bottom))
 
                 greetingLabel
             }
@@ -90,22 +85,19 @@ struct LaunchSequenceView: View {
     /// The wordmark, the product name and, on first launch, the first launch flow.
     private func content(bottomInset: CGFloat) -> some View {
         VStack(spacing: 0) {
-            Text(verbatim: LaunchBranding.wordmark)
-                .font(.system(size: metrics.wordmarkSize))
-                .foregroundStyle(Color("AccentColor"))
-                .lineLimit(1)
-
-            Text(verbatim: LaunchBranding.productName)
-                .font(.system(size: metrics.subtitleSize))
-                .foregroundStyle(Color("LightAccent"))
-                .lineLimit(1)
-                .opacity(phase == .launch ? 0 : 1)
-                .accessibilityHidden(phase == .launch)
-                .onGeometryChange(for: CGFloat.self) { geometry in
-                    geometry.frame(in: .global).maxY
-                } action: { maxY in
-                    subtitleBottom = maxY
-                }
+            VStack(spacing: LaunchBranding.Layout.subtitleSpacing) {
+                Image("LaunchWordmark")
+                Image("LaunchSubtitle")
+                    .onGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.frame(in: .global).maxY
+                    } action: { maxY in
+                        subtitleBottom = maxY
+                    }
+            }
+            .padding(.top, LaunchBranding.Layout.wordmarkTop)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(verbatim: LaunchBranding.accessibilityName))
+            .accessibilityAddTraits(.isHeader)
 
             if phase == .onboarding {
                 FirstLaunchFlowView {
@@ -122,12 +114,12 @@ struct LaunchSequenceView: View {
 
     /// The medallion, centered on the screen like the launch screen's image view.
     private func medallion(screenCenterY: CGFloat) -> some View {
-        let side = metrics.medallionSide
         let risesInIntro = phase != .launch && !reduceMotion
-        // Places the scaled medallion just under the product name.
-        let introOffset = subtitleBottom + Self.medallionSpacing + side * Self.introScale / 2 - screenCenterY
+        // Places the scaled circle just under the product name.
+        let diameter = LaunchBranding.Layout.medallionDiameter
+        let introOffset = subtitleBottom + Self.medallionSpacing + diameter * Self.introScale / 2 - screenCenterY
 
-        return BrandMedallion(side: side, swingTrigger: swingTrigger)
+        return BrandMedallion(swingTrigger: swingTrigger)
             .scaleEffect(risesInIntro ? Self.introScale : 1)
             .offset(y: risesInIntro ? introOffset : 0)
             .opacity(isMedallionHidden ? 0 : 1)
@@ -144,7 +136,7 @@ struct LaunchSequenceView: View {
             .minimumScaleFactor(0.6)
             .padding(.horizontal, CatalogMetrics.Spacing.xl)
             // Rests on the left arc, as in the previous splash.
-            .padding(.bottom, BrandBackdrop.leftArcHeight - CatalogMetrics.Spacing.xl)
+            .padding(.bottom, LaunchBranding.Layout.leftArcHeight - CatalogMetrics.Spacing.xl)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             .ignoresSafeArea()
             .opacity(showsGreeting ? 1 : 0)

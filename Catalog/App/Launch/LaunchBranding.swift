@@ -3,27 +3,29 @@ import SwiftUI
 /// Brand values shared by the launch storyboard and the SwiftUI launch sequence.
 ///
 /// The launch storyboard (`LaunchScreen.storyboard`) is drawn by the system before
-/// the app runs, so these numbers repeat its constraints: keep both in sync, or the
-/// handoff from the system launch screen to the splash shows a jump.
+/// the app runs, so `Layout` repeats its constraints. Both follow the Figma launch
+/// screens in `design/launch-screen`; `scripts/generate-launch-assets.py` prints
+/// these numbers. Keep the storyboard and `Layout` in sync, or the handoff from the
+/// system launch screen to the splash shows a jump.
 enum LaunchBranding {
-    /// Sizes taken from `LaunchScreen.storyboard`, including its regular/regular variation.
-    struct Metrics {
-        let wordmarkSize: CGFloat
-        let subtitleSize: CGFloat
-        let medallionSide: CGFloat
-
-        init(isRegular: Bool) {
-            wordmarkSize = isRegular ? 100 : 80
-            subtitleSize = isRegular ? 70 : 50
-            medallionSide = isRegular ? 320 : 220
-        }
+    enum Layout {
+        /// From the top of the safe area to the top of `LaunchWordmark`.
+        static let wordmarkTop: CGFloat = 65 + 1 / 3
+        /// From the bottom of `LaunchWordmark` to the top of `LaunchSubtitle`.
+        static let subtitleSpacing: CGFloat = 26 + 1 / 3
+        /// The visible circle inside the `LaunchMedallion` canvas, which also holds its glow.
+        static let medallionDiameter: CGFloat = 266 + 2 / 3
+        /// The natural heights of `ArcLeft` and `ArcRight`; both span the full width.
+        static let leftArcHeight: CGFloat = 274
+        static let rightArcHeight: CGFloat = 148
     }
 
-    /// The brand wordmark. It is a name, so it is never localized.
-    static let wordmark = "Foliora"
+    /// Spoken in place of the wordmark and product name images.
+    static var accessibilityName: String {
+        "Foliora \(productName)"
+    }
 
-    /// The product name shown under the wordmark once the splash takes over.
-    static var productName: String {
+    private static var productName: String {
         switch CollectionAppLink.currentAppKind {
         case .bells:
             "Bells"
@@ -34,7 +36,7 @@ enum LaunchBranding {
 
     /// How the medallion glyph swings while the app is loading.
     struct GlyphMotion {
-        /// The point the glyph rotates around, in the medallion's unit coordinates.
+        /// The point the glyph rotates around, in the medallion canvas's unit coordinates.
         let pivot: UnitPoint
         /// Scales the shared swing angles.
         let amplitude: Double
@@ -44,10 +46,10 @@ enum LaunchBranding {
         switch CollectionAppLink.currentAppKind {
         case .bells:
             // The bell hangs from its top.
-            GlyphMotion(pivot: UnitPoint(x: 0.5, y: 0.14), amplitude: 1)
+            GlyphMotion(pivot: UnitPoint(x: 0.5, y: 0.225), amplitude: 1)
         case .books:
             // The books rock on the shelf.
-            GlyphMotion(pivot: UnitPoint(x: 0.5, y: 0.8), amplitude: 0.4)
+            GlyphMotion(pivot: UnitPoint(x: 0.5, y: 0.73), amplitude: 0.4)
         }
     }
 
