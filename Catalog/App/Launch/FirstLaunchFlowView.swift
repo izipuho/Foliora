@@ -148,6 +148,9 @@ struct FirstLaunchFlowView: View {
             .frame(maxWidth: 420)
             .padding(.horizontal, CatalogMetrics.Insets.screen)
         }
+        // The flow is clipped to its bounds, and here the button sits on the bottom
+        // edge: without this its glass shadow and press animation get cut off.
+        .padding(.bottom, CatalogMetrics.Spacing.lg)
     }
 
     private var iCloudStep: some View {
