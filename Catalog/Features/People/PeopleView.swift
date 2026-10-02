@@ -202,7 +202,7 @@ private struct PersonCard: View {
                 if !roleUsages.isEmpty {
                     VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
                         ForEach(roleUsages, id: \.role) { usage in
-                            Text("\(usage.role.displayName) · \(usage.bookCount) \(usage.bookCount == 1 ? "book" : "books")")
+                            Text("\(usage.role.displayName) · \(CollectionKind.bookCountLabel(for: usage.bookCount))")
                                 .font(.footnote.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)

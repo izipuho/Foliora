@@ -6,13 +6,14 @@ import SwiftUI
 /// of the safe area and the medallion at the center of the screen — so the handoff from
 /// the system launch screen is invisible. After that:
 ///
+/// - The arcs come in along the bottom as soon as the splash takes over, on every launch.
 /// - The glyph swings from the first frame, and the splash always stays for at least
 ///   two swings, so it reads as a deliberate moment instead of a flash. A greeting
 ///   appears after the first swing.
 /// - A returning user goes to the app after those two swings, or after the swing
 ///   during which the data becomes ready, whichever is later.
 /// - A new user sees the intro: the medallion rises under the wordmark, the product
-///   name and the arcs appear, and the first launch flow opens on the same backdrop.
+///   name appears, and the first launch flow opens on the same backdrop.
 ///
 /// With Reduce Motion on, nothing moves; elements only fade.
 struct LaunchSequenceView: View {
@@ -26,13 +27,15 @@ struct LaunchSequenceView: View {
     private enum Phase {
         /// Matches the system launch screen.
         case launch
-        /// The first launch intro: the medallion has risen, the arcs are shown.
+        /// The first launch intro: the medallion has risen, the product name is shown.
         case intro
         /// The first launch flow is on screen.
         case onboarding
     }
 
     @State private var phase = Phase.launch
+    /// Off for the first frame, which has to match the system launch screen.
+    @State private var showsArcs = false
     @State private var showsOnboarding: Bool?
     @State private var isIntroFinished = false
     @State private var isReady = false
@@ -68,7 +71,7 @@ struct LaunchSequenceView: View {
             let leftArcHeight = ArcShape.height(of: .left, screenHeight: screenHeight)
 
             ZStack {
-                BrandBackdrop(showsArcs: phase != .launch)
+                BrandBackdrop(showsArcs: showsArcs)
 
                 content(bottomInset: max(0, rightArcHeight - proxy.safeAreaInsets.bottom))
 
@@ -81,6 +84,7 @@ struct LaunchSequenceView: View {
             await startIntroIfNeeded()
         }
         .task {
+            showArcs()
             await swing()
         }
         .task(id: isApplicationReady) {
@@ -166,13 +170,25 @@ struct LaunchSequenceView: View {
         .easeInOut(duration: 0.25)
     }
 
+    /// The movement of the arcs and the medallion; a fade with Reduce Motion on.
+    private var slide: Animation {
+        reduceMotion ? fade : .easeInOut(duration: 0.6)
+    }
+
+    /// Brings in the arcs right after the handoff from the system launch screen.
+    private func showArcs() {
+        withAnimation(slide) {
+            showsArcs = true
+        }
+    }
+
     /// Plays the intro for a new user; a returning user skips it.
     private func startIntroIfNeeded() async {
         guard let needsOnboarding, showsOnboarding == nil else { return }
         showsOnboarding = needsOnboarding
 
         if needsOnboarding {
-            withAnimation(reduceMotion ? fade : .easeInOut(duration: 0.6)) {
+            withAnimation(slide) {
                 phase = .intro
                 showsGreeting = true
             }
