@@ -1,25 +1,6 @@
 import SwiftUI
 import CoreData
 
-private enum BellCatalogFeedback: Equatable {
-    case success
-    case warning
-
-    var sensoryFeedback: SensoryFeedback {
-        switch self {
-        case .success:
-            return .success
-        case .warning:
-            return .warning
-        }
-    }
-}
-
-private struct BellCatalogFeedbackEvent: Equatable {
-    let kind: BellCatalogFeedback
-    let token: Int
-}
-
 private extension BellPresenceFilter {
     var title: String {
         switch self {
@@ -85,7 +66,7 @@ private extension BellFilters {
 /// Displays the bell catalog view interface.
 struct BellCatalogView: View {
     let repository: any AppRepository
-    let collection: CollectionSummary?
+    let collection: CollectionSummary
     let catalogSnapshot: CatalogSnapshot?
     let sharingState: CollectionSharingState
     let sharingService: (any CollectionSharingService)?
@@ -99,20 +80,20 @@ struct BellCatalogView: View {
     @Binding var cardManagement: CatalogCardManagementState<BellCatalogItem>
     @State private var activeJumpPopoverSectionID: String?
     @State private var pendingScrollTargetID: String?
-    @State private var feedbackEvent: BellCatalogFeedbackEvent?
-    @State private var feedbackToken = 0
+    @State private var moveFeedbackToken = 0
+    @State private var deleteFeedbackToken = 0
     @State private var scrollRequestToken = 0
     @State private var isFavoritesCollapsed = false
     @StateObject private var viewModel: BellCatalogViewModel
 
     init(
-        collection: CollectionSummary?,
+        collection: CollectionSummary,
         repository: any AppRepository,
         catalogSnapshot: CatalogSnapshot?,
-        layoutMode: Binding<CatalogCardLayoutMode> = .constant(.mini),
-        orderMode: Binding<BellOrderMode> = .constant(.newestFirst),
-        filters: Binding<BellFilters> = .constant(BellFilters()),
-        cardManagement: Binding<CatalogCardManagementState<BellCatalogItem>> = .constant(CatalogCardManagementState()),
+        layoutMode: Binding<CatalogCardLayoutMode>,
+        orderMode: Binding<BellOrderMode>,
+        filters: Binding<BellFilters>,
+        cardManagement: Binding<CatalogCardManagementState<BellCatalogItem>>,
         sharingState: CollectionSharingState,
         sharingService: (any CollectionSharingService)? = nil,
         onSharingChanged: @escaping () -> Void = {},
@@ -140,7 +121,7 @@ struct BellCatalogView: View {
     }
 
     private var catalogStyle: CollectionBackgroundStyle {
-        collection?.backgroundStyle ?? .slate
+        collection.backgroundStyle
     }
 
     private var displayModel: BellCatalogDisplayModel {
@@ -156,9 +137,7 @@ struct BellCatalogView: View {
     }
 
     private var sourceBells: [BellCatalogItem] {
-        let bells = catalogSnapshot?.bells ?? []
-        guard let collectionID = collection?.id else { return bells }
-        return bells.filter { $0.collectionID == collectionID }
+        catalogSnapshot?.bells.filter { $0.collectionID == collection.id } ?? []
     }
 
     private var storageContext: CatalogStorageContext {
@@ -171,11 +150,6 @@ struct BellCatalogView: View {
 
     private func setFilter(_ filter: BellAttributeFilter) {
         filters = BellFilters(attributes: [filter])
-    }
-
-    private func emitFeedback(_ kind: BellCatalogFeedback) {
-        feedbackToken += 1
-        feedbackEvent = BellCatalogFeedbackEvent(kind: kind, token: feedbackToken)
     }
 
     private func requestScroll(to targetID: String) {
@@ -212,9 +186,8 @@ struct BellCatalogView: View {
                     onBatchEdit: batchEditBells
                 )
             )
-            .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
-                newValue?.kind.sensoryFeedback
-            }
+            .sensoryFeedback(.success, trigger: moveFeedbackToken)
+            .sensoryFeedback(.warning, trigger: deleteFeedbackToken)
             .onAppear {
                 viewModel.updateContext(orderMode: orderMode)
                 viewModel.updateContext(filters: filters)
@@ -353,50 +326,30 @@ struct BellCatalogView: View {
     }
 
     private func favoritesSection(bells: [BellCatalogItem], screenWidth: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
-            BellCollapsibleSectionHeader(
-                title: String(localized: "bell.catalog.favorites"),
-                isCollapsed: isFavoritesCollapsed
-            ) {
-                withAnimation(.snappy(duration: 0.2)) {
-                    isFavoritesCollapsed.toggle()
+        CatalogCollapsibleCardSection(
+            title: String(localized: "bell.catalog.favorites"),
+            layoutMode: layoutMode,
+            screenWidth: screenWidth,
+            isCollapsed: $isFavoritesCollapsed
+        ) { cardSize, cardMetrics in
+            ForEach(bells, id: \.id) { bell in
+                Button {
+                    onBellSelected?(bell.id)
+                } label: {
+                    BellCardView(
+                        bell: bell,
+                        style: CatalogCardContentStyle.style(for: layoutMode),
+                        cardSize: cardSize,
+                        cardMetrics: cardMetrics
+                    )
                 }
-            }
-
-            if !isFavoritesCollapsed {
-                CatalogCardStrip(
-                    layoutMode: layoutMode,
-                    screenWidth: screenWidth,
-                    horizontalPadding: CatalogMetrics.Insets.screen
-                ) { cardSize, cardMetrics in
-                    ForEach(bells, id: \.id) { bell in
-                        let style = CatalogCardContentStyle.style(for: layoutMode)
-
-                        Button {
-                            onBellSelected?(bell.id)
-                        } label: {
-                            BellCardView(
-                                bell: bell,
-                                style: style,
-                                cardSize: cardSize,
-                                cardMetrics: cardMetrics
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+                .buttonStyle(.plain)
             }
         }
     }
 
     private var catalogSectionHeader: some View {
-        BellGroupedSectionHeader(
-            title: String(localized: "bell.catalog.title"),
-            tint: catalogStyle.accentColor,
-            isJumpButton: false,
-            action: {}
-        )
-        //.padding(.horizontal, CatalogMetrics.Insets.screen)
+        CatalogSectionHeader(title: String(localized: "bell.catalog.title"))
     }
 
     private func stripScreenWidth(
@@ -434,10 +387,9 @@ struct BellCatalogView: View {
                     }
                 }
             } header: {
-                BellGroupedSectionHeader(
+                CatalogSectionHeader(
                     title: section.title,
-                    tint: catalogStyle.accentColor,
-                    isJumpButton: usesJumpPopover,
+                    showsJumpIndicator: usesJumpPopover,
                     action: {
                         activeJumpPopoverSectionID = section.id
                     }
@@ -518,7 +470,7 @@ struct BellCatalogView: View {
             )
         }
 
-        emitFeedback(.success)
+        moveFeedbackToken += 1
     }
 
     private func deleteBells(_ bells: [BellCatalogItem]) {
@@ -528,82 +480,7 @@ struct BellCatalogView: View {
             repository.deleteBellRecord(bellID: bell.id)
         }
 
-        emitFeedback(.warning)
-    }
-}
-
-private struct BellGroupedSectionHeader: View {
-    let title: String
-    let tint: Color
-    let isJumpButton: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Group {
-            if isJumpButton {
-                Button(action: action) {
-                    headerContent
-                }
-                .buttonStyle(.plain)
-            } else {
-                headerContent
-            }
-        }
-    }
-
-    private var headerContent: some View {
-        HStack(spacing: CatalogMetrics.Spacing.sm) {
-            Text(title)
-                .font(CatalogTypography.sectionTitle)
-                .foregroundStyle(.primary)
-
-            if isJumpButton {
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(CatalogTypography.chipLabel)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, CatalogMetrics.Spacing.sm)
-        .padding(.horizontal, CatalogMetrics.Spacing.md)
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color(uiColor: .separator))
-                .frame(height: 0.5)
-        }
-    }
-}
-
-private struct BellCollapsibleSectionHeader: View {
-    let title: String
-    let isCollapsed: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: CatalogMetrics.Spacing.sm) {
-                Text(title)
-                    .font(CatalogTypography.sectionTitle)
-                    .foregroundStyle(.primary)
-
-                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                    .font(CatalogTypography.chipLabel)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-            }
-            .padding(.vertical, CatalogMetrics.Spacing.sm)
-            .padding(.horizontal, CatalogMetrics.Spacing.md)
-            .background(.ultraThinMaterial)
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(Color(uiColor: .separator))
-                    .frame(height: 0.5)
-            }
-        }
-        .buttonStyle(.plain)
+        deleteFeedbackToken += 1
     }
 }
 
@@ -658,6 +535,10 @@ private struct BellGroupingJumpPopover: View {
             collection: summary,
             repository: repository,
             catalogSnapshot: snapshot,
+            layoutMode: .constant(.mini),
+            orderMode: .constant(.newestFirst),
+            filters: .constant(BellFilters()),
+            cardManagement: .constant(CatalogCardManagementState()),
             sharingState: CollectionSharingState(
                 currentUserRole: .owner,
                 participants: []
