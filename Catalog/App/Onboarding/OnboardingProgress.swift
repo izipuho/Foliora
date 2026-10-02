@@ -1,20 +1,38 @@
 import Foundation
 
-/// Tracks whether this device has completed the first launch flow.
+/// Tracks how much of the first launch flow is still due.
 ///
-/// Completion is stored per device in local defaults: translation models are
-/// installed per device, so a new device goes through the flow again, while the
-/// profile answers synced through iCloud let it skip the introduction step.
+/// Completion is recorded twice. The record in local defaults says that this
+/// device is done. The record in iCloud key-value storage says that the user has
+/// been through the flow, on any device; it also survives reinstalling the app.
 ///
-/// Showing the flow depends only on this record, never on the live state of
-/// system services, so a removed translation model or a changed system language
-/// does not bring the flow back on the next launch.
+/// A device with only the synced record, such as a second device or a fresh
+/// install, does not repeat the flow: only its own setup is left, because
+/// translation models are installed per device. The synced record can arrive
+/// after the first launch on a new device, which then shows the whole flow.
+///
+/// What is due depends only on these records, never on the live state of system
+/// services, so a removed translation model or a changed system language does
+/// not bring the flow back on the next launch.
 enum OnboardingProgress {
     /// Bump when the flow changes enough that every user should see it again.
     static let currentVersion = 1
 
+    /// The part of the first launch flow that is still due on this device.
+    enum PendingFlow {
+        /// Nothing: this device has completed the flow.
+        case none
+        /// Only this device's own setup: the user has completed the flow elsewhere.
+        case deviceSetup
+        /// The whole flow.
+        case full
+    }
+
     private enum Key {
+        /// In local defaults: the flow version completed on this device.
         static let completedVersion = "foliora.onboarding.completedVersion"
+        /// In iCloud key-value storage: the flow version the user has completed on any device.
+        static let seenVersion = "foliora.onboarding.seenVersion"
         static let resetArgument = "FolioraResetOnboarding"
         static let didCheckLegacyCompletion = "foliora.onboarding.didCheckLegacyCompletion"
 
@@ -24,22 +42,39 @@ enum OnboardingProgress {
     }
 
     private static var defaults: UserDefaults { .standard }
+    private static var synced: NSUbiquitousKeyValueStore { .default }
 
-    /// Whether the first launch flow should be shown on this launch.
+    /// The part of the first launch flow that is due on this launch.
     ///
-    /// Pass `-FolioraResetOnboarding YES` as a launch argument to force the flow.
-    static var needsOnboarding: Bool {
+    /// Pass `-FolioraResetOnboarding YES` as a launch argument to force the whole flow.
+    static var pendingFlow: PendingFlow {
         if defaults.bool(forKey: Key.resetArgument) {
-            return true
+            return .full
         }
 
         migrateLegacyCompletionIfNeeded()
-        return defaults.integer(forKey: Key.completedVersion) < currentVersion
+
+        if defaults.integer(forKey: Key.completedVersion) >= currentVersion {
+            // Covers devices that completed the flow before the synced record existed.
+            markSeenIfNeeded()
+            return .none
+        }
+        return isSeen ? .deviceSetup : .full
     }
 
-    /// Records that the flow was completed on this device.
+    /// Records that the flow was completed: on this device, and for the user's other devices.
     static func markCompleted() {
         defaults.set(currentVersion, forKey: Key.completedVersion)
+        markSeenIfNeeded()
+    }
+
+    private static var isSeen: Bool {
+        synced.longLong(forKey: Key.seenVersion) >= Int64(currentVersion)
+    }
+
+    private static func markSeenIfNeeded() {
+        guard !isSeen else { return }
+        synced.set(Int64(currentVersion), forKey: Key.seenVersion)
     }
 
     /// Marks users who finished the previous flow as done, so the update does not replay it.

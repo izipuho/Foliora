@@ -8,6 +8,9 @@ import Translation
 /// Action steps only move forward through their buttons, so none of them can be
 /// swiped past. The feature tour is the one place that pages by swiping, and it
 /// has no skip button: its slides are short enough to page through.
+///
+/// A user who has completed the flow on another device, or before reinstalling,
+/// only gets this device's own setup: the translation step, and nothing after it.
 struct FirstLaunchFlowView: View {
     private enum Step: Hashable {
         case profile
@@ -18,6 +21,7 @@ struct FirstLaunchFlowView: View {
     }
 
     @State private var step: Step
+    @State private var isDeviceSetupOnly: Bool
     @State private var translationState: TranslationPreparationState?
     @State private var isPreparingTranslation = false
     @State private var translationConfiguration: TranslationSession.Configuration?
@@ -32,8 +36,11 @@ struct FirstLaunchFlowView: View {
 
     init(onFinished: @escaping @MainActor () -> Void) {
         let pages = OnboardingTourPage.pages(for: CollectionAppLink.currentAppKind)
+        let isDeviceSetupOnly = OnboardingProgress.pendingFlow == .deviceSetup
+        let skipsProfile = isDeviceSetupOnly || ProfileSettings.isIntroductionAnswered
 
-        _step = State(initialValue: ProfileSettings.isIntroductionAnswered ? .translation : .profile)
+        _step = State(initialValue: skipsProfile ? .translation : .profile)
+        _isDeviceSetupOnly = State(initialValue: isDeviceSetupOnly)
         _userName = State(initialValue: ProfileSettings.displayName ?? "")
         _tourPageID = State(initialValue: pages.first?.id ?? "")
         tourPages = pages
@@ -169,10 +176,7 @@ struct FirstLaunchFlowView: View {
             title: "onboarding.ready.title",
             description: "onboarding.ready.description",
             primaryTitle: "onboarding.ready.start",
-            primaryAction: {
-                OnboardingProgress.markCompleted()
-                onFinished()
-            }
+            primaryAction: complete
         ) {
             EmptyView()
         }
@@ -277,6 +281,10 @@ struct FirstLaunchFlowView: View {
         case .profile:
             next = shouldShowTranslationStep ? .translation : .tour
         case .translation:
+            guard !isDeviceSetupOnly else {
+                complete()
+                return
+            }
             next = .tour
         case .tour:
             next = .iCloud
@@ -289,6 +297,13 @@ struct FirstLaunchFlowView: View {
         withAnimation(.smooth) {
             step = next
         }
+    }
+
+    /// Records the flow as completed and hands over to the app.
+    @MainActor
+    private func complete() {
+        OnboardingProgress.markCompleted()
+        onFinished()
     }
 
     /// The translation step stays while the check is still running, and shows
