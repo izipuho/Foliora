@@ -8975,58 +8975,6 @@
         }
       }
     },
-    "settings.import.result.bells" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d bell"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d bells"
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "variations" : {
-            "plural" : {
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d колокольчика"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d колокольчиков"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d колокольчик"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%d колокольчика"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "settings.import.result.collections" : {
       "localizations" : {
         "en" : {
