@@ -102,7 +102,6 @@ struct BellCatalogView: View {
     @State private var feedbackEvent: BellCatalogFeedbackEvent?
     @State private var feedbackToken = 0
     @State private var scrollRequestToken = 0
-    @State private var didEndActivePinchGesture = false
     @State private var isFavoritesCollapsed = false
     @StateObject private var viewModel: BellCatalogViewModel
 
@@ -174,41 +173,9 @@ struct BellCatalogView: View {
         filters = BellFilters(attributes: [filter])
     }
 
-    private var scrollContentBottomInset: CGFloat { 120 }
-
-    private var orderedLayoutModes: [CatalogCardLayoutMode] {
-        [.covers, .mini, .compact, .wide, .showcase]
-    }
-
-    private func layoutMagnifyGesture() -> some Gesture {
-        MagnifyGesture()
-            .onEnded { value in
-                let delta = value.magnification - 1
-                let threshold = zoomThreshold(forVelocity: value.velocity)
-
-                if delta >= threshold {
-                    zoomOutLayout()
-                } else if delta <= -threshold {
-                    zoomInLayout()
-                }
-
-                didEndActivePinchGesture = true
-            }
-    }
-
-    private func zoomThreshold(forVelocity velocity: CGFloat) -> CGFloat {
-        let baseThreshold: CGFloat = 0.12
-        let velocityReduction = min(abs(velocity) * 0.015, 0.05)
-        return max(0.05, baseThreshold - velocityReduction)
-    }
-
     private func emitFeedback(_ kind: BellCatalogFeedback) {
         feedbackToken += 1
         feedbackEvent = BellCatalogFeedbackEvent(kind: kind, token: feedbackToken)
-    }
-
-    private func resetPinchState() {
-        didEndActivePinchGesture = false
     }
 
     private func requestScroll(to targetID: String) {
@@ -216,106 +183,76 @@ struct BellCatalogView: View {
         scrollRequestToken += 1
     }
 
-    private func zoomInLayout() {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode), currentIndex > 0 else {
-            return
-        }
-
-        withAnimation(.snappy(duration: 0.24)) {
-            layoutMode = orderedLayoutModes[currentIndex - 1]
-        }
-    }
-
-    private func zoomOutLayout() {
-        guard let currentIndex = orderedLayoutModes.firstIndex(of: layoutMode), currentIndex < orderedLayoutModes.count - 1 else {
-            return
-        }
-
-        withAnimation(.snappy(duration: 0.24)) {
-            layoutMode = orderedLayoutModes[currentIndex + 1]
-        }
-    }
-
     var body: some View {
-        GeometryReader { proxy in
-            unifiedFeedContent(
-                displayModel: displayModel,
-                screenHeight: proxy.size.height
+        unifiedFeedContent(displayModel: displayModel)
+            .modifier(
+                CatalogCardManagementModifier(
+                    state: $cardManagement,
+                    visibleItems: visibleBells,
+                    snapshot: catalogSnapshot,
+                    collection: collection,
+                    currentLocationID: { $0.locationID },
+                    moveTitle: String(localized: "bell.context.move"),
+                    deleteTitle: String(localized: "bell.context.delete.title"),
+                    deleteMessage: String(localized: "bell.context.delete.message"),
+                    selectedTitle: { count in
+                        String.localizedStringWithFormat(
+                            String(localized: "bell_catalog.selection.selected_count"),
+                            count
+                        )
+                    },
+                    canEdit: canEditCollection,
+                    tint: catalogStyle.accentColor,
+                    onSaveHome: { home, locations in
+                        repository.saveHome(home)
+                        repository.saveLocations(locations, in: home.id)
+                    },
+                    onMove: moveBells,
+                    onDelete: deleteBells,
+                    onBatchEdit: batchEditBells
+                )
             )
-        }
-        .modifier(
-            CatalogCardManagementModifier(
-                state: $cardManagement,
-                visibleItems: visibleBells,
-                snapshot: catalogSnapshot,
-                collection: collection,
-                currentLocationID: { $0.locationID },
-                moveTitle: String(localized: "bell.context.move"),
-                deleteTitle: String(localized: "bell.context.delete.title"),
-                deleteMessage: String(localized: "bell.context.delete.message"),
-                selectedTitle: { count in
-                    String.localizedStringWithFormat(
-                        String(localized: "bell_catalog.selection.selected_count"),
-                        count
-                    )
-                },
-                canEdit: canEditCollection,
-                tint: catalogStyle.accentColor,
-                onSaveHome: { home, locations in
-                    repository.saveHome(home)
-                    repository.saveLocations(locations, in: home.id)
-                },
-                onMove: moveBells,
-                onDelete: deleteBells,
-                onBatchEdit: batchEditBells
-            )
-        )
-        .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
-            newValue?.kind.sensoryFeedback
-        }
-        .onAppear {
-            viewModel.updateContext(orderMode: orderMode)
-            viewModel.updateContext(filters: filters)
-            updateSourceBells(sourceBells)
-        }
-        .onChange(of: sourceBells) { _, newValue in
-            updateSourceBells(newValue)
-        }
-        .onChange(of: orderMode) { _, newValue in
-            activeJumpPopoverSectionID = nil
-            DispatchQueue.main.async {
-                viewModel.updateContext(orderMode: newValue)
-                if let pendingScrollTargetID {
-                    requestScroll(to: pendingScrollTargetID)
-                } else {
+            .sensoryFeedback(trigger: feedbackEvent) { _, newValue in
+                newValue?.kind.sensoryFeedback
+            }
+            .onAppear {
+                viewModel.updateContext(orderMode: orderMode)
+                viewModel.updateContext(filters: filters)
+                updateSourceBells(sourceBells)
+            }
+            .onChange(of: sourceBells) { _, newValue in
+                updateSourceBells(newValue)
+            }
+            .onChange(of: orderMode) { _, newValue in
+                activeJumpPopoverSectionID = nil
+                DispatchQueue.main.async {
+                    viewModel.updateContext(orderMode: newValue)
+                    if let pendingScrollTargetID {
+                        requestScroll(to: pendingScrollTargetID)
+                    } else {
+                        requestScroll(to: "bell-grid-top")
+                    }
+                }
+            }
+            .onChange(of: filters) { _, newValue in
+                viewModel.updateContext(filters: newValue)
+                cardManagement.pruneSelection(to: visibleBells)
+                if newValue.activeTagFilter != nil {
                     requestScroll(to: "bell-grid-top")
                 }
-                resetPinchState()
             }
-        }
-        .onChange(of: filters) { _, newValue in
-            viewModel.updateContext(filters: newValue)
-            cardManagement.pruneSelection(to: visibleBells)
-            if newValue.activeTagFilter != nil {
-                requestScroll(to: "bell-grid-top")
-            }
-            resetPinchState()
-        }
     }
 
-    private func unifiedFeedContent(
-        displayModel: BellCatalogDisplayModel,
-        screenHeight: CGFloat
-    ) -> some View {
+    private func unifiedFeedContent(displayModel: BellCatalogDisplayModel) -> some View {
         return ScrollViewReader { scrollProxy in
-            CatalogCardGrid(layoutMode: layoutMode, bottomContentMargin: scrollContentBottomInset, usesGridLayout: false) { cardSize, gridMetrics, cardMetrics in
+            CatalogCardGrid(layoutMode: layoutMode, usesGridLayout: false) { cardSize, gridMetrics, cardMetrics in
                 LazyVStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg, pinnedViews: displayModel.layout.isGrouped ? [.sectionHeaders] : []) {
                     Color.clear
                         .frame(height: 0)
                         .id("bell-grid-top")
 
                     if !cardManagement.isSelectionModeEnabled {
-                        dashboardHeader(displayModel: displayModel, screenHeight: screenHeight)
+                        dashboardHeader(displayModel: displayModel)
                     }
 
                     if !cardManagement.isSelectionModeEnabled && !favoriteBells.isEmpty {
@@ -350,10 +287,6 @@ struct BellCatalogView: View {
                         bellGridView(bells: bells, layoutMetrics: (cardSize, gridMetrics, cardMetrics))
                     }
                 }
-                .simultaneousGesture(
-                    layoutMagnifyGesture()
-                )
-                .animation(.snappy(duration: 0.24), value: layoutMode)
             }
             .background {
                 CatalogBackgrounds.collection(
@@ -402,7 +335,7 @@ struct BellCatalogView: View {
         .background(.ultraThinMaterial, in: CatalogShapes.medium)
     }
 
-    private func dashboardHeader(displayModel: BellCatalogDisplayModel, screenHeight: CGFloat) -> some View {
+    private func dashboardHeader(displayModel: BellCatalogDisplayModel) -> some View {
         BellCatalogDashboardView(
             stats: displayModel.stats,
             accentColor: catalogStyle.accentColor,
@@ -561,13 +494,6 @@ struct BellCatalogView: View {
             layoutMetrics: layoutMetrics,
             cardManagement: $cardManagement,
             canManage: canEditCollection,
-            shouldHandleTap: { _ in
-                if didEndActivePinchGesture {
-                    didEndActivePinchGesture = false
-                    return false
-                }
-                return true
-            },
             onOpen: { bell in
                 onBellSelected?(bell.id)
             },
