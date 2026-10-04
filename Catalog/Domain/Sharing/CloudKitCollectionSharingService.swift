@@ -27,12 +27,28 @@ protocol CollectionSharingService: Sendable {
 /// Provides cloud kit collection sharing service operations.
 final class CloudKitCollectionSharingService: CollectionSharingService, @unchecked Sendable {
     private let persistentContainer: NSPersistentCloudKitContainer
-    private let context: NSManagedObjectContext
+    private let contextLock = NSLock()
+    private var cachedContext: NSManagedObjectContext?
 
     init(persistentContainer: NSPersistentCloudKitContainer) {
         self.persistentContainer = persistentContainer
-        self.context = persistentContainer.newBackgroundContext()
-        self.context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+    }
+
+    /// The background context of the service, created on first use.
+    ///
+    /// Views create the service freely, some on every body evaluation, and most of those
+    /// instances never reach the store.
+    private var context: NSManagedObjectContext {
+        contextLock.withLock { () -> NSManagedObjectContext in
+            if let cachedContext {
+                return cachedContext
+            }
+
+            let context = persistentContainer.newBackgroundContext()
+            context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            cachedContext = context
+            return context
+        }
     }
 
     func createShare(
@@ -116,7 +132,17 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
             )
         }
 
-        let currentUserRole = participants.first { $0.isCurrentUser }?.role ?? .viewer
+        // A collection in the private store is the user's own. For a collection of another owner
+        // Core Data knows whether the share lets the user change it.
+        let isOwnCollection = try !FolioraCoreDataStack.isSharedStore(persistentStore(for: objectID))
+        let currentUserRole: CollectionAccessRole
+        if isOwnCollection {
+            currentUserRole = .owner
+        } else if persistentContainer.canUpdateRecord(forManagedObjectWith: objectID) {
+            currentUserRole = .contributor
+        } else {
+            currentUserRole = .viewer
+        }
 
         return CollectionSharingState(
             currentUserRole: currentUserRole,
