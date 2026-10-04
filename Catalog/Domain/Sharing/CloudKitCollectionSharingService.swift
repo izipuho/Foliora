@@ -60,7 +60,7 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
         let container = try cloudKitContainer()
         let existingShare = try persistentContainer.fetchShares(matching: [objectID])[objectID]
 
-        if let existingShare, existingShare.currentUserParticipant?.role != .owner {
+        if let existingShare, FolioraCoreDataStack.isSharedStore(persistentStore) {
             // A participant can open the sharing screen, but only the owner may change the share itself.
             guard existingShare.url != nil else {
                 throw CloudKitCollectionSharingError.shareURLUnavailable
