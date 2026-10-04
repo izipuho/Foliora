@@ -23,13 +23,6 @@ final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
 
         return configuration
     }
-
-    func application(
-        _ application: UIApplication,
-        userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
-    ) {
-        FolioraCloudKitShareInvitationAcceptor.accept(cloudKitShareMetadata)
-    }
 }
 
 /// Provides the foliora app application entry point.
