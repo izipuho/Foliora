@@ -47,6 +47,9 @@ The repository also contains a small bell-recognition/debug target and a local P
 - Core Data uses separate private and shared persistent stores backed by CloudKit.
 - Collections are the sharing boundary.
 - The app handles CloudKit share invitations and provides collection sharing UI.
+- Participants, their rights, and leaving a share are managed on the system sharing screen (`UICloudSharingController`); the app persists what the screen changes, since Core Data does not pick it up on its own.
+- Foliora apps share one CloudKit container, so every share is marked with its collection kind (`CollectionShareType`). An app that receives an invitation for a sibling app hands it over instead of accepting it.
+- Deleting a shared collection as the owner, or leaving one as a participant, purges the share zone.
 - Debug builds include Cloud sync diagnostics and a purge tool for development data resets.
 
 ## Repository Structure

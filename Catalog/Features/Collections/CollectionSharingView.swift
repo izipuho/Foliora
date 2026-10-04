@@ -51,30 +51,14 @@ struct CollectionSharingView: View {
                 )
             }
 
-            Section(String(localized: "collection.sharing.participants.section")) {
-                if state.peopleParticipants.isEmpty {
-                    Text("collection.sharing.participants.empty")
-                        .foregroundStyle(.secondary)
-                } else {
-                    participantsContent(state.peopleParticipants)
-                }
-            }
-
-            if !state.invitedParticipants.isEmpty {
-                Section("collection.sharing.invited.section") {
-                    participantsContent(state.invitedParticipants)
-                }
-            }
-
-            if canManageSharing {
-                Section {
-                    Button("collection.sharing.share_cta") {
-                        Task {
-                            await openSharingController()
-                        }
+            // Who is on the share, their rights and leaving it are all on the system sharing screen.
+            Section {
+                Button(sharingScreenButtonTitle) {
+                    Task {
+                        await openSharingController()
                     }
-                    .disabled(isPreparingShare)
                 }
+                .disabled(isPreparingShare)
             }
         }
         .navigationTitle(String(localized: "catalog.dashboard.sharing"))
@@ -92,29 +76,6 @@ struct CollectionSharingView: View {
         }
     }
 
-    @ViewBuilder
-    private func participantsContent(_ participants: [CollectionParticipant]) -> some View {
-        ForEach(participants) { participant in
-            LabeledContent(
-                participantName(participant),
-                value: roleText(participant.role)
-            )
-        }
-    }
-
-    private func participantName(_ participant: CollectionParticipant) -> String {
-        if participant.isCurrentUser {
-            return String(localized: "collection.sharing.participant.you")
-        }
-
-        let youText = String(localized: "collection.sharing.participant.you")
-        if let displayName = participant.displayName, !displayName.isEmpty, displayName != youText {
-            return displayName
-        }
-
-        return String(localized: "collection.sharing.participant.unknown_user")
-    }
-
     private func roleText(_ role: CollectionAccessRole) -> String {
         switch role {
         case .owner:
@@ -126,8 +87,10 @@ struct CollectionSharingView: View {
         }
     }
 
-    private var canManageSharing: Bool {
+    private var sharingScreenButtonTitle: String {
         state.currentUserRole == .owner
+            ? String(localized: "collection.sharing.share_cta")
+            : String(localized: "collection.sharing.people_cta")
     }
 
     @MainActor
