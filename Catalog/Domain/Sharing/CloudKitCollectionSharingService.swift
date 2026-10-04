@@ -84,6 +84,7 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
         do {
             let objectID = try await collectionObjectID(for: collectionID)
             let persistentStore = try persistentStore(for: objectID)
+            let shareType = try await collectionShareType(for: collectionID)
 
             let sharesBefore: [NSManagedObjectID: CKShare]
             do {
@@ -98,6 +99,7 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
                     existingShare,
                     title: title,
                     thumbnailImageData: shareThumbnailImageData(),
+                    shareType: shareType,
                     objectID: objectID,
                     in: persistentStore
                 )
@@ -114,6 +116,7 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
                 sharedCollection.share,
                 title: title,
                 thumbnailImageData: shareThumbnailImageData(),
+                shareType: shareType,
                 objectID: objectID,
                 in: persistentStore
             )
@@ -163,6 +166,22 @@ private extension CloudKitCollectionSharingService {
             }
 
             return collection.objectID
+        }
+    }
+
+    /// The share type marker for the collection, so sibling Foliora apps can tell whose invitation it is.
+    func collectionShareType(for collectionID: UUID) async throws -> String? {
+        try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CollectionEntity")
+            request.fetchLimit = 1
+            request.predicate = NSPredicate(format: "id == %@", collectionID as NSUUID)
+
+            guard let collection = try self.context.fetch(request).first else {
+                throw CloudKitCollectionSharingError.collectionNotFound(collectionID)
+            }
+
+            let kind = (collection.value(forKey: "kind") as? String).flatMap { CollectionKind(rawValue: $0) }
+            return kind.map { CollectionShareType.value(for: $0) }
         }
     }
 
@@ -253,6 +272,7 @@ private extension CloudKitCollectionSharingService {
         _ share: CKShare,
         title: String? = nil,
         thumbnailImageData: Data? = nil,
+        shareType: String? = nil,
         objectID: NSManagedObjectID,
         in persistentStore: NSPersistentStore
     ) async throws -> CKShare {
@@ -265,6 +285,11 @@ private extension CloudKitCollectionSharingService {
 
         if let thumbnailImageData, needsThumbnailUpdate(share, thumbnailImageData: thumbnailImageData) {
             share[CKShare.SystemFieldKey.thumbnailImageData] = thumbnailImageData
+            needsPersisting = true
+        }
+
+        if let shareType, (share[CKShare.SystemFieldKey.shareType] as? String) != shareType {
+            share[CKShare.SystemFieldKey.shareType] = shareType
             needsPersisting = true
         }
 
