@@ -14,14 +14,36 @@ enum CloudKitShareInvitationAcceptanceState: Equatable {
     case failed(message: String)
 }
 
+/// A share invitation handed over by a sibling Foliora app, waiting for the user's confirmation.
+///
+/// The system asks the user before delivering an invitation to an app. A link from another app
+/// carries no such consent, so the app asks itself.
+struct PendingShareInvitation {
+    let title: String?
+    let metadata: CKShare.Metadata
+}
+
 /// Provides cloud kit share invitation acceptance controller operations.
 @MainActor
 final class CloudKitShareInvitationAcceptanceController: ObservableObject {
     static let shared = CloudKitShareInvitationAcceptanceController()
 
     @Published private(set) var state: CloudKitShareInvitationAcceptanceState = .idle
+    @Published private(set) var invitationAwaitingConfirmation: PendingShareInvitation?
 
     private init() {}
+
+    func requestConfirmation(for metadata: CKShare.Metadata) {
+        state = .idle
+        invitationAwaitingConfirmation = PendingShareInvitation(
+            title: metadata.share[CKShare.SystemFieldKey.title] as? String,
+            metadata: metadata
+        )
+    }
+
+    func clearConfirmation() {
+        invitationAwaitingConfirmation = nil
+    }
 
     func beginAccepting() {
         state = .accepting
@@ -77,6 +99,11 @@ enum FolioraCloudKitShareInvitationAcceptor {
     private static let importCheckCount = 60
 
     static func accept(_ metadata: CKShare.Metadata) {
+        if let kind = CollectionShareType.kind(of: metadata.share), kind != CollectionAppLink.currentAppKind {
+            handOff(metadata, to: kind)
+            return
+        }
+
         CloudKitShareInvitationAcceptanceController.shared.beginAccepting()
 
         guard let container = FolioraAppDelegate.coreDataContainer else {
@@ -95,6 +122,78 @@ enum FolioraCloudKitShareInvitationAcceptor {
         invitationsAwaitingContainer = []
         for metadata in invitations {
             accept(metadata, into: container)
+        }
+    }
+
+    /// Handles a share invitation link handed over by a sibling Foliora app.
+    ///
+    /// Returns `false` when the URL is not such a link. The invitation is accepted only after
+    /// the user confirms it.
+    static func handleInvitationLink(_ url: URL) -> Bool {
+        guard let shareURL = CollectionAppLink.shareURL(
+            fromInvitationLink: url,
+            for: CollectionAppLink.currentAppKind
+        ) else {
+            return false
+        }
+
+        CloudKitShareInvitationAcceptanceController.shared.beginAccepting()
+        Task { @MainActor in
+            do {
+                let metadata = try await shareMetadata(for: shareURL)
+                CloudKitShareInvitationAcceptanceController.shared.requestConfirmation(for: metadata)
+            } catch {
+                CloudKitShareInvitationAcceptanceController.shared.markFailed(
+                    message: userFacingMessage(for: error)
+                )
+            }
+        }
+        return true
+    }
+
+    /// Accepts an invitation the user confirmed.
+    static func acceptConfirmed(_ invitation: PendingShareInvitation) {
+        CloudKitShareInvitationAcceptanceController.shared.clearConfirmation()
+        accept(invitation.metadata)
+    }
+
+    static func declinePendingInvitation() {
+        CloudKitShareInvitationAcceptanceController.shared.clearConfirmation()
+    }
+
+    /// Passes an invitation meant for a sibling app on to that app instead of accepting it here.
+    private static func handOff(_ metadata: CKShare.Metadata, to kind: CollectionKind) {
+        let failureMessage = String.localizedStringWithFormat(
+            String(localized: "collection.sharing.error.other_app_required"),
+            CollectionAppLink.appName(for: kind)
+        )
+
+        guard let shareURL = metadata.share.url,
+              let link = CollectionAppLink.shareInvitationURL(for: kind, shareURL: shareURL)
+        else {
+            CloudKitShareInvitationAcceptanceController.shared.markFailed(message: failureMessage)
+            return
+        }
+
+        Task { @MainActor in
+            let didOpen = await UIApplication.shared.open(link)
+            if didOpen {
+                CloudKitShareInvitationAcceptanceController.shared.reset()
+            } else {
+                CloudKitShareInvitationAcceptanceController.shared.markFailed(message: failureMessage)
+            }
+        }
+    }
+
+    nonisolated private static func shareMetadata(for url: URL) async throws -> CKShare.Metadata {
+        try await withCheckedThrowingContinuation { continuation in
+            CKContainer.default().fetchShareMetadata(with: url) { metadata, error in
+                if let metadata {
+                    continuation.resume(returning: metadata)
+                } else {
+                    continuation.resume(throwing: error ?? ShareInvitationLinkError.metadataUnavailable)
+                }
+            }
         }
     }
 
@@ -171,4 +270,8 @@ enum FolioraCloudKitShareInvitationAcceptor {
         return message
         #endif
     }
+}
+
+private enum ShareInvitationLinkError: Error {
+    case metadataUnavailable
 }

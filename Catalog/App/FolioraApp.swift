@@ -71,6 +71,7 @@ struct FolioraApp: App {
                 }
             }
             .onOpenURL { url in
+                guard !FolioraCloudKitShareInvitationAcceptor.handleInvitationLink(url) else { return }
                 CollectionAppLinkRouter.shared.handle(url)
             }
             .task {

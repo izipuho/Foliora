@@ -118,6 +118,20 @@ struct AppShellView: View {
         } message: {
             Text(shareInvitationFailureMessage ?? "")
         }
+        .alert(
+            "collection.sharing.confirm.title",
+            isPresented: shareInvitationConfirmationBinding,
+            presenting: shareInvitationController.invitationAwaitingConfirmation
+        ) { invitation in
+            Button("collection.sharing.confirm.accept") {
+                FolioraCloudKitShareInvitationAcceptor.acceptConfirmed(invitation)
+            }
+            Button("common.cancel", role: .cancel) {
+                FolioraCloudKitShareInvitationAcceptor.declinePendingInvitation()
+            }
+        } message: { invitation in
+            Text(shareInvitationConfirmationMessage(for: invitation))
+        }
     }
 
     @ViewBuilder
@@ -277,6 +291,27 @@ struct AppShellView: View {
                 shareInvitationFailureMessage = nil
                 shareInvitationController.reset()
             }
+        )
+    }
+
+    private var shareInvitationConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { shareInvitationController.invitationAwaitingConfirmation != nil },
+            set: { isPresented in
+                guard !isPresented else { return }
+                FolioraCloudKitShareInvitationAcceptor.declinePendingInvitation()
+            }
+        )
+    }
+
+    private func shareInvitationConfirmationMessage(for invitation: PendingShareInvitation) -> String {
+        guard let title = invitation.title, !title.isEmpty else {
+            return String(localized: "collection.sharing.confirm.message_untitled")
+        }
+
+        return String.localizedStringWithFormat(
+            String(localized: "collection.sharing.confirm.message"),
+            title
         )
     }
 

@@ -2934,6 +2934,70 @@
         }
       }
     },
+    "collection.sharing.confirm.accept" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accept"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Принять"
+          }
+        }
+      }
+    },
+    "collection.sharing.confirm.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You will join the shared collection “%@”."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы присоединитесь к общей коллекции «%@»."
+          }
+        }
+      }
+    },
+    "collection.sharing.confirm.message_untitled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You will join a shared collection."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вы присоединитесь к общей коллекции."
+          }
+        }
+      }
+    },
+    "collection.sharing.confirm.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accept invitation?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Принять приглашение?"
+          }
+        }
+      }
+    },
     "collection.sharing.error.accept_failed" : {
       "localizations" : {
         "en" : {
@@ -2946,6 +3010,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не удалось открыть доступ. Проверьте iCloud и попробуйте ещё раз."
+          }
+        }
+      }
+    },
+    "collection.sharing.error.other_app_required" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This invitation is for %@. Install the app and open the invitation again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это приглашение для %@. Установите приложение и откройте приглашение ещё раз."
           }
         }
       }
