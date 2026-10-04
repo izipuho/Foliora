@@ -1,7 +1,6 @@
 import CloudKit
 import CoreData
 import Foundation
-import UIKit
 
 /// Defines the interface for collection sharing service implementations.
 protocol CollectionSharingService: Sendable {
@@ -80,7 +79,7 @@ final class CloudKitCollectionSharingService: CollectionSharingService, @uncheck
         let readyShare = try await shareWithUpdatedMetadata(
             collectionShare,
             title: title,
-            thumbnailImageData: shareThumbnailImageData(),
+            thumbnailImageData: CollectionShareThumbnail.imageData(),
             shareType: shareType,
             in: persistentStore
         )
@@ -255,26 +254,6 @@ private extension CloudKitCollectionSharingService {
     func needsThumbnailUpdate(_ share: CKShare, thumbnailImageData: Data) -> Bool {
         let currentThumbnailImageData = share[CKShare.SystemFieldKey.thumbnailImageData] as? Data
         return currentThumbnailImageData != thumbnailImageData
-    }
-
-    /// The thumbnail of a share invitation: the app medallion, as on the launch screen.
-    ///
-    /// Always the light variant, since the invitation is seen on any background, and
-    /// scaled to 512 px, since the image is stored in the share record.
-    func shareThumbnailImageData() -> Data? {
-        let light = UITraitCollection(userInterfaceStyle: .light)
-        guard let medallion = UIImage(named: "LaunchMedallion", in: .main, compatibleWith: light) else {
-            return nil
-        }
-
-        let side: CGFloat = 512
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        format.opaque = false
-        return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format)
-            .pngData { _ in
-                medallion.draw(in: CGRect(x: 0, y: 0, width: side, height: side))
-            }
     }
 
     /// Brings the share's title, thumbnail and type up to date and returns the share as stored.

@@ -204,6 +204,7 @@ private struct SharingAlert: Identifiable {
 @MainActor
 private final class CloudSharingScreen: NSObject, UICloudSharingControllerDelegate {
     private var shareTitle: String?
+    private var shareThumbnailData: Data?
     private var onSave: ((CKShare) -> Void)?
     private var onStop: (() -> Void)?
     private var onError: ((any Error) -> Void)?
@@ -220,6 +221,8 @@ private final class CloudSharingScreen: NSObject, UICloudSharingControllerDelega
         guard let presenter = Self.topViewController() else { return false }
 
         shareTitle = title
+        shareThumbnailData = (share[CKShare.SystemFieldKey.thumbnailImageData] as? Data)
+            ?? CollectionShareThumbnail.imageData()
         self.onSave = onSave
         self.onStop = onStop
         self.onError = onError
@@ -249,6 +252,14 @@ private final class CloudSharingScreen: NSObject, UICloudSharingControllerDelega
 
     func itemTitle(for csc: UICloudSharingController) -> String? {
         shareTitle
+    }
+
+    /// The picture for the header of the sharing screen.
+    ///
+    /// The screen asks the delegate for it, just as for the title. Left to the share record alone,
+    /// it shows a generic document icon whenever the record carries no thumbnail.
+    func itemThumbnailData(for csc: UICloudSharingController) -> Data? {
+        shareThumbnailData
     }
 
     func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
