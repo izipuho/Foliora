@@ -100,6 +100,10 @@ struct AppShellView: View {
             guard !managedObjectContext.hasChanges else { return }
             scheduleCatalogSnapshotReload()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .catalogStoreDidChangeExternally)) { _ in
+            managedObjectContext.refreshAllObjects()
+            reloadCatalogSnapshot()
+        }
         // The invitation that launched the app can be settled before this view appears.
         .onChange(of: shareInvitationController.state, initial: true) { _, state in
             handleShareInvitationState(state)

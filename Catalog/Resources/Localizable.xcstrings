@@ -3014,6 +3014,22 @@
         }
       }
     },
+    "collection.sharing.error.not_uploaded" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The collection hasn’t been uploaded to iCloud yet. Try again a little later."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Коллекция ещё не загружена в iCloud. Попробуйте немного позже."
+          }
+        }
+      }
+    },
     "collection.sharing.error.other_app_required" : {
       "localizations" : {
         "en" : {
@@ -3026,6 +3042,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Это приглашение для %@. Установите приложение и откройте приглашение ещё раз."
+          }
+        }
+      }
+    },
+    "collection.sharing.error.preparation_failed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t prepare sharing for the collection. Check iCloud and try again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось подготовить доступ к коллекции. Проверьте iCloud и попробуйте ещё раз."
           }
         }
       }
