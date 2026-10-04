@@ -107,11 +107,15 @@ final class CoreDataCatalogRepository: CatalogRepository {
             return .deletePrivateCollection
         }
 
-        if share.currentUserParticipant?.role == .owner {
-            return .deleteSharedCollectionAsOwner
+        guard !isInSharedStore(entity) else {
+            return .leaveSharedCollectionAsParticipant
         }
 
-        return .leaveSharedCollectionAsParticipant
+        // A share nobody else has joined is still a private collection to the user.
+        let hasOtherParticipants = share.participants.contains {
+            $0.role != .owner && $0.acceptanceStatus != .removed
+        }
+        return hasOtherParticipants ? .deleteSharedCollectionAsOwner : .deletePrivateCollection
     }
 
     func deleteCollection(collectionID: UUID) {
@@ -119,10 +123,14 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
         switch deleteResolution(for: collectionID) {
         case .deletePrivateCollection, .deleteSharedCollectionAsOwner:
-            context.delete(entity)
-            saveContext()
+            if share(for: entity) != nil {
+                purgeSharedCollection(collectionID: collectionID, deletesObjectsOnFailure: true)
+            } else {
+                context.delete(entity)
+                saveContext()
+            }
         case .leaveSharedCollectionAsParticipant:
-            leaveSharedCollection(entity)
+            purgeSharedCollection(collectionID: collectionID, deletesObjectsOnFailure: false)
         }
     }
 
@@ -602,25 +610,41 @@ final class CoreDataCatalogRepository: CatalogRepository {
         return (entity.value(forKey: key) as? NSSet)?.allObjects.compactMap { $0 as? NSManagedObject } ?? []
     }
 
+    /// Whether the entity lives in the shared store, i.e. belongs to a collection another user owns.
+    func isInSharedStore(_ entity: NSManagedObject) -> Bool {
+        entity.objectID.persistentStore.map(FolioraCoreDataStack.isSharedStore) ?? false
+    }
+
     private func share(for entity: NSManagedObject) -> CKShare? {
         try? persistentContainer?.fetchShares(matching: [entity.objectID])[entity.objectID]
     }
 
-    private func leaveSharedCollection(_ entity: NSManagedObject) {
-        guard
-            let persistentContainer,
-            let persistentStore = entity.objectID.persistentStore,
-            let share = share(for: entity)
-        else {
-            return
-        }
+    /// Removes a shared collection together with its share zone.
+    ///
+    /// Deleting only the objects leaves the zone and the share behind, and a participant must not
+    /// delete the owner's objects at all: leaving is done by purging the zone from the shared store.
+    ///
+    /// When the purge fails for the owner, e.g. without a connection, the objects are deleted the
+    /// plain way so the collection still goes. A participant has no such fallback and is told.
+    private func purgeSharedCollection(collectionID: UUID, deletesObjectsOnFailure: Bool) {
+        guard let persistentContainer else { return }
 
-        persistentContainer.purgeObjectsAndRecordsInZone(
-            with: share.recordID.zoneID,
-            in: persistentStore
-        ) { _, error in
-            if let error {
-                assertionFailure("Failed to leave shared collection: \(error)")
+        let sharingService = CloudKitCollectionSharingService(persistentContainer: persistentContainer)
+        Task {
+            do {
+                try await sharingService.purgeSharedCollection(for: collectionID)
+                NotificationCenter.default.post(name: .catalogStoreDidChangeExternally, object: nil)
+            } catch {
+                self.logger.error("Failed to purge shared collection: \(String(describing: error))")
+
+                if deletesObjectsOnFailure {
+                    if let entity = self.fetchEntity(named: "CollectionEntity", by: collectionID) {
+                        self.context.delete(entity)
+                        self.saveContext()
+                    }
+                } else {
+                    NotificationCenter.default.post(name: .collectionRemovalDidFail, object: nil)
+                }
             }
         }
     }
