@@ -100,6 +100,7 @@ struct FolioraApp: App {
             FolioraAppDelegate.coreDataContainer = coreDataContainer
             self.coreDataContainer = coreDataContainer
             self.container = container
+            FolioraCloudKitShareInvitationAcceptor.persistentContainerDidBecomeAvailable()
         } catch {
             fatalError("Failed to create Core Data container: \(error)")
         }

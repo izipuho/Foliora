@@ -100,7 +100,8 @@ struct AppShellView: View {
             guard !managedObjectContext.hasChanges else { return }
             scheduleCatalogSnapshotReload()
         }
-        .onChange(of: shareInvitationController.state) { _, state in
+        // The invitation that launched the app can be settled before this view appears.
+        .onChange(of: shareInvitationController.state, initial: true) { _, state in
             handleShareInvitationState(state)
         }
         .overlay {
@@ -279,6 +280,19 @@ struct AppShellView: View {
         )
     }
 
+    /// Hides the invitation status after a delay, unless another invitation changed it meanwhile.
+    private func dismissShareInvitationStatus(
+        _ state: CloudKitShareInvitationAcceptanceState,
+        after delay: Duration
+    ) {
+        Task { @MainActor in
+            try? await Task.sleep(for: delay)
+            if shareInvitationController.state == state {
+                shareInvitationController.reset()
+            }
+        }
+    }
+
     private func handleShareInvitationState(_ state: CloudKitShareInvitationAcceptanceState) {
         switch state {
         case .idle, .accepting:
@@ -288,12 +302,9 @@ struct AppShellView: View {
             reloadCatalogSnapshot()
             selectedRootTab = .collections
             collectionsPath = NavigationPath()
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1.5))
-                if shareInvitationController.state == .accepted {
-                    shareInvitationController.reset()
-                }
-            }
+            dismissShareInvitationStatus(state, after: .seconds(1.5))
+        case .acceptedAwaitingSync:
+            dismissShareInvitationStatus(state, after: .seconds(4))
         case .failed(let message):
             shareInvitationFailureMessage = message
         }
