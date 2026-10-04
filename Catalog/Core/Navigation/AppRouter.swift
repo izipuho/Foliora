@@ -345,26 +345,43 @@ private struct RootShellView<Destination: View>: View {
         )
     }
 
-    private var selectedRootTabSelection: Binding<RootTab?> {
-        Binding(
-            get: { selectedRootTab },
-            set: { tab in
-                if let tab {
-                    selectedRootTab = tab
-                }
-            }
-        )
-    }
-
     var body: some View {
         if horizontalSizeClass == .regular {
-            iPadRootContainer
+            rootTabs
+                .inspector(isPresented: isItemDetailPresented) {
+                    if let selectedItemID {
+                        makeItemDetailContent(
+                            itemID: selectedItemID,
+                            repository: repository,
+                            catalogSnapshot: catalogSnapshot,
+                            initialSharingState: selectedItemSharingState,
+                            onClose: closeItemDetail
+                        )
+                        .id(selectedItemID)
+                        .inspectorColumnWidth(min: 320, ideal: 360, max: 420)
+                    } else {
+                        EmptyView()
+                    }
+                }
         } else {
-            iPhoneRootContainer
+            rootTabs
+                .sheet(isPresented: isItemDetailPresented) {
+                    if let selectedItemID {
+                        makeItemDetailContent(
+                            itemID: selectedItemID,
+                            repository: repository,
+                            catalogSnapshot: catalogSnapshot,
+                            initialSharingState: selectedItemSharingState,
+                            onClose: nil
+                        )
+                        .id(selectedItemID)
+                        .presentationDragIndicator(.visible)
+                    }
+                }
         }
     }
 
-    private var iPhoneRootContainer: some View {
+    private var rootTabs: some View {
         TabView(selection: $selectedRootTab) {
             Tab(RootTab.collections.title, image: "ProductSymbol", value: RootTab.collections) {
                 collectionsStack(path: $collectionsPath, onItemSelected: openCollectionItemDetail)
@@ -391,77 +408,10 @@ private struct RootShellView<Destination: View>: View {
                 }
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .modifier(ModernTabBarBehavior())
-        .sheet(isPresented: isItemDetailPresented) {
-            if let selectedItemID {
-                makeItemDetailContent(
-                    itemID: selectedItemID,
-                    repository: repository,
-                    catalogSnapshot: catalogSnapshot,
-                    initialSharingState: selectedItemSharingState,
-                    onClose: nil
-                )
-                .id(selectedItemID)
-                .presentationDragIndicator(.visible)
-            }
-        }
-    }
-
-    private var iPadRootContainer: some View {
-        iPadSplitView
-            .navigationSplitViewStyle(.balanced)
-            .inspector(isPresented: isItemDetailPresented) {
-                if let selectedItemID {
-                    makeItemDetailContent(
-                        itemID: selectedItemID,
-                        repository: repository,
-                        catalogSnapshot: catalogSnapshot,
-                        initialSharingState: selectedItemSharingState,
-                        onClose: closeItemDetail
-                    )
-                    .id(selectedItemID)
-                    .inspectorColumnWidth(min: 320, ideal: 360, max: 420)
-                } else {
-                    EmptyView()
-                }
-            }
-    }
-
-    private var iPadSplitView: some View {
-        NavigationSplitView {
-            List(RootTab.allCases, selection: selectedRootTabSelection) { tab in
-                Label(tab.title, systemImage: tab.systemImage)
-                    .tag(tab)
-            }
-            .navigationTitle(RootTab.collections.title)
-            .onChange(of: selectedRootTab) { _, _ in
-                closeItemDetail()
-            }
-        } detail: {
-            iPadContent(for: selectedRootTab)
-        }
-    }
-
-    @ViewBuilder
-    private func iPadContent(for tab: RootTab) -> some View {
-        switch tab {
-        case .collections:
-            collectionsStack(path: $collectionsPath, onItemSelected: openCollectionItemDetail)
-        case .homes:
-            homesStack(path: $homesPath, onItemSelected: openCollectionItemDetail)
-        case .search:
-            NavigationStack(path: $searchPath) {
-                SearchView(
-                    repository: repository,
-                    layoutMode: layoutModeBinding,
-                    catalogSnapshot: catalogSnapshot,
-                    initialQuery: searchInitialQuery,
-                    onItemSelected: openItemDetail
-                )
-                .id(searchResetID)
-            }
-        case .settings:
-            settingsStack(path: $settingsPath, onItemSelected: openCollectionItemDetail)
+        .onChange(of: selectedRootTab) { _, _ in
+            closeItemDetail()
         }
     }
 
