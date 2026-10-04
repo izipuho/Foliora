@@ -78,4 +78,66 @@ struct CoreDataSharedStoreAssignmentTests {
             )
         }
     }
+
+    @Test
+    func savingSharedCollectionKeepsOwnerHome() throws {
+        let container = try FolioraCoreDataStack.makeInMemoryContainer()
+        let context = container.viewContext
+        let repository = CoreDataCatalogRepository(
+            context: context,
+            persistentContainer: nil
+        )
+        let sharedStore = try #require(FolioraCoreDataStack.sharedPersistentStore(in: container))
+
+        let ownerHomeID = UUID()
+        let collectionID = UUID()
+        let collection = NSEntityDescription.insertNewObject(
+            forEntityName: "CollectionEntity",
+            into: context
+        )
+        context.assign(collection, to: sharedStore)
+        collection.setValue(collectionID, forKey: "id")
+        collection.setValue(CollectionKind.bells.rawValue, forKey: "kind")
+        collection.setValue("Shared bells", forKey: "title")
+        collection.setValue(ownerHomeID, forKey: "homeID")
+        collection.setValue("Owner home", forKey: "homeName")
+        try context.save()
+
+        let participantHome = Home(id: UUID(), name: "Participant home", notes: "")
+        repository.saveHome(participantHome)
+        repository.saveLocations(
+            [
+                Location(
+                    id: UUID(),
+                    homeID: participantHome.id,
+                    parentLocationID: nil,
+                    kind: .room,
+                    name: "Room",
+                    notes: "",
+                    sortOrder: nil
+                )
+            ],
+            in: participantHome.id
+        )
+
+        repository.saveCollection(
+            Collection(
+                id: collectionID,
+                homeID: participantHome.id,
+                kind: .bells,
+                title: "Renamed",
+                notes: ""
+            )
+        )
+
+        #expect(!context.hasChanges)
+        #expect(collection.value(forKey: "title") as? String == "Renamed")
+        #expect(collection.value(forKey: "homeID") as? UUID == ownerHomeID)
+        #expect(collection.value(forKey: "homeName") as? String == "Owner home")
+
+        let collectionLocations = try context.fetch(
+            NSFetchRequest<NSManagedObject>(entityName: "CollectionLocationEntity")
+        )
+        #expect(collectionLocations.isEmpty)
+    }
 }

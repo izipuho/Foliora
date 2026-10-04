@@ -78,6 +78,14 @@ final class CoreDataCatalogRepository: CatalogRepository {
         let previousHomeID = existingEntity.map(collectionHomeID)
         let entity = existingEntity ?? makeEntity(named: "CollectionEntity")
         apply(collection, to: entity)
+
+        // The home of a collection another user owns is theirs. A participant edits only the
+        // collection's own fields; the home snapshot and the locations stay as the owner set them.
+        guard !isInSharedStore(entity) else {
+            saveContext()
+            return
+        }
+
         let didChangeHome = previousHomeID.map { $0 != collection.homeID } ?? false
 
         if let home = fetchEntity(named: "HomeEntity", by: collection.homeID) {
@@ -558,7 +566,8 @@ final class CoreDataCatalogRepository: CatalogRepository {
         let sourceIDs = Set(locations.map(\.id))
 
         for (sortOrder, location) in locations.enumerated() {
-            let entity = existingBySourceID[location.id] ?? makeEntity(named: "CollectionLocationEntity")
+            let entity = existingBySourceID[location.id]
+                ?? makeEntity(named: "CollectionLocationEntity", inStoreOf: collection)
             apply(location, sortOrder: sortOrder, to: entity)
             entity.setValue(collection, forKey: "collection")
             syncedBySourceID[location.id] = entity
@@ -696,6 +705,10 @@ final class CoreDataCatalogRepository: CatalogRepository {
         do {
             try context.save()
         } catch {
+            // A failed save leaves the context dirty: every later save fails the same way, and the
+            // catalog snapshot, which skips a context with unsaved changes, stops reloading.
+            logger.error("Failed to save Core Data catalog context: \(String(describing: error))")
+            context.rollback()
             assertionFailure("Failed to save Core Data catalog context: \(error)")
         }
     }
