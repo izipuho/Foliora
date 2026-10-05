@@ -54,17 +54,44 @@ struct BookCoverExtractor: Sendable {
         )
     }
 
+    /// Finds the cover and returns it perspective-corrected.
+    ///
+    /// Document segmentation runs first: unlike contour detection it still finds a cover whose
+    /// outline blends into the background or is crossed by stronger lines, such as floor seams or
+    /// the cover artwork itself. Contour-based rectangle detection stays as the fallback.
     private nonisolated static func extractCover(from image: CGImage) -> CGImage? {
+        let minimumConfidence: VNConfidence = 0.5
+        // Shortest cover side as a proportion of the shortest image side.
+        let minimumSize: Float = 0.25
+        let handler = VNImageRequestHandler(cgImage: image, options: [:])
+
+        let documentRequest = VNDetectDocumentSegmentationRequest()
+        // A failed segmentation is not fatal: rectangle detection below still gets its turn.
+        try? handler.perform([documentRequest])
+
+        let shortestImageSide = CGFloat(min(image.width, image.height))
+        let document = documentRequest.results?.first { observation in
+            let box = observation.boundingBox
+            let shortestSide = min(box.width * CGFloat(image.width), box.height * CGFloat(image.height))
+
+            return observation.confidence >= minimumConfidence
+                && shortestSide >= CGFloat(minimumSize) * shortestImageSide
+        }
+
+        if let document {
+            return perspectiveCorrectedImage(image, using: document)
+        }
+
         let request = VNDetectRectanglesRequest()
         request.maximumObservations = 8
-        request.minimumConfidence = 0.5
+        request.minimumConfidence = minimumConfidence
         request.minimumAspectRatio = 0.25
         request.maximumAspectRatio = 1.0
-        request.minimumSize = 0.25
+        request.minimumSize = minimumSize
         request.quadratureTolerance = 35
 
         do {
-            try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
+            try handler.perform([request])
         } catch {
             return nil
         }
