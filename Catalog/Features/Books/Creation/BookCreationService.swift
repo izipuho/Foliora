@@ -21,10 +21,16 @@ extension ItemCreationService {
     /// The first photo becomes the dedicated cover. If cover extraction fails, the
     /// original photo itself becomes that dedicated cover. Remaining assets stay as
     /// regular book media.
+    ///
+    /// `extractCover` is a parameter so tests can make cover extraction fail without depending
+    /// on what Vision detects in a fixture image.
     @MainActor
     static func prepareBookDraft(
         _ assets: [MediaAsset],
-        itemID: UUID = UUID()
+        itemID: UUID = UUID(),
+        extractCover: @MainActor (Data) async -> MediaAsset? = {
+            await BookCoverExtractor().extractCover(from: $0)
+        }
     ) async -> BookCreationDraft {
         let orderedPhotos = assets
             .filter { $0.kind == .photo }
@@ -53,7 +59,7 @@ extension ItemCreationService {
         let coverImage: MediaAsset
         let usedOriginalCover: Bool
 
-        if let extracted = await BookCoverExtractor().extractCover(from: originalData) {
+        if let extracted = await extractCover(originalData) {
             coverImage = extracted.with(
                 itemID: itemID,
                 displayName: String(localized: "editor.media.cover"),
