@@ -15,8 +15,8 @@ import SwiftUI
 ///   during which the data becomes ready, whichever is later.
 /// - A new user gets the first launch flow on the same backdrop instead.
 ///
-/// With Reduce Motion on, nothing moves; elements only fade, and the medallion
-/// stays at the center.
+/// With Reduce Motion on, the layout ends up the same but nothing moves: the
+/// medallion dissolves into its raised place, and the other elements fade.
 struct LaunchSequenceView: View {
     /// Whether the app's data stack is ready to show the catalog.
     let isApplicationReady: Bool
@@ -71,7 +71,7 @@ struct LaunchSequenceView: View {
             let leftArcHeight = ArcShape.height(of: .left, screenHeight: screenHeight)
 
             let diameter = metrics.medallionDiameter
-            let isMedallionRaised = phase != .launch && !reduceMotion
+            let isMedallionRaised = phase != .launch
             let medallionScale = isMedallionRaised ? Self.introScale : 1
             // Raised, the scaled medallion sits just under the product name.
             let medallionCenterY = isMedallionRaised
@@ -89,6 +89,10 @@ struct LaunchSequenceView: View {
                 content(bottomInset: max(0, rightArcHeight - proxy.safeAreaInsets.bottom))
 
                 medallion(scale: medallionScale, offset: medallionCenterY - screenCenterY)
+                    // With Reduce Motion on, the raised medallion is a new view, so it
+                    // dissolves in at its place instead of moving there.
+                    .id(reduceMotion && isMedallionRaised)
+                    .transition(.opacity)
 
                 greetingLabel(height: max(0, greetingHeight), bottomInset: greetingBottomInset)
             }
