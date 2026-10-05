@@ -727,11 +727,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Books.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-<<<<<<< Updated upstream
 				CURRENT_PROJECT_VERSION = 8;
-=======
-				CURRENT_PROJECT_VERSION = 9;
->>>>>>> Stashed changes
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -775,11 +771,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Books.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-<<<<<<< Updated upstream
 				CURRENT_PROJECT_VERSION = 8;
-=======
-				CURRENT_PROJECT_VERSION = 9;
->>>>>>> Stashed changes
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -942,11 +934,7 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
-<<<<<<< Updated upstream
 				CURRENT_PROJECT_VERSION = 24;
-=======
-				CURRENT_PROJECT_VERSION = 25;
->>>>>>> Stashed changes
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -985,11 +973,7 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
-<<<<<<< Updated upstream
 				CURRENT_PROJECT_VERSION = 24;
-=======
-				CURRENT_PROJECT_VERSION = 25;
->>>>>>> Stashed changes
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
