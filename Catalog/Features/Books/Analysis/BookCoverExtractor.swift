@@ -54,14 +54,17 @@ struct BookCoverExtractor: Sendable {
         )
     }
 
+    /// Finds the cover and returns it perspective-corrected.
+    ///
+    /// Document segmentation is used instead of contour detection because it still finds a cover
+    /// whose outline blends into the background or is crossed by stronger lines, such as floor
+    /// seams or the cover artwork itself.
     private nonisolated static func extractCover(from image: CGImage) -> CGImage? {
-        let request = VNDetectRectanglesRequest()
-        request.maximumObservations = 8
-        request.minimumConfidence = 0.5
-        request.minimumAspectRatio = 0.25
-        request.maximumAspectRatio = 1.0
-        request.minimumSize = 0.25
-        request.quadratureTolerance = 35
+        let minimumConfidence: VNConfidence = 0.5
+        // Shortest cover side as a proportion of the shortest image side.
+        let minimumSize: CGFloat = 0.25
+
+        let request = VNDetectDocumentSegmentationRequest()
 
         do {
             try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
@@ -69,11 +72,20 @@ struct BookCoverExtractor: Sendable {
             return nil
         }
 
-        guard let rectangle = bestRectangle(in: request.results ?? []) else {
+        let shortestImageSide = CGFloat(min(image.width, image.height))
+        let document = request.results?.first { observation in
+            let box = observation.boundingBox
+            let shortestSide = min(box.width * CGFloat(image.width), box.height * CGFloat(image.height))
+
+            return observation.confidence >= minimumConfidence
+                && shortestSide >= minimumSize * shortestImageSide
+        }
+
+        guard let document else {
             return nil
         }
 
-        return perspectiveCorrectedImage(image, using: rectangle)
+        return perspectiveCorrectedImage(image, using: document)
     }
 
     private nonisolated static func normalizedCGImage(from image: UIImage) -> CGImage? {
@@ -93,17 +105,6 @@ struct BookCoverExtractor: Sendable {
         }
 
         return normalizedImage.cgImage
-    }
-
-    private nonisolated static func bestRectangle(in observations: [VNRectangleObservation]) -> VNRectangleObservation? {
-        observations.max { lhs, rhs in
-            score(lhs) < score(rhs)
-        }
-    }
-
-    private nonisolated static func score(_ observation: VNRectangleObservation) -> CGFloat {
-        let area = observation.boundingBox.width * observation.boundingBox.height
-        return area * CGFloat(max(observation.confidence, 0.01))
     }
 
     private nonisolated static func perspectiveCorrectedImage(
