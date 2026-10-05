@@ -7,13 +7,7 @@ import UIKit
 struct BookCreationServiceTests {
     @Test
     func failedCoverCropUsesOriginalMediaAsCover() async throws {
-        let image = UIGraphicsImageRenderer(
-            size: CGSize(width: 40, height: 60)
-        ).image { context in
-            UIColor.white.setFill()
-            context.cgContext.fill(CGRect(x: 0, y: 0, width: 40, height: 60))
-        }
-        let originalData = try #require(image.jpegData(compressionQuality: 0.92))
+        let originalData = try noiseJPEGData()
         let source = MediaAsset(
             id: UUID(),
             itemID: UUID(),
@@ -22,8 +16,8 @@ struct BookCreationServiceTests {
             sortOrder: 0,
             mimeType: "image/jpeg",
             byteSize: originalData.count,
-            width: 40,
-            height: 60,
+            width: 120,
+            height: 180,
             originalData: originalData
         )
 
@@ -45,13 +39,7 @@ struct BookCreationServiceTests {
 
     @Test
     func originalFallbackSurvivesPersistenceRoundTrip() async throws {
-        let image = UIGraphicsImageRenderer(
-            size: CGSize(width: 40, height: 60)
-        ).image { context in
-            UIColor.white.setFill()
-            context.cgContext.fill(CGRect(x: 0, y: 0, width: 40, height: 60))
-        }
-        let originalData = try #require(image.jpegData(compressionQuality: 0.92))
+        let originalData = try noiseJPEGData()
         let source = MediaAsset(
             id: UUID(),
             itemID: UUID(),
@@ -60,8 +48,8 @@ struct BookCreationServiceTests {
             sortOrder: 0,
             mimeType: "image/jpeg",
             byteSize: originalData.count,
-            width: 40,
-            height: 60,
+            width: 120,
+            height: 180,
             originalData: originalData
         )
 
@@ -109,5 +97,39 @@ struct BookCreationServiceTests {
         #expect(persistedCover.originalData?.isEmpty == false)
         #expect(persistedCover.originalData.flatMap(UIImage.init(data:)) != nil)
         #expect(reloaded.cover.mediaAsset?.id == persistedCover.id)
+    }
+
+    /// JPEG data of seeded per-pixel noise: a photo in which cover detection has nothing to find.
+    ///
+    /// A blank image does not work here, document segmentation reports it as a document.
+    private func noiseJPEGData() throws -> Data {
+        let width = 120
+        let height = 180
+        // A fixed seed keeps the fixture identical between runs.
+        var state: UInt64 = 0x9E37_79B9_7F4A_7C15
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        for index in pixels.indices {
+            state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            pixels[index] = UInt8(truncatingIfNeeded: state >> 56)
+        }
+
+        let provider = try #require(CGDataProvider(data: Data(pixels) as CFData))
+        let image = try #require(
+            CGImage(
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bitsPerPixel: 32,
+                bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                provider: provider,
+                decode: nil,
+                shouldInterpolate: false,
+                intent: .defaultIntent
+            )
+        )
+
+        return try #require(UIImage(cgImage: image).jpegData(compressionQuality: 0.92))
     }
 }
