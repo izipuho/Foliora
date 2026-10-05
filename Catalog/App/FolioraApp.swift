@@ -23,13 +23,6 @@ final class FolioraAppDelegate: NSObject, UIApplicationDelegate {
 
         return configuration
     }
-
-    func application(
-        _ application: UIApplication,
-        userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
-    ) {
-        FolioraCloudKitShareInvitationAcceptor.accept(cloudKitShareMetadata)
-    }
 }
 
 /// Provides the foliora app application entry point.
@@ -71,6 +64,7 @@ struct FolioraApp: App {
                 }
             }
             .onOpenURL { url in
+                guard !FolioraCloudKitShareInvitationAcceptor.handleInvitationLink(url) else { return }
                 CollectionAppLinkRouter.shared.handle(url)
             }
             .task {
@@ -100,6 +94,7 @@ struct FolioraApp: App {
             FolioraAppDelegate.coreDataContainer = coreDataContainer
             self.coreDataContainer = coreDataContainer
             self.container = container
+            FolioraCloudKitShareInvitationAcceptor.persistentContainerDidBecomeAvailable()
         } catch {
             fatalError("Failed to create Core Data container: \(error)")
         }

@@ -40,6 +40,49 @@ enum CollectionAppLink {
         return UUID(uuidString: pathComponents[0])
     }
 
+    /// The name of the app that owns collections of the given kind.
+    static func appName(for kind: CollectionKind) -> String {
+        switch kind {
+        case .bells:
+            return "Foliora Bells"
+        case .books:
+            return "Foliora Books"
+        }
+    }
+
+    /// Builds the link that hands a share invitation over to the app of the given kind.
+    static func shareInvitationURL(for kind: CollectionKind, shareURL: URL) -> URL? {
+        var components = URLComponents()
+        components.scheme = scheme(for: kind)
+        components.host = shareInvitationHost
+        components.queryItems = [URLQueryItem(name: shareInvitationURLParameter, value: shareURL.absoluteString)]
+        return components.url
+    }
+
+    /// Extracts the iCloud share URL from a share invitation link addressed to the app of the given kind.
+    ///
+    /// Only iCloud share links are accepted, since the link can come from any app.
+    static func shareURL(fromInvitationLink url: URL, for kind: CollectionKind) -> URL? {
+        guard url.scheme?.lowercased() == scheme(for: kind),
+              url.host?.lowercased() == shareInvitationHost,
+              let value = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                  .queryItems?
+                  .first(where: { $0.name == shareInvitationURLParameter })?
+                  .value,
+              let shareURL = URL(string: value),
+              shareURL.scheme?.lowercased() == "https",
+              let host = shareURL.host?.lowercased(),
+              host == "icloud.com" || host.hasSuffix(".icloud.com")
+        else {
+            return nil
+        }
+
+        return shareURL
+    }
+
+    private static let shareInvitationHost = "share-invitation"
+    private static let shareInvitationURLParameter = "url"
+
     private static func scheme(for kind: CollectionKind) -> String {
         switch kind {
         case .bells:

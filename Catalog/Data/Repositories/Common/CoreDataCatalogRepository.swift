@@ -78,6 +78,14 @@ final class CoreDataCatalogRepository: CatalogRepository {
         let previousHomeID = existingEntity.map(collectionHomeID)
         let entity = existingEntity ?? makeEntity(named: "CollectionEntity")
         apply(collection, to: entity)
+
+        // The home of a collection another user owns is theirs. A participant edits only the
+        // collection's own fields; the home snapshot and the locations stay as the owner set them.
+        guard !isInSharedStore(entity) else {
+            saveContext()
+            return
+        }
+
         let didChangeHome = previousHomeID.map { $0 != collection.homeID } ?? false
 
         if let home = fetchEntity(named: "HomeEntity", by: collection.homeID) {
@@ -107,11 +115,15 @@ final class CoreDataCatalogRepository: CatalogRepository {
             return .deletePrivateCollection
         }
 
-        if share.currentUserParticipant?.role == .owner {
-            return .deleteSharedCollectionAsOwner
+        guard !isInSharedStore(entity) else {
+            return .leaveSharedCollectionAsParticipant
         }
 
-        return .leaveSharedCollectionAsParticipant
+        // A share nobody else has joined is still a private collection to the user.
+        let hasOtherParticipants = share.participants.contains {
+            $0.role != .owner && $0.acceptanceStatus != .removed
+        }
+        return hasOtherParticipants ? .deleteSharedCollectionAsOwner : .deletePrivateCollection
     }
 
     func deleteCollection(collectionID: UUID) {
@@ -119,10 +131,14 @@ final class CoreDataCatalogRepository: CatalogRepository {
 
         switch deleteResolution(for: collectionID) {
         case .deletePrivateCollection, .deleteSharedCollectionAsOwner:
-            context.delete(entity)
-            saveContext()
+            if share(for: entity) != nil {
+                purgeSharedCollection(collectionID: collectionID, deletesObjectsOnFailure: true)
+            } else {
+                context.delete(entity)
+                saveContext()
+            }
         case .leaveSharedCollectionAsParticipant:
-            leaveSharedCollection(entity)
+            purgeSharedCollection(collectionID: collectionID, deletesObjectsOnFailure: false)
         }
     }
 
@@ -550,7 +566,8 @@ final class CoreDataCatalogRepository: CatalogRepository {
         let sourceIDs = Set(locations.map(\.id))
 
         for (sortOrder, location) in locations.enumerated() {
-            let entity = existingBySourceID[location.id] ?? makeEntity(named: "CollectionLocationEntity")
+            let entity = existingBySourceID[location.id]
+                ?? makeEntity(named: "CollectionLocationEntity", inStoreOf: collection)
             apply(location, sortOrder: sortOrder, to: entity)
             entity.setValue(collection, forKey: "collection")
             syncedBySourceID[location.id] = entity
@@ -602,25 +619,41 @@ final class CoreDataCatalogRepository: CatalogRepository {
         return (entity.value(forKey: key) as? NSSet)?.allObjects.compactMap { $0 as? NSManagedObject } ?? []
     }
 
+    /// Whether the entity lives in the shared store, i.e. belongs to a collection another user owns.
+    func isInSharedStore(_ entity: NSManagedObject) -> Bool {
+        entity.objectID.persistentStore.map(FolioraCoreDataStack.isSharedStore) ?? false
+    }
+
     private func share(for entity: NSManagedObject) -> CKShare? {
         try? persistentContainer?.fetchShares(matching: [entity.objectID])[entity.objectID]
     }
 
-    private func leaveSharedCollection(_ entity: NSManagedObject) {
-        guard
-            let persistentContainer,
-            let persistentStore = entity.objectID.persistentStore,
-            let share = share(for: entity)
-        else {
-            return
-        }
+    /// Removes a shared collection together with its share zone.
+    ///
+    /// Deleting only the objects leaves the zone and the share behind, and a participant must not
+    /// delete the owner's objects at all: leaving is done by purging the zone from the shared store.
+    ///
+    /// When the purge fails for the owner, e.g. without a connection, the objects are deleted the
+    /// plain way so the collection still goes. A participant has no such fallback and is told.
+    private func purgeSharedCollection(collectionID: UUID, deletesObjectsOnFailure: Bool) {
+        guard let persistentContainer else { return }
 
-        persistentContainer.purgeObjectsAndRecordsInZone(
-            with: share.recordID.zoneID,
-            in: persistentStore
-        ) { _, error in
-            if let error {
-                assertionFailure("Failed to leave shared collection: \(error)")
+        let sharingService = CloudKitCollectionSharingService(persistentContainer: persistentContainer)
+        Task {
+            do {
+                try await sharingService.purgeSharedCollection(for: collectionID)
+                NotificationCenter.default.post(name: .catalogStoreDidChangeExternally, object: nil)
+            } catch {
+                self.logger.error("Failed to purge shared collection: \(String(describing: error))")
+
+                if deletesObjectsOnFailure {
+                    if let entity = self.fetchEntity(named: "CollectionEntity", by: collectionID) {
+                        self.context.delete(entity)
+                        self.saveContext()
+                    }
+                } else {
+                    NotificationCenter.default.post(name: .collectionRemovalDidFail, object: nil)
+                }
             }
         }
     }
@@ -672,6 +705,10 @@ final class CoreDataCatalogRepository: CatalogRepository {
         do {
             try context.save()
         } catch {
+            // A failed save leaves the context dirty: every later save fails the same way, and the
+            // catalog snapshot, which skips a context with unsaved changes, stops reloading.
+            logger.error("Failed to save Core Data catalog context: \(String(describing: error))")
+            context.rollback()
             assertionFailure("Failed to save Core Data catalog context: \(error)")
         }
     }

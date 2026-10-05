@@ -13,7 +13,11 @@ struct AppContainer {
     }
 
     init(coreDataContainer: NSPersistentCloudKitContainer) {
-        self.repository = CoreDataCatalogRepository(context: coreDataContainer.viewContext)
+        // Passed explicitly: the app delegate learns about the container only after this initializer.
+        self.repository = CoreDataCatalogRepository(
+            context: coreDataContainer.viewContext,
+            persistentContainer: coreDataContainer
+        )
         self.mediaDataLoader = MediaDataLoader(container: coreDataContainer)
     }
 }

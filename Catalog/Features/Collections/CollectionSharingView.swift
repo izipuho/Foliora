@@ -1,7 +1,13 @@
 import CloudKit
 import CoreData
 import Foundation
+import OSLog
 import SwiftUI
+
+private let logger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+    category: "CollectionSharing"
+)
 
 /// Displays the collection sharing view interface.
 struct CollectionSharingView: View {
@@ -9,8 +15,8 @@ struct CollectionSharingView: View {
     let onSharingChanged: () -> Void
     @State private var state: CollectionSharingState
     @State private var sharingAlert: SharingAlert?
-    @State private var pendingSharingMessage: String?
-    @State private var sharingControllerMode: CloudSharingControllerMode?
+    @State private var isPreparingShare = false
+    @State private var sharingScreen = CloudSharingScreen()
 
     private let sharingService: any CollectionSharingService
 
@@ -45,50 +51,18 @@ struct CollectionSharingView: View {
                 )
             }
 
-            Section(String(localized: "collection.sharing.participants.section")) {
-                if state.peopleParticipants.isEmpty {
-                    Text("collection.sharing.participants.empty")
-                        .foregroundStyle(.secondary)
-                } else {
-                    participantsContent(state.peopleParticipants)
-                }
-            }
-
-            if !state.invitedParticipants.isEmpty {
-                Section("collection.sharing.invited.section") {
-                    participantsContent(state.invitedParticipants)
-                }
-            }
-
-            if canManageSharing {
-                Section {
-                    Button("collection.sharing.share_cta") {
-                        Task {
-                            await openSharingController()
-                        }
+            // Who is on the share, their rights and leaving it are all on the system sharing screen.
+            Section {
+                Button(sharingScreenButtonTitle) {
+                    Task {
+                        await openSharingController()
                     }
                 }
+                .disabled(isPreparingShare)
             }
         }
         .navigationTitle(String(localized: "catalog.dashboard.sharing"))
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(
-            item: $sharingControllerMode,
-            onDismiss: {
-                Task {
-                    await refreshSharingState()
-                    onSharingChanged()
-                    showPendingSharingMessage()
-                }
-            }
-        ) { mode in
-            CloudSharingController(
-                collectionTitle: collection.name,
-                mode: mode,
-                onSharingChanged: onSharingChanged,
-                onError: handleSharingControllerError
-            )
-        }
         .alert(
             "collection.sharing.not_accessible",
             isPresented: Binding(
@@ -102,29 +76,6 @@ struct CollectionSharingView: View {
         }
     }
 
-    @ViewBuilder
-    private func participantsContent(_ participants: [CollectionParticipant]) -> some View {
-        ForEach(participants) { participant in
-            LabeledContent(
-                participantName(participant),
-                value: roleText(participant.role)
-            )
-        }
-    }
-
-    private func participantName(_ participant: CollectionParticipant) -> String {
-        if participant.isCurrentUser {
-            return String(localized: "collection.sharing.participant.you")
-        }
-
-        let youText = String(localized: "collection.sharing.participant.you")
-        if let displayName = participant.displayName, !displayName.isEmpty, displayName != youText {
-            return displayName
-        }
-
-        return String(localized: "collection.sharing.participant.unknown_user")
-    }
-
     private func roleText(_ role: CollectionAccessRole) -> String {
         switch role {
         case .owner:
@@ -136,84 +87,96 @@ struct CollectionSharingView: View {
         }
     }
 
-    private var canManageSharing: Bool {
+    private var sharingScreenButtonTitle: String {
         state.currentUserRole == .owner
+            ? String(localized: "collection.sharing.share_cta")
+            : String(localized: "collection.sharing.people_cta")
     }
 
     @MainActor
     private func openSharingController() async {
+        guard !isPreparingShare else { return }
+
+        isPreparingShare = true
+        defer { isPreparingShare = false }
+
         do {
-            let shareResult = if let existingShare = try await sharingService.fetchShare(for: collection.id) {
-                existingShare
-            } else {
-                try await sharingService.createShare(
-                    for: collection.id,
-                    title: collection.name
-                )
-            }
-            sharingControllerMode = .existingShare(
-                share: shareResult.share,
-                container: shareResult.container
+            let shareResult = try await sharingService.createShare(
+                for: collection.id,
+                title: collection.name
             )
+            let didPresent = sharingScreen.present(
+                share: shareResult.share,
+                container: shareResult.container,
+                title: collection.name,
+                onSave: { share in
+                    Task {
+                        await handleSavedShare(share)
+                    }
+                },
+                onStop: {
+                    Task {
+                        await handleStoppedSharing()
+                    }
+                },
+                onError: { error in
+                    sharingAlert = SharingAlert(message: sharingMessage(for: error))
+                }
+            )
+            if !didPresent {
+                sharingAlert = SharingAlert(message: String(localized: "collection.sharing.error.preparation_failed"))
+            }
         } catch {
-            handleSharingControllerError(error)
+            sharingAlert = SharingAlert(message: sharingMessage(for: error))
         }
     }
 
-    private func isShareURLUnavailableError(_ error: any Error) -> Bool {
-        errorMessages(error).contains {
-            $0 == "Коллекция еще не загружена в iCloud. Попробуйте немного позже."
-                || $0.contains("You cannot get the URL of a share until it's been saved to the server.")
+    /// Stores what the user changed on the system sharing screen, which Core Data does not do on its own.
+    @MainActor
+    private func handleSavedShare(_ share: CKShare) async {
+        do {
+            try await sharingService.persistUpdatedShare(share, for: collection.id)
+        } catch {
+            // The sharing screen is still up, so there is no place for an alert; the share reaches
+            // the store with the next iCloud import.
+            logger.error("Failed to persist the updated share: \(String(describing: error))")
         }
+
+        await refreshSharingState()
+        onSharingChanged()
+    }
+
+    /// Handles the end of sharing started from the system sharing screen.
+    ///
+    /// The owner keeps the collection, now private. A participant has left the share, so the
+    /// collection is removed from this device.
+    @MainActor
+    private func handleStoppedSharing() async {
+        if state.currentUserRole != .owner {
+            do {
+                try await sharingService.purgeSharedCollection(for: collection.id)
+                NotificationCenter.default.post(name: .catalogStoreDidChangeExternally, object: nil)
+            } catch {
+                sharingAlert = SharingAlert(message: sharingMessage(for: error))
+            }
+        }
+
+        await refreshSharingState()
+        onSharingChanged()
     }
 
     private func sharingMessage(for error: any Error) -> String {
-        if isShareURLUnavailableError(error) {
-            return "Коллекция еще не загружена в iCloud. Попробуйте немного позже."
+        if let sharingError = error as? CloudKitCollectionSharingError,
+           case .shareURLUnavailable = sharingError {
+            return String(localized: "collection.sharing.error.not_uploaded")
         }
 
-        return "Ошибка подготовки CloudKit Sharing: \(errorMessages(error).joined(separator: " | "))"
-    }
-
-    private func errorMessages(_ error: any Error) -> [String] {
-        let nsError = error as NSError
-        let userInfoMessages = nsError.userInfo.values.compactMap { value -> String? in
-            if let string = value as? String {
-                return string
-            }
-
-            return (value as? NSError)?.localizedDescription
-        }
-
-        return [
-            String(describing: error),
-            nsError.localizedDescription,
-            nsError.localizedFailureReason,
-            nsError.localizedRecoverySuggestion
-        ].compactMap { $0 } + userInfoMessages
-    }
-
-    @MainActor
-    private func handleSharingControllerError(_ error: any Error) {
-        presentSharingMessage(sharingMessage(for: error))
-    }
-
-    @MainActor
-    private func presentSharingMessage(_ message: String) {
-        if sharingControllerMode != nil {
-            pendingSharingMessage = message
-            sharingControllerMode = nil
-        } else {
-            sharingAlert = SharingAlert(message: message)
-        }
-    }
-
-    @MainActor
-    private func showPendingSharingMessage() {
-        if let pendingSharingMessage {
-            self.pendingSharingMessage = nil
-            sharingAlert = SharingAlert(message: pendingSharingMessage)
-        }
+        let message = String(localized: "collection.sharing.error.preparation_failed")
+        #if DEBUG
+        return "\(message)\n\(error.localizedDescription)\n\(String(reflecting: error))"
+        #else
+        return message
+        #endif
     }
 
     @MainActor
@@ -234,84 +197,89 @@ private struct SharingAlert: Identifiable {
     let message: String
 }
 
-private enum CloudSharingControllerMode: Identifiable {
-    case existingShare(share: CKShare, container: CKContainer)
+/// Presents the system sharing screen and reports what the user did there.
+///
+/// The screen is presented by UIKit, as it is designed to be: wrapped in a SwiftUI sheet it
+/// ends up as a sheet inside a sheet.
+@MainActor
+private final class CloudSharingScreen: NSObject, UICloudSharingControllerDelegate {
+    private var shareTitle: String?
+    private var shareThumbnailData: Data?
+    private var onSave: ((CKShare) -> Void)?
+    private var onStop: (() -> Void)?
+    private var onError: ((any Error) -> Void)?
 
-    var id: String {
-        switch self {
-        case .existingShare(let share, _):
-            "existingShare-\(share.recordID.recordName)"
-        }
+    /// Presents the sharing screen for the share. Returns `false` when there is nothing to present it from.
+    func present(
+        share: CKShare,
+        container: CKContainer,
+        title: String,
+        onSave: @escaping (CKShare) -> Void,
+        onStop: @escaping () -> Void,
+        onError: @escaping (any Error) -> Void
+    ) -> Bool {
+        guard let presenter = Self.topViewController() else { return false }
+
+        shareTitle = title
+        shareThumbnailData = (share[CKShare.SystemFieldKey.thumbnailImageData] as? Data)
+            ?? CollectionShareThumbnail.imageData()
+        self.onSave = onSave
+        self.onStop = onStop
+        self.onError = onError
+
+        let controller = UICloudSharingController(share: share, container: container)
+        controller.delegate = self
+        controller.availablePermissions = [
+            .allowPrivate,
+            .allowReadOnly,
+            .allowReadWrite
+        ]
+        controller.modalPresentationStyle = .formSheet
+        presenter.present(controller, animated: true)
+        return true
     }
-}
 
-private struct CloudSharingController: UIViewControllerRepresentable {
-    let collectionTitle: String
-    let mode: CloudSharingControllerMode
-    let onSharingChanged: () -> Void
-    let onError: (any Error) -> Void
-
-    func makeUIViewController(context: Context) -> UIViewController {
-        switch mode {
-        case .existingShare(let share, let container):
-            let controller = UICloudSharingController(share: share, container: container)
-            controller.delegate = context.coordinator
-            controller.availablePermissions = [
-                .allowPrivate,
-                .allowReadOnly,
-                .allowReadWrite
-            ]
-            return controller
-        }
-    }
-
-    func updateUIViewController(
-        _ uiViewController: UIViewController,
-        context: Context
+    func cloudSharingController(
+        _ csc: UICloudSharingController,
+        failedToSaveShareWithError error: any Error
     ) {
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(
-            collectionTitle: collectionTitle,
-            onSharingChanged: onSharingChanged,
-            onError: onError
-        )
-    }
-
-    final class Coordinator: NSObject, UICloudSharingControllerDelegate {
-        let collectionTitle: String
-        let onSharingChanged: () -> Void
-        let onError: (any Error) -> Void
-
-        init(
-            collectionTitle: String,
-            onSharingChanged: @escaping () -> Void,
-            onError: @escaping (any Error) -> Void
-        ) {
-            self.collectionTitle = collectionTitle
-            self.onSharingChanged = onSharingChanged
-            self.onError = onError
-        }
-
-        func cloudSharingController(
-            _ csc: UICloudSharingController,
-            failedToSaveShareWithError error: any Error
-        ) {
-            onError(error)
-        }
-
-        func itemTitle(for csc: UICloudSharingController) -> String? {
-            collectionTitle
-        }
-
-        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
-            onSharingChanged()
-        }
-
-        func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
-            onSharingChanged()
+        // The alert cannot appear over the sharing screen, so the screen goes first.
+        let onError = onError
+        csc.dismiss(animated: true) {
+            onError?(error)
         }
     }
 
+    func itemTitle(for csc: UICloudSharingController) -> String? {
+        shareTitle
+    }
+
+    /// The picture for the header of the sharing screen.
+    ///
+    /// The screen asks the delegate for it, just as for the title. Left to the share record alone,
+    /// it shows a generic document icon whenever the record carries no thumbnail.
+    func itemThumbnailData(for csc: UICloudSharingController) -> Data? {
+        shareThumbnailData
+    }
+
+    func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
+        guard let share = csc.share else { return }
+        onSave?(share)
+    }
+
+    func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
+        onStop?()
+    }
+
+    /// The view controller on top of the active window, which may itself be a sheet.
+    private static func topViewController() -> UIViewController? {
+        let windowScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let activeScene = windowScenes.first { $0.activationState == .foregroundActive } ?? windowScenes.first
+
+        var controller = activeScene?.keyWindow?.rootViewController
+        while let presented = controller?.presentedViewController {
+            controller = presented
+        }
+        return controller
+    }
 }

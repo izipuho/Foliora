@@ -63,6 +63,16 @@ enum FolioraCoreDataStack {
             .containerIdentifier
     }
 
+    /// Whether the store mirrors the CloudKit shared database, i.e. holds collections other users own.
+    static func isSharedStore(_ store: NSPersistentStore) -> Bool {
+        store.url?.deletingPathExtension().lastPathComponent == "Shared"
+    }
+
+    /// The store that mirrors the CloudKit shared database.
+    static func sharedPersistentStore(in container: NSPersistentContainer) -> NSPersistentStore? {
+        container.persistentStoreCoordinator.persistentStores.first { isSharedStore($0) }
+    }
+
     private static func managedObjectModel() throws -> NSManagedObjectModel {
         let bundle = Bundle(for: FolioraCoreDataStackBundleToken.self)
         let modelURL = bundle.url(forResource: modelName, withExtension: "momd")

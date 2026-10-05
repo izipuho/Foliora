@@ -16,6 +16,7 @@ struct CollectionsView: View {
     @State private var isPresentingAddCollectionEditor = false
     @State private var didAutoOpenSingleCollection = false
     @State private var collectionIDPendingDeletion: UUID?
+    @State private var isPresentingRemovalFailure = false
     @State private var collectionPendingSharing: CollectionSummary?
     @State private var collectionPendingEdit: CollectionSummary?
     @State private var isSortingCollections = false
@@ -80,6 +81,14 @@ struct CollectionsView: View {
             }
             .onChange(of: backgroundCandidateIDs) { _, _ in
                 refreshCollectionBackgroundBells()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .collectionRemovalDidFail)) { _ in
+                isPresentingRemovalFailure = true
+            }
+            .alert("collection.leave_failed.title", isPresented: $isPresentingRemovalFailure) {
+                Button("common.ok", role: .cancel) {}
+            } message: {
+                Text("collection.sharing.load_failed.message")
             }
             .navigationTitle(RootTab.collections.title)
             .sheet(isPresented: $isPresentingAddCollectionEditor) {

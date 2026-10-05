@@ -11,6 +11,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>CKSharingSupported</key>
+	<true/>
 	<key>FolioraCollectionKind</key>
 	<string>books</string>
 	<key>UIBackgroundModes</key>

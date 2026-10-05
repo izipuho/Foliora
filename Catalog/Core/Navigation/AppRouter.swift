@@ -100,7 +100,12 @@ struct AppShellView: View {
             guard !managedObjectContext.hasChanges else { return }
             scheduleCatalogSnapshotReload()
         }
-        .onChange(of: shareInvitationController.state) { _, state in
+        .onReceive(NotificationCenter.default.publisher(for: .catalogStoreDidChangeExternally)) { _ in
+            managedObjectContext.refreshAllObjects()
+            reloadCatalogSnapshot()
+        }
+        // The invitation that launched the app can be settled before this view appears.
+        .onChange(of: shareInvitationController.state, initial: true) { _, state in
             handleShareInvitationState(state)
         }
         .overlay {
@@ -116,6 +121,20 @@ struct AppShellView: View {
             }
         } message: {
             Text(shareInvitationFailureMessage ?? "")
+        }
+        .alert(
+            "collection.sharing.confirm.title",
+            isPresented: shareInvitationConfirmationBinding,
+            presenting: shareInvitationController.invitationAwaitingConfirmation
+        ) { invitation in
+            Button("collection.sharing.confirm.accept") {
+                FolioraCloudKitShareInvitationAcceptor.acceptConfirmed(invitation)
+            }
+            Button("common.cancel", role: .cancel) {
+                FolioraCloudKitShareInvitationAcceptor.declinePendingInvitation()
+            }
+        } message: { invitation in
+            Text(shareInvitationConfirmationMessage(for: invitation))
         }
     }
 
@@ -279,6 +298,40 @@ struct AppShellView: View {
         )
     }
 
+    private var shareInvitationConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { shareInvitationController.invitationAwaitingConfirmation != nil },
+            set: { isPresented in
+                guard !isPresented else { return }
+                FolioraCloudKitShareInvitationAcceptor.declinePendingInvitation()
+            }
+        )
+    }
+
+    private func shareInvitationConfirmationMessage(for invitation: PendingShareInvitation) -> String {
+        guard let title = invitation.title, !title.isEmpty else {
+            return String(localized: "collection.sharing.confirm.message_untitled")
+        }
+
+        return String.localizedStringWithFormat(
+            String(localized: "collection.sharing.confirm.message"),
+            title
+        )
+    }
+
+    /// Hides the invitation status after a delay, unless another invitation changed it meanwhile.
+    private func dismissShareInvitationStatus(
+        _ state: CloudKitShareInvitationAcceptanceState,
+        after delay: Duration
+    ) {
+        Task { @MainActor in
+            try? await Task.sleep(for: delay)
+            if shareInvitationController.state == state {
+                shareInvitationController.reset()
+            }
+        }
+    }
+
     private func handleShareInvitationState(_ state: CloudKitShareInvitationAcceptanceState) {
         switch state {
         case .idle, .accepting:
@@ -288,12 +341,9 @@ struct AppShellView: View {
             reloadCatalogSnapshot()
             selectedRootTab = .collections
             collectionsPath = NavigationPath()
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1.5))
-                if shareInvitationController.state == .accepted {
-                    shareInvitationController.reset()
-                }
-            }
+            dismissShareInvitationStatus(state, after: .seconds(1.5))
+        case .acceptedAwaitingSync:
+            dismissShareInvitationStatus(state, after: .seconds(4))
         case .failed(let message):
             shareInvitationFailureMessage = message
         }

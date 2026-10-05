@@ -10,14 +10,10 @@ struct CollectionSharingState {
     ) {
         self.currentUserRole = currentUserRole
         self.participants = participants
-        self.isShared = participants.contains {
-            !$0.isCurrentUser && $0.role != .owner && $0.acceptanceStatus != .removed
-        }
-    }
-
-    var peopleParticipants: [CollectionParticipant] {
-        participants.filter {
-            $0.role == .owner || $0.acceptanceStatus == .accepted
+        // To a participant the collection is shared by definition. To the owner it is shared once
+        // somebody else is on the share.
+        self.isShared = currentUserRole != .owner || participants.contains {
+            $0.role != .owner && $0.acceptanceStatus != .removed
         }
     }
 
