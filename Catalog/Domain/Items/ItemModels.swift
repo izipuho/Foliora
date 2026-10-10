@@ -4,6 +4,7 @@ import Foundation
 struct ItemRecord: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
+    var kind: CollectionKind
     var locationID: UUID?
     var originPlaceID: UUID?
     let createdAt: Date
@@ -23,6 +24,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
     private enum CodingKeys: String, CodingKey {
         case id
         case collectionID
+        case kind
         case locationID
         case originPlaceID
         case createdAt
@@ -39,6 +41,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
     init(
         id: UUID,
         collectionID: UUID,
+        kind: CollectionKind = .bells,
         locationID: UUID?,
         originPlaceID: UUID?,
         createdAt: Date,
@@ -57,6 +60,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
     ) {
         self.id = id
         self.collectionID = collectionID
+        self.kind = kind
         self.locationID = locationID
         self.originPlaceID = originPlaceID
         self.createdAt = createdAt
@@ -78,6 +82,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         collectionID = try container.decode(UUID.self, forKey: .collectionID)
+        kind = try container.decodeIfPresent(CollectionKind.self, forKey: .kind) ?? .bells
         locationID = try container.decodeIfPresent(UUID.self, forKey: .locationID)
         originPlaceID = try container.decodeIfPresent(UUID.self, forKey: .originPlaceID)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
@@ -99,6 +104,7 @@ struct ItemRecord: Identifiable, Hashable, Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(collectionID, forKey: .collectionID)
+        try container.encode(kind, forKey: .kind)
         try container.encodeIfPresent(locationID, forKey: .locationID)
         try container.encodeIfPresent(originPlaceID, forKey: .originPlaceID)
         try container.encode(createdAt, forKey: .createdAt)
@@ -124,8 +130,50 @@ struct ItemRecord: Identifiable, Hashable, Codable {
     }
 }
 
+/// Describes an optional value change in a batch edit: keep the current value or replace/clear it.
+enum BatchEditValue<Value> {
+    case unchanged
+    case set(Value?)
+
+    var isUnchanged: Bool {
+        if case .unchanged = self {
+            return true
+        }
+        return false
+    }
+}
+
+/// Describes shared item fields that should be changed for a group of catalog items.
+struct ItemBatchEdit {
+    var acquiredYear: BatchEditValue<Int> = .unchanged
+    var condition: ItemCondition?
+    var acquisitionMethod: AcquisitionMethod?
+
+    var isEmpty: Bool {
+        acquiredYear.isUnchanged
+            && condition == nil
+            && acquisitionMethod == nil
+    }
+
+    func applying(to item: ItemRecord) -> ItemRecord {
+        var updated = item
+
+        if case .set(let year) = acquiredYear {
+            updated.acquiredYear = year
+        }
+        if let condition {
+            updated.condition = condition
+        }
+        if let acquisitionMethod {
+            updated.acquisitionMethod = acquisitionMethod
+        }
+
+        return updated
+    }
+}
+
 /// Groups item condition values and behavior.
-enum ItemCondition: String, CaseIterable, Identifiable, Codable {
+enum ItemCondition: String, CaseIterable, Identifiable, Codable, Sendable {
     case mint = "Mint"
     case good = "Good"
     case worn = "Worn"
@@ -171,7 +219,7 @@ enum AcquisitionMethod: String, CaseIterable, Identifiable, Codable {
         case .found:
             return String(localized: "enum.acquisition.found")
         case .other:
-            return String(localized: "enum.acquisition.other")
+            return String(localized: "common.other")
         }
     }
 }

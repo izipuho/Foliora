@@ -189,13 +189,12 @@ enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
 
     var id: String { rawValue }
 
+    /// The localized name of the kind, from the `common.<rawValue>` key.
+    ///
+    /// The key is built at run time, so Xcode cannot find it in code: a new kind
+    /// needs its `common.<rawValue>` string added by hand, marked as manual.
     var title: String {
-        switch self {
-        case .bells:
-            return String(localized: "collection_kind.bells")
-        case .books:
-            return String(localized: "collection_kind.books")
-        }
+        String(localized: LocalizedStringResource(stringLiteral: "common.\(rawValue)"))
     }
 
     var systemImage: String {
@@ -228,6 +227,10 @@ enum CollectionKind: String, CaseIterable, Hashable, Identifiable, Codable {
 
         let format = String(localized: LocalizedStringResource(stringLiteral: key))
         return String(format: format, locale: locale, count)
+    }
+
+    static func bookCountLabel(for count: Int, locale: Locale = .autoupdatingCurrent) -> String {
+        CollectionKind.books.countLabel(for: count, locale: locale)
     }
 }
 

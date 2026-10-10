@@ -14,6 +14,7 @@ enum CatalogCardLayoutMode: Int, CaseIterable {
     }
 
     struct CardMetrics {
+        let layoutMode: CatalogCardLayoutMode
         let cardHeight: CGFloat
         let cardPadding: CGFloat
         let contentSpacing: CGFloat
@@ -57,6 +58,7 @@ enum CatalogCardLayoutMode: Int, CaseIterable {
         switch self {
         case .covers:
             return CardMetrics(
+                layoutMode: self,
                 cardHeight: 108,
                 cardPadding: CatalogMetrics.Spacing.sm,
                 contentSpacing: CatalogMetrics.Spacing.xs,
@@ -65,6 +67,7 @@ enum CatalogCardLayoutMode: Int, CaseIterable {
             )
         case .mini:
             return CardMetrics(
+                layoutMode: self,
                 cardHeight: 144,
                 cardPadding: CatalogMetrics.Spacing.md,
                 contentSpacing: CatalogMetrics.Spacing.xs,
@@ -73,6 +76,7 @@ enum CatalogCardLayoutMode: Int, CaseIterable {
             )
         case .compact:
             return CardMetrics(
+                layoutMode: self,
                 cardHeight: 220,
                 cardPadding: CatalogMetrics.Spacing.lg,
                 contentSpacing: CatalogMetrics.Spacing.sm,
@@ -81,6 +85,7 @@ enum CatalogCardLayoutMode: Int, CaseIterable {
             )
         case .wide:
             return CardMetrics(
+                layoutMode: self,
                 cardHeight: 220,
                 cardPadding: CatalogMetrics.Spacing.lg,
                 contentSpacing: CatalogMetrics.Spacing.sm,
@@ -89,6 +94,7 @@ enum CatalogCardLayoutMode: Int, CaseIterable {
             )
         case .showcase:
             return CardMetrics(
+                layoutMode: self,
                 cardHeight: 460,
                 cardPadding: CatalogMetrics.Spacing.xl,
                 contentSpacing: CatalogMetrics.Spacing.md,
@@ -131,6 +137,7 @@ enum CatalogCardLayoutMode: Int, CaseIterable {
         )
 
         return CardMetrics(
+            layoutMode: self,
             cardHeight: base.cardHeight * heightScale,
             cardPadding: base.cardPadding * paddingScale,
             contentSpacing: base.contentSpacing * contentSpacingScale,

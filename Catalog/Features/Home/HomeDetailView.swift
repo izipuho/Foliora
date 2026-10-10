@@ -150,7 +150,7 @@ struct HomeIdentityHeader: View {
 }
 
 #Preview {
-    let container = PreviewContainer.make(.minimal)
+    let container = PreviewContainer.make(.collectionsMinimal)
     let snapshot = CatalogSnapshot.load(from: container.viewContext)
     let home = snapshot.homes[0]
 
@@ -163,6 +163,6 @@ struct HomeIdentityHeader: View {
             onSave: { _, _ in },
             onDelete: {}
         )
-        .environment(\.managedObjectContext, container.viewContext)
+        .previewEnvironment(container)
     }
 }

@@ -2,41 +2,62 @@ import SwiftUI
 import PhotosUI
 import UIKit
 import QuickLook
-import UniformTypeIdentifiers
 
 /// Displays the media section interface.
 struct MediaSection: View {
     let itemID: UUID
     @Binding var mediaAssets: [MediaAsset]
+    var leadingMediaAsset: MediaAsset? = nil
+    var maxMediaCount: Int? = nil
     var analysisHighlightedAssetID: UUID? = nil
     var allowsAdding = true
     var allowsDeletion = true
+    var onLeadingMediaAssetDelete: (() -> Void)? = nil
     var onPhotoAdded: ((UIImage) -> Void)? = nil
-    private let mediaStore = LocalMediaFileStore.shared
-    private var imageMediaBuilder: ImageMediaBuilder {
-        ImageMediaBuilder(store: mediaStore)
-    }
+    private let imageMediaBuilder = ImageMediaBuilder()
 
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var isPresentingPhotoPicker = false
     @State private var isPresentingCamera = false
     @State private var isShowingModelPlaceholder = false
     @State private var isPresentingAddMediaOptions = false
-    @State private var draggedAssetID: MediaAsset.ID?
+    @State private var isPresentingArrangeSheet = false
     @State private var pendingDeletionAssetID: MediaAsset.ID?
+    @State private var recentlyAddedPhotoAssetIDs: Set<MediaAsset.ID> = []
 
     var body: some View {
-        MediaQuickLookPresenter(mediaAssets: mediaAssets) { preview in
+        MediaQuickLookPresenter(mediaAssets: previewAssets) { preview in
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: CatalogMetrics.Spacing.xs) {
+                    if let leadingMediaAsset {
+                        MediaAssetGridTileView(
+                            asset: leadingMediaAsset,
+                            isAnalysisHighlighted: isAnalysisHighlighted(leadingMediaAsset),
+                            allowsDeletion: allowsDeletion,
+                            onTap: {
+                                preview(leadingMediaAsset)
+                            },
+                            onDelete: {
+                                pendingDeletionAssetID = leadingMediaAsset.id
+                            }
+                        )
+                        .confirmationDialog(
+                            "editor.media.delete_action",
+                            isPresented: deleteConfirmationBinding(for: leadingMediaAsset.id),
+                            titleVisibility: .visible
+                        ) {
+                            Button("editor.media.delete_title", role: .destructive) {
+                                confirmDeletion(of: leadingMediaAsset.id)
+                            }
+                            Button("common.cancel", role: .cancel) {}
+                        }
+                    }
+
                     ForEach(sortedAssets) { asset in
                         MediaAssetGridTileView(
                             asset: asset,
-                            isAnalysisHighlighted: asset.id == analysisHighlightedAssetID,
+                            isAnalysisHighlighted: isAnalysisHighlighted(asset),
                             allowsDeletion: allowsDeletion,
-                            isReorderingEnabled: isEditing && asset.kind == .photo,
-                            draggedAssetID: $draggedAssetID,
-                            moveAsset: moveAsset,
                             onTap: {
                                 preview(asset)
                             },
@@ -55,33 +76,60 @@ struct MediaSection: View {
                         }
                     }
 
-                    if allowsAdding {
-                        Button {
-                            isPresentingAddMediaOptions = true
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(CatalogTypography.cardTitle)
-                                .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
-                                .frame(width: 38, height: 38)
-                                .glassEffect(.regular.tint(CatalogSemanticColors.success).interactive(), in: Circle())
-                                .frame(width: 48, height: 110)
+                    if canAddMedia || canArrangeMedia {
+                        VStack(spacing: CatalogMetrics.Spacing.sm) {
+                            if canAddMedia {
+                                Button {
+                                    isPresentingAddMediaOptions = true
+                                } label: {
+                                    Image(systemName: "plus")
+                                        .font(CatalogTypography.cardTitle)
+                                        .foregroundStyle(CatalogMediaContrast.onMediaPrimary)
+                                        .frame(width: 38, height: 38)
+                                        .glassEffect(.regular.tint(CatalogSemanticColors.success).interactive(), in: Circle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(String(localized: "editor.media.add"))
+                            }
+
+                            if canArrangeMedia {
+                                Button {
+                                    isPresentingArrangeSheet = true
+                                } label: {
+                                    Image(systemName: "arrow.up.arrow.down")
+                                        .font(CatalogTypography.cardTitle)
+                                        .frame(width: 38, height: 38)
+                                        .glassEffect(.regular.interactive(), in: Circle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(String(localized: "editor.media.arrange"))
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(String(localized: "editor.media.add"))
+                        .frame(width: 48, height: 110)
                     }
                 }
             }
             .scrollIndicators(.hidden)
+            .sheet(isPresented: $isPresentingArrangeSheet) {
+                MediaArrangeSheet(
+                    assets: sortedAssets,
+                    marksFirstPhotoAsCover: leadingMediaAsset == nil
+                ) { arrangedAssets in
+                    applyArrangement(arrangedAssets)
+                }
+            }
             .photosPicker(
                 isPresented: $isPresentingPhotoPicker,
                 selection: $selectedPhotoItems,
-                maxSelectionCount: nil,
+                maxSelectionCount: photoPickerSelectionLimit,
                 matching: .images,
                 photoLibrary: .shared()
             )
             .fullScreenCover(isPresented: $isPresentingCamera) {
                 CameraPickerView { image in
-                    addCapturedPhoto(image)
+                    Task {
+                        await addCapturedPhoto(image)
+                    }
                 }
                 .ignoresSafeArea()
             }
@@ -114,21 +162,47 @@ struct MediaSection: View {
                     await addPhotos(from: newItems)
                 }
             }
+            .onChange(of: analysisHighlightedAssetID) { _, highlightedAssetID in
+                if highlightedAssetID == nil {
+                    recentlyAddedPhotoAssetIDs.removeAll()
+                }
+            }
         }
+    }
+
+    private var previewAssets: [MediaAsset] {
+        [leadingMediaAsset].compactMap { $0 } + mediaAssets
     }
 
     private var sortedAssets: [MediaAsset] {
         mediaAssets.sorted { lhs, rhs in
             if lhs.sortOrder == rhs.sortOrder {
-                return lhs.localIdentifier < rhs.localIdentifier
+                return lhs.id.uuidString < rhs.id.uuidString
             }
 
             return lhs.sortOrder < rhs.sortOrder
         }
     }
 
+    private var canAddMedia: Bool {
+        guard allowsAdding else { return false }
+        guard let maxMediaCount else { return true }
+        return mediaAssets.count < maxMediaCount
+    }
+
+    private var photoPickerSelectionLimit: Int? {
+        guard let maxMediaCount else { return nil }
+        return max(maxMediaCount - mediaAssets.count, 1)
+    }
+
     private var isEditing: Bool {
         allowsDeletion
+    }
+
+    private func isAnalysisHighlighted(_ asset: MediaAsset) -> Bool {
+        guard analysisHighlightedAssetID != nil, asset.kind == .photo else { return false }
+        guard !recentlyAddedPhotoAssetIDs.isEmpty else { return true }
+        return recentlyAddedPhotoAssetIDs.contains(asset.id)
     }
 
     private func deleteConfirmationBinding(for assetID: MediaAsset.ID) -> Binding<Bool> {
@@ -144,49 +218,35 @@ struct MediaSection: View {
 
     @MainActor
     private func addPhotos(from items: [PhotosPickerItem]) async {
-        guard allowsAdding else { return }
+        guard canAddMedia else { return }
         guard !items.isEmpty else { return }
 
         for item in items {
-            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
-            guard let image = UIImage(data: data) else { continue }
-            let contentType = item.supportedContentTypes.first
-            guard let media = try? imageMediaBuilder.build(
-                from: data,
-                image: image,
-                preferredFileExtension: contentType?.preferredFilenameExtension,
-                mimeType: contentType?.preferredMIMEType
-            ) else { continue }
-
-            updateMediaAssets { assets in
-                assets.append(
-                    media.asset.with(itemID: itemID, sortOrder: assets.count)
-                )
-            }
-
-            onPhotoAdded?(image)
+            guard canAddMedia else { break }
+            guard let media = try? await imageMediaBuilder.build(from: item) else { continue }
+            guard canAddMedia else { break }
+            appendPhoto(media)
         }
 
         selectedPhotoItems = []
     }
 
-    private func addCapturedPhoto(_ image: UIImage) {
-        guard allowsAdding else { return }
-        guard let data = image.jpegData(compressionQuality: 0.92) else { return }
-        guard let media = try? imageMediaBuilder.build(
-            from: data,
-            image: image,
-            preferredFileExtension: "jpg",
-            mimeType: "image/jpeg"
-        ) else { return }
+    @MainActor
+    private func addCapturedPhoto(_ image: UIImage) async {
+        guard canAddMedia else { return }
+        guard let media = try? await imageMediaBuilder.build(from: image) else { return }
+        guard canAddMedia else { return }
+        appendPhoto(media)
+    }
 
+    private func appendPhoto(_ media: ImageMedia) {
+        let asset = media.asset.with(itemID: itemID, sortOrder: mediaAssets.count)
         updateMediaAssets { assets in
-            assets.append(
-                media.asset.with(itemID: itemID, sortOrder: assets.count)
-            )
+            assets.append(asset)
         }
+        recentlyAddedPhotoAssetIDs.insert(asset.id)
 
-        onPhotoAdded?(image)
+        onPhotoAdded?(media.uiImage)
     }
 
     private func removeAsset(withID assetID: MediaAsset.ID) {
@@ -199,33 +259,28 @@ struct MediaSection: View {
 
     private func confirmDeletion(of assetID: MediaAsset.ID) {
         defer { pendingDeletionAssetID = nil }
-        guard let asset = mediaAssets.first(where: { $0.id == assetID }) else { return }
 
-        mediaStore.deleteFile(for: asset.localIdentifier)
+        if let leadingMediaAsset, leadingMediaAsset.id == assetID {
+            onLeadingMediaAssetDelete?()
+            return
+        }
+
+        guard mediaAssets.contains(where: { $0.id == assetID }) else { return }
         removeAsset(withID: assetID)
     }
 
-    private func moveAssets(from sourceIndex: Int, to destinationIndex: Int) {
-        var reorderedAssets = sortedAssets
-        guard reorderedAssets.indices.contains(sourceIndex) else { return }
-        guard reorderedAssets.indices.contains(destinationIndex) else { return }
-        guard sourceIndex != destinationIndex else { return }
+    /// Reordering is offered while editing, once there is more than one media item.
+    private var canArrangeMedia: Bool {
+        isEditing && mediaAssets.count > 1
+    }
 
-        let asset = reorderedAssets.remove(at: sourceIndex)
-        reorderedAssets.insert(asset, at: destinationIndex)
+    private func applyArrangement(_ arrangedAssets: [MediaAsset]) {
+        var reorderedAssets = arrangedAssets
         normalizeSortOrder(in: &reorderedAssets)
 
         updateMediaAssets { assets in
             assets = reorderedAssets
         }
-    }
-
-    private func moveAsset(withID sourceID: MediaAsset.ID, to destinationID: MediaAsset.ID) {
-        let assets = sortedAssets
-        guard let sourceIndex = assets.firstIndex(where: { $0.id == sourceID }) else { return }
-        guard let destinationIndex = assets.firstIndex(where: { $0.id == destinationID }) else { return }
-
-        moveAssets(from: sourceIndex, to: destinationIndex)
     }
 
     private func updateMediaAssets(_ update: (inout [MediaAsset]) -> Void) {
@@ -246,7 +301,6 @@ struct MediaSection: View {
 /// Displays the media quick look presenter interface.
 struct MediaQuickLookPresenter<Content: View>: View {
     let mediaAssets: [MediaAsset]
-    private let mediaStore = LocalMediaFileStore.shared
     private let content: (@escaping (MediaAsset) -> Void) -> Content
     @State private var documentPreviewTarget: MediaPreviewTarget?
     @State private var photoGalleryTarget: MediaPhotoGalleryTarget?
@@ -280,7 +334,7 @@ struct MediaQuickLookPresenter<Content: View>: View {
             .filter { $0.kind == .photo }
             .sorted { lhs, rhs in
                 if lhs.sortOrder == rhs.sortOrder {
-                    return lhs.localIdentifier < rhs.localIdentifier
+                    return lhs.id.uuidString < rhs.id.uuidString
                 }
 
                 return lhs.sortOrder < rhs.sortOrder
@@ -299,10 +353,31 @@ struct MediaQuickLookPresenter<Content: View>: View {
                 initialAssetID: selectedAsset.id
             )
         case .document:
-            guard let url = mediaStore.fileURL(for: selectedAsset.localIdentifier) else { return }
+            guard let url = Self.materializePreviewFile(for: selectedAsset) else { return }
             documentPreviewTarget = MediaPreviewTarget(url: url)
         case .model3D:
             return
+        }
+    }
+
+    private static func materializePreviewFile(for asset: MediaAsset) -> URL? {
+        guard let originalData = asset.originalData else { return nil }
+
+        let fileExtension = asset.fileName
+            .map { URL(fileURLWithPath: $0).pathExtension }
+            .flatMap { $0.isEmpty ? nil : $0 }
+        let previewFileName = fileExtension
+            .map { "\(asset.id.uuidString).\($0)" } ?? asset.id.uuidString
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CatalogQuickLook", isDirectory: true)
+        let url = directory.appendingPathComponent(previewFileName)
+
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try originalData.write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
         }
     }
 }
@@ -311,9 +386,6 @@ private struct MediaAssetGridTileView: View {
     let asset: MediaAsset
     let isAnalysisHighlighted: Bool
     let allowsDeletion: Bool
-    let isReorderingEnabled: Bool
-    @Binding var draggedAssetID: MediaAsset.ID?
-    let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
     let onTap: () -> Void
     let onDelete: () -> Void
     @State private var highlightPulse = false
@@ -322,7 +394,7 @@ private struct MediaAssetGridTileView: View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
             thumbnail
 
-            if asset.kind != .photo {
+            if asset.kind != .photo || asset.displayName?.isEmpty == false {
                 Text(mediaTitle)
                     .font(.caption)
                     .lineLimit(2)
@@ -331,19 +403,12 @@ private struct MediaAssetGridTileView: View {
         }
         .frame(width: 110, alignment: .leading)
         .contentShape(CatalogShapes.thumbnail)
-        .droppableMediaAsset(
-            asset,
-            isEnabled: isReorderingEnabled,
-            draggedAssetID: $draggedAssetID,
-            moveAsset: moveAsset
-        )
         .onTapGesture(perform: onTap)
         .onAppear {
-            guard isAnalysisHighlighted else { return }
-            highlightPulse = true
+            updateAnalysisHighlight(isAnalysisHighlighted)
         }
         .onChange(of: isAnalysisHighlighted) { _, isHighlighted in
-            highlightPulse = isHighlighted
+            updateAnalysisHighlight(isHighlighted)
         }
     }
 
@@ -352,11 +417,16 @@ private struct MediaAssetGridTileView: View {
             return displayName
         }
 
-        return URL(fileURLWithPath: asset.localIdentifier)
-            .deletingPathExtension()
-            .lastPathComponent
-            .replacingOccurrences(of: "-", with: " ")
-            .capitalized
+        if let fileName = asset.fileName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !fileName.isEmpty {
+            return URL(fileURLWithPath: fileName)
+                .deletingPathExtension()
+                .lastPathComponent
+                .replacingOccurrences(of: "-", with: " ")
+                .capitalized
+        }
+
+        return asset.kind.rawValue.capitalized
     }
 
     private var thumbnailSize: CGFloat {
@@ -380,15 +450,8 @@ private struct MediaAssetGridTileView: View {
     private var thumbnailImage: some View {
         MediaAssetThumbnailView(asset: asset, size: thumbnailSize)
             .overlay {
-                if isAnalysisHighlighted {
-                    analysisHighlight
-                }
+                analysisHighlight
             }
-            .draggableMediaAsset(
-                asset,
-                isEnabled: isReorderingEnabled,
-                draggedAssetID: $draggedAssetID
-            )
     }
 
     private var deleteButton: some View {
@@ -404,7 +467,7 @@ private struct MediaAssetGridTileView: View {
 
     private var analysisHighlight: some View {
         CatalogShapes.thumbnail
-            .stroke(
+            .strokeBorder(
                 AngularGradient(
                     colors: [
                         .cyan,
@@ -415,78 +478,114 @@ private struct MediaAssetGridTileView: View {
                     ],
                     center: .center
                 ),
-                lineWidth: highlightPulse ? 4 : 2
+                lineWidth: 3
             )
-            .opacity(highlightPulse ? 1 : 0.45)
-            .scaleEffect(highlightPulse ? 1.035 : 0.99)
-            .animation(
-                .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
-                value: highlightPulse
-            )
+            .opacity(isAnalysisHighlighted ? (highlightPulse ? 1 : 0.45) : 0)
+    }
+
+    private func updateAnalysisHighlight(_ isHighlighted: Bool) {
+        guard isHighlighted else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                highlightPulse = false
+            }
+            return
+        }
+
+        highlightPulse = false
+        withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+            highlightPulse = true
+        }
     }
 }
 
-private extension View {
-    @ViewBuilder
-    func draggableMediaAsset(
-        _ asset: MediaAsset,
-        isEnabled: Bool,
-        draggedAssetID: Binding<MediaAsset.ID?>
-    ) -> some View {
-        if isEnabled {
-            self
-                .onDrag {
-                    draggedAssetID.wrappedValue = asset.id
-                    return NSItemProvider(object: asset.id.uuidString as NSString)
-                } preview: {
-                    self
+/// Reorders media in a native list with system drag handles.
+///
+/// A horizontal row inside a `Form` row cannot host drag and drop: the `Form` takes over the
+/// drag and lifts the whole row. A plain `List` in edit mode is the system reorder surface.
+private struct MediaArrangeSheet: View {
+    let marksFirstPhotoAsCover: Bool
+    let onDone: ([MediaAsset]) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var assets: [MediaAsset]
+
+    init(
+        assets: [MediaAsset],
+        marksFirstPhotoAsCover: Bool,
+        onDone: @escaping ([MediaAsset]) -> Void
+    ) {
+        self.marksFirstPhotoAsCover = marksFirstPhotoAsCover
+        self.onDone = onDone
+        _assets = State(initialValue: assets)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(assets) { asset in
+                    HStack(spacing: CatalogMetrics.Spacing.md) {
+                        MediaAssetThumbnailView(asset: asset, size: 88)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            if let title = title(for: asset) {
+                                Text(title)
+                                    .lineLimit(1)
+                            }
+
+                            if isCover(asset) {
+                                Text(String(localized: "editor.media.cover"))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
                 }
-        } else {
-            self
+                .onMove { source, destination in
+                    assets.move(fromOffsets: source, toOffset: destination)
+                }
+            }
+            .environment(\.editMode, .constant(.active))
+            .navigationTitle(String(localized: "editor.media.arrange"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(role: .cancel) {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(role: .confirm) {
+                        onDone(assets)
+                        dismiss()
+                    }
+                }
+            }
         }
+        .presentationDetents([.medium, .large])
     }
 
-    @ViewBuilder
-    func droppableMediaAsset(
-        _ asset: MediaAsset,
-        isEnabled: Bool,
-        draggedAssetID: Binding<MediaAsset.ID?>,
-        moveAsset: @escaping (MediaAsset.ID, MediaAsset.ID) -> Void
-    ) -> some View {
-        if isEnabled {
-            self
-                .onDrop(
-                    of: [UTType.text.identifier],
-                    delegate: MediaAssetReorderDropDelegate(
-                        asset: asset,
-                        draggedAssetID: draggedAssetID,
-                        moveAsset: moveAsset
-                    )
-                )
-        } else {
-            self
+    /// Names a row only when the name tells something: the media's own name, or its kind
+    /// once the list mixes kinds. Photos alone need no label; the thumbnail identifies them.
+    private func title(for asset: MediaAsset) -> String? {
+        if let displayName = asset.displayName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !displayName.isEmpty {
+            return displayName
         }
-    }
-}
 
-private struct MediaAssetReorderDropDelegate: DropDelegate {
-    let asset: MediaAsset
-    @Binding var draggedAssetID: MediaAsset.ID?
-    let moveAsset: (MediaAsset.ID, MediaAsset.ID) -> Void
-
-    func dropEntered(info: DropInfo) {
-        guard let draggedAssetID else { return }
-        guard draggedAssetID != asset.id else { return }
-        moveAsset(draggedAssetID, asset.id)
+        return hasMixedKinds ? asset.kind.displayName : nil
     }
 
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
+    private var hasMixedKinds: Bool {
+        Set(assets.map(\.kind)).count > 1
     }
 
-    func performDrop(info: DropInfo) -> Bool {
-        draggedAssetID = nil
-        return true
+    /// The first photo becomes the cover, unless the screen shows a dedicated cover.
+    private func isCover(_ asset: MediaAsset) -> Bool {
+        marksFirstPhotoAsCover && asset.id == assets.first(where: { $0.kind == .photo })?.id
     }
 }
 
@@ -571,8 +670,6 @@ private struct MediaPhotoGallery: View {
 
 private struct MediaPhotoGalleryPage: View {
     let asset: MediaAsset
-    private let mediaStore = LocalMediaFileStore.shared
-
     @State private var image: UIImage?
     @State private var isLoading = true
     @State private var didFail = false
@@ -603,23 +700,7 @@ private struct MediaPhotoGalleryPage: View {
         didFail = false
         isLoading = true
 
-        let localIdentifier = asset.localIdentifier
-        let originalData = asset.originalData
-        let localURL = mediaStore.fileURL(for: localIdentifier)
-
-        let loadTask = Task<Data?, Never>.detached(priority: .userInitiated) {
-            if let localURL,
-               let data = try? Data(contentsOf: localURL) {
-                return data
-            }
-
-            if let originalData {
-                return originalData
-            }
-
-            return nil
-        }
-        let loadedData = await loadTask.value
+        let loadedData = asset.originalData
 
         guard !Task.isCancelled else { return }
         let loadedImage = loadedData.flatMap(UIImage.init(data:))
@@ -767,6 +848,10 @@ private struct QuickLookPreview: UIViewControllerRepresentable {
         Coordinator(url: url)
     }
 
+    static func dismantleUIViewController(_ uiViewController: QLPreviewController, coordinator: Coordinator) {
+        try? FileManager.default.removeItem(at: coordinator.url)
+    }
+
     final class Coordinator: NSObject, QLPreviewControllerDataSource {
         var url: URL
 
@@ -787,14 +872,13 @@ private struct QuickLookPreview: UIViewControllerRepresentable {
 private struct MediaAssetThumbnailView: View {
     let asset: MediaAsset
     let size: CGFloat
-    private let mediaStore = LocalMediaFileStore.shared
 
     var body: some View {
         Group {
             switch asset.kind {
             case .photo:
                 MediaPreviewImage(
-                    identifier: asset.localIdentifier.isEmpty ? nil : asset.localIdentifier,
+                    assetID: asset.id,
                     originalData: asset.originalData,
                     size: CGSize(width: size, height: size)
                 )
@@ -823,12 +907,8 @@ private struct MediaAssetThumbnailView: View {
     }
 
     private var previewImage: UIImage? {
-        if let url = mediaStore.thumbnailFileURL(for: asset.localIdentifier) ?? mediaStore.fileURL(for: asset.localIdentifier),
-           let image = UIImage(contentsOfFile: url.path) {
-            return image
-        }
-
-        return nil
+        guard let originalData = asset.originalData else { return nil }
+        return UIImage(data: originalData)
     }
 
     private var documentPlaceholder: some View {
@@ -862,7 +942,7 @@ private struct MediaAssetThumbnailView: View {
     }
 
     private var documentExtension: String {
-        let ext = URL(fileURLWithPath: asset.localIdentifier).pathExtension.uppercased()
+        let ext = asset.fileName.map { URL(fileURLWithPath: $0).pathExtension.uppercased() } ?? ""
         return ext.isEmpty ? "FILE" : ext
     }
 }

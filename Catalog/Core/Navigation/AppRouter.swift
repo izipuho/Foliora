@@ -1,6 +1,9 @@
 import SwiftUI
 import CoreData
 
+private typealias BatchCompletionHandler = (BatchAddCompletionAction) -> Void
+typealias CollectionItemSelectionHandler = (UUID, CollectionSharingState?) -> Void
+
 /// Defines the supported app destination values.
 enum AppDestination: Hashable {
     case collection(UUID)
@@ -46,10 +49,11 @@ enum RootTab: String, CaseIterable, Identifiable, Hashable {
 
 /// Displays the app shell view interface.
 struct AppShellView: View {
-    let repository: any CatalogRepository
+    let repository: any AppRepository
     let coreDataContainer: NSPersistentCloudKitContainer
     @Environment(\.managedObjectContext) private var managedObjectContext
     @State private var catalogSnapshot: CatalogSnapshot?
+    @State private var pendingCatalogSnapshotReload: Task<Void, Never>?
     @State private var collectionsPath = NavigationPath()
     @State private var homesPath = NavigationPath()
     @State private var settingsPath = NavigationPath()
@@ -69,11 +73,11 @@ struct AppShellView: View {
             settingsPath: $settingsPath,
             searchPath: $searchPath,
             displayName: $displayName,
-            destination: { destination, layoutMode, onBellSelected, onBatchAddComplete, popNavigation in
+            destination: { destination, layoutMode, onItemSelected, onBatchAddComplete, popNavigation in
                 destinationView(
                     for: destination,
                     layoutMode: layoutMode,
-                    onBellSelected: onBellSelected,
+                    onItemSelected: onItemSelected,
                     onBatchAddComplete: onBatchAddComplete,
                     popNavigation: popNavigation
                 )
@@ -84,12 +88,24 @@ struct AppShellView: View {
             loadDisplayName()
         }
         .onReceive(NotificationCenter.default.publisher(
+            for: .NSManagedObjectContextDidSave,
+            object: managedObjectContext
+        )) { _ in
+            scheduleCatalogSnapshotReload()
+        }
+        .onReceive(NotificationCenter.default.publisher(
             for: .NSManagedObjectContextObjectsDidChange,
             object: managedObjectContext
         )) { _ in
+            guard !managedObjectContext.hasChanges else { return }
+            scheduleCatalogSnapshotReload()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .catalogStoreDidChangeExternally)) { _ in
+            managedObjectContext.refreshAllObjects()
             reloadCatalogSnapshot()
         }
-        .onChange(of: shareInvitationController.state) { _, state in
+        // The invitation that launched the app can be settled before this view appears.
+        .onChange(of: shareInvitationController.state, initial: true) { _, state in
             handleShareInvitationState(state)
         }
         .overlay {
@@ -106,33 +122,47 @@ struct AppShellView: View {
         } message: {
             Text(shareInvitationFailureMessage ?? "")
         }
+        .alert(
+            "collection.sharing.confirm.title",
+            isPresented: shareInvitationConfirmationBinding,
+            presenting: shareInvitationController.invitationAwaitingConfirmation
+        ) { invitation in
+            Button("collection.sharing.confirm.accept") {
+                FolioraCloudKitShareInvitationAcceptor.acceptConfirmed(invitation)
+            }
+            Button("common.cancel", role: .cancel) {
+                FolioraCloudKitShareInvitationAcceptor.declinePendingInvitation()
+            }
+        } message: { invitation in
+            Text(shareInvitationConfirmationMessage(for: invitation))
+        }
     }
 
     @ViewBuilder
     private func destinationView(
         for destination: AppDestination,
         layoutMode: Binding<CatalogCardLayoutMode>,
-        onBellSelected: ((UUID) -> Void)?,
-        onBatchAddComplete: @escaping (BatchAddCompletionAction) -> Void,
+        onItemSelected: CollectionItemSelectionHandler?,
+        onBatchAddComplete: @escaping BatchCompletionHandler,
         popNavigation: @escaping () -> Void
     ) -> some View {
         switch destination {
         case .collection(let collectionID):
             if let collection = collectionSummary(for: collectionID) {
-                CollectionShellView(
+                makeCollectionDestinationContent(
                     collection: collection,
                     catalogSnapshot: catalogSnapshot,
                     repository: repository,
                     coreDataContainer: coreDataContainer,
                     layoutMode: layoutMode,
-                    onBellSelected: onBellSelected,
+                    onItemSelected: onItemSelected,
                     onBatchAddComplete: onBatchAddComplete
                 )
             } else {
                 CatalogEmptyStateView(
                     systemImage: "square.grid.2x2",
-                    title: "Collection not found",
-                    message: "This collection is no longer available."
+                    title: "collection.not_found.title",
+                    message: "collection.not_found.message"
                 )
             }
         case .home(let homeID):
@@ -224,13 +254,37 @@ struct AppShellView: View {
         repository.saveLocations(locationsByHomeID[homeID] ?? [], in: homeID)
     }
 
+    /// Coalesces context notifications into one snapshot reload.
+    ///
+    /// A single save posts both `DidSave` and `ObjectsDidChange`, and Batch Add saves once per item.
+    /// The first trigger schedules a reload after a short delay; triggers arriving while it is pending
+    /// are absorbed. The reload reads the context at execution time, so no change is lost, and a steady
+    /// stream of saves cannot postpone it indefinitely.
+    ///
+    /// The reload is skipped when the context has unsaved changes at execution time, so the snapshot
+    /// never captures an edit in progress. The later save or rollback posts a new trigger.
+    private func scheduleCatalogSnapshotReload() {
+        CatalogSnapshot.signposter.emitEvent("reloadRequested")
+        guard pendingCatalogSnapshotReload == nil else { return }
+
+        pendingCatalogSnapshotReload = Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+            pendingCatalogSnapshotReload = nil
+            guard !managedObjectContext.hasChanges else { return }
+            reloadCatalogSnapshot()
+        }
+    }
+
+    /// Reloads the snapshot immediately and drops any pending coalesced reload.
     private func reloadCatalogSnapshot() {
+        pendingCatalogSnapshotReload?.cancel()
+        pendingCatalogSnapshotReload = nil
         catalogSnapshot = CatalogSnapshot.load(from: managedObjectContext)
     }
 
     private func loadDisplayName() {
-        displayName = NSUbiquitousKeyValueStore.default.string(forKey: "foliora.profile.displayName")?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        displayName = ProfileSettings.displayName
     }
 
     private var shareInvitationFailureAlertBinding: Binding<Bool> {
@@ -244,6 +298,40 @@ struct AppShellView: View {
         )
     }
 
+    private var shareInvitationConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { shareInvitationController.invitationAwaitingConfirmation != nil },
+            set: { isPresented in
+                guard !isPresented else { return }
+                FolioraCloudKitShareInvitationAcceptor.declinePendingInvitation()
+            }
+        )
+    }
+
+    private func shareInvitationConfirmationMessage(for invitation: PendingShareInvitation) -> String {
+        guard let title = invitation.title, !title.isEmpty else {
+            return String(localized: "collection.sharing.confirm.message_untitled")
+        }
+
+        return String.localizedStringWithFormat(
+            String(localized: "collection.sharing.confirm.message"),
+            title
+        )
+    }
+
+    /// Hides the invitation status after a delay, unless another invitation changed it meanwhile.
+    private func dismissShareInvitationStatus(
+        _ state: CloudKitShareInvitationAcceptanceState,
+        after delay: Duration
+    ) {
+        Task { @MainActor in
+            try? await Task.sleep(for: delay)
+            if shareInvitationController.state == state {
+                shareInvitationController.reset()
+            }
+        }
+    }
+
     private func handleShareInvitationState(_ state: CloudKitShareInvitationAcceptanceState) {
         switch state {
         case .idle, .accepting:
@@ -253,12 +341,9 @@ struct AppShellView: View {
             reloadCatalogSnapshot()
             selectedRootTab = .collections
             collectionsPath = NavigationPath()
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1.5))
-                if shareInvitationController.state == .accepted {
-                    shareInvitationController.reset()
-                }
-            }
+            dismissShareInvitationStatus(state, after: .seconds(1.5))
+        case .acceptedAwaitingSync:
+            dismissShareInvitationStatus(state, after: .seconds(4))
         case .failed(let message):
             shareInvitationFailureMessage = message
         }
@@ -266,7 +351,7 @@ struct AppShellView: View {
 }
 
 private struct RootShellView<Destination: View>: View {
-    let repository: any CatalogRepository
+    let repository: any AppRepository
     let catalogSnapshot: CatalogSnapshot?
     @Binding var selectedRootTab: RootTab
     @Binding var collectionsPath: NavigationPath
@@ -274,12 +359,13 @@ private struct RootShellView<Destination: View>: View {
     @Binding var settingsPath: NavigationPath
     @Binding var searchPath: NavigationPath
     @Binding var displayName: String?
-    let destination: (AppDestination, Binding<CatalogCardLayoutMode>, ((UUID) -> Void)?, @escaping (BatchAddCompletionAction) -> Void, @escaping () -> Void) -> Destination
+    let destination: (AppDestination, Binding<CatalogCardLayoutMode>, CollectionItemSelectionHandler?, @escaping BatchCompletionHandler, @escaping () -> Void) -> Destination
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("bellCatalog.layoutMode") private var layoutModeRawValue = CatalogCardLayoutMode.mini.rawValue
     @State private var searchInitialQuery: String?
     @State private var searchResetID = UUID()
-    @State private var selectedBellID: UUID?
+    @State private var selectedItemID: UUID?
+    @State private var selectedItemSharingState: CollectionSharingState?
 
     private var layoutMode: CatalogCardLayoutMode {
         get {
@@ -297,23 +383,13 @@ private struct RootShellView<Destination: View>: View {
         )
     }
 
-    private var isBellInspectorPresented: Binding<Bool> {
+    private var isItemDetailPresented: Binding<Bool> {
         Binding(
-            get: { selectedBellID != nil },
+            get: { selectedItemID != nil },
             set: { isPresented in
                 if !isPresented {
-                    selectedBellID = nil
-                }
-            }
-        )
-    }
-
-    private var selectedRootTabSelection: Binding<RootTab?> {
-        Binding(
-            get: { selectedRootTab },
-            set: { tab in
-                if let tab {
-                    selectedRootTab = tab
+                    selectedItemID = nil
+                    selectedItemSharingState = nil
                 }
             }
         )
@@ -321,100 +397,77 @@ private struct RootShellView<Destination: View>: View {
 
     var body: some View {
         if horizontalSizeClass == .regular {
-            iPadRootContainer
+            rootTabs
+                .inspector(isPresented: isItemDetailPresented) {
+                    if let selectedItemID {
+                        makeItemDetailContent(
+                            itemID: selectedItemID,
+                            repository: repository,
+                            catalogSnapshot: catalogSnapshot,
+                            initialSharingState: selectedItemSharingState,
+                            onClose: closeItemDetail
+                        )
+                        .id(selectedItemID)
+                        .inspectorColumnWidth(min: 320, ideal: 360, max: 420)
+                    } else {
+                        EmptyView()
+                    }
+                }
         } else {
-            iPhoneRootContainer
+            rootTabs
+                .sheet(isPresented: isItemDetailPresented) {
+                    if let selectedItemID {
+                        makeItemDetailContent(
+                            itemID: selectedItemID,
+                            repository: repository,
+                            catalogSnapshot: catalogSnapshot,
+                            initialSharingState: selectedItemSharingState,
+                            onClose: nil
+                        )
+                        .id(selectedItemID)
+                        .presentationDragIndicator(.visible)
+                    }
+                }
         }
     }
 
-    private var iPhoneRootContainer: some View {
+    private var rootTabs: some View {
         TabView(selection: $selectedRootTab) {
-            Tab(RootTab.collections.title, systemImage: RootTab.collections.systemImage, value: RootTab.collections) {
-                collectionsStack(path: $collectionsPath, onBellSelected: nil)
+            Tab(RootTab.collections.title, image: "ProductSymbol", value: RootTab.collections) {
+                collectionsStack(path: $collectionsPath, onItemSelected: openCollectionItemDetail)
             }
 
             Tab(RootTab.homes.title, systemImage: RootTab.homes.systemImage, value: RootTab.homes) {
-                homesStack(path: $homesPath, onBellSelected: nil)
+                homesStack(path: $homesPath, onItemSelected: openCollectionItemDetail)
             }
 
             Tab(RootTab.settings.title, systemImage: RootTab.settings.systemImage, value: RootTab.settings) {
-                settingsStack(path: $settingsPath, onBellSelected: nil)
+                settingsStack(path: $settingsPath, onItemSelected: openCollectionItemDetail)
             }
 
             Tab(value: RootTab.search, role: .search) {
                 NavigationStack(path: $searchPath) {
-                    SearchTabView(
+                    SearchView(
                         repository: repository,
                         layoutMode: layoutModeBinding,
                         catalogSnapshot: catalogSnapshot,
-                        initialQuery: searchInitialQuery
+                        initialQuery: searchInitialQuery,
+                        onItemSelected: openItemDetail
                     )
                     .id(searchResetID)
                 }
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .modifier(ModernTabBarBehavior())
-    }
-
-    private var iPadRootContainer: some View {
-        iPadSplitView
-            .navigationSplitViewStyle(.balanced)
-            .inspector(isPresented: isBellInspectorPresented) {
-                if let selectedBellID {
-                    BellDetailInspectorView(
-                        bellID: selectedBellID,
-                        repository: repository,
-                        catalogSnapshot: catalogSnapshot,
-                        onClose: closeBellInspector
-                    )
-                    .inspectorColumnWidth(min: 320, ideal: 360, max: 420)
-                } else {
-                    EmptyView()
-                }
-            }
-    }
-
-    private var iPadSplitView: some View {
-        NavigationSplitView {
-            List(RootTab.allCases, selection: selectedRootTabSelection) { tab in
-                Label(tab.title, systemImage: tab.systemImage)
-                    .tag(tab)
-            }
-            .navigationTitle(RootTab.collections.title)
-            .onChange(of: selectedRootTab) { _, _ in
-                closeBellInspector()
-            }
-        } detail: {
-            iPadContent(for: selectedRootTab)
-        }
-    }
-
-    @ViewBuilder
-    private func iPadContent(for tab: RootTab) -> some View {
-        switch tab {
-        case .collections:
-            collectionsStack(path: $collectionsPath, onBellSelected: openBellInspector)
-        case .homes:
-            homesStack(path: $homesPath, onBellSelected: openBellInspector)
-        case .search:
-            NavigationStack(path: $searchPath) {
-                SearchTabView(
-                    repository: repository,
-                    layoutMode: layoutModeBinding,
-                    catalogSnapshot: catalogSnapshot,
-                    initialQuery: searchInitialQuery,
-                    onBellSelected: openBellInspector
-                )
-                .id(searchResetID)
-            }
-        case .settings:
-            settingsStack(path: $settingsPath, onBellSelected: openBellInspector)
+        .onChange(of: selectedRootTab) { _, _ in
+            closeItemDetail()
         }
     }
 
     private func homesStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((UUID) -> Void)?
+        onItemSelected: CollectionItemSelectionHandler?
     ) -> some View {
         NavigationStack(path: path) {
             HomeView(
@@ -424,14 +477,14 @@ private struct RootShellView<Destination: View>: View {
                 catalogSnapshot: catalogSnapshot
             )
             .navigationDestination(for: AppDestination.self) { destination in
-                self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popHomesNavigation)
+                self.destination(destination, layoutModeBinding, onItemSelected, handleBatchAddCompletion, popHomesNavigation)
             }
         }
     }
 
     private func collectionsStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((UUID) -> Void)?
+        onItemSelected: CollectionItemSelectionHandler?
     ) -> some View {
         NavigationStack(path: path) {
             CollectionsView(
@@ -441,14 +494,14 @@ private struct RootShellView<Destination: View>: View {
                 onOpenHomes: openHomesTab
             )
             .navigationDestination(for: AppDestination.self) { destination in
-                self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popCollectionsNavigation)
+                self.destination(destination, layoutModeBinding, onItemSelected, handleBatchAddCompletion, popCollectionsNavigation)
             }
         }
     }
 
     private func settingsStack(
         path: Binding<NavigationPath>,
-        onBellSelected: ((UUID) -> Void)?
+        onItemSelected: CollectionItemSelectionHandler?
     ) -> some View {
         NavigationStack(path: path) {
             SettingsView(
@@ -457,7 +510,7 @@ private struct RootShellView<Destination: View>: View {
                 displayName: $displayName
             )
             .navigationDestination(for: AppDestination.self) { destination in
-                self.destination(destination, layoutModeBinding, onBellSelected, handleBatchAddCompletion, popSettingsNavigation)
+                self.destination(destination, layoutModeBinding, onItemSelected, handleBatchAddCompletion, popSettingsNavigation)
             }
         }
     }
@@ -467,7 +520,7 @@ private struct RootShellView<Destination: View>: View {
         searchInitialQuery = query
         searchResetID = UUID()
         selectedRootTab = .search
-        closeBellInspector()
+        closeItemDetail()
         searchPath = NavigationPath()
     }
 
@@ -493,48 +546,19 @@ private struct RootShellView<Destination: View>: View {
         selectedRootTab = .homes
     }
 
-    private func openBellInspector(_ bellID: UUID) {
-        selectedBellID = bellID
+    private func openItemDetail(_ itemID: UUID) {
+        selectedItemSharingState = nil
+        selectedItemID = itemID
     }
 
-    private func closeBellInspector() {
-        selectedBellID = nil
-    }
-}
-
-private struct BellDetailInspectorView: View {
-    let bellID: UUID
-    let repository: any CatalogRepository
-    let catalogSnapshot: CatalogSnapshot?
-    let onClose: () -> Void
-
-    init(
-        bellID: UUID,
-        repository: any CatalogRepository,
-        catalogSnapshot: CatalogSnapshot?,
-        onClose: @escaping () -> Void
-    ) {
-        self.bellID = bellID
-        self.repository = repository
-        self.catalogSnapshot = catalogSnapshot
-        self.onClose = onClose
+    private func openCollectionItemDetail(_ itemID: UUID, sharingState: CollectionSharingState?) {
+        selectedItemSharingState = sharingState
+        selectedItemID = itemID
     }
 
-    var body: some View {
-        NavigationStack {
-            BellDetailContainer(
-                bellID: bellID,
-                repository: repository,
-                catalogSnapshot: catalogSnapshot
-            )
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                    }
-                }
-            }
-        }
+    private func closeItemDetail() {
+        selectedItemID = nil
+        selectedItemSharingState = nil
     }
 }
 

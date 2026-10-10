@@ -1,0 +1,372 @@
+import CoreData
+import Foundation
+import os
+
+/// Favorite item with its cover photo, used for collection backgrounds.
+struct FavoriteItemCover: Identifiable, Hashable {
+    let id: UUID
+    let coverPhotoID: UUID
+}
+
+/// Represents catalog snapshot data and behavior.
+struct CatalogSnapshot {
+    private(set) var homes: [Home] = []
+    private(set) var locations: [Location] = []
+    private(set) var collectionLocations: [Location] = []
+    private(set) var collections: [Collection] = []
+    private(set) var places: [Place] = []
+    private(set) var collectionEntities: [NSManagedObject] = []
+    private(set) var itemEntities: [NSManagedObject] = []
+    private(set) var publisherEntities: [NSManagedObject] = []
+    private(set) var personEntities: [NSManagedObject] = []
+    private(set) var locationsByHomeID: [UUID: [Location]] = [:]
+    private(set) var collectionLocationsByCollectionID: [UUID: [Location]] = [:]
+    private(set) var collectionCountsByHomeID: [UUID: Int] = [:]
+    private(set) var itemCountsByCollectionID: [UUID: Int] = [:]
+    private(set) var recognitionSuggestionItemIDs: Set<UUID> = []
+    private(set) var locationPathByID: [UUID: String] = [:]
+    private(set) var collectionLocationPathByCollectionID: [UUID: [UUID: String]] = [:]
+    /// Preferred cover photo for every item that has one.
+    private(set) var coverPhotoIDByItemID: [UUID: UUID] = [:]
+    /// Favorite items with a cover photo, grouped by collection in item order.
+    private(set) var favoriteItemCoversByCollectionID: [UUID: [FavoriteItemCover]] = [:]
+
+    /// Catalog-specific records, mapped once per load.
+    ///
+    /// `CatalogRecords` is defined once per app target (`BellCatalogSnapshot`, `BookCatalogSnapshot`),
+    /// so this file stays free of catalog types.
+    private(set) var records = CatalogRecords()
+
+    /// Signposts for Instruments: one `load` interval per rebuild, one `reloadRequested` event per trigger.
+    nonisolated static let signposter = OSSignposter(
+        subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+        category: "CatalogSnapshot"
+    )
+
+    private init() {}
+
+    func collectionSummary(id collectionID: UUID) -> CollectionSummary? {
+        guard let collection = collections.first(where: { $0.id == collectionID }) else { return nil }
+        return collectionSummary(from: collection)
+    }
+
+    nonisolated static func load(from context: NSManagedObjectContext) -> CatalogSnapshot {
+        let signpostState = signposter.beginInterval("load")
+        defer { signposter.endInterval("load", signpostState) }
+
+        let homeEntities = fetchEntities(
+            named: "HomeEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+        )
+        let locationEntities = fetchEntities(
+            named: "LocationEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+        )
+        let collectionLocationEntities = fetchEntities(
+            named: "CollectionLocationEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "sortOrder", ascending: true)]
+        )
+        let collectionEntities = fetchEntities(
+            named: "CollectionEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "title", ascending: true)]
+        )
+        let itemEntities = fetchEntities(
+            named: "ItemEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)]
+        )
+        let placeEntities = fetchEntities(
+            named: "PlaceEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "displayName", ascending: true)]
+        )
+        let publisherEntities = fetchEntities(
+            named: "PublisherEntity",
+            in: context,
+            sortDescriptors: [NSSortDescriptor(key: "name", ascending: true)]
+        )
+        let personEntities = fetchEntities(
+            named: "PersonEntity",
+            in: context
+        )
+        let privateStore = context.persistentStoreCoordinator?.persistentStores.first {
+            $0.url?.lastPathComponent == "Private.sqlite"
+        }
+        let userSortOrderEntities = privateStore.map {
+            fetchEntities(named: "UserSortOrderEntity", in: context, affectedStores: [$0])
+        } ?? []
+        let sortOrderByItemID = sortOrders(from: userSortOrderEntities)
+        let collectionSortOrderByItemID = sortOrders(from: userSortOrderEntities, scope: "Collection")
+        let homeSortOrderByItemID = sortOrders(from: userSortOrderEntities, scope: "Home")
+        var snapshot = CatalogSnapshot()
+        snapshot.homes = sortedByUserOrder(
+            homeEntities.map(home),
+            sortOrderByID: homeSortOrderByItemID,
+            name: \.name
+        )
+        snapshot.locations = locationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: sortOrderByItemID[uuidValue($0, "id")]) }
+        snapshot.collectionLocations = collectionLocationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: sortOrderByItemID[uuidValue($0, "id")]) }
+        snapshot.collections = sortedByUserOrder(
+            collectionEntities.map(collection),
+            sortOrderByID: collectionSortOrderByItemID,
+            name: \.title
+        )
+        snapshot.places = placeEntities.map { CoreDataDomainMapper.place(from: $0) }
+        snapshot.collectionEntities = collectionEntities
+        snapshot.itemEntities = itemEntities
+        snapshot.publisherEntities = publisherEntities
+        snapshot.personEntities = personEntities
+        snapshot.locationsByHomeID = Dictionary(grouping: locationEntities.compactMap { locationRow(from: $0, sortOrderByItemID: sortOrderByItemID) }, by: \.0)
+            .mapValues { rows in
+                rows.map(\.1).sorted { lhs, rhs in
+                    lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+            }
+        snapshot.collectionLocationsByCollectionID = Dictionary(
+            grouping: collectionLocationEntities.compactMap { collectionLocationRow(from: $0, sortOrderByItemID: sortOrderByItemID) },
+            by: \.0
+        )
+        .mapValues { rows in rows.map(\.1) }
+        snapshot.collectionCountsByHomeID = Dictionary(
+            collectionEntities.compactMap(collectionHomeID).map { ($0, 1) },
+            uniquingKeysWith: +
+        )
+        snapshot.itemCountsByCollectionID = Dictionary(
+            itemEntities.compactMap(collectionItemCollectionID).map { ($0, 1) },
+            uniquingKeysWith: +
+        )
+        snapshot.recognitionSuggestionItemIDs = Set(
+            itemEntities.compactMap { item -> UUID? in
+                guard item.value(forKey: "recognition") is NSManagedObject else { return nil }
+                return uuidValue(item, "id")
+            }
+        )
+        snapshot.locationPathByID = Dictionary(
+            uniqueKeysWithValues: locationEntities.map { (uuidValue($0, "id"), storageLocationPath(from: $0)) }
+        )
+        snapshot.collectionLocationPathByCollectionID = Dictionary(
+            grouping: collectionLocationEntities.compactMap(collectionLocationPathRow),
+            by: \.0
+        )
+        .mapValues { rows in Dictionary(rows.map(\.1), uniquingKeysWith: { first, _ in first }) }
+
+        snapshot.coverPhotoIDByItemID = Dictionary(
+            uniqueKeysWithValues: itemEntities.compactMap { itemEntity -> (UUID, UUID)? in
+                guard let coverPhotoID = coverPhotoID(of: itemEntity) else { return nil }
+                return (uuidValue(itemEntity, "id"), coverPhotoID)
+            }
+        )
+        snapshot.favoriteItemCoversByCollectionID = Dictionary(
+            grouping: itemEntities.compactMap { itemEntity -> (UUID, FavoriteItemCover)? in
+                guard
+                    itemEntity.value(forKey: "isFavorite") as? Bool == true,
+                    let collectionID = collectionItemCollectionID(from: itemEntity)
+                else { return nil }
+                let itemID = uuidValue(itemEntity, "id")
+                guard let coverPhotoID = snapshot.coverPhotoIDByItemID[itemID] else { return nil }
+                return (collectionID, FavoriteItemCover(id: itemID, coverPhotoID: coverPhotoID))
+            },
+            by: \.0
+        )
+        .mapValues { rows in rows.map(\.1) }
+        snapshot.records = CatalogRecords(
+            coverPhotoIDByItemID: snapshot.coverPhotoIDByItemID,
+            itemEntities: itemEntities,
+            collectionEntities: collectionEntities,
+            publisherEntities: publisherEntities,
+            personEntities: personEntities
+        )
+        return snapshot
+    }
+
+    /// Returns the image used as the item's collection-card cover.
+    nonisolated private static func coverPhotoID(of itemEntity: NSManagedObject) -> UUID? {
+        if stringValue(itemEntity, "kind") == CollectionKind.books.rawValue {
+            guard
+                let bookEntity = itemEntity.value(forKey: "book") as? NSManagedObject,
+                let coverEntity = bookEntity.value(forKey: "coverImage") as? NSManagedObject
+            else {
+                return nil
+            }
+            return coverEntity.value(forKey: "id") as? UUID
+        }
+
+        return CoreDataDomainMapper.relatedObjects(itemEntity, "mediaAssets")
+            .filter { stringValue($0, "kind") == MediaKind.photo.rawValue }
+            .min { CoreDataDomainMapper.intValue($0, "sortOrder") < CoreDataDomainMapper.intValue($1, "sortOrder") }
+            .flatMap { $0.value(forKey: "id") as? UUID }
+    }
+
+    /// Reads user sort orders by item ID, optionally limited to one scope.
+    nonisolated private static func sortOrders(from entities: [NSManagedObject], scope: String? = nil) -> [UUID: Int] {
+        Dictionary(
+            entities.compactMap { entity -> (UUID, Int)? in
+                guard
+                    scope.map({ stringValue(entity, "scope") == $0 }) ?? true,
+                    let itemID = entity.value(forKey: "itemID") as? UUID
+                else { return nil }
+                return (itemID, CoreDataDomainMapper.intValue(entity, "sortOrder"))
+            },
+            uniquingKeysWith: { _, latest in latest }
+        )
+    }
+
+    /// Orders values by user sort order first, then by name, then by ID for a stable order.
+    nonisolated private static func sortedByUserOrder<Value: Identifiable>(
+        _ values: [Value],
+        sortOrderByID: [UUID: Int],
+        name: (Value) -> String
+    ) -> [Value] where Value.ID == UUID {
+        values.sorted { lhs, rhs in
+            switch (sortOrderByID[lhs.id], sortOrderByID[rhs.id]) {
+            case let (lhsOrder?, rhsOrder?):
+                if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                break
+            }
+
+            let nameComparison = name(lhs).localizedCaseInsensitiveCompare(name(rhs))
+            if nameComparison != .orderedSame {
+                return nameComparison == .orderedAscending
+            }
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
+    }
+
+    nonisolated private static func fetchEntities(
+        named entityName: String,
+        in context: NSManagedObjectContext,
+        predicate: NSPredicate? = nil,
+        sortDescriptors: [NSSortDescriptor] = [],
+        affectedStores: [NSPersistentStore]? = nil
+    ) -> [NSManagedObject] {
+        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+        request.predicate = predicate
+        request.sortDescriptors = sortDescriptors
+        request.affectedStores = affectedStores
+        return (try? context.fetch(request)) ?? []
+    }
+
+    nonisolated private static func home(from entity: NSManagedObject) -> Home {
+        Home(
+            id: uuidValue(entity, "id"),
+            name: stringValue(entity, "name"),
+            iconName: stringValue(entity, "iconName", default: "house.fill"),
+            notes: stringValue(entity, "notes"),
+            isShared: isSharedStoreEntity(entity)
+        )
+    }
+
+    nonisolated private static func isSharedStoreEntity(_ entity: NSManagedObject) -> Bool {
+        entity.objectID.persistentStore?.url?.lastPathComponent == "Shared.sqlite"
+    }
+
+    nonisolated private static func collection(from entity: NSManagedObject) -> Collection {
+        Collection(
+            id: uuidValue(entity, "id"),
+            homeID: collectionHomeID(from: entity),
+            kind: collectionKind(from: stringValue(entity, "kind", default: CollectionKind.bells.rawValue)),
+            title: stringValue(entity, "title"),
+            notes: stringValue(entity, "notes"),
+            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyle", default: CollectionBackgroundStyle.amber.rawValue))
+        )
+    }
+
+    nonisolated private static func locationRow(from entity: NSManagedObject, sortOrderByItemID: [UUID: Int]) -> (UUID, Location)? {
+        guard let home = entity.value(forKey: "home") as? NSManagedObject else { return nil }
+        let homeID = uuidValue(home, "id")
+
+        return (homeID, CoreDataDomainMapper.location(from: entity, sortOrder: sortOrderByItemID[uuidValue(entity, "id")]))
+    }
+
+    nonisolated private static func collectionLocationRow(from entity: NSManagedObject, sortOrderByItemID: [UUID: Int]) -> (UUID, Location)? {
+        guard let collectionID = collectionLocationCollectionID(from: entity) else { return nil }
+        return (collectionID, CoreDataDomainMapper.location(from: entity, sortOrder: sortOrderByItemID[uuidValue(entity, "id")]))
+    }
+
+    nonisolated private static func collectionLocationPathRow(from entity: NSManagedObject) -> (UUID, (UUID, String))? {
+        guard let collectionID = collectionLocationCollectionID(from: entity) else { return nil }
+        return (collectionID, (uuidValue(entity, "id"), collectionLocationPath(from: entity)))
+    }
+
+    private func collectionSummary(from collection: Collection) -> CollectionSummary {
+        let itemCount = itemCountsByCollectionID[collection.id] ?? 0
+
+        return CollectionSummary(
+            id: collection.id,
+            homeID: collection.homeID,
+            kind: collection.kind,
+            name: collection.title,
+            subtitle: collection.notes,
+            backgroundStyle: collection.backgroundStyle,
+            itemCount: itemCount,
+            status: itemCount > 0 ? .active : .planned,
+            sharingSummary: "Invitation-only. Members join with Apple ID and receive a role inside the collection."
+        )
+    }
+
+    nonisolated private static func collectionHomeID(from entity: NSManagedObject) -> UUID {
+        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
+            ?? entity.value(forKey: "homeID") as? UUID
+            ?? UUID()
+    }
+
+    nonisolated private static func collectionLocationCollectionID(from entity: NSManagedObject) -> UUID? {
+        (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") }
+    }
+
+    nonisolated private static func collectionItemCollectionID(from entity: NSManagedObject) -> UUID? {
+        (entity.value(forKey: "collection") as? NSManagedObject).map { uuidValue($0, "id") }
+    }
+
+    nonisolated private static func storageLocationPath(from entity: NSManagedObject) -> String {
+        locationPath(from: entity)
+    }
+
+    nonisolated private static func collectionLocationPath(from entity: NSManagedObject) -> String {
+        locationPath(from: entity)
+    }
+
+    nonisolated private static func locationPath(from entity: NSManagedObject) -> String {
+        var parts: [String] = []
+        var current: NSManagedObject? = entity
+
+        while let location = current {
+            parts.insert(stringValue(location, "name"), at: 0)
+            current = location.value(forKey: "parent") as? NSManagedObject
+        }
+
+        return parts.joined(separator: " / ")
+    }
+
+    nonisolated private static func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
+        guard let value = entity.value(forKey: key) as? UUID else {
+            fatalError("Missing UUID for \(entity.entity.name ?? "Unknown").\(key)")
+        }
+        return value
+    }
+
+    nonisolated private static func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
+        entity.value(forKey: key) as? String ?? defaultValue
+    }
+
+    nonisolated private static func collectionKind(from rawValue: String) -> CollectionKind {
+        CollectionKind(rawValue: rawValue) ?? .bells
+    }
+
+    nonisolated private static func collectionBackgroundStyle(from rawValue: String) -> CollectionBackgroundStyle {
+        CollectionBackgroundStyle(rawValue: rawValue) ?? .amber
+    }
+
+    nonisolated private static func locationKind(from rawValue: String) -> LocationKind {
+        LocationKind(rawValue: rawValue) ?? .room
+    }
+}

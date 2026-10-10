@@ -1,14 +1,24 @@
 import CloudKit
 import CoreData
 import Foundation
+import OSLog
 
 /// Groups foliora core data stack values and behavior.
 enum FolioraCoreDataStack {
     static let modelName = "Foliora"
     static let appGroupIdentifier = "group.com.izipuho.Foliora"
 
+    /// Launch-stage signposts, sharing the `Startup` category with the app's launch flow.
+    nonisolated private static let signposter = OSSignposter(
+        subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+        category: "Startup"
+    )
+
     @concurrent
     static func makeContainer() async throws -> NSPersistentCloudKitContainer {
+        let signpostState = signposter.beginInterval("makeContainer")
+        defer { signposter.endInterval("makeContainer", signpostState) }
+
         let model = try managedObjectModel()
         let container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
         guard let cloudKitContainerIdentifier = cloudKitContainerIdentifier(from: container) else {
@@ -53,6 +63,16 @@ enum FolioraCoreDataStack {
             .containerIdentifier
     }
 
+    /// Whether the store mirrors the CloudKit shared database, i.e. holds collections other users own.
+    static func isSharedStore(_ store: NSPersistentStore) -> Bool {
+        store.url?.deletingPathExtension().lastPathComponent == "Shared"
+    }
+
+    /// The store that mirrors the CloudKit shared database.
+    static func sharedPersistentStore(in container: NSPersistentContainer) -> NSPersistentStore? {
+        container.persistentStoreCoordinator.persistentStores.first { isSharedStore($0) }
+    }
+
     private static func managedObjectModel() throws -> NSManagedObjectModel {
         let bundle = Bundle(for: FolioraCoreDataStackBundleToken.self)
         let modelURL = bundle.url(forResource: modelName, withExtension: "momd")
@@ -77,6 +97,9 @@ enum FolioraCoreDataStack {
             cloudKitContainerIdentifier: cloudKitContainerIdentifier
         )
 
+        let signpostState = signposter.beginInterval("loadPersistentStores")
+        defer { signposter.endInterval("loadPersistentStores", signpostState) }
+
         try await withCheckedThrowingContinuation { continuation in
             let storeCount = container.persistentStoreDescriptions.count
             guard storeCount > 0 else {
@@ -88,7 +111,13 @@ enum FolioraCoreDataStack {
             var remainingStores = storeCount
             var loadError: Error?
 
-            container.loadPersistentStores { _, error in
+            container.loadPersistentStores { description, error in
+                let storeName = description.url?.lastPathComponent ?? "unknown"
+                signposter.emitEvent(
+                    "storeLoaded",
+                    "\(storeName, privacy: .public) failed: \(error != nil)"
+                )
+
                 lock.lock()
                 if loadError == nil {
                     loadError = error

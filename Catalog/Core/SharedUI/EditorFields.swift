@@ -89,6 +89,7 @@ struct EnumSelectionRow<Option: Hashable>: View {
 struct PlacePickerField: View {
     let title: String
     let selectedLabel: String
+    let collectionID: UUID
     let places: [Place]
     @Binding var selectedPlace: Place?
 
@@ -113,6 +114,7 @@ struct PlacePickerField: View {
         .buttonStyle(.plain)
         .sheet(isPresented: $isPresentingPicker) {
             PlacePickerView(
+                collectionID: collectionID,
                 places: places,
                 selectedPlace: $selectedPlace
             )
@@ -247,6 +249,7 @@ private struct TagChip: View {
 
 /// Displays the place picker view interface.
 struct PlacePickerView: View {
+    let collectionID: UUID
     let places: [Place]
     @Binding var selectedPlace: Place?
     @Environment(\.dismiss) private var dismiss
@@ -291,7 +294,7 @@ struct PlacePickerView: View {
                     Section(String(localized: "editor.origin.results")) {
                         ForEach(searchModel.results) { result in
                             Button {
-                                PlaceSearchModel.resolve(result) { place in
+                                PlaceSearchModel.resolve(result, collectionID: collectionID) { place in
                                     guard let place else { return }
                                     selectedPlace = place
                                     dismiss()
@@ -445,7 +448,11 @@ private final class PlaceSearchModel: NSObject, MKLocalSearchCompleterDelegate, 
         }
     }
 
-    static func resolve(_ suggestion: PlaceSearchSuggestion, completion: @escaping @MainActor (Place?) -> Void) {
+    static func resolve(
+        _ suggestion: PlaceSearchSuggestion,
+        collectionID: UUID,
+        completion: @escaping @MainActor (Place?) -> Void
+    ) {
         let request = MKLocalSearch.Request(completion: suggestion.completion)
         let search = MKLocalSearch(request: request)
         search.start { response, _ in
@@ -482,6 +489,7 @@ private final class PlaceSearchModel: NSObject, MKLocalSearchCompleterDelegate, 
 
             let place = Place(
                 id: UUID(),
+                collectionID: collectionID,
                 displayName: displayName,
                 countryCode: "",
                 countryName: countryName,

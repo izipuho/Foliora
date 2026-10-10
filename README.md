@@ -47,6 +47,9 @@ The repository also contains a small bell-recognition/debug target and a local P
 - Core Data uses separate private and shared persistent stores backed by CloudKit.
 - Collections are the sharing boundary.
 - The app handles CloudKit share invitations and provides collection sharing UI.
+- Participants, their rights, and leaving a share are managed on the system sharing screen (`UICloudSharingController`); the app persists what the screen changes, since Core Data does not pick it up on its own.
+- Foliora apps share one CloudKit container, so every share is marked with its collection kind (`CollectionShareType`). An app that receives an invitation for a sibling app hands it over instead of accepting it.
+- Deleting a shared collection as the owner, or leaving one as a participant, purges the share zone.
 - Debug builds include Cloud sync diagnostics and a purge tool for development data resets.
 
 ## Repository Structure
@@ -72,6 +75,7 @@ BellRecognition/                 Standalone bell-recognition SwiftUI/debug app
 BellRecognitionDebugML/          Debug UI for ML dataset preparation
 ml/                              PyTorch training and Core ML export pipeline
 docs/                            Architecture and data-model notes
+scripts/                         Asset generation scripts
 ```
 
 ## Data Model and Persistence
@@ -113,6 +117,14 @@ It trains in PyTorch and exports a Core ML `.mlpackage`. See `ml/README.md` for 
 - Device or simulator runtime with Apple Foundation Models and Translation framework support for semantic photo suggestions and localized suggestion text.
 - An Apple developer team with iCloud/CloudKit capabilities for device or CloudKit testing.
 - Python 3 for the optional ML tools.
+
+### Launch Screen and Splash
+
+- `Catalog/App/Launch/LaunchScreen.storyboard` is shared by all apps: the launch background, the "Foliora" wordmark at the top of the safe area, and the medallion at the center of the screen. Per-app colors and images come from each app's `Branding/Assets.xcassets`.
+- `LaunchSequenceView` repeats that frame in SwiftUI and takes over: on every launch the medallion rises under the wordmark and a greeting is fitted between it and the arcs; a returning user then goes to the app as soon as data is ready, a new user gets the first launch flow. Sizes shared with the storyboard live in `LaunchBranding.Metrics`; keep both in sync.
+- The arcs along the bottom of the splash and the first launch flow are drawn in code (`ArcShape`, curves from the Figma launch screens) and colored from each app's `AccentColor` (the medallion color): the left arc mixes in 15% black, the right arc 75% white. They span the full width and their height follows the screen height.
+- The medallion images (`LaunchMedallion`, `SplashMedallionBase`, `SplashMedallionGlyph`) are rendered from `Branding/AppIcon.icon` with its Liquid Glass by Icon Composer's `ictool`, then cut into a medallion layer and a glyph layer that add up to the icon. After changing an icon or `LaunchBackground`, run `zsh scripts/generate-launch-medallion.sh` (needs Xcode 26) and commit the result.
+- The "Check Launch Medallion" build phase warns when an icon, a launch background or the generator changed since the assets were generated. It only compares fingerprints (`scripts/launch-medallion/stamps`), it never renders.
 
 ## Notes
 

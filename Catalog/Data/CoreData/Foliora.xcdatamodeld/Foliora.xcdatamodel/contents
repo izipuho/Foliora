@@ -1,9 +1,42 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24837" systemVersion="25F84" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="25249" systemVersion="25G83" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="BellEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="customMaterialName" optional="YES" attributeType="String"/>
         <attribute name="material" optional="YES" attributeType="String" defaultValueString="unknown"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="bell" inverseEntity="ItemEntity"/>
+    </entity>
+    <entity name="BookContributorEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="order" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="role" optional="YES" attributeType="String"/>
+        <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="contributors" inverseEntity="BookEntity"/>
+        <relationship name="person" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersonEntity" inverseName="bookContributions" inverseEntity="PersonEntity"/>
+    </entity>
+    <entity name="BookEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="genre" optional="YES" attributeType="String"/>
+        <attribute name="languageCode" optional="YES" attributeType="String"/>
+        <attribute name="pageCount" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="publicationYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
+        <attribute name="subtitle" optional="YES" attributeType="String"/>
+        <attribute name="volumeNumber" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="bookIdentifiers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookIdentifierEntity" inverseName="book" inverseEntity="BookIdentifierEntity"/>
+        <relationship name="contributors" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="book" inverseEntity="BookContributorEntity"/>
+        <relationship name="coverImage" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="MediaAssetEntity" inverseName="book" inverseEntity="MediaAssetEntity"/>
+        <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="book" inverseEntity="ItemEntity"/>
+        <relationship name="publisher" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="books" inverseEntity="PublisherEntity"/>
+        <relationship name="series" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookSeriesEntity" inverseName="books" inverseEntity="BookSeriesEntity"/>
+    </entity>
+    <entity name="BookIdentifierEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="type" optional="YES" attributeType="String"/>
+        <attribute name="value" optional="YES" attributeType="String"/>
+        <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="bookIdentifiers" inverseEntity="BookEntity"/>
+    </entity>
+    <entity name="BookSeriesEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="totalBookCount" optional="YES" attributeType="Integer 32" usesScalarValueType="NO"/>
+        <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="series" inverseEntity="BookEntity"/>
+        <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="bookSeries" inverseEntity="CollectionEntity"/>
+        <relationship name="publisher" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="bookSeries" inverseEntity="PublisherEntity"/>
     </entity>
     <entity name="CollectionEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="backgroundStyle" optional="YES" attributeType="String" defaultValueString="amber"/>
@@ -14,10 +47,14 @@
         <attribute name="kind" optional="YES" attributeType="String" defaultValueString="bells"/>
         <attribute name="notes" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="title" optional="YES" attributeType="String" defaultValueString=""/>
+        <relationship name="bookSeries" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookSeriesEntity" inverseName="collection" inverseEntity="BookSeriesEntity"/>
         <relationship name="collectionLocations" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CollectionLocationEntity" inverseName="collection" inverseEntity="CollectionLocationEntity"/>
         <relationship name="home" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="HomeEntity" inverseName="collections" inverseEntity="HomeEntity"/>
         <relationship name="items" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ItemEntity" inverseName="collection" inverseEntity="ItemEntity"/>
         <relationship name="itemTags" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ItemTagEntity" inverseName="collection" inverseEntity="ItemTagEntity"/>
+        <relationship name="people" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PersonEntity" inverseName="collection" inverseEntity="PersonEntity"/>
+        <relationship name="places" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PlaceEntity" inverseName="collection" inverseEntity="PlaceEntity"/>
+        <relationship name="publishers" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PublisherEntity" inverseName="collection" inverseEntity="PublisherEntity"/>
     </entity>
     <entity name="CollectionLocationEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID"/>
@@ -48,15 +85,26 @@
         <attribute name="createdBy" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="isFavorite" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="kind" optional="YES" attributeType="String"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
         <attribute name="title" optional="YES" attributeType="String"/>
         <relationship name="bell" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="BellEntity" inverseName="item" inverseEntity="BellEntity"/>
+        <relationship name="book" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="BookEntity" inverseName="item" inverseEntity="BookEntity"/>
         <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="items" inverseEntity="CollectionEntity"/>
         <relationship name="collectionLocation" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionLocationEntity" inverseName="items" inverseEntity="CollectionLocationEntity"/>
         <relationship name="location" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="LocationEntity" inverseName="items" inverseEntity="LocationEntity"/>
         <relationship name="mediaAssets" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MediaAssetEntity" inverseName="item" inverseEntity="MediaAssetEntity"/>
         <relationship name="originPlace" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaceEntity" inverseName="items" inverseEntity="PlaceEntity"/>
+        <relationship name="recognition" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="ItemRecognitionEntity" inverseName="item" inverseEntity="ItemRecognitionEntity"/>
         <relationship name="tags" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ItemTagEntity" inverseName="items" inverseEntity="ItemTagEntity"/>
+    </entity>
+    <entity name="ItemRecognitionEntity" representedClassName="ItemRecognitionEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="evidenceData" optional="YES" attributeType="Binary"/>
+        <attribute name="photoAssetIDsData" optional="YES" attributeType="Binary"/>
+        <attribute name="resultData" optional="YES" attributeType="Binary"/>
+        <attribute name="schemaVersion" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="recognition" inverseEntity="ItemEntity"/>
     </entity>
     <entity name="ItemTagEntity" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
@@ -91,9 +139,28 @@
         <attribute name="originalData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
         <attribute name="sortOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="NO"/>
         <attribute name="width" optional="YES" attributeType="Integer 64" usesScalarValueType="NO"/>
+        <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="coverImage" inverseEntity="BookEntity"/>
         <relationship name="item" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="mediaAssets" inverseEntity="ItemEntity"/>
+        <relationship name="person" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PersonEntity" inverseName="photos" inverseEntity="PersonEntity"/>
+        <relationship name="publisher" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PublisherEntity" inverseName="logo" inverseEntity="PublisherEntity"/>
+    </entity>
+    <entity name="PersonEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="biography" optional="YES" attributeType="String"/>
+        <attribute name="birthPlace" optional="YES" attributeType="String"/>
+        <attribute name="birthYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
+        <attribute name="canonicalID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="deathPlace" optional="YES" attributeType="String"/>
+        <attribute name="deathYear" optional="YES" attributeType="Integer 16" usesScalarValueType="NO"/>
+        <attribute name="familyName" optional="YES" attributeType="String"/>
+        <attribute name="givenName" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="middleName" optional="YES" attributeType="String"/>
+        <relationship name="bookContributions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="BookContributorEntity" inverseName="person" inverseEntity="BookContributorEntity"/>
+        <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="people" inverseEntity="CollectionEntity"/>
+        <relationship name="photos" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MediaAssetEntity" inverseName="person" inverseEntity="MediaAssetEntity"/>
     </entity>
     <entity name="PlaceEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="canonicalID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="cityName" optional="YES" attributeType="String"/>
         <attribute name="countryCode" optional="YES" attributeType="String" defaultValueString=""/>
         <attribute name="countryName" optional="YES" attributeType="String" defaultValueString=""/>
@@ -102,7 +169,17 @@
         <attribute name="latitude" optional="YES" attributeType="Double" usesScalarValueType="NO"/>
         <attribute name="longitude" optional="YES" attributeType="Double" usesScalarValueType="NO"/>
         <attribute name="regionName" optional="YES" attributeType="String"/>
+        <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="places" inverseEntity="CollectionEntity"/>
         <relationship name="items" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ItemEntity" inverseName="originPlace" inverseEntity="ItemEntity"/>
+    </entity>
+    <entity name="PublisherEntity" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="canonicalID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookEntity" inverseName="publisher" inverseEntity="BookEntity"/>
+        <relationship name="bookSeries" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookSeriesEntity" inverseName="publisher" inverseEntity="BookSeriesEntity"/>
+        <relationship name="collection" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CollectionEntity" inverseName="publishers" inverseEntity="CollectionEntity"/>
+        <relationship name="logo" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="MediaAssetEntity" inverseName="publisher" inverseEntity="MediaAssetEntity"/>
     </entity>
     <entity name="UserSortOrderEntity" representedClassName="UserSortOrderEntity" syncable="YES" codeGenerationType="class">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>

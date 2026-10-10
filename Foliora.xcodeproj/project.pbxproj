@@ -6,206 +6,200 @@
 	objectVersion = 100;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED12F9F8F5100C63AB6 /* HomeDetailView.swift */; };
-		2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */; };
-		2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED52F9F912300C63AB6 /* StorageMapCard.swift */; };
-		2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CED92F9F945700C63AB6 /* SearchTabView.swift */; };
-		2403CEDC2F9F954D00C63AB6 /* CollectionOriginMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */; };
-		2403CEDF2F9FA3A900C63AB6 /* CollectionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */; };
-		2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */; };
-		2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */; };
-		2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */; };
-		24056E9A301E68BE00601C22 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E98301E68BE00601C22 /* PreviewContainer.swift */; };
-		24056E9C301E68D200601C22 /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24056E9B301E68CC00601C22 /* PreviewData.swift */; };
-		24056ED030226D0500601C22 /* Bells.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000011 /* Bells.xcassets */; };
-		24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
-		24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
-		2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */; };
-		2434A00C2FAC7FDA005383FB /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
-		24374F262FF50A0E00E83899 /* DashboardCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F252FF50A0E00E83899 /* DashboardCard.swift */; };
-		24374F2A2FF5A53700E83899 /* CatalogSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F292FF5A53700E83899 /* CatalogSnapshot.swift */; };
-		24374F2C2FF6596800E83899 /* CatalogMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F2B2FF6595E00E83899 /* CatalogMetrics.swift */; };
-		24374F302FF6734600E83899 /* CatalogColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F2F2FF6734200E83899 /* CatalogColors.swift */; };
-		24374F322FF677A900E83899 /* CatalogTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F312FF677A100E83899 /* CatalogTypography.swift */; };
-		24374F462FF7F0AA00E83899 /* CatalogShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F452FF7F0A700E83899 /* CatalogShapes.swift */; };
-		24374F482FFA652F00E83899 /* CatalogSurfaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F472FFA652700E83899 /* CatalogSurfaces.swift */; };
-		24374F4A2FFD10E300E83899 /* CatalogCardLayoutMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */; };
-		24374F4C2FFD302200E83899 /* CatalogCardContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */; };
-		24374F4E2FFE270900E83899 /* CatalogCardCollectionLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */; };
-		244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FE0472FB465CF00B4D805 /* SettingsView.swift */; };
-		246D3FC530011A26000515FD /* ShareInvitationStatusOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */; };
-		246D3FC9300508F7000515FD /* CatalogImportExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246D3FC8300508ED000515FD /* CatalogImportExportView.swift */; };
-		246FD6772FA8BF6300B8859A /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
-		246FD67B2FA8BF8600B8859A /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
-		246FD6812FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */; };
-		246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */; };
-		246FD6832FA8CE2A00B8859A /* BellGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6842FA8CE2A00B8859A /* BellGridView.swift */; };
-		246FD6852FA8CE2A00B8859A /* BellListItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 246FD6872FA8CE2A00B8859A /* BellListItem.swift */; };
-		249A28282FDC1940009A0E03 /* CoreDataCatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249A28272FDC1940009A0E03 /* CoreDataCatalogRepository.swift */; };
-		24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */; };
-		24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */; };
-		24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */; };
-		24D9EB9030115CE8009DB654 /* PhotoAnalysisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */; };
-		24D9EBC630138F2D009DB654 /* MediaSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EBC530138F28009DB654 /* MediaSection.swift */; };
-		24D9EC173019D7B6009DB654 /* CoreDataDomainMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */; };
-		24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */; };
-		24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */; };
-		24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */; };
-		24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */; };
-		24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */; };
-		24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */; };
-		24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */; };
-		24F1A54A2FDB309D00FC1717 /* FolioraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A5492FDB309D00FC1717 /* FolioraApp.swift */; };
-		24F1A54C2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */; };
-		C000000000000000000000A2 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000002 /* AppContainer.swift */; };
-		C000000000000000000000A3 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000003 /* AppRouter.swift */; };
-		C000000000000000000000A5 /* CollectionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000005 /* CollectionModels.swift */; };
-		C000000000000000000000A6 /* ItemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000006 /* ItemModels.swift */; };
-		C000000000000000000000A7 /* BellItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000007 /* BellItem.swift */; };
-		C000000000000000000000A8 /* Place.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000008 /* Place.swift */; };
-		C000000000000000000000A9 /* MediaAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000009 /* MediaAsset.swift */; };
-		C000000000000000000000AA /* SharingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000A /* SharingModels.swift */; };
-		C000000000000000000000AB /* CatalogRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000B /* CatalogRepository.swift */; };
-		C000000000000000000000AD /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000D /* HomeView.swift */; };
-		C000000000000000000000AE /* BellCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000E /* BellCatalogView.swift */; };
-		C000000000000000000000AF /* BellDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000000F /* BellDetailView.swift */; };
-		C000000000000000000000B2 /* EditorFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000013 /* EditorFields.swift */; };
-		C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000018 /* LocalMediaFileStore.swift */; };
-		C000000000000000000000B9 /* BellCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000001F /* BellCardView.swift */; };
-		C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000028 /* CatalogTransferBundle.swift */; };
-		C000000000000000000000BE /* CatalogJSONPort.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000029 /* CatalogJSONPort.swift */; };
-		C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002A /* CatalogTransferDocument.swift */; };
-		C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002B /* PhotoAnalysis.swift */; };
-		C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002C /* BellPhotoAnalysis.swift */; };
-		C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002D /* BellCatalogViewModel.swift */; };
-		C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0000000000000000000002F /* CatalogImportExportActor.swift */; };
-		C000000000000000000000C5 /* CatalogLayouts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000030 /* CatalogLayouts.swift */; };
-		C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00000000000000000000040 /* CatalogArchiveService.swift */; };
-		D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000031 /* BellDetailView+Subviews.swift */; };
-		E00000000000000000000005 /* FolioraCoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000002 /* FolioraCoreDataStack.swift */; };
-		E00000000000000000000006 /* Foliora.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = E00000000000000000000003 /* Foliora.xcdatamodeld */; };
-/* End PBXBuildFile section */
+/* Begin PBXContainerItemProxy section */
+		2480A9E030471FB8003918E4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C00000000000000000000052 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 24A7F2B7303C3BA8005D31A1;
+			remoteInfo = "Foliora Books";
+		};
+		248F42A53055C7CF004BBA03 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C00000000000000000000052 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C00000000000000000000051;
+			remoteInfo = "Foliora Bells";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		2403CED12F9F8F5100C63AB6 /* HomeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDetailView.swift; sourceTree = "<group>"; };
-		2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeEditorView.swift; sourceTree = "<group>"; };
-		2403CED52F9F912300C63AB6 /* StorageMapCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageMapCard.swift; sourceTree = "<group>"; };
-		2403CED92F9F945700C63AB6 /* SearchTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchTabView.swift; sourceTree = "<group>"; };
-		2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionOriginMapView.swift; sourceTree = "<group>"; };
-		2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionEditorView.swift; sourceTree = "<group>"; };
-		2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionsView.swift; sourceTree = "<group>"; };
-		2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionShellView.swift; sourceTree = "<group>"; };
-		2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingView.swift; sourceTree = "<group>"; };
-		24056E98301E68BE00601C22 /* PreviewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContainer.swift; sourceTree = "<group>"; };
-		24056E9B301E68CC00601C22 /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
-		24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticPhotoFeatureExtractor.swift; sourceTree = "<group>"; };
-		24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognitionDebugML.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		24374F252FF50A0E00E83899 /* DashboardCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCard.swift; sourceTree = "<group>"; };
-		24374F292FF5A53700E83899 /* CatalogSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSnapshot.swift; sourceTree = "<group>"; };
-		24374F2B2FF6595E00E83899 /* CatalogMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogMetrics.swift; sourceTree = "<group>"; };
-		24374F2F2FF6734200E83899 /* CatalogColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogColors.swift; sourceTree = "<group>"; };
-		24374F312FF677A100E83899 /* CatalogTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTypography.swift; sourceTree = "<group>"; };
-		24374F452FF7F0A700E83899 /* CatalogShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogShapes.swift; sourceTree = "<group>"; };
-		24374F472FFA652700E83899 /* CatalogSurfaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogSurfaces.swift; sourceTree = "<group>"; };
-		24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardLayoutMode.swift; sourceTree = "<group>"; };
-		24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardContent.swift; sourceTree = "<group>"; };
-		24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogCardCollectionLayouts.swift; sourceTree = "<group>"; };
-		244FE0472FB465CF00B4D805 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		246A557A302274AF00512880 /* Coins.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Coins.xcassets; sourceTree = "<group>"; };
-		246A557C302274CF00512880 /* Stamps.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Stamps.xcassets; sourceTree = "<group>"; };
-		246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareInvitationStatusOverlay.swift; sourceTree = "<group>"; };
-		246D3FC8300508ED000515FD /* CatalogImportExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportView.swift; sourceTree = "<group>"; };
-		246FD65F2FA8BB2900B8859A /* BellRecognition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BellRecognition.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestedFieldValue.swift; sourceTree = "<group>"; };
-		246FD6842FA8CE2A00B8859A /* BellGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellGridView.swift; sourceTree = "<group>"; };
-		246FD6872FA8CE2A00B8859A /* BellListItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellListItem.swift; sourceTree = "<group>"; };
-		249A28272FDC1940009A0E03 /* CoreDataCatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataCatalogRepository.swift; sourceTree = "<group>"; };
-		24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellEditorView.swift; sourceTree = "<group>"; };
-		24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogModels.swift; sourceTree = "<group>"; };
-		24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogDashboard.swift; sourceTree = "<group>"; };
-		24C55DCE302272350091118A /* Records.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Records.xcassets; sourceTree = "<group>"; };
-		24C55DD0302272960091118A /* Books.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Books.xcassets; sourceTree = "<group>"; };
-		24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysisSettingsView.swift; sourceTree = "<group>"; };
-		24D9EBC530138F28009DB654 /* MediaSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSection.swift; sourceTree = "<group>"; };
-		24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataDomainMapper.swift; sourceTree = "<group>"; };
+		2480A9DC30471FB8003918E4 /* Foliora Books Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Foliora Books Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		248F42A13055C7CF004BBA03 /* Foliora Bells Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Foliora Bells Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Books.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		24A7F2D9303C7219005D31A1 /* Foliora-Books-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Books-Info.plist"; sourceTree = "<group>"; };
+		24A7F2DA303C7219005D31A1 /* Foliora Books.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Books.entitlements"; sourceTree = "<group>"; };
 		24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Bells.entitlements"; sourceTree = "<group>"; };
 		24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Bells-Info.plist"; sourceTree = "<group>"; };
-		24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellBatchAddView.swift; sourceTree = "<group>"; };
-		24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogEmptyStateView.swift; sourceTree = "<group>"; };
-		24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogContainerList.swift; sourceTree = "<group>"; };
-		24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSharingMapper.swift; sourceTree = "<group>"; };
-		24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionSharingState.swift; sourceTree = "<group>"; };
-		24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCollectionSharingService.swift; sourceTree = "<group>"; };
-		24F1A5492FDB309D00FC1717 /* FolioraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolioraApp.swift; sourceTree = "<group>"; };
-		24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSharingSceneDelegate.swift; sourceTree = "<group>"; };
-		C00000000000000000000002 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
-		C00000000000000000000003 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
-		C00000000000000000000005 /* CollectionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionModels.swift; sourceTree = "<group>"; };
-		C00000000000000000000006 /* ItemModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemModels.swift; sourceTree = "<group>"; };
-		C00000000000000000000007 /* BellItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellItem.swift; sourceTree = "<group>"; };
-		C00000000000000000000008 /* Place.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Place.swift; sourceTree = "<group>"; };
-		C00000000000000000000009 /* MediaAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaAsset.swift; sourceTree = "<group>"; };
-		C0000000000000000000000A /* SharingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingModels.swift; sourceTree = "<group>"; };
-		C0000000000000000000000B /* CatalogRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogRepository.swift; sourceTree = "<group>"; };
-		C0000000000000000000000D /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		C0000000000000000000000E /* BellCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogView.swift; sourceTree = "<group>"; };
-		C0000000000000000000000F /* BellDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellDetailView.swift; sourceTree = "<group>"; };
-		C00000000000000000000011 /* Bells.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Bells.xcassets; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C00000000000000000000013 /* EditorFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorFields.swift; sourceTree = "<group>"; };
-		C00000000000000000000018 /* LocalMediaFileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMediaFileStore.swift; sourceTree = "<group>"; };
-		C0000000000000000000001F /* BellCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCardView.swift; sourceTree = "<group>"; };
-		C00000000000000000000028 /* CatalogTransferBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferBundle.swift; sourceTree = "<group>"; };
-		C00000000000000000000029 /* CatalogJSONPort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogJSONPort.swift; sourceTree = "<group>"; };
-		C0000000000000000000002A /* CatalogTransferDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogTransferDocument.swift; sourceTree = "<group>"; };
-		C0000000000000000000002B /* PhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysis.swift; sourceTree = "<group>"; };
-		C0000000000000000000002C /* BellPhotoAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellPhotoAnalysis.swift; sourceTree = "<group>"; };
-		C0000000000000000000002D /* BellCatalogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BellCatalogViewModel.swift; sourceTree = "<group>"; };
-		C0000000000000000000002F /* CatalogImportExportActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogImportExportActor.swift; sourceTree = "<group>"; };
-		C00000000000000000000030 /* CatalogLayouts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLayouts.swift; sourceTree = "<group>"; };
-		C00000000000000000000040 /* CatalogArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogArchiveService.swift; sourceTree = "<group>"; };
-		D00000000000000000000031 /* BellDetailView+Subviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BellDetailView+Subviews.swift"; sourceTree = "<group>"; };
-		E00000000000000000000002 /* FolioraCoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolioraCoreDataStack.swift; sourceTree = "<group>"; };
-		E00000000000000000000004 /* Foliora.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Foliora.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		24C44A1E303C78E300404BD4 /* Exceptions for "Domain" folder in "Foliora Books" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Items/BellItem.swift,
+			);
+			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
+		};
+		24C45C54303D80B700404BD4 /* Exceptions for "Domain" folder in "Foliora Bells" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Items/BookItem.swift,
+			);
+			target = C00000000000000000000051 /* Foliora Bells */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		24056EC03020811900601C22 /* Media */ = {
+		24451DF8306E393E001B0AA1 /* Resources */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Media;
+			path = Resources;
 			sourceTree = "<group>";
 		};
-		24349FFF2FAC6FD9005383FB /* BellRecognitionDebugML */ = {
+		24451DFE306E3D17001B0AA1 /* Coins */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BellRecognitionDebugML;
+			path = Coins;
 			sourceTree = "<group>";
 		};
-		24374F4F2FFE5C7E00E83899 /* Foundation */ = {
+		24451E02306E3D17001B0AA1 /* Records */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Foundation;
+			path = Records;
 			sourceTree = "<group>";
 		};
-		246FD6602FA8BB2900B8859A /* BellRecognition */ = {
+		24451E06306E3D17001B0AA1 /* Stamps */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BellRecognition;
+			path = Stamps;
 			sourceTree = "<group>";
 		};
-		24B4D3513025E74600904626 /* Launch */ = {
+		2448AA5B3044061E0008B135 /* People */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Launch;
+			path = People;
+			sourceTree = "<group>";
+		};
+		2480A9DD30471FB8003918E4 /* Foliora Books Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Foliora Books Tests";
+			sourceTree = "<group>";
+		};
+		248F42A23055C7CF004BBA03 /* Foliora Bells Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Foliora Bells Tests";
+			sourceTree = "<group>";
+		};
+		24C44993303C789200404BD4 /* Core */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Core;
+			sourceTree = "<group>";
+		};
+		24C44A0A303C78C800404BD4 /* Domain */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				24C45C54303D80B700404BD4 /* Exceptions for "Domain" folder in "Foliora Bells" target */,
+				24C44A1E303C78E300404BD4 /* Exceptions for "Domain" folder in "Foliora Books" target */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		24C44A40303C7CDE00404BD4 /* App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = App;
+			sourceTree = "<group>";
+		};
+		24C45CC3303D972B00404BD4 /* Common */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Common;
+			sourceTree = "<group>";
+		};
+		24C45CC4303D973300404BD4 /* Bells */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Bells;
+			sourceTree = "<group>";
+		};
+		24C45CC5303D973B00404BD4 /* Books */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Books;
+			sourceTree = "<group>";
+		};
+		24C45CC7303D977900404BD4 /* Common */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Common;
+			sourceTree = "<group>";
+		};
+		24C45CC8303D978300404BD4 /* Bells */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Bells;
+			sourceTree = "<group>";
+		};
+		24C45CC9303D978900404BD4 /* Books */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Books;
+			sourceTree = "<group>";
+		};
+		24C45D01303D97DD00404BD4 /* CoreData */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CoreData;
+			sourceTree = "<group>";
+		};
+		24C45D09303D996B00404BD4 /* Settings */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		24C45D11303D996E00404BD4 /* Collections */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Collections;
+			sourceTree = "<group>";
+		};
+		24C45D19303D997200404BD4 /* Search */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Search;
+			sourceTree = "<group>";
+		};
+		24C45D20303D997500404BD4 /* Home */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Home;
+			sourceTree = "<group>";
+		};
+		24C45D3B303D997900404BD4 /* Bells */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Bells;
+			sourceTree = "<group>";
+		};
+		24C45D53303D997E00404BD4 /* Books */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Books;
+			sourceTree = "<group>";
+		};
+		24C45D92303DC8BF00404BD4 /* Bells */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Bells;
+			sourceTree = "<group>";
+		};
+		24C45D93303DC8BF00404BD4 /* Books */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Books;
+			sourceTree = "<group>";
+		};
+		24C45D94303DC8BF00404BD4 /* Common */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Common;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		24349FFB2FAC6FD9005383FB /* Frameworks */ = {
+		2480A9D930471FB8003918E4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
 		};
-		246FD65C2FA8BB2900B8859A /* Frameworks */ = {
+		248F429E3055C7CF004BBA03 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		24A7F2B5303C3BA8005D31A1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
@@ -218,43 +212,45 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		24056E99301E68BE00601C22 /* PreviewData */ = {
+		24C45C75303D971B00404BD4 /* PreviewData */ = {
 			isa = PBXGroup;
 			children = (
-				24056EC03020811900601C22 /* Media */,
-				24056E9B301E68CC00601C22 /* PreviewData.swift */,
-				24056E98301E68BE00601C22 /* PreviewContainer.swift */,
+				24C45CC9303D978900404BD4 /* Books */,
+				24C45CC8303D978300404BD4 /* Bells */,
+				24C45CC7303D977900404BD4 /* Common */,
 			);
 			path = PreviewData;
 			sourceTree = "<group>";
 		};
-		24374F232FF4F93800E83899 /* DesignSystem */ = {
+		24C45C82303D971B00404BD4 /* Repositories */ = {
 			isa = PBXGroup;
 			children = (
-				24374F472FFA652700E83899 /* CatalogSurfaces.swift */,
-				24374F452FF7F0A700E83899 /* CatalogShapes.swift */,
-				24374F312FF677A100E83899 /* CatalogTypography.swift */,
-				24374F2F2FF6734200E83899 /* CatalogColors.swift */,
-				24374F2B2FF6595E00E83899 /* CatalogMetrics.swift */,
+				24C45CC5303D973B00404BD4 /* Books */,
+				24C45CC4303D973300404BD4 /* Bells */,
+				24C45CC3303D972B00404BD4 /* Common */,
 			);
-			path = DesignSystem;
+			path = Repositories;
 			sourceTree = "<group>";
 		};
-		244FE0482FB465CF00B4D805 /* Settings */ = {
+		24C45C83303D971B00404BD4 /* Data */ = {
 			isa = PBXGroup;
 			children = (
-				24D9EB8F30115CE4009DB654 /* PhotoAnalysisSettingsView.swift */,
-				244FE0472FB465CF00B4D805 /* SettingsView.swift */,
+				24C45D01303D97DD00404BD4 /* CoreData */,
+				24C45D83303DC8BB00404BD4 /* ImportExport */,
+				24C45C75303D971B00404BD4 /* PreviewData */,
+				24C45C82303D971B00404BD4 /* Repositories */,
 			);
-			path = Settings;
+			path = Data;
 			sourceTree = "<group>";
 		};
-		24BFE4E82F9CF57C00421A40 /* Catalog */ = {
+		24C45D83303DC8BB00404BD4 /* ImportExport */ = {
 			isa = PBXGroup;
 			children = (
-				24BFE4E72F9CF57C00421A40 /* CatalogModels.swift */,
+				24C45D92303DC8BF00404BD4 /* Bells */,
+				24C45D93303DC8BF00404BD4 /* Books */,
+				24C45D94303DC8BF00404BD4 /* Common */,
 			);
-			path = Catalog;
+			path = ImportExport;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000031 = {
@@ -262,9 +258,11 @@
 			children = (
 				24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */,
 				24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */,
+				24A7F2D9303C7219005D31A1 /* Foliora-Books-Info.plist */,
+				24A7F2DA303C7219005D31A1 /* Foliora Books.entitlements */,
 				C00000000000000000000032 /* Catalog */,
-				246FD6602FA8BB2900B8859A /* BellRecognition */,
-				24349FFF2FAC6FD9005383FB /* BellRecognitionDebugML */,
+				2480A9DD30471FB8003918E4 /* Foliora Books Tests */,
+				248F42A23055C7CF004BBA03 /* Foliora Bells Tests */,
 				C00000000000000000000033 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -272,12 +270,12 @@
 		C00000000000000000000032 /* Catalog */ = {
 			isa = PBXGroup;
 			children = (
-				C00000000000000000000034 /* App */,
-				C00000000000000000000035 /* Core */,
-				C00000000000000000000036 /* Domain */,
-				C00000000000000000000037 /* Data */,
+				24C44A40303C7CDE00404BD4 /* App */,
+				24C44993303C789200404BD4 /* Core */,
+				24C44A0A303C78C800404BD4 /* Domain */,
+				24C45C83303D971B00404BD4 /* Data */,
 				C00000000000000000000038 /* Features */,
-				C00000000000000000000039 /* Resources */,
+				24451DF8306E393E001B0AA1 /* Resources */,
 			);
 			path = Catalog;
 			sourceTree = "<group>";
@@ -286,283 +284,108 @@
 			isa = PBXGroup;
 			children = (
 				C00000000000000000000012 /* Foliora Bells.app */,
-				246FD65F2FA8BB2900B8859A /* BellRecognition.app */,
-				24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */,
+				24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */,
+				2480A9DC30471FB8003918E4 /* Foliora Books Tests.xctest */,
+				248F42A13055C7CF004BBA03 /* Foliora Bells Tests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000034 /* App */ = {
-			isa = PBXGroup;
-			children = (
-				24B4D3513025E74600904626 /* Launch */,
-				24F1A5492FDB309D00FC1717 /* FolioraApp.swift */,
-				24F1A54B2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift */,
-				C00000000000000000000002 /* AppContainer.swift */,
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000035 /* Core */ = {
-			isa = PBXGroup;
-			children = (
-				24374F4F2FFE5C7E00E83899 /* Foundation */,
-				24374F232FF4F93800E83899 /* DesignSystem */,
-				C0000000000000000000003A /* Navigation */,
-				C0000000000000000000004A /* PhotoAnalysis */,
-				C0000000000000000000003B /* SharedUI */,
-			);
-			path = Core;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000036 /* Domain */ = {
-			isa = PBXGroup;
-			children = (
-				24BFE4E82F9CF57C00421A40 /* Catalog */,
-				C0000000000000000000003C /* Collections */,
-				C0000000000000000000003D /* Items */,
-				C0000000000000000000003E /* Sharing */,
-			);
-			path = Domain;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000037 /* Data */ = {
-			isa = PBXGroup;
-			children = (
-				24056E99301E68BE00601C22 /* PreviewData */,
-				C0000000000000000000003F /* Repositories */,
-				E00000000000000000000001 /* CoreData */,
-				C00000000000000000000049 /* ImportExport */,
-			);
-			path = Data;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000038 /* Features */ = {
 			isa = PBXGroup;
 			children = (
-				244FE0482FB465CF00B4D805 /* Settings */,
-				C00000000000000000000041 /* Collections */,
-				C00000000000000000000042 /* Bells */,
-				C00000000000000000000044 /* Home */,
+				24451DFE306E3D17001B0AA1 /* Coins */,
+				24451E02306E3D17001B0AA1 /* Records */,
+				24451E06306E3D17001B0AA1 /* Stamps */,
+				2448AA5B3044061E0008B135 /* People */,
+				24C45D09303D996B00404BD4 /* Settings */,
+				24C45D11303D996E00404BD4 /* Collections */,
+				24C45D19303D997200404BD4 /* Search */,
+				24C45D3B303D997900404BD4 /* Bells */,
+				24C45D53303D997E00404BD4 /* Books */,
+				24C45D20303D997500404BD4 /* Home */,
 			);
 			path = Features;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000039 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000011 /* Bells.xcassets */,
-				24F1A4DF2FD88B0600FC1717 /* Localizable.xcstrings */,
-				24C55DCE302272350091118A /* Records.xcassets */,
-				24C55DD0302272960091118A /* Books.xcassets */,
-				246A557A302274AF00512880 /* Coins.xcassets */,
-				246A557C302274CF00512880 /* Stamps.xcassets */,
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003A /* Navigation */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000003 /* AppRouter.swift */,
-			);
-			path = Navigation;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003B /* SharedUI */ = {
-			isa = PBXGroup;
-			children = (
-				24D9EBC530138F28009DB654 /* MediaSection.swift */,
-				246D3FC430011A23000515FD /* ShareInvitationStatusOverlay.swift */,
-				24374F4D2FFE270500E83899 /* CatalogCardCollectionLayouts.swift */,
-				24374F4B2FFD301E00E83899 /* CatalogCardContent.swift */,
-				24374F492FFD10DF00E83899 /* CatalogCardLayoutMode.swift */,
-				24374F252FF50A0E00E83899 /* DashboardCard.swift */,
-				24F1A5032FD90E8C00FC1717 /* CatalogContainerList.swift */,
-				24F1A4B92FD856AA00FC1717 /* CatalogEmptyStateView.swift */,
-				C00000000000000000000030 /* CatalogLayouts.swift */,
-				C00000000000000000000013 /* EditorFields.swift */,
-			);
-			path = SharedUI;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003C /* Collections */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000005 /* CollectionModels.swift */,
-			);
-			path = Collections;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003D /* Items */ = {
-			isa = PBXGroup;
-			children = (
-				C00000000000000000000006 /* ItemModels.swift */,
-				C00000000000000000000007 /* BellItem.swift */,
-				C00000000000000000000008 /* Place.swift */,
-				C00000000000000000000009 /* MediaAsset.swift */,
-			);
-			path = Items;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003E /* Sharing */ = {
-			isa = PBXGroup;
-			children = (
-				24F1A5272FD9932400FC1717 /* CloudKitCollectionSharingService.swift */,
-				24F1A5232FD9880600FC1717 /* CloudKitSharingMapper.swift */,
-				C0000000000000000000000A /* SharingModels.swift */,
-			);
-			path = Sharing;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000003F /* Repositories */ = {
-			isa = PBXGroup;
-			children = (
-				24D9EC163019D7B3009DB654 /* CoreDataDomainMapper.swift */,
-				24374F292FF5A53700E83899 /* CatalogSnapshot.swift */,
-				249A28272FDC1940009A0E03 /* CoreDataCatalogRepository.swift */,
-				C0000000000000000000000B /* CatalogRepository.swift */,
-				C00000000000000000000018 /* LocalMediaFileStore.swift */,
-			);
-			path = Repositories;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000041 /* Collections */ = {
-			isa = PBXGroup;
-			children = (
-				24F1A5252FD98A1900FC1717 /* CollectionSharingState.swift */,
-				2403CEDD2F9FA3A900C63AB6 /* CollectionEditorView.swift */,
-				2403CEE92F9FCEAA00C63AB6 /* CollectionSharingView.swift */,
-				2403CEE72F9FCEAA00C63AB6 /* CollectionShellView.swift */,
-				2403CEDE2F9FA3A900C63AB6 /* CollectionsView.swift */,
-				2403CEDB2F9F954D00C63AB6 /* CollectionOriginMapView.swift */,
-			);
-			path = Collections;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000042 /* Bells */ = {
-			isa = PBXGroup;
-			children = (
-				C0000000000000000000004B /* Analysis */,
-				C00000000000000000000045 /* List */,
-				C00000000000000000000046 /* Detail */,
-			);
-			path = Bells;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000044 /* Home */ = {
-			isa = PBXGroup;
-			children = (
-				2403CED52F9F912300C63AB6 /* StorageMapCard.swift */,
-				2403CED12F9F8F5100C63AB6 /* HomeDetailView.swift */,
-				2403CED22F9F8F5100C63AB6 /* HomeEditorView.swift */,
-				C0000000000000000000000D /* HomeView.swift */,
-			);
-			path = Home;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000045 /* List */ = {
-			isa = PBXGroup;
-			children = (
-				2403CED92F9F945700C63AB6 /* SearchTabView.swift */,
-				246FD6872FA8CE2A00B8859A /* BellListItem.swift */,
-				246FD6842FA8CE2A00B8859A /* BellGridView.swift */,
-				24BFE4EA2F9CF73000421A40 /* BellCatalogDashboard.swift */,
-				C0000000000000000000000E /* BellCatalogView.swift */,
-				C0000000000000000000002D /* BellCatalogViewModel.swift */,
-			);
-			path = List;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000046 /* Detail */ = {
-			isa = PBXGroup;
-			children = (
-				24F1A4872FD8318B00FC1717 /* BellBatchAddView.swift */,
-				24BFE4E12F9CF2BE00421A40 /* BellEditorView.swift */,
-				C0000000000000000000000F /* BellDetailView.swift */,
-				D00000000000000000000031 /* BellDetailView+Subviews.swift */,
-				C0000000000000000000001F /* BellCardView.swift */,
-			);
-			path = Detail;
-			sourceTree = "<group>";
-		};
-		C00000000000000000000049 /* ImportExport */ = {
-			isa = PBXGroup;
-			children = (
-				246D3FC8300508ED000515FD /* CatalogImportExportView.swift */,
-				C00000000000000000000028 /* CatalogTransferBundle.swift */,
-				C00000000000000000000029 /* CatalogJSONPort.swift */,
-				C0000000000000000000002A /* CatalogTransferDocument.swift */,
-				C0000000000000000000002F /* CatalogImportExportActor.swift */,
-				C00000000000000000000040 /* CatalogArchiveService.swift */,
-			);
-			path = ImportExport;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000004A /* PhotoAnalysis */ = {
-			isa = PBXGroup;
-			children = (
-				24349FF72FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift */,
-				C0000000000000000000002B /* PhotoAnalysis.swift */,
-			);
-			path = PhotoAnalysis;
-			sourceTree = "<group>";
-		};
-		C0000000000000000000004B /* Analysis */ = {
-			isa = PBXGroup;
-			children = (
-				246FD6802FA8CE2A00B8859A /* SuggestedFieldValue.swift */,
-				C0000000000000000000002C /* BellPhotoAnalysis.swift */,
-			);
-			path = Analysis;
-			sourceTree = "<group>";
-		};
-		E00000000000000000000001 /* CoreData */ = {
-			isa = PBXGroup;
-			children = (
-				E00000000000000000000003 /* Foliora.xcdatamodeld */,
-				E00000000000000000000002 /* FolioraCoreDataStack.swift */,
-			);
-			path = CoreData;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		24349FFD2FAC6FD9005383FB /* BellRecognitionDebugML */ = {
+		2480A9DB30471FB8003918E4 /* Foliora Books Tests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2434A0062FAC6FDA005383FB /* Build configuration list for PBXNativeTarget "BellRecognitionDebugML" */;
+			buildConfigurationList = 2480A9E230471FB8003918E4 /* Build configuration list for PBXNativeTarget "Foliora Books Tests" */;
 			buildPhases = (
-				24349FFA2FAC6FD9005383FB /* Sources */,
-				24349FFB2FAC6FD9005383FB /* Frameworks */,
-				24349FFC2FAC6FD9005383FB /* Resources */,
+				2480A9D830471FB8003918E4 /* Sources */,
+				2480A9D930471FB8003918E4 /* Frameworks */,
+				2480A9DA30471FB8003918E4 /* Resources */,
 			);
 			buildRules = (
 			);
-			fileSystemSynchronizedGroups = (
-				24349FFF2FAC6FD9005383FB /* BellRecognitionDebugML */,
+			dependencies = (
+				2480A9E130471FB8003918E4 /* PBXTargetDependency */,
 			);
-			name = BellRecognitionDebugML;
-			productName = BellRecognitionDebugML;
-			productReference = 24349FFE2FAC6FD9005383FB /* BellRecognitionDebugML.app */;
-			productType = "com.apple.product-type.application";
+			fileSystemSynchronizedGroups = (
+				2480A9DD30471FB8003918E4 /* Foliora Books Tests */,
+			);
+			name = "Foliora Books Tests";
+			productName = "Foliora Books Tests";
+			productReference = 2480A9DC30471FB8003918E4 /* Foliora Books Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		246FD65E2FA8BB2900B8859A /* BellRecognition */ = {
+		248F42A03055C7CF004BBA03 /* Foliora Bells Tests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 246FD6672FA8BB2A00B8859A /* Build configuration list for PBXNativeTarget "BellRecognition" */;
+			buildConfigurationList = 248F42A93055C7CF004BBA03 /* Build configuration list for PBXNativeTarget "Foliora Bells Tests" */;
 			buildPhases = (
-				246FD65B2FA8BB2900B8859A /* Sources */,
-				246FD65C2FA8BB2900B8859A /* Frameworks */,
-				246FD65D2FA8BB2900B8859A /* Resources */,
+				248F429D3055C7CF004BBA03 /* Sources */,
+				248F429E3055C7CF004BBA03 /* Frameworks */,
+				248F429F3055C7CF004BBA03 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				248F42A63055C7CF004BBA03 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				248F42A23055C7CF004BBA03 /* Foliora Bells Tests */,
+			);
+			name = "Foliora Bells Tests";
+			productName = "Foliora Bells Tests";
+			productReference = 248F42A13055C7CF004BBA03 /* Foliora Bells Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		24A7F2B7303C3BA8005D31A1 /* Foliora Books */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 24A7F2C8303C3BA9005D31A1 /* Build configuration list for PBXNativeTarget "Foliora Books" */;
+			buildPhases = (
+				24A7F2B4303C3BA8005D31A1 /* Sources */,
+				24A7F2B5303C3BA8005D31A1 /* Frameworks */,
+				F0F0A00000000000000000B2 /* Check Launch Medallion */,
+				24A7F2B6303C3BA8005D31A1 /* Resources */,
 			);
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				246FD6602FA8BB2900B8859A /* BellRecognition */,
+				24451DF8306E393E001B0AA1 /* Resources */,
+				2448AA5B3044061E0008B135 /* People */,
+				24C44993303C789200404BD4 /* Core */,
+				24C44A0A303C78C800404BD4 /* Domain */,
+				24C44A40303C7CDE00404BD4 /* App */,
+				24C45CC3303D972B00404BD4 /* Common */,
+				24C45CC5303D973B00404BD4 /* Books */,
+				24C45CC7303D977900404BD4 /* Common */,
+				24C45CC9303D978900404BD4 /* Books */,
+				24C45D01303D97DD00404BD4 /* CoreData */,
+				24C45D09303D996B00404BD4 /* Settings */,
+				24C45D11303D996E00404BD4 /* Collections */,
+				24C45D19303D997200404BD4 /* Search */,
+				24C45D20303D997500404BD4 /* Home */,
+				24C45D53303D997E00404BD4 /* Books */,
+				24C45D93303DC8BF00404BD4 /* Books */,
+				24C45D94303DC8BF00404BD4 /* Common */,
 			);
-			name = BellRecognition;
-			productName = BellRecognition;
-			productReference = 246FD65F2FA8BB2900B8859A /* BellRecognition.app */;
+			name = "Foliora Books";
+			productName = "Foliora Books";
+			productReference = 24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */;
 			productType = "com.apple.product-type.application";
 		};
 		C00000000000000000000051 /* Foliora Bells */ = {
@@ -571,14 +394,28 @@
 			buildPhases = (
 				C00000000000000000000022 /* Sources */,
 				C00000000000000000000021 /* Frameworks */,
+				F0F0A00000000000000000B1 /* Check Launch Medallion */,
 				C00000000000000000000023 /* Resources */,
 			);
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				24056EC03020811900601C22 /* Media */,
-				24374F4F2FFE5C7E00E83899 /* Foundation */,
-				24B4D3513025E74600904626 /* Launch */,
+				24451DF8306E393E001B0AA1 /* Resources */,
+				24C44993303C789200404BD4 /* Core */,
+				24C44A0A303C78C800404BD4 /* Domain */,
+				24C44A40303C7CDE00404BD4 /* App */,
+				24C45CC3303D972B00404BD4 /* Common */,
+				24C45CC4303D973300404BD4 /* Bells */,
+				24C45CC7303D977900404BD4 /* Common */,
+				24C45CC8303D978300404BD4 /* Bells */,
+				24C45D01303D97DD00404BD4 /* CoreData */,
+				24C45D09303D996B00404BD4 /* Settings */,
+				24C45D11303D996E00404BD4 /* Collections */,
+				24C45D19303D997200404BD4 /* Search */,
+				24C45D20303D997500404BD4 /* Home */,
+				24C45D3B303D997900404BD4 /* Bells */,
+				24C45D92303DC8BF00404BD4 /* Bells */,
+				24C45D94303DC8BF00404BD4 /* Common */,
 			);
 			name = "Foliora Bells";
 			productName = Catalog;
@@ -593,13 +430,18 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2640;
-				LastUpgradeCheck = 2640;
+				LastUpgradeCheck = 2700;
 				TargetAttributes = {
-					24349FFD2FAC6FD9005383FB = {
+					2480A9DB30471FB8003918E4 = {
 						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = 24A7F2B7303C3BA8005D31A1;
 					};
-					246FD65E2FA8BB2900B8859A = {
-						CreatedOnToolsVersion = 26.3;
+					248F42A03055C7CF004BBA03 = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = C00000000000000000000051;
+					};
+					24A7F2B7303C3BA8005D31A1 = {
+						CreatedOnToolsVersion = 26.4.1;
 					};
 					C00000000000000000000051 = {
 						CreatedOnToolsVersion = 26.3;
@@ -622,19 +464,25 @@
 			projectRoot = "";
 			targets = (
 				C00000000000000000000051 /* Foliora Bells */,
-				246FD65E2FA8BB2900B8859A /* BellRecognition */,
-				24349FFD2FAC6FD9005383FB /* BellRecognitionDebugML */,
+				24A7F2B7303C3BA8005D31A1 /* Foliora Books */,
+				2480A9DB30471FB8003918E4 /* Foliora Books Tests */,
+				248F42A03055C7CF004BBA03 /* Foliora Bells Tests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		24349FFC2FAC6FD9005383FB /* Resources */ = {
+		2480A9DA30471FB8003918E4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
 		};
-		246FD65D2FA8BB2900B8859A /* Resources */ = {
+		248F429F3055C7CF004BBA03 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		24A7F2B6303C3BA8005D31A1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -642,373 +490,321 @@
 		C00000000000000000000023 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
-				24056ED030226D0500601C22 /* Bells.xcassets in Resources */,
-				24F1A4E02FD88B0600FC1717 /* Localizable.xcstrings in Resources */,
 			);
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXSourcesBuildPhase section */
-		24349FFA2FAC6FD9005383FB /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			files = (
-				2434A00C2FAC7FDA005383FB /* PhotoAnalysis.swift in Sources */,
-				2434A00B2FAC7FD5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */,
+/* Begin PBXShellScriptBuildPhase section */
+		F0F0A00000000000000000B1 /* Check Launch Medallion */ = {
+			isa = PBXShellScriptBuildPhase;
+			inputPaths = (
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/AppIcon.icon",
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/AppIcon.icon/icon.json",
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/AppIcon.icon/Assets",
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/AppIcon.icon/Assets/bell.svg",
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/AppIcon.icon/Assets/medallion.svg",
+				"$(SRCROOT)/Catalog/Features/Bells/Branding/Assets.xcassets/LaunchBackground.colorset/Contents.json",
+				"$(SRCROOT)/scripts/generate-launch-medallion.sh",
+				"$(SRCROOT)/scripts/launch-medallion/Process.swift",
+				"$(SRCROOT)/scripts/launch-medallion/fingerprint.sh",
+				"$(SRCROOT)/scripts/launch-medallion/check.sh",
+				"$(SRCROOT)/scripts/launch-medallion/stamps/Bells.sha256",
+			);
+			name = "Check Launch Medallion";
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/launch-medallion-Bells.checked",
+			);
+			shellPath = /bin/zsh;
+			shellScript = (
+				"zsh \"$SRCROOT/scripts/launch-medallion/check.sh\" Bells",
+				"",
 			);
 		};
-		246FD65B2FA8BB2900B8859A /* Sources */ = {
+		F0F0A00000000000000000B2 /* Check Launch Medallion */ = {
+			isa = PBXShellScriptBuildPhase;
+			inputPaths = (
+				"$(SRCROOT)/Catalog/Features/Books/Branding/AppIcon.icon",
+				"$(SRCROOT)/Catalog/Features/Books/Branding/AppIcon.icon/icon.json",
+				"$(SRCROOT)/Catalog/Features/Books/Branding/AppIcon.icon/Assets",
+				"$(SRCROOT)/Catalog/Features/Books/Branding/AppIcon.icon/Assets/books.svg",
+				"$(SRCROOT)/Catalog/Features/Books/Branding/AppIcon.icon/Assets/medallion.svg",
+				"$(SRCROOT)/Catalog/Features/Books/Branding/Assets.xcassets/LaunchBackground.colorset/Contents.json",
+				"$(SRCROOT)/scripts/generate-launch-medallion.sh",
+				"$(SRCROOT)/scripts/launch-medallion/Process.swift",
+				"$(SRCROOT)/scripts/launch-medallion/fingerprint.sh",
+				"$(SRCROOT)/scripts/launch-medallion/check.sh",
+				"$(SRCROOT)/scripts/launch-medallion/stamps/Books.sha256",
+			);
+			name = "Check Launch Medallion";
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/launch-medallion-Books.checked",
+			);
+			shellPath = /bin/zsh;
+			shellScript = (
+				"zsh \"$SRCROOT/scripts/launch-medallion/check.sh\" Books",
+				"",
+			);
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2480A9D830471FB8003918E4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				246FD67B2FA8BF8600B8859A /* BellPhotoAnalysis.swift in Sources */,
-				24349FF92FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */,
-				246FD6772FA8BF6300B8859A /* PhotoAnalysis.swift in Sources */,
-				246FD6812FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
+			);
+		};
+		248F429D3055C7CF004BBA03 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		24A7F2B4303C3BA8005D31A1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
 			);
 		};
 		C00000000000000000000022 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				246FD6822FA8CE2A00B8859A /* SuggestedFieldValue.swift in Sources */,
-				24F1A5042FD90E8C00FC1717 /* CatalogContainerList.swift in Sources */,
-				C000000000000000000000A2 /* AppContainer.swift in Sources */,
-				C000000000000000000000A3 /* AppRouter.swift in Sources */,
-				C000000000000000000000A5 /* CollectionModels.swift in Sources */,
-				C000000000000000000000A6 /* ItemModels.swift in Sources */,
-				C000000000000000000000A7 /* BellItem.swift in Sources */,
-				C000000000000000000000A8 /* Place.swift in Sources */,
-				2403CEDC2F9F954D00C63AB6 /* CollectionOriginMapView.swift in Sources */,
-				C000000000000000000000A9 /* MediaAsset.swift in Sources */,
-				C000000000000000000000AA /* SharingModels.swift in Sources */,
-				C000000000000000000000AB /* CatalogRepository.swift in Sources */,
-				C000000000000000000000AD /* HomeView.swift in Sources */,
-				C000000000000000000000AE /* BellCatalogView.swift in Sources */,
-				246FD6852FA8CE2A00B8859A /* BellListItem.swift in Sources */,
-				246FD6832FA8CE2A00B8859A /* BellGridView.swift in Sources */,
-				244FE0492FB465CF00B4D805 /* SettingsView.swift in Sources */,
-				24349FF82FAB7BE5005383FB /* SemanticPhotoFeatureExtractor.swift in Sources */,
-				24F1A4882FD8318B00FC1717 /* BellBatchAddView.swift in Sources */,
-				C000000000000000000000AF /* BellDetailView.swift in Sources */,
-				D000000000000000000000C6 /* BellDetailView+Subviews.swift in Sources */,
-				24BFE4EB2F9CF73000421A40 /* BellCatalogDashboard.swift in Sources */,
-				24BFE4E92F9CF57C00421A40 /* CatalogModels.swift in Sources */,
-				2403CEDA2F9F945700C63AB6 /* SearchTabView.swift in Sources */,
-				24056E9C301E68D200601C22 /* PreviewData.swift in Sources */,
-				24374F462FF7F0AA00E83899 /* CatalogShapes.swift in Sources */,
-				24374F262FF50A0E00E83899 /* DashboardCard.swift in Sources */,
-				249A28282FDC1940009A0E03 /* CoreDataCatalogRepository.swift in Sources */,
-				C000000000000000000000B2 /* EditorFields.swift in Sources */,
-				C000000000000000000000B6 /* LocalMediaFileStore.swift in Sources */,
-				2403CED32F9F8F5100C63AB6 /* HomeDetailView.swift in Sources */,
-				2403CED42F9F8F5100C63AB6 /* HomeEditorView.swift in Sources */,
-				246D3FC9300508F7000515FD /* CatalogImportExportView.swift in Sources */,
-				24056E9A301E68BE00601C22 /* PreviewContainer.swift in Sources */,
-				E00000000000000000000006 /* Foliora.xcdatamodeld in Sources */,
-				24374F2C2FF6596800E83899 /* CatalogMetrics.swift in Sources */,
-				24D9EC173019D7B6009DB654 /* CoreDataDomainMapper.swift in Sources */,
-				246D3FC530011A26000515FD /* ShareInvitationStatusOverlay.swift in Sources */,
-				E00000000000000000000005 /* FolioraCoreDataStack.swift in Sources */,
-				2403CED62F9F912300C63AB6 /* StorageMapCard.swift in Sources */,
-				24D9EB9030115CE8009DB654 /* PhotoAnalysisSettingsView.swift in Sources */,
-				24F1A4BA2FD856AA00FC1717 /* CatalogEmptyStateView.swift in Sources */,
-				24F1A5262FD98A1900FC1717 /* CollectionSharingState.swift in Sources */,
-				24374F322FF677A900E83899 /* CatalogTypography.swift in Sources */,
-				C000000000000000000000BD /* CatalogTransferBundle.swift in Sources */,
-				24D9EBC630138F2D009DB654 /* MediaSection.swift in Sources */,
-				C000000000000000000000BE /* CatalogJSONPort.swift in Sources */,
-				C000000000000000000000BF /* CatalogTransferDocument.swift in Sources */,
-				C000000000000000000000C4 /* CatalogImportExportActor.swift in Sources */,
-				C000000000000000000000C7 /* CatalogArchiveService.swift in Sources */,
-				2403CEDF2F9FA3A900C63AB6 /* CollectionEditorView.swift in Sources */,
-				24374F482FFA652F00E83899 /* CatalogSurfaces.swift in Sources */,
-				2403CEE82F9FCEAA00C63AB6 /* CollectionSharingView.swift in Sources */,
-				24F1A5242FD9880600FC1717 /* CloudKitSharingMapper.swift in Sources */,
-				2403CEE62F9FCEAA00C63AB6 /* CollectionShellView.swift in Sources */,
-				24374F4C2FFD302200E83899 /* CatalogCardContent.swift in Sources */,
-				2403CEE02F9FA3A900C63AB6 /* CollectionsView.swift in Sources */,
-				C000000000000000000000B9 /* BellCardView.swift in Sources */,
-				24BFE4E22F9CF2BE00421A40 /* BellEditorView.swift in Sources */,
-				24374F4E2FFE270900E83899 /* CatalogCardCollectionLayouts.swift in Sources */,
-				24F1A54A2FDB309D00FC1717 /* FolioraApp.swift in Sources */,
-				24F1A54C2FDB345500FC1717 /* CloudKitSharingSceneDelegate.swift in Sources */,
-				24374F4A2FFD10E300E83899 /* CatalogCardLayoutMode.swift in Sources */,
-				C000000000000000000000C5 /* CatalogLayouts.swift in Sources */,
-				24F1A5282FD9932400FC1717 /* CloudKitCollectionSharingService.swift in Sources */,
-				24374F302FF6734600E83899 /* CatalogColors.swift in Sources */,
-				24374F2A2FF5A53700E83899 /* CatalogSnapshot.swift in Sources */,
-				C000000000000000000000C0 /* PhotoAnalysis.swift in Sources */,
-				C000000000000000000000C1 /* BellPhotoAnalysis.swift in Sources */,
-				C000000000000000000000C2 /* BellCatalogViewModel.swift in Sources */,
 			);
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		2480A9E130471FB8003918E4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
+			targetProxy = 2480A9E030471FB8003918E4 /* PBXContainerItemProxy */;
+		};
+		248F42A63055C7CF004BBA03 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C00000000000000000000051 /* Foliora Bells */;
+			targetProxy = 248F42A53055C7CF004BBA03 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
-		2434A0072FAC6FDA005383FB /* Debug configuration for PBXNativeTarget "BellRecognitionDebugML" */ = {
+		2480A9E330471FB8003918E4 /* Debug configuration for PBXNativeTarget "Foliora Books Tests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColorBells;
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8S22FH7RU6;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
-				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
-				ENABLE_RESOURCE_ACCESS_USB = NO;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				ENABLE_USER_SELECTED_FILES = readwrite;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iz.BellRecognitionDebugML;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.izipuho.Foliora-Books-Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Foliora Books.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Foliora Books";
 			};
 			name = Debug;
 		};
-		2434A0082FAC6FDA005383FB /* Release configuration for PBXNativeTarget "BellRecognitionDebugML" */ = {
+		2480A9E430471FB8003918E4 /* Release configuration for PBXNativeTarget "Foliora Books Tests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColorBells;
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 8S22FH7RU6;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
-				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
-				ENABLE_RESOURCE_ACCESS_USB = NO;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				ENABLE_USER_SELECTED_FILES = readwrite;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iz.BellRecognitionDebugML;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.izipuho.Foliora-Books-Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Foliora Books.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Foliora Books";
 			};
 			name = Release;
 		};
-		246FD6682FA8BB2A00B8859A /* Debug configuration for PBXNativeTarget "BellRecognition" */ = {
+		248F42A73055C7CF004BBA03 /* Debug configuration for PBXNativeTarget "Foliora Bells Tests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColorBells;
+				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iz.BellRecognition;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.izipuho.Foliora-Bells-Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Foliora Bells.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Foliora Bells";
+			};
+			name = Debug;
+		};
+		248F42A83055C7CF004BBA03 /* Release configuration for PBXNativeTarget "Foliora Bells Tests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.izipuho.Foliora-Bells-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Foliora Bells.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Foliora Bells";
+			};
+			name = Release;
+		};
+		24A7F2C9303C3BA9005D31A1 /* Debug configuration for PBXNativeTarget "Foliora Books" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_ENTITLEMENTS = "Foliora Books.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Foliora-Books-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Foliora Books";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Use the camera to add photos of collection items.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Foliora Books can access your photo library to add book photos.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = "-lz";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.izipuho.Foliora-Books";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
-		246FD6692FA8BB2A00B8859A /* Release configuration for PBXNativeTarget "BellRecognition" */ = {
+		24A7F2CA303C3BA9005D31A1 /* Release configuration for PBXNativeTarget "Foliora Books" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconBells;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColorBells;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_ENTITLEMENTS = "Foliora Books.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Foliora-Books-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Foliora Books";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Use the camera to add photos of collection items.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Foliora Books can access your photo library to add book photos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iz.BellRecognition;
+				OTHER_LDFLAGS = "-lz";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.izipuho.Foliora-Books";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				REGISTER_APP_GROUPS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1017,7 +813,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -1040,7 +838,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 8S22FH7RU6;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1056,14 +854,21 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -1071,7 +876,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -1094,7 +901,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 8S22FH7RU6;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1105,12 +912,19 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -1118,14 +932,9 @@
 		C00000000000000000000073 /* Debug configuration for PBXNativeTarget "Foliora Bells" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
-				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				CURRENT_PROJECT_VERSION = 26;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -1146,23 +955,15 @@
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.FolioraBells;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1170,14 +971,9 @@
 		C00000000000000000000074 /* Release configuration for PBXNativeTarget "Foliora Bells" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
-				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				CURRENT_PROJECT_VERSION = 26;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -1198,23 +994,15 @@
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				OTHER_LDFLAGS = "-lz";
 				PRODUCT_BUNDLE_IDENTIFIER = com.izipuho.FolioraBells;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1222,21 +1010,29 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		2434A0062FAC6FDA005383FB /* Build configuration list for PBXNativeTarget "BellRecognitionDebugML" */ = {
+		2480A9E230471FB8003918E4 /* Build configuration list for PBXNativeTarget "Foliora Books Tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				2434A0072FAC6FDA005383FB /* Debug configuration for PBXNativeTarget "BellRecognitionDebugML" */,
-				2434A0082FAC6FDA005383FB /* Release configuration for PBXNativeTarget "BellRecognitionDebugML" */,
+				2480A9E330471FB8003918E4 /* Debug configuration for PBXNativeTarget "Foliora Books Tests" */,
+				2480A9E430471FB8003918E4 /* Release configuration for PBXNativeTarget "Foliora Books Tests" */,
 			);
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
-		246FD6672FA8BB2A00B8859A /* Build configuration list for PBXNativeTarget "BellRecognition" */ = {
+		248F42A93055C7CF004BBA03 /* Build configuration list for PBXNativeTarget "Foliora Bells Tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				246FD6682FA8BB2A00B8859A /* Debug configuration for PBXNativeTarget "BellRecognition" */,
-				246FD6692FA8BB2A00B8859A /* Release configuration for PBXNativeTarget "BellRecognition" */,
+				248F42A73055C7CF004BBA03 /* Debug configuration for PBXNativeTarget "Foliora Bells Tests" */,
+				248F42A83055C7CF004BBA03 /* Release configuration for PBXNativeTarget "Foliora Bells Tests" */,
 			);
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
+		};
+		24A7F2C8303C3BA9005D31A1 /* Build configuration list for PBXNativeTarget "Foliora Books" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				24A7F2C9303C3BA9005D31A1 /* Debug configuration for PBXNativeTarget "Foliora Books" */,
+				24A7F2CA303C3BA9005D31A1 /* Release configuration for PBXNativeTarget "Foliora Books" */,
+			);
+			defaultConfigurationName = Debug;
 		};
 		C00000000000000000000061 /* Build configuration list for PBXNativeTarget "Foliora Bells" */ = {
 			isa = XCConfigurationList;
@@ -1244,7 +1040,7 @@
 				C00000000000000000000073 /* Debug configuration for PBXNativeTarget "Foliora Bells" */,
 				C00000000000000000000074 /* Release configuration for PBXNativeTarget "Foliora Bells" */,
 			);
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		C00000000000000000000062 /* Build configuration list for PBXProject "Foliora" */ = {
 			isa = XCConfigurationList;
@@ -1252,22 +1048,9 @@
 				C00000000000000000000071 /* Debug configuration for PBXProject "Foliora" */,
 				C00000000000000000000072 /* Release configuration for PBXProject "Foliora" */,
 			);
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCVersionGroup section */
-		E00000000000000000000003 /* Foliora.xcdatamodeld */ = {
-			isa = XCVersionGroup;
-			children = (
-				E00000000000000000000004 /* Foliora.xcdatamodel */,
-			);
-			currentVersion = E00000000000000000000004 /* Foliora.xcdatamodel */;
-			path = Foliora.xcdatamodeld;
-			sourceTree = "<group>";
-			versionGroupType = wrapper.xcdatamodel;
-		};
-/* End XCVersionGroup section */
 	};
 	rootObject = C00000000000000000000052 /* Project object */;
 }

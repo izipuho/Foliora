@@ -1,0 +1,469 @@
+import SwiftUI
+import PhotosUI
+import UIKit
+
+private struct BellBatchNameGenerator {
+    private let prefix: String
+    private let timestamp: Date
+
+    init(timestamp: Date = .now, prefix: String = String(localized: "common.bell")) {
+        self.prefix = prefix
+        self.timestamp = timestamp
+    }
+
+    var batchPrefix: String {
+        "\(prefix) \(timestamp.formatted(date: .numeric, time: .shortened))"
+    }
+
+    func names(count: Int) -> [String] {
+        guard count > 0 else { return [] }
+
+        return (1...count).map { index in
+            "\(batchPrefix) · \(index)"
+        }
+    }
+}
+
+#if DEBUG
+private extension BellBatchAddView {
+    static var completionPreview: some View {
+        let container = PreviewContainer.makeBellsMinimal()
+        let repository = CoreDataCatalogRepository(
+            context: container.viewContext,
+            persistentContainer: nil
+        )
+
+        return BellBatchAddView(
+            collection: CollectionSummary(
+                id: UUID(),
+                homeID: UUID(),
+                kind: .bells,
+                name: "Preview Collection",
+                subtitle: "",
+                backgroundStyle: .amber,
+                itemCount: 0,
+                status: .active,
+                sharingSummary: ""
+            ),
+            photoCount: 8,
+            catalogSnapshot: nil,
+            repository: repository
+        )
+        .completionContent(createdCount: 8, reviewQuery: "Preview Batch")
+    }
+}
+
+#Preview("Batch Add Completion") {
+    NavigationStack {
+        BellBatchAddView.completionPreview
+            .navigationTitle(String(localized: "bell_batch_add.title"))
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+#endif
+
+private enum BellBatchMediaLoadState: Equatable {
+    case idle
+    case loading
+    case loaded
+    case failed
+}
+
+private enum BellBatchCreationState: Equatable {
+    case editing
+    case completed(createdCount: Int, reviewQuery: String)
+    case failed
+}
+
+/// Displays the bell batch add view interface.
+struct BellBatchAddView: View {
+    let collection: CollectionSummary
+    let photoCount: Int
+    let catalogSnapshot: CatalogSnapshot?
+    private let photoItems: [PhotosPickerItem]
+    private let initialMediaAssets: [MediaAsset]
+    private let repository: any AppRepository
+    private let onComplete: (BatchAddCompletionAction) -> Void
+    private let imageMediaBuilder = ImageMediaBuilder()
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedLocationID: UUID?
+    @State private var selectedOriginPlace: Place?
+    @State private var selectedAcquiredYearOption = String(localized: "common.none")
+    @State private var tagInput = ""
+    @State private var tags: [String] = []
+    @State private var material: BellMaterial = .unknown
+    @State private var customMaterialName = ""
+    @State private var mediaLoadState: BellBatchMediaLoadState = .idle
+    @State private var mediaPayloads: [MediaAsset] = []
+    @State private var mediaLoadErrorMessage: String?
+    @State private var creationState: BellBatchCreationState = .editing
+    @State private var creationErrorMessage: String?
+    @State private var isPresentingHomeEditor = false
+    @State private var draftHome = Home(id: UUID(), name: "", iconName: "house.fill", notes: "")
+    @State private var draftHomeLocations: [Location] = []
+    @State private var shouldPresentLocationPickerAfterHomeEditor = false
+    @State private var locationPickerPresentationToken = 0
+
+    private let acquiredYearOptions = [String(localized: "common.none")] + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
+
+    init(
+        collection: CollectionSummary,
+        photoCount: Int,
+        catalogSnapshot: CatalogSnapshot?,
+        photoItems: [PhotosPickerItem] = [],
+        initialMediaAssets: [MediaAsset] = [],
+        repository: any AppRepository,
+        onComplete: @escaping (BatchAddCompletionAction) -> Void = { _ in }
+    ) {
+        self.collection = collection
+        self.photoCount = photoCount
+        self.catalogSnapshot = catalogSnapshot
+        self.photoItems = photoItems
+        self.initialMediaAssets = initialMediaAssets
+        self.repository = repository
+        self.onComplete = onComplete
+    }
+
+    var body: some View {
+        NavigationStack {
+            content
+            .navigationTitle(String(localized: "bell_batch_add.title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .task(id: photoItems.map(\.itemIdentifier)) {
+                await loadMediaPayloadsIfNeeded()
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: { Image(systemName: "xmark") }
+                        .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                if showsCreationToolbar {
+                    ToolbarItem(placement: .principal) {
+                        Text(createButtonLabel)
+                            .font(CatalogTypography.sectionTitle)
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            createBatchBells()
+                        } label: {
+                            Image(systemName: "checkmark")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.accentColor)
+                        .disabled(!canCreateBatch)
+                        .accessibilityLabel(createButtonLabel)
+                    }
+                }
+            }
+            .sheet(isPresented: $isPresentingHomeEditor) {
+                HomeEditorView(
+                    home: $draftHome,
+                    locations: $draftHomeLocations,
+                    onSave: {
+                        repository.saveHome(draftHome)
+                        repository.saveLocations(draftHomeLocations, in: draftHome.id)
+                        continueLocationSelectionIfNeeded()
+                    },
+                    onDelete: nil
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch creationState {
+        case .completed(let createdCount, let reviewQuery):
+            completionContent(createdCount: createdCount, reviewQuery: reviewQuery)
+        case .editing, .failed:
+            editContent
+        }
+    }
+
+    private var editContent: some View {
+        Form {
+            Section {
+                LocationPickerField(
+                    title: String(localized: "common.location"),
+                    selectedLabel: selectedLocationLabel,
+                    locations: availableLocations,
+                    onManageLocations: {
+                        presentHomeEditor()
+                    },
+                    presentationToken: locationPickerPresentationToken,
+                    selectedLocationID: $selectedLocationID
+                )
+
+                PlacePickerField(
+                    title: String(localized: "common.ui.origin"),
+                    selectedLabel: selectedOriginLabel,
+                    collectionID: collection.id,
+                    places: availablePlaces,
+                    selectedPlace: $selectedOriginPlace
+                )
+
+                YearPickerField(
+                    title: String(localized: "item.detail.acquisition_year"),
+                    selection: $selectedAcquiredYearOption,
+                    options: acquiredYearOptions
+                )
+
+                EnumSelectionRow(
+                    title: String(localized: "common.field.material"),
+                    selectedLabel: material.displayName,
+                    options: BellMaterial.allCases,
+                    selection: $material,
+                    optionTitle: \.displayName
+                )
+
+                if material == .other {
+                    TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
+                }
+            }
+
+            Section(String(localized: "common.field.tags")) {
+                TagEditorSection(
+                    tagInput: $tagInput,
+                    tags: $tags
+                )
+            }
+
+            if let mediaLoadErrorMessage {
+                Section(String(localized: "bell_batch_add.error.title")) {
+                    Text(mediaLoadErrorMessage)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
+                }
+            }
+
+            if let creationErrorMessage {
+                Section(String(localized: "bell_batch_add.error.title")) {
+                    Text(creationErrorMessage)
+                        .foregroundStyle(CatalogSemanticColors.destructive)
+                }
+            }
+
+        }
+    }
+
+    private func completionContent(createdCount: Int, reviewQuery: String) -> some View {
+        CatalogEmptyStateView(
+            systemImage: "checkmark.circle",
+            title: LocalizedStringKey(String(localized: "bell_batch_add.completion.title")),
+            message: LocalizedStringKey(completionMessage(createdCount: createdCount)),
+            primaryActionTitle: LocalizedStringKey(String(localized: "common.done")),
+            primaryTint: .accentColor,
+            primaryAction: {
+                onComplete(.done)
+            },
+            secondaryActionTitle: LocalizedStringKey(String(localized: "bell_batch_add.review_results")),
+            secondaryAction: {
+                onComplete(.reviewResults(reviewQuery))
+            }
+        )
+    }
+
+    private var localizedBellCount: String {
+        String.localizedStringWithFormat(
+            String(localized: "collection.count.bells"),
+            photoCount
+        )
+    }
+
+    private var createButtonLabel: String {
+        String.localizedStringWithFormat(
+            String(localized: "common.create_format"),
+            localizedBellCount
+        )
+    }
+
+    private var showsCreationToolbar: Bool {
+        if case .completed = creationState {
+            return false
+        }
+        return true
+    }
+
+    private func completionMessage(createdCount: Int) -> String {
+        let createdMessage = String.localizedStringWithFormat(
+            String(localized: "bell_batch_add.completion.message"),
+            createdCount
+        )
+        return createdMessage + "\n" + String(localized: "batch_add.completion.recognition_note")
+    }
+
+    private var canCreateBatch: Bool {
+        mediaLoadState == .loaded && !mediaPayloads.isEmpty
+    }
+
+    private var selectedLocation: Location? {
+        guard let selectedLocationID else { return nil }
+        return availableLocations.first { $0.id == selectedLocationID }
+    }
+
+    private var availableLocations: [Location] {
+        guard let catalogSnapshot else { return [] }
+
+        let collectionLocations = catalogSnapshot.collectionLocationsByCollectionID[collection.id] ?? []
+        if !collectionLocations.isEmpty {
+            return collectionLocations
+        }
+
+        return catalogSnapshot.locationsByHomeID[collection.homeID] ?? []
+    }
+
+    private var availablePlaces: [Place] {
+        (catalogSnapshot?.places ?? []).filter { $0.collectionID == collection.id }
+    }
+
+    private var selectedLocationLabel: String {
+        guard let selectedLocationID else {
+            return String(localized: "common.unassigned")
+        }
+
+        return locationPathByID[selectedLocationID] ?? String(localized: "common.unassigned")
+    }
+
+    private var selectedOriginLabel: String {
+        selectedOriginPlace?.displayName ?? String(localized: "common.unassigned")
+    }
+
+    private var locationPathByID: [UUID: String] {
+        guard let catalogSnapshot else { return [:] }
+
+        let collectionLocations = catalogSnapshot.collectionLocationsByCollectionID[collection.id] ?? []
+        if !collectionLocations.isEmpty {
+            return catalogSnapshot.collectionLocationPathByCollectionID[collection.id] ?? [:]
+        }
+
+        let homeLocationIDs = Set((catalogSnapshot.locationsByHomeID[collection.homeID] ?? []).map(\.id))
+        return catalogSnapshot.locationPathByID.filter { id, _ in
+            homeLocationIDs.contains(id)
+        }
+    }
+
+    private func storagePath(for location: Location) -> StoragePath {
+        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
+        var components = [
+            StoragePath.Component(
+                kind: location.kind,
+                name: location.name
+            )
+        ]
+        var currentParentID = location.parentLocationID
+
+        while let parentID = currentParentID, let parent = locationsByID[parentID] {
+            components.insert(
+                StoragePath.Component(
+                    kind: parent.kind,
+                    name: parent.name
+                ),
+                at: 0
+            )
+            currentParentID = parent.parentLocationID
+        }
+
+        return StoragePath(components: components)
+    }
+
+    private func presentHomeEditor() {
+        guard
+            let catalogSnapshot,
+            let home = catalogSnapshot.homes.first(where: { $0.id == collection.homeID })
+        else { return }
+        draftHome = home
+        draftHomeLocations = catalogSnapshot.locationsByHomeID[collection.homeID] ?? []
+        shouldPresentLocationPickerAfterHomeEditor = true
+        isPresentingHomeEditor = true
+    }
+
+    private func continueLocationSelectionIfNeeded() {
+        guard shouldPresentLocationPickerAfterHomeEditor else { return }
+        shouldPresentLocationPickerAfterHomeEditor = false
+        isPresentingHomeEditor = false
+        DispatchQueue.main.async {
+            locationPickerPresentationToken += 1
+        }
+    }
+
+    @MainActor
+    private func loadMediaPayloadsIfNeeded() async {
+        guard mediaLoadState == .idle else { return }
+
+        if !initialMediaAssets.isEmpty {
+            mediaPayloads = initialMediaAssets
+            mediaLoadState = .loaded
+            return
+        }
+
+        guard !photoItems.isEmpty else { return }
+
+        mediaLoadState = .loading
+        mediaLoadErrorMessage = nil
+
+        do {
+            var loadedPayloads: [MediaAsset] = []
+            for item in photoItems {
+                let media = try await imageMediaBuilder.build(from: item)
+                loadedPayloads.append(media.asset)
+            }
+
+            mediaPayloads = loadedPayloads
+            mediaLoadState = .loaded
+        } catch {
+            mediaPayloads = []
+            mediaLoadState = .failed
+            mediaLoadErrorMessage = String(localized: "bell.detail.preview.load_error")
+        }
+    }
+
+    @MainActor
+    private func createBatchBells() {
+        guard !mediaPayloads.isEmpty else {
+            creationState = .failed
+            creationErrorMessage = String(localized: "bell_batch_add.error.message")
+            return
+        }
+
+        creationErrorMessage = nil
+
+        let nameGenerator = BellBatchNameGenerator()
+        let names = nameGenerator.names(count: mediaPayloads.count)
+        let timestamp = Date()
+        let bells = mediaPayloads.enumerated().map { index, mediaAsset in
+            let bellID = UUID()
+            var state = BellEditorState(bell: nil, initialMediaAssets: [mediaAsset])
+            state.title = names[index]
+            state.selectedLocationID = selectedLocationID
+            state.selectedOriginPlace = selectedOriginPlace
+            state.selectedAcquiredYearOption = selectedAcquiredYearOption
+            state.condition = .good
+            state.acquisitionMethod = .other
+            state.tags = tags
+            state.material = material
+            state.customMaterialName = customMaterialName
+
+            return state.makeBell(
+                itemID: bellID,
+                collectionID: collection.id,
+                existingBell: nil,
+                storageLocation: selectedLocation,
+                storagePath: selectedLocation.map(storagePath(for:)),
+                createdAt: timestamp,
+                createdBy: "me"
+            )
+        }
+
+        repository.saveBellRecords(bells)
+        for bell in bells {
+            BellPhotoAnalysisController.startCreation(
+                itemID: bell.id,
+                assets: bell.mediaAssets,
+                repository: repository
+            )
+        }
+        creationState = .completed(createdCount: bells.count, reviewQuery: nameGenerator.batchPrefix)
+    }
+}

@@ -3,60 +3,73 @@ import Foundation
 import ImageIO
 import UIKit
 
-private struct ThumbnailCacheKey: Hashable, Sendable {
-    let identifier: String
-    let pixelWidth: Int
-    let pixelHeight: Int
-}
-
-private final class ThumbnailImageBox: @unchecked Sendable {
-    let image: UIImage
-
-    init(image: UIImage) {
-        self.image = image
-    }
-}
-
 /// Provides thumbnail image cache operations.
+///
+/// Thumbnails are keyed by asset and pixel size, so every layout mode adds a new set.
+/// `NSCache` bounds the total decoded size and evicts under memory pressure.
 actor ThumbnailImageCache {
     static let shared = ThumbnailImageCache()
 
-    private var images: [ThumbnailCacheKey: ThumbnailImageBox] = [:]
+    /// Upper bound for decoded thumbnail bitmaps kept in memory.
+    nonisolated private static let totalCostLimit = 128 * 1_048_576
+
+    private let images: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.totalCostLimit = ThumbnailImageCache.totalCostLimit
+        return cache
+    }()
+
+    /// Returns a cached thumbnail without touching the source bytes.
+    func cachedImage(assetID: UUID, targetSize: CGSize, scale: CGFloat) -> UIImage? {
+        images.object(forKey: Self.key(assetID: assetID, targetSize: targetSize, scale: scale))
+    }
 
     func image(
-        identifier: String,
-        url: URL,
+        assetID: UUID,
+        data: Data,
         targetSize: CGSize,
         scale: CGFloat
     ) async -> UIImage? {
-        let pixelWidth = max(Int((targetSize.width * scale).rounded(.up)), 1)
-        let pixelHeight = max(Int((targetSize.height * scale).rounded(.up)), 1)
-        let key = ThumbnailCacheKey(
-            identifier: identifier,
-            pixelWidth: pixelWidth,
-            pixelHeight: pixelHeight
-        )
+        let key = Self.key(assetID: assetID, targetSize: targetSize, scale: scale)
 
-        if let cachedImage = images[key]?.image {
+        if let cachedImage = images.object(forKey: key) {
             return cachedImage
         }
 
-        let maxPixelSize = max(pixelWidth, pixelHeight)
+        let pixelSize = Self.pixelSize(targetSize: targetSize, scale: scale)
+        let maxPixelSize = max(pixelSize.width, pixelSize.height)
         let decodedImage = await Task.detached(priority: .utility) {
-            Self.decodeImage(url: url, maxPixelSize: maxPixelSize, scale: scale)
+            Self.decodeImage(data: data, maxPixelSize: maxPixelSize, scale: scale)
         }.value
 
         guard let decodedImage else { return nil }
-        images[key] = ThumbnailImageBox(image: decodedImage)
+        images.setObject(decodedImage, forKey: key, cost: Self.cost(of: decodedImage))
         return decodedImage
     }
 
-    private static func decodeImage(url: URL, maxPixelSize: Int, scale: CGFloat) -> UIImage? {
+    nonisolated private static func pixelSize(targetSize: CGSize, scale: CGFloat) -> (width: Int, height: Int) {
+        (
+            max(Int((targetSize.width * scale).rounded(.up)), 1),
+            max(Int((targetSize.height * scale).rounded(.up)), 1)
+        )
+    }
+
+    nonisolated private static func key(assetID: UUID, targetSize: CGSize, scale: CGFloat) -> NSString {
+        let size = pixelSize(targetSize: targetSize, scale: scale)
+        return "\(assetID.uuidString)-\(size.width)x\(size.height)" as NSString
+    }
+
+    nonisolated private static func cost(of image: UIImage) -> Int {
+        guard let cgImage = image.cgImage else { return 1 }
+        return cgImage.bytesPerRow * cgImage.height
+    }
+
+    private static func decodeImage(data: Data, maxPixelSize: Int, scale: CGFloat) -> UIImage? {
         let sourceOptions = [
             kCGImageSourceShouldCache: false
         ] as CFDictionary
 
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else {
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else {
             return nil
         }
 
