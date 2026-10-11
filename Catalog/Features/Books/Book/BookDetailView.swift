@@ -476,7 +476,7 @@ struct BookDetailView: View {
     }
 
     private var identifiersSection: some View {
-        detailSection("book.section.identifiers") {
+        detailSection(String(localized: "book.section.identifiers")) {
             LazyVGrid(
                 columns: [
                     GridItem(.flexible(), spacing: CatalogMetrics.Spacing.lg, alignment: .top),
