@@ -482,7 +482,8 @@ struct CollectionsView: View {
     private func loadCollectionSharingStatuses(for collectionIDs: [UUID]) async {
         guard let persistentContainer = FolioraAppDelegate.coreDataContainer else {
             collectionSharingStatuses = Dictionary(
-                uniqueKeysWithValues: collectionIDs.map { ($0, .privateOwner) }
+                collectionIDs.map { ($0, .privateOwner) },
+                uniquingKeysWith: { first, _ in first }
             )
             return
         }

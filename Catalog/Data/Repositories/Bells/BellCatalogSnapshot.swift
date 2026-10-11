@@ -26,7 +26,7 @@ struct CatalogRecords {
             return CoreDataDomainMapper.bellRecord(from: bellEntity, includesMediaData: false)
         }
         bells = bellRecords.map { Self.bellCatalogItem(from: $0, coverPhotoID: coverPhotoIDByItemID[$0.id]) }
-        recordsByID = Dictionary(uniqueKeysWithValues: bellRecords.map { ($0.id, $0) })
+        recordsByID = Dictionary(bellRecords.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     nonisolated private static func bellCatalogItem(from record: BellRecord, coverPhotoID: UUID?) -> BellCatalogItem {

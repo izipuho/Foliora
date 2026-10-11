@@ -29,7 +29,7 @@ struct CatalogRecords {
             guard let bookEntity = itemEntity.value(forKey: "book") as? NSManagedObject else { return nil }
             return CoreDataDomainMapper.bookRecord(from: bookEntity, includesMediaData: false)
         }
-        recordsByID = Dictionary(uniqueKeysWithValues: bookRecords.map { ($0.id, $0) })
+        recordsByID = Dictionary(bookRecords.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         bookSeries = Self.uniqueSortedByName(
             collectionEntities.flatMap { collectionEntity in
                 CoreDataDomainMapper.relatedObjects(collectionEntity, "bookSeries")

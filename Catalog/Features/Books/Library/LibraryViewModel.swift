@@ -190,7 +190,7 @@ final class LibraryViewModel: ObservableObject {
     ) -> [BookRecord] {
         guard !filters.isEmpty else { return books }
 
-        let seriesByID = Dictionary(uniqueKeysWithValues: series.map { ($0.id, $0) })
+        let seriesByID = Dictionary(series.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let ownedCountBySeriesID = Dictionary(
             books.compactMap { book -> (UUID, Int)? in
                 guard let seriesID = book.details.series?.id else { return nil }
@@ -418,7 +418,7 @@ final class LibraryViewModel: ObservableObject {
         books: [BookRecord],
         series: [BookSeries]
     ) -> [LibraryGroupedSection] {
-        let seriesByID = Dictionary(uniqueKeysWithValues: series.map { ($0.id, $0) })
+        let seriesByID = Dictionary(series.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let grouped = Dictionary(grouping: books, by: { $0.details.series?.id })
         let orderedKeys = grouped.keys.sorted { lhsID, rhsID in
             let lhsSeries = lhsID.flatMap { seriesByID[$0] }

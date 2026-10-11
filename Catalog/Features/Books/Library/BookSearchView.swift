@@ -33,7 +33,7 @@ struct BookSearchView: View {
     }
 
     private var libraryTitlesByID: [UUID: String] {
-        Dictionary(uniqueKeysWithValues: libraries.map { ($0.id, $0.title) })
+        Dictionary(libraries.map { ($0.id, $0.title) }, uniquingKeysWith: { first, _ in first })
     }
 
     private var peopleByID: [UUID: Person] {

@@ -345,7 +345,7 @@ struct BellBatchAddView: View {
     }
 
     private func storagePath(for location: Location) -> StoragePath {
-        let locationsByID = Dictionary(uniqueKeysWithValues: availableLocations.map { ($0.id, $0) })
+        let locationsByID = Dictionary(availableLocations.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var components = [
             StoragePath.Component(
                 kind: location.kind,

@@ -25,8 +25,8 @@ struct CatalogTransferBundle: Codable {
         items: [CatalogTransferItem],
         domainPayloads: [CatalogDomainPayload]
     ) {
-        let homesByID = Dictionary(uniqueKeysWithValues: homes.map { ($0.id, $0) })
-        let locationsByID = Dictionary(uniqueKeysWithValues: locations.map { ($0.id, $0) })
+        let homesByID = Dictionary(homes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let locationsByID = Dictionary(locations.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         self.homes = homes
         self.locations = locations.map { location in
