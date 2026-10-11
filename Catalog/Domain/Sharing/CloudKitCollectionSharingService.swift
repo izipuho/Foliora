@@ -363,3 +363,37 @@ enum CloudKitCollectionSharingError: LocalizedError {
         }
     }
 }
+
+/// Describes an iCloud failure briefly enough for an alert, with what a bug report needs.
+enum CloudKitErrorSummary {
+    /// How many errors are described: the failure, the error it wraps, and the record-level cause.
+    private static let maximumDepth = 3
+
+    /// Returns the domain, code and description of the error and of the errors behind it.
+    static func text(for error: any Error) -> String {
+        var lines: [String] = []
+        var current: NSError? = error as NSError
+
+        while let nsError = current, lines.count < maximumDepth {
+            // Core Data puts the actual explanation of a failed iCloud request into the failure reason.
+            let reason = nsError.localizedFailureReason.map { " \($0)" } ?? ""
+            lines.append("\(nsError.domain) \(nsError.code): \(nsError.localizedDescription)\(reason)")
+            current = cause(of: nsError)
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    /// The error behind this one: the record that failed a batch, or the wrapped error.
+    private static func cause(of error: NSError) -> NSError? {
+        guard let partialErrors = error.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: NSError] else {
+            return error.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+
+        // A failed batch marks every other record as "batch request failed"; the reason is on the
+        // record that caused it.
+        let batchRequestFailed = CKError.Code.batchRequestFailed.rawValue
+        return partialErrors.values.first { $0.domain != CKErrorDomain || $0.code != batchRequestFailed }
+            ?? partialErrors.values.first
+    }
+}

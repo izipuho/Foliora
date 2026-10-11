@@ -2,6 +2,12 @@ import UIKit
 import CloudKit
 import Combine
 import CoreData
+import OSLog
+
+private let logger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+    category: "ShareInvitation"
+)
 
 /// Defines the supported cloud kit share invitation acceptance state values.
 enum CloudKitShareInvitationAcceptanceState: Equatable {
@@ -263,12 +269,10 @@ enum FolioraCloudKitShareInvitationAcceptor {
     }
 
     private static func userFacingMessage(for error: Error) -> String {
+        // "Check iCloud" alone gives nothing to act on or to report, so the cause goes with it.
+        logger.error("Accepting a share invitation failed: \(String(reflecting: error), privacy: .public)")
         let message = String(localized: "collection.sharing.error.accept_failed")
-        #if DEBUG
-        return "\(message)\n\(error.localizedDescription)\n\(String(reflecting: error))"
-        #else
-        return message
-        #endif
+        return "\(message)\n\n\(CloudKitErrorSummary.text(for: error))"
     }
 }
 

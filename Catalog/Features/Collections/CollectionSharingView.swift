@@ -139,7 +139,7 @@ struct CollectionSharingView: View {
         } catch {
             // The sharing screen is still up, so there is no place for an alert; the share reaches
             // the store with the next iCloud import.
-            logger.error("Failed to persist the updated share: \(String(describing: error))")
+            logger.error("Failed to persist the updated share: \(String(reflecting: error), privacy: .public)")
         }
 
         await refreshSharingState()
@@ -171,12 +171,10 @@ struct CollectionSharingView: View {
             return String(localized: "collection.sharing.error.not_uploaded")
         }
 
+        // "Check iCloud" alone gives nothing to act on or to report, so the cause goes with it.
+        logger.error("Sharing failed: \(String(reflecting: error), privacy: .public)")
         let message = String(localized: "collection.sharing.error.preparation_failed")
-        #if DEBUG
-        return "\(message)\n\(error.localizedDescription)\n\(String(reflecting: error))"
-        #else
-        return message
-        #endif
+        return "\(message)\n\n\(CloudKitErrorSummary.text(for: error))"
     }
 
     @MainActor
