@@ -3796,6 +3796,22 @@
         }
       }
     },
+    "common.copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать"
+          }
+        }
+      }
+    },
     "common.create_format" : {
       "localizations" : {
         "en" : {

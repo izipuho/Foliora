@@ -369,7 +369,11 @@ enum CloudKitErrorSummary {
     /// How many errors are described: the failure, the error it wraps, and the record-level cause.
     private static let maximumDepth = 3
 
-    /// Returns the domain, code and description of the error and of the errors behind it.
+    /// How deep the error's user info is searched for an exception Core Data caught.
+    private static let maximumExceptionSearchDepth = 6
+
+    /// Returns the domain, code and description of the error and of the errors behind it,
+    /// followed by any exception Core Data caught along the way, with its call stack.
     static func text(for error: any Error) -> String {
         var lines: [String] = []
         var current: NSError? = error as NSError
@@ -381,7 +385,35 @@ enum CloudKitErrorSummary {
             current = cause(of: nsError)
         }
 
+        // When sync fails on an exception inside Core Data, only its call stack shows where.
+        var seenExceptions = Set<ObjectIdentifier>()
+        let exceptions = caughtExceptions(in: error as NSError, depth: 0)
+            .filter { seenExceptions.insert(ObjectIdentifier($0)).inserted }
+        for exception in exceptions {
+            lines.append("")
+            lines.append("\(exception.name.rawValue): \(exception.reason ?? "")")
+            lines.append(contentsOf: exception.callStackSymbols)
+        }
+
         return lines.joined(separator: "\n")
+    }
+
+    /// Exceptions stored anywhere in the error's user info, including in the errors it wraps.
+    private static func caughtExceptions(in value: Any, depth: Int) -> [NSException] {
+        guard depth <= maximumExceptionSearchDepth else { return [] }
+
+        switch value {
+        case let exception as NSException:
+            return [exception]
+        case let error as NSError:
+            return error.userInfo.values.flatMap { caughtExceptions(in: $0, depth: depth + 1) }
+        case let values as [Any]:
+            return values.flatMap { caughtExceptions(in: $0, depth: depth + 1) }
+        case let values as [AnyHashable: Any]:
+            return values.values.flatMap { caughtExceptions(in: $0, depth: depth + 1) }
+        default:
+            return []
+        }
     }
 
     /// The error behind this one: the record that failed a batch, or the wrapped error.

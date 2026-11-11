@@ -3,6 +3,7 @@ import CoreData
 import Foundation
 import OSLog
 import SwiftUI
+import UIKit
 
 private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
@@ -70,6 +71,9 @@ struct CollectionSharingView: View {
                 set: { if !$0 { sharingAlert = nil } }
             )
         ) {
+            Button("common.copy") {
+                UIPasteboard.general.string = sharingAlert?.message
+            }
             Button("common.ok", role: .cancel) {}
         } message: {
             Text(sharingAlert?.message ?? "")
