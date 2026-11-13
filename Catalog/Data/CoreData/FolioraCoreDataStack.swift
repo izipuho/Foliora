@@ -53,6 +53,44 @@ enum FolioraCoreDataStack {
         container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
     }
 
+    /// Erases the current Apple Account's Foliora data in iCloud and on this device.
+    ///
+    /// Works without iCloud sync, which may be the thing that is broken: the stores are detached
+    /// first so nothing is uploaded back, then the private zone and subscriptions are deleted
+    /// through CloudKit directly, then the store files. The container is left without stores,
+    /// so the app has to be relaunched.
+    @MainActor
+    static func eraseAccountData(in container: NSPersistentCloudKitContainer) async throws {
+        guard let identifier = cloudKitContainerIdentifier(from: container) else {
+            throw FolioraCoreDataStackError.cloudKitContainerUnavailable
+        }
+
+        let coordinator = container.persistentStoreCoordinator
+        // Taken from the descriptions, so a retry after a failure still finds the detached stores.
+        let storeURLs = container.persistentStoreDescriptions.compactMap(\.url)
+        for store in coordinator.persistentStores {
+            try coordinator.remove(store)
+        }
+
+        let database = CKContainer(identifier: identifier).privateCloudDatabase
+        let zoneID = CKRecordZone.ID(
+            zoneName: "com.apple.coredata.cloudkit.zone",
+            ownerName: CKCurrentUserDefaultName
+        )
+        do {
+            _ = try await database.deleteRecordZone(withID: zoneID)
+        } catch let error as CKError where error.code == .zoneNotFound {
+            // Nothing has been uploaded for this account yet.
+        }
+        for subscription in try await database.allSubscriptions() {
+            _ = try await database.deleteSubscription(withID: subscription.subscriptionID)
+        }
+
+        for url in storeURLs {
+            try coordinator.destroyPersistentStore(at: url, type: .sqlite)
+        }
+    }
+
     static func cloudKitContainerIdentifier(
         from container: NSPersistentCloudKitContainer
     ) -> String? {

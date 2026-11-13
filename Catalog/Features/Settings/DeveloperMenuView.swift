@@ -1,12 +1,12 @@
-import SwiftUI
-
-#if DEBUG
 import CoreData
-#endif
+import SwiftUI
+import UIKit
 
 /// Displays developer-only tools and diagnostics.
 struct DeveloperMenuView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var isEraseConfirmationPresented = false
+    @State private var eraseState = EraseState.idle
 
 #if DEBUG
     @State private var cloudKitSchemaMessage: String?
@@ -23,6 +23,23 @@ struct DeveloperMenuView: View {
                     } label: {
                         Label("photo_analysis.title", systemImage: "photo")
                     }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        isEraseConfirmationPresented = true
+                    } label: {
+                        HStack {
+                            Label("settings.developer.erase_icloud.button", systemImage: "icloud.slash")
+                            Spacer()
+                            if eraseState == .erasing {
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .disabled(eraseState != .idle)
+                } footer: {
+                    Text("settings.developer.erase_icloud.footer")
                 }
 
 #if DEBUG
@@ -61,7 +78,63 @@ struct DeveloperMenuView: View {
                     } label: {
                         Image(systemName: "checkmark")
                     }
+                    .disabled(eraseState == .erasing || eraseState == .erased)
                 }
+            }
+            .confirmationDialog(
+                "settings.developer.erase_icloud.confirm.title",
+                isPresented: $isEraseConfirmationPresented,
+                titleVisibility: .visible
+            ) {
+                Button("settings.developer.erase_icloud.confirm.action", role: .destructive) {
+                    eraseAccountData()
+                }
+            } message: {
+                Text("settings.developer.erase_icloud.confirm.message")
+            }
+            .alert(
+                "settings.developer.erase_icloud.done.title",
+                isPresented: Binding(get: { eraseState == .erased }, set: { _ in })
+            ) {
+                // The app has no stores left, so there is nothing to return to.
+            } message: {
+                Text("settings.developer.erase_icloud.done.message")
+            }
+            .alert(
+                "settings.developer.erase_icloud.failed.title",
+                isPresented: Binding(
+                    get: { eraseFailureMessage != nil },
+                    set: { if !$0 { eraseState = .idle } }
+                )
+            ) {
+                Button("common.copy") {
+                    UIPasteboard.general.string = eraseFailureMessage
+                }
+                Button("common.ok", role: .cancel) {}
+            } message: {
+                Text(eraseFailureMessage ?? "")
+            }
+        }
+        // Once the stores are gone, the rest of the app cannot work until relaunch.
+        .interactiveDismissDisabled(eraseState == .erasing || eraseState == .erased)
+    }
+
+    private var eraseFailureMessage: String? {
+        guard case .failed(let message) = eraseState else { return nil }
+        return message
+    }
+
+    private func eraseAccountData() {
+        guard let container = FolioraAppDelegate.coreDataContainer else { return }
+
+        eraseState = .erasing
+        Task {
+            do {
+                try await FolioraCoreDataStack.eraseAccountData(in: container)
+                eraseState = .erased
+            } catch {
+                // The stores may already be detached; a retry erases what is left.
+                eraseState = .failed(CloudKitErrorSummary.text(for: error))
             }
         }
     }
@@ -87,6 +160,14 @@ struct DeveloperMenuView: View {
         }
     }
 #endif
+}
+
+/// Progress of erasing the account's data from the developer menu.
+private enum EraseState: Equatable {
+    case idle
+    case erasing
+    case erased
+    case failed(String)
 }
 
 private struct SettingsInfoRow: View {
