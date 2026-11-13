@@ -3796,6 +3796,22 @@
         }
       }
     },
+    "common.copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать"
+          }
+        }
+      }
+    },
     "common.create_format" : {
       "localizations" : {
         "en" : {
@@ -8909,6 +8925,134 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Данные"
+          }
+        }
+      }
+    },
+    "settings.developer.erase_icloud.button" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erase iCloud Data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить данные iCloud"
+          }
+        }
+      }
+    },
+    "settings.developer.erase_icloud.confirm.action" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erase"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить"
+          }
+        }
+      }
+    },
+    "settings.developer.erase_icloud.confirm.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections, items and photos of this Apple Account will be deleted from iCloud and from this device. Export the catalog first to keep a copy. Delete Foliora from this account's other devices first, or they will upload their data again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Коллекции, предметы и фото этого Apple ID будут удалены из iCloud и с этого устройства. Чтобы сохранить копию, сначала сделайте экспорт каталога. Сначала удалите Foliora с других устройств этого аккаунта, иначе они снова выгрузят свои данные."
+          }
+        }
+      }
+    },
+    "settings.developer.erase_icloud.confirm.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erase all Foliora data?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить все данные Foliora?"
+          }
+        }
+      }
+    },
+    "settings.developer.erase_icloud.done.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Foliora and open it again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закройте Foliora и откройте снова."
+          }
+        }
+      }
+    },
+    "settings.developer.erase_icloud.done.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Erased"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные удалены"
+          }
+        }
+      }
+    },
+    "settings.developer.erase_icloud.failed.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't Erase Data"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось удалить данные"
+          }
+        }
+      }
+    },
+    "settings.developer.erase_icloud.footer" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deletes this Apple Account's Foliora data in iCloud and on this device. Collections other people shared with you are not affected."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удаляет данные Foliora этого Apple ID в iCloud и на этом устройстве. Коллекции, к которым вам открыли доступ, не затрагиваются."
           }
         }
       }

@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreData
+import UIKit
 
 private typealias BatchCompletionHandler = (BatchAddCompletionAction) -> Void
 typealias CollectionItemSelectionHandler = (UUID, CollectionSharingState?) -> Void
@@ -115,6 +116,11 @@ struct AppShellView: View {
             "collection.sharing.accept_failed",
             isPresented: shareInvitationFailureAlertBinding
         ) {
+            Button("common.copy") {
+                UIPasteboard.general.string = shareInvitationFailureMessage
+                shareInvitationFailureMessage = nil
+                shareInvitationController.reset()
+            }
             Button("common.ok") {
                 shareInvitationFailureMessage = nil
                 shareInvitationController.reset()

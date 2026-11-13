@@ -643,7 +643,7 @@ struct LocationHierarchyPickerView: View {
         guard ancestors.isEmpty, currentParentID == nil, let selectedLocationID else { return }
         guard let selectedLocation = locations.first(where: { $0.id == selectedLocationID }) else { return }
 
-        let locationsByID = Dictionary(uniqueKeysWithValues: locations.map { ($0.id, $0) })
+        let locationsByID = Dictionary(locations.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var path: [Location] = []
         var parentID = selectedLocation.parentLocationID
 

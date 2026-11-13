@@ -43,6 +43,11 @@ struct CatalogSnapshot {
         category: "CatalogSnapshot"
     )
 
+    nonisolated private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+        category: "CatalogSnapshot"
+    )
+
     private init() {}
 
     func collectionSummary(id collectionID: UUID) -> CollectionSummary? {
@@ -102,6 +107,9 @@ struct CatalogSnapshot {
         let sortOrderByItemID = sortOrders(from: userSortOrderEntities)
         let collectionSortOrderByItemID = sortOrders(from: userSortOrderEntities, scope: "Collection")
         let homeSortOrderByItemID = sortOrders(from: userSortOrderEntities, scope: "Home")
+        logDuplicateIDs(in: locationEntities, named: "LocationEntity")
+        logDuplicateIDs(in: collectionEntities, named: "CollectionEntity")
+        logDuplicateIDs(in: itemEntities, named: "ItemEntity")
         var snapshot = CatalogSnapshot()
         snapshot.homes = sortedByUserOrder(
             homeEntities.map(home),
@@ -146,7 +154,8 @@ struct CatalogSnapshot {
             }
         )
         snapshot.locationPathByID = Dictionary(
-            uniqueKeysWithValues: locationEntities.map { (uuidValue($0, "id"), storageLocationPath(from: $0)) }
+            locationEntities.map { (uuidValue($0, "id"), storageLocationPath(from: $0)) },
+            uniquingKeysWith: { first, _ in first }
         )
         snapshot.collectionLocationPathByCollectionID = Dictionary(
             grouping: collectionLocationEntities.compactMap(collectionLocationPathRow),
@@ -155,10 +164,11 @@ struct CatalogSnapshot {
         .mapValues { rows in Dictionary(rows.map(\.1), uniquingKeysWith: { first, _ in first }) }
 
         snapshot.coverPhotoIDByItemID = Dictionary(
-            uniqueKeysWithValues: itemEntities.compactMap { itemEntity -> (UUID, UUID)? in
+            itemEntities.compactMap { itemEntity -> (UUID, UUID)? in
                 guard let coverPhotoID = coverPhotoID(of: itemEntity) else { return nil }
                 return (uuidValue(itemEntity, "id"), coverPhotoID)
-            }
+            },
+            uniquingKeysWith: { first, _ in first }
         )
         snapshot.favoriteItemCoversByCollectionID = Dictionary(
             grouping: itemEntities.compactMap { itemEntity -> (UUID, FavoriteItemCover)? in
@@ -181,6 +191,17 @@ struct CatalogSnapshot {
             personEntities: personEntities
         )
         return snapshot
+    }
+
+    /// Logs how many entities share their id with another one.
+    ///
+    /// iCloud can deliver an object twice, e.g. while it moves between zones, so the lookups
+    /// below keep the first one instead of trapping on the second.
+    nonisolated private static func logDuplicateIDs(in entities: [NSManagedObject], named entityName: String) {
+        let ids = entities.compactMap { $0.value(forKey: "id") as? UUID }
+        let duplicateCount = ids.count - Set(ids).count
+        guard duplicateCount > 0 else { return }
+        logger.error("\(duplicateCount) \(entityName, privacy: .public) objects share an id with another one")
     }
 
     /// Returns the image used as the item's collection-card cover.

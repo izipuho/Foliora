@@ -126,7 +126,7 @@ struct BellSearchView: View {
     }
 
     private var collectionTitlesByID: [UUID: String] {
-        Dictionary(uniqueKeysWithValues: collections.map { ($0.id, $0.title) })
+        Dictionary(collections.map { ($0.id, $0.title) }, uniquingKeysWith: { first, _ in first })
     }
 
     private var suggestedTokenGroups: [SearchTokenGroup<BellSearchToken>] {

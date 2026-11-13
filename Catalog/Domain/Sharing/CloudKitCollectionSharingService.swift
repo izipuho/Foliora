@@ -363,3 +363,69 @@ enum CloudKitCollectionSharingError: LocalizedError {
         }
     }
 }
+
+/// Describes an iCloud failure briefly enough for an alert, with what a bug report needs.
+enum CloudKitErrorSummary {
+    /// How many errors are described: the failure, the error it wraps, and the record-level cause.
+    private static let maximumDepth = 3
+
+    /// How deep the error's user info is searched for an exception Core Data caught.
+    private static let maximumExceptionSearchDepth = 6
+
+    /// Returns the domain, code and description of the error and of the errors behind it,
+    /// followed by any exception Core Data caught along the way, with its call stack.
+    static func text(for error: any Error) -> String {
+        var lines: [String] = []
+        var current: NSError? = error as NSError
+
+        while let nsError = current, lines.count < maximumDepth {
+            // Core Data puts the actual explanation of a failed iCloud request into the failure reason.
+            let reason = nsError.localizedFailureReason.map { " \($0)" } ?? ""
+            lines.append("\(nsError.domain) \(nsError.code): \(nsError.localizedDescription)\(reason)")
+            current = cause(of: nsError)
+        }
+
+        // When sync fails on an exception inside Core Data, only its call stack shows where.
+        var seenExceptions = Set<ObjectIdentifier>()
+        let exceptions = caughtExceptions(in: error as NSError, depth: 0)
+            .filter { seenExceptions.insert(ObjectIdentifier($0)).inserted }
+        for exception in exceptions {
+            lines.append("")
+            lines.append("\(exception.name.rawValue): \(exception.reason ?? "")")
+            lines.append(contentsOf: exception.callStackSymbols)
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    /// Exceptions stored anywhere in the error's user info, including in the errors it wraps.
+    private static func caughtExceptions(in value: Any, depth: Int) -> [NSException] {
+        guard depth <= maximumExceptionSearchDepth else { return [] }
+
+        switch value {
+        case let exception as NSException:
+            return [exception]
+        case let error as NSError:
+            return error.userInfo.values.flatMap { caughtExceptions(in: $0, depth: depth + 1) }
+        case let values as [Any]:
+            return values.flatMap { caughtExceptions(in: $0, depth: depth + 1) }
+        case let values as [AnyHashable: Any]:
+            return values.values.flatMap { caughtExceptions(in: $0, depth: depth + 1) }
+        default:
+            return []
+        }
+    }
+
+    /// The error behind this one: the record that failed a batch, or the wrapped error.
+    private static func cause(of error: NSError) -> NSError? {
+        guard let partialErrors = error.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: NSError] else {
+            return error.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+
+        // A failed batch marks every other record as "batch request failed"; the reason is on the
+        // record that caused it.
+        let batchRequestFailed = CKError.Code.batchRequestFailed.rawValue
+        return partialErrors.values.first { $0.domain != CKErrorDomain || $0.code != batchRequestFailed }
+            ?? partialErrors.values.first
+    }
+}

@@ -130,7 +130,7 @@ struct CatalogStorageContext {
         }
 
         availableLocations = locations
-        locationsByID = Dictionary(uniqueKeysWithValues: locations.map { ($0.id, $0) })
+        locationsByID = Dictionary(locations.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         if let collection,
            let paths = snapshot.collectionLocationPathByCollectionID[collection.id],
