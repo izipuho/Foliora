@@ -1,14 +1,24 @@
 import CloudKit
 import CoreData
 import Foundation
+import OSLog
 
 /// Groups foliora core data stack values and behavior.
 enum FolioraCoreDataStack {
     static let modelName = "Foliora"
     static let appGroupIdentifier = "group.com.izipuho.Foliora"
 
+    /// Launch-stage signposts, sharing the `Startup` category with the app's launch flow.
+    nonisolated private static let signposter = OSSignposter(
+        subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+        category: "Startup"
+    )
+
     @concurrent
     static func makeContainer() async throws -> NSPersistentCloudKitContainer {
+        let signpostState = signposter.beginInterval("makeContainer")
+        defer { signposter.endInterval("makeContainer", signpostState) }
+
         let model = try managedObjectModel()
         let container = NSPersistentCloudKitContainer(name: modelName, managedObjectModel: model)
         guard let cloudKitContainerIdentifier = cloudKitContainerIdentifier(from: container) else {
@@ -43,6 +53,44 @@ enum FolioraCoreDataStack {
         container.viewContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
     }
 
+    /// Erases the current Apple Account's Foliora data in iCloud and on this device.
+    ///
+    /// Works without iCloud sync, which may be the thing that is broken: the stores are detached
+    /// first so nothing is uploaded back, then the private zone and subscriptions are deleted
+    /// through CloudKit directly, then the store files. The container is left without stores,
+    /// so the app has to be relaunched.
+    @MainActor
+    static func eraseAccountData(in container: NSPersistentCloudKitContainer) async throws {
+        guard let identifier = cloudKitContainerIdentifier(from: container) else {
+            throw FolioraCoreDataStackError.cloudKitContainerUnavailable
+        }
+
+        let coordinator = container.persistentStoreCoordinator
+        // Taken from the descriptions, so a retry after a failure still finds the detached stores.
+        let storeURLs = container.persistentStoreDescriptions.compactMap(\.url)
+        for store in coordinator.persistentStores {
+            try coordinator.remove(store)
+        }
+
+        let database = CKContainer(identifier: identifier).privateCloudDatabase
+        let zoneID = CKRecordZone.ID(
+            zoneName: "com.apple.coredata.cloudkit.zone",
+            ownerName: CKCurrentUserDefaultName
+        )
+        do {
+            _ = try await database.deleteRecordZone(withID: zoneID)
+        } catch let error as CKError where error.code == .zoneNotFound {
+            // Nothing has been uploaded for this account yet.
+        }
+        for subscription in try await database.allSubscriptions() {
+            _ = try await database.deleteSubscription(withID: subscription.subscriptionID)
+        }
+
+        for url in storeURLs {
+            try coordinator.destroyPersistentStore(at: url, type: .sqlite)
+        }
+    }
+
     static func cloudKitContainerIdentifier(
         from container: NSPersistentCloudKitContainer
     ) -> String? {
@@ -51,6 +99,16 @@ enum FolioraCoreDataStack {
             .first?
             .cloudKitContainerOptions?
             .containerIdentifier
+    }
+
+    /// Whether the store mirrors the CloudKit shared database, i.e. holds collections other users own.
+    static func isSharedStore(_ store: NSPersistentStore) -> Bool {
+        store.url?.deletingPathExtension().lastPathComponent == "Shared"
+    }
+
+    /// The store that mirrors the CloudKit shared database.
+    static func sharedPersistentStore(in container: NSPersistentContainer) -> NSPersistentStore? {
+        container.persistentStoreCoordinator.persistentStores.first { isSharedStore($0) }
     }
 
     private static func managedObjectModel() throws -> NSManagedObjectModel {
@@ -77,6 +135,9 @@ enum FolioraCoreDataStack {
             cloudKitContainerIdentifier: cloudKitContainerIdentifier
         )
 
+        let signpostState = signposter.beginInterval("loadPersistentStores")
+        defer { signposter.endInterval("loadPersistentStores", signpostState) }
+
         try await withCheckedThrowingContinuation { continuation in
             let storeCount = container.persistentStoreDescriptions.count
             guard storeCount > 0 else {
@@ -88,7 +149,13 @@ enum FolioraCoreDataStack {
             var remainingStores = storeCount
             var loadError: Error?
 
-            container.loadPersistentStores { _, error in
+            container.loadPersistentStores { description, error in
+                let storeName = description.url?.lastPathComponent ?? "unknown"
+                signposter.emitEvent(
+                    "storeLoaded",
+                    "\(storeName, privacy: .public) failed: \(error != nil)"
+                )
+
                 lock.lock()
                 if loadError == nil {
                     loadError = error

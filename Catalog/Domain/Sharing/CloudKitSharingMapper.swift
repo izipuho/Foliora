@@ -10,25 +10,15 @@ enum CloudKitSharingMapper {
         isCurrentUser: Bool = false
     ) -> CollectionParticipant {
         let cloudKitParticipantID = cloudKitParticipantID(for: participant)
-        let displayName = displayName(for: participant)
 
         return CollectionParticipant(
-            id: stableUUID(from: participantIdentitySeed(
-                participant,
-                cloudKitParticipantID: cloudKitParticipantID,
-                displayName: displayName
-            )),
+            id: participantID(for: participant, cloudKitParticipantID: cloudKitParticipantID),
             collectionID: collectionID,
             cloudKitParticipantID: cloudKitParticipantID,
-            displayName: displayName,
             role: role(for: participant),
             acceptanceStatus: acceptanceStatus(for: participant),
             isCurrentUser: isCurrentUser
         )
-    }
-
-    static func currentUserRole(from participants: [CollectionParticipant]) -> CollectionAccessRole {
-        participants.first { $0.isCurrentUser }?.role ?? .viewer
     }
 }
 
@@ -40,10 +30,6 @@ private extension CloudKitSharingMapper {
 
         if participant.permission == .readWrite {
             return .contributor
-        }
-
-        if participant.permission == .readOnly {
-            return .viewer
         }
 
         return .viewer
@@ -64,19 +50,6 @@ private extension CloudKitSharingMapper {
         }
     }
 
-    static func displayName(for participant: CKShare.Participant) -> String? {
-        guard let nameComponents = participant.userIdentity.nameComponents else {
-            return participant.role == .owner ? String(localized: "collection.sharing.participant.you") : nil
-        }
-
-        let displayName = PersonNameComponentsFormatter().string(from: nameComponents)
-        if displayName.isEmpty, participant.role == .owner {
-            return String(localized: "collection.sharing.participant.you")
-        }
-
-        return displayName.isEmpty ? nil : displayName
-    }
-
     static func cloudKitParticipantID(for participant: CKShare.Participant) -> String? {
         if let recordName = participant.userIdentity.userRecordID?.recordName,
            !recordName.isEmpty {
@@ -91,11 +64,13 @@ private extension CloudKitSharingMapper {
         return nil
     }
 
-    static func participantIdentitySeed(
-        _ participant: CKShare.Participant,
-        cloudKitParticipantID: String?,
-        displayName: String?
-    ) -> String {
+    /// An identifier that stays the same while the participant's role and acceptance status change.
+    ///
+    /// A participant CloudKit tells nothing about gets a random one, so two of them never collide.
+    static func participantID(
+        for participant: CKShare.Participant,
+        cloudKitParticipantID: String?
+    ) -> UUID {
         var components: [String] = []
 
         if let cloudKitParticipantID {
@@ -112,15 +87,8 @@ private extension CloudKitSharingMapper {
             components.append("phone:\(phoneNumber)")
         }
 
-        if let displayName {
-            components.append("displayName:\(displayName)")
-        }
-
-        components.append("role:\(participant.role)")
-        components.append("permission:\(participant.permission)")
-        components.append("acceptanceStatus:\(participant.acceptanceStatus)")
-
-        return components.joined(separator: "|")
+        guard !components.isEmpty else { return UUID() }
+        return stableUUID(from: components.joined(separator: "|"))
     }
 
     static func stableUUID(from seed: String) -> UUID {

@@ -117,7 +117,7 @@ struct CollectionEditorView: View {
                 NavigationLink {
                     sharingDestination
                 } label: {
-                    Label(String(localized: "collection.sharing.entry_title"), systemImage: "person.2")
+                    Label(String(localized: "catalog.dashboard.sharing"), systemImage: "person.2")
                 }
             }
         }

@@ -1,0 +1,715 @@
+import CloudKit
+import CoreData
+import Foundation
+import OSLog
+
+/// Provides core data catalog repository operations.
+@MainActor
+final class CoreDataCatalogRepository: CatalogRepository {
+    let context: NSManagedObjectContext
+    private let persistentContainer: NSPersistentCloudKitContainer?
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Catalog", category: "CoreDataCatalogRepository")
+
+    init(
+        context: NSManagedObjectContext,
+        persistentContainer: NSPersistentCloudKitContainer? = FolioraAppDelegate.coreDataContainer
+    ) {
+        self.context = context
+        self.persistentContainer = persistentContainer
+        saveContext()
+    }
+
+    func saveHome(_ home: Home) {
+        let entity = fetchEntity(named: "HomeEntity", by: home.id) ?? makeEntity(named: "HomeEntity")
+        apply(home, to: entity)
+        saveContext()
+    }
+
+    func saveLocations(_ locations: [Location], in homeID: UUID) {
+        guard let home = fetchEntity(named: "HomeEntity", by: homeID) else { return }
+
+        let existingLocations = fetchEntities(
+            named: "LocationEntity",
+            predicate: NSPredicate(format: "home.id == %@", homeID as NSUUID)
+        )
+        let incomingIDs = Set(locations.map(\.id))
+        var entitiesByID: [UUID: NSManagedObject] = [:]
+
+        for entity in existingLocations {
+            guard let locationID = entity.value(forKey: "id") as? UUID else { continue }
+            entitiesByID[locationID] = entitiesByID[locationID] ?? entity
+        }
+
+        for location in locations {
+            let entity = entitiesByID[location.id] ?? makeEntity(named: "LocationEntity")
+            apply(location, to: entity)
+            entity.setValue(home, forKey: "home")
+            entitiesByID[location.id] = entity
+        }
+
+        for location in locations {
+            guard let entity = entitiesByID[location.id] else { continue }
+            entity.setValue(location.parentLocationID.flatMap { entitiesByID[$0] }, forKey: "parent")
+        }
+
+        for entity in existingLocations {
+            guard
+                let locationID = entity.value(forKey: "id") as? UUID,
+                !incomingIDs.contains(locationID)
+            else {
+                continue
+            }
+
+            context.delete(entity)
+        }
+
+        syncCollectionLocations(from: locations, in: homeID)
+        saveContext()
+    }
+
+    func deleteHome(homeID: UUID) {
+        guard let entity = fetchEntity(named: "HomeEntity", by: homeID) else { return }
+        context.delete(entity)
+        saveContext()
+    }
+
+    func saveCollection(_ collection: Collection) {
+        let existingEntity = fetchEntity(named: "CollectionEntity", by: collection.id)
+        let previousHomeID = existingEntity.map(collectionHomeID)
+        let entity = existingEntity ?? makeEntity(named: "CollectionEntity")
+        apply(collection, to: entity)
+
+        // The home of a collection another user owns is theirs. A participant edits only the
+        // collection's own fields; the home snapshot and the locations stay as the owner set them.
+        guard !isInSharedStore(entity) else {
+            saveContext()
+            return
+        }
+
+        let didChangeHome = previousHomeID.map { $0 != collection.homeID } ?? false
+
+        if let home = fetchEntity(named: "HomeEntity", by: collection.homeID) {
+            applyHomeSnapshot(home, to: entity)
+            entity.setValue(nil, forKey: "home")
+            if didChangeHome {
+                clearCollectionLocations(in: entity)
+            } else {
+                syncCollectionLocations(from: locations(in: home), in: collection.homeID, for: entity)
+            }
+        } else {
+            entity.setValue(collection.homeID, forKey: "homeID")
+            entity.setValue(nil, forKey: "home")
+            if didChangeHome {
+                clearCollectionLocations(in: entity)
+            }
+        }
+
+        saveContext()
+    }
+
+    func deleteResolution(for collectionID: UUID) -> CollectionDeleteResolution {
+        guard
+            let entity = fetchEntity(named: "CollectionEntity", by: collectionID),
+            let share = share(for: entity)
+        else {
+            return .deletePrivateCollection
+        }
+
+        guard !isInSharedStore(entity) else {
+            return .leaveSharedCollectionAsParticipant
+        }
+
+        // A share nobody else has joined is still a private collection to the user.
+        let hasOtherParticipants = share.participants.contains {
+            $0.role != .owner && $0.acceptanceStatus != .removed
+        }
+        return hasOtherParticipants ? .deleteSharedCollectionAsOwner : .deletePrivateCollection
+    }
+
+    func deleteCollection(collectionID: UUID) {
+        guard let entity = fetchEntity(named: "CollectionEntity", by: collectionID) else { return }
+
+        switch deleteResolution(for: collectionID) {
+        case .deletePrivateCollection, .deleteSharedCollectionAsOwner:
+            if share(for: entity) != nil {
+                purgeSharedCollection(collectionID: collectionID, deletesObjectsOnFailure: true)
+            } else {
+                context.delete(entity)
+                saveContext()
+            }
+        case .leaveSharedCollectionAsParticipant:
+            purgeSharedCollection(collectionID: collectionID, deletesObjectsOnFailure: false)
+        }
+    }
+
+    func saveItemRecord(_ item: ItemRecord) {
+        saveItemRecordWithoutSavingContext(item)
+        saveContext()
+    }
+
+    func saveItemRecords(_ items: [ItemRecord]) {
+        items.forEach { saveItemRecordWithoutSavingContext($0) }
+        saveContext()
+    }
+
+    func saveUserSortOrder(itemIDs: [UUID], scope: String) {
+        guard let privateStore = context.persistentStoreCoordinator?.persistentStores.first(where: {
+            $0.url?.lastPathComponent == "Private.sqlite"
+        }) else { return }
+
+        let updatedAt = Date()
+        for (sortOrder, itemID) in itemIDs.enumerated() {
+            let entity = fetchEntities(
+                named: "UserSortOrderEntity",
+                predicate: NSPredicate(format: "itemID == %@ AND scope == %@", itemID as NSUUID, scope),
+                fetchLimit: 1,
+                affectedStores: [privateStore]
+            ).first ?? makeEntity(named: "UserSortOrderEntity")
+            if entity.objectID.persistentStore == nil {
+                context.assign(entity, to: privateStore)
+                entity.setValue(UUID(), forKey: "id")
+            }
+            entity.setValue(itemID, forKey: "itemID")
+            entity.setValue(scope, forKey: "scope")
+            entity.setValue(sortOrder, forKey: "sortOrder")
+            entity.setValue(updatedAt, forKey: "updatedAt")
+        }
+
+        saveContext()
+    }
+
+    private func apply(_ home: Home, to entity: NSManagedObject) {
+        entity.setValue(home.id, forKey: "id")
+        entity.setValue(home.name, forKey: "name")
+        entity.setValue(home.iconName, forKey: "iconName")
+        entity.setValue(home.notes, forKey: "notes")
+    }
+
+    private func apply(_ location: Location, to entity: NSManagedObject) {
+        entity.setValue(location.id, forKey: "id")
+        entity.setValue(location.kind.rawValue, forKey: "kind")
+        entity.setValue(location.name, forKey: "name")
+        entity.setValue(location.notes, forKey: "notes")
+    }
+
+    private func apply(_ collection: Collection, to entity: NSManagedObject) {
+        entity.setValue(collection.id, forKey: "id")
+        entity.setValue(collection.kind.rawValue, forKey: "kind")
+        entity.setValue(collection.title, forKey: "title")
+        entity.setValue(collection.notes, forKey: "notes")
+        entity.setValue(collection.backgroundStyle.rawValue, forKey: "backgroundStyle")
+    }
+
+    private func applyHomeSnapshot(_ home: NSManagedObject, to collection: NSManagedObject) {
+        collection.setValue(uuidValue(home, "id"), forKey: "homeID")
+        collection.setValue(stringValue(home, "name"), forKey: "homeName")
+        collection.setValue(stringValue(home, "iconName", default: "house.fill"), forKey: "homeIconName")
+    }
+
+    private func apply(_ location: Location, sortOrder: Int, to entity: NSManagedObject) {
+        entity.setValue(location.id, forKey: "id")
+        entity.setValue(location.id, forKey: "sourceLocationID")
+        entity.setValue(location.kind.rawValue, forKey: "kind")
+        entity.setValue(location.name, forKey: "name")
+        entity.setValue(location.notes, forKey: "notes")
+        entity.setValue(sortOrder, forKey: "sortOrder")
+        entity.setValue(false, forKey: "isArchived")
+    }
+
+    private func apply(_ item: ItemRecord, to entity: NSManagedObject) {
+        entity.setValue(item.id, forKey: "id")
+        entity.setValue(item.kind.rawValue, forKey: "kind")
+        entity.setValue(item.title, forKey: "title")
+        entity.setValue(item.notes, forKey: "notes")
+        entity.setValue(item.createdAt, forKey: "createdAt")
+        entity.setValue(item.createdBy, forKey: "createdBy")
+        entity.setValue(item.isFavorite, forKey: "isFavorite")
+
+        entity.setValue(item.acquiredYear, forKey: "acquisitionYear")
+        entity.setValue(item.condition.rawValue, forKey: "condition")
+        entity.setValue(item.acquisitionMethod.rawValue, forKey: "acquisitionMethod")
+    }
+
+    @discardableResult
+    func saveItemRecordWithoutSavingContext(_ item: ItemRecord) -> NSManagedObject? {
+        guard let collection = fetchEntity(named: "CollectionEntity", by: item.collectionID) else { return nil }
+        return upsertItemEntity(for: item, in: collection)
+    }
+
+    private func upsertItemEntity(for item: ItemRecord, in collection: NSManagedObject) -> NSManagedObject {
+        let entity = fetchEntity(named: "ItemEntity", by: item.id)
+            ?? makeEntity(named: "ItemEntity", inStoreOf: collection)
+        apply(item, to: entity)
+        entity.setValue(collection, forKey: "collection")
+
+        let collectionLocation = item.locationID.flatMap { fetchCollectionLocation(in: collection, by: $0) }
+        entity.setValue(collectionLocation, forKey: "collectionLocation")
+        entity.setValue(item.originPlace.map { upsertPlace($0, in: collection) }, forKey: "originPlace")
+        upsertMediaAssets(item.mediaAssets, for: entity)
+        replaceTags(item.tags, for: entity)
+        return entity
+    }
+
+    private func upsertPlace(_ place: Place, in collection: NSManagedObject) -> NSManagedObject {
+        let collectionID = uuidValue(collection, "id")
+        let canonicalID = resolvedCanonicalID(for: place, in: collection)
+        let existingByID = fetchEntity(named: "PlaceEntity", by: place.id)
+        let existingLocal = fetchEntities(
+            named: "PlaceEntity",
+            predicate: NSPredicate(
+                format: "canonicalID == %@ AND collection == %@",
+                canonicalID as NSUUID,
+                collection
+            ),
+            fetchLimit: 1
+        ).first
+
+        let canReusePhysicalID = place.collectionID == collectionID
+        let reusableByID: NSManagedObject? = {
+            guard canReusePhysicalID, let existingByID else { return nil }
+            if let existingCollection = existingByID.value(forKey: "collection") as? NSManagedObject,
+               existingCollection != collection {
+                return nil
+            }
+            return existingByID
+        }()
+
+        let entity = existingLocal ?? reusableByID ?? makeEntity(named: "PlaceEntity")
+        if entity.objectID.persistentStore == nil,
+           let store = collection.objectID.persistentStore {
+            context.assign(entity, to: store)
+        }
+
+        if entity.value(forKey: "id") == nil {
+            entity.setValue(canReusePhysicalID ? place.id : UUID(), forKey: "id")
+        }
+        entity.setValue(canonicalID, forKey: "canonicalID")
+        entity.setValue(place.displayName, forKey: "displayName")
+        entity.setValue(place.countryCode, forKey: "countryCode")
+        entity.setValue(place.countryName, forKey: "countryName")
+        entity.setValue(place.regionName, forKey: "regionName")
+        entity.setValue(place.cityName, forKey: "cityName")
+        entity.setValue(place.latitude, forKey: "latitude")
+        entity.setValue(place.longitude, forKey: "longitude")
+        entity.setValue(collection, forKey: "collection")
+        return entity
+    }
+
+    private func resolvedCanonicalID(for place: Place, in collection: NSManagedObject) -> UUID {
+        guard let latitude = place.latitude, let longitude = place.longitude else {
+            return place.canonicalID
+        }
+
+        let localMatches = fetchEntities(
+            named: "PlaceEntity",
+            predicate: NSPredicate(
+                format: "collection == %@ AND latitude == %lf AND longitude == %lf",
+                collection,
+                latitude,
+                longitude
+            )
+        )
+        let localCanonicalIDs = Set(localMatches.compactMap(canonicalPlaceID))
+        if localCanonicalIDs.count == 1, let canonicalID = localCanonicalIDs.first {
+            return canonicalID
+        }
+
+        let globalMatches = fetchEntities(
+            named: "PlaceEntity",
+            predicate: NSPredicate(
+                format: "latitude == %lf AND longitude == %lf",
+                latitude,
+                longitude
+            )
+        )
+        let globalCanonicalIDs = Set(globalMatches.compactMap(canonicalPlaceID))
+        if globalCanonicalIDs.count == 1, let canonicalID = globalCanonicalIDs.first {
+            return canonicalID
+        }
+
+        return place.canonicalID
+    }
+
+    private func canonicalPlaceID(_ entity: NSManagedObject) -> UUID? {
+        guard let id = entity.value(forKey: "id") as? UUID else { return nil }
+        return entity.value(forKey: "canonicalID") as? UUID ?? id
+    }
+
+    private func replaceTags(_ tags: [String], for item: NSManagedObject) {
+        guard let collection = item.value(forKey: "collection") as? NSManagedObject else {
+            item.setValue(Set<NSManagedObject>(), forKey: "tags")
+            return
+        }
+
+        var seenNormalizedNames = Set<String>()
+        let newTags = tags.enumerated().compactMap { index, tag -> NSManagedObject? in
+            let normalizedName = normalizedTagName(tag)
+            guard !normalizedName.isEmpty, seenNormalizedNames.insert(normalizedName).inserted else { return nil }
+
+            let entity = itemTagEntity(named: tag, normalizedName: normalizedName, in: collection, sortOrder: index)
+            guard entity.value(forKey: "collection") as? NSManagedObject == collection else {
+                logger.error("Cross-collection tag detected: \(tag)")
+                return nil
+            }
+            return entity
+        }
+
+        item.setValue(Set(newTags), forKey: "tags")
+        deleteOrphanItemTags()
+    }
+
+    private func upsertMediaAssets(_ mediaAssets: [MediaAsset], for item: NSManagedObject) {
+        let existingAssets = (item.value(forKey: "mediaAssets") as? Set<NSManagedObject>) ?? []
+        let incomingIDs = Set(mediaAssets.map(\.id))
+        var entitiesByID: [UUID: NSManagedObject] = [:]
+
+        for entity in existingAssets {
+            guard let id = entity.value(forKey: "id") as? UUID else { continue }
+            entitiesByID[id] = entitiesByID[id] ?? entity
+        }
+
+        let updatedAssets = mediaAssets.map { asset in
+            let entity = entitiesByID[asset.id] ?? makeEntity(named: "MediaAssetEntity", inStoreOf: item)
+            apply(asset, to: entity)
+            entity.setValue(item, forKey: "item")
+            return entity
+        }
+
+        for entity in existingAssets {
+            guard
+                let id = entity.value(forKey: "id") as? UUID,
+                !incomingIDs.contains(id)
+            else {
+                continue
+            }
+
+            context.delete(entity)
+        }
+
+        item.setValue(Set(updatedAssets), forKey: "mediaAssets")
+    }
+
+    func apply(_ asset: MediaAsset, to entity: NSManagedObject) {
+        let isNewEntity = entity.value(forKey: "id") == nil
+        let existingChecksum = entity.value(forKey: "checksum") as? String
+        let shouldUpdateOriginalData = isNewEntity || existingChecksum != asset.checksum
+
+        entity.setValue(asset.id, forKey: "id")
+        entity.setValue(asset.kind.rawValue, forKey: "kind")
+        entity.setValue(asset.displayName, forKey: "displayName")
+        entity.setValue(asset.sortOrder, forKey: "sortOrder")
+        entity.setValue(asset.fileName, forKey: "fileName")
+        entity.setValue(asset.mimeType, forKey: "mimeType")
+        entity.setValue(asset.byteSize, forKey: "byteSize")
+        entity.setValue(asset.checksum, forKey: "checksum")
+        entity.setValue(asset.width, forKey: "width")
+        entity.setValue(asset.height, forKey: "height")
+        entity.setValue(asset.duration, forKey: "duration")
+        entity.setValue(asset.metadataJSON, forKey: "metadataJSON")
+        if shouldUpdateOriginalData {
+            entity.setValue(
+                asset.originalData ?? storedOriginalData(checksum: asset.checksum),
+                forKey: "originalData"
+            )
+        }
+    }
+
+    /// Returns stored bytes of another media asset with the same checksum.
+    ///
+    /// Snapshot records carry media without `originalData`. When such an asset is copied under a new ID
+    /// (a publisher or person materialized into another collection), the checksum still identifies the
+    /// bytes, so the new entity takes them from the stored original instead of saving an empty asset.
+    private func storedOriginalData(checksum: String?) -> Data? {
+        guard let checksum else { return nil }
+
+        let request = NSFetchRequest<NSManagedObject>(entityName: "MediaAssetEntity")
+        request.predicate = NSPredicate(format: "checksum == %@ AND originalData != nil", checksum)
+        request.fetchLimit = 1
+        return (try? context.fetch(request).first)?.value(forKey: "originalData") as? Data
+    }
+
+    private func home(from entity: NSManagedObject) -> Home {
+        Home(
+            id: uuidValue(entity, "id"),
+            name: stringValue(entity, "name"),
+            iconName: stringValue(entity, "iconName", default: "house.fill"),
+            notes: stringValue(entity, "notes")
+        )
+    }
+
+    private func collection(from entity: NSManagedObject) -> Collection {
+        Collection(
+            id: uuidValue(entity, "id"),
+            homeID: collectionHomeID(from: entity),
+            kind: collectionKind(from: stringValue(entity, "kind", default: CollectionKind.bells.rawValue)),
+            title: stringValue(entity, "title"),
+            notes: stringValue(entity, "notes"),
+            backgroundStyle: collectionBackgroundStyle(from: stringValue(entity, "backgroundStyle", default: CollectionBackgroundStyle.amber.rawValue))
+        )
+    }
+
+    func makeEntity(named entityName: String) -> NSManagedObject {
+        NSEntityDescription.insertNewObject(forEntityName: entityName, into: context)
+    }
+
+    /// Inserts an entity into the persistent store that already holds `owner`.
+    ///
+    /// Private and shared collections live in different stores, and Core Data rejects saves with
+    /// relationships across stores. Unassigned inserts would otherwise land in the first store.
+    func makeEntity(named entityName: String, inStoreOf owner: NSManagedObject) -> NSManagedObject {
+        let entity = makeEntity(named: entityName)
+        if let store = owner.objectID.persistentStore {
+            context.assign(entity, to: store)
+        }
+        return entity
+    }
+
+    func fetchEntity(named entityName: String, by id: UUID) -> NSManagedObject? {
+        fetchEntities(named: entityName, predicate: NSPredicate(format: "id == %@", id as NSUUID), fetchLimit: 1).first
+    }
+
+    private func fetchCollectionLocation(in collection: NSManagedObject, by id: UUID) -> NSManagedObject? {
+        relatedObjects(collection, "collectionLocations").first {
+            uuidValue($0, "id") == id || ($0.value(forKey: "sourceLocationID") as? UUID) == id
+        }
+    }
+
+    func fetchBellEntity(by itemID: UUID) -> NSManagedObject? {
+        fetchEntities(
+            named: "BellEntity",
+            predicate: NSPredicate(format: "item.id == %@", itemID as NSUUID),
+            fetchLimit: 1
+        ).first
+    }
+
+    private func itemTagEntity(
+        named value: String,
+        normalizedName: String,
+        in collection: NSManagedObject,
+        sortOrder: Int
+    ) -> NSManagedObject {
+        let entity = fetchEntities(
+            named: "ItemTagEntity",
+            predicate: NSPredicate(format: "normalizedName == %@ AND collection == %@", normalizedName, collection),
+            fetchLimit: 1
+        ).first ?? makeEntity(named: "ItemTagEntity", inStoreOf: collection)
+
+        if entity.value(forKey: "id") == nil {
+            entity.setValue(UUID(), forKey: "id")
+        }
+        entity.setValue(value, forKey: "value")
+        entity.setValue(normalizedName, forKey: "normalizedName")
+        entity.setValue(sortOrder, forKey: "sortOrder")
+        entity.setValue(collection, forKey: "collection")
+        return entity
+    }
+
+    func fillInverseRelationship(
+        from source: NSManagedObject,
+        relationshipName: String,
+        with destination: NSManagedObject
+    ) {
+        guard
+            let inverseName = source.entity.relationshipsByName[relationshipName]?.inverseRelationship?.name,
+            let inverseRelationship = destination.entity.relationshipsByName[inverseName]
+        else {
+            return
+        }
+
+        if inverseRelationship.isToMany {
+            destination.mutableSetValue(forKey: inverseName).add(source)
+        } else {
+            destination.setValue(source, forKey: inverseName)
+        }
+    }
+
+    func deleteOrphanItemTags() {
+        for tag in fetchEntities(named: "ItemTagEntity") where relatedObjects(tag, "items").isEmpty {
+            context.delete(tag)
+        }
+    }
+
+    private func normalizedTagName(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    private func collectionHomeID(from entity: NSManagedObject) -> UUID {
+        (entity.value(forKey: "home") as? NSManagedObject).map { uuidValue($0, "id") }
+            ?? entity.value(forKey: "homeID") as? UUID
+            ?? UUID()
+    }
+
+    private func locations(in home: NSManagedObject) -> [Location] {
+        relatedObjects(home, "locations")
+            .map { CoreDataDomainMapper.location(from: $0) }
+            .sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    private func syncCollectionLocations(from locations: [Location], in homeID: UUID) {
+        fetchCollections(in: homeID).forEach {
+            syncCollectionLocations(from: locations, in: homeID, for: $0)
+        }
+    }
+
+    private func syncCollectionLocations(from locations: [Location], in homeID: UUID, for collection: NSManagedObject) {
+        let existingLocations = relatedObjects(collection, "collectionLocations")
+        var existingBySourceID: [UUID: NSManagedObject] = [:]
+        for entity in existingLocations {
+            guard let sourceLocationID = entity.value(forKey: "sourceLocationID") as? UUID else { continue }
+            existingBySourceID[sourceLocationID] = existingBySourceID[sourceLocationID] ?? entity
+        }
+        var syncedBySourceID: [UUID: NSManagedObject] = [:]
+        let sourceIDs = Set(locations.map(\.id))
+
+        for (sortOrder, location) in locations.enumerated() {
+            let entity = existingBySourceID[location.id]
+                ?? makeEntity(named: "CollectionLocationEntity", inStoreOf: collection)
+            apply(location, sortOrder: sortOrder, to: entity)
+            entity.setValue(collection, forKey: "collection")
+            syncedBySourceID[location.id] = entity
+            existingBySourceID[location.id] = entity
+        }
+
+        for location in locations {
+            guard let entity = syncedBySourceID[location.id] else { continue }
+            entity.setValue(location.parentLocationID.flatMap { syncedBySourceID[$0] }, forKey: "parent")
+        }
+
+        for entity in existingLocations {
+            guard
+                let sourceLocationID = entity.value(forKey: "sourceLocationID") as? UUID,
+                !sourceIDs.contains(sourceLocationID)
+            else {
+                continue
+            }
+
+            if relatedObjects(entity, "bells").isEmpty && relatedObjects(entity, "items").isEmpty {
+                context.delete(entity)
+            } else {
+                entity.setValue(true, forKey: "isArchived")
+                entity.setValue(nil, forKey: "parent")
+            }
+        }
+    }
+
+    private func clearCollectionLocations(in collection: NSManagedObject) {
+        for item in relatedObjects(collection, "items") {
+            item.setValue(nil, forKey: "collectionLocation")
+        }
+
+        relatedObjects(collection, "collectionLocations").forEach(context.delete)
+    }
+
+    private func fetchCollections(in homeID: UUID) -> [NSManagedObject] {
+        fetchEntities(
+            named: "CollectionEntity",
+            predicate: NSPredicate(format: "homeID == %@ OR home.id == %@", homeID as NSUUID, homeID as NSUUID)
+        )
+    }
+
+    func relatedObjects(_ entity: NSManagedObject, _ key: String) -> [NSManagedObject] {
+        if let objects = entity.value(forKey: key) as? Set<NSManagedObject> {
+            return Array(objects)
+        }
+
+        return (entity.value(forKey: key) as? NSSet)?.allObjects.compactMap { $0 as? NSManagedObject } ?? []
+    }
+
+    /// Whether the entity lives in the shared store, i.e. belongs to a collection another user owns.
+    func isInSharedStore(_ entity: NSManagedObject) -> Bool {
+        entity.objectID.persistentStore.map(FolioraCoreDataStack.isSharedStore) ?? false
+    }
+
+    private func share(for entity: NSManagedObject) -> CKShare? {
+        try? persistentContainer?.fetchShares(matching: [entity.objectID])[entity.objectID]
+    }
+
+    /// Removes a shared collection together with its share zone.
+    ///
+    /// Deleting only the objects leaves the zone and the share behind, and a participant must not
+    /// delete the owner's objects at all: leaving is done by purging the zone from the shared store.
+    ///
+    /// When the purge fails for the owner, e.g. without a connection, the objects are deleted the
+    /// plain way so the collection still goes. A participant has no such fallback and is told.
+    private func purgeSharedCollection(collectionID: UUID, deletesObjectsOnFailure: Bool) {
+        guard let persistentContainer else { return }
+
+        let sharingService = CloudKitCollectionSharingService(persistentContainer: persistentContainer)
+        Task {
+            do {
+                try await sharingService.purgeSharedCollection(for: collectionID)
+                NotificationCenter.default.post(name: .catalogStoreDidChangeExternally, object: nil)
+            } catch {
+                self.logger.error("Failed to purge shared collection: \(String(describing: error))")
+
+                if deletesObjectsOnFailure {
+                    if let entity = self.fetchEntity(named: "CollectionEntity", by: collectionID) {
+                        self.context.delete(entity)
+                        self.saveContext()
+                    }
+                } else {
+                    NotificationCenter.default.post(name: .collectionRemovalDidFail, object: nil)
+                }
+            }
+        }
+    }
+
+    func fetchEntities(
+        named entityName: String,
+        predicate: NSPredicate? = nil,
+        fetchLimit: Int = 0,
+        affectedStores: [NSPersistentStore]? = nil
+    ) -> [NSManagedObject] {
+        let request = NSFetchRequest<NSManagedObject>(entityName: entityName)
+        request.predicate = predicate
+        request.fetchLimit = fetchLimit
+        request.affectedStores = affectedStores
+        return (try? context.fetch(request)) ?? []
+    }
+
+    private func uuidValue(_ entity: NSManagedObject, _ key: String) -> UUID {
+        entity.value(forKey: key) as? UUID ?? UUID()
+    }
+
+    private func stringValue(_ entity: NSManagedObject, _ key: String, default defaultValue: String = "") -> String {
+        entity.value(forKey: key) as? String ?? defaultValue
+    }
+
+    private func intValue(_ entity: NSManagedObject, _ key: String) -> Int {
+        optionalIntValue(entity, key) ?? 0
+    }
+
+    private func optionalIntValue(_ entity: NSManagedObject, _ key: String) -> Int? {
+        if let value = entity.value(forKey: key) as? Int {
+            return value
+        }
+
+        return (entity.value(forKey: key) as? NSNumber)?.intValue
+    }
+
+    private func collectionKind(from rawValue: String) -> CollectionKind {
+        CollectionKind(rawValue: rawValue) ?? .bells
+    }
+
+    private func collectionBackgroundStyle(from rawValue: String) -> CollectionBackgroundStyle {
+        CollectionBackgroundStyle(rawValue: rawValue) ?? .amber
+    }
+
+    func saveContext() {
+        guard context.hasChanges else { return }
+
+        do {
+            try context.save()
+        } catch {
+            // A failed save leaves the context dirty: every later save fails the same way, and the
+            // catalog snapshot, which skips a context with unsaved changes, stops reloading.
+            logger.error("Failed to save Core Data catalog context: \(String(describing: error))")
+            context.rollback()
+            assertionFailure("Failed to save Core Data catalog context: \(error)")
+        }
+    }
+}

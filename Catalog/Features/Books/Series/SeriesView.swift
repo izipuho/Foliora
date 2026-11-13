@@ -1,0 +1,537 @@
+import SwiftUI
+
+/// Displays the series in a single book library.
+struct SeriesView: View {
+    let collection: CollectionSummary
+    let catalogSnapshot: CatalogSnapshot?
+    let repository: any AppRepository
+    let canEditCollection: Bool
+    let onBookSelected: ((UUID) -> Void)?
+
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var localSeries: [BookSeries]
+    @State private var searchText = ""
+    @State private var isPresentingNewSeries = false
+    @State private var selectedSeries: BookSeries?
+
+    init(
+        collection: CollectionSummary,
+        catalogSnapshot: CatalogSnapshot?,
+        repository: any AppRepository,
+        canEditCollection: Bool,
+        onBookSelected: ((UUID) -> Void)? = nil
+    ) {
+        self.collection = collection
+        self.catalogSnapshot = catalogSnapshot
+        self.repository = repository
+        self.canEditCollection = canEditCollection
+        self.onBookSelected = onBookSelected
+        _localSeries = State(
+            initialValue: catalogSnapshot?.bookSeries.filter { $0.collectionID == collection.id } ?? []
+        )
+    }
+
+    private var snapshotSeries: [BookSeries] {
+        catalogSnapshot?.bookSeries.filter { $0.collectionID == collection.id } ?? []
+    }
+
+    private var books: [BookRecord] {
+        catalogSnapshot?.bookRecords.filter { $0.collectionID == collection.id } ?? []
+    }
+
+    private var filteredSeries: [BookSeries] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return localSeries
+            .filter { series in
+                query.isEmpty
+                    || series.name.localizedCaseInsensitiveContains(query)
+                    || (series.publisher?.name.localizedCaseInsensitiveContains(query) ?? false)
+            }
+            .sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+    }
+
+    private var availablePublishers: [Publisher] {
+        var publishersByID: [UUID: Publisher] = [:]
+
+        for publisher in books.compactMap(\.details.publisher) + localSeries.compactMap(\.publisher) {
+            publishersByID[publisher.id] = publisher
+        }
+
+        return publishersByID.values.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    var body: some View {
+        Group {
+            if localSeries.isEmpty {
+                emptyState
+            } else {
+                CatalogContainerList {
+                    Section {
+                        ForEach(filteredSeries) { series in
+                            Button {
+                                selectedSeries = series
+                            } label: {
+                                CatalogContainerCard(
+                                    title: series.name,
+                                    subtitle: series.publisher?.name,
+                                    supportingText: completionText(for: series),
+                                    systemImage: "rectangle.stack.fill"
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .catalogContainerListRow()
+                        }
+                    }
+                }
+                .searchable(text: $searchText, prompt: "series.search.prompt")
+            }
+        }
+        .background {
+            CatalogBackgrounds.collection(
+                collection.backgroundStyle.accentColor,
+                scheme: colorScheme
+            )
+            .ignoresSafeArea()
+        }
+        .navigationTitle("series.title")
+        .navigationBarTitleDisplayMode(.large)
+        .navigationDestination(item: $selectedSeries) { series in
+            SeriesDetailView(
+                series: series,
+                books: booksForSeries(series),
+                publishers: availablePublishers,
+                repository: repository,
+                canEditCollection: canEditCollection,
+                accentColor: collection.backgroundStyle.accentColor,
+                onSeriesSaved: upsertLocalSeries,
+                onSeriesDeleted: removeLocalSeries,
+                onBookSelected: onBookSelected
+            )
+        }
+        .toolbar {
+            if canEditCollection {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isPresentingNewSeries = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("series.action.add")
+                }
+            }
+        }
+        .sheet(isPresented: $isPresentingNewSeries) {
+            SeriesEditorView(
+                collectionID: collection.id,
+                series: nil,
+                publishers: availablePublishers
+            ) { series in
+                repository.saveBookSeries(series)
+                upsertLocalSeries(series)
+            }
+        }
+        .onChange(of: snapshotSeries) { _, newSeries in
+            localSeries = newSeries
+        }
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        if canEditCollection {
+            CatalogEmptyStateView(
+                systemImage: "books.vertical",
+                title: "series.empty.title",
+                message: "series.empty.message",
+                primaryActionTitle: "series.action.add",
+                primaryActionSystemImage: "plus.circle.fill",
+                primaryTint: collection.backgroundStyle.accentColor,
+                primaryAction: { isPresentingNewSeries = true }
+            )
+        } else {
+            CatalogEmptyStateView(
+                systemImage: "books.vertical",
+                title: "series.empty.title",
+                message: "series.empty.message",
+                primaryTint: collection.backgroundStyle.accentColor
+            )
+        }
+    }
+
+    private func booksForSeries(_ series: BookSeries) -> [BookRecord] {
+        books
+            .filter { $0.details.series?.id == series.id }
+            .sorted { lhs, rhs in
+                switch (lhs.details.volumeNumber, rhs.details.volumeNumber) {
+                case let (lhsVolume?, rhsVolume?) where lhsVolume != rhsVolume:
+                    return lhsVolume < rhsVolume
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                default:
+                    return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+                }
+            }
+    }
+
+    private func completionText(for series: BookSeries) -> String {
+        let collectedCount = booksForSeries(series).count
+        let collected = String(localized: "series.progress.collected")
+
+        guard let totalBookCount = series.totalBookCount else {
+            return "\(collected): \(collectedCount) · \(String(localized: "series.progress.total_unknown"))"
+        }
+
+        let progress = String.localizedStringWithFormat(
+            String(localized: "common.progress.count_of_total"),
+            collectedCount,
+            totalBookCount
+        )
+
+        if collectedCount >= totalBookCount {
+            return "\(collected): \(progress) · \(String(localized: "series.progress.complete"))"
+        }
+
+        return "\(collected): \(progress)"
+    }
+
+    private func upsertLocalSeries(_ series: BookSeries) {
+        if let index = localSeries.firstIndex(where: { $0.id == series.id }) {
+            localSeries[index] = series
+        } else {
+            localSeries.append(series)
+        }
+    }
+
+    private func removeLocalSeries(_ seriesID: UUID) {
+        localSeries.removeAll { $0.id == seriesID }
+        if selectedSeries?.id == seriesID {
+            selectedSeries = nil
+        }
+    }
+}
+
+/// Displays the editor used to create or update a book series.
+struct SeriesEditorView: View {
+    let collectionID: UUID
+    private let existingSeries: BookSeries?
+    private let publishers: [Publisher]
+    private let bookCount: Int
+    private let onDelete: (() -> Void)?
+    private let onSave: (BookSeries) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var isNameFocused: Bool
+    @State private var name: String
+    @State private var totalBookCount: String
+    @State private var selectedPublisher: Publisher?
+    @State private var localPublishers: [Publisher]
+    @State private var isPresentingPublisherPicker = false
+    @State private var isPresentingDeleteConfirmation = false
+
+    init(
+        collectionID: UUID,
+        series: BookSeries?,
+        publishers: [Publisher],
+        bookCount: Int = 0,
+        onDelete: (() -> Void)? = nil,
+        onSave: @escaping (BookSeries) -> Void
+    ) {
+        self.collectionID = collectionID
+        self.existingSeries = series
+        self.publishers = publishers
+        self.bookCount = bookCount
+        self.onDelete = onDelete
+        self.onSave = onSave
+        _name = State(initialValue: series?.name ?? "")
+        _totalBookCount = State(initialValue: series?.totalBookCount.map(String.init) ?? "")
+        _selectedPublisher = State(initialValue: series?.publisher)
+        _localPublishers = State(initialValue: publishers)
+    }
+
+    private var isNameValid: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var isTotalBookCountValid: Bool {
+        let trimmed = totalBookCount.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return true }
+        guard let value = Int(trimmed) else { return false }
+        return value > 0
+    }
+
+    private var canSave: Bool {
+        isNameValid && isTotalBookCountValid
+    }
+
+    private var availablePublishers: [Publisher] {
+        var publishersByID = Dictionary(
+            localPublishers.map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        if let selectedPublisher {
+            publishersByID[selectedPublisher.id] = selectedPublisher
+        }
+
+        return publishersByID.values.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("common.name", text: $name)
+                        .focused($isNameFocused)
+
+                    VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.xs) {
+                        LabeledContent("series.field.total_books") {
+#if os(iOS)
+                            TextField("—", text: $totalBookCount)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+#else
+                            TextField("—", text: $totalBookCount)
+                                .multilineTextAlignment(.trailing)
+#endif
+                        }
+
+                        if !isTotalBookCountValid {
+                            Label(
+                                "book.validation.positive_whole_number",
+                                systemImage: "exclamationmark.circle.fill"
+                            )
+                            .font(.footnote)
+                            .foregroundStyle(CatalogSemanticColors.destructive)
+                        }
+                    }
+
+                    Button {
+                        isPresentingPublisherPicker = true
+                    } label: {
+                        HStack {
+                            Text("publisher.title")
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            Text(selectedPublisher?.name ?? String(localized: "common.none"))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.trailing)
+
+                            Image(systemName: "chevron.right")
+                                .font(CatalogTypography.chipLabel)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if existingSeries != nil, onDelete != nil {
+                    Section {
+                        Button("series.action.delete", role: .destructive) {
+                            isPresentingDeleteConfirmation = true
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                }
+            }
+            .navigationTitle(existingSeries == nil ? String(localized: "series.action.add") : String(localized: "series.action.edit"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        saveSeries()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .disabled(!canSave)
+                    .accessibilityLabel(String(localized: "common.save"))
+                }
+            }
+            .sheet(isPresented: $isPresentingPublisherPicker) {
+                SeriesPublisherSelectionView(
+                    selection: $selectedPublisher,
+                    publishers: availablePublishers,
+                    collectionID: collectionID,
+                    onCreate: { publisher in
+                        localPublishers.append(publisher)
+                        selectedPublisher = publisher
+                    }
+                )
+            }
+            .confirmationDialog(
+                "series.delete.title",
+                isPresented: $isPresentingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("series.action.delete", role: .destructive) {
+                    onDelete?()
+                    dismiss()
+                }
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+            } message: {
+                Text("series.delete.message")
+                if bookCount > 0 {
+                    let format = String(localized: "series.delete.books_remain_without_series_count")
+                    Text(String(format: format, locale: .autoupdatingCurrent, bookCount))
+                }
+            }
+            .onAppear {
+                if existingSeries == nil {
+                    isNameFocused = true
+                }
+            }
+        }
+    }
+
+    private func saveSeries() {
+        guard canSave else { return }
+
+        let trimmedTotal = totalBookCount.trimmingCharacters(in: .whitespacesAndNewlines)
+        let series = BookSeries(
+            id: existingSeries?.id ?? UUID(),
+            collectionID: collectionID,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            totalBookCount: trimmedTotal.isEmpty ? nil : Int(trimmedTotal),
+            publisher: selectedPublisher
+        )
+
+        onSave(series)
+        dismiss()
+    }
+}
+
+private struct SeriesPublisherSelectionView: View {
+    @Binding var selection: Publisher?
+    let publishers: [Publisher]
+    let collectionID: UUID
+    let onCreate: (Publisher) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredPublishers: [Publisher] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return publishers }
+        return publishers.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var newPublisherName: String? {
+        let candidate = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !candidate.isEmpty else { return nil }
+        guard !publishers.contains(where: { $0.name.caseInsensitiveCompare(candidate) == .orderedSame }) else {
+            return nil
+        }
+        return candidate
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let newPublisherName {
+                    Button {
+                        let publisher = Publisher(
+                            id: UUID(),
+                            collectionID: collectionID,
+                            name: newPublisherName
+                        )
+                        onCreate(publisher)
+                        selection = publisher
+                        dismiss()
+                    } label: {
+                        Label(
+                            String.localizedStringWithFormat(String(localized: "common.action.add_value"), newPublisherName),
+                            systemImage: "plus.circle.fill"
+                        )
+                    }
+                }
+
+                Button {
+                    selection = nil
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(String(localized: "common.none"))
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        if selection == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+
+                ForEach(filteredPublishers) { publisher in
+                    Button {
+                        selection = publisher
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text(publisher.name)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            if selection?.id == publisher.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("publisher.title")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "picker.search_or_add")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel(String(localized: "common.cancel"))
+                }
+            }
+        }
+    }
+}
+
+#if DEBUG
+#Preview {
+    let container = PreviewContainer.makeBooksMinimal()
+    let repository = CoreDataCatalogRepository(
+        context: container.viewContext,
+        persistentContainer: nil
+    )
+    let snapshot = CatalogSnapshot.load(from: container.viewContext)
+
+    if let collection = snapshot.collections
+        .compactMap({ snapshot.collectionSummary(id: $0.id) })
+        .first(where: { $0.kind == .books }) {
+        NavigationStack {
+            SeriesView(
+                collection: collection,
+                catalogSnapshot: snapshot,
+                repository: repository,
+                canEditCollection: true
+            )
+        }
+        .previewEnvironment(container)
+    }
+}
+#endif
