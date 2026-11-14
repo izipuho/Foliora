@@ -193,6 +193,12 @@ struct BellDetailView: View {
                         value: bell.materialDisplayName,
                         systemImage: "cube"
                     )
+
+                    metadataField(
+                        title: String(localized: "common.field.size"),
+                        value: bell.details.size.displayName,
+                        systemImage: "ruler"
+                    )
                 }
                 .padding(CatalogMetrics.Spacing.lg)
                 .background {

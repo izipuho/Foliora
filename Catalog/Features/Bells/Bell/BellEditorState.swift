@@ -5,6 +5,7 @@ struct BellEditorState {
     var itemState: ItemEditorState
     var material: BellMaterial
     var customMaterialName: String
+    var size: BellSize
     var selectedOriginPlace: Place?
 
     init(
@@ -17,6 +18,7 @@ struct BellEditorState {
         )
         material = bell?.details.material ?? .unknown
         customMaterialName = bell?.details.customMaterialName ?? ""
+        size = bell?.details.size ?? .unknown
         selectedOriginPlace = bell?.originPlace
     }
 
@@ -95,7 +97,8 @@ struct BellEditorState {
             details: BellDetails(
                 itemID: itemID,
                 material: material,
-                customMaterialName: material == .other ? trimmedCustomMaterialName : nil
+                customMaterialName: material == .other ? trimmedCustomMaterialName : nil,
+                size: size
             )
         )
     }

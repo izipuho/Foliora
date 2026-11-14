@@ -6,6 +6,7 @@ struct BellBatchEditView: View {
 
     @State private var material: BellMaterial?
     @State private var customMaterialName = ""
+    @State private var size: BellSize?
 
     var body: some View {
         CatalogBatchEditView(
@@ -33,13 +34,27 @@ struct BellBatchEditView: View {
             } header: {
                 Text(String(localized: "common.field.material"))
             }
+
+            Section {
+                Picker(String(localized: "common.field.size"), selection: $size) {
+                    Text(String(localized: "catalog.batch_edit.keep_unchanged"))
+                        .tag(nil as BellSize?)
+                    ForEach(BellSize.allCases) { value in
+                        Text(value.displayName)
+                            .tag(Optional(value))
+                    }
+                }
+            } header: {
+                Text(String(localized: "common.field.size"))
+            }
         }
     }
 
     private var bellEdit: BellBatchEdit {
         BellBatchEdit(
             material: material,
-            customMaterialName: customMaterialName
+            customMaterialName: customMaterialName,
+            size: size
         )
     }
 }
