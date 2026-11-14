@@ -6,6 +6,7 @@ enum BellSearchToken: Identifiable, Hashable {
     case collection(UUID)
     case country(String)
     case material(String)
+    case size(BellSize)
     case tag(String)
     case condition(ItemCondition)
     case acquisitionMethod(AcquisitionMethod)
@@ -16,6 +17,7 @@ enum BellSearchToken: Identifiable, Hashable {
         case collection
         case country
         case material
+        case size
         case tag
         case condition
         case acquisitionMethod
@@ -31,6 +33,8 @@ enum BellSearchToken: Identifiable, Hashable {
             return "country:\(country)"
         case .material(let material):
             return "material:\(material)"
+        case .size(let size):
+            return "size:\(size.rawValue)"
         case .tag(let tag):
             return "tag:\(tag)"
         case .condition(let condition):
@@ -52,6 +56,8 @@ enum BellSearchToken: Identifiable, Hashable {
             return .country
         case .material:
             return .material
+        case .size:
+            return .size
         case .tag:
             return .tag
         case .condition:
@@ -155,6 +161,11 @@ struct BellSearchView: View {
                 tokens: uniqueValues(bells.map(\.materialDisplayName)).map(BellSearchToken.material)
             ),
             SearchTokenGroup(
+                title: String(localized: "common.field.size"),
+                systemImage: "ruler",
+                tokens: uniqueSizes.map(BellSearchToken.size)
+            ),
+            SearchTokenGroup(
                 title: String(localized: "common.field.tags"),
                 systemImage: "tag",
                 tokens: uniqueValues(bells.flatMap(\.tagValues)).map(BellSearchToken.tag)
@@ -252,6 +263,8 @@ struct BellSearchView: View {
                 ?? String(localized: "common.collection")
         case .country(let value), .material(let value), .tag(let value):
             return value
+        case .size(let size):
+            return size.displayName
         case .condition(let condition):
             return condition.displayName
         case .acquisitionMethod(let method):
@@ -271,6 +284,8 @@ struct BellSearchView: View {
             return "globe.europe.africa"
         case .material:
             return "shippingbox"
+        case .size:
+            return "ruler"
         case .tag:
             return "tag"
         case .condition:
@@ -298,6 +313,12 @@ struct BellSearchView: View {
     private var uniqueConditions: [ItemCondition] {
         ItemCondition.allCases.filter { condition in
             bells.contains { $0.condition == condition }
+        }
+    }
+
+    private var uniqueSizes: [BellSize] {
+        BellSize.allCases.filter { size in
+            bells.contains { $0.size == size }
         }
     }
 
@@ -367,6 +388,8 @@ struct BellSearchView: View {
             return bell.countryName.localizedCaseInsensitiveCompare(country) == .orderedSame
         case .material(let material):
             return bell.materialDisplayName.localizedCaseInsensitiveCompare(material) == .orderedSame
+        case .size(let size):
+            return bell.size == size
         case .tag(let tag):
             return bell.tagValues.contains { $0.localizedCaseInsensitiveCompare(tag) == .orderedSame }
         case .condition(let condition):
