@@ -13,4 +13,6 @@ struct BellCatalogTransferItem: Codable {
     var itemID: UUID
     var material: String
     var customMaterialName: String?
+    /// Missing in files exported before bells had a size.
+    var size: String?
 }

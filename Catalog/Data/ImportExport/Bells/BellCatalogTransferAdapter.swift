@@ -22,7 +22,8 @@ struct BellCatalogTransferAdapter: CatalogDomainTransferAdapter {
             return BellCatalogTransferItem(
                 itemID: itemID,
                 material: bell.value(forKey: "material") as? String ?? "unknown",
-                customMaterialName: bell.value(forKey: "customMaterialName") as? String
+                customMaterialName: bell.value(forKey: "customMaterialName") as? String,
+                size: bell.value(forKey: "size") as? String
             )
         }
 
@@ -80,6 +81,7 @@ struct BellCatalogTransferAdapter: CatalogDomainTransferAdapter {
 
                 bellEntity.setValue(bell.material, forKey: "material")
                 bellEntity.setValue(bell.customMaterialName, forKey: "customMaterialName")
+                bellEntity.setValue(bell.size, forKey: "size")
                 bellEntity.setValue(itemEntity, forKey: "item")
                 itemEntity.setValue(bellEntity, forKey: "bell")
             }

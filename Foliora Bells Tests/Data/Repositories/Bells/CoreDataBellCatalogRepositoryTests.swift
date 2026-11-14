@@ -18,7 +18,8 @@ struct CoreDataBellCatalogRepositoryTests {
             isFavorite: true,
             tags: ["travel", "small"],
             material: .other,
-            customMaterialName: "Pewter"
+            customMaterialName: "Pewter",
+            size: .s
         )
 
         repository.saveBellRecord(bell)
@@ -36,6 +37,7 @@ struct CoreDataBellCatalogRepositoryTests {
         #expect(inverseBell.objectID == bellEntity.objectID)
         #expect(bellEntity.value(forKey: "material") as? String == BellMaterial.other.rawValue)
         #expect(bellEntity.value(forKey: "customMaterialName") as? String == "Pewter")
+        #expect(bellEntity.value(forKey: "size") as? String == BellSize.s.rawValue)
 
         let persisted = try #require(CatalogSnapshot.load(from: context).recordsByID[bell.id])
         #expect(persisted.title == "Test bell")
@@ -47,6 +49,20 @@ struct CoreDataBellCatalogRepositoryTests {
         #expect(persisted.tags == ["travel", "small"])
         #expect(persisted.details.material == .other)
         #expect(persisted.details.customMaterialName == "Pewter")
+        #expect(persisted.details.size == .s)
+    }
+
+    @Test
+    func saveBellRecordStoresUnknownSizeAsNoValue() throws {
+        let (context, repository, collectionID) = try makeRepository()
+        let bell = makeBell(collectionID: collectionID, title: "Unsized bell", material: .brass)
+
+        repository.saveBellRecord(bell)
+
+        let bellEntity = try #require(try fetchEntities(named: "BellEntity", from: context).first)
+        #expect(bellEntity.value(forKey: "size") == nil)
+        let persisted = try #require(CatalogSnapshot.load(from: context).recordsByID[bell.id])
+        #expect(persisted.details.size == .unknown)
     }
 
     @Test
@@ -177,7 +193,8 @@ struct CoreDataBellCatalogRepositoryTests {
         isFavorite: Bool = false,
         tags: [String] = [],
         material: BellMaterial,
-        customMaterialName: String? = nil
+        customMaterialName: String? = nil,
+        size: BellSize = .unknown
     ) -> BellRecord {
         BellRecord(
             item: ItemRecord(
@@ -202,7 +219,8 @@ struct CoreDataBellCatalogRepositoryTests {
             details: BellDetails(
                 itemID: id,
                 material: material,
-                customMaterialName: customMaterialName
+                customMaterialName: customMaterialName,
+                size: size
             )
         )
     }
