@@ -3974,6 +3974,22 @@
         }
       }
     },
+    "common.field.size_format" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Размер %@"
+          }
+        }
+      }
+    },
     "common.field.tags" : {
       "localizations" : {
         "en" : {

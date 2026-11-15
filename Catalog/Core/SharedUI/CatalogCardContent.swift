@@ -3,6 +3,8 @@ import SwiftUI
 /// Groups catalog card accessory values and behavior.
 enum CatalogCardAccessory: Hashable, Identifiable {
     case chip(String)
+    /// A chip whose meaning is not clear from its text alone, like a size letter.
+    case iconChip(text: String, systemImage: String, accessibilityLabel: String)
     case label(text: String, systemImage: String)
     case badge(CatalogCardBadge)
 
@@ -202,6 +204,15 @@ struct CatalogCardAccessoryRow: View {
                 switch accessory {
                 case .chip(let text):
                     capsuleText(text)
+                case .iconChip(let text, let systemImage, let accessibilityLabel):
+                    Label(text, systemImage: systemImage)
+                        .labelStyle(.titleAndIcon)
+                        .font(style.font)
+                        .lineLimit(1)
+                        .foregroundStyle(foregroundStyle)
+                        .catalogSurfaceCapsule()
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(accessibilityLabel)
                 case .label(let text, let systemImage):
                     Label(text, systemImage: systemImage)
                         .labelStyle(.titleAndIcon)

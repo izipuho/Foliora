@@ -47,10 +47,25 @@ struct BellCardView: View {
     }
 
     private var accessories: [CatalogCardAccessory] {
-        guard let acquiredYear = bell.acquiredYear else {
-            return []
+        var accessories: [CatalogCardAccessory] = []
+
+        if let acquiredYear = bell.acquiredYear {
+            accessories.append(.chip(String(acquiredYear)))
         }
 
-        return [.chip(String(acquiredYear))]
+        if bell.size != .unknown {
+            accessories.append(
+                .iconChip(
+                    text: bell.size.displayName,
+                    systemImage: "ruler",
+                    accessibilityLabel: String.localizedStringWithFormat(
+                        String(localized: "common.field.size_format"),
+                        bell.size.displayName
+                    )
+                )
+            )
+        }
+
+        return accessories
     }
 }
