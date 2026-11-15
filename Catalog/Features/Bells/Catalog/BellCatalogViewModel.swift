@@ -310,6 +310,22 @@ final class BellCatalogViewModel: ObservableObject {
                     storageGroups: []
                 )
             }
+        case .size:
+            // Smallest first; bells without a size go last.
+            let order = BellSize.allCases.filter { $0 != .unknown } + [.unknown]
+            let grouped = Dictionary(grouping: bellRecords, by: \.size)
+            return order.compactMap { size in
+                guard let bells = grouped[size] else { return nil }
+                let title = size.displayName
+                return BellGroupedSection(
+                    id: "size-\(size.rawValue)",
+                    title: title,
+                    jumpTitle: title,
+                    indexTitle: nil,
+                    bells: bells,
+                    storageGroups: []
+                )
+            }
         case .storage:
             return CatalogStorageGrouping.sections(
                 fromSorted: bellRecords,
@@ -387,7 +403,7 @@ final class BellCatalogViewModel: ObservableObject {
                 KeyPathComparator(\.acquiredYear, order: .reverse),
                 titleComparator
             ]
-        case .storage:
+        case .size, .storage:
             return titleComparators
         }
     }

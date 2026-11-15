@@ -27,6 +27,7 @@ enum BellOrderMode: String, CaseIterable, Hashable {
     case geography
     case acquisitionYear
     case storage
+    case size
 
     var title: LocalizedStringResource {
         switch self {
@@ -36,6 +37,7 @@ enum BellOrderMode: String, CaseIterable, Hashable {
             case .geography: "common.ui.geography"
             case .acquisitionYear: "item.detail.acquisition_year"
             case .storage: "common.storage"
+            case .size: "common.field.size"
         }
     }
 }

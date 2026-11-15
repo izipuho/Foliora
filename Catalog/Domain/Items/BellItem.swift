@@ -5,6 +5,7 @@ struct BellDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
     var material: BellMaterial
     var customMaterialName: String?
+    var size: BellSize = .unknown
 
     var id: UUID { itemID }
 }
@@ -13,22 +14,29 @@ struct BellDetails: Identifiable, Hashable, Codable {
 struct BellBatchEdit {
     var material: BellMaterial?
     var customMaterialName: String = ""
+    var size: BellSize?
 
     var isEmpty: Bool {
-        material == nil
+        material == nil && size == nil
     }
 
     func applying(to details: BellDetails) -> BellDetails {
-        guard let material else { return details }
-
         var updated = details
-        updated.material = material
-        if material == .other {
-            let trimmed = customMaterialName.trimmingCharacters(in: .whitespacesAndNewlines)
-            updated.customMaterialName = trimmed.isEmpty ? nil : trimmed
-        } else {
-            updated.customMaterialName = nil
+
+        if let material {
+            updated.material = material
+            if material == .other {
+                let trimmed = customMaterialName.trimmingCharacters(in: .whitespacesAndNewlines)
+                updated.customMaterialName = trimmed.isEmpty ? nil : trimmed
+            } else {
+                updated.customMaterialName = nil
+            }
         }
+
+        if let size {
+            updated.size = size
+        }
+
         return updated
     }
 }
@@ -73,6 +81,28 @@ enum BellMaterial: String, CaseIterable, Hashable, Identifiable, Codable, Sendab
             return String(localized: "enum.bell_material.wood")
         case .other:
             return String(localized: "common.other")
+        }
+    }
+}
+
+/// Groups bell size values, ordered from smallest to largest.
+enum BellSize: String, CaseIterable, Hashable, Identifiable, Codable, Sendable {
+    case unknown
+    case xs
+    case s
+    case m
+    case l
+    case xl
+
+    var id: String { rawValue }
+
+    /// Sizes read the same in every language, so only the unknown size is localized.
+    var displayName: String {
+        switch self {
+        case .unknown:
+            return String(localized: "common.unknown")
+        case .xs, .s, .m, .l, .xl:
+            return rawValue.uppercased()
         }
     }
 }

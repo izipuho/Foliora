@@ -380,6 +380,14 @@ struct BellEditorView: View {
                                 TextField(String(localized: "editor.material.custom"), text: $editorState.customMaterialName)
                             }
 
+                            EnumSelectionRow(
+                                title: String(localized: "common.field.size"),
+                                selectedLabel: editorState.size.displayName,
+                                options: BellSize.allCases,
+                                selection: $editorState.size,
+                                optionTitle: \.displayName
+                            )
+
                         }
 
                         Section(String(localized: "item.detail.section.location")) {

@@ -94,6 +94,7 @@ struct BellBatchAddView: View {
     @State private var tags: [String] = []
     @State private var material: BellMaterial = .unknown
     @State private var customMaterialName = ""
+    @State private var size: BellSize = .unknown
     @State private var mediaLoadState: BellBatchMediaLoadState = .idle
     @State private var mediaPayloads: [MediaAsset] = []
     @State private var mediaLoadErrorMessage: String?
@@ -222,6 +223,14 @@ struct BellBatchAddView: View {
                 if material == .other {
                     TextField(String(localized: "editor.material.custom"), text: $customMaterialName)
                 }
+
+                EnumSelectionRow(
+                    title: String(localized: "common.field.size"),
+                    selectedLabel: size.displayName,
+                    options: BellSize.allCases,
+                    selection: $size,
+                    optionTitle: \.displayName
+                )
             }
 
             Section(String(localized: "common.field.tags")) {
@@ -444,6 +453,7 @@ struct BellBatchAddView: View {
             state.tags = tags
             state.material = material
             state.customMaterialName = customMaterialName
+            state.size = size
 
             return state.makeBell(
                 itemID: bellID,

@@ -115,7 +115,7 @@ struct BellCollectionView: View {
                 onSelect: handlePhotoCreationMode,
                 onCancel: clearDraftBell
             ),
-            sortOptions: [.newestFirst, .title, .geography, .acquisitionYear, .storage],
+            sortOptions: [.newestFirst, .title, .geography, .acquisitionYear, .size, .storage],
             sortSectionTitle: String(localized: "common.sort"),
             sortTitle: { option in
                 if option == .newestFirst {
