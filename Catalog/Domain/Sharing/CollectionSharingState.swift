@@ -1,0 +1,36 @@
+/// Represents collection sharing state data and behavior.
+struct CollectionSharingState {
+    var isShared: Bool
+    var currentUserRole: CollectionAccessRole
+    var participants: [CollectionParticipant]
+
+    init(
+        currentUserRole: CollectionAccessRole,
+        participants: [CollectionParticipant]
+    ) {
+        self.currentUserRole = currentUserRole
+        self.participants = participants
+        // To a participant the collection is shared by definition. To the owner it is shared once
+        // somebody else is on the share.
+        self.isShared = currentUserRole != .owner || participants.contains {
+            $0.role != .owner && $0.acceptanceStatus != .removed
+        }
+    }
+
+    var invitedParticipants: [CollectionParticipant] {
+        participants.filter {
+            $0.role != .owner && $0.acceptanceStatus == .pending
+        }
+    }
+
+    var acceptedParticipantsCount: Int {
+        participants.filter {
+            $0.role != .owner && $0.acceptanceStatus == .accepted
+        }.count
+    }
+
+    static let placeholder = CollectionSharingState(
+        currentUserRole: .owner,
+        participants: []
+    )
+}

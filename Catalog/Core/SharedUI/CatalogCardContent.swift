@@ -3,6 +3,8 @@ import SwiftUI
 /// Groups catalog card accessory values and behavior.
 enum CatalogCardAccessory: Hashable, Identifiable {
     case chip(String)
+    /// A chip whose meaning is not clear from its text alone, like a size letter.
+    case iconChip(text: String, systemImage: String, accessibilityLabel: String)
     case label(text: String, systemImage: String)
     case badge(CatalogCardBadge)
 
@@ -191,7 +193,7 @@ struct CatalogCardContentStyle {
     }
 }
 
-private struct CatalogCardAccessoryRow: View {
+struct CatalogCardAccessoryRow: View {
     let accessories: [CatalogCardAccessory]
     let style: CatalogCardContentStyle.AccessoryRowStyle
     let bright: Bool
@@ -202,6 +204,15 @@ private struct CatalogCardAccessoryRow: View {
                 switch accessory {
                 case .chip(let text):
                     capsuleText(text)
+                case .iconChip(let text, let systemImage, let accessibilityLabel):
+                    Label(text, systemImage: systemImage)
+                        .labelStyle(.titleAndIcon)
+                        .font(style.font)
+                        .lineLimit(1)
+                        .foregroundStyle(foregroundStyle)
+                        .catalogSurfaceCapsule()
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(accessibilityLabel)
                 case .label(let text, let systemImage):
                     Label(text, systemImage: systemImage)
                         .labelStyle(.titleAndIcon)
@@ -232,13 +243,13 @@ private extension CatalogCardBadge {
     var title: String {
         switch self {
         case .shared:
-            return "Shared"
+            return String(localized: "collection.sharing.status.shared")
         case .warning:
-            return "Warning"
+            return String(localized: "collection.sharing.status.warning")
         case .success:
-            return "Success"
+            return String(localized: "collection.sharing.status.success")
         case .error:
-            return "Error"
+            return String(localized: "collection.sharing.status.error")
         case .custom(let text):
             return text
         }

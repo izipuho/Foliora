@@ -20,6 +20,15 @@ struct ShareInvitationStatusOverlay: View {
                 Text("collection.sharing.access_granted")
                     .font(CatalogTypography.sectionTitle)
             }
+        case .acceptedAwaitingSync:
+            statusCard {
+                Image(systemName: "icloud.and.arrow.down")
+                    .font(.title)
+                    .foregroundStyle(.secondary)
+                Text("collection.sharing.accepted_syncing")
+                    .font(CatalogTypography.sectionTitle)
+                    .multilineTextAlignment(.center)
+            }
         case .idle, .failed:
             EmptyView()
         }

@@ -246,7 +246,7 @@ struct AppleFoundationModelsSemanticPhotoExtractor: SemanticPhotoSemanticExtract
             )
             let response = try await session.respond(
                 generating: SemanticPhotoGeneratedResponse.self,
-                options: GenerationOptions(sampling: .greedy)
+                options: GenerationOptions(samplingMode: .greedy)
             ) {
                 promptText(for: input)
             }
@@ -407,7 +407,7 @@ struct AppleFoundationModelsSemanticPhotoTagFilter: SemanticPhotoTagFiltering {
             )
             let response = try await session.respond(
                 generating: SemanticPhotoTagFilterGeneratedResponse.self,
-                options: GenerationOptions(sampling: .greedy)
+                options: GenerationOptions(samplingMode: .greedy)
             ) {
                 userPrompt(for: tags)
             }

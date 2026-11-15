@@ -114,3 +114,66 @@ struct CatalogCardStrip<Content: View>: View {
         .frame(height: cardSize.height)
     }
 }
+
+/// Displays a collapsible horizontal section of catalog cards.
+struct CatalogCollapsibleCardSection<Content: View>: View {
+    let title: String
+    let layoutMode: CatalogCardLayoutMode
+    let screenWidth: CGFloat
+    @Binding var isCollapsed: Bool
+    @ViewBuilder let content: (CGSize, CatalogCardLayoutMode.CardMetrics) -> Content
+
+    init(
+        title: String,
+        layoutMode: CatalogCardLayoutMode,
+        screenWidth: CGFloat,
+        isCollapsed: Binding<Bool>,
+        @ViewBuilder content: @escaping (CGSize, CatalogCardLayoutMode.CardMetrics) -> Content
+    ) {
+        self.title = title
+        self.layoutMode = layoutMode
+        self.screenWidth = screenWidth
+        self._isCollapsed = isCollapsed
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
+            Button {
+                withAnimation(.snappy(duration: 0.2)) {
+                    isCollapsed.toggle()
+                }
+            } label: {
+                HStack(spacing: CatalogMetrics.Spacing.sm) {
+                    Text(title)
+                        .font(CatalogTypography.sectionTitle)
+                        .foregroundStyle(.primary)
+
+                    Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                        .font(CatalogTypography.chipLabel)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+                }
+                .padding(.vertical, CatalogMetrics.Spacing.sm)
+                .padding(.horizontal, CatalogMetrics.Spacing.md)
+                .background(.ultraThinMaterial)
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(Color(uiColor: .separator))
+                        .frame(height: 0.5)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if !isCollapsed {
+                CatalogCardStrip(
+                    layoutMode: layoutMode,
+                    screenWidth: screenWidth,
+                    horizontalPadding: CatalogMetrics.Insets.screen,
+                    content: content
+                )
+            }
+        }
+    }
+}

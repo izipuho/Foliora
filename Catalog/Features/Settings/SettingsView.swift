@@ -1,6 +1,6 @@
-import CloudKit
 import CoreData
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Displays the settings view interface.
 struct SettingsView: View {
@@ -19,9 +19,6 @@ struct SettingsView: View {
     @State private var exportResultMessage: String?
     @State private var isDeveloperMenuPresented = false
     @FocusState private var isDisplayNameFocused: Bool
-    #if DEBUG
-    @State private var cloudKitSchemaMessage: String?
-    #endif
 
     var body: some View {
         List {
@@ -147,42 +144,7 @@ struct SettingsView: View {
             Text(importErrorMessage ?? "")
         }
         .sheet(isPresented: $isDeveloperMenuPresented) {
-            NavigationStack {
-                Form {
-                    Section {
-                        NavigationLink {
-                            PhotoAnalysisSettingsView()
-                        } label: {
-                            Label("photo_analysis.title", systemImage: "photo")
-                        }
-                    }
-
-                    #if DEBUG
-                    Section("CloudKit") {
-                        SettingsInfoRow(
-                            title: "CloudContainer",
-                            value: cloudKitContainerIdentifier
-                        )
-
-                        Button {
-                            initializeCloudKitSchema()
-                        } label: {
-                            Label("Initialize CloudKit Schema", systemImage: "icloud.and.arrow.up")
-                        }
-                    }
-                    #endif
-                }
-                .navigationTitle("settings.developer.section_title")
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                isDeveloperMenuPresented = false
-                            } label: {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-            }
+            DeveloperMenuView()
         }
     }
 
@@ -200,23 +162,14 @@ struct SettingsView: View {
     }
 
     private func saveDisplayName() {
-        let trimmedDisplayName = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let store = NSUbiquitousKeyValueStore.default
-
-        if trimmedDisplayName.isEmpty {
-            displayName = nil
-            store.removeObject(forKey: "foliora.profile.displayName")
-        } else {
-            displayName = trimmedDisplayName
-            store.set(trimmedDisplayName, forKey: "foliora.profile.displayName")
-            store.removeObject(forKey: "foliora.profile.didSkipIntroduction")
-        }
+        ProfileSettings.setDisplayName(editedDisplayName)
+        displayName = ProfileSettings.displayName
     }
 
     private func deleteDisplayName() {
         displayName = nil
         editedDisplayName = ""
-        NSUbiquitousKeyValueStore.default.removeObject(forKey: "foliora.profile.displayName")
+        ProfileSettings.removeDisplayName()
     }
 
     private func handleImport(_ result: Result<URL, Error>) {
@@ -332,14 +285,21 @@ struct SettingsView: View {
         let collectionIDs = Set(collections.map(\.id))
         let homeIDs = Set(collections.map(\.homeID))
         let homes = bundle.homes.filter { homeIDs.contains($0.id) }
-        let bellItems = bundle.bellItems.filter {
+        let items = bundle.items.filter {
             collectionIDs.contains($0.item.collectionID)
+        }
+        let kindByCollectionID = Dictionary(
+            collections.map { ($0.id, $0.kind) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let itemParts = CollectionKind.allCases.compactMap { kind -> String? in
+            let count = items.filter { kindByCollectionID[$0.item.collectionID] == kind }.count
+            return count > 0 ? kind.countLabel(for: count) : nil
         }
         let parts = [
             importSummaryPart(count: homes.count, key: "settings.import.result.homes"),
-            importSummaryPart(count: collections.count, key: "settings.import.result.collections"),
-            importSummaryPart(count: bellItems.count, key: "settings.import.result.bells")
-        ].compactMap { $0 }
+            importSummaryPart(count: collections.count, key: "settings.import.result.collections")
+        ].compactMap { $0 } + itemParts
 
         return parts.joined(separator: ", ")
     }
@@ -355,34 +315,14 @@ struct SettingsView: View {
         return String.localizedStringWithFormat(String(localized: key), count)
     }
     
-    #if DEBUG
-    private var cloudKitContainerIdentifier: String {
-        FolioraAppDelegate.coreDataContainer
-            .flatMap(FolioraCoreDataStack.cloudKitContainerIdentifier)
-            ?? "Unavailable"
-    }
 
-    private func initializeCloudKitSchema() {
-        guard let container = FolioraAppDelegate.coreDataContainer else {
-            cloudKitSchemaMessage = "Core Data container is unavailable."
-            return
-        }
-
-        do {
-            try container.initializeCloudKitSchema(options: [])
-            cloudKitSchemaMessage = "CloudKit schema initialized successfully."
-        } catch {
-            cloudKitSchemaMessage = error.localizedDescription
-        }
-    }
-    #endif
 
 
 }
 
 #if DEBUG
 #Preview {
-    let container = PreviewContainer.make(.minimal)
+    let container = PreviewContainer.make(.coreMinimal)
     let repository = CoreDataCatalogRepository(
         context: container.viewContext,
         persistentContainer: nil
@@ -398,22 +338,6 @@ struct SettingsView: View {
     }
 }
 #endif
-
-private struct SettingsInfoRow: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(title)
-            Spacer()
-            Text(value)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.trailing)
-                .textSelection(.enabled)
-        }
-    }
-}
 
 private struct CatalogImportPresentation: Identifiable {
     let id = UUID()

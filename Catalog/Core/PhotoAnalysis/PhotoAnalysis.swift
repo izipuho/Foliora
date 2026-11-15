@@ -9,12 +9,83 @@ struct PhotoAnalysisResult: Sendable {
     let main: PhotoAnalysisFeatureScope
     let background: PhotoAnalysisFeatureScope
 
+    /// Partial Vision failures are preserved separately from successful feature results.
+    let failures: [PhotoAnalysisFailure]
+
+    init(
+        mainObjectImage: CGImage?,
+        mainObjectRegion: ImageRegionFeature?,
+        main: PhotoAnalysisFeatureScope,
+        background: PhotoAnalysisFeatureScope,
+        failures: [PhotoAnalysisFailure] = []
+    ) {
+        self.mainObjectImage = mainObjectImage
+        self.mainObjectRegion = mainObjectRegion
+        self.main = main
+        self.background = background
+        self.failures = failures
+    }
+
     static let empty = PhotoAnalysisResult(
         mainObjectImage: nil,
         mainObjectRegion: nil,
         main: .empty,
         background: .empty
     )
+
+    /// Returns a copy without the main object crop.
+    ///
+    /// The crop is produced with `CGImage.cropping(to:)`, which shares the full decoded bitmap of
+    /// the source photo. Results kept for the lifetime of a recognition session must drop it,
+    /// otherwise every analyzed photo stays fully decoded in memory.
+    func releasingMainObjectImage() -> PhotoAnalysisResult {
+        PhotoAnalysisResult(
+            mainObjectImage: nil,
+            mainObjectRegion: mainObjectRegion,
+            main: main,
+            background: background,
+            failures: failures
+        )
+    }
+}
+
+/// Represents ordered analysis results for several photos of one item.
+struct MultiPhotoAnalysisResult: Sendable {
+    let photos: [PhotoAnalysisResult]
+
+    static let empty = MultiPhotoAnalysisResult(photos: [])
+}
+
+/// Describes one failed Vision feature request without discarding successful sibling results.
+struct PhotoAnalysisFailure: Hashable, Sendable, CustomStringConvertible {
+    enum Stage: String, Hashable, Sendable {
+        case classification
+        case textRecognition
+        case barcodeRecognition
+        case saliency
+        case objectRecognition
+        case mainClassification
+        case mainObjectRecognition
+    }
+
+    let stage: Stage
+    let errorType: String
+    let errorDomain: String
+    let errorCode: Int
+    let message: String
+
+    init(stage: Stage, error: any Error) {
+        let nsError = error as NSError
+        self.stage = stage
+        self.errorType = String(reflecting: type(of: error))
+        self.errorDomain = nsError.domain
+        self.errorCode = nsError.code
+        self.message = nsError.localizedDescription
+    }
+
+    var description: String {
+        "\(stage.rawValue): \(errorType) [\(errorDomain):\(errorCode)] \(message)"
+    }
 }
 
 /// Represents photo analysis feature scope data and behavior.
@@ -22,11 +93,13 @@ struct PhotoAnalysisFeatureScope: Sendable {
     let classifications: [VisionFeature]
     let recognizedText: [RecognizedTextFeature]
     let recognizedObjects: [RecognizedObjectFeature]
+    let recognizedBarcodes: [RecognizedBarcodeFeature]
 
     static let empty = PhotoAnalysisFeatureScope(
         classifications: [],
         recognizedText: [],
-        recognizedObjects: []
+        recognizedObjects: [],
+        recognizedBarcodes: []
     )
 }
 
@@ -56,10 +129,33 @@ struct RecognizedTextFeature: Hashable, Sendable {
     let boundingBox: CGRect
 }
 
+/// Represents a barcode detected by system Vision.
+struct RecognizedBarcodeFeature: Hashable, Sendable {
+    let payload: String
+    let symbology: String
+    let confidence: Double
+    let boundingBox: CGRect
+}
+
 /// Represents image region feature data and behavior.
 struct ImageRegionFeature: Hashable, Sendable {
     let boundingBox: CGRect
     let confidence: Double
+}
+
+private enum PhotoAnalysisAttempt<Value: Sendable>: Sendable {
+    case success(Value)
+    case failure(PhotoAnalysisFailure)
+
+    var value: Value? {
+        guard case .success(let value) = self else { return nil }
+        return value
+    }
+
+    var failure: PhotoAnalysisFailure? {
+        guard case .failure(let failure) = self else { return nil }
+        return failure
+    }
 }
 
 private enum PhotoAnalysisNormalization {
@@ -117,6 +213,68 @@ private enum PhotoAnalysisNormalization {
 /// Defines the interface for photo analysis service implementations.
 protocol PhotoAnalysisService: Sendable {
     func analyze(image: CGImage) async -> PhotoAnalysisResult
+    func analyze(images: [CGImage]) async -> MultiPhotoAnalysisResult
+}
+
+extension PhotoAnalysisService {
+    func analyze(images: [CGImage]) async -> MultiPhotoAnalysisResult {
+        guard !images.isEmpty else {
+            return .empty
+        }
+
+        return await withTaskGroup(
+            of: (Int, PhotoAnalysisResult).self,
+            returning: MultiPhotoAnalysisResult.self
+        ) { group in
+            for (index, image) in images.enumerated() {
+                group.addTask {
+                    (index, await self.analyze(image: image))
+                }
+            }
+
+            var orderedResults = Array<PhotoAnalysisResult?>(
+                repeating: nil,
+                count: images.count
+            )
+            for await (index, result) in group {
+                orderedResults[index] = result
+            }
+
+            return MultiPhotoAnalysisResult(
+                photos: orderedResults.compactMap { $0 }
+            )
+        }
+    }
+}
+
+/// Runs blocking Vision requests off the main actor and off the Swift concurrency pool.
+///
+/// `VNImageRequestHandler.perform` is synchronous and can take seconds. The app target defaults to
+/// main-actor isolation, so calling it inline blocked the main thread for every analyzed photo and
+/// stalled UI work such as thumbnail display until all recognition sessions had finished.
+nonisolated enum VisionExecutor {
+    private static let queue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "Foliora.VisionExecutor"
+        queue.maxConcurrentOperationCount = 2
+        queue.qualityOfService = .userInitiated
+        return queue
+    }()
+
+    static func perform(_ requests: [VNRequest], with handler: VNImageRequestHandler) async throws {
+        nonisolated(unsafe) let requests = requests
+        nonisolated(unsafe) let handler = handler
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            queue.addOperation {
+                do {
+                    try handler.perform(requests)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
 }
 
 private struct VisionAnalyzer: Sendable {
@@ -130,7 +288,7 @@ private struct VisionAnalyzer: Sendable {
 
         let request = VNClassifyImageRequest()
         let handler = makeHandler(for: image)
-        try handler.perform([request])
+        try await VisionExecutor.perform([request], with: handler)
 
         let features = (request.results ?? []).compactMap { observation -> VisionFeature? in
             let label = PhotoAnalysisNormalization.normalizedLabel(observation.identifier)
@@ -159,7 +317,7 @@ private struct VisionAnalyzer: Sendable {
         request.usesLanguageCorrection = true
 
         let handler = makeHandler(for: image)
-        try handler.perform([request])
+        try await VisionExecutor.perform([request], with: handler)
 
         let observations = request.results ?? []
         let features = observations.compactMap { observation -> RecognizedTextFeature? in
@@ -186,12 +344,44 @@ private struct VisionAnalyzer: Sendable {
             .map { $0 }
     }
 
+    func detectBarcodes(image: CGImage) async throws -> [RecognizedBarcodeFeature] {
+        let maxResults = 16
+
+        let request = VNDetectBarcodesRequest()
+        let handler = makeHandler(for: image)
+        try await VisionExecutor.perform([request], with: handler)
+
+        let features = (request.results ?? []).compactMap { observation -> RecognizedBarcodeFeature? in
+            guard let rawPayload = observation.payloadStringValue else { return nil }
+
+            let payload = rawPayload.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !payload.isEmpty else { return nil }
+
+            return RecognizedBarcodeFeature(
+                payload: payload,
+                symbology: observation.symbology.rawValue,
+                confidence: PhotoAnalysisNormalization.normalizedConfidence(Double(observation.confidence)),
+                boundingBox: observation.boundingBox
+            )
+        }
+
+        return PhotoAnalysisNormalization
+            .deduplicatedByBestConfidence(
+                features,
+                key: { "\($0.symbology)\u{1F}\($0.payload)" },
+                confidence: \.confidence
+            )
+            .sorted(by: PhotoAnalysisNormalization.confidenceSort(\.confidence, \.payload))
+            .prefix(maxResults)
+            .map { $0 }
+    }
+
     func detectSaliency(image: CGImage) async throws -> [ImageRegionFeature] {
         let maxResults = 8
 
         let request = VNGenerateAttentionBasedSaliencyImageRequest()
         let handler = makeHandler(for: image)
-        try handler.perform([request])
+        try await VisionExecutor.perform([request], with: handler)
 
         return (request.results ?? [])
             .flatMap { observation in
@@ -218,7 +408,7 @@ private struct VisionAnalyzer: Sendable {
         }
 
         let handler = makeHandler(for: image)
-        try handler.perform([request])
+        try await VisionExecutor.perform([request], with: handler)
 
         if let requestError {
             throw requestError
@@ -262,15 +452,50 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
     private let vision = VisionAnalyzer()
 
     func analyze(image: CGImage) async -> PhotoAnalysisResult {
-        async let extractedFeatures = try? vision.classify(image: image)
-        async let extractedText = try? vision.recognizeText(image: image)
-        async let extractedSaliencyRegions = try? vision.detectSaliency(image: image)
-        async let extractedRecognizedObjects = try? vision.recognizeAnimals(image: image)
+        let vision = vision
 
-        let textFeatures = await extractedText ?? []
-        let saliencyRegions = await extractedSaliencyRegions ?? []
-        let backgroundVisionFeatures = await extractedFeatures ?? []
-        let backgroundRecognizedObjects = await extractedRecognizedObjects ?? []
+        async let extractedFeatures = Self.capture(stage: .classification) {
+            try await vision.classify(image: image)
+        }
+        async let extractedText = Self.capture(stage: .textRecognition) {
+            try await vision.recognizeText(image: image)
+        }
+        async let extractedBarcodes = Self.capture(stage: .barcodeRecognition) {
+            try await vision.detectBarcodes(image: image)
+        }
+        async let extractedSaliencyRegions = Self.capture(stage: .saliency) {
+            try await vision.detectSaliency(image: image)
+        }
+        async let extractedRecognizedObjects = Self.capture(stage: .objectRecognition) {
+            try await vision.recognizeAnimals(image: image)
+        }
+
+        let (
+            featuresAttempt,
+            textAttempt,
+            barcodeAttempt,
+            saliencyAttempt,
+            objectsAttempt
+        ) = await (
+            extractedFeatures,
+            extractedText,
+            extractedBarcodes,
+            extractedSaliencyRegions,
+            extractedRecognizedObjects
+        )
+
+        let textFeatures = textAttempt.value ?? []
+        let barcodeFeatures = barcodeAttempt.value ?? []
+        let saliencyRegions = saliencyAttempt.value ?? []
+        let backgroundVisionFeatures = featuresAttempt.value ?? []
+        let backgroundRecognizedObjects = objectsAttempt.value ?? []
+        var failures = [
+            featuresAttempt.failure,
+            textAttempt.failure,
+            barcodeAttempt.failure,
+            saliencyAttempt.failure,
+            objectsAttempt.failure
+        ].compactMap { $0 }
 
         let mainObjectRegion = detectMainObject(
             saliencyRegions: saliencyRegions
@@ -279,25 +504,40 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             crop(image: image, to: $0.boundingBox.insetBy(dx: -0.04, dy: -0.04))
         }
         let splitRecognizedText = splitText(textFeatures, mainObject: mainObjectRegion?.boundingBox)
-        let mainVisionFeatures: [VisionFeature]
-        let mainRecognizedObjects: [RecognizedObjectFeature]
+        let splitRecognizedBarcodes = splitBarcodes(barcodeFeatures, mainObject: mainObjectRegion?.boundingBox)
+
+        var mainVisionFeatures: [VisionFeature] = []
+        var mainRecognizedObjects: [RecognizedObjectFeature] = []
         if let mainObjectImage {
-            mainVisionFeatures = (try? await vision.classify(image: mainObjectImage)) ?? []
-            mainRecognizedObjects = (try? await vision.recognizeAnimals(image: mainObjectImage)) ?? []
-        } else {
-            mainVisionFeatures = []
-            mainRecognizedObjects = []
+            // These crop-only requests are independent, so do not serialize their latency.
+            async let mainFeatures = Self.capture(stage: .mainClassification) {
+                try await vision.classify(image: mainObjectImage)
+            }
+            async let mainObjects = Self.capture(stage: .mainObjectRecognition) {
+                try await vision.recognizeAnimals(image: mainObjectImage)
+            }
+
+            let (mainFeaturesAttempt, mainObjectsAttempt) = await (mainFeatures, mainObjects)
+            mainVisionFeatures = mainFeaturesAttempt.value ?? []
+            mainRecognizedObjects = mainObjectsAttempt.value ?? []
+            failures.append(contentsOf: [
+                mainFeaturesAttempt.failure,
+                mainObjectsAttempt.failure
+            ].compactMap { $0 })
         }
+
         let mainScope = makeScope(
             visionFeatures: mainVisionFeatures,
             textFeatures: splitRecognizedText.main,
             recognizedObjects: mainRecognizedObjects,
+            barcodeFeatures: splitRecognizedBarcodes.main,
             excludedLabels: []
         )
         let backgroundScope = makeScope(
             visionFeatures: backgroundVisionFeatures,
             textFeatures: splitRecognizedText.background,
             recognizedObjects: backgroundRecognizedObjects,
+            barcodeFeatures: splitRecognizedBarcodes.background,
             excludedLabels: Set(mainVisionFeatures.map(\.label))
         )
 
@@ -305,8 +545,21 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             mainObjectImage: mainObjectImage,
             mainObjectRegion: mainObjectRegion,
             main: mainScope,
-            background: backgroundScope
+            background: backgroundScope,
+            failures: failures
         )
+    }
+
+    private static func capture<Value: Sendable>(
+        stage: PhotoAnalysisFailure.Stage,
+        operation: @Sendable () async throws -> Value
+    ) async -> PhotoAnalysisAttempt<Value> {
+        do {
+            return .success(try await operation())
+        } catch {
+            // A failed request is not equivalent to a successful request with zero results.
+            return .failure(PhotoAnalysisFailure(stage: stage, error: error))
+        }
     }
 
     private func detectMainObject(
@@ -337,10 +590,33 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         return (main: main, background: background)
     }
 
+    private func splitBarcodes(
+        _ recognizedBarcodes: [RecognizedBarcodeFeature],
+        mainObject: CGRect?
+    ) -> (main: [RecognizedBarcodeFeature], background: [RecognizedBarcodeFeature]) {
+        guard let mainObject else {
+            return (main: [], background: recognizedBarcodes)
+        }
+
+        var main: [RecognizedBarcodeFeature] = []
+        var background: [RecognizedBarcodeFeature] = []
+
+        for barcode in recognizedBarcodes {
+            if intersectionRatio(barcode.boundingBox, mainObject) >= 0.15 {
+                main.append(barcode)
+            } else {
+                background.append(barcode)
+            }
+        }
+
+        return (main: main, background: background)
+    }
+
     private func makeScope(
         visionFeatures: [VisionFeature],
         textFeatures: [RecognizedTextFeature],
         recognizedObjects: [RecognizedObjectFeature],
+        barcodeFeatures: [RecognizedBarcodeFeature],
         excludedLabels: Set<String>
     ) -> PhotoAnalysisFeatureScope {
         let excludedLabels = Set(excludedLabels.map(PhotoAnalysisNormalization.normalizedLabel))
@@ -382,11 +658,24 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
                 boundingBox: object.boundingBox
             )
         }
+        let barcodes = barcodeFeatures.compactMap { feature -> RecognizedBarcodeFeature? in
+            let payload = feature.payload.trimmingCharacters(in: .whitespacesAndNewlines)
+            let symbology = feature.symbology.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !payload.isEmpty, !symbology.isEmpty else { return nil }
+
+            return RecognizedBarcodeFeature(
+                payload: payload,
+                symbology: symbology,
+                confidence: PhotoAnalysisNormalization.normalizedConfidence(feature.confidence),
+                boundingBox: feature.boundingBox
+            )
+        }
 
         return PhotoAnalysisFeatureScope(
             classifications: labels,
             recognizedText: textLines,
-            recognizedObjects: objects
+            recognizedObjects: objects,
+            recognizedBarcodes: barcodes
         )
     }
 

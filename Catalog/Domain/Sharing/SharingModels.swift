@@ -22,7 +22,6 @@ struct CollectionParticipant: Identifiable, Hashable, Codable {
     let id: UUID
     let collectionID: UUID
     let cloudKitParticipantID: String?
-    let displayName: String?
     var role: CollectionAccessRole
     let acceptanceStatus: CollectionParticipantAcceptanceStatus
     let isCurrentUser: Bool
@@ -31,7 +30,6 @@ struct CollectionParticipant: Identifiable, Hashable, Codable {
         id: UUID,
         collectionID: UUID,
         cloudKitParticipantID: String?,
-        displayName: String?,
         role: CollectionAccessRole,
         acceptanceStatus: CollectionParticipantAcceptanceStatus,
         isCurrentUser: Bool = false
@@ -39,7 +37,6 @@ struct CollectionParticipant: Identifiable, Hashable, Codable {
         self.id = id
         self.collectionID = collectionID
         self.cloudKitParticipantID = cloudKitParticipantID
-        self.displayName = displayName
         self.role = role
         self.acceptanceStatus = acceptanceStatus
         self.isCurrentUser = isCurrentUser
@@ -50,7 +47,6 @@ struct CollectionParticipant: Identifiable, Hashable, Codable {
         id = try container.decode(UUID.self, forKey: .id)
         collectionID = try container.decode(UUID.self, forKey: .collectionID)
         cloudKitParticipantID = try container.decodeIfPresent(String.self, forKey: .cloudKitParticipantID)
-        displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
         role = try container.decode(CollectionAccessRole.self, forKey: .role)
         acceptanceStatus = try container.decodeIfPresent(
             CollectionParticipantAcceptanceStatus.self,
