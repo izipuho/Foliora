@@ -3,8 +3,8 @@ import SwiftUI
 /// Groups catalog card accessory values and behavior.
 enum CatalogCardAccessory: Hashable, Identifiable {
     case chip(String)
-    /// A chip whose meaning is not clear from its text alone, like a size letter.
-    case iconChip(text: String, systemImage: String, accessibilityLabel: String)
+    /// Plain text without a capsule, with a spoken label for text that is not clear on its own, like a size letter.
+    case text(String, accessibilityLabel: String)
     case label(text: String, systemImage: String)
     case badge(CatalogCardBadge)
 
@@ -199,19 +199,24 @@ struct CatalogCardAccessoryRow: View {
     let bright: Bool
 
     var body: some View {
+        // On a narrow card only the first accessory is kept, rather than truncating each one.
+        ViewThatFits(in: .horizontal) {
+            row(accessories)
+            row(Array(accessories.prefix(1)))
+        }
+    }
+
+    private func row(_ accessories: [CatalogCardAccessory]) -> some View {
         HStack(spacing: style.spacing) {
             ForEach(accessories) { accessory in
                 switch accessory {
                 case .chip(let text):
                     capsuleText(text)
-                case .iconChip(let text, let systemImage, let accessibilityLabel):
-                    Label(text, systemImage: systemImage)
-                        .labelStyle(.titleAndIcon)
+                case .text(let text, let accessibilityLabel):
+                    Text(text)
                         .font(style.font)
                         .lineLimit(1)
                         .foregroundStyle(foregroundStyle)
-                        .catalogSurfaceCapsule()
-                        .accessibilityElement(children: .ignore)
                         .accessibilityLabel(accessibilityLabel)
                 case .label(let text, let systemImage):
                     Label(text, systemImage: systemImage)
