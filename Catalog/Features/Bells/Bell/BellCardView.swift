@@ -55,9 +55,8 @@ struct BellCardView: View {
 
         if bell.size != .unknown {
             accessories.append(
-                .iconChip(
-                    text: bell.size.displayName,
-                    systemImage: "ruler",
+                .text(
+                    bell.size.displayName,
                     accessibilityLabel: String.localizedStringWithFormat(
                         String(localized: "common.field.size_format"),
                         bell.size.displayName
