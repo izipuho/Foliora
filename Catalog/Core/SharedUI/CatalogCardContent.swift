@@ -199,10 +199,11 @@ struct CatalogCardAccessoryRow: View {
     let bright: Bool
 
     var body: some View {
-        // On a narrow card only the first accessory is kept, rather than truncating each one.
+        // On a narrow card only the last accessory is kept, rather than truncating each one,
+        // so cards list their most telling accessory last.
         ViewThatFits(in: .horizontal) {
             row(accessories)
-            row(Array(accessories.prefix(1)))
+            row(Array(accessories.suffix(1)))
         }
     }
 
