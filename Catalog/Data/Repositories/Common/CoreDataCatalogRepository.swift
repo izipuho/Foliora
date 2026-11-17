@@ -579,21 +579,27 @@ final class CoreDataCatalogRepository: CatalogRepository {
             entity.setValue(location.parentLocationID.flatMap { syncedBySourceID[$0] }, forKey: "parent")
         }
 
-        for entity in existingLocations {
-            guard
-                let sourceLocationID = entity.value(forKey: "sourceLocationID") as? UUID,
-                !sourceIDs.contains(sourceLocationID)
-            else {
-                continue
-            }
-
-            if relatedObjects(entity, "bells").isEmpty && relatedObjects(entity, "items").isEmpty {
-                context.delete(entity)
+        let removedLocations = existingLocations.filter { entity in
+            guard let sourceLocationID = entity.value(forKey: "sourceLocationID") as? UUID else { return false }
+            return !sourceIDs.contains(sourceLocationID)
+        }
+        let (usedLocations, unusedLocations) = removedLocations.reduce(
+            into: ([NSManagedObject](), [NSManagedObject]())
+        ) { result, entity in
+            if relatedObjects(entity, "items").isEmpty {
+                result.1.append(entity)
             } else {
-                entity.setValue(true, forKey: "isArchived")
-                entity.setValue(nil, forKey: "parent")
+                result.0.append(entity)
             }
         }
+
+        // Locations that still hold items are archived and detached first: `children` cascades,
+        // so deleting an unused parent must not take a used descendant with it.
+        for entity in usedLocations {
+            entity.setValue(true, forKey: "isArchived")
+            entity.setValue(nil, forKey: "parent")
+        }
+        unusedLocations.forEach(context.delete)
     }
 
     private func clearCollectionLocations(in collection: NSManagedObject) {
