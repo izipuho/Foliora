@@ -353,11 +353,10 @@ struct LibraryView: View {
                             isCollapsed: $isFavoritesCollapsed
                         ) { favoriteCardSize, favoriteCardMetrics in
                             ForEach(favoriteBooks) { book in
-                                bookCard(
+                                favoriteBookCard(
                                     book,
                                     cardSize: favoriteCardSize,
-                                    cardMetrics: favoriteCardMetrics,
-                                    allowsManagementActions: false
+                                    cardMetrics: favoriteCardMetrics
                                 )
                             }
                         }
@@ -371,18 +370,7 @@ struct LibraryView: View {
                     case .empty:
                         EmptyView()
                     case .flat(let books):
-                        CatalogCardGrid(
-                            layoutMode: layoutMode.wrappedValue,
-                            layoutMetrics: (cardSize, gridMetrics, cardMetrics)
-                        ) { cardSize, _, cardMetrics in
-                            ForEach(books) { book in
-                                bookCard(
-                                    book,
-                                    cardSize: cardSize,
-                                    cardMetrics: cardMetrics
-                                )
-                            }
-                        }
+                        bookGridView(books: books, layoutMetrics: (cardSize, gridMetrics, cardMetrics))
                     case .grouped(let sections):
                         groupedLibrarySections(
                             sections,
@@ -439,18 +427,7 @@ struct LibraryView: View {
             Section {
                 if !isSectionCollapsed {
                     if !section.books.isEmpty {
-                        CatalogCardGrid(
-                            layoutMode: layoutMode.wrappedValue,
-                            layoutMetrics: layoutMetrics
-                        ) { cardSize, _, cardMetrics in
-                            ForEach(section.books) { book in
-                                bookCard(
-                                    book,
-                                    cardSize: cardSize,
-                                    cardMetrics: cardMetrics
-                                )
-                            }
-                        }
+                        bookGridView(books: section.books, layoutMetrics: layoutMetrics)
                     }
 
                     ForEach(section.subgroups) { subgroup in
@@ -468,18 +445,7 @@ struct LibraryView: View {
                             )
 
                             if !isSubgroupCollapsed {
-                                CatalogCardGrid(
-                                    layoutMode: layoutMode.wrappedValue,
-                                    layoutMetrics: layoutMetrics
-                                ) { cardSize, _, cardMetrics in
-                                    ForEach(subgroup.books) { book in
-                                        bookCard(
-                                            book,
-                                            cardSize: cardSize,
-                                            cardMetrics: cardMetrics
-                                        )
-                                    }
-                                }
+                                bookGridView(books: subgroup.books, layoutMetrics: layoutMetrics)
                             }
                         }
                     }
@@ -510,26 +476,37 @@ struct LibraryView: View {
         }
     }
 
-    private func bookCard(
-        _ book: BookRecord,
-        cardSize: CGSize,
-        cardMetrics: CatalogCardLayoutMode.CardMetrics,
-        allowsManagementActions: Bool = true
+    private func bookGridView(
+        books: [BookRecord],
+        layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics
     ) -> some View {
-        CatalogInteractiveCard(
-            item: book,
-            state: $cardManagement,
-            cardSize: cardSize,
-            canManage: canEditLibrary && allowsManagementActions,
+        BookGridView(
+            books: books,
+            layoutMode: layoutMode.wrappedValue,
+            layoutMetrics: layoutMetrics,
+            cardManagement: $cardManagement,
+            canManage: canEditLibrary,
             onOpen: { book in
                 openBook(book.id)
             },
-            selectTitle: String(localized: "bell.context.select"),
-            moveTitle: String(localized: "bell.context.move"),
             visibleItems: visibleBooks,
             deleteTitle: String(localized: "book.delete.title"),
             deleteMessage: String(localized: "book.delete.message"),
             onDelete: deleteBooks
+        )
+    }
+
+    /// Favorites are a shortcut strip: cards only open the book, management stays in the main grid.
+    private func favoriteBookCard(
+        _ book: BookRecord,
+        cardSize: CGSize,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics
+    ) -> some View {
+        CatalogInteractiveCard(
+            cardSize: cardSize,
+            onTap: {
+                openBook(book.id)
+            }
         ) {
             BookCardView(
                 book: book,

@@ -123,7 +123,7 @@ private struct DashboardCardStrip: View {
                 items: bells,
                 itemLocationID: { $0.locationID }
             ) { storedBells, layoutMode in
-                StoredBellsGrid(
+                BellGridView(
                     bells: CatalogStorageGrouping.sorted(
                         storedBells,
                         storagePath: { $0.storagePath },
@@ -324,33 +324,6 @@ struct DashboardTopGeographyCard: View {
                 Text(countText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
-/// Displays the bells stored in one location as a card grid.
-private struct StoredBellsGrid: View {
-    let bells: [BellCatalogItem]
-    let layoutMode: CatalogCardLayoutMode
-    let onBellSelected: ((UUID) -> Void)?
-
-    var body: some View {
-        CatalogCardGrid(layoutMode: layoutMode) { cardSize, _, cardMetrics in
-            ForEach(bells) { bell in
-                CatalogInteractiveCard(
-                    cardSize: cardSize,
-                    onTap: {
-                        onBellSelected?(bell.id)
-                    }
-                ) {
-                    BellCardView(
-                        bell: bell,
-                        style: CatalogCardContentStyle.style(for: layoutMode),
-                        cardSize: cardSize,
-                        cardMetrics: cardMetrics
-                    )
-                }
             }
         }
     }
