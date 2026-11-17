@@ -148,11 +148,14 @@ struct ItemBatchEdit {
     var acquiredYear: BatchEditValue<Int> = .unchanged
     var condition: ItemCondition?
     var acquisitionMethod: AcquisitionMethod?
+    /// Tags appended to each item's existing tags; existing tags are never removed.
+    var addedTags: [String] = []
 
     var isEmpty: Bool {
         acquiredYear.isUnchanged
             && condition == nil
             && acquisitionMethod == nil
+            && addedTags.isEmpty
     }
 
     func applying(to item: ItemRecord) -> ItemRecord {
@@ -166,6 +169,13 @@ struct ItemBatchEdit {
         }
         if let acquisitionMethod {
             updated.acquisitionMethod = acquisitionMethod
+        }
+        for tag in addedTags {
+            let trimmed = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty,
+                  !updated.tags.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame })
+            else { continue }
+            updated.tags.append(trimmed)
         }
 
         return updated
