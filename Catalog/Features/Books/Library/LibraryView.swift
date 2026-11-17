@@ -458,8 +458,9 @@ struct LibraryView: View {
                             && collapsedGroupIDs.contains(subgroup.id)
 
                         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                            LibraryBookSubgroupHeader(
+                            CatalogSubgroupHeader(
                                 title: subgroup.title,
+                                count: subgroup.books.count,
                                 isCollapsed: isSubgroupCollapsed,
                                 onToggle: selectedOrder == .author
                                     ? { toggleCollapsedGroup(subgroup.id) }
@@ -486,7 +487,7 @@ struct LibraryView: View {
             } header: {
                 LibraryGroupedSectionHeader(
                     title: section.title,
-                    detailText: section.detailText,
+                    detailText: section.detailText ?? CollectionKind.bookCountLabel(for: section.bookCount),
                     isCollapsed: isSectionCollapsible ? isSectionCollapsed : nil,
                     onToggle: isSectionCollapsible
                         ? { toggleCollapsedGroup(section.id) }
@@ -824,44 +825,6 @@ private struct LibraryGroupedSectionHeader: View {
                     .lineLimit(1)
             }
         }
-        .contentShape(Rectangle())
-    }
-}
-
-private struct LibraryBookSubgroupHeader: View {
-    let title: String
-    let isCollapsed: Bool
-    let onToggle: (() -> Void)?
-
-    var body: some View {
-        Group {
-            if let onToggle {
-                Button(action: onToggle) {
-                    content
-                }
-                .buttonStyle(.plain)
-            } else {
-                content
-            }
-        }
-    }
-
-    private var content: some View {
-        HStack(spacing: CatalogMetrics.Spacing.xs) {
-            Text(title)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-
-            if onToggle != nil {
-                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal, CatalogMetrics.Spacing.xs)
         .contentShape(Rectangle())
     }
 }

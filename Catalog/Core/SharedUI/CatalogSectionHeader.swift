@@ -3,15 +3,18 @@ import SwiftUI
 /// Displays a catalog section header with an optional jump action.
 struct CatalogSectionHeader: View {
     let title: String
+    let detailText: String?
     let showsJumpIndicator: Bool
     let action: () -> Void
 
     init(
         title: String,
+        detailText: String? = nil,
         showsJumpIndicator: Bool = false,
         action: @escaping () -> Void = {}
     ) {
         self.title = title
+        self.detailText = detailText
         self.showsJumpIndicator = showsJumpIndicator
         self.action = action
     }
@@ -42,6 +45,13 @@ struct CatalogSectionHeader: View {
             }
 
             Spacer()
+
+            if let detailText {
+                Text(detailText)
+                    .font(CatalogTypography.chipLabel)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
         .padding(.vertical, CatalogMetrics.Spacing.sm)
         .padding(.horizontal, CatalogMetrics.Spacing.md)

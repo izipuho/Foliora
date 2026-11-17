@@ -53,6 +53,10 @@ struct LibraryGroupedSection: Identifiable {
     let indexTitle: String?
     let books: [BookRecord]
     let subgroups: [LibraryBookSubgroup]
+
+    var bookCount: Int {
+        books.count + subgroups.reduce(0) { $0 + $1.books.count }
+    }
 }
 
 /// Represents a nested group of books inside a library section.

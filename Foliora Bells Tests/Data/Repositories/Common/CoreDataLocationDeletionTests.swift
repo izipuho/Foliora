@@ -137,6 +137,69 @@ struct CoreDataLocationDeletionTests {
         #expect(homeLocations.compactMap { $0.value(forKey: "id") as? UUID } == [roomID])
     }
 
+    @Test
+    func snapshotListsArchivedCollectionLocationsInTheStorageTree() throws {
+        let container = try FolioraCoreDataStack.makeInMemoryContainer()
+        let context = container.viewContext
+        let repository = CoreDataCatalogRepository(
+            context: context,
+            persistentContainer: nil
+        )
+
+        let homeID = UUID()
+        let collectionID = UUID()
+        let roomID = UUID()
+        let shelfID = UUID()
+
+        repository.saveHome(Home(id: homeID, name: "Test Home", notes: ""))
+        repository.saveCollection(
+            Collection(
+                id: collectionID,
+                homeID: homeID,
+                kind: .bells,
+                title: "Test Collection",
+                notes: ""
+            )
+        )
+
+        let room = Location(
+            id: roomID,
+            homeID: homeID,
+            parentLocationID: nil,
+            kind: .room,
+            name: "Room",
+            notes: "",
+            sortOrder: 0
+        )
+        let shelf = Location(
+            id: shelfID,
+            homeID: homeID,
+            parentLocationID: roomID,
+            kind: .shelf,
+            name: "Shelf",
+            notes: "",
+            sortOrder: 1
+        )
+        repository.saveLocations([room, shelf], in: homeID)
+        repository.saveItemRecord(makeItem(collectionID: collectionID, locationID: shelfID))
+        repository.saveLocations([room], in: homeID)
+
+        let archivedShelf = try #require(try collectionLocations(in: context)[shelfID])
+        let archivedShelfID = try #require(archivedShelf.value(forKey: "id") as? UUID)
+        let snapshot = CatalogSnapshot.load(from: context)
+        #expect(snapshot.archivedCollectionLocationIDs == [archivedShelfID])
+
+        let itemLocationIDs = try context.fetch(NSFetchRequest<NSManagedObject>(entityName: "ItemEntity")).map {
+            ($0.value(forKey: "collectionLocation") as? NSManagedObject)?.value(forKey: "id") as? UUID
+        }
+        let tree = snapshot.storageTree(for: collectionID, itemLocationIDs: itemLocationIDs)
+        #expect(tree.nodes.map(\.location.name) == ["Room"])
+        #expect(tree.nodes.first?.totalCount == 0)
+        #expect(tree.archivedNodes.map(\.id) == [archivedShelfID])
+        #expect(tree.archivedNodes.first?.totalCount == 1)
+        #expect(tree.unassignedCount == 0)
+    }
+
     private func makeItem(collectionID: UUID, locationID: UUID) -> ItemRecord {
         ItemRecord(
             id: UUID(),
@@ -165,7 +228,7 @@ struct CoreDataLocationDeletionTests {
             try context.fetch(request).compactMap { entity in
                 (entity.value(forKey: "sourceLocationID") as? UUID).map { ($0, entity) }
             },
-            uniquingKeysWithFirst: { first, _ in first }
+            uniquingKeysWith: { first, _ in first }
         )
     }
 

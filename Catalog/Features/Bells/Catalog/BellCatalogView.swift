@@ -377,10 +377,10 @@ struct BellCatalogView: View {
                 VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
                     ForEach(section.storageGroups) { storageGroup in
                         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                            Text(storageGroup.title)
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, CatalogMetrics.Spacing.xs)
+                            CatalogSubgroupHeader(
+                                title: storageGroup.title,
+                                count: storageGroup.bells.count
+                            )
 
                             bellGridView(bells: storageGroup.bells, layoutMetrics: layoutMetrics)
                         }
@@ -389,6 +389,7 @@ struct BellCatalogView: View {
             } header: {
                 CatalogSectionHeader(
                     title: section.title,
+                    detailText: CollectionKind.bells.countLabel(for: section.allBells.count),
                     showsJumpIndicator: usesJumpPopover,
                     action: {
                         activeJumpPopoverSectionID = section.id
