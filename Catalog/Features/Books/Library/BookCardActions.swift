@@ -1,6 +1,7 @@
 import Foundation
 
 /// Persists book card-management actions (move, delete, batch edit) for every screen that manages books.
+@MainActor
 struct BookCardActions {
     let repository: any AppRepository
     let snapshot: CatalogSnapshot?

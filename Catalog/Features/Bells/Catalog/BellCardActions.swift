@@ -1,6 +1,7 @@
 import Foundation
 
 /// Persists bell card-management actions (move, delete, batch edit) for every screen that manages bells.
+@MainActor
 struct BellCardActions {
     let repository: any AppRepository
     let snapshot: CatalogSnapshot?

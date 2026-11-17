@@ -511,7 +511,9 @@ extension CatalogCardManagementModifier where Item == BookRecord {
             },
             canEdit: actions.canEdit,
             tint: tint,
-            onSaveHome: actions.saveHome,
+            onSaveHome: { home, locations in
+                actions.saveHome(home, locations: locations)
+            },
             onMove: { books, locationID in
                 actions.move(books, to: locationID)
                 onMoved()
@@ -520,7 +522,9 @@ extension CatalogCardManagementModifier where Item == BookRecord {
                 actions.delete(books)
                 onDeleted()
             },
-            onBatchEdit: actions.batchEdit,
+            onBatchEdit: { books, itemEdit, bookEdit in
+                actions.batchEdit(books, itemEdit: itemEdit, bookEdit: bookEdit)
+            },
             showsSelectButton: showsSelectButton
         )
     }

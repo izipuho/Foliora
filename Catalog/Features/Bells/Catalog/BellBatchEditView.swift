@@ -144,7 +144,9 @@ extension CatalogCardManagementModifier where Item == BellCatalogItem {
             },
             canEdit: actions.canEdit,
             tint: tint,
-            onSaveHome: actions.saveHome,
+            onSaveHome: { home, locations in
+                actions.saveHome(home, locations: locations)
+            },
             onMove: { bells, locationID in
                 actions.move(bells, to: locationID)
                 onMoved()
@@ -153,7 +155,9 @@ extension CatalogCardManagementModifier where Item == BellCatalogItem {
                 actions.delete(bells)
                 onDeleted()
             },
-            onBatchEdit: actions.batchEdit,
+            onBatchEdit: { bells, itemEdit, bellEdit in
+                actions.batchEdit(bells, itemEdit: itemEdit, bellEdit: bellEdit)
+            },
             showsSelectButton: showsSelectButton
         )
     }
