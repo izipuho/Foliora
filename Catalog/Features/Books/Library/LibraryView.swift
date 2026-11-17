@@ -125,8 +125,13 @@ struct LibraryView: View {
         catalogSnapshot?.homes ?? []
     }
 
-    private var storageContext: CatalogStorageContext {
-        CatalogStorageContext(snapshot: catalogSnapshot, collection: collection)
+    private var cardActions: BookCardActions {
+        BookCardActions(
+            repository: repository,
+            snapshot: catalogSnapshot,
+            collection: collection,
+            canEdit: canEditLibrary
+        )
     }
 
     private var hasPlacedItems: Bool {
@@ -252,27 +257,10 @@ struct LibraryView: View {
                 CatalogCardManagementModifier(
                     state: $cardManagement,
                     visibleItems: visibleBooks,
-                    snapshot: catalogSnapshot,
-                    collection: collection,
-                    currentLocationID: { $0.item.locationID },
-                    moveTitle: String(localized: "bell.context.move"),
-                    deleteTitle: String(localized: "book.delete.title"),
-                    deleteMessage: String(localized: "book.delete.message"),
-                    selectedTitle: { count in
-                        String.localizedStringWithFormat(
-                            String(localized: "common.selected_format"),
-                            CollectionKind.bookCountLabel(for: count)
-                        )
-                    },
-                    canEdit: canEditLibrary,
+                    actions: cardActions,
                     tint: collection.backgroundStyle.accentColor,
-                    onSaveHome: { home, locations in
-                        repository.saveHome(home)
-                        repository.saveLocations(locations, in: home.id)
-                    },
-                    onMove: moveBooks,
-                    onDelete: deleteBooks,
-                    onBatchEdit: batchEditBooks
+                    onMoved: { moveFeedbackToken += 1 },
+                    onDeleted: { deleteFeedbackToken += 1 }
                 )
             )
             .sensoryFeedback(.success, trigger: moveFeedbackToken)
@@ -353,11 +341,10 @@ struct LibraryView: View {
                             isCollapsed: $isFavoritesCollapsed
                         ) { favoriteCardSize, favoriteCardMetrics in
                             ForEach(favoriteBooks) { book in
-                                bookCard(
+                                favoriteBookCard(
                                     book,
                                     cardSize: favoriteCardSize,
-                                    cardMetrics: favoriteCardMetrics,
-                                    allowsManagementActions: false
+                                    cardMetrics: favoriteCardMetrics
                                 )
                             }
                         }
@@ -371,18 +358,7 @@ struct LibraryView: View {
                     case .empty:
                         EmptyView()
                     case .flat(let books):
-                        CatalogCardGrid(
-                            layoutMode: layoutMode.wrappedValue,
-                            layoutMetrics: (cardSize, gridMetrics, cardMetrics)
-                        ) { cardSize, _, cardMetrics in
-                            ForEach(books) { book in
-                                bookCard(
-                                    book,
-                                    cardSize: cardSize,
-                                    cardMetrics: cardMetrics
-                                )
-                            }
-                        }
+                        bookGridView(books: books, layoutMetrics: (cardSize, gridMetrics, cardMetrics))
                     case .grouped(let sections):
                         groupedLibrarySections(
                             sections,
@@ -439,18 +415,7 @@ struct LibraryView: View {
             Section {
                 if !isSectionCollapsed {
                     if !section.books.isEmpty {
-                        CatalogCardGrid(
-                            layoutMode: layoutMode.wrappedValue,
-                            layoutMetrics: layoutMetrics
-                        ) { cardSize, _, cardMetrics in
-                            ForEach(section.books) { book in
-                                bookCard(
-                                    book,
-                                    cardSize: cardSize,
-                                    cardMetrics: cardMetrics
-                                )
-                            }
-                        }
+                        bookGridView(books: section.books, layoutMetrics: layoutMetrics)
                     }
 
                     ForEach(section.subgroups) { subgroup in
@@ -468,18 +433,7 @@ struct LibraryView: View {
                             )
 
                             if !isSubgroupCollapsed {
-                                CatalogCardGrid(
-                                    layoutMode: layoutMode.wrappedValue,
-                                    layoutMetrics: layoutMetrics
-                                ) { cardSize, _, cardMetrics in
-                                    ForEach(subgroup.books) { book in
-                                        bookCard(
-                                            book,
-                                            cardSize: cardSize,
-                                            cardMetrics: cardMetrics
-                                        )
-                                    }
-                                }
+                                bookGridView(books: subgroup.books, layoutMetrics: layoutMetrics)
                             }
                         }
                     }
@@ -510,26 +464,37 @@ struct LibraryView: View {
         }
     }
 
-    private func bookCard(
-        _ book: BookRecord,
-        cardSize: CGSize,
-        cardMetrics: CatalogCardLayoutMode.CardMetrics,
-        allowsManagementActions: Bool = true
+    private func bookGridView(
+        books: [BookRecord],
+        layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics
     ) -> some View {
-        CatalogInteractiveCard(
-            item: book,
-            state: $cardManagement,
-            cardSize: cardSize,
-            canManage: canEditLibrary && allowsManagementActions,
+        BookGridView(
+            books: books,
+            layoutMode: layoutMode.wrappedValue,
+            layoutMetrics: layoutMetrics,
+            cardManagement: $cardManagement,
+            canManage: canEditLibrary,
             onOpen: { book in
                 openBook(book.id)
             },
-            selectTitle: String(localized: "bell.context.select"),
-            moveTitle: String(localized: "bell.context.move"),
             visibleItems: visibleBooks,
             deleteTitle: String(localized: "book.delete.title"),
             deleteMessage: String(localized: "book.delete.message"),
             onDelete: deleteBooks
+        )
+    }
+
+    /// Favorites are a shortcut strip: cards only open the book, management stays in the main grid.
+    private func favoriteBookCard(
+        _ book: BookRecord,
+        cardSize: CGSize,
+        cardMetrics: CatalogCardLayoutMode.CardMetrics
+    ) -> some View {
+        CatalogInteractiveCard(
+            cardSize: cardSize,
+            onTap: {
+                openBook(book.id)
+            }
         ) {
             BookCardView(
                 book: book,
@@ -558,42 +523,8 @@ struct LibraryView: View {
         return candidates.filter { seen.insert($0.id).inserted }
     }
 
-    private func moveBooks(_ books: [BookRecord], to locationID: UUID?) {
-        guard canEditLibrary else { return }
-
-        let location = storageContext.location(for: locationID)
-        let storagePath = location.map(storageContext.storagePath(for:))
-
-        for book in books {
-            var updatedItem = book.item
-            updatedItem.setStorageLocation(location, path: storagePath)
-            repository.saveBookRecord(
-                BookRecord(item: updatedItem, details: book.details)
-            )
-        }
-
-        moveFeedbackToken += 1
-    }
-
-    private func batchEditBooks(_ books: [BookRecord], edit: ItemBatchEdit) {
-        guard canEditLibrary else { return }
-
-        let updatedBooks = books.map { book in
-            BookRecord(
-                item: edit.applying(to: book.item),
-                details: book.details
-            )
-        }
-        repository.saveBookRecords(updatedBooks)
-    }
-
     private func deleteBooks(_ books: [BookRecord]) {
-        guard canEditLibrary else { return }
-
-        for book in books {
-            repository.deleteBookRecord(bookID: book.id)
-        }
-
+        cardActions.delete(books)
         deleteFeedbackToken += 1
     }
 

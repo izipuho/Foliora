@@ -21,6 +21,31 @@ struct CatalogCardManagementState<Item: Identifiable> where Item.ID == UUID {
         }
     }
 
+    /// Enters selection mode with nothing selected yet, e.g. from a toolbar Select button.
+    mutating func enterSelection() {
+        withAnimation(.snappy(duration: 0.2)) {
+            isSelectionModeEnabled = true
+        }
+    }
+
+    /// Selects every item in `items`, keeping items selected elsewhere.
+    mutating func selectAll(_ items: [Item]) {
+        withAnimation(.snappy(duration: 0.2)) {
+            selectedIDs.formUnion(items.map(\.id))
+        }
+    }
+
+    /// Deselects every item in `items`; selection mode stays on.
+    mutating func deselectAll(_ items: [Item]) {
+        withAnimation(.snappy(duration: 0.2)) {
+            selectedIDs.subtract(items.map(\.id))
+        }
+    }
+
+    func areAllSelected(in items: [Item]) -> Bool {
+        !items.isEmpty && items.allSatisfy { selectedIDs.contains($0.id) }
+    }
+
     mutating func toggleSelection(of item: Item) {
         withAnimation(.snappy(duration: 0.2)) {
             if selectedIDs.contains(item.id) {
@@ -453,6 +478,8 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
     let onMove: ([Item], UUID?) -> Void
     let onDelete: ([Item]) -> Void
     var batchEditContent: (() -> AnyView)? = nil
+    /// Shows a Select button in the toolbar, for screens without another way into selection mode.
+    var showsSelectButton = false
 
     func body(content: Content) -> some View {
         let storage = CatalogStorageContext(snapshot: snapshot, collection: collection)
@@ -498,9 +525,36 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                     batchEditContent()
                 }
             }
-            .toolbar(state.isSelectionModeEnabled ? .hidden : .visible, for: .tabBar)
+            // Outside selection mode leave the tab bar to its default rather than forcing it visible:
+            // a forced .visible on a catalog lower in the stack kept the tab bar (and with it the
+            // selection bottom bar) from hiding on screens pushed above it, such as the storage screen.
+            .toolbar(state.isSelectionModeEnabled ? .hidden : .automatic, for: .tabBar)
+            .navigationBarBackButtonHidden(state.isSelectionModeEnabled)
             .toolbar {
+                if showsSelectButton && canEdit && !state.isSelectionModeEnabled && !visibleItems.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(String(localized: "common.select")) {
+                            state.enterSelection()
+                        }
+                        .accessibilityIdentifier("selection.select")
+                    }
+                }
+
                 if state.isSelectionModeEnabled {
+                    ToolbarItem(placement: .topBarLeading) {
+                        if state.areAllSelected(in: visibleItems) {
+                            Button(String(localized: "common.deselect_all")) {
+                                state.deselectAll(visibleItems)
+                            }
+                            .accessibilityIdentifier("selection.deselectAll")
+                        } else {
+                            Button(String(localized: "common.select_all")) {
+                                state.selectAll(visibleItems)
+                            }
+                            .accessibilityIdentifier("selection.selectAll")
+                        }
+                    }
+
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             state.cancelSelection()
@@ -508,6 +562,7 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                             Image(systemName: "xmark")
                         }
                         .accessibilityLabel(String(localized: "common.cancel"))
+                        .accessibilityIdentifier("selection.cancel")
                     }
 
                     ToolbarItem(placement: .principal) {
@@ -522,6 +577,8 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                                 Image(systemName: "folder")
                             }
                             .tint(tint)
+                            .accessibilityLabel(moveTitle)
+                            .accessibilityIdentifier("selection.move")
 
                             if batchEditContent != nil {
                                 Button { state.beginBatchEdit() } label: {
@@ -529,6 +586,7 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                                 }
                                 .tint(tint)
                                 .accessibilityLabel(String(localized: "common.edit"))
+                                .accessibilityIdentifier("selection.batchEdit")
                             }
                         }
 
@@ -539,6 +597,8 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                                 Image(systemName: "trash")
                             }
                             .tint(CatalogSemanticColors.destructive)
+                            .accessibilityLabel(String(localized: "common.delete"))
+                            .accessibilityIdentifier("selection.delete")
                             .confirmationDialog(
                                 deleteTitle,
                                 isPresented: $state.isPresentingDeleteConfirmation,

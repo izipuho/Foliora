@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "ADF7CB30-ECB9-4FDD-8970-5F50381EC9E5",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Foliora.xcodeproj",
+        "identifier" : "2480A9DB30471FB8003918E4",
+        "name" : "Foliora Books Tests"
+      }
+    }
+  ],
+  "version" : 1
+}

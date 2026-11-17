@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Displays the bell grid view interface.
+/// Displays bell cards using the shared catalog grid mechanics, with optional card management.
 struct BellGridView: View {
     let bells: [BellCatalogItem]
     let layoutMode: CatalogCardLayoutMode
@@ -43,6 +43,27 @@ struct BellGridView: View {
         self.onDelete = onDelete
     }
 
+    /// Creates a read-only grid: tapping a card opens it, no context menu or selection.
+    init(
+        bells: [BellCatalogItem],
+        layoutMode: CatalogCardLayoutMode,
+        bottomContentMargin: CGFloat? = nil,
+        layoutMetrics: CatalogCardGrid<AnyView>.LayoutMetrics? = nil,
+        onBellSelected: ((UUID) -> Void)?
+    ) {
+        self.init(
+            bells: bells,
+            layoutMode: layoutMode,
+            bottomContentMargin: bottomContentMargin,
+            layoutMetrics: layoutMetrics,
+            cardManagement: .constant(CatalogCardManagementState()),
+            canManage: false,
+            onOpen: { bell in
+                onBellSelected?(bell.id)
+            }
+        )
+    }
+
     var body: some View {
         CatalogCardGrid(
             layoutMode: layoutMode,
@@ -71,6 +92,7 @@ struct BellGridView: View {
                         cardMetrics: cardMetrics
                     )
                 }
+                .accessibilityIdentifier("card.\(bell.title)")
             }
         }
     }

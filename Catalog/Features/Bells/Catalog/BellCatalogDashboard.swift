@@ -6,6 +6,8 @@ struct BellCatalogDashboardView: View {
     let accentColor: Color
     let collection: CollectionSummary?
     let catalogSnapshot: CatalogSnapshot?
+    let repository: any AppRepository
+    let canEditCollection: Bool
     let sharingState: CollectionSharingState
     let sharingService: (any CollectionSharingService)?
     let onSharingChanged: () -> Void
@@ -20,6 +22,8 @@ struct BellCatalogDashboardView: View {
                 tint: accentColor,
                 collection: collection,
                 catalogSnapshot: catalogSnapshot,
+                repository: repository,
+                canEditCollection: canEditCollection,
                 sharingState: sharingState,
                 sharingService: sharingService,
                 onSharingChanged: onSharingChanged,
@@ -51,6 +55,8 @@ private struct DashboardCardStrip: View {
     let tint: Color
     let collection: CollectionSummary?
     let catalogSnapshot: CatalogSnapshot?
+    let repository: any AppRepository
+    let canEditCollection: Bool
     let sharingState: CollectionSharingState
     let sharingService: (any CollectionSharingService)?
     let onSharingChanged: () -> Void
@@ -123,13 +129,20 @@ private struct DashboardCardStrip: View {
                 items: bells,
                 itemLocationID: { $0.locationID }
             ) { storedBells, layoutMode in
-                StoredBellsGrid(
+                BellStorageItemsView(
                     bells: CatalogStorageGrouping.sorted(
                         storedBells,
                         storagePath: { $0.storagePath },
                         title: { $0.title }
                     ),
                     layoutMode: layoutMode,
+                    actions: BellCardActions(
+                        repository: repository,
+                        snapshot: catalogSnapshot,
+                        collection: collection,
+                        canEdit: canEditCollection
+                    ),
+                    tint: tint,
                     onBellSelected: onBellSelected
                 )
             }
@@ -137,6 +150,7 @@ private struct DashboardCardStrip: View {
             CatalogStorageDashboardCard(tree: tree, tint: tint)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("dashboard.storage")
     }
 
     @ViewBuilder
@@ -324,33 +338,6 @@ struct DashboardTopGeographyCard: View {
                 Text(countText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
-/// Displays the bells stored in one location as a card grid.
-private struct StoredBellsGrid: View {
-    let bells: [BellCatalogItem]
-    let layoutMode: CatalogCardLayoutMode
-    let onBellSelected: ((UUID) -> Void)?
-
-    var body: some View {
-        CatalogCardGrid(layoutMode: layoutMode) { cardSize, _, cardMetrics in
-            ForEach(bells) { bell in
-                CatalogInteractiveCard(
-                    cardSize: cardSize,
-                    onTap: {
-                        onBellSelected?(bell.id)
-                    }
-                ) {
-                    BellCardView(
-                        bell: bell,
-                        style: CatalogCardContentStyle.style(for: layoutMode),
-                        cardSize: cardSize,
-                        cardMetrics: cardMetrics
-                    )
-                }
             }
         }
     }

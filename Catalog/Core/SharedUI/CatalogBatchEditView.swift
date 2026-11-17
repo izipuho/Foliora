@@ -12,6 +12,8 @@ struct CatalogBatchEditView<DomainContent: View>: View {
     @State private var acquisitionMethod: AcquisitionMethod?
     @State private var acquiredYearText = ""
     @State private var acquiredYearShouldClear = false
+    @State private var tagInput = ""
+    @State private var addedTags: [String] = []
 
     init(
         isDomainEditEmpty: Bool,
@@ -68,6 +70,17 @@ struct CatalogBatchEditView<DomainContent: View>: View {
                         }
                     }
                 }
+
+                Section {
+                    TagEditorSection(
+                        tagInput: $tagInput,
+                        tags: $addedTags
+                    )
+                } header: {
+                    Text(String(localized: "catalog.batch_edit.add_tags"))
+                } footer: {
+                    Text(String(localized: "catalog.batch_edit.add_tags.footer"))
+                }
             }
             .navigationTitle(String(localized: "catalog.batch_edit.title"))
             .navigationBarTitleDisplayMode(.inline)
@@ -90,6 +103,7 @@ struct CatalogBatchEditView<DomainContent: View>: View {
                     }
                     .disabled(!canSave)
                     .accessibilityLabel(String(localized: "common.save"))
+                    .accessibilityIdentifier("batchEdit.save")
                 }
             }
         }
@@ -105,7 +119,8 @@ struct CatalogBatchEditView<DomainContent: View>: View {
         ItemBatchEdit(
             acquiredYear: acquiredYearChange,
             condition: condition,
-            acquisitionMethod: acquisitionMethod
+            acquisitionMethod: acquisitionMethod,
+            addedTags: addedTags
         )
     }
 

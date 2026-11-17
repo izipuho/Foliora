@@ -21,6 +21,20 @@
 			remoteGlobalIDString = C00000000000000000000051;
 			remoteInfo = "Foliora Bells";
 		};
+		24FAD97130ACD3A600A3E91D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C00000000000000000000052 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C00000000000000000000051;
+			remoteInfo = "Foliora Bells";
+		};
+		24FAD97E30ACD3C600A3E91D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C00000000000000000000052 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 24A7F2B7303C3BA8005D31A1;
+			remoteInfo = "Foliora Books";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +45,12 @@
 		24A7F2DA303C7219005D31A1 /* Foliora Books.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Books.entitlements"; sourceTree = "<group>"; };
 		24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Foliora Bells.entitlements"; sourceTree = "<group>"; };
 		24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Bells-Info.plist"; sourceTree = "<group>"; };
+		24FAD96D30ACD3A600A3E91D /* Foliora Bells UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Foliora Bells UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		24FAD97A30ACD3C500A3E91D /* Foliora Books UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Foliora Books UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		24FADC1B30ACDECF00A3E91D /* Foliora Bells.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Foliora Bells.xctestplan"; sourceTree = "<group>"; };
+		24FADC1C30ACDF1B00A3E91D /* Foliora Bells UI.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Foliora Bells UI.xctestplan"; sourceTree = "<group>"; };
+		24FADC1D30ACDF4700A3E91D /* Foliora Books.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Foliora Books.xctestplan"; sourceTree = "<group>"; };
+		24FADC1E30ACDF5400A3E91D /* Foliora Books UI.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Foliora Books UI.xctestplan"; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -186,6 +206,21 @@
 			path = Common;
 			sourceTree = "<group>";
 		};
+		24FAD96E30ACD3A600A3E91D /* Foliora Bells UITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Foliora Bells UITests";
+			sourceTree = "<group>";
+		};
+		24FAD97B30ACD3C500A3E91D /* Foliora Books UITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Foliora Books UITests";
+			sourceTree = "<group>";
+		};
+		24FAD99030ACD40000A3E91D /* Foliora UITests Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Foliora UITests Shared";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -200,6 +235,16 @@
 			);
 		};
 		24A7F2B5303C3BA8005D31A1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		24FAD96A30ACD3A600A3E91D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		24FAD97730ACD3C500A3E91D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
@@ -256,6 +301,10 @@
 		C00000000000000000000031 = {
 			isa = PBXGroup;
 			children = (
+				24FADC1B30ACDECF00A3E91D /* Foliora Bells.xctestplan */,
+				24FADC1C30ACDF1B00A3E91D /* Foliora Bells UI.xctestplan */,
+				24FADC1D30ACDF4700A3E91D /* Foliora Books.xctestplan */,
+				24FADC1E30ACDF5400A3E91D /* Foliora Books UI.xctestplan */,
 				24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */,
 				24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */,
 				24A7F2D9303C7219005D31A1 /* Foliora-Books-Info.plist */,
@@ -263,6 +312,9 @@
 				C00000000000000000000032 /* Catalog */,
 				2480A9DD30471FB8003918E4 /* Foliora Books Tests */,
 				248F42A23055C7CF004BBA03 /* Foliora Bells Tests */,
+				24FAD96E30ACD3A600A3E91D /* Foliora Bells UITests */,
+				24FAD97B30ACD3C500A3E91D /* Foliora Books UITests */,
+				24FAD99030ACD40000A3E91D /* Foliora UITests Shared */,
 				C00000000000000000000033 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -287,6 +339,8 @@
 				24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */,
 				2480A9DC30471FB8003918E4 /* Foliora Books Tests.xctest */,
 				248F42A13055C7CF004BBA03 /* Foliora Bells Tests.xctest */,
+				24FAD96D30ACD3A600A3E91D /* Foliora Bells UITests.xctest */,
+				24FAD97A30ACD3C500A3E91D /* Foliora Books UITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -388,6 +442,50 @@
 			productReference = 24A7F2B8303C3BA8005D31A1 /* Foliora Books.app */;
 			productType = "com.apple.product-type.application";
 		};
+		24FAD96C30ACD3A600A3E91D /* Foliora Bells UITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 24FAD97330ACD3A600A3E91D /* Build configuration list for PBXNativeTarget "Foliora Bells UITests" */;
+			buildPhases = (
+				24FAD96930ACD3A600A3E91D /* Sources */,
+				24FAD96A30ACD3A600A3E91D /* Frameworks */,
+				24FAD96B30ACD3A600A3E91D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				24FAD97230ACD3A600A3E91D /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				24FAD96E30ACD3A600A3E91D /* Foliora Bells UITests */,
+				24FAD99030ACD40000A3E91D /* Foliora UITests Shared */,
+			);
+			name = "Foliora Bells UITests";
+			productName = "Foliora Bells UITests";
+			productReference = 24FAD96D30ACD3A600A3E91D /* Foliora Bells UITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		24FAD97930ACD3C500A3E91D /* Foliora Books UITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 24FAD98030ACD3C600A3E91D /* Build configuration list for PBXNativeTarget "Foliora Books UITests" */;
+			buildPhases = (
+				24FAD97630ACD3C500A3E91D /* Sources */,
+				24FAD97730ACD3C500A3E91D /* Frameworks */,
+				24FAD97830ACD3C500A3E91D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				24FAD97F30ACD3C600A3E91D /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				24FAD97B30ACD3C500A3E91D /* Foliora Books UITests */,
+				24FAD99030ACD40000A3E91D /* Foliora UITests Shared */,
+			);
+			name = "Foliora Books UITests";
+			productName = "Foliora Books UITests";
+			productReference = 24FAD97A30ACD3C500A3E91D /* Foliora Books UITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		C00000000000000000000051 /* Foliora Bells */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C00000000000000000000061 /* Build configuration list for PBXNativeTarget "Foliora Bells" */;
@@ -429,7 +527,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2640;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					2480A9DB30471FB8003918E4 = {
@@ -442,6 +540,14 @@
 					};
 					24A7F2B7303C3BA8005D31A1 = {
 						CreatedOnToolsVersion = 26.4.1;
+					};
+					24FAD96C30ACD3A600A3E91D = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = C00000000000000000000051;
+					};
+					24FAD97930ACD3C500A3E91D = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 24A7F2B7303C3BA8005D31A1;
 					};
 					C00000000000000000000051 = {
 						CreatedOnToolsVersion = 26.3;
@@ -467,6 +573,8 @@
 				24A7F2B7303C3BA8005D31A1 /* Foliora Books */,
 				2480A9DB30471FB8003918E4 /* Foliora Books Tests */,
 				248F42A03055C7CF004BBA03 /* Foliora Bells Tests */,
+				24FAD96C30ACD3A600A3E91D /* Foliora Bells UITests */,
+				24FAD97930ACD3C500A3E91D /* Foliora Books UITests */,
 			);
 		};
 /* End PBXProject section */
@@ -483,6 +591,16 @@
 			);
 		};
 		24A7F2B6303C3BA8005D31A1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		24FAD96B30ACD3A600A3E91D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		24FAD97830ACD3C500A3E91D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -563,6 +681,16 @@
 			files = (
 			);
 		};
+		24FAD96930ACD3A600A3E91D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		24FAD97630ACD3C500A3E91D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 		C00000000000000000000022 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
@@ -580,6 +708,16 @@
 			isa = PBXTargetDependency;
 			target = C00000000000000000000051 /* Foliora Bells */;
 			targetProxy = 248F42A53055C7CF004BBA03 /* PBXContainerItemProxy */;
+		};
+		24FAD97230ACD3A600A3E91D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C00000000000000000000051 /* Foliora Bells */;
+			targetProxy = 24FAD97130ACD3A600A3E91D /* PBXContainerItemProxy */;
+		};
+		24FAD97F30ACD3C600A3E91D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 24A7F2B7303C3BA8005D31A1 /* Foliora Books */;
+			targetProxy = 24FAD97E30ACD3C600A3E91D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -727,7 +865,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Books.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -771,7 +909,7 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Books.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -806,6 +944,144 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		24FAD97430ACD3A600A3E91D /* Debug configuration for PBXNativeTarget "Foliora Bells UITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.izipuho.Foliora-Bells-UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Foliora Bells";
+			};
+			name = Debug;
+		};
+		24FAD97530ACD3A600A3E91D /* Release configuration for PBXNativeTarget "Foliora Bells UITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.izipuho.Foliora-Bells-UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Foliora Bells";
+			};
+			name = Release;
+		};
+		24FAD98130ACD3C600A3E91D /* Debug configuration for PBXNativeTarget "Foliora Books UITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.izipuho.Foliora-Books-UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Foliora Books";
+			};
+			name = Debug;
+		};
+		24FAD98230ACD3C600A3E91D /* Release configuration for PBXNativeTarget "Foliora Books UITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 89JC2TD8QQ;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.izipuho.Foliora-Books-UITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Foliora Books";
 			};
 			name = Release;
 		};
@@ -934,7 +1210,7 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -973,7 +1249,7 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_ENTITLEMENTS = "Foliora Bells.entitlements";
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -1031,6 +1307,22 @@
 			buildConfigurations = (
 				24A7F2C9303C3BA9005D31A1 /* Debug configuration for PBXNativeTarget "Foliora Books" */,
 				24A7F2CA303C3BA9005D31A1 /* Release configuration for PBXNativeTarget "Foliora Books" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+		24FAD97330ACD3A600A3E91D /* Build configuration list for PBXNativeTarget "Foliora Bells UITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				24FAD97430ACD3A600A3E91D /* Debug configuration for PBXNativeTarget "Foliora Bells UITests" */,
+				24FAD97530ACD3A600A3E91D /* Release configuration for PBXNativeTarget "Foliora Bells UITests" */,
+			);
+			defaultConfigurationName = Debug;
+		};
+		24FAD98030ACD3C600A3E91D /* Build configuration list for PBXNativeTarget "Foliora Books UITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				24FAD98130ACD3C600A3E91D /* Debug configuration for PBXNativeTarget "Foliora Books UITests" */,
+				24FAD98230ACD3C600A3E91D /* Release configuration for PBXNativeTarget "Foliora Books UITests" */,
 			);
 			defaultConfigurationName = Debug;
 		};

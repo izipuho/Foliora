@@ -68,6 +68,13 @@ struct FolioraApp: App {
                 CollectionAppLinkRouter.shared.handle(url)
             }
             .task {
+                #if DEBUG
+                if UITestingLaunch.isEnabled {
+                    prepareUITestingApplication()
+                    return
+                }
+                #endif
+
                 NSUbiquitousKeyValueStore.default.synchronize()
                 updateOnboardingState()
                 await prepareApplicationIfNeeded()
@@ -99,6 +106,21 @@ struct FolioraApp: App {
             fatalError("Failed to create Core Data container: \(error)")
         }
     }
+
+    #if DEBUG
+    /// Opens the app straight into its catalog on an in-memory store seeded for UI tests.
+    @MainActor
+    private func prepareUITestingApplication() {
+        let coreDataContainer = PreviewContainer.makeUITesting()
+        let container = AppContainer(coreDataContainer: coreDataContainer)
+        FolioraAppDelegate.coreDataContainer = coreDataContainer
+        self.coreDataContainer = coreDataContainer
+        self.container = container
+        needsOnboarding = false
+        didFinishLaunchFlow = true
+        showsLaunchScreen = false
+    }
+    #endif
 
     /// Decides whether onboarding is needed without waiting on system services.
     ///

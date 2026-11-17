@@ -140,8 +140,13 @@ struct BellCatalogView: View {
         catalogSnapshot?.bells.filter { $0.collectionID == collection.id } ?? []
     }
 
-    private var storageContext: CatalogStorageContext {
-        CatalogStorageContext(snapshot: catalogSnapshot, collection: collection)
+    private var cardActions: BellCardActions {
+        BellCardActions(
+            repository: repository,
+            snapshot: catalogSnapshot,
+            collection: collection,
+            canEdit: canEditCollection
+        )
     }
 
     private func setFilter(_ filter: BellPresenceFilter) {
@@ -163,27 +168,10 @@ struct BellCatalogView: View {
                 CatalogCardManagementModifier(
                     state: $cardManagement,
                     visibleItems: visibleBells,
-                    snapshot: catalogSnapshot,
-                    collection: collection,
-                    currentLocationID: { $0.locationID },
-                    moveTitle: String(localized: "bell.context.move"),
-                    deleteTitle: String(localized: "bell.context.delete.title"),
-                    deleteMessage: String(localized: "bell.context.delete.message"),
-                    selectedTitle: { count in
-                        String.localizedStringWithFormat(
-                            String(localized: "bell_catalog.selection.selected_count"),
-                            count
-                        )
-                    },
-                    canEdit: canEditCollection,
+                    actions: cardActions,
                     tint: catalogStyle.accentColor,
-                    onSaveHome: { home, locations in
-                        repository.saveHome(home)
-                        repository.saveLocations(locations, in: home.id)
-                    },
-                    onMove: moveBells,
-                    onDelete: deleteBells,
-                    onBatchEdit: batchEditBells
+                    onMoved: { moveFeedbackToken += 1 },
+                    onDeleted: { deleteFeedbackToken += 1 }
                 )
             )
             .sensoryFeedback(.success, trigger: moveFeedbackToken)
@@ -314,6 +302,8 @@ struct BellCatalogView: View {
             accentColor: catalogStyle.accentColor,
             collection: collection,
             catalogSnapshot: catalogSnapshot,
+            repository: repository,
+            canEditCollection: canEditCollection,
             sharingState: sharingState,
             sharingService: sharingService,
             onSharingChanged: onSharingChanged,
@@ -453,35 +443,11 @@ struct BellCatalogView: View {
             visibleItems: visibleBells,
             deleteTitle: String(localized: "bell.context.delete.title"),
             deleteMessage: String(localized: "bell.context.delete.message"),
-            onDelete: deleteBells
+            onDelete: { bells in
+                cardActions.delete(bells)
+                deleteFeedbackToken += 1
+            }
         )
-    }
-
-    private func moveBells(_ bells: [BellCatalogItem], to locationID: UUID?) {
-        guard canEditCollection else { return }
-
-        let location = storageContext.location(for: locationID)
-        for bell in bells {
-            guard let record = catalogSnapshot?.recordsByID[bell.id] else { continue }
-            repository.saveBellRecord(
-                record.moving(
-                    to: location,
-                    storagePath: location.map(storageContext.storagePath(for:))
-                )
-            )
-        }
-
-        moveFeedbackToken += 1
-    }
-
-    private func deleteBells(_ bells: [BellCatalogItem]) {
-        guard canEditCollection else { return }
-
-        for bell in bells {
-            repository.deleteBellRecord(bellID: bell.id)
-        }
-
-        deleteFeedbackToken += 1
     }
 }
 

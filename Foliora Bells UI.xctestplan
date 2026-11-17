@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "BAB923C9-7DB8-4C9F-B353-B6D76D459B4E",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Foliora.xcodeproj",
+        "identifier" : "24FAD96C30ACD3A600A3E91D",
+        "name" : "Foliora Bells UITests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -99,7 +99,6 @@ struct BellSearchView: View {
     private let initialQuery: String?
     @Binding var layoutMode: CatalogCardLayoutMode
     @State private var searchState = BellCatalogSearchState()
-    @State private var cardManagement = CatalogCardManagementState<BellCatalogItem>()
 
     init(
         repository: any CatalogRepository,
@@ -245,15 +244,9 @@ struct BellSearchView: View {
                 bells: filteredBells,
                 layoutMode: layoutMode,
                 layoutMetrics: layoutMetrics,
-                cardManagement: $cardManagement,
-                canManage: false,
-                onOpen: openBell
+                onBellSelected: onBellSelected
             )
         }
-    }
-
-    private func openBell(_ bell: BellCatalogItem) {
-        onBellSelected?(bell.id)
     }
 
     private func searchTokenTitle(_ token: BellSearchToken) -> String {

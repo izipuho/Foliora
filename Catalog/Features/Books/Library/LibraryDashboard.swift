@@ -151,13 +151,20 @@ private struct DashboardCardStrip: View {
                 items: books,
                 itemLocationID: { $0.locationID }
             ) { storedBooks, layoutMode in
-                BookGridView(
+                BookStorageItemsView(
                     books: CatalogStorageGrouping.sorted(
                         storedBooks,
                         storagePath: { $0.storagePath },
                         title: { $0.title }
                     ),
                     layoutMode: layoutMode,
+                    actions: BookCardActions(
+                        repository: repository,
+                        snapshot: catalogSnapshot,
+                        collection: collection,
+                        canEdit: canEditCollection
+                    ),
+                    tint: tint,
                     onBookSelected: onBookSelected
                 )
             }
@@ -165,6 +172,7 @@ private struct DashboardCardStrip: View {
             CatalogStorageDashboardCard(tree: tree, tint: tint)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("dashboard.storage")
     }
 
     @ViewBuilder
