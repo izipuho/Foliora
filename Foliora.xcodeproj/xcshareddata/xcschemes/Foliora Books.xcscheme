@@ -39,6 +39,16 @@
                ReferencedContainer = "container:Foliora.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "24FAD97930ACD3C500A3E91D"
+               BuildableName = "Foliora Books UITests.xctest"
+               ReferencedContainer = "container:Foliora.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
