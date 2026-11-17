@@ -15,6 +15,8 @@ struct HomeEditorView: View {
     @State private var editingLocationID: UUID?
     @State private var addingChildContext: AddChildContext?
     @State private var collapsedLocationIDs: Set<UUID> = []
+    @State private var locationPendingDeletion: Location?
+    @State private var isPresentingLocationDeletion = false
 
     private var flattenedLocations: [EditableLocationNode] {
         let roots = locations
@@ -107,7 +109,7 @@ struct HomeEditorView: View {
                         .buttonStyle(.plain)
                         .swipeActions {
                             Button(String(localized: "common.delete"), role: .destructive) {
-                                deleteLocation(node.location.id)
+                                requestDeletion(of: node.location)
                             }
                         }
                     }
@@ -170,6 +172,14 @@ struct HomeEditorView: View {
         } message: {
             Text(String(localized: "home.delete.message"))
         }
+        .locationDeletionAlert(
+            isPresented: $isPresentingLocationDeletion,
+            hasNestedLocations: true
+        ) { includesDescendants in
+            if let location = locationPendingDeletion {
+                deleteLocation(location.id, includingDescendants: includesDescendants)
+            }
+        }
         .sheet(isPresented: $isPresentingAddLocationSheet) {
             AddLocationSheet(
                 homeID: home.id,
@@ -218,8 +228,8 @@ struct HomeEditorView: View {
                 EditLocationSheet(
                     location: location,
                     allLocations: locations,
-                    onDelete: { deletedID in
-                        deleteLocation(deletedID)
+                    onDelete: { deletedID, includesDescendants in
+                        deleteLocation(deletedID, includingDescendants: includesDescendants)
                         editingLocationID = nil
                     }
                 )
@@ -240,8 +250,23 @@ struct HomeEditorView: View {
         case name
     }
 
-    private func deleteLocation(_ locationID: UUID) {
-        let removedIDs = Set([locationID])
+    /// Deletes a leaf right away; a location with nested ones asks what to do with them.
+    private func requestDeletion(of location: Location) {
+        if locations.descendantIDs(of: location.id).isEmpty {
+            deleteLocation(location.id, includingDescendants: false)
+        } else {
+            locationPendingDeletion = location
+            isPresentingLocationDeletion = true
+        }
+    }
+
+    /// Removes a location. Its nested locations are removed too or, otherwise, its direct
+    /// children move to the top level.
+    private func deleteLocation(_ locationID: UUID, includingDescendants: Bool) {
+        var removedIDs: Set<UUID> = [locationID]
+        if includingDescendants {
+            removedIDs.formUnion(locations.descendantIDs(of: locationID))
+        }
         collapsedLocationIDs.subtract(removedIDs)
         locations.removeAll { removedIDs.contains($0.id) }
         locations = locations.map { location in
@@ -631,7 +656,7 @@ private struct EditableLocationRow: View {
 private struct EditLocationSheet: View {
     @Binding var location: Location
     let allLocations: [Location]
-    let onDelete: (UUID) -> Void
+    let onDelete: (_ locationID: UUID, _ includesDescendants: Bool) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var isPresentingDeleteConfirmation = false
@@ -686,18 +711,12 @@ private struct EditLocationSheet: View {
                     Button { dismiss() } label: { Image(systemName: "checkmark") }
                 }
             }
-            .alert(
-                String(localized: "home.location.delete.title"),
-                isPresented: $isPresentingDeleteConfirmation
-            ) {
-                Button(String(localized: "common.delete"), role: .destructive) {
-                    onDelete(location.id)
-                    dismiss()
-                }
-
-                Button(String(localized: "common.cancel"), role: .cancel) {}
-            } message: {
-                Text(String(localized: "home.location.delete.message"))
+            .locationDeletionAlert(
+                isPresented: $isPresentingDeleteConfirmation,
+                hasNestedLocations: !allLocations.descendantIDs(of: location.id).isEmpty
+            ) { includesDescendants in
+                onDelete(location.id, includesDescendants)
+                dismiss()
             }
         }
     }
@@ -722,6 +741,60 @@ private struct EditLocationSheet: View {
         }
 
         return false
+    }
+}
+
+private extension View {
+    /// Confirms deleting a location. With nested locations it offers to delete them too
+    /// or to keep them, moving the direct children to the top level.
+    func locationDeletionAlert(
+        isPresented: Binding<Bool>,
+        hasNestedLocations: Bool,
+        onDelete: @escaping (_ includesDescendants: Bool) -> Void
+    ) -> some View {
+        alert(
+            String(localized: "home.location.delete.title"),
+            isPresented: isPresented
+        ) {
+            if hasNestedLocations {
+                Button(String(localized: "home.location.delete.with_nested"), role: .destructive) {
+                    onDelete(true)
+                }
+                Button(String(localized: "home.location.delete.keep_nested"), role: .destructive) {
+                    onDelete(false)
+                }
+            } else {
+                Button(String(localized: "common.delete"), role: .destructive) {
+                    onDelete(false)
+                }
+            }
+
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            if hasNestedLocations {
+                Text(String(localized: "home.location.delete.message_nested"))
+            } else {
+                Text(String(localized: "home.location.delete.message"))
+            }
+        }
+    }
+}
+
+private extension Array where Element == Location {
+    /// IDs of every location nested under the given one, at any depth.
+    func descendantIDs(of locationID: UUID) -> Set<UUID> {
+        var result: Set<UUID> = []
+        var pending = [locationID]
+
+        while let parentID = pending.popLast() {
+            for location in self where location.parentLocationID == parentID {
+                if result.insert(location.id).inserted {
+                    pending.append(location.id)
+                }
+            }
+        }
+
+        return result
     }
 }
 

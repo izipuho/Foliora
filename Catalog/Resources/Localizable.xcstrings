@@ -6152,18 +6152,50 @@
         }
       }
     },
-    "home.location.delete.message" : {
+    "home.location.delete.keep_nested" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This location will be deleted. Child items will remain without a parent."
+            "value" : "Delete Only This"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Расположение будет удалено. Дочерние элементы останутся без родителя."
+            "value" : "Удалить только его"
+          }
+        }
+      }
+    },
+    "home.location.delete.message" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This location will be deleted."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расположение будет удалено."
+          }
+        }
+      }
+    },
+    "home.location.delete.message_nested" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It contains nested locations. Delete them too, or move them to the top level? Items are not deleted."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Внутри есть вложенные расположения. Удалить их тоже или поднять на верхний уровень? Предметы при этом не удаляются."
           }
         }
       }
@@ -6180,6 +6212,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Удалить расположение?"
+          }
+        }
+      }
+    },
+    "home.location.delete.with_nested" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete with Nested"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить вместе с вложенными"
           }
         }
       }
