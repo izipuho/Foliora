@@ -30,35 +30,13 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
          <TestPlanReference
-            reference = "container:Foliora Bells.xctestplan">
+            reference = "container:Foliora Bells.xctestplan"
+            default = "YES">
          </TestPlanReference>
          <TestPlanReference
             reference = "container:Foliora Bells UI.xctestplan">
          </TestPlanReference>
       </TestPlans>
-      <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "248F42A03055C7CF004BBA03"
-               BuildableName = "Foliora Bells Tests.xctest"
-               BlueprintName = "Foliora Bells Tests"
-               ReferencedContainer = "container:Foliora.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "24FAD96C30ACD3A600A3E91D"
-               BuildableName = "Foliora Bells UITests.xctest"
-               ReferencedContainer = "container:Foliora.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
