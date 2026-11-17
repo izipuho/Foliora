@@ -21,6 +21,8 @@ struct CatalogSnapshot {
     private(set) var personEntities: [NSManagedObject] = []
     private(set) var locationsByHomeID: [UUID: [Location]] = [:]
     private(set) var collectionLocationsByCollectionID: [UUID: [Location]] = [:]
+    /// Collection locations removed from their home that are kept only because items still reference them.
+    private(set) var archivedCollectionLocationIDs: Set<UUID> = []
     private(set) var collectionCountsByHomeID: [UUID: Int] = [:]
     private(set) var itemCountsByCollectionID: [UUID: Int] = [:]
     private(set) var recognitionSuggestionItemIDs: Set<UUID> = []
@@ -139,6 +141,12 @@ struct CatalogSnapshot {
             by: \.0
         )
         .mapValues { rows in rows.map(\.1) }
+        snapshot.archivedCollectionLocationIDs = Set(
+            collectionLocationEntities.compactMap { entity -> UUID? in
+                guard entity.value(forKey: "isArchived") as? Bool == true else { return nil }
+                return uuidValue(entity, "id")
+            }
+        )
         snapshot.collectionCountsByHomeID = Dictionary(
             collectionEntities.compactMap(collectionHomeID).map { ($0, 1) },
             uniquingKeysWith: +

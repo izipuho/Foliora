@@ -86,6 +86,10 @@ private struct DashboardCardStrip: View {
                 )
             }
 
+            if let collection {
+                storageCard(for: collection)
+            }
+
             CatalogDashboardDataHealthCard(
                 progress: dataHealthProgress,
                 tint: tint,
@@ -103,6 +107,36 @@ private struct DashboardCardStrip: View {
                 )
             }
         }
+    }
+
+    private func storageCard(for collection: CollectionSummary) -> some View {
+        let bells = catalogSnapshot?.bells.filter { $0.collectionID == collection.id } ?? []
+        let tree = catalogSnapshot?.storageTree(
+            for: collection.id,
+            itemLocationIDs: bells.map(\.locationID)
+        ) ?? CatalogStorageTree(locations: [], archivedLocationIDs: [], itemLocationIDs: [])
+
+        return NavigationLink {
+            CatalogStorageView(
+                collection: collection,
+                tree: tree,
+                items: bells,
+                itemLocationID: { $0.locationID }
+            ) { storedBells, layoutMode in
+                StoredBellsGrid(
+                    bells: CatalogStorageGrouping.sorted(
+                        storedBells,
+                        storagePath: { $0.storagePath },
+                        title: { $0.title }
+                    ),
+                    layoutMode: layoutMode,
+                    onBellSelected: onBellSelected
+                )
+            }
+        } label: {
+            CatalogStorageDashboardCard(tree: tree, tint: tint)
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -290,6 +324,33 @@ struct DashboardTopGeographyCard: View {
                 Text(countText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+/// Displays the bells stored in one location as a card grid.
+private struct StoredBellsGrid: View {
+    let bells: [BellCatalogItem]
+    let layoutMode: CatalogCardLayoutMode
+    let onBellSelected: ((UUID) -> Void)?
+
+    var body: some View {
+        CatalogCardGrid(layoutMode: layoutMode) { cardSize, _, cardMetrics in
+            ForEach(bells) { bell in
+                CatalogInteractiveCard(
+                    cardSize: cardSize,
+                    onTap: {
+                        onBellSelected?(bell.id)
+                    }
+                ) {
+                    BellCardView(
+                        bell: bell,
+                        style: CatalogCardContentStyle.style(for: layoutMode),
+                        cardSize: cardSize,
+                        cardMetrics: cardMetrics
+                    )
+                }
             }
         }
     }

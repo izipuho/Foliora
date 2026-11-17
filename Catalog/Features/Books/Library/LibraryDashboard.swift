@@ -116,6 +116,8 @@ private struct DashboardCardStrip: View {
             }
             .buttonStyle(.plain)
 
+            storageCard
+
             CatalogDashboardDataHealthCard(
                 progress: stats.dataHealthProgress,
                 tint: tint,
@@ -133,6 +135,36 @@ private struct DashboardCardStrip: View {
                 )
             }
         }
+    }
+
+    private var storageCard: some View {
+        let books = catalogSnapshot?.bookRecords.filter { $0.collectionID == collection.id } ?? []
+        let tree = catalogSnapshot?.storageTree(
+            for: collection.id,
+            itemLocationIDs: books.map(\.locationID)
+        ) ?? CatalogStorageTree(locations: [], archivedLocationIDs: [], itemLocationIDs: [])
+
+        return NavigationLink {
+            CatalogStorageView(
+                collection: collection,
+                tree: tree,
+                items: books,
+                itemLocationID: { $0.locationID }
+            ) { storedBooks, layoutMode in
+                BookGridView(
+                    books: CatalogStorageGrouping.sorted(
+                        storedBooks,
+                        storagePath: { $0.storagePath },
+                        title: { $0.title }
+                    ),
+                    layoutMode: layoutMode,
+                    onBookSelected: onBookSelected
+                )
+            }
+        } label: {
+            CatalogStorageDashboardCard(tree: tree, tint: tint)
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
