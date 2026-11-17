@@ -84,10 +84,40 @@ struct FolioraUITestApp {
 
     // MARK: - Actions
 
+    /// Taps an element once it can actually be hit.
+    ///
+    /// Existing is not enough: toolbar items appear in the hierarchy while they still
+    /// slide in from off screen, and a tap then misses.
     func tap(_ identifier: String, file: StaticString = #filePath, line: UInt = #line) {
         let target = element(identifier)
-        XCTAssertTrue(target.waitForExistence(timeout: 5), "\(identifier) not found", file: file, line: line)
+        guard waitUntilHittable(target, timeout: 5) else {
+            attachHierarchy(named: "\(identifier) not hittable")
+            XCTFail("\(identifier) not hittable (exists: \(target.exists))", file: file, line: line)
+            return
+        }
         target.tap()
+    }
+
+    func waitUntilHittable(_ element: XCUIElement, timeout: TimeInterval) -> Bool {
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true AND hittable == true"),
+            object: element
+        )
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
+    }
+
+    /// Attaches the accessibility hierarchy and a screenshot to the test report.
+    func attachHierarchy(named name: String) {
+        let hierarchy = XCTAttachment(string: app.debugDescription)
+        hierarchy.name = "\(name) – hierarchy"
+        hierarchy.lifetime = .keepAlways
+        XCTContext.runActivity(named: name) { activity in
+            activity.add(hierarchy)
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "\(name) – screenshot"
+            screenshot.lifetime = .keepAlways
+            activity.add(screenshot)
+        }
     }
 
     /// Long-presses a card and reports whether its context menu appeared.
@@ -109,7 +139,11 @@ struct FolioraUITestApp {
         for _ in 0..<3 where !input.waitForExistence(timeout: 2) {
             app.swipeUp()
         }
-        XCTAssertTrue(input.exists, "Tag field not found", file: file, line: line)
+        guard input.exists else {
+            attachHierarchy(named: "Tag field not found")
+            XCTFail("Tag field not found", file: file, line: line)
+            return
+        }
         input.tap()
         input.typeText(tag)
         tap("tags.add", file: file, line: line)
