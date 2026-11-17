@@ -98,6 +98,7 @@ struct BookGridView: View {
                         accessories: accessories(book)
                     )
                 }
+                .accessibilityIdentifier("card.\(book.title)")
             }
         }
     }

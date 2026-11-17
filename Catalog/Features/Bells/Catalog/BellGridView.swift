@@ -92,6 +92,7 @@ struct BellGridView: View {
                         cardMetrics: cardMetrics
                     )
                 }
+                .accessibilityIdentifier("card.\(bell.title)")
             }
         }
     }

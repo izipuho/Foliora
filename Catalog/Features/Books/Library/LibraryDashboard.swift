@@ -172,6 +172,7 @@ private struct DashboardCardStrip: View {
             CatalogStorageDashboardCard(tree: tree, tint: tint)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("dashboard.storage")
     }
 
     @ViewBuilder

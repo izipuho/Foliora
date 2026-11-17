@@ -176,6 +176,7 @@ struct TagEditorSection: View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.md) {
             HStack(spacing: CatalogMetrics.Spacing.sm) {
                 TextField(String(localized: "editor.tags.add_placeholder"), text: $tagInput)
+                    .accessibilityIdentifier("tags.input")
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
@@ -191,6 +192,7 @@ struct TagEditorSection: View {
                 }
                 .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityLabel(String(localized: "common.add"))
+                .accessibilityIdentifier("tags.add")
             }
 
             if tags.isEmpty {

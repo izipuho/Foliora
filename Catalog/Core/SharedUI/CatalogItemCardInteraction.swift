@@ -533,6 +533,7 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                         Button(String(localized: "common.select")) {
                             state.enterSelection()
                         }
+                        .accessibilityIdentifier("selection.select")
                     }
                 }
 
@@ -542,10 +543,12 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                             Button(String(localized: "common.deselect_all")) {
                                 state.deselectAll(visibleItems)
                             }
+                            .accessibilityIdentifier("selection.deselectAll")
                         } else {
                             Button(String(localized: "common.select_all")) {
                                 state.selectAll(visibleItems)
                             }
+                            .accessibilityIdentifier("selection.selectAll")
                         }
                     }
 
@@ -556,6 +559,7 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                             Image(systemName: "xmark")
                         }
                         .accessibilityLabel(String(localized: "common.cancel"))
+                        .accessibilityIdentifier("selection.cancel")
                     }
 
                     ToolbarItem(placement: .principal) {
@@ -570,6 +574,8 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                                 Image(systemName: "folder")
                             }
                             .tint(tint)
+                            .accessibilityLabel(moveTitle)
+                            .accessibilityIdentifier("selection.move")
 
                             if batchEditContent != nil {
                                 Button { state.beginBatchEdit() } label: {
@@ -577,6 +583,7 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                                 }
                                 .tint(tint)
                                 .accessibilityLabel(String(localized: "common.edit"))
+                                .accessibilityIdentifier("selection.batchEdit")
                             }
                         }
 
@@ -587,6 +594,8 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                                 Image(systemName: "trash")
                             }
                             .tint(CatalogSemanticColors.destructive)
+                            .accessibilityLabel(String(localized: "common.delete"))
+                            .accessibilityIdentifier("selection.delete")
                             .confirmationDialog(
                                 deleteTitle,
                                 isPresented: $state.isPresentingDeleteConfirmation,

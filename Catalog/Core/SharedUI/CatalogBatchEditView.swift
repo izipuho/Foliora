@@ -103,6 +103,7 @@ struct CatalogBatchEditView<DomainContent: View>: View {
                     }
                     .disabled(!canSave)
                     .accessibilityLabel(String(localized: "common.save"))
+                    .accessibilityIdentifier("batchEdit.save")
                 }
             }
         }
