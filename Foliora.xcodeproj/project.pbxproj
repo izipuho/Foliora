@@ -47,6 +47,10 @@
 		24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Foliora-Bells-Info.plist"; sourceTree = "<group>"; };
 		24FAD96D30ACD3A600A3E91D /* Foliora Bells UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Foliora Bells UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		24FAD97A30ACD3C500A3E91D /* Foliora Books UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Foliora Books UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		24FADC1B30ACDECF00A3E91D /* Foliora Bells.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Foliora Bells.xctestplan"; sourceTree = "<group>"; };
+		24FADC1C30ACDF1B00A3E91D /* Foliora Bells UI.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Foliora Bells UI.xctestplan"; sourceTree = "<group>"; };
+		24FADC1D30ACDF4700A3E91D /* Foliora Books.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Foliora Books.xctestplan"; sourceTree = "<group>"; };
+		24FADC1E30ACDF5400A3E91D /* Foliora Books UI.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Foliora Books UI.xctestplan"; sourceTree = "<group>"; };
 		C00000000000000000000012 /* Foliora Bells.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Foliora Bells.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -207,14 +211,14 @@
 			path = "Foliora Bells UITests";
 			sourceTree = "<group>";
 		};
-		24FAD99030ACD40000A3E91D /* Foliora UITests Shared */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Foliora UITests Shared";
-			sourceTree = "<group>";
-		};
 		24FAD97B30ACD3C500A3E91D /* Foliora Books UITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Foliora Books UITests";
+			sourceTree = "<group>";
+		};
+		24FAD99030ACD40000A3E91D /* Foliora UITests Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Foliora UITests Shared";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -297,6 +301,10 @@
 		C00000000000000000000031 = {
 			isa = PBXGroup;
 			children = (
+				24FADC1B30ACDECF00A3E91D /* Foliora Bells.xctestplan */,
+				24FADC1C30ACDF1B00A3E91D /* Foliora Bells UI.xctestplan */,
+				24FADC1D30ACDF4700A3E91D /* Foliora Books.xctestplan */,
+				24FADC1E30ACDF5400A3E91D /* Foliora Books UI.xctestplan */,
 				24F1A44E2FD0405D00FC1717 /* Foliora-Bells-Info.plist */,
 				24F1A44D2FD03B6300FC1717 /* Foliora Bells.entitlements */,
 				24A7F2D9303C7219005D31A1 /* Foliora-Books-Info.plist */,
