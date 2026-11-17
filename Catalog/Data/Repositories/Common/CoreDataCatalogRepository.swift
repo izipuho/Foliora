@@ -587,7 +587,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
                 continue
             }
 
-            if relatedObjects(entity, "bells").isEmpty && relatedObjects(entity, "items").isEmpty {
+            if relatedObjects(entity, "items").isEmpty {
                 context.delete(entity)
             } else {
                 entity.setValue(true, forKey: "isArchived")
