@@ -81,7 +81,8 @@ extension CatalogCardManagementModifier where Item == BellCatalogItem {
         onSaveHome: @escaping (Home, [Location]) -> Void,
         onMove: @escaping ([BellCatalogItem], UUID?) -> Void,
         onDelete: @escaping ([BellCatalogItem]) -> Void,
-        onBatchEdit: @escaping ([BellCatalogItem], ItemBatchEdit, BellBatchEdit) -> Void
+        onBatchEdit: @escaping ([BellCatalogItem], ItemBatchEdit, BellBatchEdit) -> Void,
+        showsSelectButton: Bool = false
     ) {
         self.init(
             state: state,
@@ -109,28 +110,51 @@ extension CatalogCardManagementModifier where Item == BellCatalogItem {
                         state.wrappedValue.completeAction()
                     }
                 )
-            }
+            },
+            showsSelectButton: showsSelectButton
         )
     }
 }
 
-extension BellCatalogView {
-    func batchEditBells(
-        _ bells: [BellCatalogItem],
-        itemEdit: ItemBatchEdit,
-        bellEdit: BellBatchEdit
+extension CatalogCardManagementModifier where Item == BellCatalogItem {
+    /// Standard bell management: shared titles, persistence through `actions`.
+    init(
+        state: Binding<CatalogCardManagementState<BellCatalogItem>>,
+        visibleItems: [BellCatalogItem],
+        actions: BellCardActions,
+        tint: Color,
+        showsSelectButton: Bool = false,
+        onMoved: @escaping () -> Void = {},
+        onDeleted: @escaping () -> Void = {}
     ) {
-        guard canEditCollection else { return }
-
-        let updatedRecords = bells.compactMap { bell -> BellRecord? in
-            guard let record = catalogSnapshot?.recordsByID[bell.id] else { return nil }
-            return BellRecord(
-                item: itemEdit.applying(to: record.item),
-                details: bellEdit.applying(to: record.details)
-            )
-        }
-        guard !updatedRecords.isEmpty else { return }
-
-        repository.saveBellRecords(updatedRecords)
+        self.init(
+            state: state,
+            visibleItems: visibleItems,
+            snapshot: actions.snapshot,
+            collection: actions.collection,
+            currentLocationID: { $0.locationID },
+            moveTitle: String(localized: "bell.context.move"),
+            deleteTitle: String(localized: "bell.context.delete.title"),
+            deleteMessage: String(localized: "bell.context.delete.message"),
+            selectedTitle: { count in
+                String.localizedStringWithFormat(
+                    String(localized: "bell_catalog.selection.selected_count"),
+                    count
+                )
+            },
+            canEdit: actions.canEdit,
+            tint: tint,
+            onSaveHome: actions.saveHome,
+            onMove: { bells, locationID in
+                actions.move(bells, to: locationID)
+                onMoved()
+            },
+            onDelete: { bells in
+                actions.delete(bells)
+                onDeleted()
+            },
+            onBatchEdit: actions.batchEdit,
+            showsSelectButton: showsSelectButton
+        )
     }
 }

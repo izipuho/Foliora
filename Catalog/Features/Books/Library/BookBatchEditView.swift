@@ -435,7 +435,8 @@ extension CatalogCardManagementModifier where Item == BookRecord {
         onSaveHome: @escaping (Home, [Location]) -> Void,
         onMove: @escaping ([BookRecord], UUID?) -> Void,
         onDelete: @escaping ([BookRecord]) -> Void,
-        onBatchEdit: @escaping ([BookRecord], ItemBatchEdit, BookBatchEdit) -> Void
+        onBatchEdit: @escaping ([BookRecord], ItemBatchEdit, BookBatchEdit) -> Void,
+        showsSelectButton: Bool = false
     ) {
         guard let collectionID = collection?.id else {
             preconditionFailure("Book batch editing requires a collection.")
@@ -476,23 +477,51 @@ extension CatalogCardManagementModifier where Item == BookRecord {
                         state.wrappedValue.completeAction()
                     }
                 )
-            }
+            },
+            showsSelectButton: showsSelectButton
         )
     }
 }
 
-extension LibraryView {
-    func batchEditBooks(
-        _ books: [BookRecord],
-        itemEdit: ItemBatchEdit,
-        bookEdit: BookBatchEdit
+extension CatalogCardManagementModifier where Item == BookRecord {
+    /// Standard book management: shared titles, persistence through `actions`.
+    init(
+        state: Binding<CatalogCardManagementState<BookRecord>>,
+        visibleItems: [BookRecord],
+        actions: BookCardActions,
+        tint: Color,
+        showsSelectButton: Bool = false,
+        onMoved: @escaping () -> Void = {},
+        onDeleted: @escaping () -> Void = {}
     ) {
-        let updatedBooks = books.map { book in
-            BookRecord(
-                item: itemEdit.applying(to: book.item),
-                details: bookEdit.applying(to: book.details)
-            )
-        }
-        repository.saveBookRecords(updatedBooks)
+        self.init(
+            state: state,
+            visibleItems: visibleItems,
+            snapshot: actions.snapshot,
+            collection: actions.collection,
+            currentLocationID: { $0.item.locationID },
+            moveTitle: String(localized: "bell.context.move"),
+            deleteTitle: String(localized: "book.delete.title"),
+            deleteMessage: String(localized: "book.delete.message"),
+            selectedTitle: { count in
+                String.localizedStringWithFormat(
+                    String(localized: "common.selected_format"),
+                    CollectionKind.bookCountLabel(for: count)
+                )
+            },
+            canEdit: actions.canEdit,
+            tint: tint,
+            onSaveHome: actions.saveHome,
+            onMove: { books, locationID in
+                actions.move(books, to: locationID)
+                onMoved()
+            },
+            onDelete: { books in
+                actions.delete(books)
+                onDeleted()
+            },
+            onBatchEdit: actions.batchEdit,
+            showsSelectButton: showsSelectButton
+        )
     }
 }

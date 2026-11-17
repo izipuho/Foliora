@@ -125,8 +125,13 @@ struct LibraryView: View {
         catalogSnapshot?.homes ?? []
     }
 
-    private var storageContext: CatalogStorageContext {
-        CatalogStorageContext(snapshot: catalogSnapshot, collection: collection)
+    private var cardActions: BookCardActions {
+        BookCardActions(
+            repository: repository,
+            snapshot: catalogSnapshot,
+            collection: collection,
+            canEdit: canEditLibrary
+        )
     }
 
     private var hasPlacedItems: Bool {
@@ -252,27 +257,10 @@ struct LibraryView: View {
                 CatalogCardManagementModifier(
                     state: $cardManagement,
                     visibleItems: visibleBooks,
-                    snapshot: catalogSnapshot,
-                    collection: collection,
-                    currentLocationID: { $0.item.locationID },
-                    moveTitle: String(localized: "bell.context.move"),
-                    deleteTitle: String(localized: "book.delete.title"),
-                    deleteMessage: String(localized: "book.delete.message"),
-                    selectedTitle: { count in
-                        String.localizedStringWithFormat(
-                            String(localized: "common.selected_format"),
-                            CollectionKind.bookCountLabel(for: count)
-                        )
-                    },
-                    canEdit: canEditLibrary,
+                    actions: cardActions,
                     tint: collection.backgroundStyle.accentColor,
-                    onSaveHome: { home, locations in
-                        repository.saveHome(home)
-                        repository.saveLocations(locations, in: home.id)
-                    },
-                    onMove: moveBooks,
-                    onDelete: deleteBooks,
-                    onBatchEdit: batchEditBooks
+                    onMoved: { moveFeedbackToken += 1 },
+                    onDeleted: { deleteFeedbackToken += 1 }
                 )
             )
             .sensoryFeedback(.success, trigger: moveFeedbackToken)
@@ -535,42 +523,8 @@ struct LibraryView: View {
         return candidates.filter { seen.insert($0.id).inserted }
     }
 
-    private func moveBooks(_ books: [BookRecord], to locationID: UUID?) {
-        guard canEditLibrary else { return }
-
-        let location = storageContext.location(for: locationID)
-        let storagePath = location.map(storageContext.storagePath(for:))
-
-        for book in books {
-            var updatedItem = book.item
-            updatedItem.setStorageLocation(location, path: storagePath)
-            repository.saveBookRecord(
-                BookRecord(item: updatedItem, details: book.details)
-            )
-        }
-
-        moveFeedbackToken += 1
-    }
-
-    private func batchEditBooks(_ books: [BookRecord], edit: ItemBatchEdit) {
-        guard canEditLibrary else { return }
-
-        let updatedBooks = books.map { book in
-            BookRecord(
-                item: edit.applying(to: book.item),
-                details: book.details
-            )
-        }
-        repository.saveBookRecords(updatedBooks)
-    }
-
     private func deleteBooks(_ books: [BookRecord]) {
-        guard canEditLibrary else { return }
-
-        for book in books {
-            repository.deleteBookRecord(bookID: book.id)
-        }
-
+        cardActions.delete(books)
         deleteFeedbackToken += 1
     }
 
