@@ -6168,6 +6168,22 @@
         }
       }
     },
+    "home.location.delete.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Location?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить расположение?"
+          }
+        }
+      }
+    },
     "home.location.empty.description" : {
       "localizations" : {
         "en" : {

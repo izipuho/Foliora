@@ -686,10 +686,9 @@ private struct EditLocationSheet: View {
                     Button { dismiss() } label: { Image(systemName: "checkmark") }
                 }
             }
-            .confirmationDialog(
-                String(localized: "home.delete.title"),
-                isPresented: $isPresentingDeleteConfirmation,
-                titleVisibility: .visible
+            .alert(
+                String(localized: "home.location.delete.title"),
+                isPresented: $isPresentingDeleteConfirmation
             ) {
                 Button(String(localized: "common.delete"), role: .destructive) {
                     onDelete(location.id)
