@@ -228,7 +228,7 @@ struct CoreDataLocationDeletionTests {
             try context.fetch(request).compactMap { entity in
                 (entity.value(forKey: "sourceLocationID") as? UUID).map { ($0, entity) }
             },
-            uniquingKeysWithFirst: { first, _ in first }
+            uniquingKeysWith: { first, _ in first }
         )
     }
 
