@@ -525,7 +525,10 @@ struct CatalogCardManagementModifier<Item: Identifiable>: ViewModifier where Ite
                     batchEditContent()
                 }
             }
-            .toolbar(state.isSelectionModeEnabled ? .hidden : .visible, for: .tabBar)
+            // Outside selection mode leave the tab bar to its default rather than forcing it visible:
+            // a forced .visible on a catalog lower in the stack kept the tab bar (and with it the
+            // selection bottom bar) from hiding on screens pushed above it, such as the storage screen.
+            .toolbar(state.isSelectionModeEnabled ? .hidden : .automatic, for: .tabBar)
             .navigationBarBackButtonHidden(state.isSelectionModeEnabled)
             .toolbar {
                 if showsSelectButton && canEdit && !state.isSelectionModeEnabled && !visibleItems.isEmpty {
