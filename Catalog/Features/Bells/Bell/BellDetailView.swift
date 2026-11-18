@@ -43,18 +43,14 @@ struct BellDetailView: View {
 
     var body: some View {
         MediaQuickLookPresenter(mediaAssets: bell.mediaAssets) { preview in
-            ScrollView {
+            HeroCollapsingScrollView(title: bell.title, barThumbnail: heroBarThumbnail) {
                 ZStack(alignment: .top) {
                     heroHeader(preview: preview)
                     detailContent
                 }
             }
-            .ignoresSafeArea(edges: .top)
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .interactiveDismissDisabled(canEditCollection && isNotesOrTagsDirty)
-            .navigationTitle(bell.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 CatalogItemDetailToolbar(
                     onClose: onClose,
@@ -159,6 +155,13 @@ struct BellDetailView: View {
 
     private var detailContent: some View {
         VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.lg) {
+            Text(bell.title)
+                .font(CatalogTypography.screenTitle)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .heroCollapsingTitleAnchor()
+                .padding(.horizontal, CatalogMetrics.Insets.screen)
+
             detailSection(String(localized: "item.detail.section.collection_info")) {
                 LazyVGrid(
                     columns: [
@@ -389,6 +392,17 @@ struct BellDetailView: View {
 
     private var heroPhotoAssets: [MediaAsset] {
         Self.heroPhotoAssets(in: bell)
+    }
+
+    /// Thumbnail of the currently selected hero photo for the collapsed navigation bar title.
+    private var heroBarThumbnail: MediaPreviewImage? {
+        selectedHeroPhoto.map { asset in
+            MediaPreviewImage(
+                assetID: asset.id,
+                originalData: asset.originalData,
+                size: CGSize(width: 30, height: 30)
+            )
+        }
     }
 
     private static func heroPhotoAssets(in bell: BellRecord) -> [MediaAsset] {
