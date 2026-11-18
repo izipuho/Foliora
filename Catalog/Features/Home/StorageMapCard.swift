@@ -7,7 +7,7 @@ struct StorageMapCard: View {
     private var rootLocations: [Location] {
         locations
             .filter { $0.parentLocationID == nil }
-            .sorted(by: locationSort)
+            .sorted(by: LocationOrdering.lessThan)
     }
 
     private var floorCount: Int {
@@ -68,7 +68,7 @@ struct StorageMapCard: View {
     private func children(of location: Location) -> [Location] {
         locations
             .filter { $0.parentLocationID == location.id }
-            .sorted(by: locationSort)
+            .sorted(by: LocationOrdering.lessThan)
     }
 
     private func hasAncestor(ofKind kind: LocationKind, for location: Location) -> Bool {
@@ -107,16 +107,6 @@ struct StorageMapCard: View {
             NSLocalizedString(key, comment: "Home storage summary count"),
             count
         )
-    }
-
-    private var locationSort: (Location, Location) -> Bool {
-        { lhs, rhs in
-            if lhs.kind != rhs.kind {
-                return lhs.kind.sortRank < rhs.kind.sortRank
-            }
-
-            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-        }
     }
 
     private func locationRow(location: Location, depth: Int) -> some View {
@@ -170,19 +160,4 @@ private struct StorageMapNode: Identifiable {
     let depth: Int
 
     var id: UUID { location.id }
-}
-
-extension LocationKind {
-    var sortRank: Int {
-        switch self {
-        case .floor:
-            return 0
-        case .room:
-            return 1
-        case .cabinet:
-            return 2
-        case .shelf:
-            return 3
-        }
-    }
 }

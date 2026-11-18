@@ -106,7 +106,7 @@ struct CatalogSnapshot {
         let userSortOrderEntities = privateStore.map {
             fetchEntities(named: "UserSortOrderEntity", in: context, affectedStores: [$0])
         } ?? []
-        let sortOrderByItemID = sortOrders(from: userSortOrderEntities)
+        let locationSortOrderByID = sortOrders(from: userSortOrderEntities, scope: LocationOrdering.userSortScope)
         let collectionSortOrderByItemID = sortOrders(from: userSortOrderEntities, scope: "Collection")
         let homeSortOrderByItemID = sortOrders(from: userSortOrderEntities, scope: "Home")
         logDuplicateIDs(in: locationEntities, named: "LocationEntity")
@@ -118,8 +118,8 @@ struct CatalogSnapshot {
             sortOrderByID: homeSortOrderByItemID,
             name: \.name
         )
-        snapshot.locations = locationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: sortOrderByItemID[uuidValue($0, "id")]) }
-        snapshot.collectionLocations = collectionLocationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: sortOrderByItemID[uuidValue($0, "id")]) }
+        snapshot.locations = locationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: locationSortOrderByID[uuidValue($0, "id")]) }
+        snapshot.collectionLocations = collectionLocationEntities.map { CoreDataDomainMapper.location(from: $0, sortOrder: locationSortOrderByID[uuidValue($0, "id")]) }
         snapshot.collections = sortedByUserOrder(
             collectionEntities.map(collection),
             sortOrderByID: collectionSortOrderByItemID,
@@ -130,14 +130,14 @@ struct CatalogSnapshot {
         snapshot.itemEntities = itemEntities
         snapshot.publisherEntities = publisherEntities
         snapshot.personEntities = personEntities
-        snapshot.locationsByHomeID = Dictionary(grouping: locationEntities.compactMap { locationRow(from: $0, sortOrderByItemID: sortOrderByItemID) }, by: \.0)
+        snapshot.locationsByHomeID = Dictionary(grouping: locationEntities.compactMap { locationRow(from: $0, sortOrderByItemID: locationSortOrderByID) }, by: \.0)
             .mapValues { rows in
                 rows.map(\.1).sorted { lhs, rhs in
                     lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
                 }
             }
         snapshot.collectionLocationsByCollectionID = Dictionary(
-            grouping: collectionLocationEntities.compactMap { collectionLocationRow(from: $0, sortOrderByItemID: sortOrderByItemID) },
+            grouping: collectionLocationEntities.compactMap { collectionLocationRow(from: $0, sortOrderByItemID: locationSortOrderByID) },
             by: \.0
         )
         .mapValues { rows in rows.map(\.1) }

@@ -21,7 +21,7 @@ struct HomeEditorView: View {
     private var flattenedLocations: [EditableLocationNode] {
         let roots = locations
             .filter { $0.parentLocationID == nil }
-            .sorted(by: locationSort)
+            .sorted(by: LocationOrdering.lessThan)
         return roots.flatMap { flatten(location: $0, depth: 0) }
     }
 
@@ -83,36 +83,7 @@ struct HomeEditorView: View {
                         message: LocalizedStringKey(String(localized: "home.location.empty.description"))
                     )
                 } else {
-                    ForEach(flattenedLocations) { node in
-                        Button {
-                            editingLocationID = node.location.id
-                        } label: {
-                            EditableLocationRow(
-                                location: node.location,
-                                depth: node.depth,
-                                hasChildren: !children(of: node.location).isEmpty,
-                                isCollapsed: collapsedLocationIDs.contains(node.location.id),
-                                showsAddChildAction: defaultChildKind(for: node.location) != nil,
-                                onToggleCollapsed: {
-                                    toggleCollapsed(node.location.id)
-                                },
-                                onAddChild: {
-                                    if let childKind = defaultChildKind(for: node.location) {
-                                        addingChildContext = AddChildContext(
-                                            parentID: node.location.id,
-                                            childKind: childKind
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .swipeActions {
-                            Button(String(localized: "common.delete"), role: .destructive) {
-                                requestDeletion(of: node.location)
-                            }
-                        }
-                    }
+                    locationRows
                 }
 
                 Button {
@@ -132,6 +103,7 @@ struct HomeEditorView: View {
                 }
             }
         }
+        .locationReorderContainer(onMove: moveLocations)
         .navigationTitle(String(localized: "home.screen.single_title"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -235,6 +207,76 @@ struct HomeEditorView: View {
                 )
             }
         }
+    }
+
+    /// The location tree. Rows are dragged to reorder siblings or to move a location under
+    /// another parent: with the reorder container on iOS 27, with `onMove` before that.
+    @ViewBuilder
+    private var locationRows: some View {
+        if #available(iOS 27, *) {
+            ForEach(flattenedLocations) { node in
+                locationRow(for: node)
+            }
+            .reorderable()
+        } else {
+            ForEach(flattenedLocations) { node in
+                locationRow(for: node)
+            }
+            .onMove { source, destination in
+                let nodes = flattenedLocations
+                let movedIDs = source.map { nodes[$0].id }
+                let position: LocationOrdering.DropPosition = destination < nodes.endIndex
+                    ? .before(nodes[destination].id)
+                    : .end
+                moveLocations(movedIDs, to: position)
+            }
+        }
+    }
+
+    private func locationRow(for node: EditableLocationNode) -> some View {
+        Button {
+            editingLocationID = node.location.id
+        } label: {
+            EditableLocationRow(
+                location: node.location,
+                depth: node.depth,
+                hasChildren: !children(of: node.location).isEmpty,
+                isCollapsed: collapsedLocationIDs.contains(node.location.id),
+                showsAddChildAction: defaultChildKind(for: node.location) != nil,
+                onToggleCollapsed: {
+                    toggleCollapsed(node.location.id)
+                },
+                onAddChild: {
+                    if let childKind = defaultChildKind(for: node.location) {
+                        addingChildContext = AddChildContext(
+                            parentID: node.location.id,
+                            childKind: childKind
+                        )
+                    }
+                }
+            )
+        }
+        .buttonStyle(.plain)
+        .swipeActions {
+            Button(String(localized: "common.delete"), role: .destructive) {
+                requestDeletion(of: node.location)
+            }
+        }
+    }
+
+    /// Applies a drop from the location tree. Drops the level rules don't allow are ignored.
+    private func moveLocations(_ movedIDs: [UUID], to position: LocationOrdering.DropPosition) {
+        guard let updatedLocations = LocationOrdering.move(
+            movedIDs,
+            to: position,
+            visibleIDs: flattenedLocations.map(\.id),
+            collapsedIDs: collapsedLocationIDs,
+            in: locations
+        ) else {
+            return
+        }
+
+        locations = updatedLocations
     }
 
     private var editingLocationBinding: Binding<Location>? {
@@ -351,17 +393,7 @@ struct HomeEditorView: View {
     private func children(of location: Location) -> [Location] {
         locations
             .filter { $0.parentLocationID == location.id }
-            .sorted(by: locationSort)
-    }
-
-    private var locationSort: (Location, Location) -> Bool {
-        { lhs, rhs in
-            if lhs.kind != rhs.kind {
-                return lhs.kind.sortRank < rhs.kind.sortRank
-            }
-
-            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-        }
+            .sorted(by: LocationOrdering.lessThan)
     }
 
     private func defaultChildKind(for location: Location) -> LocationKind? {
@@ -687,6 +719,10 @@ private struct EditLocationSheet: View {
                             Text(candidate.name).tag(Optional(candidate.id))
                         }
                     }
+                    .onChange(of: location.parentLocationID) {
+                        // The old position means nothing under the new parent.
+                        location.sortOrder = nil
+                    }
 
                     TextField(String(localized: "common.notes"), text: $location.notes, axis: .vertical)
                         .lineLimit(3, reservesSpace: true)
@@ -745,6 +781,28 @@ private struct EditLocationSheet: View {
 }
 
 private extension View {
+    /// Makes the location tree a reorder container on iOS 27. Before that, rows are
+    /// reordered by the `onMove` handler on the rows themselves.
+    @ViewBuilder
+    func locationReorderContainer(
+        onMove: @escaping @MainActor (_ movedIDs: [UUID], _ position: LocationOrdering.DropPosition) -> Void
+    ) -> some View {
+        if #available(iOS 27, *) {
+            reorderContainer(for: EditableLocationNode.self) { difference in
+                let position: LocationOrdering.DropPosition
+                switch difference.destination.position {
+                case let .before(id):
+                    position = .before(id)
+                case .end:
+                    position = .end
+                }
+                onMove(difference.sources, position)
+            }
+        } else {
+            self
+        }
+    }
+
     /// Confirms deleting a location. With nested locations it offers to delete them too
     /// or to keep them, moving the direct children to the top level.
     func locationDeletionAlert(

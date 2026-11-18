@@ -63,8 +63,51 @@ final class CoreDataCatalogRepository: CatalogRepository {
             context.delete(entity)
         }
 
+        updateLocationSortOrders(for: locations, removedIDs: existingLocations.compactMap { entity in
+            (entity.value(forKey: "id") as? UUID).flatMap { incomingIDs.contains($0) ? nil : $0 }
+        })
         syncCollectionLocations(from: locations, in: homeID)
         saveContext()
+    }
+
+    /// Stores the person's own order of locations and drops it for removed locations.
+    ///
+    /// Only changed values are written, so saving a home without reordering leaves the
+    /// private store untouched.
+    private func updateLocationSortOrders(for locations: [Location], removedIDs: [UUID]) {
+        guard let privateStore = privateStore() else { return }
+
+        let scope = LocationOrdering.userSortScope
+        let existingEntities = fetchEntities(
+            named: "UserSortOrderEntity",
+            predicate: NSPredicate(format: "scope == %@", scope),
+            affectedStores: [privateStore]
+        )
+        var entitiesByItemID: [UUID: NSManagedObject] = [:]
+        for entity in existingEntities {
+            guard let itemID = entity.value(forKey: "itemID") as? UUID else { continue }
+            entitiesByItemID[itemID] = entitiesByItemID[itemID] ?? entity
+        }
+
+        let updatedAt = Date()
+        for location in locations {
+            guard let sortOrder = location.sortOrder else { continue }
+            if let entity = entitiesByItemID[location.id] {
+                guard CoreDataDomainMapper.intValue(entity, "sortOrder") != sortOrder else { continue }
+                entity.setValue(sortOrder, forKey: "sortOrder")
+                entity.setValue(updatedAt, forKey: "updatedAt")
+            } else {
+                let entity = makeUserSortOrderEntity(itemID: location.id, scope: scope, in: privateStore)
+                entity.setValue(sortOrder, forKey: "sortOrder")
+                entity.setValue(updatedAt, forKey: "updatedAt")
+            }
+        }
+
+        for itemID in removedIDs {
+            if let entity = entitiesByItemID[itemID] {
+                context.delete(entity)
+            }
+        }
     }
 
     func deleteHome(homeID: UUID) {
@@ -153,9 +196,7 @@ final class CoreDataCatalogRepository: CatalogRepository {
     }
 
     func saveUserSortOrder(itemIDs: [UUID], scope: String) {
-        guard let privateStore = context.persistentStoreCoordinator?.persistentStores.first(where: {
-            $0.url?.lastPathComponent == "Private.sqlite"
-        }) else { return }
+        guard let privateStore = privateStore() else { return }
 
         let updatedAt = Date()
         for (sortOrder, itemID) in itemIDs.enumerated() {
@@ -164,18 +205,28 @@ final class CoreDataCatalogRepository: CatalogRepository {
                 predicate: NSPredicate(format: "itemID == %@ AND scope == %@", itemID as NSUUID, scope),
                 fetchLimit: 1,
                 affectedStores: [privateStore]
-            ).first ?? makeEntity(named: "UserSortOrderEntity")
-            if entity.objectID.persistentStore == nil {
-                context.assign(entity, to: privateStore)
-                entity.setValue(UUID(), forKey: "id")
-            }
-            entity.setValue(itemID, forKey: "itemID")
-            entity.setValue(scope, forKey: "scope")
+            ).first ?? makeUserSortOrderEntity(itemID: itemID, scope: scope, in: privateStore)
             entity.setValue(sortOrder, forKey: "sortOrder")
             entity.setValue(updatedAt, forKey: "updatedAt")
         }
 
         saveContext()
+    }
+
+    /// The store of the person's own data; user sort orders always live there.
+    private func privateStore() -> NSPersistentStore? {
+        context.persistentStoreCoordinator?.persistentStores.first(where: {
+            $0.url?.lastPathComponent == "Private.sqlite"
+        })
+    }
+
+    private func makeUserSortOrderEntity(itemID: UUID, scope: String, in store: NSPersistentStore) -> NSManagedObject {
+        let entity = makeEntity(named: "UserSortOrderEntity")
+        context.assign(entity, to: store)
+        entity.setValue(UUID(), forKey: "id")
+        entity.setValue(itemID, forKey: "itemID")
+        entity.setValue(scope, forKey: "scope")
+        return entity
     }
 
     private func apply(_ home: Home, to entity: NSManagedObject) {
