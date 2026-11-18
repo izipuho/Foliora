@@ -376,6 +376,14 @@ struct BellDetailView: View {
             }
         }
         .frame(width: width, height: totalHeight)
+        .visualEffect { content, proxy in
+            // Stretch the hero upward on top overscroll so it stays attached to the top edge.
+            let overscroll = max(0, proxy.frame(in: .scrollView).minY)
+            return content.scaleEffect(
+                1 + overscroll / max(proxy.size.height, 1),
+                anchor: .bottom
+            )
+        }
     }
 
     /// Height of the sharp hero photo: follows the first photo's proportions, capped by the screen height.
