@@ -3,6 +3,8 @@ import PhotosUI
 
 /// Represents camera picker data and behavior.
 struct CameraPicker: UIViewControllerRepresentable {
+    /// Called only after the camera has been fully dismissed, so the caller can
+    /// present the next screen directly. Keep the call inside the dismiss completion.
     let onImagePicked: (UIImage) -> Void
     @Environment(\.dismiss) private var dismiss
 

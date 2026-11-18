@@ -45,7 +45,6 @@ struct LibraryView: View {
     @State private var isPresentingAddBookOptions = false
     @State private var isPresentingPhotoPicker = false
     @State private var isPresentingCamera = false
-    @State private var shouldPresentEditorAfterCamera = false
     @State private var isPresentingAddBook = false
     @State private var isPresentingBatchAdd = false
     @State private var isPresentingPhotoCreationChoice = false
@@ -224,12 +223,6 @@ struct LibraryView: View {
             .onChange(of: selectedPhotoItems) { _, newItems in
                 Task {
                     await addDraftPhotosAndPresentEditor(from: newItems)
-                }
-            }
-            .onChange(of: isPresentingCamera) { _, isPresented in
-                if !isPresented, shouldPresentEditorAfterCamera, draftBook != nil {
-                    shouldPresentEditorAfterCamera = false
-                    isPresentingAddBook = true
                 }
             }
             .sheet(isPresented: $isPresentingAddBook, onDismiss: clearDraftBook) {
@@ -656,7 +649,7 @@ struct LibraryView: View {
 
         draftMediaAssets = [media.asset.with(sortOrder: 0)]
         await prepareDraftBook()
-        shouldPresentEditorAfterCamera = draftBook != nil
+        isPresentingAddBook = draftBook != nil
     }
 
     @MainActor

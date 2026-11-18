@@ -18,7 +18,6 @@ struct BellCollectionView: View {
     @State private var isPresentingAddBellOptions = false
     @State private var isPresentingPhotoPicker = false
     @State private var isPresentingCamera = false
-    @State private var shouldPresentEditorAfterCamera = false
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var draftMediaAssets: [MediaAsset] = []
     @State private var isPresentingEditCollection = false
@@ -173,12 +172,6 @@ struct BellCollectionView: View {
             .onChange(of: selectedPhotoItems) { _, newItems in
                 Task {
                     await addDraftPhotosAndPresentEditor(from: newItems)
-                }
-            }
-            .onChange(of: isPresentingCamera) { _, isPresented in
-                if !isPresented, shouldPresentEditorAfterCamera, !draftMediaAssets.isEmpty {
-                    shouldPresentEditorAfterCamera = false
-                    isPresentingAddBell = true
                 }
             }
             .sheet(isPresented: $isPresentingAddBell, onDismiss: clearDraftBell) {
@@ -373,7 +366,7 @@ struct BellCollectionView: View {
         draftMediaAssets = [
             media.asset.with(sortOrder: 0)
         ]
-        shouldPresentEditorAfterCamera = true
+        isPresentingAddBell = true
     }
 }
 
