@@ -22,7 +22,14 @@ struct BellDetailView: View {
     @State private var shouldPresentLocationPickerAfterHomeEditor = false
     @State private var isPresentingUnsavedChangesConfirmation = false
     @State private var selectedHeroPhotoID: UUID?
-    private let detailContentFadeHeight: CGFloat = 80
+    @State private var heroContainerSize: CGSize = .zero
+
+    /// Blurred continuation of the photo below its bottom edge, fading into the background.
+    private static let heroBackdropExtension: CGFloat = 60
+    private static let defaultHeroPhotoHeight: CGFloat = 320
+    private static let defaultHeroHeightToWidthRatio: CGFloat = 4 / 3
+    private static let heroMinPhotoHeight: CGFloat = 220
+    private static let heroMaxScreenFraction: CGFloat = 0.55
 
     init(
         bell: Binding<BellRecord>,
@@ -44,10 +51,15 @@ struct BellDetailView: View {
     var body: some View {
         MediaQuickLookPresenter(mediaAssets: bell.mediaAssets) { preview in
             HeroCollapsingScrollView(title: bell.title, barThumbnail: heroBarThumbnail) {
-                ZStack(alignment: .top) {
+                VStack(spacing: 0) {
                     heroHeader(preview: preview)
                     detailContent
                 }
+            }
+            .onGeometryChange(for: CGSize.self) { proxy in
+                proxy.size
+            } action: { size in
+                heroContainerSize = size
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .interactiveDismissDisabled(canEditCollection && isNotesOrTagsDirty)
@@ -288,26 +300,10 @@ struct BellDetailView: View {
 
         }
         .padding(.horizontal, CatalogMetrics.Insets.screen)
-        .padding(.top, detailContentFadeHeight)
+        .padding(.top, CatalogMetrics.Spacing.sm)
         .padding(.bottom, CatalogMetrics.Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(alignment: .top) {
-            VStack(spacing: 0) {
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0),
-                        .init(color: .clear, location: 0.65),
-                        .init(color: Color(.systemBackground), location: 1)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: detailContentFadeHeight)
-
-                Color(.systemBackground)
-            }
-        }
-        .padding(.top, 240)
+        .background(Color(.systemBackground))
     }
 
     private func detailSection<Content: View>(
@@ -340,54 +336,63 @@ struct BellDetailView: View {
     }
 
     private func heroHeader(preview: @escaping (MediaAsset) -> Void) -> some View {
-        GeometryReader { proxy in
-            ZStack {
-                if !heroPhotoAssets.isEmpty {
-                    TabView(selection: $selectedHeroPhotoID) {
-                        ForEach(heroPhotoAssets) { asset in
-                            MediaPreviewImage(
-                                assetID: asset.id,
-                                originalData: asset.originalData,
-                                size: CGSize(width: proxy.size.width, height: 320)
-                            )
-                            .frame(width: proxy.size.width, height: 320)
-                            .tag(Optional(asset.id))
-                        }
+        let width = heroContainerSize.width
+        let photoHeight = heroPhotoHeight
+        let totalHeight = photoHeight + Self.heroBackdropExtension
+
+        return ZStack {
+            if !heroPhotoAssets.isEmpty {
+                TabView(selection: $selectedHeroPhotoID) {
+                    ForEach(heroPhotoAssets) { asset in
+                        BellHeroPhotoPage(
+                            asset: asset,
+                            width: width,
+                            photoHeight: photoHeight,
+                            totalHeight: totalHeight
+                        )
+                        .tag(Optional(asset.id))
                     }
-                    .tabViewStyle(.page(indexDisplayMode: heroPhotoAssets.count > 1 ? .automatic : .never))
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if let selectedHeroPhoto {
-                            preview(selectedHeroPhoto)
-                        }
+                }
+                .tabViewStyle(.page(indexDisplayMode: heroPhotoAssets.count > 1 ? .automatic : .never))
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if let selectedHeroPhoto {
+                        preview(selectedHeroPhoto)
                     }
-                } else {
-                    LinearGradient(
-                        colors: [
-                            CatalogMediaContrast.onMediaPrimary.opacity(0.88),
-                            CatalogMediaContrast.onMediaPrimary.opacity(0.72)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                }
+            } else {
+                LinearGradient(
+                    colors: [
+                        CatalogMediaContrast.onMediaPrimary.opacity(0.88),
+                        CatalogMediaContrast.onMediaPrimary.opacity(0.72)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .overlay(alignment: .bottom) {
+                    BellHeroPhotoPage.backdropFade
+                        .frame(height: Self.heroBackdropExtension)
                 }
             }
-            .frame(width: proxy.size.width, height: 320)
-            .overlay(alignment: .bottom) {
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0.0),
-                        .init(color: Color(uiColor: .systemBackground).opacity(0.22), location: 0.72),
-                        .init(color: Color(uiColor: .systemBackground).opacity(0.55), location: 1.0)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 120)
-            }
         }
-        .frame(height: 320)
-        .ignoresSafeArea(edges: .top)
+        .frame(width: width, height: totalHeight)
+    }
+
+    /// Height of the sharp hero photo: follows the first photo's proportions, capped by the screen height.
+    private var heroPhotoHeight: CGFloat {
+        let width = heroContainerSize.width
+        guard width > 0 else { return Self.defaultHeroPhotoHeight }
+
+        let ratio = heroPhotoAssets.first.flatMap(Self.heightToWidthRatio) ?? Self.defaultHeroHeightToWidthRatio
+        let maxHeight = heroContainerSize.height > 0
+            ? heroContainerSize.height * Self.heroMaxScreenFraction
+            : .infinity
+        return max(Self.heroMinPhotoHeight, min(width * ratio, maxHeight))
+    }
+
+    private static func heightToWidthRatio(of asset: MediaAsset) -> CGFloat? {
+        guard let width = asset.width, let height = asset.height, width > 0, height > 0 else { return nil }
+        return CGFloat(height) / CGFloat(width)
     }
 
     private var heroPhotoAssets: [MediaAsset] {
@@ -604,6 +609,74 @@ struct BellDetailView: View {
         let updatedBell = BellRecord(item: item, details: bell.details)
         bell = updatedBell
         repository.saveBellRecord(updatedBell)
+    }
+}
+
+/// One hero page: the full sharp photo over a blurred, stretched copy that continues below it.
+private struct BellHeroPhotoPage: View {
+    let asset: MediaAsset
+    let width: CGFloat
+    let photoHeight: CGFloat
+    let totalHeight: CGFloat
+
+    /// The backdrop is blurred heavily, so a small sample is enough.
+    private static let backdropSampleWidth: CGFloat = 48
+    /// Only this strip at the photo's bottom edge blends into the backdrop.
+    private static let seamHeight: CGFloat = 20
+
+    static var backdropFade: some View {
+        LinearGradient(
+            colors: [Color(.systemBackground).opacity(0), Color(.systemBackground)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            backdrop
+            photo
+        }
+        .frame(width: width, height: totalHeight, alignment: .top)
+        .overlay(alignment: .bottom) {
+            Self.backdropFade
+                .frame(height: totalHeight - photoHeight)
+        }
+        .clipped()
+    }
+
+    private var backdrop: some View {
+        let sampleWidth = Self.backdropSampleWidth
+        let scale = width > 0 ? width / sampleWidth : 1
+
+        return MediaPreviewImage(
+            assetID: asset.id,
+            originalData: asset.originalData,
+            size: CGSize(width: sampleWidth, height: totalHeight / scale)
+        )
+        .scaleEffect(scale, anchor: .topLeading)
+        .frame(width: width, height: totalHeight, alignment: .topLeading)
+        .blur(radius: 40, opaque: true)
+        .accessibilityHidden(true)
+    }
+
+    private var photo: some View {
+        MediaPreviewImage(
+            assetID: asset.id,
+            originalData: asset.originalData,
+            size: CGSize(width: width, height: photoHeight)
+        )
+        .mask {
+            LinearGradient(
+                stops: [
+                    .init(color: .black, location: 0),
+                    .init(color: .black, location: max(0, 1 - Self.seamHeight / max(photoHeight, 1))),
+                    .init(color: .clear, location: 1)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
     }
 }
 
