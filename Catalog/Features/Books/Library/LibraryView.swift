@@ -57,8 +57,7 @@ struct LibraryView: View {
     @State private var collapsedGroupIDs: Set<String> = []
     @State private var favoriteChangeRevision = 0
     @State private var cardManagement = CatalogCardManagementState<BookRecord>()
-    @State private var moveFeedbackToken = 0
-    @State private var deleteFeedbackToken = 0
+    @State private var haptics = CatalogHapticTrigger()
     @StateObject private var viewModel: LibraryViewModel
 
     private let imageMediaBuilder = ImageMediaBuilder()
@@ -252,12 +251,11 @@ struct LibraryView: View {
                     visibleItems: visibleBooks,
                     actions: cardActions,
                     tint: collection.backgroundStyle.accentColor,
-                    onMoved: { moveFeedbackToken += 1 },
-                    onDeleted: { deleteFeedbackToken += 1 }
+                    onMoved: { haptics.play(.completed) },
+                    onDeleted: { haptics.play(.destructiveCompleted) }
                 )
             )
-            .sensoryFeedback(.success, trigger: moveFeedbackToken)
-            .sensoryFeedback(.warning, trigger: deleteFeedbackToken)
+            .catalogHaptics(haptics)
             .task(id: collection.id) {
                 await loadCollectionSharingState()
             }
@@ -518,7 +516,7 @@ struct LibraryView: View {
 
     private func deleteBooks(_ books: [BookRecord]) {
         cardActions.delete(books)
-        deleteFeedbackToken += 1
+        haptics.play(.destructiveCompleted)
     }
 
     private func stripScreenWidth(

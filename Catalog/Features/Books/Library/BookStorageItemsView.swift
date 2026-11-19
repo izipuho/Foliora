@@ -9,8 +9,7 @@ struct BookStorageItemsView: View {
     let onBookSelected: ((UUID) -> Void)?
 
     @State private var cardManagement = CatalogCardManagementState<BookRecord>()
-    @State private var moveFeedbackToken = 0
-    @State private var deleteFeedbackToken = 0
+    @State private var haptics = CatalogHapticTrigger()
 
     var body: some View {
         BookGridView(
@@ -25,7 +24,7 @@ struct BookStorageItemsView: View {
             deleteMessage: String(localized: "book.delete.message"),
             onDelete: { books in
                 actions.delete(books)
-                deleteFeedbackToken += 1
+                haptics.play(.destructiveCompleted)
             }
         )
         .modifier(
@@ -35,12 +34,11 @@ struct BookStorageItemsView: View {
                 actions: actions,
                 tint: tint,
                 showsSelectButton: true,
-                onMoved: { moveFeedbackToken += 1 },
-                onDeleted: { deleteFeedbackToken += 1 }
+                onMoved: { haptics.play(.completed) },
+                onDeleted: { haptics.play(.destructiveCompleted) }
             )
         )
-        .sensoryFeedback(.success, trigger: moveFeedbackToken)
-        .sensoryFeedback(.warning, trigger: deleteFeedbackToken)
+        .catalogHaptics(haptics)
         .onChange(of: books.map(\.id)) {
             cardManagement.pruneSelection(to: books)
         }

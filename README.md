@@ -126,6 +126,21 @@ It trains in PyTorch and exports a Core ML `.mlpackage`. See `ml/README.md` for 
 - The medallion images (`LaunchMedallion`, `SplashMedallionBase`, `SplashMedallionGlyph`) are rendered from `Branding/AppIcon.icon` with its Liquid Glass by Icon Composer's `ictool`, then cut into a medallion layer and a glyph layer that add up to the icon. After changing an icon or `LaunchBackground`, run `zsh scripts/generate-launch-medallion.sh` (needs Xcode 26) and commit the result.
 - The "Check Launch Medallion" build phase warns when an icon, a launch background or the generator changed since the assets were generated. It only compares fingerprints (`scripts/launch-medallion/stamps`), it never renders.
 
+### Haptic Feedback
+
+All apps use one haptic vocabulary, `CatalogHaptic` in `Catalog/Core/DesignSystem/CatalogHaptics.swift`. A screen keeps one `CatalogHapticTrigger` in `@State`, calls `play(_:)` when something happens and applies `.catalogHaptics(_:)` once. Pick the event by what happened, never by how it should feel, and do not define per-screen feedback enums or trigger tokens.
+
+| Event | Feedback | Use for |
+| --- | --- | --- |
+| `completed` | `.success` | A user-confirmed, non-destructive action finished: move, save, batch edit. |
+| `destructiveCompleted` | `.impact(weight: .heavy)` | A user-confirmed destructive action finished: delete. |
+| `selectionChanged` | `.selection` | A discrete choice changed. |
+| `resultAvailable` | `.impact(weight: .light)` | Background work produced a result to look at, such as recognition suggestions. |
+| `attentionNeeded` | `.warning` | The action could not proceed and the user can fix it, such as validation. |
+| `failed` | `.error` | The action failed for a reason the user cannot fix in place. Never for an action that succeeded. |
+
+Following the HIG, haptics complement visible feedback and are not overused: no haptics for navigation, scrolling, opening sheets or plain taps that already change the screen, and no sound feedback or custom Core Haptics patterns.
+
 ## Notes
 
 - The app is offline-first: local Core Data writes are the primary interaction path, with CloudKit synchronization handled by the persistent container.

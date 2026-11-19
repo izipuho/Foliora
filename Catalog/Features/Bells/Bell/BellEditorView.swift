@@ -7,25 +7,6 @@ struct BellEditorView: View {
         case storage
     }
 
-    private enum AnalysisFeedback: Equatable {
-        case success
-        case warning
-
-        var sensoryFeedback: SensoryFeedback {
-            switch self {
-            case .success:
-                return .impact(weight: .light)
-            case .warning:
-                return .warning
-            }
-        }
-    }
-
-    private struct AnalysisFeedbackEvent: Equatable {
-        let kind: AnalysisFeedback
-        let token: Int
-    }
-
     private struct LocalizedPhotoSuggestions {
         var title: String?
         var notes: String?
@@ -58,8 +39,7 @@ struct BellEditorView: View {
     @State private var editorState: BellEditorState
     @State private var tagInput = ""
     @State private var highlightedSection: StartSection?
-    @State private var analysisFeedbackEvent: AnalysisFeedbackEvent?
-    @State private var analysisFeedbackToken = 0
+    @State private var haptics = CatalogHapticTrigger()
     @State private var photoAnalysis: BellPhotoAnalysisController
     @State private var localizedPhotoSuggestions: LocalizedPhotoSuggestions?
     @State private var pendingPhotoSuggestionsForTranslation: BellPhotoSuggestions?
@@ -475,9 +455,7 @@ struct BellEditorView: View {
                         }
                     }
                 }
-                .sensoryFeedback(trigger: analysisFeedbackEvent) { _, newValue in
-                    newValue?.kind.sensoryFeedback
-                }
+                .catalogHaptics(haptics)
                 .onChange(of: ItemCreationService.recognitionSnapshot(from: editorState.mediaAssets)) {
                     photoAnalysis.reconcileCreation(assets: editorState.mediaAssets)
                 }
@@ -517,14 +495,9 @@ struct BellEditorView: View {
         }
     }
 
-    private func emitAnalysisFeedback(_ kind: AnalysisFeedback) {
-        analysisFeedbackToken += 1
-        analysisFeedbackEvent = AnalysisFeedbackEvent(kind: kind, token: analysisFeedbackToken)
-    }
-
     private func handlePhotoAnalysisCompletion() async {
         if photoAnalysis.suggestions.hasSuggestions {
-            emitAnalysisFeedback(.success)
+            haptics.play(.resultAvailable)
             let suggestions = photoAnalysis.suggestions
             let sourceLanguage = Locale.Language(identifier: "en")
             let translator = TextTranslator(sourceLanguage: sourceLanguage)
@@ -552,7 +525,7 @@ struct BellEditorView: View {
 
         // Keep failures / empty results silent by default.
         // If the analysis flow is re-enabled and warning feedback is needed later,
-        // emit `.warning` here in a more selective way.
+        // play `.attentionNeeded` here in a more selective way.
     }
 
     private func handlePhotoAdded(_ image: UIImage) {
@@ -686,17 +659,17 @@ struct BellEditorView: View {
             if !editorState.isTitleValid {
                 focusTitleValidation()
             } else {
-                emitAnalysisFeedback(.warning)
+                haptics.play(.attentionNeeded)
             }
             return
         }
 
-        emitAnalysisFeedback(.success)
+        haptics.play(.completed)
         saveBell()
     }
 
     private func focusTitleValidation() {
-        emitAnalysisFeedback(.warning)
+        haptics.play(.attentionNeeded)
         focusedField = .title
     }
 
