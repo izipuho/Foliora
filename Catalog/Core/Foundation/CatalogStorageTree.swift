@@ -98,13 +98,9 @@ struct CatalogStorageTree {
         self.unassignedCount = unassignedCount
     }
 
-    /// Orders locations the same way as the home storage map: by level, then by name.
+    /// Orders locations the same way as the home storage map and the home editor.
     static func locationLessThan(_ lhs: Location, _ rhs: Location) -> Bool {
-        if lhs.kind != rhs.kind {
-            return lhs.kind.sortRank < rhs.kind.sortRank
-        }
-
-        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        LocationOrdering.lessThan(lhs, rhs)
     }
 }
 
