@@ -135,11 +135,13 @@ All apps use one haptic vocabulary, `CatalogHaptic` in `Catalog/Core/DesignSyste
 | `completed` | `.success` | A user-confirmed, non-destructive action finished: move, save, batch edit. |
 | `destructiveCompleted` | `.impact(weight: .heavy)` | A user-confirmed destructive action finished: delete. |
 | `selectionChanged` | `.selection` | A discrete choice changed. |
-| `resultAvailable` | `.impact(weight: .light)` | Background work produced a result to look at, such as recognition suggestions. |
+| `resultAvailable` | Custom pattern `RecognitionResult.ahap` | Recognition suggestions reached the screen in an item editor. Not played after Batch Add. |
 | `attentionNeeded` | `.warning` | The action could not proceed and the user can fix it, such as validation. |
 | `failed` | `.error` | The action failed for a reason the user cannot fix in place. Never for an action that succeeded. |
 
-Following the HIG, haptics complement visible feedback and are not overused: no haptics for navigation, scrolling, opening sheets or plain taps that already change the screen, and no sound feedback or custom Core Haptics patterns.
+Following the HIG, haptics complement visible feedback and are not overused: no haptics for navigation, scrolling, opening sheets or plain taps that already change the screen, and no sound feedback.
+
+Custom patterns are `.ahap` files in `Catalog/Resources`, played by `CatalogHapticPatternPlayer` through a haptics-only `CHHapticEngine` that shuts down when idle; devices without haptics support stay silent. `RecognitionResult.ahap` is a bell strike: a sharp transient, a decaying hum and two fading echoes. Tune it in the file and check it on a device, since the simulator plays no haptics.
 
 ## Notes
 

@@ -40,6 +40,7 @@ struct BookEditorView: View {
     @State private var didStartInitialAnalysis = false
     @State private var textAssignmentController = BookTextAssignmentController()
     @State private var editorItemID: UUID
+    @State private var haptics = CatalogHapticTrigger()
 
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -615,6 +616,11 @@ struct BookEditorView: View {
             .onChange(of: photoAnalysis.recognizedText) { _, recognizedText in
                 textAssignmentController.sync(from: recognizedText)
             }
+            .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
+                guard wasAnalyzing, !isAnalyzing, photoAnalysis.suggestions.hasSuggestions else { return }
+                haptics.play(.resultAvailable)
+            }
+            .catalogHaptics(haptics)
             .sheet(isPresented: $isPresentingContributorEditor) {
                 let contributor = editingContributorIndex.flatMap { index in
                     editorState.contributors.indices.contains(index) ? editorState.contributors[index] : nil
