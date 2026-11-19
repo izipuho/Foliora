@@ -52,7 +52,9 @@ struct HomeEditorView: View {
     }
 
     private var editorContent: some View {
-        Form {
+        // A List rather than a Form: the reorder container is documented for List, and a Form
+        // lifted rows on drag without ever showing a drop gap.
+        List {
             Section(String(localized: "home.editor.section_home")) {
                 TextField(
                     String(localized: "common.name"),
@@ -103,6 +105,7 @@ struct HomeEditorView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
         .locationReorderContainer(onMove: moveLocations)
         .navigationTitle(String(localized: "home.screen.single_title"))
         .navigationBarTitleDisplayMode(.inline)
@@ -217,7 +220,8 @@ struct HomeEditorView: View {
             ForEach(flattenedLocations) { node in
                 locationRow(for: node)
             }
-            .reorderable()
+            // The list has several sections, so the tree is named as its own collection.
+            .reorderable(collectionID: LocationTreeCollection.tree)
         } else {
             ForEach(flattenedLocations) { node in
                 locationRow(for: node)
@@ -590,6 +594,11 @@ struct AddLocationSheet: View {
     }
 }
 
+/// The only reorderable collection in the home editor: the location tree.
+private enum LocationTreeCollection: Hashable {
+    case tree
+}
+
 private struct EditableLocationNode: Identifiable {
     let location: Location
     let depth: Int
@@ -788,7 +797,7 @@ private extension View {
         onMove: @escaping @MainActor (_ movedIDs: [UUID], _ position: LocationOrdering.DropPosition) -> Void
     ) -> some View {
         if #available(iOS 27, *) {
-            reorderContainer(for: EditableLocationNode.self) { difference in
+            reorderContainer(for: EditableLocationNode.self, in: LocationTreeCollection.self) { difference in
                 let position: LocationOrdering.DropPosition
                 switch difference.destination.position {
                 case let .before(id):
