@@ -1,6 +1,7 @@
 import CoreHaptics
 import OSLog
 import SwiftUI
+import UIKit
 
 /// The shared haptic vocabulary for catalog actions in every Foliora app.
 ///
@@ -98,20 +99,34 @@ final class CatalogHapticPatternPlayer {
     private init() {}
 
     /// Plays the pattern stored as `<name>.ahap` in the main bundle.
+    ///
+    /// Falls back to a light system impact when the pattern is missing or the
+    /// engine fails, so the event is never silent on a device with haptics.
     func play(patternNamed name: String) {
-        guard supportsHaptics else { return }
+        guard supportsHaptics else {
+            Self.logger.info("Haptics are not supported; skipping pattern \(name, privacy: .public)")
+            return
+        }
         guard let url = Bundle.main.url(forResource: name, withExtension: "ahap") else {
-            Self.logger.error("Missing haptic pattern \(name, privacy: .public).ahap")
+            Self.logger.error("Missing haptic pattern \(name, privacy: .public).ahap in the app bundle")
+            playFallback()
             return
         }
 
         do {
             let engine = try runningEngine()
             try engine.playPattern(from: url)
+            Self.logger.info("Played haptic pattern \(name, privacy: .public)")
         } catch {
             Self.logger.error("Failed to play haptic pattern \(name, privacy: .public): \(error.localizedDescription, privacy: .public)")
             engine = nil
+            playFallback()
         }
+    }
+
+    /// Plays the system feedback used when a custom pattern cannot be played.
+    private func playFallback() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     /// Returns the shared engine, creating and starting it when needed.

@@ -1,5 +1,6 @@
 import CoreData
 import Foundation
+import OSLog
 import SwiftUI
 import UIKit
 
@@ -41,6 +42,11 @@ struct BookEditorView: View {
     @State private var textAssignmentController = BookTextAssignmentController()
     @State private var editorItemID: UUID
     @State private var haptics = CatalogHapticTrigger()
+
+    private static let hapticsLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "Catalog",
+        category: "CatalogHaptics"
+    )
 
     private let acquiredYearOptions = [String(localized: "common.none")]
         + Array(1900...Calendar.current.component(.year, from: .now)).reversed().map(String.init)
@@ -617,7 +623,10 @@ struct BookEditorView: View {
                 textAssignmentController.sync(from: recognizedText)
             }
             .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
-                guard wasAnalyzing, !isAnalyzing, photoAnalysis.suggestions.hasSuggestions else { return }
+                guard wasAnalyzing, !isAnalyzing else { return }
+                let hasSuggestions = photoAnalysis.suggestions.hasSuggestions
+                Self.hapticsLogger.info("Book recognition finished, has suggestions: \(hasSuggestions, privacy: .public)")
+                guard hasSuggestions else { return }
                 haptics.play(.resultAvailable)
             }
             .catalogHaptics(haptics)
