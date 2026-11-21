@@ -53,6 +53,18 @@ struct BellCardView: View {
             accessories.append(.chip(String(acquiredYear)))
         }
 
+        if let color = bell.color {
+            accessories.append(
+                .text(
+                    color.displayName,
+                    accessibilityLabel: String.localizedStringWithFormat(
+                        String(localized: "common.field.color_format"),
+                        color.displayName
+                    )
+                )
+            )
+        }
+
         if bell.size != .unknown {
             accessories.append(
                 .text(
