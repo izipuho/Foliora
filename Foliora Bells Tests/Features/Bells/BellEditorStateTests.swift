@@ -49,7 +49,8 @@ struct BellEditorStateTests {
             details: BellDetails(
                 itemID: itemID,
                 material: .brass,
-                customMaterialName: nil
+                customMaterialName: nil,
+                color: .red
             )
         )
         let location = Location(
@@ -98,6 +99,7 @@ struct BellEditorStateTests {
         #expect(result.tags == ["travel"])
         #expect(result.details.material == .other)
         #expect(result.details.customMaterialName == "Pewter")
+        #expect(result.details.color == .red)
         #expect(result.item.locationID == locationID)
         #expect(result.storageLocation?.id == locationID)
         #expect(result.storagePath?.displayPath == "Room / Shelf")

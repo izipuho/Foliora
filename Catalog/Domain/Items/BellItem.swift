@@ -5,6 +5,7 @@ struct BellDetails: Identifiable, Hashable, Codable {
     let itemID: UUID
     var material: BellMaterial
     var customMaterialName: String?
+    var color: BellColor? = nil
     var size: BellSize = .unknown
 
     var id: UUID { itemID }

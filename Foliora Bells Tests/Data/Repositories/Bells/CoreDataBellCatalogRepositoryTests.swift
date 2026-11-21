@@ -19,6 +19,7 @@ struct CoreDataBellCatalogRepositoryTests {
             tags: ["travel", "small"],
             material: .other,
             customMaterialName: "Pewter",
+            color: .blue,
             size: .s
         )
 
@@ -37,6 +38,7 @@ struct CoreDataBellCatalogRepositoryTests {
         #expect(inverseBell.objectID == bellEntity.objectID)
         #expect(bellEntity.value(forKey: "material") as? String == BellMaterial.other.rawValue)
         #expect(bellEntity.value(forKey: "customMaterialName") as? String == "Pewter")
+        #expect(bellEntity.value(forKey: "color") as? String == BellColor.blue.rawValue)
         #expect(bellEntity.value(forKey: "size") as? String == BellSize.s.rawValue)
 
         let persisted = try #require(CatalogSnapshot.load(from: context).recordsByID[bell.id])
@@ -49,7 +51,63 @@ struct CoreDataBellCatalogRepositoryTests {
         #expect(persisted.tags == ["travel", "small"])
         #expect(persisted.details.material == .other)
         #expect(persisted.details.customMaterialName == "Pewter")
+        #expect(persisted.details.color == .blue)
         #expect(persisted.details.size == .s)
+    }
+
+    @Test
+    func bellColorSurvivesCatalogTransferExportAndImport() throws {
+        let (context, repository, collectionID) = try makeRepository()
+        let bell = makeBell(
+            collectionID: collectionID,
+            title: "Transferred bell",
+            material: .ceramic,
+            color: .turquoise
+        )
+        repository.saveBellRecord(bell)
+
+        let adapter = BellCatalogTransferAdapter()
+        let payloads = try adapter.exportPayloads(
+            from: context,
+            collectionIDs: [collectionID],
+            itemIDs: [bell.id]
+        )
+        let payload = try #require(payloads.first)
+        let transfer = try JSONDecoder().decode(BellCatalogTransferPayload.self, from: payload.data)
+        #expect(transfer.items.first?.color == BellColor.turquoise.rawValue)
+
+        let itemEntity = try #require(
+            try fetchEntities(named: "ItemEntity", from: context)
+                .first { ($0.value(forKey: "id") as? UUID) == bell.id }
+        )
+        let bellEntity = try #require(itemEntity.value(forKey: "bell") as? NSManagedObject)
+        bellEntity.setValue(nil, forKey: "color")
+
+        adapter.applyPayloads(
+            payloads,
+            collectionEntitiesByID: [:],
+            itemEntitiesByID: [bell.id: itemEntity],
+            in: context
+        )
+        try context.save()
+
+        let restored = try #require(CatalogSnapshot.load(from: context).recordsByID[bell.id])
+        #expect(restored.details.color == .turquoise)
+    }
+
+    @Test
+    func transferPayloadDecodesWhenColorIsMissing() throws {
+        let itemID = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!
+        let data = Data(
+            """
+            {"itemID":"\(itemID.uuidString)","material":"brass"}
+            """.utf8
+        )
+
+        let item = try JSONDecoder().decode(BellCatalogTransferItem.self, from: data)
+
+        #expect(item.color == nil)
+        #expect(item.size == nil)
     }
 
     @Test
@@ -194,6 +252,7 @@ struct CoreDataBellCatalogRepositoryTests {
         tags: [String] = [],
         material: BellMaterial,
         customMaterialName: String? = nil,
+        color: BellColor? = nil,
         size: BellSize = .unknown
     ) -> BellRecord {
         BellRecord(
@@ -220,6 +279,7 @@ struct CoreDataBellCatalogRepositoryTests {
                 itemID: id,
                 material: material,
                 customMaterialName: customMaterialName,
+                color: color,
                 size: size
             )
         )
