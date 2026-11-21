@@ -201,6 +201,17 @@ struct BellPhotoAnalysisTests {
     }
 
     @Test
+    func localColorAnalyzerIgnoresTransparentBackgroundPixels() {
+        let image = makeImageWithTransparentBackground()
+
+        let samples = LocalPhotoColorAnalyzer().analyze(image)
+
+        #expect(samples.count == 1)
+        #expect(samples.first?.hue == 0)
+        #expect(samples.first?.proportion == 1)
+    }
+
+    @Test
     func mapperSuggestsColorFromSemanticStyleFeatures() async {
         let suggestions = await DefaultBellPhotoSuggestionMapper().map(
             analysis: MultiPhotoAnalysisResult(photos: []),
@@ -306,6 +317,23 @@ struct BellPhotoAnalysisTests {
         )!
         context.setFillColor(red: red, green: green, blue: blue, alpha: 1)
         context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
+        return context.makeImage()!
+    }
+
+    private func makeImageWithTransparentBackground() -> CGImage {
+        let context = CGContext(
+            data: nil,
+            width: 8,
+            height: 8,
+            bitsPerComponent: 8,
+            bytesPerRow: 32,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                | CGBitmapInfo.byteOrder32Big.rawValue
+        )!
+        context.clear(CGRect(x: 0, y: 0, width: 8, height: 8))
+        context.setFillColor(red: 1, green: 0, blue: 0, alpha: 1)
+        context.fill(CGRect(x: 0, y: 0, width: 4, height: 8))
         return context.makeImage()!
     }
 
