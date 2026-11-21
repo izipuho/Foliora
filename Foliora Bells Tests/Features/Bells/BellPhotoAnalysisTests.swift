@@ -127,7 +127,6 @@ struct BellPhotoAnalysisTests {
     }
 
     @Test
-    @Test
     func mapperDoesNotSuggestMulticoloredForSingleColorAcrossPhotos() async {
         let analysis = MultiPhotoAnalysisResult(
             photos: [
@@ -190,6 +189,7 @@ struct BellPhotoAnalysisTests {
         #expect(suggestions.color?.value == .multicolored)
     }
 
+    @Test
     func localColorAnalyzerFindsDominantPixelColor() {
         let image = makeSolidImage(red: 1, green: 0, blue: 0)
 
