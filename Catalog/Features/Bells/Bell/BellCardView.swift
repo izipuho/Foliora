@@ -57,10 +57,7 @@ struct BellCardView: View {
             accessories.append(
                 .text(
                     color.displayName,
-                    accessibilityLabel: String.localizedStringWithFormat(
-                        String(localized: "common.field.color_format"),
-                        color.displayName
-                    )
+                    accessibilityLabel: color.displayName
                 )
             )
         }
