@@ -129,7 +129,7 @@ extension EnvironmentValues {
 
 /// Reports the bottom edge of the in-content title to the enclosing ``HeroCollapsingScrollView``.
 private struct HeroCollapsingTitleAnchor: ViewModifier {
-    static let coordinateSpaceName = "HeroCollapsingScrollView"
+    nonisolated static let coordinateSpaceName = "HeroCollapsingScrollView"
 
     @Environment(\.heroCollapsingTitleTracker) private var tracker
 
