@@ -349,9 +349,18 @@ struct BellEditorView: View {
                             )
 
                             VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
-                                Text(String(localized: "common.field.color"))
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                HStack {
+                                    Text(String(localized: "common.field.color"))
+                                        .foregroundStyle(.primary)
+
+                                    Spacer()
+
+                                    if let color = editorState.color {
+                                        Text(color.displayName)
+                                            .foregroundStyle(.secondary)
+                                            .multilineTextAlignment(.trailing)
+                                    }
+                                }
 
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: CatalogMetrics.Spacing.sm) {
