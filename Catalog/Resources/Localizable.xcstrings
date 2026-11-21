@@ -3945,6 +3945,22 @@
         }
       }
     },
+    "common.field.color" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Color"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цвет"
+          }
+        }
+      }
+    },
     "common.field.condition" : {
       "localizations" : {
         "en" : {
