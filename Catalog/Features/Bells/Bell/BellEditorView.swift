@@ -456,16 +456,14 @@ struct BellEditorView: View {
                     }
                 }
                 .catalogHaptics(haptics)
-                .onChange(of: localizedPhotoSuggestions != nil) { hadSuggestions, hasSuggestions in
-                    // Suggestions appear after translation, so play the haptic when they reach the screen.
-                    guard !hadSuggestions, hasSuggestions else { return }
-                    haptics.play(.resultAvailable)
-                }
                 .onChange(of: ItemCreationService.recognitionSnapshot(from: editorState.mediaAssets)) {
                     photoAnalysis.reconcileCreation(assets: editorState.mediaAssets)
                 }
                 .onChange(of: photoAnalysis.isAnalyzing) { wasAnalyzing, isAnalyzing in
                     guard wasAnalyzing, !isAnalyzing else { return }
+                    if photoAnalysis.suggestions.hasSuggestions {
+                        haptics.play(.resultAvailable)
+                    }
                     Task {
                         await handlePhotoAnalysisCompletion()
                     }
