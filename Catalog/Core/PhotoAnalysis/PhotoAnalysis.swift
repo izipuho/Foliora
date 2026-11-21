@@ -1,4 +1,5 @@
 import CoreGraphics
+import CoreImage
 import Foundation
 import Vision
 
@@ -10,7 +11,7 @@ struct PhotoColorSample: Codable, Hashable, Sendable {
     let proportion: Double
 }
 
-/// Extracts dominant pixel colors from an already-cropped main object image.
+/// Extracts dominant pixel colors from an image with its background masked out.
 struct LocalPhotoColorAnalyzer: Sendable {
     private struct Bin {
         var count = 0
@@ -194,6 +195,7 @@ struct PhotoAnalysisFailure: Hashable, Sendable, CustomStringConvertible {
         case textRecognition
         case barcodeRecognition
         case saliency
+        case foregroundMask
         case objectRecognition
         case mainClassification
         case mainObjectRecognition
@@ -528,6 +530,25 @@ private struct VisionAnalyzer: Sendable {
             .map { $0 }
     }
 
+    func foregroundMaskedImage(image: CGImage) async throws -> CGImage? {
+        let request = VNGenerateForegroundInstanceMaskRequest()
+        let handler = makeHandler(for: image)
+        try await VisionExecutor.perform([request], with: handler)
+
+        guard let observation = request.results?.first,
+              !observation.allInstances.isEmpty else {
+            return nil
+        }
+
+        let maskedBuffer = try observation.generateMaskedImage(
+            ofInstances: observation.allInstances,
+            from: handler,
+            croppedToInstancesExtent: false
+        )
+        let maskedImage = CIImage(cvPixelBuffer: maskedBuffer)
+        return CIContext().createCGImage(maskedImage, from: maskedImage.extent)
+    }
+
     func recognizeAnimals(image: CGImage) async throws -> [RecognizedObjectFeature] {
         let maxResults = 8
 
@@ -600,19 +621,24 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
         async let extractedRecognizedObjects = Self.capture(stage: .objectRecognition) {
             try await vision.recognizeAnimals(image: image)
         }
+        async let extractedForegroundMaskedImage = Self.capture(stage: .foregroundMask) {
+            try await vision.foregroundMaskedImage(image: image)
+        }
 
         let (
             featuresAttempt,
             textAttempt,
             barcodeAttempt,
             saliencyAttempt,
-            objectsAttempt
+            objectsAttempt,
+            foregroundMaskAttempt
         ) = await (
             extractedFeatures,
             extractedText,
             extractedBarcodes,
             extractedSaliencyRegions,
-            extractedRecognizedObjects
+            extractedRecognizedObjects,
+            extractedForegroundMaskedImage
         )
 
         let textFeatures = textAttempt.value ?? []
@@ -625,7 +651,8 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             textAttempt.failure,
             barcodeAttempt.failure,
             saliencyAttempt.failure,
-            objectsAttempt.failure
+            objectsAttempt.failure,
+            foregroundMaskAttempt.failure
         ].compactMap { $0 }
 
         let mainObjectRegion = detectMainObject(
@@ -672,7 +699,9 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             excludedLabels: Set(mainVisionFeatures.map(\.label))
         )
 
-        let colorSamples = mainObjectImage.map { LocalPhotoColorAnalyzer().analyze($0) } ?? []
+        let colorSamples = foregroundMaskAttempt.value.flatMap { $0 }.map {
+            LocalPhotoColorAnalyzer().analyze($0)
+        } ?? []
 
         return PhotoAnalysisResult(
             mainObjectImage: mainObjectImage,
