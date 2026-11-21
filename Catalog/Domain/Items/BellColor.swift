@@ -23,6 +23,6 @@ enum BellColor: String, CaseIterable, Hashable, Identifiable, Codable, Sendable 
     var id: String { rawValue }
 
     var displayName: String {
-        String(localized: "enum.bell_color.\\(rawValue)")
+        String(localized: "enum.bell_color.\(rawValue)")
     }
 }
