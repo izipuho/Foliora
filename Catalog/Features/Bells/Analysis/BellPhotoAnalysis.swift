@@ -253,10 +253,17 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
     private func localColorSuggestion(
         from analysis: MultiPhotoAnalysisResult
     ) -> SuggestedFieldValue<BellColor>? {
+        let photoSamples = analysis.photos
+            .map(\.colorSamples)
+            .filter { !$0.isEmpty }
+        guard !photoSamples.isEmpty else { return nil }
+
         var weights: [BellColor: Double] = [:]
-        for sample in analysis.photos.flatMap(\.colorSamples) {
-            guard let color = mapColor(sample) else { continue }
-            weights[color, default: 0] += sample.proportion
+        for samples in photoSamples {
+            for sample in samples {
+                guard let color = mapColor(sample) else { continue }
+                weights[color, default: 0] += sample.proportion / Double(photoSamples.count)
+            }
         }
 
         let ranked = weights.sorted { $0.value > $1.value }
@@ -264,9 +271,11 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             return nil
         }
 
-        let distinctStrongColors = ranked.filter { $0.value >= 0.18 }
-        if distinctStrongColors.count >= 2 {
-            let confidence = min(distinctStrongColors.prefix(3).reduce(0) { $0 + $1.value }, 1)
+        if photoSamples.contains(where: isClearlyMulticolored) {
+            let confidence = min(
+                photoSamples.map(multicolorConfidence).max() ?? 0,
+                0.95
+            )
             return SuggestedFieldValue(value: .multicolored, confidence: confidence)
         }
 
@@ -274,6 +283,59 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             value: dominant.key,
             confidence: min(max(dominant.value, 0.25), 0.95)
         )
+    }
+
+    private func isClearlyMulticolored(_ samples: [PhotoColorSample]) -> Bool {
+        let chromaticSamples = samples.compactMap { sample -> (BellColor, Double, Double)? in
+            guard let hue = sample.hue,
+                  sample.saturation >= 0.32,
+                  sample.brightness >= 0.20,
+                  sample.brightness <= 0.92,
+                  let color = mapColor(sample) else {
+                return nil
+            }
+            return (color, hue, sample.proportion)
+        }
+
+        let colorWeights = Dictionary(grouping: chromaticSamples, by: { $0.0 })
+            .mapValues { $0.reduce(0) { $0 + $1.2 } }
+
+        let significantColors = colorWeights.filter { $0.value >= 0.24 }
+        guard significantColors.count >= 2 else { return false }
+
+        for first in significantColors.keys {
+            for second in significantColors.keys where first != second {
+                let firstHues = chromaticSamples.filter { $0.0 == first }.map { $0.1 }
+                let secondHues = chromaticSamples.filter { $0.0 == second }.map { $0.1 }
+                let hasDistinctHueRegions = firstHues.contains { firstHue in
+                    secondHues.contains { secondHue in
+                        let difference = abs(firstHue - secondHue)
+                        return min(difference, 360 - difference) >= 60
+                    }
+                }
+                if hasDistinctHueRegions { return true }
+            }
+        }
+
+        return false
+    }
+
+    private func multicolorConfidence(_ samples: [PhotoColorSample]) -> Double {
+        let weights = Dictionary(grouping: samples.compactMap { sample -> (BellColor, Double)? in
+            guard let hue = sample.hue,
+                  sample.saturation >= 0.32,
+                  sample.brightness >= 0.20,
+                  sample.brightness <= 0.92,
+                  let color = mapColor(sample) else {
+                return nil
+            }
+            return (color, sample.proportion)
+        }, by: { $0.0 })
+        let strongest = weights.values
+            .map { $0.reduce(0) { $0 + $1.1 } }
+            .sorted(by: >)
+            .prefix(2)
+        return min(strongest.reduce(0, +), 0.95)
     }
 
     private func mapColor(_ sample: PhotoColorSample) -> BellColor? {
