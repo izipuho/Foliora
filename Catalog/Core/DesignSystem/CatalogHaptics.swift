@@ -17,6 +17,8 @@ enum CatalogHaptic: Equatable, Sendable {
     case destructiveCompleted
     /// A discrete choice changed (picker value, toggle-like state).
     case selectionChanged
+    /// The favorite state of a catalog item changed.
+    case favoriteToggled
     /// Recognition produced suggestions that are now on screen.
     case resultAvailable
     /// The action could not proceed and needs the user's attention (validation).
@@ -41,6 +43,8 @@ enum CatalogHaptic: Equatable, Sendable {
             return .system(.impact(weight: .heavy))
         case .selectionChanged:
             return .system(.selection)
+        case .favoriteToggled:
+            return .system(.impact(weight: .light))
         case .resultAvailable:
             return .pattern(named: "RecognitionResult")
         case .attentionNeeded:
