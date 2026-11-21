@@ -32,6 +32,7 @@ struct BookDetailView: View {
     @State private var shouldPresentLocationPickerAfterHomeEditor = false
     @State private var isPresentingUnsavedChangesConfirmation = false
     @State private var isHeaderTitleVisible = true
+    @State private var haptics = CatalogHapticTrigger()
 
     init(
         book: Binding<BookRecord>,
@@ -152,6 +153,7 @@ struct BookDetailView: View {
                 guard !isNotesOrTagsDirty else { return }
                 syncDraftsFromBook()
             }
+            .catalogHaptics(haptics)
         }
     }
 
@@ -810,6 +812,7 @@ struct BookDetailView: View {
         updatedItem.isFavorite.toggle()
         book = BookRecord(item: updatedItem, details: book.details)
         repository.setFavorite(updatedItem.isFavorite, for: updatedItem.id)
+        haptics.play(.favoriteToggled)
     }
 
     private func persist(

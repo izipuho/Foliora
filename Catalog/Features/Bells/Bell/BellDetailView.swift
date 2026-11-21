@@ -23,6 +23,7 @@ struct BellDetailView: View {
     @State private var isPresentingUnsavedChangesConfirmation = false
     @State private var selectedHeroPhotoID: UUID?
     @State private var heroContainerSize: CGSize = .zero
+    @State private var haptics = CatalogHapticTrigger()
 
     /// Blurred continuation of the photo below its bottom edge, fading into the background.
     private static let heroBackdropExtension: CGFloat = 60
@@ -138,6 +139,7 @@ struct BellDetailView: View {
             .onChange(of: heroPhotoAssetIDs) { _, _ in
                 syncSelectedHeroPhoto()
             }
+            .catalogHaptics(haptics)
         }
     }
 
@@ -553,6 +555,7 @@ struct BellDetailView: View {
         updatedItem.isFavorite.toggle()
         bell = BellRecord(item: updatedItem, details: bell.details)
         repository.setFavorite(updatedItem.isFavorite, for: updatedItem.id)
+        haptics.play(.favoriteToggled)
     }
 
     private func persist(

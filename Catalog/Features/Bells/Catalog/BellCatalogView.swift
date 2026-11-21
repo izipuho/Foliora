@@ -80,8 +80,7 @@ struct BellCatalogView: View {
     @Binding var cardManagement: CatalogCardManagementState<BellCatalogItem>
     @State private var activeJumpPopoverSectionID: String?
     @State private var pendingScrollTargetID: String?
-    @State private var moveFeedbackToken = 0
-    @State private var deleteFeedbackToken = 0
+    @State private var haptics = CatalogHapticTrigger()
     @State private var scrollRequestToken = 0
     @State private var isFavoritesCollapsed = false
     @StateObject private var viewModel: BellCatalogViewModel
@@ -170,12 +169,11 @@ struct BellCatalogView: View {
                     visibleItems: visibleBells,
                     actions: cardActions,
                     tint: catalogStyle.accentColor,
-                    onMoved: { moveFeedbackToken += 1 },
-                    onDeleted: { deleteFeedbackToken += 1 }
+                    onMoved: { haptics.play(.completed) },
+                    onDeleted: { haptics.play(.destructiveCompleted) }
                 )
             )
-            .sensoryFeedback(.success, trigger: moveFeedbackToken)
-            .sensoryFeedback(.warning, trigger: deleteFeedbackToken)
+            .catalogHaptics(haptics)
             .onAppear {
                 viewModel.updateContext(orderMode: orderMode)
                 viewModel.updateContext(filters: filters)
@@ -445,7 +443,7 @@ struct BellCatalogView: View {
             deleteMessage: String(localized: "bell.context.delete.message"),
             onDelete: { bells in
                 cardActions.delete(bells)
-                deleteFeedbackToken += 1
+                haptics.play(.destructiveCompleted)
             }
         )
     }

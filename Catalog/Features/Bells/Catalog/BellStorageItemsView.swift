@@ -9,8 +9,7 @@ struct BellStorageItemsView: View {
     let onBellSelected: ((UUID) -> Void)?
 
     @State private var cardManagement = CatalogCardManagementState<BellCatalogItem>()
-    @State private var moveFeedbackToken = 0
-    @State private var deleteFeedbackToken = 0
+    @State private var haptics = CatalogHapticTrigger()
 
     var body: some View {
         BellGridView(
@@ -25,7 +24,7 @@ struct BellStorageItemsView: View {
             deleteMessage: String(localized: "bell.context.delete.message"),
             onDelete: { bells in
                 actions.delete(bells)
-                deleteFeedbackToken += 1
+                haptics.play(.destructiveCompleted)
             }
         )
         .modifier(
@@ -35,12 +34,11 @@ struct BellStorageItemsView: View {
                 actions: actions,
                 tint: tint,
                 showsSelectButton: true,
-                onMoved: { moveFeedbackToken += 1 },
-                onDeleted: { deleteFeedbackToken += 1 }
+                onMoved: { haptics.play(.completed) },
+                onDeleted: { haptics.play(.destructiveCompleted) }
             )
         )
-        .sensoryFeedback(.success, trigger: moveFeedbackToken)
-        .sensoryFeedback(.warning, trigger: deleteFeedbackToken)
+        .catalogHaptics(haptics)
         .onChange(of: bells.map(\.id)) {
             cardManagement.pruneSelection(to: bells)
         }
