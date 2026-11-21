@@ -102,6 +102,41 @@ struct BellPhotoAnalysisTests {
     }
 
     @Test
+    func mapperSuggestsColorFromLocalPixelAnalysisWithoutSemanticFeatures() async {
+        let analysis = MultiPhotoAnalysisResult(
+            photos: [
+                PhotoAnalysisResult(
+                    mainObjectImage: nil,
+                    mainObjectRegion: nil,
+                    main: .empty,
+                    background: .empty,
+                    colorSamples: [
+                        PhotoColorSample(hue: 2, saturation: 0.82, brightness: 0.76, proportion: 0.91)
+                    ]
+                )
+            ]
+        )
+
+        let suggestions = await DefaultBellPhotoSuggestionMapper().map(
+            analysis: analysis,
+            semanticFeatures: .empty
+        )
+
+        #expect(suggestions.color?.value == .red)
+        #expect(suggestions.color?.confidence == 0.91)
+    }
+
+    func localColorAnalyzerFindsDominantPixelColor() {
+        let image = makeSolidImage(red: 1, green: 0, blue: 0)
+
+        let samples = LocalPhotoColorAnalyzer().analyze(image)
+
+        #expect(samples.count == 1)
+        #expect(samples.first?.hue == 0)
+        #expect(samples.first?.proportion == 1)
+    }
+
+    @Test
     func mapperSuggestsColorFromSemanticStyleFeatures() async {
         let suggestions = await DefaultBellPhotoSuggestionMapper().map(
             analysis: MultiPhotoAnalysisResult(photos: []),
@@ -190,6 +225,21 @@ struct BellPhotoAnalysisTests {
             confidence: confidence,
             boundingBox: .zero
         )
+    }
+
+    private func makeSolidImage(red: CGFloat, green: CGFloat, blue: CGFloat) -> CGImage {
+        let context = CGContext(
+            data: nil,
+            width: 8,
+            height: 8,
+            bitsPerComponent: 8,
+            bytesPerRow: 32,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )!
+        context.setFillColor(red: red, green: green, blue: blue, alpha: 1)
+        context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
+        return context.makeImage()!
     }
 
     private func makeImage(width: Int) -> CGImage {

@@ -75,6 +75,7 @@ struct ItemRecognitionEvidence: Codable, Sendable {
     let visualFeatures: [VisualFeature]
     let recognizedText: [TextFeature]
     let recognizedBarcodes: [BarcodeFeature]
+    let colorSamples: [PhotoColorSample]?
 
     init(analysis: MultiPhotoAnalysisResult) {
         visualFeatures = Self.deduplicatedByBestConfidence(
@@ -90,6 +91,8 @@ struct ItemRecognitionEvidence: Codable, Sendable {
             key: { Self.normalizedKey($0.text) },
             confidence: \.confidence
         ).map(TextFeature.init)
+
+        colorSamples = analysis.photos.flatMap(\.colorSamples)
 
         recognizedBarcodes = Self.deduplicatedByBestConfidence(
             analysis.photos.flatMap { $0.main.recognizedBarcodes },
@@ -110,7 +113,8 @@ struct ItemRecognitionEvidence: Codable, Sendable {
                 recognizedObjects: [],
                 recognizedBarcodes: recognizedBarcodes.map(\.runtimeValue)
             ),
-            background: .empty
+            background: .empty,
+            colorSamples: colorSamples ?? []
         )
     }
 

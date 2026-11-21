@@ -110,7 +110,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         let material = materialFeature.map {
             SuggestedFieldValue(value: mapMaterial($0.value), confidence: $0.confidence)
         }
-        let color = sortedNonEmptyFeatures(
+        let color = localColorSuggestion(from: analysis) ?? sortedNonEmptyFeatures(
             from: semanticFeatures,
             ofKinds: [.style]
         ).compactMap { feature in
@@ -247,6 +247,64 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             return .wood
         default:
             return .other
+        }
+    }
+
+    private func localColorSuggestion(
+        from analysis: MultiPhotoAnalysisResult
+    ) -> SuggestedFieldValue<BellColor>? {
+        var weights: [BellColor: Double] = [:]
+        for sample in analysis.photos.flatMap(\.colorSamples) {
+            guard let color = mapColor(sample) else { continue }
+            weights[color, default: 0] += sample.proportion
+        }
+
+        let ranked = weights.sorted { $0.value > $1.value }
+        guard let dominant = ranked.first, dominant.value >= 0.18 else {
+            return nil
+        }
+
+        let distinctStrongColors = ranked.filter { $0.value >= 0.18 }
+        if distinctStrongColors.count >= 2 {
+            let confidence = min(distinctStrongColors.prefix(3).reduce(0) { $0 + $1.value }, 1)
+            return SuggestedFieldValue(value: .multicolored, confidence: confidence)
+        }
+
+        return SuggestedFieldValue(
+            value: dominant.key,
+            confidence: min(max(dominant.value, 0.25), 0.95)
+        )
+    }
+
+    private func mapColor(_ sample: PhotoColorSample) -> BellColor? {
+        guard let hue = sample.hue else {
+            if sample.brightness >= 0.86 { return .white }
+            if sample.brightness <= 0.20 { return .black }
+            return .gray
+        }
+
+        if hue >= 35, hue < 55, sample.saturation >= 0.35,
+           sample.brightness >= 0.45, sample.brightness < 0.92 {
+            return .gold
+        }
+        if hue >= 15, hue < 35, sample.saturation >= 0.30,
+           sample.brightness < 0.65 {
+            return .bronze
+        }
+        if hue >= 15, hue < 45, sample.brightness < 0.42 {
+            return .brown
+        }
+
+        switch hue {
+        case 0..<15, 330..<360: .red
+        case 15..<35: .orange
+        case 35..<65: .yellow
+        case 65..<165: .green
+        case 165..<195: .turquoise
+        case 195..<255: .blue
+        case 255..<290: .purple
+        case 290..<330: .pink
+        default: nil
         }
     }
 

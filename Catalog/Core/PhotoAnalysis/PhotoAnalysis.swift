@@ -2,10 +2,138 @@ import CoreGraphics
 import Foundation
 import Vision
 
+/// Represents a color cluster extracted from the main object image.
+struct PhotoColorSample: Codable, Hashable, Sendable {
+    let hue: Double?
+    let saturation: Double
+    let brightness: Double
+    let proportion: Double
+}
+
+/// Extracts dominant pixel colors from an already-cropped main object image.
+struct LocalPhotoColorAnalyzer: Sendable {
+    private struct Bin {
+        var count = 0
+        var hueSin = 0.0
+        var hueCos = 0.0
+        var saturation = 0.0
+        var brightness = 0.0
+        let hue: Double?
+    }
+
+    func analyze(_ image: CGImage) -> [PhotoColorSample] {
+        let side = 64
+        let bytesPerPixel = 4
+        let bytesPerRow = side * bytesPerPixel
+        guard let context = CGContext(
+            data: nil,
+            width: side,
+            height: side,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                | CGBitmapInfo.byteOrder32Big.rawValue
+        ) else {
+            return []
+        }
+
+        context.interpolationQuality = .low
+        context.draw(image, in: CGRect(x: 0, y: 0, width: side, height: side))
+        guard let data = context.data else { return [] }
+        let pixels = data.bindMemory(to: UInt8.self, capacity: side * bytesPerRow)
+        var bins: [Int: Bin] = [:]
+        var total = 0
+
+        for y in 0..<side {
+            for x in 0..<side {
+                let offset = y * bytesPerRow + x * bytesPerPixel
+                let alpha = Double(pixels[offset + 3]) / 255
+                guard alpha >= 0.8 else { continue }
+
+                let red = Double(pixels[offset]) / 255
+                let green = Double(pixels[offset + 1]) / 255
+                let blue = Double(pixels[offset + 2]) / 255
+                let hsv = Self.hsv(red: red, green: green, blue: blue)
+                let key: Int
+                let bucketHue: Double?
+
+                if hsv.saturation < 0.14 {
+                    key = hsv.brightness < 0.22 ? 12 : (hsv.brightness < 0.82 ? 13 : 14)
+                    bucketHue = nil
+                } else {
+                    key = min(Int(hsv.hue / 30), 11)
+                    bucketHue = hsv.hue
+                }
+
+                var bin = bins[key] ?? Bin(hue: bucketHue)
+                bin.count += 1
+                bin.saturation += hsv.saturation
+                bin.brightness += hsv.brightness
+                if let bucketHue {
+                    let radians = bucketHue * .pi / 180
+                    bin.hueSin += sin(radians)
+                    bin.hueCos += cos(radians)
+                }
+                bins[key] = bin
+                total += 1
+            }
+        }
+
+        guard total > 0 else { return [] }
+        return bins.values
+            .sorted { $0.count > $1.count }
+            .prefix(3)
+            .map { bin in
+                let hue: Double?
+                if bin.hue == nil {
+                    hue = nil
+                } else {
+                    let angle = atan2(bin.hueSin, bin.hueCos) * 180 / .pi
+                    hue = angle < 0 ? angle + 360 : angle
+                }
+                return PhotoColorSample(
+                    hue: hue,
+                    saturation: bin.saturation / Double(bin.count),
+                    brightness: bin.brightness / Double(bin.count),
+                    proportion: Double(bin.count) / Double(total)
+                )
+            }
+    }
+
+    private static func hsv(
+        red: Double,
+        green: Double,
+        blue: Double
+    ) -> (hue: Double, saturation: Double, brightness: Double) {
+        let maximum = max(red, green, blue)
+        let minimum = min(red, green, blue)
+        let delta = maximum - minimum
+        let hue: Double
+
+        if delta == 0 {
+            hue = 0
+        } else if maximum == red {
+            hue = 60 * (((green - blue) / delta).truncatingRemainder(dividingBy: 6))
+        } else if maximum == green {
+            hue = 60 * ((blue - red) / delta + 2)
+        } else {
+            hue = 60 * ((red - green) / delta + 4)
+        }
+
+        return (
+            hue: hue < 0 ? hue + 360 : hue,
+            saturation: maximum == 0 ? 0 : delta / maximum,
+            brightness: maximum
+        )
+    }
+}
+
 /// Represents photo analysis result data and behavior.
 struct PhotoAnalysisResult: Sendable {
     let mainObjectImage: CGImage?
     let mainObjectRegion: ImageRegionFeature?
+    let colorSamples: [PhotoColorSample]
     let main: PhotoAnalysisFeatureScope
     let background: PhotoAnalysisFeatureScope
 
@@ -17,10 +145,12 @@ struct PhotoAnalysisResult: Sendable {
         mainObjectRegion: ImageRegionFeature?,
         main: PhotoAnalysisFeatureScope,
         background: PhotoAnalysisFeatureScope,
-        failures: [PhotoAnalysisFailure] = []
+        failures: [PhotoAnalysisFailure] = [],
+        colorSamples: [PhotoColorSample] = []
     ) {
         self.mainObjectImage = mainObjectImage
         self.mainObjectRegion = mainObjectRegion
+        self.colorSamples = colorSamples
         self.main = main
         self.background = background
         self.failures = failures
@@ -44,7 +174,8 @@ struct PhotoAnalysisResult: Sendable {
             mainObjectRegion: mainObjectRegion,
             main: main,
             background: background,
-            failures: failures
+            failures: failures,
+            colorSamples: colorSamples
         )
     }
 }
@@ -541,12 +672,15 @@ struct DefaultPhotoAnalysisService: PhotoAnalysisService {
             excludedLabels: Set(mainVisionFeatures.map(\.label))
         )
 
+        let colorSamples = mainObjectImage.map { LocalPhotoColorAnalyzer().analyze($0) } ?? []
+
         return PhotoAnalysisResult(
             mainObjectImage: mainObjectImage,
             mainObjectRegion: mainObjectRegion,
             main: mainScope,
             background: backgroundScope,
-            failures: failures
+            failures: failures,
+            colorSamples: colorSamples
         )
     }
 
