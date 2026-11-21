@@ -127,6 +127,69 @@ struct BellPhotoAnalysisTests {
     }
 
     @Test
+    @Test
+    func mapperDoesNotSuggestMulticoloredForSingleColorAcrossPhotos() async {
+        let analysis = MultiPhotoAnalysisResult(
+            photos: [
+                photo(colorSamples: [
+                    PhotoColorSample(hue: 2, saturation: 0.82, brightness: 0.76, proportion: 0.72),
+                    PhotoColorSample(hue: 8, saturation: 0.55, brightness: 0.48, proportion: 0.20)
+                ]),
+                photo(colorSamples: [
+                    PhotoColorSample(hue: 4, saturation: 0.78, brightness: 0.68, proportion: 0.65),
+                    PhotoColorSample(hue: 12, saturation: 0.48, brightness: 0.42, proportion: 0.25)
+                ])
+            ]
+        )
+
+        let suggestions = await DefaultBellPhotoSuggestionMapper().map(
+            analysis: analysis,
+            semanticFeatures: .empty
+        )
+
+        #expect(suggestions.color?.value == .red)
+    }
+
+    @Test
+    func mapperIgnoresNeutralHighlightsWhenDetectingMulticolored() async {
+        let analysis = MultiPhotoAnalysisResult(
+            photos: [
+                photo(colorSamples: [
+                    PhotoColorSample(hue: 42, saturation: 0.72, brightness: 0.72, proportion: 0.55),
+                    PhotoColorSample(hue: nil, saturation: 0.05, brightness: 0.98, proportion: 0.28),
+                    PhotoColorSample(hue: nil, saturation: 0.08, brightness: 0.12, proportion: 0.17)
+                ])
+            ]
+        )
+
+        let suggestions = await DefaultBellPhotoSuggestionMapper().map(
+            analysis: analysis,
+            semanticFeatures: .empty
+        )
+
+        #expect(suggestions.color?.value == .gold)
+    }
+
+    @Test
+    func mapperSuggestsMulticoloredForDistinctChromaticRegionsInOnePhoto() async {
+        let analysis = MultiPhotoAnalysisResult(
+            photos: [
+                photo(colorSamples: [
+                    PhotoColorSample(hue: 2, saturation: 0.82, brightness: 0.72, proportion: 0.38),
+                    PhotoColorSample(hue: 220, saturation: 0.76, brightness: 0.68, proportion: 0.34),
+                    PhotoColorSample(hue: nil, saturation: 0.04, brightness: 0.96, proportion: 0.18)
+                ])
+            ]
+        )
+
+        let suggestions = await DefaultBellPhotoSuggestionMapper().map(
+            analysis: analysis,
+            semanticFeatures: .empty
+        )
+
+        #expect(suggestions.color?.value == .multicolored)
+    }
+
     func localColorAnalyzerFindsDominantPixelColor() {
         let image = makeSolidImage(red: 1, green: 0, blue: 0)
 
@@ -197,7 +260,8 @@ struct BellPhotoAnalysisTests {
         classifications: [VisionFeature] = [],
         text: [RecognizedTextFeature] = [],
         backgroundClassifications: [VisionFeature] = [],
-        backgroundText: [RecognizedTextFeature] = []
+        backgroundText: [RecognizedTextFeature] = [],
+        colorSamples: [PhotoColorSample] = []
     ) -> PhotoAnalysisResult {
         PhotoAnalysisResult(
             mainObjectImage: nil,
@@ -213,7 +277,8 @@ struct BellPhotoAnalysisTests {
                 recognizedText: backgroundText,
                 recognizedObjects: [],
                 recognizedBarcodes: []
-            )
+            ),
+            colorSamples: colorSamples
         )
     }
 
