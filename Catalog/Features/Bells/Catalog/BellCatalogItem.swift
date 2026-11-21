@@ -21,6 +21,7 @@ struct BellCatalogItem: Identifiable, Hashable {
     let acquisitionMethod: AcquisitionMethod
     let material: BellMaterial
     let materialDisplayName: String
+    let color: BellColor?
     let size: BellSize
     let tagValues: [String]
     let storagePath: StoragePath?
@@ -50,6 +51,7 @@ struct BellCatalogItem: Identifiable, Hashable {
         acquisitionMethod: AcquisitionMethod,
         material: BellMaterial,
         materialDisplayName: String,
+        color: BellColor? = nil,
         size: BellSize = .unknown,
         tagValues: [String],
         storagePath: StoragePath? = nil,
@@ -78,6 +80,7 @@ struct BellCatalogItem: Identifiable, Hashable {
         self.acquisitionMethod = acquisitionMethod
         self.material = material
         self.materialDisplayName = materialDisplayName
+        self.color = color
         self.size = size
         self.tagValues = tagValues
         self.storagePath = storagePath
