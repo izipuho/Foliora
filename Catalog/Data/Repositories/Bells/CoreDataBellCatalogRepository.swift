@@ -23,6 +23,7 @@ extension CoreDataCatalogRepository: BellCatalogRepository {
     private func apply(_ bell: BellRecord, to entity: NSManagedObject) {
         entity.setValue(bell.details.material.rawValue, forKey: "material")
         entity.setValue(bell.details.customMaterialName, forKey: "customMaterialName")
+        entity.setValue(bell.details.color?.rawValue, forKey: "color")
         // An unknown size is stored as no value, like a bell saved before sizes existed.
         entity.setValue(bell.details.size == .unknown ? nil : bell.details.size.rawValue, forKey: "size")
     }

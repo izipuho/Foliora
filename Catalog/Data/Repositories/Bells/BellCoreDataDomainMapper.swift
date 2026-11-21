@@ -15,6 +15,7 @@ extension CoreDataDomainMapper {
                 itemID: itemRecord.id,
                 material: bellMaterial(from: stringValue(entity, "material", default: BellMaterial.unknown.rawValue)),
                 customMaterialName: entity.value(forKey: "customMaterialName") as? String,
+                color: (entity.value(forKey: "color") as? String).flatMap(BellColor.init(rawValue:)),
                 size: (entity.value(forKey: "size") as? String).flatMap(BellSize.init(rawValue:)) ?? .unknown
             )
         )

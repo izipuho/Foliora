@@ -19,6 +19,7 @@ struct CoreDataBellCatalogRepositoryTests {
             tags: ["travel", "small"],
             material: .other,
             customMaterialName: "Pewter",
+            color: .blue,
             size: .s
         )
 
@@ -37,6 +38,7 @@ struct CoreDataBellCatalogRepositoryTests {
         #expect(inverseBell.objectID == bellEntity.objectID)
         #expect(bellEntity.value(forKey: "material") as? String == BellMaterial.other.rawValue)
         #expect(bellEntity.value(forKey: "customMaterialName") as? String == "Pewter")
+        #expect(bellEntity.value(forKey: "color") as? String == BellColor.blue.rawValue)
         #expect(bellEntity.value(forKey: "size") as? String == BellSize.s.rawValue)
 
         let persisted = try #require(CatalogSnapshot.load(from: context).recordsByID[bell.id])
@@ -49,6 +51,7 @@ struct CoreDataBellCatalogRepositoryTests {
         #expect(persisted.tags == ["travel", "small"])
         #expect(persisted.details.material == .other)
         #expect(persisted.details.customMaterialName == "Pewter")
+        #expect(persisted.details.color == .blue)
         #expect(persisted.details.size == .s)
     }
 
@@ -194,6 +197,7 @@ struct CoreDataBellCatalogRepositoryTests {
         tags: [String] = [],
         material: BellMaterial,
         customMaterialName: String? = nil,
+        color: BellColor? = nil,
         size: BellSize = .unknown
     ) -> BellRecord {
         BellRecord(
@@ -220,6 +224,7 @@ struct CoreDataBellCatalogRepositoryTests {
                 itemID: id,
                 material: material,
                 customMaterialName: customMaterialName,
+                color: color,
                 size: size
             )
         )
