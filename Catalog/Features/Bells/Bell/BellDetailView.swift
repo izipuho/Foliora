@@ -212,11 +212,22 @@ struct BellDetailView: View {
                     )
 
                     if let color = bell.details.color {
-                        metadataField(
-                            title: String(localized: "common.field.color"),
-                            value: color.displayName,
-                            systemImage: "paintpalette"
-                        )
+                        VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                            Label(
+                                String(localized: "common.field.color"),
+                                systemImage: "paintpalette"
+                            )
+                            .font(CatalogTypography.cardSubtitle)
+                            .foregroundStyle(.secondary)
+
+                            HStack(spacing: CatalogMetrics.Spacing.sm) {
+                                BellColorSwatch(color: color)
+                                Text(color.displayName)
+                                    .font(CatalogTypography.cardLabel)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
 
                     metadataField(

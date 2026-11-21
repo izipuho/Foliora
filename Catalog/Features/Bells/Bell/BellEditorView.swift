@@ -76,44 +76,6 @@ struct BellEditorView: View {
         editorState.canSave
     }
 
-    @ViewBuilder
-    private func bellColorSwatch(_ color: BellColor) -> some View {
-        let swatch: AnyShapeStyle = switch color {
-        case .white: AnyShapeStyle(Color.white)
-        case .black: AnyShapeStyle(Color.black)
-        case .gray: AnyShapeStyle(Color.gray)
-        case .silver: AnyShapeStyle(Color(white: 0.72))
-        case .gold: AnyShapeStyle(Color(red: 0.83, green: 0.65, blue: 0.20))
-        case .bronze: AnyShapeStyle(Color(red: 0.62, green: 0.39, blue: 0.20))
-        case .brown: AnyShapeStyle(Color.brown)
-        case .red: AnyShapeStyle(Color.red)
-        case .orange: AnyShapeStyle(Color.orange)
-        case .yellow: AnyShapeStyle(Color.yellow)
-        case .green: AnyShapeStyle(Color.green)
-        case .turquoise: AnyShapeStyle(Color(red: 0.25, green: 0.78, blue: 0.73))
-        case .blue: AnyShapeStyle(Color.blue)
-        case .purple: AnyShapeStyle(Color.purple)
-        case .pink: AnyShapeStyle(Color.pink)
-        case .multicolored:
-            AnyShapeStyle(
-                AngularGradient(
-                    colors: [.red, .orange, .yellow, .green, .blue, .purple, .red],
-                    center: .center
-                )
-            )
-        case .transparent: AnyShapeStyle(Color.clear)
-        }
-
-        Circle()
-            .fill(swatch)
-            .frame(width: 14, height: 14)
-            .overlay {
-                Circle()
-                    .strokeBorder(Color.primary.opacity(0.22), lineWidth: 0.75)
-            }
-            .accessibilityHidden(true)
-    }
-
     private var shouldShowPhotoAnalysisSection: Bool {
         photoAnalysis.isAnalyzing
         || (!isLocalizingPhotoSuggestions && (
@@ -391,9 +353,10 @@ struct BellEditorView: View {
                                     .tag(BellColor?.none)
 
                                 ForEach(BellColor.allCases) { color in
-                                    HStack(spacing: CatalogMetrics.Spacing.sm) {
-                                        bellColorSwatch(color)
+                                    Label {
                                         Text(color.displayName)
+                                    } icon: {
+                                        BellColorSwatch(color: color)
                                     }
                                     .tag(Optional(color))
                                 }
@@ -947,3 +910,47 @@ private struct PhotoSuggestedTagChip: View {
     .previewEnvironment(container)
 }
 #endif
+
+/// A compact visual representation of a bell's selected color.
+struct BellColorSwatch: View {
+    let color: BellColor
+
+    private var style: AnyShapeStyle {
+        switch color {
+        case .white: AnyShapeStyle(Color.white)
+        case .black: AnyShapeStyle(Color.black)
+        case .gray: AnyShapeStyle(Color.gray)
+        case .silver: AnyShapeStyle(Color(white: 0.72))
+        case .gold: AnyShapeStyle(Color(red: 0.83, green: 0.65, blue: 0.20))
+        case .bronze: AnyShapeStyle(Color(red: 0.62, green: 0.39, blue: 0.20))
+        case .brown: AnyShapeStyle(Color.brown)
+        case .red: AnyShapeStyle(Color.red)
+        case .orange: AnyShapeStyle(Color.orange)
+        case .yellow: AnyShapeStyle(Color.yellow)
+        case .green: AnyShapeStyle(Color.green)
+        case .turquoise: AnyShapeStyle(Color(red: 0.25, green: 0.78, blue: 0.73))
+        case .blue: AnyShapeStyle(Color.blue)
+        case .purple: AnyShapeStyle(Color.purple)
+        case .pink: AnyShapeStyle(Color.pink)
+        case .multicolored:
+            AnyShapeStyle(
+                AngularGradient(
+                    colors: [.red, .orange, .yellow, .green, .blue, .purple, .red],
+                    center: .center
+                )
+            )
+        case .transparent: AnyShapeStyle(Color.clear)
+        }
+    }
+
+    var body: some View {
+        Circle()
+            .fill(style)
+            .frame(width: 14, height: 14)
+            .overlay {
+                Circle()
+                    .strokeBorder(Color.primary.opacity(0.28), lineWidth: 0.8)
+            }
+            .accessibilityHidden(true)
+    }
+}
