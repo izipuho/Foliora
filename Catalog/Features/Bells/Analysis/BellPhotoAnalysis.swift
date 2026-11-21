@@ -295,7 +295,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             return .brown
         }
 
-        switch hue {
+        return switch hue {
         case 0..<15, 330..<360: .red
         case 15..<35: .orange
         case 35..<65: .yellow
