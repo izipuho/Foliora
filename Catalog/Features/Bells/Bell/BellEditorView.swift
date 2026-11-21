@@ -348,6 +348,16 @@ struct BellEditorView: View {
                                 optionTitle: \.displayName
                             )
 
+                            Picker(String(localized: "common.field.color"), selection: $editorState.color) {
+                                Text(String(localized: "common.unassigned"))
+                                    .tag(BellColor?.none)
+
+                                ForEach(BellColor.allCases) { color in
+                                    Text(color.displayName)
+                                        .tag(Optional(color))
+                                }
+                            }
+
                             EnumSelectionRow(
                                 title: String(localized: "common.field.material"),
                                 selectedLabel: editorState.material.displayName,

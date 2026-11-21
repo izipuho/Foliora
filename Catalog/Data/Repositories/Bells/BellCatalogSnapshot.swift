@@ -50,6 +50,7 @@ struct CatalogRecords {
             acquisitionMethod: record.acquisitionMethod,
             material: record.details.material,
             materialDisplayName: record.materialDisplayName,
+            color: record.details.color,
             size: record.details.size,
             tagValues: record.tags,
             storagePath: record.storagePath,

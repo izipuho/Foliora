@@ -56,6 +56,61 @@ struct CoreDataBellCatalogRepositoryTests {
     }
 
     @Test
+    func bellColorSurvivesCatalogTransferExportAndImport() throws {
+        let (context, repository, collectionID) = try makeRepository()
+        let bell = makeBell(
+            collectionID: collectionID,
+            title: "Transferred bell",
+            material: .ceramic,
+            color: .turquoise
+        )
+        repository.saveBellRecord(bell)
+
+        let adapter = BellCatalogTransferAdapter()
+        let payloads = try adapter.exportPayloads(
+            from: context,
+            collectionIDs: [collectionID],
+            itemIDs: [bell.id]
+        )
+        let payload = try #require(payloads.first)
+        let transfer = try JSONDecoder().decode(BellCatalogTransferPayload.self, from: payload.data)
+        #expect(transfer.items.first?.color == BellColor.turquoise.rawValue)
+
+        let itemEntity = try #require(
+            try fetchEntities(named: "ItemEntity", from: context)
+                .first { ($0.value(forKey: "id") as? UUID) == bell.id }
+        )
+        let bellEntity = try #require(itemEntity.value(forKey: "bell") as? NSManagedObject)
+        bellEntity.setValue(nil, forKey: "color")
+
+        adapter.applyPayloads(
+            payloads,
+            collectionEntitiesByID: [:],
+            itemEntitiesByID: [bell.id: itemEntity],
+            in: context
+        )
+        try context.save()
+
+        let restored = try #require(CatalogSnapshot.load(from: context).recordsByID[bell.id])
+        #expect(restored.details.color == .turquoise)
+    }
+
+    @Test
+    func transferPayloadDecodesWhenColorIsMissing() throws {
+        let itemID = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!
+        let data = Data(
+            """
+            {"itemID":"\(itemID.uuidString)","material":"brass"}
+            """.utf8
+        )
+
+        let item = try JSONDecoder().decode(BellCatalogTransferItem.self, from: data)
+
+        #expect(item.color == nil)
+        #expect(item.size == nil)
+    }
+
+    @Test
     func saveBellRecordStoresUnknownSizeAsNoValue() throws {
         let (context, repository, collectionID) = try makeRepository()
         let bell = makeBell(collectionID: collectionID, title: "Unsized bell", material: .brass)

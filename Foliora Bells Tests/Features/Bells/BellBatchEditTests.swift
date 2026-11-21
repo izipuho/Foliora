@@ -7,6 +7,7 @@ struct BellBatchEditTests {
         itemID: UUID(),
         material: .glass,
         customMaterialName: nil,
+        color: .green,
         size: .m
     )
 
@@ -16,6 +17,7 @@ struct BellBatchEditTests {
 
         #expect(updated.size == .l)
         #expect(updated.material == .glass)
+        #expect(updated.color == .green)
     }
 
     @Test
@@ -24,6 +26,7 @@ struct BellBatchEditTests {
 
         #expect(updated.material == .bronze)
         #expect(updated.size == .m)
+        #expect(updated.color == .green)
     }
 
     @Test
