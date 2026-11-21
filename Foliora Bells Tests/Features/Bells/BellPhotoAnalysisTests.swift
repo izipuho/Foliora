@@ -126,6 +126,7 @@ struct BellPhotoAnalysisTests {
         #expect(suggestions.color?.confidence == 0.91)
     }
 
+    @Test
     func localColorAnalyzerFindsDominantPixelColor() {
         let image = makeSolidImage(red: 1, green: 0, blue: 0)
 
@@ -236,6 +237,7 @@ struct BellPhotoAnalysisTests {
             bytesPerRow: 32,
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                | CGBitmapInfo.byteOrder32Big.rawValue
         )!
         context.setFillColor(red: red, green: green, blue: blue, alpha: 1)
         context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
