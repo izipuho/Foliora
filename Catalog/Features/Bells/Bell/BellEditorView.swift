@@ -348,17 +348,50 @@ struct BellEditorView: View {
                                 optionTitle: \.displayName
                             )
 
-                            Picker(String(localized: "common.field.color"), selection: $editorState.color) {
-                                Text(String(localized: "common.unassigned"))
-                                    .tag(BellColor?.none)
+                            VStack(alignment: .leading, spacing: CatalogMetrics.Spacing.sm) {
+                                Text(String(localized: "common.field.color"))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
 
-                                ForEach(BellColor.allCases) { color in
-                                    Label {
-                                        Text(color.displayName)
-                                    } icon: {
-                                        BellColorSwatch(color: color)
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: CatalogMetrics.Spacing.sm) {
+                                        Button {
+                                            editorState.color = nil
+                                        } label: {
+                                            Image(systemName: "xmark")
+                                                .font(.system(size: 11, weight: .semibold))
+                                                .foregroundStyle(.secondary)
+                                                .frame(width: 30, height: 30)
+                                                .background {
+                                                    Circle()
+                                                        .strokeBorder(
+                                                            editorState.color == nil ? Color.accentColor : Color.secondary.opacity(0.35),
+                                                            lineWidth: editorState.color == nil ? 2 : 1
+                                                        )
+                                                }
+                                                .frame(width: 40, height: 40)
+                                                .contentShape(Circle())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityLabel(String(localized: "common.unassigned"))
+                                        .accessibilityAddTraits(editorState.color == nil ? .isSelected : [])
+
+                                        ForEach(BellColor.allCases) { color in
+                                            Button {
+                                                editorState.color = color
+                                            } label: {
+                                                BellColorSwatch(
+                                                    color: color,
+                                                    isSelected: editorState.color == color
+                                                )
+                                            }
+                                            .buttonStyle(.plain)
+                                            .frame(width: 40, height: 40)
+                                            .contentShape(Circle())
+                                            .accessibilityLabel(color.displayName)
+                                            .accessibilityAddTraits(editorState.color == color ? .isSelected : [])
+                                        }
                                     }
-                                    .tag(Optional(color))
                                 }
                             }
 
@@ -914,6 +947,7 @@ private struct PhotoSuggestedTagChip: View {
 /// A compact visual representation of a bell's selected color.
 struct BellColorSwatch: View {
     let color: BellColor
+    var isSelected = false
 
     private var style: AnyShapeStyle {
         switch color {
@@ -946,10 +980,18 @@ struct BellColorSwatch: View {
     var body: some View {
         Circle()
             .fill(style)
-            .frame(width: 14, height: 14)
+            .frame(width: 24, height: 24)
             .overlay {
                 Circle()
                     .strokeBorder(Color.primary.opacity(0.28), lineWidth: 0.8)
+            }
+            .padding(4)
+            .overlay {
+                Circle()
+                    .strokeBorder(
+                        isSelected ? Color.accentColor : Color.clear,
+                        lineWidth: 2
+                    )
             }
             .accessibilityHidden(true)
     }
