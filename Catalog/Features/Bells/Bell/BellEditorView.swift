@@ -218,6 +218,18 @@ struct BellEditorView: View {
                                         )
                                     }
 
+                                    if let colorSuggestion = photoAnalysis.suggestions.color {
+                                        PhotoSuggestionRow(
+                                            title: String(localized: "common.field.color"),
+                                            suggestedValue: colorSuggestion.value.displayName,
+                                            confidence: colorSuggestion.confidence,
+                                            onAccept: {
+                                                editorState.color = colorSuggestion.value
+                                                photoAnalysis.dismiss(.color)
+                                            }
+                                        )
+                                    }
+
                                     if let conditionSuggestion = photoAnalysis.suggestions.condition {
                                         PhotoSuggestionRow(
                                             title: String(localized: "common.field.condition"),

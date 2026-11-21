@@ -102,6 +102,45 @@ struct BellPhotoAnalysisTests {
     }
 
     @Test
+    func mapperSuggestsColorFromSemanticStyleFeatures() async {
+        let suggestions = await DefaultBellPhotoSuggestionMapper().map(
+            analysis: MultiPhotoAnalysisResult(photos: []),
+            semanticFeatures: SemanticPhotoFeatures(
+                features: [
+                    SemanticPhotoFeature(
+                        kind: .style,
+                        value: "blue and white floral pattern",
+                        confidence: 0.87,
+                        source: .semanticModel
+                    )
+                ]
+            )
+        )
+
+        #expect(suggestions.color?.value == .multicolored)
+        #expect(suggestions.color?.confidence == 0.87)
+    }
+
+    @Test
+    func mapperDoesNotInferColorFromMaterialFeatures() async {
+        let suggestions = await DefaultBellPhotoSuggestionMapper().map(
+            analysis: MultiPhotoAnalysisResult(photos: []),
+            semanticFeatures: SemanticPhotoFeatures(
+                features: [
+                    SemanticPhotoFeature(
+                        kind: .material,
+                        value: "gold",
+                        confidence: 0.99,
+                        source: .semanticModel
+                    )
+                ]
+            )
+        )
+
+        #expect(suggestions.color == nil)
+    }
+
+    @Test
     func mapperCombinesRecognizedTextAcrossPhotos() async {
         let analysis = MultiPhotoAnalysisResult(
             photos: [

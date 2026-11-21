@@ -45,6 +45,7 @@ struct BellPersistedRecognitionResult: Codable {
     let title: Suggested<String>?
     let notes: Suggested<String>?
     let material: Suggested<BellMaterial>?
+    let color: Suggested<BellColor>?
     let condition: Suggested<ItemCondition>?
     let customMaterialName: Suggested<String>?
     let suggestedYear: Suggested<Int>?
@@ -56,6 +57,7 @@ struct BellPersistedRecognitionResult: Codable {
         title = suggestions.title.map(Suggested.init)
         notes = suggestions.notes.map(Suggested.init)
         material = suggestions.material.map(Suggested.init)
+        color = suggestions.color.map(Suggested.init)
         condition = suggestions.condition.map(Suggested.init)
         customMaterialName = suggestions.customMaterialName.map(Suggested.init)
         suggestedYear = suggestions.suggestedYear.map(Suggested.init)
@@ -78,6 +80,7 @@ struct BellPersistedRecognitionResult: Codable {
             title: title?.runtimeValue,
             notes: notes?.runtimeValue,
             material: material?.runtimeValue,
+            color: color?.runtimeValue,
             condition: condition?.runtimeValue,
             customMaterialName: customMaterialName?.runtimeValue,
             suggestedYear: suggestedYear?.runtimeValue,

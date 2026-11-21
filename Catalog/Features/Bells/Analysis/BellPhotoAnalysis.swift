@@ -17,6 +17,7 @@ struct BellPhotoSuggestions: Sendable {
     let title: SuggestedFieldValue<String>?
     let notes: SuggestedFieldValue<String>?
     let material: SuggestedFieldValue<BellMaterial>?
+    let color: SuggestedFieldValue<BellColor>?
     let condition: SuggestedFieldValue<ItemCondition>?
     let customMaterialName: SuggestedFieldValue<String>?
     let suggestedYear: SuggestedFieldValue<Int>?
@@ -32,6 +33,7 @@ struct BellPhotoSuggestions: Sendable {
         title: nil,
         notes: nil,
         material: nil,
+        color: nil,
         condition: nil,
         customMaterialName: nil,
         suggestedYear: nil,
@@ -46,6 +48,7 @@ struct BellPhotoSuggestions: Sendable {
             || title != nil
             || notes != nil
             || material != nil
+            || color != nil
             || condition != nil
             || customMaterialName != nil
             || suggestedYear != nil
@@ -107,6 +110,14 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         let material = materialFeature.map {
             SuggestedFieldValue(value: mapMaterial($0.value), confidence: $0.confidence)
         }
+        let color = sortedNonEmptyFeatures(
+            from: semanticFeatures,
+            ofKinds: [.style]
+        ).compactMap { feature in
+            mapColor(feature.value).map {
+                SuggestedFieldValue(value: $0, confidence: feature.confidence)
+            }
+        }.first
         let customMaterialName = materialFeature.flatMap { feature -> SuggestedFieldValue<String>? in
             mapMaterial(feature.value) == .other
                 ? SuggestedFieldValue(value: feature.value, confidence: feature.confidence)
@@ -145,6 +156,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
             title: title,
             notes: notes,
             material: material,
+            color: color,
             condition: condition,
             customMaterialName: customMaterialName,
             suggestedYear: suggestedYear,
@@ -238,6 +250,41 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
         }
     }
 
+    private func mapColor(_ value: String) -> BellColor? {
+        let words = Set(
+            value.lowercased().split { !$0.isLetter }.map(String.init)
+        )
+
+        if !words.isDisjoint(with: ["multicolored", "multicolour", "multicolor", "colorful", "colourful"]) {
+            return .multicolored
+        }
+
+        let matches: Set<BellColor> = Set(words.compactMap { word in
+            switch word {
+            case "white": .white
+            case "black": .black
+            case "gray", "grey": .gray
+            case "silver", "silvery": .silver
+            case "gold", "golden": .gold
+            case "bronze": .bronze
+            case "brown": .brown
+            case "red": .red
+            case "orange": .orange
+            case "yellow": .yellow
+            case "green": .green
+            case "turquoise", "teal": .turquoise
+            case "blue": .blue
+            case "purple", "violet": .purple
+            case "pink": .pink
+            case "transparent", "translucent", "clear": .transparent
+            default: nil
+            }
+        })
+
+        guard !matches.isEmpty else { return nil }
+        return matches.count > 1 ? .multicolored : matches.first
+    }
+
     private func mapCondition(_ value: String) -> ItemCondition? {
         let normalizedValue = normalizedEnumValue(value)
 
@@ -271,6 +318,7 @@ final class BellPhotoAnalysisController: ItemCreationRecognitionController {
         case material
         case condition
         case customMaterialName
+        case color
         case suggestedYear
         case suggestedGeo
         case suggestedTags
@@ -503,6 +551,7 @@ final class BellPhotoAnalysisController: ItemCreationRecognitionController {
             title: field == .title ? nil : suggestions.title,
             notes: field == .notes ? nil : suggestions.notes,
             material: field == .material ? nil : suggestions.material,
+            color: field == .color ? nil : suggestions.color,
             condition: field == .condition ? nil : suggestions.condition,
             customMaterialName: field == .customMaterialName ? nil : suggestions.customMaterialName,
             suggestedYear: field == .suggestedYear ? nil : suggestions.suggestedYear,

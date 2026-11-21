@@ -4,6 +4,30 @@ import Testing
 
 struct BellPersistedRecognitionResultTests {
     @Test
+    func decodesRecognitionPayloadCreatedBeforeColorSuggestionWasAdded() throws {
+        let legacyPayload = """
+        {
+          "isBellDetected": true,
+          "title": null,
+          "notes": null,
+          "material": null,
+          "condition": null,
+          "customMaterialName": null,
+          "suggestedYear": null,
+          "suggestedGeo": null,
+          "suggestedTags": []
+        }
+        """.data(using: .utf8)!
+
+        let restored = try JSONDecoder().decode(
+            BellPersistedRecognitionResult.self,
+            from: legacyPayload
+        )
+
+        #expect(restored.runtimeSuggestions.color == nil)
+    }
+
+    @Test
     func roundTripRestoresReviewableSuggestions() throws {
         let suggestions = BellPhotoSuggestions(
             tags: ["ceramic"],
@@ -13,6 +37,7 @@ struct BellPersistedRecognitionResultTests {
             title: SuggestedFieldValue(value: "Bell", confidence: 0.9),
             notes: SuggestedFieldValue(value: "Blue", confidence: 0.8),
             material: SuggestedFieldValue(value: .ceramic, confidence: 0.95),
+            color: SuggestedFieldValue(value: .blue, confidence: 0.88),
             condition: SuggestedFieldValue(value: .good, confidence: 0.7),
             customMaterialName: nil,
             suggestedYear: SuggestedFieldValue(value: 2024, confidence: 0.6),
@@ -36,6 +61,7 @@ struct BellPersistedRecognitionResultTests {
         #expect(restored.isBellDetected)
         #expect(restored.title?.value == "Bell")
         #expect(restored.material?.value == .ceramic)
+        #expect(restored.color?.value == .blue)
         #expect(restored.condition?.value == .good)
         #expect(restored.suggestedYear?.value == 2024)
         #expect(restored.suggestedGeo?.value.name == "Paris")
