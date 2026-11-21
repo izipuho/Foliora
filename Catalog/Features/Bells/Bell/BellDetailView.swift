@@ -211,6 +211,14 @@ struct BellDetailView: View {
                         systemImage: "cube"
                     )
 
+                    if let color = bell.details.color {
+                        metadataField(
+                            title: String(localized: "common.field.color"),
+                            value: color.displayName,
+                            systemImage: "paintpalette"
+                        )
+                    }
+
                     metadataField(
                         title: String(localized: "common.field.size"),
                         value: bell.details.size.displayName,
