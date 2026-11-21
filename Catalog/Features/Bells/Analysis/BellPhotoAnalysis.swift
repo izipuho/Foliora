@@ -322,7 +322,7 @@ struct DefaultBellPhotoSuggestionMapper: BellPhotoSuggestionMapping {
 
     private func multicolorConfidence(_ samples: [PhotoColorSample]) -> Double {
         let weights = Dictionary(grouping: samples.compactMap { sample -> (BellColor, Double)? in
-            guard let hue = sample.hue,
+            guard sample.hue != nil,
                   sample.saturation >= 0.32,
                   sample.brightness >= 0.20,
                   sample.brightness <= 0.92,
